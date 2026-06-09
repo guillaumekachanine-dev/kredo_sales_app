@@ -2,7 +2,26 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { SalesStage, SalesPriority, Opportunity } from "@/types/database"
+
+export type SalesStage =
+  | "detection"
+  | "qualification"
+  | "besoin_confirme"
+  | "recherche_profil"
+  | "cv_envoyes"
+  | "entretien_client"
+  | "negociation"
+  | "gagne"
+  | "perdu"
+  | "abandonne"
+  | "en_cours"
+  | "cv_sent"
+  | "rt"
+  | "win"
+  | "lost"
+  | "non_traitee"
+
+export type SalesPriority = "basse" | "normale" | "haute"
 
 export interface CreateOpportunityInput {
   title: string
@@ -18,13 +37,36 @@ export interface CreateOpportunityInput {
   target_daily_rate: number | null // €/jour
 }
 
-type SuccessResult = { data: Opportunity; error?: never }
+type OpportunityResult = {
+  id: string
+  title: string
+}
+
+type SupabaseError = { message: string }
+type SingleResult<T> = { data: T | null; error: SupabaseError | null }
+type InsertQuery<T> = PromiseLike<SingleResult<T>> & {
+  insert(values: Record<string, unknown>): InsertQuery<T>
+  select(columns?: string): InsertQuery<T>
+  single(): Promise<SingleResult<T>>
+}
+
+type LooseSupabaseClient = {
+  auth: {
+    getUser(): Promise<{
+      data: { user: { id: string } | null }
+      error: SupabaseError | null
+    }>
+  }
+  from(table: "companies" | "opportunities"): InsertQuery<OpportunityResult>
+}
+
+type SuccessResult = { data: OpportunityResult; error?: never }
 type ErrorResult = { error: string; data?: never }
 
 export async function createOpportunity(
   input: CreateOpportunityInput
 ): Promise<SuccessResult | ErrorResult> {
-  const supabase = await createClient()
+  const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
   const {
     data: { user },
@@ -35,41 +77,51 @@ export async function createOpportunity(
     return { error: "Non authentifié. Veuillez vous reconnecter." }
   }
 
-  // Création inline du compte si nécessaire
-  let accountId: string | null = input.account_id
+  // Création inline du compte si nécessaire dans la table canonique companies.
+  let companyId: string | null = input.account_id
 
-  if (!accountId && input.account_name_new.trim()) {
-    const { data: newAccount, error: accountError } = await supabase
-      .from("crm_accounts")
-      .insert({ name: input.account_name_new.trim() })
-      .select("id")
+  if (!companyId && input.account_name_new.trim()) {
+    const { data: newCompany, error: companyError } = await supabase
+      .from("companies")
+      .insert({
+        name: input.account_name_new.trim(),
+        lifecycle_status: "prospect",
+        priority: "normale",
+        metadata: {
+          source: "manual_opportunity_creation",
+        },
+      })
+      .select("id, title")
       .single()
 
-    if (accountError) {
-      return { error: `Erreur lors de la création du client : ${accountError.message}` }
+    if (companyError || !newCompany) {
+      return { error: `Erreur lors de la création du compte : ${companyError?.message ?? "compte non retourné"}` }
     }
-    accountId = newAccount.id
+    companyId = newCompany.id
   }
 
   const { data, error } = await supabase
-    .from("sales_opportunities")
+    .from("opportunities")
     .insert({
       title: input.title.trim(),
-      account_id: accountId,
+      company_id: companyId,
       stage: input.stage,
       priority: input.priority,
       conviction: input.conviction,
       target_close_date: input.target_close_date || null,
       start_date: input.start_date || null,
-      duration: input.duration,
+      duration_days: input.duration,
       estimated_gain: input.estimated_gain,
       target_daily_rate: input.target_daily_rate,
+      context: {
+        source: "manual_drawer",
+      },
     })
-    .select()
+    .select("id, title")
     .single()
 
-  if (error) {
-    return { error: error.message }
+  if (error || !data) {
+    return { error: error?.message ?? "Opportunité non retournée par Supabase." }
   }
 
   revalidatePath("/missions/opps")
