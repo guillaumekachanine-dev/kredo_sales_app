@@ -2,8 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useTransition } from "react"
 import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
+import { signOut } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +61,7 @@ function ModuleItem({ item, pathname }: { item: MainMenuItem; pathname: string }
 
 export function DesktopSidebar() {
   const pathname = usePathname()
+  const [isPending, startTransition] = useTransition()
 
   return (
     <aside className="w-64 bg-primary border-r border-white/10 h-full flex flex-col justify-between shrink-0 select-none text-white">
@@ -107,7 +110,7 @@ export function DesktopSidebar() {
 
       {/* ── Footer : session utilisateur ─────────────────────────── */}
       <div className="p-4 border-t border-white/10 bg-white/5">
-        <div className="flex items-center gap-3 px-2 py-1.5 rounded-lg border border-white/10 bg-white/5">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-white/10 bg-white/5">
           <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-bold text-xs text-white shrink-0">
             GK
           </div>
@@ -115,6 +118,17 @@ export function DesktopSidebar() {
             <h5 className="text-xs font-semibold text-white truncate">Guillaume K.</h5>
             <p className="text-[10px] text-white/60 truncate">guillaume@kredo.dev</p>
           </div>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => startTransition(() => signOut())}
+            title="Se déconnecter"
+            className="shrink-0 p-1.5 rounded text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors disabled:opacity-40"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3-3m3 3l-3 3" />
+            </svg>
+          </button>
         </div>
       </div>
 
