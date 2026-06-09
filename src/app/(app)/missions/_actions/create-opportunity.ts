@@ -37,6 +37,10 @@ export interface CreateOpportunityInput {
   target_daily_rate: number | null // €/jour
 }
 
+type CreatedCompany = {
+  id: string
+}
+
 type OpportunityResult = {
   id: string
   title: string
@@ -57,7 +61,7 @@ type LooseSupabaseClient = {
       error: SupabaseError | null
     }>
   }
-  from(table: "companies" | "opportunities"): InsertQuery<OpportunityResult>
+  from<T>(table: "companies" | "opportunities"): InsertQuery<T>
 }
 
 type SuccessResult = { data: OpportunityResult; error?: never }
@@ -82,7 +86,7 @@ export async function createOpportunity(
 
   if (!companyId && input.account_name_new.trim()) {
     const { data: newCompany, error: companyError } = await supabase
-      .from("companies")
+      .from<CreatedCompany>("companies")
       .insert({
         name: input.account_name_new.trim(),
         lifecycle_status: "prospect",
@@ -91,7 +95,7 @@ export async function createOpportunity(
           source: "manual_opportunity_creation",
         },
       })
-      .select("id, title")
+      .select("id")
       .single()
 
     if (companyError || !newCompany) {
@@ -101,7 +105,7 @@ export async function createOpportunity(
   }
 
   const { data, error } = await supabase
-    .from("opportunities")
+    .from<OpportunityResult>("opportunities")
     .insert({
       title: input.title.trim(),
       company_id: companyId,
