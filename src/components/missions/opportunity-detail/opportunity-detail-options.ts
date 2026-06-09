@@ -12,12 +12,16 @@ export const PRACTICE_OPTIONS = [
 ]
 
 export const TYPE_OPTIONS = [
-  { value: "assistance_technique", label: "Assistance technique" },
+  { value: "regie", label: "Régie" },
   { value: "forfait", label: "Forfait" },
-  { value: "centre_de_services", label: "Centre de services" },
+  { value: "centre_de_service", label: "Centre de service" },
   { value: "conseil", label: "Conseil" },
   { value: "audit", label: "Audit" },
-  { value: "formation", label: "Formation" }
+  { value: "staffing", label: "Staffing" },
+  { value: "extension", label: "Extension" },
+  { value: "renouvellement", label: "Renouvellement" },
+  { value: "upsell", label: "Upsell" },
+  { value: "cross_sell", label: "Cross-sell" },
 ]
 
 export const SOURCE_OPTIONS = [
@@ -44,6 +48,16 @@ export const SENIORITY_OPTIONS = [
 ]
 
 export const STAGE_LABELS: Record<string, string> = {
+  detection: "Détection",
+  qualification: "Qualification",
+  besoin_confirme: "Besoin confirmé",
+  recherche_profil: "Recherche profil",
+  cv_envoyes: "CV envoyés",
+  entretien_client: "Entretien client",
+  negociation: "Négociation",
+  gagne: "Gagné",
+  perdu: "Perdu",
+  abandonne: "Abandonné",
   en_cours: "En cours",
   cv_sent: "CV sent",
   rt: "RT",
@@ -54,7 +68,7 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export const PRIORITY_LABELS: Record<string, string> = {
   basse: "Basse",
-  moyenne: "Moyenne",
+  normale: "Normale",
   haute: "Haute",
 }
 
@@ -82,13 +96,13 @@ export function getOutcomeLabel(outcome: string | null | undefined): string {
 export function getTypeLabel(type: string | null | undefined): string {
   if (!type) return "—"
   const opt = TYPE_OPTIONS.find((o) => o.value === type)
-  return opt ? opt.label : type.replace("_", " ")
+  return opt ? opt.label : type.replaceAll("_", " ")
 }
 
 export function getSourceLabel(source: string | null | undefined): string {
   if (!source) return "—"
   const opt = SOURCE_OPTIONS.find((o) => o.value === source)
-  return opt ? opt.label : source.replace("_", " ")
+  return opt ? opt.label : source.replaceAll("_", " ")
 }
 
 export function getRemoteLabel(remote: string | null | undefined): string {
