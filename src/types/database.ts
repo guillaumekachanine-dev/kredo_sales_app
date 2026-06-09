@@ -1,10 +1,3 @@
-// ============================================================
-//  KREDO — Types de la base de données
-//  GÉNÉRÉ depuis le schéma Supabase. NE PAS éditer à la main.
-//  Régénérer après chaque migration :
-//    npx supabase gen types typescript --project-id jvzgmhvwirsbdkjpmvla > src/types/database.ts
-// ============================================================
-
 export type Json =
   | string
   | number
@@ -14,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -96,33 +91,82 @@ export type Database = {
           },
         ]
       }
+      notes: {
+        Row: {
+          content_json: Json
+          content_text: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          is_pinned: boolean
+          owner_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_json?: Json
+          content_text?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          is_pinned?: boolean
+          owner_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_json?: Json
+          content_text?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          is_pinned?: boolean
+          owner_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales_opportunities: {
         Row: {
-          account_id: string | null                                        // nullable depuis migration 002
-          acv: number | null                                               // GENERATED : duration × target_daily_rate
+          account_id: string | null
+          acv: number | null
           client_context: string | null
           conviction: number
           created_at: string
-          duration: number | null                                          // durée en jours (migration 002)
+          duration: number | null
           engagement_notes: string | null
           estimated_gain: number | null
           id: string
+          location: string | null
+          loss_reason: string | null
           need_detail: string | null
           need_summary: string | null
+          next_action_at: string | null
+          next_action_label: string | null
+          opportunity_type: string | null
           outcome: Database["public"]["Enums"]["sales_outcome"] | null
           owner_id: string
+          practice: string | null
           priority: Database["public"]["Enums"]["sales_priority"]
+          remote_policy: string | null
+          seniority: string | null
+          source: string | null
           stage: Database["public"]["Enums"]["sales_stage"]
-          start_date: string | null                                        // date ISO (migration 002)
+          start_date: string | null
           target_close_date: string | null
           target_daily_rate: number | null
           title: string
           updated_at: string
-          weighted_gain: number | null                                     // GENERATED : estimated_gain × conviction / 100
+          weighted_gain: number | null
+          win_reason: string | null
         }
         Insert: {
           account_id?: string | null
-          // acv — colonne GENERATED, ne pas inclure dans Insert
+          acv?: number | null
           client_context?: string | null
           conviction?: number
           created_at?: string
@@ -130,22 +174,32 @@ export type Database = {
           engagement_notes?: string | null
           estimated_gain?: number | null
           id?: string
+          location?: string | null
+          loss_reason?: string | null
           need_detail?: string | null
           need_summary?: string | null
+          next_action_at?: string | null
+          next_action_label?: string | null
+          opportunity_type?: string | null
           outcome?: Database["public"]["Enums"]["sales_outcome"] | null
           owner_id?: string
+          practice?: string | null
           priority?: Database["public"]["Enums"]["sales_priority"]
+          remote_policy?: string | null
+          seniority?: string | null
+          source?: string | null
           stage?: Database["public"]["Enums"]["sales_stage"]
           start_date?: string | null
           target_close_date?: string | null
           target_daily_rate?: number | null
           title: string
           updated_at?: string
-          // weighted_gain — colonne GENERATED, ne pas inclure dans Insert
+          weighted_gain?: number | null
+          win_reason?: string | null
         }
         Update: {
           account_id?: string | null
-          // acv — colonne GENERATED, ne pas inclure dans Update
+          acv?: number | null
           client_context?: string | null
           conviction?: number
           created_at?: string
@@ -153,18 +207,28 @@ export type Database = {
           engagement_notes?: string | null
           estimated_gain?: number | null
           id?: string
+          location?: string | null
+          loss_reason?: string | null
           need_detail?: string | null
           need_summary?: string | null
+          next_action_at?: string | null
+          next_action_label?: string | null
+          opportunity_type?: string | null
           outcome?: Database["public"]["Enums"]["sales_outcome"] | null
           owner_id?: string
+          practice?: string | null
           priority?: Database["public"]["Enums"]["sales_priority"]
+          remote_policy?: string | null
+          seniority?: string | null
+          source?: string | null
           stage?: Database["public"]["Enums"]["sales_stage"]
           start_date?: string | null
           target_close_date?: string | null
           target_daily_rate?: number | null
           title?: string
           updated_at?: string
-          // weighted_gain — colonne GENERATED, ne pas inclure dans Update
+          weighted_gain?: number | null
+          win_reason?: string | null
         }
         Relationships: [
           {
@@ -304,7 +368,13 @@ export type Database = {
       sales_outcome: "gagnee" | "perdue" | "abandonnee"
       sales_priority: "haute" | "moyenne" | "basse"
       sales_skill_importance: "indispensable" | "souhaitee" | "bonus"
-      sales_stage: "en_cours" | "cv_sent" | "rt" | "win" | "lost" | "non_traitee"
+      sales_stage:
+        | "en_cours"
+        | "cv_sent"
+        | "rt"
+        | "win"
+        | "lost"
+        | "non_traitee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -312,8 +382,142 @@ export type Database = {
   }
 }
 
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      crm_contact_role: [
+        "decisionnaire",
+        "operationnel",
+        "prescripteur",
+        "achat",
+      ],
+      sales_outcome: ["gagnee", "perdue", "abandonnee"],
+      sales_priority: ["haute", "moyenne", "basse"],
+      sales_skill_importance: ["indispensable", "souhaitee", "bonus"],
+      sales_stage: ["en_cours", "cv_sent", "rt", "win", "lost", "non_traitee"],
+    },
+  },
+} as const
+
 // ------------------------------------------------------------
-//  Raccourcis pratiques (à enrichir au fil des modules)
+//  Raccourcis pratiques
 // ------------------------------------------------------------
 type PublicSchema = Database["public"]
 
@@ -329,3 +533,4 @@ export type OpportunityEvent = PublicSchema["Tables"]["sales_opportunity_events"
 export type SalesStage = PublicSchema["Enums"]["sales_stage"]
 export type SalesOutcome = PublicSchema["Enums"]["sales_outcome"]
 export type SalesPriority = PublicSchema["Enums"]["sales_priority"]
+
