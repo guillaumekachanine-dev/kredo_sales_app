@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { Contact, Database } from "@/types/database"
+import type { Contact, ContactRole } from "@/types/database"
 import {
   linkOpportunityContact,
   updateOpportunityContactRole,
@@ -10,8 +10,6 @@ import {
 } from "@/app/(app)/missions/_actions/opportunity-contacts"
 import { searchContacts, type SearchContactResult } from "@/app/(app)/missions/_actions/search-contacts"
 import { cn } from "@/lib/utils"
-
-type ContactRole = Database["public"]["Enums"]["crm_contact_role"]
 
 interface OpportunityContactsPanelProps {
   opportunityId: string

@@ -55,13 +55,13 @@ type InsertQuery<T> = PromiseLike<SingleResult<T>> & {
 }
 
 type LooseSupabaseClient = {
+  from<T>(table: "companies" | "opportunities"): InsertQuery<T>
   auth: {
     getUser(): Promise<{
       data: { user: { id: string } | null }
       error: SupabaseError | null
     }>
   }
-  from<T>(table: "companies" | "opportunities"): InsertQuery<T>
 }
 
 type SuccessResult = { data: OpportunityResult; error?: never }

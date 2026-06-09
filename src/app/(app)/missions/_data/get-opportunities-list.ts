@@ -51,7 +51,7 @@ interface MappedRow extends MissionsListRow {
   updatedAt: string
 }
 
-type SupabaseError = { message: string }
+type SupabaseError = { message: string; code?: string; details?: string; hint?: string }
 type OpportunitiesQuery = PromiseLike<{ data: DBQueryResult[] | null; error: SupabaseError | null }> & {
   select(columns: string): OpportunitiesQuery
   order(column: string, options?: { ascending?: boolean }): OpportunitiesQuery
@@ -101,7 +101,7 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       .order("updated_at", { ascending: false })
 
     if (error) {
-      console.error("Error fetching opportunities from Supabase:", error)
+      console.error("Supabase error:", error?.message, error?.code, error?.details, error?.hint)
       return []
     }
 

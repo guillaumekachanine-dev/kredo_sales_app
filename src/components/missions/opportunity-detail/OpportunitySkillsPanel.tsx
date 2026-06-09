@@ -2,15 +2,13 @@
 
 import { useState, useTransition } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { OpportunitySkill, Database } from "@/types/database"
+import type { OpportunitySkill, SkillImportance } from "@/types/database"
 import {
   addOpportunitySkill,
   updateOpportunitySkill,
   deleteOpportunitySkill,
 } from "@/app/(app)/missions/_actions/opportunity-skills"
 import { cn } from "@/lib/utils"
-
-type SkillImportance = Database["public"]["Enums"]["sales_skill_importance"]
 
 interface OpportunitySkillsPanelProps {
   opportunityId: string

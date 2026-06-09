@@ -72,14 +72,65 @@ export async function updateOpportunity(
     updatePayload.title = trimmedTitle
   }
 
-  if (input.account_id !== undefined) updatePayload.account_id = input.account_id
+  if (input.account_id !== undefined) updatePayload.company_id = input.account_id
   if (input.need_summary !== undefined) updatePayload.need_summary = normalizeText(input.need_summary)
-  if (input.need_detail !== undefined) updatePayload.need_detail = normalizeText(input.need_detail)
-  if (input.client_context !== undefined) updatePayload.client_context = normalizeText(input.client_context)
-  if (input.engagement_notes !== undefined) updatePayload.engagement_notes = normalizeText(input.engagement_notes)
 
-  if (input.stage !== undefined) updatePayload.stage = input.stage
-  if (input.outcome !== undefined) updatePayload.outcome = input.outcome
+  // Gérer la fusion dans la colonne JSONB `context`
+  const { data: currentOpp, error: selectContextError } = await supabase
+    .from("opportunities")
+    .select("context")
+    .eq("id", input.id)
+    .maybeSingle()
+
+  if (selectContextError) {
+    console.error("Erreur lors de la récupération du contexte actuel :", selectContextError)
+  }
+
+  const currentContext = currentOpp?.context && typeof currentOpp.context === "object" ? currentOpp.context : {}
+  const newContext = { ...(currentContext as Record<string, any>) }
+  let hasContextChange = false
+
+  if (input.need_detail !== undefined) {
+    newContext.need_detail = normalizeText(input.need_detail)
+    hasContextChange = true
+  }
+  if (input.client_context !== undefined) {
+    newContext.client_context = normalizeText(input.client_context)
+    hasContextChange = true
+  }
+  if (input.engagement_notes !== undefined) {
+    newContext.engagement_notes = normalizeText(input.engagement_notes)
+    hasContextChange = true
+  }
+
+  if (hasContextChange) {
+    updatePayload.context = newContext
+  }
+
+  let targetStage = input.stage
+  if (input.outcome === "gagnee") {
+    targetStage = "gagne"
+  } else if (input.outcome === "perdue") {
+    targetStage = "perdu"
+  } else if (input.outcome === "abandonnee") {
+    targetStage = "abandonne"
+  } else if (input.outcome === null) {
+    if (targetStage === "gagne" || targetStage === "perdu" || targetStage === "abandonne" || !targetStage) {
+      const { data: currentOpp } = await supabase
+        .from("opportunities")
+        .select("stage")
+        .eq("id", input.id)
+        .maybeSingle()
+      const currentStage = currentOpp?.stage as SalesStage | undefined
+      if (currentStage && currentStage !== "gagne" && currentStage !== "perdu" && currentStage !== "abandonne") {
+        targetStage = currentStage
+      } else {
+        targetStage = "detection"
+      }
+    }
+  }
+
+  if (targetStage !== undefined) updatePayload.stage = targetStage
   if (input.priority !== undefined) updatePayload.priority = input.priority
 
   if (input.conviction !== undefined) {
@@ -123,7 +174,7 @@ export async function updateOpportunity(
         return { error: "La durée doit être supérieure à 0 jours." }
       }
     }
-    updatePayload.duration = dur
+    updatePayload.duration_days = dur
   }
 
   if (input.practice !== undefined) updatePayload.practice = normalizeText(input.practice)
@@ -138,38 +189,38 @@ export async function updateOpportunity(
   if (input.loss_reason !== undefined) updatePayload.loss_reason = normalizeText(input.loss_reason)
 
   const STAGE_LABELS_LOCAL: Record<string, string> = {
-    en_cours: "En cours",
-    cv_sent: "CV sent",
-    rt: "RT",
-    win: "Win",
-    lost: "Lost",
-    non_traitee: "Non traitée",
+    detection: "Détection",
+    cv_envoyes: "CV envoyés",
+    entretien_client: "Entretien client",
+    gagne: "Gagné",
+    perdu: "Perdu",
+    abandonne: "Abandonné",
   }
 
   let oldStage: SalesStage | null = null
-  const stageChanged = input.stage !== undefined
+  const stageChanged = targetStage !== undefined
 
   if (stageChanged) {
     const { data: currentOpp } = await supabase
-      .from("sales_opportunities")
+      .from("opportunities")
       .select("stage")
       .eq("id", input.id)
       .maybeSingle()
     if (currentOpp) {
-      oldStage = currentOpp.stage
+      oldStage = currentOpp.stage as SalesStage
     }
   }
 
   // La structure OpportunityUpdate possède les champs système en lecture seule mais nous ne devons PAS y toucher
   const cleanPayload = { ...updatePayload }
   delete cleanPayload.owner_id
-  delete cleanPayload.created_at
-  delete cleanPayload.updated_at
-  delete cleanPayload.acv
-  delete cleanPayload.weighted_gain
+  delete (cleanPayload as any).created_at
+  delete (cleanPayload as any).updated_at
+  delete (cleanPayload as any).acv
+  delete (cleanPayload as any).weighted_gain
 
   const { error } = await supabase
-    .from("sales_opportunities")
+    .from("opportunities")
     .update(cleanPayload)
     .eq("id", input.id)
 
@@ -179,16 +230,17 @@ export async function updateOpportunity(
   }
 
   // Si l'étape a changé, enregistrer un événement de changement d'étape
-  if (stageChanged && oldStage !== null && oldStage !== input.stage) {
+  if (stageChanged && oldStage !== null && oldStage !== targetStage) {
     const oldStageLabel = STAGE_LABELS_LOCAL[oldStage] || oldStage
-    const newStageLabel = STAGE_LABELS_LOCAL[input.stage!] || input.stage!
+    const newStageLabel = STAGE_LABELS_LOCAL[targetStage!] || targetStage!
     const { error: eventError } = await supabase
-      .from("sales_opportunity_events")
+      .from("interactions")
       .insert({
         opportunity_id: input.id,
-        event_type: "changement_etape",
-        body: `Étape mise à jour : ${oldStageLabel} → ${newStageLabel}`,
+        type: "changement_etape",
+        summary: `Étape mise à jour : ${oldStageLabel} → ${newStageLabel}`,
         occurred_at: new Date().toISOString(),
+        details: {},
       })
     if (eventError) {
       console.error("Erreur lors de la création automatique de l'événement d'étape :", eventError)

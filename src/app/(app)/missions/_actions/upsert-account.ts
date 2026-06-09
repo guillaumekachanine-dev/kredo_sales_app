@@ -34,7 +34,7 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
   try {
     // 1. Chercher d'abord un compte existant au même nom
     const { data: existing, error: selectError } = await supabase
-      .from("crm_accounts")
+      .from("companies")
       .select("id, name")
       .eq("name", trimmedName)
       .maybeSingle()
@@ -50,7 +50,7 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
 
     // 2. Créer le compte s'il n'existe pas
     const { data: newAccount, error: insertError } = await supabase
-      .from("crm_accounts")
+      .from("companies")
       .insert({ name: trimmedName })
       .select("id, name")
       .single()

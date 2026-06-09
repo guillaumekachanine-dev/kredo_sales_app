@@ -10,13 +10,13 @@ import {
 } from "@/app/(app)/missions/_actions/create-opportunity"
 import { cn } from "@/lib/utils"
 
-const STAGE_OPTIONS: Array<{ value: SalesStage; label: string }> = [
-  { value: "en_cours", label: "En cours" },
-  { value: "cv_sent", label: "CV sent" },
-  { value: "rt", label: "RT" },
-  { value: "win", label: "Win" },
-  { value: "lost", label: "Lost" },
-  { value: "non_traitee", label: "Non traitée" },
+export const STAGE_OPTIONS: Array<{ value: SalesStage; label: string }> = [
+  { value: "detection",        label: "Détection" },
+  { value: "cv_envoyes",       label: "CV envoyés" },
+  { value: "entretien_client", label: "Entretien client" },
+  { value: "gagne",            label: "Gagné" },
+  { value: "perdu",            label: "Perdu" },
+  { value: "abandonne",        label: "Abandonné" },
 ]
 
 const PRIORITY_OPTIONS: Array<{ value: SalesPriority; label: string }> = [
@@ -41,7 +41,7 @@ interface FormState {
 const INITIAL_FORM: FormState = {
   title: "",
   account: null,
-  stage: "en_cours",
+  stage: "detection",
   priority: "normale",
   conviction: 50,
   target_close_date: "",

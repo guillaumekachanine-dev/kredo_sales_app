@@ -2,9 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { Database } from "@/types/database"
-
-type SkillImportance = Database["public"]["Enums"]["sales_skill_importance"]
+import type { Database, SkillImportance } from "@/types/database"
 
 export interface AddSkillInput {
   opportunity_id: string
@@ -51,11 +49,41 @@ export async function addOpportunitySkill(
     ? input.min_years
     : null
 
+  // 1. Rechercher la compétence dans le référentiel skills (recherche insensible à la casse)
+  let skillId: string
+  const { data: existingSkill, error: skillFindError } = await supabase
+    .from("skills")
+    .select("id")
+    .ilike("name", name)
+    .maybeSingle()
+
+  if (skillFindError) {
+    console.error("Erreur lors de la recherche de compétence :", skillFindError)
+  }
+
+  if (existingSkill) {
+    skillId = existingSkill.id
+  } else {
+    // Créer la compétence dans le référentiel
+    const { data: newSkill, error: skillCreateError } = await supabase
+      .from("skills")
+      .insert({ name })
+      .select("id")
+      .single()
+
+    if (skillCreateError) {
+      console.error("Erreur de création de compétence :", skillCreateError)
+      return { error: `Création de compétence impossible : ${skillCreateError.message}` }
+    }
+    skillId = newSkill.id
+  }
+
+  // 2. Insérer dans la table d'association opportunity_skills
   const { error } = await supabase
-    .from("sales_opportunity_skills")
+    .from("opportunity_skills")
     .insert({
       opportunity_id: input.opportunity_id,
-      skill_name: name,
+      skill_id: skillId,
       importance: input.importance || "souhaitee",
       min_years: years,
     })
@@ -92,10 +120,40 @@ export async function updateOpportunitySkill(
     ? input.min_years
     : null
 
+  // 1. Rechercher ou créer la compétence correspondante
+  let skillId: string
+  const { data: existingSkill, error: skillFindError } = await supabase
+    .from("skills")
+    .select("id")
+    .ilike("name", name)
+    .maybeSingle()
+
+  if (skillFindError) {
+    console.error("Erreur lors de la recherche de compétence :", skillFindError)
+  }
+
+  if (existingSkill) {
+    skillId = existingSkill.id
+  } else {
+    // Créer la compétence
+    const { data: newSkill, error: skillCreateError } = await supabase
+      .from("skills")
+      .insert({ name })
+      .select("id")
+      .single()
+
+    if (skillCreateError) {
+      console.error("Erreur de création de compétence :", skillCreateError)
+      return { error: `Création de compétence impossible : ${skillCreateError.message}` }
+    }
+    skillId = newSkill.id
+  }
+
+  // 2. Mettre à jour dans la table opportunity_skills
   const { error } = await supabase
-    .from("sales_opportunity_skills")
+    .from("opportunity_skills")
     .update({
-      skill_name: name,
+      skill_id: skillId,
       importance: input.importance || "souhaitee",
       min_years: years,
     })
@@ -125,7 +183,7 @@ export async function deleteOpportunitySkill(
   }
 
   const { error } = await supabase
-    .from("sales_opportunity_skills")
+    .from("opportunity_skills")
     .delete()
     .eq("id", input.id)
 

@@ -50,12 +50,13 @@ export async function addOpportunityEvent(
     : new Date().toISOString()
 
   const { error } = await supabase
-    .from("sales_opportunity_events")
+    .from("interactions")
     .insert({
       opportunity_id: input.opportunity_id,
-      event_type: eventType,
-      body,
+      type: eventType,
+      summary: body,
       occurred_at: occurredAt,
+      details: body ? { body } : {},
     })
 
   if (error) {
@@ -93,11 +94,12 @@ export async function updateOpportunityEvent(
     : new Date().toISOString()
 
   const { error } = await supabase
-    .from("sales_opportunity_events")
+    .from("interactions")
     .update({
-      event_type: eventType,
-      body,
+      type: eventType,
+      summary: body,
       occurred_at: occurredAt,
+      details: body ? { body } : {},
     })
     .eq("id", input.id)
 
@@ -126,7 +128,7 @@ export async function deleteOpportunityEvent(
   }
 
   const { error } = await supabase
-    .from("sales_opportunity_events")
+    .from("interactions")
     .delete()
     .eq("id", input.id)
 

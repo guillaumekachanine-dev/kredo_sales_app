@@ -10,14 +10,6 @@ export interface SearchContactResult {
   account_name: string | null
 }
 
-interface DBSearchContact {
-  id: string
-  full_name: string
-  email: string | null
-  job_title: string | null
-  crm_accounts: { name: string } | Array<{ name: string }> | null
-}
-
 export async function searchContacts(query: string): Promise<SearchContactResult[]> {
   if (!query || query.trim().length < 1) {
     return []
@@ -28,20 +20,43 @@ export async function searchContacts(query: string): Promise<SearchContactResult
 
     const sanitized = query.trim()
 
-    // Recherche par nom complet, email, ou titre de poste
-    const { data, error } = await supabase
-      .from("crm_contacts")
+    // 1. Recherche d'abord dans la table persons par nom complet ou email principal
+    const { data: persons, error: personsError } = await supabase
+      .from("persons")
+      .select("id")
+      .or(`full_name.ilike.%${sanitized}%,primary_email.ilike.%${sanitized}%`)
+      .limit(50)
+
+    if (personsError) {
+      console.error("Erreur lors de la recherche préliminaire des personnes :", personsError)
+    }
+
+    const personIds = persons?.map((p) => p.id) || []
+
+    // 2. Recherche dans la table contacts liée
+    let queryBuilder = supabase
+      .from("contacts")
       .select(`
         id,
-        full_name,
-        email,
         job_title,
-        crm_accounts (
+        persons (
+          full_name,
+          primary_email
+        ),
+        companies (
           name
         )
       `)
-      .or(`full_name.ilike.%${sanitized}%,email.ilike.%${sanitized}%,job_title.ilike.%${sanitized}%`)
-      .limit(8)
+
+    if (personIds.length > 0) {
+      // Filtrer les contacts par les personnes trouvées OU par le titre de poste
+      queryBuilder = queryBuilder.or(`person_id.in.(${personIds.join(",")}),job_title.ilike.%${sanitized}%`)
+    } else {
+      // Si aucune personne ne correspond, filtrer uniquement par titre de poste
+      queryBuilder = queryBuilder.ilike("job_title", `%${sanitized}%`)
+    }
+
+    const { data, error } = await queryBuilder.limit(8)
 
     if (error) {
       console.error("Erreur lors de la recherche des contacts :", error)
@@ -50,23 +65,23 @@ export async function searchContacts(query: string): Promise<SearchContactResult
 
     if (!data) return []
 
-    const rows = data as unknown as DBSearchContact[]
+    return (data as any[]).map((item) => {
+      const person = item.persons && !Array.isArray(item.persons) ? item.persons : null
+      const company = item.companies
 
-    return rows.map((item) => {
-      const account = item.crm_accounts
       let accountName = null
-      if (account) {
-        if (Array.isArray(account)) {
-          accountName = account[0]?.name || null
+      if (company) {
+        if (Array.isArray(company)) {
+          accountName = company[0]?.name || null
         } else {
-          accountName = account.name || null
+          accountName = company.name || null
         }
       }
 
       return {
         id: item.id,
-        full_name: item.full_name,
-        email: item.email,
+        full_name: person ? (person.full_name || "") : "",
+        email: person?.primary_email || null,
         job_title: item.job_title,
         account_name: accountName,
       }

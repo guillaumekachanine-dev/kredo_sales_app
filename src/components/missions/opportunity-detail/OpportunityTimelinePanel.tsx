@@ -24,7 +24,7 @@ const EVENT_TYPES = [
   { value: "rdv_client", label: "RDV client" },
   { value: "relance", label: "Relance" },
   { value: "envoi_cv", label: "Envoi CV" },
-  { value: "rt", label: "RT" },
+  { value: "entretien_client", label: "Entretien client" },
   { value: "changement_etape", label: "Changement d’étape" },
   { value: "proposition", label: "Proposition" },
   { value: "signature", label: "Signature" },
@@ -38,7 +38,7 @@ const EVENT_BG_BADGES: Record<string, string> = {
   rdv_client: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   relance: "bg-orange-500/10 border-orange-500/20 text-orange-400",
   envoi_cv: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
-  rt: "bg-cyan-500/10 border-cyan-500/20 text-cyan-400",
+  entretien_client: "bg-cyan-500/10 border-cyan-500/20 text-cyan-400",
   changement_etape: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   proposition: "bg-pink-500/10 border-pink-500/20 text-pink-400",
   signature: "bg-teal-500/10 border-teal-500/20 text-teal-400",
@@ -83,7 +83,7 @@ function EventIcon({ type }: { type: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       )
-    case "rt":
+    case "entretien_client":
       return (
         <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
