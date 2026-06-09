@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import Link from "next/link"
 import { DashboardAction } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
@@ -46,7 +47,7 @@ export function DashboardQuickActions({ actions, className }: DashboardQuickActi
   }
 
   return (
-    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col gap-4 h-full", className)}>
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4 h-full", className)}>
       <div>
         <h3 className="text-sm font-semibold text-heading leading-tight">
           Actions Rapides
@@ -59,6 +60,6 @@ export function DashboardQuickActions({ actions, className }: DashboardQuickActi
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {actions.map(renderAction)}
       </div>
-    </div>
+    </SurfaceCard>
   )
 }

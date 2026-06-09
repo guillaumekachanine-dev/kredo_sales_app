@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardMainPanel as MainPanelType } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -277,7 +278,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
       <div className="space-y-4">
         {/* Simple conversion bar */}
         <div className="bg-canvas/50 p-4 rounded border border-border/40">
-          <span className="text-[10px] text-muted block uppercase mb-1">Taux Global d'Acceptation</span>
+          <span className="text-[10px] text-muted block uppercase mb-1">Taux Global d&apos;Acceptation</span>
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-2xl font-bold text-heading">68%</span>
             <span className="text-xs text-success font-semibold font-mono">+4% vs Q1</span>
@@ -314,7 +315,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
   const renderGeneric = () => {
     return (
       <div className="h-44 flex items-center justify-center border border-dashed border-border rounded-lg bg-canvas/30 text-xs text-muted">
-        Composant d'analyse métier en attente d'intégration
+        Composant d&apos;analyse métier en attente d&apos;intégration
       </div>
     )
   }
@@ -339,7 +340,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
   }
 
   return (
-    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col justify-between h-full", className)}>
+    <SurfaceCard className={cn("p-5 flex flex-col justify-between h-full", className)}>
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-heading leading-tight">
           {title}
@@ -354,6 +355,6 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
       <div className="flex-1">
         {renderContent()}
       </div>
-    </div>
+    </SurfaceCard>
   )
 }

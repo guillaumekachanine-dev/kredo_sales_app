@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardInsight } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -10,7 +11,7 @@ export function AiSummaryCard({ insight, className }: AiSummaryCardProps) {
   const { title, summary, recommendations } = insight
 
   return (
-    <div className={cn("bg-surface border border-primary/20 rounded-lg p-5 shadow-[0_2px_12px_-4px_rgba(37,84,184,0.04)]", className)}>
+    <SurfaceCard accent="primary" className={cn("p-5 shadow-[0_2px_12px_-4px_rgba(37,84,184,0.04)]", className)}>
       <div className="flex items-center gap-2 mb-3">
         {/* Sparkles SVG */}
         <svg className="w-5 h-5 text-primary shrink-0 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -47,6 +48,6 @@ export function AiSummaryCard({ insight, className }: AiSummaryCardProps) {
           </ul>
         </div>
       )}
-    </div>
+    </SurfaceCard>
   )
 }

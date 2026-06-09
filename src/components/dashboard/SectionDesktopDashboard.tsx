@@ -29,8 +29,15 @@ export function SectionDesktopDashboard({ config, data }: SectionDesktopDashboar
         device="desktop"
       />
 
-      {/* Row 2: KPI Strip */}
-      <DashboardKpiGrid metrics={metrics} device="desktop" />
+      {/* Row 2: KPI Strip + Quick Actions */}
+      <div className="grid grid-cols-12 gap-5 items-stretch">
+        <div className="col-span-8">
+          <DashboardKpiGrid metrics={metrics} device="desktop" />
+        </div>
+        <div className="col-span-4">
+          <DashboardQuickActions actions={quickActions} />
+        </div>
+      </div>
 
       {/* Row 3: Main Analysis + Priorities */}
       <div className="grid grid-cols-12 gap-5 items-stretch">
@@ -58,15 +65,15 @@ export function SectionDesktopDashboard({ config, data }: SectionDesktopDashboar
         </div>
       </div>
 
-      {/* Row 5: Activity + Quick Actions */}
-      <div className="grid grid-cols-12 gap-5 items-stretch">
-        <div className="col-span-8">
-          <DashboardActivityFeed activities={activityFeed} />
+      {/* Row 5: Activity Feed */}
+      {activityFeed && activityFeed.length > 0 && (
+        <div className="grid grid-cols-12 gap-5 items-stretch">
+          <div className="col-span-8">
+            <DashboardActivityFeed activities={activityFeed} />
+          </div>
+          <div className="col-span-4" />
         </div>
-        <div className="col-span-4">
-          <DashboardQuickActions actions={quickActions} />
-        </div>
-      </div>
+      )}
     </div>
   )
 }

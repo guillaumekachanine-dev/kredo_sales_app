@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardAlert } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -12,8 +12,6 @@ export function AlertCard({ alert, className }: AlertCardProps) {
 
   const statusStyles = {
     success: {
-      bg: "bg-success/5 hover:bg-success/10",
-      border: "border-success/20",
       text: "text-success",
       icon: (
         <svg className="w-5 h-5 text-success shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -22,8 +20,6 @@ export function AlertCard({ alert, className }: AlertCardProps) {
       )
     },
     warning: {
-      bg: "bg-warning/5 hover:bg-warning/10",
-      border: "border-warning/20",
       text: "text-warning",
       icon: (
         <svg className="w-5 h-5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -32,8 +28,6 @@ export function AlertCard({ alert, className }: AlertCardProps) {
       )
     },
     danger: {
-      bg: "bg-danger/5 hover:bg-danger/10",
-      border: "border-danger/20",
       text: "text-danger",
       icon: (
         <svg className="w-5 h-5 text-danger shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -42,8 +36,6 @@ export function AlertCard({ alert, className }: AlertCardProps) {
       )
     },
     neutral: {
-      bg: "bg-canvas hover:bg-surface-hover",
-      border: "border-border",
       text: "text-heading",
       icon: (
         <svg className="w-5 h-5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -52,8 +44,6 @@ export function AlertCard({ alert, className }: AlertCardProps) {
       )
     },
     pending: {
-      bg: "bg-accent/5 hover:bg-accent/10",
-      border: "border-accent/20",
       text: "text-accent",
       icon: (
         <svg className="w-5 h-5 text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -62,6 +52,15 @@ export function AlertCard({ alert, className }: AlertCardProps) {
       )
     }
   }[status]
+
+  const statusToAccent: Record<string, "none" | "primary" | "success" | "warning" | "danger"> = {
+    success: "success",
+    warning: "warning",
+    danger: "danger",
+    neutral: "none",
+    pending: "primary"
+  }
+  const accent = status ? (statusToAccent[status] || "none") : "none"
 
   const cardContent = (
     <div className="flex gap-3 items-start">
@@ -84,25 +83,17 @@ export function AlertCard({ alert, className }: AlertCardProps) {
     </div>
   )
 
-  const baseClasses = cn(
-    "p-4 rounded-lg border transition-all duration-150",
-    statusStyles.bg,
-    statusStyles.border,
-    href ? "cursor-pointer" : "",
-    className
-  )
-
-  if (href) {
-    return (
-      <Link href={href} className={baseClasses}>
-        {cardContent}
-      </Link>
-    )
-  }
-
   return (
-    <div className={baseClasses}>
+    <SurfaceCard
+      accent={accent}
+      href={href}
+      className={cn(
+        "p-4 transition-all duration-150",
+        href ? "hover:border-primary/20 hover:bg-surface-hover/30" : "",
+        className
+      )}
+    >
       {cardContent}
-    </div>
+    </SurfaceCard>
   )
 }

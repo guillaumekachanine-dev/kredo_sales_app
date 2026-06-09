@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardMetric } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -19,13 +19,14 @@ export function MetricCard({ metric, className }: MetricCardProps) {
     pending: "text-accent"
   }
 
-  const statusBorder = status ? {
-    success: "border-l-4 border-l-success",
-    warning: "border-l-4 border-l-warning",
-    danger: "border-l-4 border-l-danger",
-    neutral: "",
-    pending: "border-l-4 border-l-accent"
-  }[status] : ""
+  const statusToAccent: Record<string, "none" | "primary" | "success" | "warning" | "danger"> = {
+    success: "success",
+    warning: "warning",
+    danger: "danger",
+    neutral: "none",
+    pending: "primary"
+  }
+  const accent = status ? (statusToAccent[status] || "none") : "none"
 
   const trendIcon = trend && {
     up: (
@@ -68,7 +69,7 @@ export function MetricCard({ metric, className }: MetricCardProps) {
       </div>
 
       <div className="mt-2.5 flex items-baseline gap-2">
-        <span className={cn("text-2xl font-bold tracking-tight text-heading", status && statusColors[status])}>
+        <span className={cn("text-2xl font-bold tracking-tight text-heading tabular-nums", status && statusColors[status])}>
           {value}
         </span>
       </div>
@@ -87,24 +88,17 @@ export function MetricCard({ metric, className }: MetricCardProps) {
     </>
   )
 
-  const baseClasses = cn(
-    "bg-surface border border-border p-5 rounded-lg flex flex-col justify-between transition-all duration-200",
-    statusBorder,
-    href ? "hover:border-primary/30 hover:shadow-[0_2px_8px_-3px_rgba(37,84,184,0.08)] hover:-translate-y-0.5 cursor-pointer" : "",
-    className
-  )
-
-  if (href) {
-    return (
-      <Link href={href} className={baseClasses}>
-        {cardContent}
-      </Link>
-    )
-  }
-
   return (
-    <div className={baseClasses}>
+    <SurfaceCard
+      accent={accent}
+      href={href}
+      className={cn(
+        "p-5 flex flex-col justify-between transition-all duration-200",
+        href ? "hover:border-primary/30 hover:shadow-[0_2px_8px_-3px_rgba(37,84,184,0.08)] hover:-translate-y-0.5" : "",
+        className
+      )}
+    >
       {cardContent}
-    </div>
+    </SurfaceCard>
   )
 }

@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardAlert, DashboardPriority } from "@/lib/dashboard/dashboard-types"
 import { AlertCard } from "../widgets/AlertCard"
 import { PriorityCard } from "../widgets/PriorityCard"
@@ -20,7 +21,7 @@ export function DashboardPriorityPanel({
   const hasItems = priorities.length > 0 || alerts.length > 0
 
   return (
-    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col gap-4 h-full", className)}>
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4 h-full", className)}>
       <div>
         <h3 className="text-sm font-semibold text-heading leading-tight">
           {title}
@@ -49,6 +50,6 @@ export function DashboardPriorityPanel({
           ))}
         </div>
       )}
-    </div>
+    </SurfaceCard>
   )
 }

@@ -22,7 +22,7 @@ export function DashboardKpiGrid({ metrics, device, className }: DashboardKpiGri
         {heroMetric && (
           <MetricCard
             metric={heroMetric}
-            className="border-l-4 border-l-primary py-6 bg-surface shadow-[0_2px_8px_-4px_rgba(37,84,184,0.08)]"
+            className="py-6 shadow-[0_2px_8px_-4px_rgba(37,84,184,0.08)]"
           />
         )}
 
@@ -42,16 +42,8 @@ export function DashboardKpiGrid({ metrics, device, className }: DashboardKpiGri
     )
   }
 
-  // Desktop view: distribute based on number of metrics
-  const gridColsClass = {
-    1: "grid-cols-1",
-    2: "grid-cols-2",
-    3: "grid-cols-3",
-    4: "grid-cols-4"
-  }[Math.min(metrics.length, 4) as 1 | 2 | 3 | 4] || "grid-cols-4"
-
   return (
-    <div className={cn("grid gap-4", gridColsClass, className)}>
+    <div className={cn("grid gap-4 grid-cols-3", className)}>
       {metrics.map((metric) => (
         <MetricCard key={metric.id} metric={metric} />
       ))}

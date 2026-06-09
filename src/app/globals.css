@@ -24,6 +24,11 @@
   --color-body:      #526074;     /* text-body      — texte courant         */
   --color-muted:     #93A0B0;     /* text-muted     — labels, métadonnées   */
 
+  /* ── Polices ────────────────────────────────────────────── */
+  --font-sans:       var(--font-sans), sans-serif;
+  --font-heading:    var(--font-heading), sans-serif;
+  --font-mono:       var(--font-mono), monospace;
+
   /* ── États fonctionnels ─────────────────────────────────── */
   --color-success:     #2C7D5C;   /* bg-success  text-success  */
   --color-warning:     #C08A20;   /* bg-warning  text-warning  */
@@ -37,6 +42,7 @@
 }
 
 body {
+  font-family: var(--font-sans);
   background-color: var(--color-canvas);
   color: var(--color-heading);
   -webkit-font-smoothing: antialiased;

@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import Link from "next/link"
 import { DashboardActivity } from "@/lib/dashboard/dashboard-types"
 import { EmptyState } from "../widgets/EmptyState"
@@ -12,7 +13,7 @@ export function DashboardActivityFeed({ activities, className }: DashboardActivi
   const hasItems = activities && activities.length > 0
 
   return (
-    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col h-full", className)}>
+    <SurfaceCard className={cn("p-5 flex flex-col h-full", className)}>
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-heading leading-tight">
           Activité Récente
@@ -78,6 +79,6 @@ export function DashboardActivityFeed({ activities, className }: DashboardActivi
           </ul>
         </div>
       )}
-    </div>
+    </SurfaceCard>
   )
 }

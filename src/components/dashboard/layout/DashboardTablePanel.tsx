@@ -1,3 +1,4 @@
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import Link from "next/link"
 import { DashboardTable } from "@/lib/dashboard/dashboard-types"
 import { EmptyState } from "../widgets/EmptyState"
@@ -20,7 +21,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
   }
 
   return (
-    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col h-full", className)}>
+    <SurfaceCard className={cn("p-5 flex flex-col h-full", className)}>
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-heading leading-tight">
           {title}
@@ -66,6 +67,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
                           className={cn(
                             "py-3 px-3 first:pl-0 last:pr-0 text-heading font-medium truncate max-w-[200px]",
                             getAlignClass(col.align),
+                            col.align === "right" ? "tabular-nums" : "",
                             col.key === "client" || col.key === "invoice" ? "font-semibold" : "",
                             col.key === "value" || col.key === "amount" ? "font-mono" : ""
                           )}
@@ -83,7 +85,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
                       key={row.id}
                       className="hover:bg-canvas/40 transition-colors duration-150 cursor-pointer group"
                     >
-                      {columns.map((col, idx) => {
+                      {columns.map((col) => {
                         const cellValue = row.cells[col.key] || "-"
                         return (
                           <td
@@ -91,6 +93,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
                             className={cn(
                               "py-3 px-3 first:pl-0 last:pr-0 text-heading font-medium truncate max-w-[200px]",
                               getAlignClass(col.align),
+                              col.align === "right" ? "tabular-nums" : "",
                               col.key === "client" || col.key === "invoice" ? "font-semibold group-hover:text-primary" : "",
                               col.key === "value" || col.key === "amount" ? "font-mono" : ""
                             )}
@@ -115,6 +118,6 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
           </table>
         )}
       </div>
-    </div>
+    </SurfaceCard>
   )
 }

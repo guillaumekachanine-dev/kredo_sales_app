@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DashboardPriority } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -10,13 +10,14 @@ interface PriorityCardProps {
 export function PriorityCard({ priority, className }: PriorityCardProps) {
   const { title, description, dueLabel, status, href } = priority
 
-  const statusBorder = status ? {
-    success: "border-l-success",
-    warning: "border-l-warning",
-    danger: "border-l-danger",
-    neutral: "border-l-muted",
-    pending: "border-l-accent"
-  }[status] : "border-l-border"
+  const statusToAccent: Record<string, "none" | "primary" | "success" | "warning" | "danger"> = {
+    success: "success",
+    warning: "warning",
+    danger: "danger",
+    neutral: "none",
+    pending: "primary"
+  }
+  const accent = status ? (statusToAccent[status] || "none") : "none"
 
   const dueBadgeStyle = status ? {
     success: "bg-success/10 text-success border-success/20",
@@ -47,24 +48,17 @@ export function PriorityCard({ priority, className }: PriorityCardProps) {
     </div>
   )
 
-  const baseClasses = cn(
-    "bg-surface border border-border border-l-4 p-4 rounded-lg transition-all duration-150",
-    statusBorder,
-    href ? "hover:border-primary/20 hover:bg-surface-hover/30 cursor-pointer" : "",
-    className
-  )
-
-  if (href) {
-    return (
-      <Link href={href} className={baseClasses}>
-        {cardContent}
-      </Link>
-    )
-  }
-
   return (
-    <div className={baseClasses}>
+    <SurfaceCard
+      accent={accent}
+      href={href}
+      className={cn(
+        "p-4 transition-all duration-150",
+        href ? "hover:border-primary/20 hover:bg-surface-hover/30" : "",
+        className
+      )}
+    >
       {cardContent}
-    </div>
+    </SurfaceCard>
   )
 }

@@ -54,7 +54,7 @@ export function DashboardHeader({
       <header className={cn("flex flex-col gap-3 pb-4 border-b border-border bg-canvas", className)}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-heading">
+            <h1 className="text-xl font-bold font-heading tracking-tight text-heading">
               {title}
             </h1>
             {description && (
@@ -78,7 +78,7 @@ export function DashboardHeader({
     <header className={cn("flex items-center justify-between border-b border-border pb-5 mb-6 bg-canvas gap-4", className)}>
       <div className="min-w-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight text-heading">
+          <h1 className="text-2xl font-bold font-heading tracking-tight text-heading">
             {title}
           </h1>
           {syncStatus && (
