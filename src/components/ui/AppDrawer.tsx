@@ -28,7 +28,13 @@ export function AppDrawer({
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [isClosing, setIsClosing] = useState(false)
+  const [prevOpen, setPrevOpen] = useState(open)
   const isRight = side === "right"
+
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    setIsClosing(!open)
+  }
 
   // Synchronise avec la prop `open`.
   // Ouverture : showModal() immédiatement — l'animation CSS joue via [open].kredo-drawer-*
@@ -41,10 +47,8 @@ export function AppDrawer({
     if (!dialog) return
 
     if (open) {
-      setIsClosing(false)
       if (!dialog.open) dialog.showModal()
     } else if (dialog.open) {
-      setIsClosing(true)
       const timer = setTimeout(() => {
         dialog.close()
         setIsClosing(false)

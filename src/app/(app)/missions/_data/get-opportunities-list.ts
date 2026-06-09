@@ -24,20 +24,11 @@ function formatDate(dateStr: string | null): string {
   return capitalized.replace(".", "")
 }
 
-const STAGE_LABELS: Record<string, string> = {
-  en_cours: "En cours",
-  cv_sent: "CV sent",
-  rt: "RT",
-  win: "Win",
-  lost: "Lost",
-  non_traitee: "Non traitée",
-}
-
-const PRIORITY_LABELS: Record<string, string> = {
-  basse: "Priorité basse",
-  moyenne: "Priorité moyenne",
-  haute: "Priorité haute",
-}
+import {
+  STAGE_LABELS,
+  PRIORITY_LABELS,
+  TYPE_OPTIONS,
+} from "@/components/missions/opportunity-detail/opportunity-detail-options"
 
 interface AccountInfo {
   name: string
@@ -54,6 +45,9 @@ interface DBQueryResult {
   target_close_date: string | null
   start_date: string | null
   updated_at: string
+  practice: string | null
+  opportunity_type: string | null
+  next_action_at: string | null
   crm_accounts: AccountInfo | AccountInfo[] | null
 }
 
@@ -78,6 +72,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         target_close_date,
         start_date,
         updated_at,
+        practice,
+        opportunity_type,
+        next_action_at,
         crm_accounts (
           name
         )
@@ -111,14 +108,34 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       const amountVal = item.acv ?? item.estimated_gain
       const amountStr = formatEuro(amountVal)
 
-      // date: priorité à target_close_date, sinon start_date
+      // date: priorité à target_close_date, sinon start_date, sinon next_action_at
       const dateVal = item.target_close_date ?? item.start_date
-      const dateStr = formatDate(dateVal)
+      let dateStr = formatDate(dateVal)
+      if (dateStr === "—" && item.next_action_at) {
+        dateStr = `Action : ${formatDate(item.next_action_at)}`
+      }
 
-      // tag: stage + conviction + priorité
-      const stageLabel = STAGE_LABELS[item.stage] || item.stage
-      const priorityLabel = PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`
-      const tagStr = `${stageLabel} · ${item.conviction}% · ${priorityLabel}`
+      // tag: [practice] · [type] · [conviction]% (si practice/type renseignés), sinon fallback stage/priorité
+      const tagParts: string[] = []
+      if (item.practice) {
+        tagParts.push(item.practice)
+      }
+      if (item.opportunity_type) {
+        const typeOpt = TYPE_OPTIONS.find((o) => o.value === item.opportunity_type)
+        const typeLabel = typeOpt ? typeOpt.label : item.opportunity_type.replace("_", " ")
+        const typeLabelCap = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)
+        tagParts.push(typeLabelCap)
+      }
+
+      let tagStr = ""
+      if (tagParts.length > 0) {
+        tagParts.push(`${item.conviction}%`)
+        tagStr = tagParts.join(" · ")
+      } else {
+        const stageLabel = STAGE_LABELS[item.stage] || item.stage
+        const priorityLabel = PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`
+        tagStr = `${stageLabel} · ${item.conviction}% · ${priorityLabel}`
+      }
 
       // status mapping
       let status: MissionsListRow["status"] = "pending"
@@ -136,6 +153,7 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         entityId: item.id,
         entityType: "opportunite",
         title: item.title,
+        subtitle: item.practice || undefined,
         client: clientName,
         amount: amountStr,
         date: dateStr,

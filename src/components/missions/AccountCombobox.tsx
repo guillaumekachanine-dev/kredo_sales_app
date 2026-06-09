@@ -41,15 +41,13 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
   useEffect(() => {
     clearTimeout(debounceRef.current)
 
-    if (query.trim().length < 2) {
-      setResults([])
-      setIsLoading(false)
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
       return
     }
 
-    setIsLoading(true)
     debounceRef.current = setTimeout(async () => {
-      const found = await searchAccounts(query)
+      const found = await searchAccounts(trimmed)
       setResults(found)
       setIsLoading(false)
       setIsOpen(true)
@@ -78,7 +76,13 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
     if (value && val !== value.name) {
       onChange(null)
     }
-    if (val.trim().length >= 2) setIsOpen(true)
+    if (val.trim().length < 2) {
+      setResults([])
+      setIsLoading(false)
+    } else {
+      setIsLoading(true)
+      setIsOpen(true)
+    }
   }
 
   // Affiche l'option "Créer" si la saisie ne correspond à aucun résultat exact

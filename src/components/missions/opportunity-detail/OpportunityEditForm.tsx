@@ -6,17 +6,27 @@ import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportun
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
+import { OpportunityTimelinePanel } from "./OpportunityTimelinePanel"
+import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
+import { upsertAccountByName } from "@/app/(app)/missions/_actions/upsert-account"
 import {
   formatEuro,
   formatDate,
   formatDateTime,
-  getStageLabel,
-  getPriorityLabel,
-  getOutcomeLabel,
+} from "./opportunity-detail-utils"
+import {
+  PRACTICE_OPTIONS,
+  TYPE_OPTIONS,
+  SOURCE_OPTIONS,
+  REMOTE_OPTIONS,
+  SENIORITY_OPTIONS,
   STAGE_LABELS,
   PRIORITY_LABELS,
   OUTCOME_LABELS,
-} from "./opportunity-detail-utils"
+  getStageLabel,
+  getPriorityLabel,
+  getOutcomeLabel,
+} from "./opportunity-detail-options"
 
 interface OpportunityDetailData {
   opportunity: Opportunity
@@ -38,48 +48,17 @@ interface OpportunityEditFormProps {
   onSuccess: () => void
 }
 
-const PRACTICE_OPTIONS = [
-  "Data", "Cloud", "Cybersecurity", "Digital", "Infrastructure",
-  "Workplace", "SAP", "Project Management", "Architecture", "AI"
-]
-
-const TYPE_OPTIONS = [
-  { value: "assistance_technique", label: "Assistance technique" },
-  { value: "forfait", label: "Forfait" },
-  { value: "centre_de_services", label: "Centre de services" },
-  { value: "conseil", label: "Conseil" },
-  { value: "audit", label: "Audit" },
-  { value: "formation", label: "Formation" }
-]
-
-const SOURCE_OPTIONS = [
-  { value: "inbound", label: "Inbound" },
-  { value: "outbound", label: "Outbound" },
-  { value: "referral", label: "Referral" },
-  { value: "account_growth", label: "Account growth" },
-  { value: "partner", label: "Partner" },
-  { value: "existing_client", label: "Existing client" }
-]
-
-const REMOTE_OPTIONS = [
-  { value: "onsite", label: "Onsite" },
-  { value: "hybrid", label: "Hybrid" },
-  { value: "remote", label: "Remote" },
-  { value: "unknown", label: "Unknown" }
-]
-
-const SENIORITY_OPTIONS = [
-  { value: "junior", label: "Junior" },
-  { value: "confirme", label: "Confirmé" },
-  { value: "senior", label: "Senior" },
-  { value: "expert", label: "Expert" }
-]
-
 export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProps) {
   const { opportunity, account } = data
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const initialAccountValue: AccountValue | null = account
+    ? { id: account.id, name: account.name, isNew: false }
+    : null
+
+  const [selectedAccount, setSelectedAccount] = useState<AccountValue | null>(initialAccountValue)
 
   // Form State
   const [form, setForm] = useState({
@@ -121,6 +100,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const handleCancel = () => {
     setIsEditing(false)
     setErrorMsg(null)
+    setSelectedAccount(initialAccountValue)
     // Réinitialise
     setForm({
       title: opportunity.title,
@@ -153,9 +133,25 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const handleSave = () => {
     setErrorMsg(null)
     startTransition(async () => {
+      let finalAccountId: string | null = null
+
+      if (selectedAccount) {
+        if (selectedAccount.isNew) {
+          const upsertRes = await upsertAccountByName(selectedAccount.name)
+          if (upsertRes.error) {
+            setErrorMsg(upsertRes.error)
+            return
+          }
+          finalAccountId = upsertRes.data?.id ?? null
+        } else {
+          finalAccountId = selectedAccount.id
+        }
+      }
+
       const result = await updateOpportunity({
         id: opportunity.id,
         title: form.title,
+        account_id: finalAccountId,
         practice: form.practice || null,
         opportunity_type: form.opportunity_type || null,
         source: form.source || null,
@@ -246,15 +242,29 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )}
 
           {isEditing ? (
-            <div className="mt-2">
-              <label className={labelClass}>Intitulé de l&apos;opportunité</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className={inputClass}
-                disabled={isPending}
-              />
+            <div className="mt-2 flex flex-col gap-3">
+              <div>
+                <label className={labelClass}>Intitulé de l&apos;opportunité</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Client</label>
+                <AccountCombobox
+                  value={selectedAccount}
+                  onChange={setSelectedAccount}
+                />
+                {selectedAccount?.isNew && (
+                  <p className="mt-1 text-[10px] text-muted">
+                    Le compte «&nbsp;{selectedAccount.name}&nbsp;» sera créé automatiquement.
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <>
@@ -551,6 +561,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )
         )}
 
+        <OpportunityTimelinePanel
+          opportunityId={opportunity.id}
+          events={data.events}
+          onRefresh={onSuccess}
+        />
+
         {/* 5. Contexte mission */}
         <SurfaceCard className="p-4 flex flex-col gap-3">
           <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
@@ -620,15 +636,30 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </div>
 
           {isEditing ? (
-            <div className="mt-1 w-2/3">
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-sm font-bold text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors"
-                placeholder="Titre de l'opportunité"
-                disabled={isPending}
-              />
+            <div className="mt-2 flex flex-col gap-3.5 w-2/3">
+              <div>
+                <label className={labelClass}>Intitulé de l&apos;opportunité</label>
+                <input
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs font-bold text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors"
+                  placeholder="Titre de l'opportunité"
+                  disabled={isPending}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Client</label>
+                <AccountCombobox
+                  value={selectedAccount}
+                  onChange={setSelectedAccount}
+                />
+                {selectedAccount?.isNew && (
+                  <p className="mt-1 text-[10px] text-muted">
+                    Le compte «&nbsp;{selectedAccount.name}&nbsp;» sera créé automatiquement.
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
@@ -811,6 +842,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               )}
             </div>
           </SurfaceCard>
+
+          <OpportunityTimelinePanel
+            opportunityId={opportunity.id}
+            events={data.events}
+            onRefresh={onSuccess}
+          />
 
           {/* Résultat */}
           <SurfaceCard className="p-5 flex flex-col gap-4">

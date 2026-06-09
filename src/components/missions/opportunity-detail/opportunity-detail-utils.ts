@@ -32,38 +32,3 @@ export function formatDateTime(dateStr: string | null | undefined): string {
   })
 }
 
-export const STAGE_LABELS: Record<string, string> = {
-  en_cours: "En cours",
-  cv_sent: "CV sent",
-  rt: "RT",
-  win: "Win",
-  lost: "Lost",
-  non_traitee: "Non traitée",
-}
-
-export function getStageLabel(stage: string | null | undefined): string {
-  if (!stage) return "—"
-  return STAGE_LABELS[stage] || stage
-}
-
-export const PRIORITY_LABELS: Record<string, string> = {
-  basse: "Basse",
-  moyenne: "Moyenne",
-  haute: "Haute",
-}
-
-export function getPriorityLabel(priority: string | null | undefined): string {
-  if (!priority) return "—"
-  return PRIORITY_LABELS[priority] || priority
-}
-
-export const OUTCOME_LABELS: Record<string, string> = {
-  gagnee: "Gagnée",
-  perdue: "Perdue",
-  abandonnee: "Abandonnée",
-}
-
-export function getOutcomeLabel(outcome: string | null | undefined): string {
-  if (!outcome) return "—"
-  return OUTCOME_LABELS[outcome] || outcome
-}

@@ -137,6 +137,29 @@ export async function updateOpportunity(
   if (input.win_reason !== undefined) updatePayload.win_reason = normalizeText(input.win_reason)
   if (input.loss_reason !== undefined) updatePayload.loss_reason = normalizeText(input.loss_reason)
 
+  const STAGE_LABELS_LOCAL: Record<string, string> = {
+    en_cours: "En cours",
+    cv_sent: "CV sent",
+    rt: "RT",
+    win: "Win",
+    lost: "Lost",
+    non_traitee: "Non traitée",
+  }
+
+  let oldStage: SalesStage | null = null
+  const stageChanged = input.stage !== undefined
+
+  if (stageChanged) {
+    const { data: currentOpp } = await supabase
+      .from("sales_opportunities")
+      .select("stage")
+      .eq("id", input.id)
+      .maybeSingle()
+    if (currentOpp) {
+      oldStage = currentOpp.stage
+    }
+  }
+
   // La structure OpportunityUpdate possède les champs système en lecture seule mais nous ne devons PAS y toucher
   const cleanPayload = { ...updatePayload }
   delete cleanPayload.owner_id
@@ -155,8 +178,26 @@ export async function updateOpportunity(
     return { error: `Mise à jour impossible : ${error.message}` }
   }
 
+  // Si l'étape a changé, enregistrer un événement de changement d'étape
+  if (stageChanged && oldStage !== null && oldStage !== input.stage) {
+    const oldStageLabel = STAGE_LABELS_LOCAL[oldStage] || oldStage
+    const newStageLabel = STAGE_LABELS_LOCAL[input.stage!] || input.stage!
+    const { error: eventError } = await supabase
+      .from("sales_opportunity_events")
+      .insert({
+        opportunity_id: input.id,
+        event_type: "changement_etape",
+        body: `Étape mise à jour : ${oldStageLabel} → ${newStageLabel}`,
+        occurred_at: new Date().toISOString(),
+      })
+    if (eventError) {
+      console.error("Erreur lors de la création automatique de l'événement d'étape :", eventError)
+    }
+  }
+
   revalidatePath("/missions/opps")
   revalidatePath("/missions")
 
   return { success: true }
 }
+
