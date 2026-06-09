@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { MissionsListRow } from "@/components/missions/MissionsListView"
+import {
+  STAGE_LABELS,
+  PRIORITY_LABELS,
+  TYPE_OPTIONS,
+} from "@/components/missions/opportunity-detail/opportunity-detail-options"
 
-// Formate un montant en euros FR
 function formatEuro(amount: number | null): string {
   if (amount === null || amount === undefined) return "—"
   return new Intl.NumberFormat("fr-FR", {
@@ -11,26 +15,18 @@ function formatEuro(amount: number | null): string {
   }).format(amount)
 }
 
-// Formate une date ISO en format court FR (ex: "Juil 2026")
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—"
   const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return "—"
+  if (Number.isNaN(date.getTime())) return "—"
   const formatted = date.toLocaleDateString("fr-FR", {
     month: "short",
     year: "numeric",
   })
-  const capitalized = formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  return capitalized.replace(".", "")
+  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`.replace(".", "")
 }
 
-import {
-  STAGE_LABELS,
-  PRIORITY_LABELS,
-  TYPE_OPTIONS,
-} from "@/components/missions/opportunity-detail/opportunity-detail-options"
-
-interface AccountInfo {
+interface CompanyInfo {
   name: string
 }
 
@@ -48,19 +44,42 @@ interface DBQueryResult {
   practice: string | null
   opportunity_type: string | null
   next_action_at: string | null
-  crm_accounts: AccountInfo | AccountInfo[] | null
+  companies: CompanyInfo | CompanyInfo[] | null
 }
 
 interface MappedRow extends MissionsListRow {
   updatedAt: string
 }
 
+type SupabaseError = { message: string }
+type OpportunitiesQuery = PromiseLike<{ data: DBQueryResult[] | null; error: SupabaseError | null }> & {
+  select(columns: string): OpportunitiesQuery
+  order(column: string, options?: { ascending?: boolean }): OpportunitiesQuery
+}
+
+type LooseSupabaseClient = {
+  from(table: "opportunities"): OpportunitiesQuery
+}
+
+function getCompanyName(companies: DBQueryResult["companies"]): string {
+  if (!companies) return "Compte non renseigné"
+  if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
+  return companies.name ?? "Compte non renseigné"
+}
+
+function mapStageToStatus(stage: string): MissionsListRow["status"] {
+  if (["win", "gagne"].includes(stage)) return "won"
+  if (["lost", "perdu", "abandonne"].includes(stage)) return "lost"
+  if (["en_cours", "cv_sent", "rt", "qualification", "besoin_confirme", "recherche_profil", "cv_envoyes", "entretien_client", "negociation"].includes(stage)) return "active"
+  return "pending"
+}
+
 export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
   try {
-    const supabase = await createClient()
+    const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
     const { data, error } = await supabase
-      .from("sales_opportunities")
+      .from("opportunities")
       .select(`
         id,
         title,
@@ -75,97 +94,51 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         practice,
         opportunity_type,
         next_action_at,
-        crm_accounts (
+        companies (
           name
         )
       `)
+      .order("updated_at", { ascending: false })
 
     if (error) {
       console.error("Error fetching opportunities from Supabase:", error)
       return []
     }
 
-    if (!data) return []
-
-    // Cast the returned data from postgrest query
-    const dbRows = data as unknown as DBQueryResult[]
-
-    const mapped: MappedRow[] = dbRows.map((item) => {
-      // client
-      const account = item.crm_accounts
-      let clientName = "Compte non renseigné"
-      if (account) {
-        if (Array.isArray(account)) {
-          if (account[0]?.name) {
-            clientName = account[0].name
-          }
-        } else if (account.name) {
-          clientName = account.name
-        }
-      }
-
-      // amount: priorité à acv, sinon estimated_gain
+    const mapped: MappedRow[] = (data ?? []).map((item) => {
       const amountVal = item.acv ?? item.estimated_gain
-      const amountStr = formatEuro(amountVal)
-
-      // date: priorité à target_close_date, sinon start_date, sinon next_action_at
       const dateVal = item.target_close_date ?? item.start_date
       let dateStr = formatDate(dateVal)
       if (dateStr === "—" && item.next_action_at) {
         dateStr = `Action : ${formatDate(item.next_action_at)}`
       }
 
-      // tag: [practice] · [type] · [conviction]% (si practice/type renseignés), sinon fallback stage/priorité
       const tagParts: string[] = []
-      if (item.practice) {
-        tagParts.push(item.practice)
-      }
+      if (item.practice) tagParts.push(item.practice)
       if (item.opportunity_type) {
-        const typeOpt = TYPE_OPTIONS.find((o) => o.value === item.opportunity_type)
-        const typeLabel = typeOpt ? typeOpt.label : item.opportunity_type.replace("_", " ")
-        const typeLabelCap = typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)
-        tagParts.push(typeLabelCap)
+        const typeOpt = TYPE_OPTIONS.find((option) => option.value === item.opportunity_type)
+        const typeLabel = typeOpt ? typeOpt.label : item.opportunity_type.replaceAll("_", " ")
+        tagParts.push(`${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}`)
       }
 
-      let tagStr = ""
-      if (tagParts.length > 0) {
-        tagParts.push(`${item.conviction}%`)
-        tagStr = tagParts.join(" · ")
-      } else {
-        const stageLabel = STAGE_LABELS[item.stage] || item.stage
-        const priorityLabel = PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`
-        tagStr = `${stageLabel} · ${item.conviction}% · ${priorityLabel}`
-      }
-
-      // status mapping
-      let status: MissionsListRow["status"] = "pending"
-      if (item.stage === "win") {
-        status = "won"
-      } else if (item.stage === "lost") {
-        status = "lost"
-      } else if (["en_cours", "cv_sent", "rt"].includes(item.stage)) {
-        status = "active"
-      } else if (item.stage === "non_traitee") {
-        status = "pending"
-      }
+      const tag = tagParts.length > 0
+        ? [...tagParts, `${item.conviction}%`].join(" · ")
+        : `${STAGE_LABELS[item.stage] || item.stage} · ${item.conviction}% · ${PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`}`
 
       return {
         entityId: item.id,
         entityType: "opportunite",
         title: item.title,
         subtitle: item.practice || undefined,
-        client: clientName,
-        amount: amountStr,
+        client: getCompanyName(item.companies),
+        amount: formatEuro(amountVal),
         date: dateStr,
-        tag: tagStr,
-        status,
+        tag,
+        status: mapStageToStatus(item.stage),
         updatedAt: item.updated_at,
       }
     })
 
-    // Trier :
-    // - D'abord les ouvertes (status matches "active" ou "pending")
-    // - Ensuite par date de mise à jour décroissante (updatedAt desc)
     mapped.sort((a, b) => {
       const aIsOpen = a.status === "active" || a.status === "pending"
       const bIsOpen = b.status === "active" || b.status === "pending"
@@ -173,25 +146,10 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       if (aIsOpen && !bIsOpen) return -1
       if (!aIsOpen && bIsOpen) return 1
 
-      const dateA = new Date(a.updatedAt).getTime()
-      const dateB = new Date(b.updatedAt).getTime()
-      return dateB - dateA
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
 
-    // Retourner le tableau propre typé sans updatedAt
-    return mapped.map((row) => {
-      const cleanRow: MissionsListRow = {
-        entityId: row.entityId,
-        entityType: row.entityType,
-        title: row.title,
-        client: row.client,
-        amount: row.amount,
-        date: row.date,
-        tag: row.tag,
-        status: row.status,
-      }
-      return cleanRow
-    })
+    return mapped.map(({ updatedAt: _updatedAt, ...row }) => row)
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)
     return []
