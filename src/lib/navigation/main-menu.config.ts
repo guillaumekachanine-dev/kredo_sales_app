@@ -103,6 +103,18 @@ export const mainMenuItems: MainMenuItem[] = [
         ],
       },
       {
+        label: "Comptes & Contacts",
+        shortLabel: "Comptes",
+        href: "/accounts-contacts",
+        icon: "accounts",
+        primary: true,
+        tabs: [
+          { label: "Comptes", href: "/accounts-contacts" },
+          { label: "Contacts", href: "/accounts-contacts/contacts" },
+          { label: "Etudes", href: "/accounts-contacts/studies" },
+        ],
+      },
+      {
         label: "Prospection Intelligence",
         shortLabel: "Prospection",
         href: "/prospection",
