@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react"
 import { SectionTab } from "@/lib/tabs/tab-types"
 import { getOpportunityDetail } from "@/app/(app)/missions/_data/get-opportunity-detail"
-import { OpportunityDesktopView } from "./OpportunityDesktopView"
-import { OpportunityMobileView } from "./OpportunityMobileView"
+import { OpportunityEditForm } from "./OpportunityEditForm"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent } from "@/types/database"
 
@@ -31,11 +30,18 @@ export function OpportunityDetailPanel({ tab }: OpportunityDetailPanelProps) {
   const [data, setData] = useState<OpportunityDetailData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
+  const [refreshKey, setRefreshKey] = useState<number>(0)
+
+  // Synchronisation de l'état de chargement lors du changement de prop/clé au rendu
+  const [prevIdAndKey, setPrevIdAndKey] = useState({ id: tab.entityId, key: refreshKey })
+  if (tab.entityId !== prevIdAndKey.id || refreshKey !== prevIdAndKey.key) {
+    setPrevIdAndKey({ id: tab.entityId, key: refreshKey })
+    setLoading(true)
+    setError(null)
+  }
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    setError(null)
 
     getOpportunityDetail(tab.entityId)
       .then((result) => {
@@ -58,7 +64,7 @@ export function OpportunityDetailPanel({ tab }: OpportunityDetailPanelProps) {
     return () => {
       active = false
     }
-  }, [tab.entityId])
+  }, [tab.entityId, refreshKey])
 
   if (loading) {
     return (
@@ -96,14 +102,12 @@ export function OpportunityDetailPanel({ tab }: OpportunityDetailPanelProps) {
     )
   }
 
+  // Utiliser la clé unique pour ré-initialiser automatiquement le formulaire à la mise à jour
   return (
-    <>
-      <div className="hidden md:block">
-        <OpportunityDesktopView data={data} />
-      </div>
-      <div className="block md:hidden">
-        <OpportunityMobileView data={data} />
-      </div>
-    </>
+    <OpportunityEditForm
+      key={`${data.opportunity.id}-${data.opportunity.updated_at}`}
+      data={data}
+      onSuccess={() => setRefreshKey((prev) => prev + 1)}
+    />
   )
 }
