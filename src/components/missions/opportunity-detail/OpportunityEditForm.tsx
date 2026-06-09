@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
+import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import {
   formatEuro,
   formatDate,
@@ -425,6 +426,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
           )}
         </SurfaceCard>
+
+        <OpportunitySkillsPanel
+          opportunityId={opportunity.id}
+          skills={data.skills}
+          onRefresh={onSuccess}
+        />
 
         {/* 3. Économie */}
         <SurfaceCard className="p-4 flex flex-col gap-3">
@@ -972,6 +979,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
             </div>
           </SurfaceCard>
+
+          <OpportunitySkillsPanel
+            opportunityId={opportunity.id}
+            skills={data.skills}
+            onRefresh={onSuccess}
+          />
 
           {/* Économie */}
           <SurfaceCard className="p-5 flex flex-col gap-4">
