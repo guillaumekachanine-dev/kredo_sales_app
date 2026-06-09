@@ -1,9 +1,9 @@
 import { SectionDashboardConfig } from "../dashboard-types"
 
-export const salesDashboardConfig: SectionDashboardConfig = {
-  sectionKey: "sales",
-  title: "Sales",
-  description: "Pilotage commercial du centre de profit",
+export const missionsDashboardConfig: SectionDashboardConfig = {
+  sectionKey: "missions",
+  title: "Missions & Opportunités",
+  description: "Suivi opérationnel des missions et du pipeline commercial",
   primaryAction: {
     id: "new-opp",
     label: "Nouvelle opportunité",

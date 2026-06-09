@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
@@ -8,6 +9,37 @@ import { cn } from "@/lib/utils"
 
 export function DesktopSidebar() {
   const pathname = usePathname()
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Automatically expand the menu of the active section on page change
+    for (const group of mainMenuItems) {
+      if (group.items) {
+        for (const subItem of group.items) {
+          if (subItem.items) {
+            const hasActiveChild = subItem.items.some(
+              (child) => child.href && (pathname === child.href || pathname.startsWith(child.href + "/"))
+            )
+            const isSelfActive = subItem.href && (pathname === subItem.href || pathname.startsWith(subItem.href + "/"))
+            if (hasActiveChild || isSelfActive) {
+              setExpandedItem(subItem.label)
+              return
+            }
+          }
+        }
+      }
+    }
+  }, [pathname])
+
+  const handleItemClick = (item: MainMenuItem, isSubItem: boolean) => {
+    if (isSubItem) return
+
+    if (item.items && item.items.length > 0) {
+      setExpandedItem(prev => prev === item.label ? null : item.label)
+    } else {
+      setExpandedItem(null)
+    }
+  }
 
   const renderMenuItem = (item: MainMenuItem, isSubItem = false) => {
     const isActive = item.href ? pathname === item.href || pathname.startsWith(item.href + "/") : false
@@ -31,7 +63,9 @@ export function DesktopSidebar() {
       "flex items-center gap-2 px-3 py-2 text-xs font-medium rounded transition-all duration-150 relative",
       isSubItem ? "pl-9" : "",
       isActive 
-        ? "bg-white text-primary font-semibold shadow-[0_2px_6px_-2px_rgba(0,0,0,0.08)]" 
+        ? (isSubItem 
+            ? "bg-white/10 text-white font-semibold" 
+            : "bg-white text-primary font-semibold shadow-[0_2px_6px_-2px_rgba(0,0,0,0.08)]")
         : "text-white/80 hover:bg-white/10 hover:text-white",
       item.disabled ? "opacity-40 cursor-not-allowed" : "",
       item.comingSoon ? "opacity-60 cursor-not-allowed" : ""
@@ -44,6 +78,7 @@ export function DesktopSidebar() {
           href={item.href!} 
           className={baseClasses}
           aria-current={isActive ? "page" : undefined}
+          onClick={() => handleItemClick(item, isSubItem)}
         >
           {content}
         </Link>
@@ -51,7 +86,11 @@ export function DesktopSidebar() {
     }
 
     return (
-      <div key={item.label} className={baseClasses}>
+      <div 
+        key={item.label} 
+        className={cn(baseClasses, item.items && item.items.length > 0 ? "cursor-pointer" : "")}
+        onClick={() => item.items && item.items.length > 0 && handleItemClick(item, isSubItem)}
+      >
         {content}
       </div>
     )
@@ -82,7 +121,16 @@ export function DesktopSidebar() {
                     {group.label}
                   </h4>
                   <div className="space-y-1">
-                    {group.items.map((subItem) => renderMenuItem(subItem))}
+                    {group.items.map((subItem) => (
+                      <div key={subItem.label} className="space-y-1">
+                        {renderMenuItem(subItem)}
+                        {subItem.items && expandedItem === subItem.label && (
+                          <div className="space-y-1">
+                            {subItem.items.map((child) => renderMenuItem(child, true))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )

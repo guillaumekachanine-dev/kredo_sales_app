@@ -3,7 +3,7 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
 
 // Configs
-import { salesDashboardConfig } from "@/lib/dashboard/configs/sales-dashboard.config"
+import { missionsDashboardConfig } from "@/lib/dashboard/configs/missions-dashboard.config"
 import { financeDashboardConfig } from "@/lib/dashboard/configs/finance-dashboard.config"
 import { proposalDashboardConfig } from "@/lib/dashboard/configs/proposal-dashboard.config"
 import { prospectionDashboardConfig } from "@/lib/dashboard/configs/prospection-dashboard.config"
@@ -12,7 +12,7 @@ import { automationsDashboardConfig } from "@/lib/dashboard/configs/automations-
 
 // Mocks
 import {
-  mockSalesDashboardData,
+  mockMissionsDashboardData,
   mockFinanceDashboardData,
   mockProposalDashboardData,
   mockProspectionDashboardData,
@@ -26,17 +26,17 @@ type PageProps = {
 
 export default async function DashboardTestPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams
-  const activeSection = (resolvedParams.section as string) || "sales"
+  const activeSection = (resolvedParams.section as string) || "missions"
   const forcedDevice = resolvedParams.device as "desktop" | "mobile" | undefined
   const detectedDevice = await getDashboardDevice()
   const activeDevice = forcedDevice || detectedDevice
 
   // Selection mapping
   const sections = [
-    { key: "sales", config: salesDashboardConfig, data: mockSalesDashboardData, name: "Sales" },
+    { key: "missions", config: missionsDashboardConfig, data: mockMissionsDashboardData, name: "Missions & Opps" },
     { key: "finance", config: financeDashboardConfig, data: mockFinanceDashboardData, name: "Finance" },
-    { key: "proposal", config: proposalDashboardConfig, data: mockProposalDashboardData, name: "Proposal Intel" },
-    { key: "prospection", config: prospectionDashboardConfig, data: mockProspectionDashboardData, name: "Prospection Intel" },
+    { key: "proposal", config: proposalDashboardConfig, data: mockProposalDashboardData, name: "Proposal Intelligence" },
+    { key: "prospection", config: prospectionDashboardConfig, data: mockProspectionDashboardData, name: "Prospection Intelligence" },
     { key: "knowledge", config: knowledgeDashboardConfig, data: mockKnowledgeDashboardData, name: "Knowledge Hub" },
     { key: "automations", config: automationsDashboardConfig, data: mockAutomationsDashboardData, name: "Automations" }
   ]

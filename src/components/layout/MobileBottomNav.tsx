@@ -10,7 +10,7 @@ export function MobileBottomNav() {
 
   const navItems = [
     { label: "Cockpit", href: "/cockpit", icon: "cockpit" },
-    { label: "Sales", href: "/sales", icon: "sales" },
+    { label: "Missions", href: "/missions", icon: "sales" },
     { label: "Prospection", href: "/prospection", icon: "prospection" },
     { label: "Proposals", href: "/proposals", icon: "proposal" },
     { label: "Finance", href: "/finance", icon: "finance" }

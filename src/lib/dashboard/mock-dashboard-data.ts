@@ -1,6 +1,6 @@
 import { SectionDashboardData } from "./dashboard-types"
 
-export const mockSalesDashboardData: SectionDashboardData = {
+export const mockMissionsDashboardData: SectionDashboardData = {
   metrics: [
     {
       id: "m1",
@@ -164,7 +164,7 @@ export const mockSalesDashboardData: SectionDashboardData = {
   ],
   quickActions: [
     { id: "qa1", label: "Importer des leads (CSV)", variant: "secondary", href: "/crm/import" },
-    { id: "qa2", label: "Exporter le pipe commercial", variant: "ghost", href: "/sales/export" }
+    { id: "qa2", label: "Exporter le pipe commercial", variant: "ghost", href: "/missions/export" }
   ],
   syncStatus: {
     source: "Salesforce CRM & Supabase Local",
@@ -663,7 +663,7 @@ export const mockCockpitDashboardData: SectionDashboardData = {
       description: "Vérification finale avant signature commerciale.",
       dueLabel: "Ce soir",
       status: "danger",
-      href: "/sales"
+      href: "/missions"
     },
     {
       id: "cp2",
@@ -695,9 +695,9 @@ export const mockCockpitDashboardData: SectionDashboardData = {
     rows: [
       {
         id: "rs1",
-        href: "/sales",
+        href: "/missions",
         cells: {
-          section: "Sales",
+          section: "Missions & Opps",
           status: "Opérationnel",
           activity: "28 opportunités actives",
           sync: "Il y a 3 min"

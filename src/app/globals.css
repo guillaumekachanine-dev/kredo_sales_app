@@ -48,3 +48,112 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+:root {
+  --neutral-0: #ffffff;
+}
+
+@keyframes kredo-ready-gradient-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes kredo-ready-pulse {
+  0%    { scale: 1;    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28); }
+  5%    { scale: 1.12; box-shadow: 0 14px 42px rgba(91, 87, 245, 0.62), 0 0 0 9px rgba(100, 80, 255, 0.16); }
+  11%   { scale: 0.96; box-shadow: 0 2px 10px rgba(91, 87, 245, 0.18); }
+  19%   { scale: 1.03; box-shadow: 0 7px 24px rgba(91, 87, 245, 0.34); }
+  40%   { scale: 1.05; box-shadow: 0 9px 28px rgba(91, 87, 245, 0.40); }
+  60%   { scale: 1.01; box-shadow: 0 5px 20px rgba(91, 87, 245, 0.28); }
+  80%   { scale: 1.04; box-shadow: 0 8px 26px rgba(91, 87, 245, 0.36); }
+  100%  { scale: 1;    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28); }
+}
+
+@keyframes kredo-ready-shine {
+  0%    { transform: translateY(120%);  opacity: 0; }
+  6%    { opacity: 1; }
+  52%   { transform: translateY(-120%); opacity: 0.85; }
+  62%   { opacity: 0; }
+  63%   { transform: translateY(120%);  opacity: 0; }
+  100%  { transform: translateY(120%);  opacity: 0; }
+}
+
+.kredo-ready-action-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 3px solid var(--neutral-0);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  padding: 0;
+  overflow: hidden;
+  background-image: linear-gradient(
+    135deg,
+    #5b57f5,
+    #7c4fff,
+    #b84dff,
+    #ff004d,
+    #ff7a00,
+    #ffb700,
+    #33d17a,
+    #00c2ff,
+    #4f6bff,
+    #5b57f5,
+    #b84dff,
+    #5b57f5
+  );
+  background-size: 400% 400%;
+  animation:
+    kredo-ready-gradient-flow 3s linear infinite,
+    kredo-ready-pulse 1.5s ease-in-out infinite;
+}
+
+.kredo-ready-action-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0) 80%,
+    transparent 100%
+  );
+  animation: kredo-ready-shine 3s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.kredo-ready-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  animation: none;
+  box-shadow: none;
+}
+
+.kredo-ready-action-button:disabled::after {
+  animation: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-ready-action-button {
+    animation: none;
+  }
+
+  .kredo-ready-action-button::after {
+    animation: none;
+    opacity: 0;
+  }
+}
