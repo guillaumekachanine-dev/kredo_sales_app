@@ -17,7 +17,7 @@ export function AppHeader({ className }: AppHeaderProps) {
       {/* Right side: Connection status or search */}
       <div className="flex items-center gap-4">
         {/* Simple live notification dot */}
-        <div className="flex items-center gap-2 text-[10px] font-mono text-muted">
+        <div className="flex items-center gap-2 text-[10px] text-muted">
           <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
           <span>Réseau Opérationnel</span>
         </div>

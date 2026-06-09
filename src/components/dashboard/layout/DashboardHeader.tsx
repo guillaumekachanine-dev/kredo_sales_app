@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { DashboardAction, DashboardSyncStatus } from "@/lib/dashboard/dashboard-types"
-import { SyncStatusBadge } from "../widgets/SyncStatusBadge"
 import { cn } from "@/lib/utils"
 
 interface DashboardHeaderProps {
@@ -57,37 +56,42 @@ export function DashboardHeader({
             <h1 className="text-xl font-bold font-heading tracking-tight text-heading">
               {title}
             </h1>
+            {syncStatus?.lastSyncLabel && (
+              <p className="text-[10px] text-muted mt-0.5">
+                {syncStatus.lastSyncLabel}
+              </p>
+            )}
             {description && (
-              <p className="text-xs text-body mt-0.5 line-clamp-1">
+              <p className="text-xs text-body mt-1 line-clamp-1">
                 {description}
               </p>
             )}
           </div>
           {primaryAction && renderAction({ ...primaryAction, variant: "primary" })}
         </div>
-        {syncStatus && (
-          <div className="flex items-center">
-            <SyncStatusBadge syncStatus={syncStatus} className="bg-surface border-border/60" />
-          </div>
-        )}
       </header>
     )
   }
 
   return (
-    <header className={cn("flex items-center justify-between border-b border-border pb-5 mb-6 bg-canvas gap-4", className)}>
+    <header className={cn("flex items-start justify-between border-b border-border pb-5 mb-6 bg-canvas gap-4", className)}>
       <div className="min-w-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold font-heading tracking-tight text-heading">
             {title}
           </h1>
-          {syncStatus && (
-            <SyncStatusBadge syncStatus={syncStatus} />
+          {description && (
+            <>
+              <span className="text-2xl font-bold text-muted/40 select-none leading-none">/</span>
+              <p className="text-xs text-body leading-none">
+                {description}
+              </p>
+            </>
           )}
         </div>
-        {description && (
-          <p className="text-xs text-body mt-1">
-            {description}
+        {syncStatus?.lastSyncLabel && (
+          <p className="text-[10px] text-muted mt-0.5">
+            {syncStatus.lastSyncLabel}
           </p>
         )}
       </div>

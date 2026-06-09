@@ -17,7 +17,7 @@ export function SyncStatusBadge({ syncStatus, className }: SyncStatusBadgeProps)
   }[status]
 
   return (
-    <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded bg-canvas border border-border text-[11px] font-mono", className)}>
+    <div className={cn("inline-flex items-center gap-2 px-2.5 py-1 rounded bg-canvas border border-border text-[11px]", className)}>
       <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dotColor)} />
       <span className="text-body font-medium">{source}</span>
       {lastSyncLabel && (

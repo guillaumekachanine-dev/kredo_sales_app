@@ -1,13 +1,14 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 
 export interface AppDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description?: string
+  subtitle?: string    // courte ligne de type/contexte, sous le titre, plus légère
+  description?: string // texte d'instruction plus long (optionnel)
   children: React.ReactNode
   footer?: React.ReactNode
   className?: string
@@ -18,77 +19,105 @@ export function AppDrawer({
   open,
   onOpenChange,
   title,
+  subtitle,
   description,
   children,
   footer,
   className,
-  side = "right"
+  side = "right",
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const [isClosing, setIsClosing] = useState(false)
+  const isRight = side === "right"
 
+  // Synchronise avec la prop `open`.
+  // Ouverture : showModal() immédiatement — l'animation CSS joue via [open].kredo-drawer-*
+  // Fermeture : déclenche l'animation de sortie, puis close() après la durée.
+  //
+  // IMPORTANT : le timeout (260 ms) doit correspondre à la durée de `kredo-drawer-out-*`
+  // définie dans globals.css, sinon le dialogue se ferme avant la fin de l'animation.
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
 
     if (open) {
-      if (!dialog.open) {
-        dialog.showModal()
-      }
-    } else {
-      if (dialog.open) {
+      setIsClosing(false)
+      if (!dialog.open) dialog.showModal()
+    } else if (dialog.open) {
+      setIsClosing(true)
+      const timer = setTimeout(() => {
         dialog.close()
-      }
+        setIsClosing(false)
+      }, 260)
+      return () => clearTimeout(timer)
     }
   }, [open])
 
+  // Touche Escape : délègue à onOpenChange pour passer par l'animation de sortie.
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-
     const handleCancel = (e: Event) => {
       e.preventDefault()
       onOpenChange(false)
     }
-
     dialog.addEventListener("cancel", handleCancel)
-    return () => {
-      dialog.removeEventListener("cancel", handleCancel)
-    }
+    return () => dialog.removeEventListener("cancel", handleCancel)
   }, [onOpenChange])
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    if (e.target === dialogRef.current) {
-      onOpenChange(false)
-    }
+    if (e.target === dialogRef.current) onOpenChange(false)
   }
-
-  const isRight = side === "right"
 
   return (
     <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed bg-surface border-border text-heading shadow-xl flex flex-col h-full outline-none",
-        "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
+        // Base commune
+        "fixed bg-surface border-border text-heading shadow-2xl flex flex-col outline-none",
+        "backdrop:bg-heading/25 backdrop:backdrop-blur-sm",
+        // Position + animation selon le côté
         isRight
-          ? "inset-y-0 right-0 m-0 w-full max-w-md border-l animate-in slide-in-from-right duration-300"
-          : "inset-x-0 bottom-0 m-0 w-full max-h-[85vh] border-t rounded-t-xl animate-in slide-in-from-bottom duration-300",
+          ? cn(
+              "inset-y-0 right-0 left-auto m-0 w-full max-w-md h-full border-l",
+              "kredo-drawer-right",
+              isClosing && "kredo-drawer-closing"
+            )
+          : cn(
+              "inset-x-0 bottom-0 top-auto m-0 w-full max-h-[85vh] border-t rounded-t-xl",
+              "kredo-drawer-bottom",
+              isClosing && "kredo-drawer-closing"
+            ),
         className
       )}
     >
       <div className="flex flex-col h-full p-6">
         {/* Header */}
-        <div className="flex flex-col gap-1.5 pb-4 border-b border-border/40 shrink-0">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold font-heading">{title}</h2>
+        <div className={cn(
+          "flex flex-col pb-4 border-b border-border/40 shrink-0",
+          description ? "gap-1.5" : ""
+        )}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold font-heading leading-snug">{title}</h2>
+              {subtitle && (
+                <p className="text-xs text-muted mt-0.5 font-normal leading-none">{subtitle}</p>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="text-muted hover:text-heading transition-colors"
+              className="text-muted hover:text-heading transition-colors -mr-1 p-1 rounded shrink-0 mt-0.5"
               aria-label="Fermer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -98,8 +127,10 @@ export function AppDrawer({
           )}
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto py-4 text-xs text-body leading-relaxed">{children}</div>
+        {/* Body scrollable */}
+        <div className="flex-1 min-h-0 overflow-y-auto py-4 text-xs text-body leading-relaxed">
+          {children}
+        </div>
 
         {/* Footer */}
         {footer && (

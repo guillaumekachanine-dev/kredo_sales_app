@@ -107,7 +107,7 @@ export default function EditorTestPage() {
         {/* Bottom Left: JSON Model */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-heading">Modèle JSON (RichTextDocument)</h2>
-          <pre className="p-4 bg-surface border border-border rounded-lg text-[10px] font-mono text-muted overflow-auto max-h-[300px] whitespace-pre-wrap">
+          <pre className="p-4 bg-surface border border-border rounded-lg text-[10px] text-muted overflow-auto max-h-[300px] whitespace-pre-wrap">
             {JSON.stringify(doc, null, 2)}
           </pre>
         </div>
@@ -115,7 +115,7 @@ export default function EditorTestPage() {
         {/* Bottom Right: Raw Text Extraction */}
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-heading">Texte Brut (Extrait)</h2>
-          <pre className="p-4 bg-surface border border-border rounded-lg text-[10px] font-mono text-heading overflow-auto max-h-[300px] whitespace-pre-wrap">
+          <pre className="p-4 bg-surface border border-border rounded-lg text-[10px] text-heading overflow-auto max-h-[300px] whitespace-pre-wrap">
             {documentToPlainText(doc) || "(Vide)"}
           </pre>
         </div>

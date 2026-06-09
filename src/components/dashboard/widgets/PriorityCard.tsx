@@ -41,7 +41,7 @@ export function PriorityCard({ priority, className }: PriorityCardProps) {
       </div>
       
       {dueLabel && (
-        <span className={cn("shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border font-mono", dueBadgeStyle)}>
+        <span className={cn("shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border", dueBadgeStyle)}>
           {dueLabel}
         </span>
       )}

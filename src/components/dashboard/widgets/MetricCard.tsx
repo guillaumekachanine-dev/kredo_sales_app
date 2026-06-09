@@ -78,7 +78,7 @@ export function MetricCard({ metric, className }: MetricCardProps) {
         <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-2.5 text-xs">
           <span className="text-muted truncate">{description}</span>
           {trend && (
-            <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded border font-mono text-[10px] font-medium", trendColor)}>
+            <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium", trendColor)}>
               {trendIcon}
               {trend.label}
             </span>

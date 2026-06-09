@@ -1,4 +1,5 @@
 import { MissionsListView, MissionsListRow } from "@/components/missions/MissionsListView"
+import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 
 const mockOpportunites: MissionsListRow[] = [
   {
@@ -85,9 +86,7 @@ export default function OpportunitesPage() {
             {nbOuvertes} opportunités ouvertes · cliquez une ligne pour ouvrir la fiche
           </p>
         </div>
-        <button className="px-4 py-2 text-xs font-semibold rounded bg-primary text-primary-fg hover:bg-primary/95 transition-colors shrink-0">
-          Nouvelle opportunité
-        </button>
+        <NewOpportunityButton />
       </div>
 
       <MissionsListView rows={mockOpportunites} emptyMessage="Aucune opportunité." />

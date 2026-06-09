@@ -49,7 +49,7 @@ export default async function DashboardTestPage({ searchParams }: PageProps) {
       <div className="bg-heading text-primary-fg border-b border-primary/20 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="font-bold tracking-tight text-white text-sm">KREDO Dashboard Tester</span>
-          <span className="text-[10px] bg-primary px-1.5 py-0.5 rounded font-mono text-white">Next.js 15 App Router</span>
+          <span className="text-[10px] bg-primary px-1.5 py-0.5 rounded text-white">Next.js 15 App Router</span>
         </div>
 
         {/* Section Tabs */}
@@ -100,7 +100,7 @@ export default async function DashboardTestPage({ searchParams }: PageProps) {
       <main className="flex-1 flex flex-col justify-center">
         {forcedDevice === "mobile" ? (
           <div className="max-w-[420px] w-full mx-auto my-8 border border-border shadow-lg rounded-2xl overflow-hidden bg-canvas">
-            <div className="h-6 bg-border/40 flex items-center justify-between px-4 border-b border-border text-[10px] font-mono text-muted">
+            <div className="h-6 bg-border/40 flex items-center justify-between px-4 border-b border-border text-[10px] text-muted">
               <span>● iPhone Simulator</span>
               <span>100% responsive</span>
             </div>

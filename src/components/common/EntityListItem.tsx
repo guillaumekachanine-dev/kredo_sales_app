@@ -31,7 +31,7 @@ export function EntityListItem({
         </div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        {metadata && <div className="text-[10px] text-muted font-mono">{metadata}</div>}
+        {metadata && <div className="text-[10px] text-muted">{metadata}</div>}
         {actions && <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">{actions}</div>}
       </div>
     </div>

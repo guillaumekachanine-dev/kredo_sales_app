@@ -51,7 +51,7 @@ export function DashboardActivityFeed({ activities, className }: DashboardActivi
                       </p>
                     )}
                     {activity.dateLabel && (
-                      <time className="text-[10px] text-muted font-mono mt-1 block">
+                      <time className="text-[10px] text-muted mt-1 block">
                         {activity.dateLabel}
                       </time>
                     )}

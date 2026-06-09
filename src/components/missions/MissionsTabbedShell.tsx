@@ -4,13 +4,15 @@ import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { getSectionTabsForPath } from "@/lib/navigation/main-menu.config"
 import { SectionTabBar } from "@/components/layout/SectionTabBar"
 import { MissionsEntityPanel } from "./MissionsEntityPanel"
 
-const SEGMENT_LABELS: Record<string, string> = {
-  "/missions/actives": "Missions actives",
-  "/missions/opps": "Opportunités",
-  "/missions/planning": "Planning",
+// homeLabel dérivé du config navigation — source unique de vérité
+function useHomeLabelForPath(pathname: string): string {
+  const tabs = getSectionTabsForPath(pathname)
+  const match = tabs.find((t) => t.href === pathname)
+  return match?.label ?? "Vue d'ensemble"
 }
 
 interface MissionsTabbedShellProps {
@@ -23,11 +25,11 @@ export function MissionsTabbedShell({
   isMobile = false,
 }: MissionsTabbedShellProps) {
   const pathname = usePathname()
-  const homeLabel = SEGMENT_LABELS[pathname] ?? "Liste"
+  const homeLabel = useHomeLabelForPath(pathname)
   const { tabs, activeTabId, setActiveTab } = useMissionsTabStore()
 
-  // Quand on change de page (actives → opps → planning), on revient sur "home"
-  // pour afficher la liste de la nouvelle page, sans fermer les tabs ouverts.
+  // Quand on change de sous-page (actives → opps → planning), on revient sur
+  // "home" pour afficher la liste de la nouvelle page sans fermer les tabs ouverts.
   const prevPathname = useRef(pathname)
   useEffect(() => {
     if (prevPathname.current !== pathname) {
@@ -45,7 +47,7 @@ export function MissionsTabbedShell({
     <div className="flex flex-col h-full overflow-hidden">
       <SectionTabBar homeLabel={homeLabel} />
 
-      {/* Home tab — le contenu Next.js de la page (liste) */}
+      {/* Home tab — liste Next.js de la page courante */}
       <div
         className={cn(
           "flex-1 overflow-y-auto",
@@ -55,7 +57,7 @@ export function MissionsTabbedShell({
         {children}
       </div>
 
-      {/* Record tabs — fiches ouvertes */}
+      {/* Record tabs — fiches entités ouvertes */}
       {tabs.map((tab) => (
         <div
           key={tab.id}

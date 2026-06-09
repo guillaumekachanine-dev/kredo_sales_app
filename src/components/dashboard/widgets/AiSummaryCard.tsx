@@ -21,7 +21,7 @@ export function AiSummaryCard({ insight, className }: AiSummaryCardProps) {
         <h3 className="text-sm font-semibold text-heading tracking-tight">
           {title}
         </h3>
-        <span className="ml-auto text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded font-mono uppercase tracking-wider">
+        <span className="ml-auto text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase tracking-wider">
           Copilot IA
         </span>
       </div>

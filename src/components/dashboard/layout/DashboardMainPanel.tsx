@@ -26,7 +26,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
           <div key={idx} className="space-y-1">
             <div className="flex justify-between items-center text-xs">
               <span className="font-semibold text-heading">{stage.name}</span>
-              <span className="text-muted font-mono">
+              <span className="text-muted">
                 {stage.count} {stage.count > 1 ? "opps" : "opp"} · <span className="text-heading font-semibold">{stage.value}</span>
               </span>
             </div>
@@ -70,12 +70,12 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
               <span className="text-heading font-medium">{item.label}</span>
               <div className="flex items-center gap-3">
                 <span className={cn(
-                  "font-mono font-semibold",
+                  "font-semibold",
                   isExpense ? "text-danger" : isNetOrMargin ? "text-primary" : "text-success"
                 )}>
                   {item.value}
                 </span>
-                <span className="text-[10px] text-muted w-8 text-right font-mono">
+                <span className="text-[10px] text-muted w-8 text-right">
                   {item.percent}%
                 </span>
               </div>
@@ -130,7 +130,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
                     className="w-full bg-primary/80 hover:bg-primary rounded-t-sm z-10 transition-all duration-300 relative group"
                     style={{ height: actualHeight }}
                   >
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-heading text-primary-fg text-[9px] font-mono px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-heading text-primary-fg text-[9px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                       {m.actual}k
                     </div>
                   </div>
@@ -144,7 +144,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
                   />
                 )}
 
-                <span className="text-[10px] text-muted font-mono mt-2 pt-1 uppercase">
+                <span className="text-[10px] text-muted mt-2 pt-1 uppercase">
                   {m.name}
                 </span>
               </div>
@@ -171,15 +171,15 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-canvas/50 p-2 rounded border border-border/40">
             <span className="text-[10px] text-muted block uppercase">Chunks Vecteurs</span>
-            <span className="text-base font-bold text-heading font-mono">{vectors.chunked}</span>
+            <span className="text-base font-bold text-heading">{vectors.chunked}</span>
           </div>
           <div className="bg-canvas/50 p-2 rounded border border-border/40">
             <span className="text-[10px] text-muted block uppercase">Fichiers Sourcés</span>
-            <span className="text-base font-bold text-heading font-mono">{vectors.total}</span>
+            <span className="text-base font-bold text-heading">{vectors.total}</span>
           </div>
           <div className="bg-canvas/50 p-2 rounded border border-border/40">
             <span className="text-[10px] text-muted block uppercase">Stockage Vectoriel</span>
-            <span className="text-base font-bold text-heading font-mono">{vectors.storage}</span>
+            <span className="text-base font-bold text-heading">{vectors.storage}</span>
           </div>
         </div>
 
@@ -192,7 +192,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
             {topKeywords.map((keyword, idx) => (
               <div key={idx} className="flex justify-between items-center p-2 text-xs bg-surface hover:bg-canvas/30">
                 <span className="font-medium text-heading truncate">{keyword.name}</span>
-                <div className="flex items-center gap-3 font-mono text-muted text-[10px]">
+                <div className="flex items-center gap-3 text-muted text-[10px]">
                   <span>{keyword.count} reqs</span>
                   <span className="text-success font-semibold">★ {keyword.rating}</span>
                 </div>
@@ -230,7 +230,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
                   "bg-danger/80 hover:bg-danger": status === "error"
                 })}
               >
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-heading text-primary-fg text-[9px] font-mono px-1.5 py-0.5 rounded whitespace-nowrap z-20">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-heading text-primary-fg text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap z-20">
                   Heure -{24 - idx}h : {status === "ok" ? "Succès" : status === "warning" ? "Avertissement" : "Échec"}
                 </div>
               </div>
@@ -254,7 +254,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
                   <span className={cn("w-2 h-2 rounded-full", flow.status === "ok" ? "bg-success" : "bg-warning")} />
                   <span className="font-semibold text-heading">{flow.name}</span>
                 </div>
-                <div className="text-right text-[10px] text-muted font-mono">
+                <div className="text-right text-[10px] text-muted">
                   <span>{flow.run}</span>
                   <span className="block text-[9px]">{flow.lastRun}</span>
                 </div>
@@ -281,7 +281,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
           <span className="text-[10px] text-muted block uppercase mb-1">Taux Global d&apos;Acceptation</span>
           <div className="flex items-baseline gap-2 mb-2">
             <span className="text-2xl font-bold text-heading">68%</span>
-            <span className="text-xs text-success font-semibold font-mono">+4% vs Q1</span>
+            <span className="text-xs text-success font-semibold">+4% vs Q1</span>
           </div>
           <div className="h-2 bg-canvas border border-border rounded-full overflow-hidden">
             <div className="h-full bg-primary rounded-full" style={{ width: "68%" }} />
@@ -300,7 +300,7 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
                   <span className="font-medium text-heading block">{template.name}</span>
                   <span className="text-[10px] text-muted">{template.conversions}</span>
                 </div>
-                <span className="font-mono text-primary font-bold text-[11px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
+                <span className="text-primary font-bold text-[11px] bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
                   {template.rate}
                 </span>
               </div>

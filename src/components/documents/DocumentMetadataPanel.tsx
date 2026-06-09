@@ -25,7 +25,7 @@ export function DocumentMetadataPanel({
           {entries.map(([key, value]) => (
             <div key={key} className="py-2.5 flex flex-col gap-1">
               <dt className="text-muted font-medium capitalize">{key}</dt>
-              <dd className="text-heading font-semibold font-mono break-all">{value}</dd>
+              <dd className="text-heading font-semibold break-all">{value}</dd>
             </div>
           ))}
         </dl>

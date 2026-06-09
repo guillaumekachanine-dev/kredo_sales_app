@@ -98,10 +98,12 @@ export type Database = {
       }
       sales_opportunities: {
         Row: {
-          account_id: string
+          account_id: string | null                                        // nullable depuis migration 002
+          acv: number | null                                               // GENERATED : duration × target_daily_rate
           client_context: string | null
           conviction: number
           created_at: string
+          duration: number | null                                          // durée en jours (migration 002)
           engagement_notes: string | null
           estimated_gain: number | null
           id: string
@@ -111,17 +113,20 @@ export type Database = {
           owner_id: string
           priority: Database["public"]["Enums"]["sales_priority"]
           stage: Database["public"]["Enums"]["sales_stage"]
+          start_date: string | null                                        // date ISO (migration 002)
           target_close_date: string | null
           target_daily_rate: number | null
           title: string
           updated_at: string
-          weighted_gain: number | null
+          weighted_gain: number | null                                     // GENERATED : estimated_gain × conviction / 100
         }
         Insert: {
-          account_id: string
+          account_id?: string | null
+          // acv — colonne GENERATED, ne pas inclure dans Insert
           client_context?: string | null
           conviction?: number
           created_at?: string
+          duration?: number | null
           engagement_notes?: string | null
           estimated_gain?: number | null
           id?: string
@@ -131,17 +136,20 @@ export type Database = {
           owner_id?: string
           priority?: Database["public"]["Enums"]["sales_priority"]
           stage?: Database["public"]["Enums"]["sales_stage"]
+          start_date?: string | null
           target_close_date?: string | null
           target_daily_rate?: number | null
           title: string
           updated_at?: string
-          weighted_gain?: number | null
+          // weighted_gain — colonne GENERATED, ne pas inclure dans Insert
         }
         Update: {
-          account_id?: string
+          account_id?: string | null
+          // acv — colonne GENERATED, ne pas inclure dans Update
           client_context?: string | null
           conviction?: number
           created_at?: string
+          duration?: number | null
           engagement_notes?: string | null
           estimated_gain?: number | null
           id?: string
@@ -151,11 +159,12 @@ export type Database = {
           owner_id?: string
           priority?: Database["public"]["Enums"]["sales_priority"]
           stage?: Database["public"]["Enums"]["sales_stage"]
+          start_date?: string | null
           target_close_date?: string | null
           target_daily_rate?: number | null
           title?: string
           updated_at?: string
-          weighted_gain?: number | null
+          // weighted_gain — colonne GENERATED, ne pas inclure dans Update
         }
         Relationships: [
           {
@@ -295,7 +304,7 @@ export type Database = {
       sales_outcome: "gagnee" | "perdue" | "abandonnee"
       sales_priority: "haute" | "moyenne" | "basse"
       sales_skill_importance: "indispensable" | "souhaitee" | "bonus"
-      sales_stage: "demande" | "qualification" | "envoi_cv" | "rt" | "signature"
+      sales_stage: "en_cours" | "cv_sent" | "rt" | "win" | "lost" | "non_traitee"
     }
     CompositeTypes: {
       [_ in never]: never

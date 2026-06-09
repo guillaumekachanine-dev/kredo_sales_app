@@ -69,7 +69,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
                             getAlignClass(col.align),
                             col.align === "right" ? "tabular-nums" : "",
                             col.key === "client" || col.key === "invoice" ? "font-semibold" : "",
-                            col.key === "value" || col.key === "amount" ? "font-mono" : ""
+                            col.key === "value" || col.key === "amount" ? "" : ""
                           )}
                         >
                           {cellValue}
@@ -95,7 +95,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
                               getAlignClass(col.align),
                               col.align === "right" ? "tabular-nums" : "",
                               col.key === "client" || col.key === "invoice" ? "font-semibold group-hover:text-primary" : "",
-                              col.key === "value" || col.key === "amount" ? "font-mono" : ""
+                              col.key === "value" || col.key === "amount" ? "" : ""
                             )}
                           >
                             <Link href={row.href!} className="block w-full h-full">

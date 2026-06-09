@@ -90,7 +90,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
                   </div>
                 </td>
                 <td className="px-4 py-3.5 text-body">{row.client ?? "—"}</td>
-                <td className="px-4 py-3.5 text-right font-mono font-medium text-heading tabular-nums">
+                <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
                   {row.amount ?? "—"}
                 </td>
                 <td className="px-4 py-3.5">
