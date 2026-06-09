@@ -5,6 +5,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
+import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
 import {
   formatEuro,
   formatDate,
@@ -593,6 +594,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
           )}
         </SurfaceCard>
+
+        <OpportunityContactsPanel
+          opportunityId={opportunity.id}
+          contacts={data.contacts}
+          onRefresh={onSuccess}
+        />
       </div>
     )
   }
@@ -1141,6 +1148,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
             </div>
           </SurfaceCard>
+
+          <OpportunityContactsPanel
+            opportunityId={opportunity.id}
+            contacts={data.contacts}
+            onRefresh={onSuccess}
+          />
         </div>
       </div>
     </div>
