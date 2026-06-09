@@ -11,3 +11,15 @@
 - **Dépôt** : structure de travail initialisée (README, docs, ADR, migrations, squelette `src/`).
 - **Types TypeScript** générés depuis le schéma live → `src/types/database.ts` (+ raccourcis : `Opportunity`, `Account`, `SalesStage`…).
 - **Clients Supabase typés** : `createBrowserClient<Database>` / `createServerClient<Database>`.
+- **Architecture de Dashboard** : 
+  - Création des types principaux (`src/lib/dashboard/dashboard-types.ts`) et de détection de device serveur (`src/lib/dashboard/dashboard-device.ts`).
+  - Développement des widgets réutilisables (`MetricCard`, `AlertCard`, `PriorityCard`, `AiSummaryCard`, `SyncStatusBadge`, `EmptyState`).
+  - Développement des sections de mise en page (`DashboardHeader`, `DashboardKpiGrid`, `DashboardMainPanel`, `DashboardPriorityPanel`, `DashboardTablePanel`, `DashboardAiPanel`, `DashboardActivityFeed`, `DashboardQuickActions`) avec visualisations HTML/Tailwind personnalisées sans dépendances.
+  - Implémentation des templates adaptatifs `SectionDashboardTemplate`, `SectionDesktopDashboard` et `SectionMobileDashboard`.
+- **Navigation & App Shell** :
+  - Création de la configuration de navigation centralisée (`src/lib/navigation/main-menu.config.ts`).
+  - Développement de l'App Shell distribuant dynamiquement l'affichage selon le support (Sidebar + Header sur Desktop, Bottom navigation sur Mobile).
+  - Création des pages pour les 7 modules actifs : `/cockpit`, `/sales`, `/prospection`, `/proposals`, `/finance`, `/knowledge`, `/automations` dans le groupe de routes `(app)`.
+  - Intégration d'un module d'icônes SVG centralisé (`src/components/layout/navigation-icons.tsx`).
+  - Amélioration de l'accessibilité par l'ajout conditionnel de l'attribut `aria-current="page"` sur les liens actifs de navigation.
+

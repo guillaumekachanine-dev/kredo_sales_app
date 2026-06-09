@@ -1,0 +1,120 @@
+import Link from "next/link"
+import { DashboardTable } from "@/lib/dashboard/dashboard-types"
+import { EmptyState } from "../widgets/EmptyState"
+import { cn } from "@/lib/utils"
+
+interface DashboardTablePanelProps {
+  table: DashboardTable
+  className?: string
+}
+
+export function DashboardTablePanel({ table, className }: DashboardTablePanelProps) {
+  const { title, description, columns, rows } = table
+
+  const getAlignClass = (align?: "left" | "right" | "center") => {
+    return {
+      left: "text-left",
+      right: "text-right",
+      center: "text-center"
+    }[align || "left"]
+  }
+
+  return (
+    <div className={cn("bg-surface border border-border p-5 rounded-lg flex flex-col h-full", className)}>
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-heading leading-tight">
+          {title}
+        </h3>
+        {description && (
+          <p className="text-xs text-muted mt-0.5">
+            {description}
+          </p>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-x-auto">
+        {rows.length === 0 ? (
+          <EmptyState
+            title="Aucune donnée"
+            description="Aucun enregistrement ne correspond aux critères de cette vue."
+            className="py-12 bg-canvas/30"
+          />
+        ) : (
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="border-b border-border/80 text-muted font-bold uppercase tracking-wider text-[10px]">
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    scope="col"
+                    className={cn("pb-3 px-3 first:pl-0 last:pr-0 font-semibold", getAlignClass(col.align))}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {rows.map((row) => {
+                const rowContent = (
+                  <>
+                    {columns.map((col) => {
+                      const cellValue = row.cells[col.key] || "-"
+                      return (
+                        <td
+                          key={col.key}
+                          className={cn(
+                            "py-3 px-3 first:pl-0 last:pr-0 text-heading font-medium truncate max-w-[200px]",
+                            getAlignClass(col.align),
+                            col.key === "client" || col.key === "invoice" ? "font-semibold" : "",
+                            col.key === "value" || col.key === "amount" ? "font-mono" : ""
+                          )}
+                        >
+                          {cellValue}
+                        </td>
+                      )
+                    })}
+                  </>
+                )
+
+                if (row.href) {
+                  return (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-canvas/40 transition-colors duration-150 cursor-pointer group"
+                    >
+                      {columns.map((col, idx) => {
+                        const cellValue = row.cells[col.key] || "-"
+                        return (
+                          <td
+                            key={col.key}
+                            className={cn(
+                              "py-3 px-3 first:pl-0 last:pr-0 text-heading font-medium truncate max-w-[200px]",
+                              getAlignClass(col.align),
+                              col.key === "client" || col.key === "invoice" ? "font-semibold group-hover:text-primary" : "",
+                              col.key === "value" || col.key === "amount" ? "font-mono" : ""
+                            )}
+                          >
+                            <Link href={row.href!} className="block w-full h-full">
+                              {cellValue}
+                            </Link>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                }
+
+                return (
+                  <tr key={row.id} className="hover:bg-canvas/10">
+                    {rowContent}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
