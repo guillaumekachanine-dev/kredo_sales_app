@@ -1,77 +1,10 @@
-import { MissionsListView, MissionsListRow } from "@/components/missions/MissionsListView"
+import { MissionsListView } from "@/components/missions/MissionsListView"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
+import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
 
-const mockOpportunites: MissionsListRow[] = [
-  {
-    entityId: "o-001",
-    entityType: "opportunite",
-    title: "Offre Data Governance — L'Oréal",
-    subtitle: "Opportunité · Data",
-    client: "L'Oréal",
-    status: "pending",
-    amount: "220 000 €",
-    date: "Juil 2026",
-    tag: "Proposition envoyée",
-  },
-  {
-    entityId: "o-002",
-    entityType: "opportunite",
-    title: "Mission BI / Reporting — Renault",
-    subtitle: "Opportunité · Analytics",
-    client: "Renault",
-    status: "pending",
-    amount: "78 000 €",
-    date: "Juin 2026",
-    tag: "Qualification en cours",
-  },
-  {
-    entityId: "o-003",
-    entityType: "opportunite",
-    title: "Modernisation Infra — TotalEnergies",
-    subtitle: "Opportunité · Cloud",
-    client: "TotalEnergies",
-    status: "won",
-    amount: "310 000 €",
-    date: "Avr 2026",
-    tag: "Contrat signé",
-  },
-  {
-    entityId: "o-004",
-    entityType: "opportunite",
-    title: "Conseil Stratégie SI — Airbus",
-    subtitle: "Opportunité · Stratégie",
-    client: "Airbus",
-    status: "lost",
-    amount: "95 000 €",
-    date: "Mar 2026",
-    tag: "Perdu — budget",
-  },
-  {
-    entityId: "o-005",
-    entityType: "opportunite",
-    title: "DevSecOps — Orange Business",
-    subtitle: "Opportunité · Sécurité",
-    client: "Orange Business",
-    status: "pending",
-    amount: "130 000 €",
-    date: "Août 2026",
-    tag: "RDV découverte",
-  },
-  {
-    entityId: "o-006",
-    entityType: "opportunite",
-    title: "Transformation Agile — SNCF",
-    subtitle: "Opportunité · Agilité",
-    client: "SNCF",
-    status: "active",
-    amount: "165 000 €",
-    date: "Oct 2026",
-    tag: "Négociation",
-  },
-]
-
-export default function OpportunitesPage() {
-  const nbOuvertes = mockOpportunites.filter((o) =>
+export default async function OpportunitesPage() {
+  const opportunites = await getOpportunitiesList()
+  const nbOuvertes = opportunites.filter((o) =>
     ["pending", "active"].includes(o.status)
   ).length
 
@@ -83,13 +16,17 @@ export default function OpportunitesPage() {
             Opportunités
           </h1>
           <p className="text-sm text-muted mt-1">
-            {nbOuvertes} opportunités ouvertes · cliquez une ligne pour ouvrir la fiche
+            {nbOuvertes} opportunité{nbOuvertes > 1 ? "s" : ""} ouverte{nbOuvertes > 1 ? "s" : ""} · cliquez une ligne pour ouvrir la fiche
           </p>
         </div>
         <NewOpportunityButton />
       </div>
 
-      <MissionsListView rows={mockOpportunites} emptyMessage="Aucune opportunité." />
+      <MissionsListView
+        rows={opportunites}
+        emptyMessage="Aucune opportunité pour l’instant. Créez votre première opportunité pour initialiser le pipeline."
+      />
     </div>
   )
 }
+
