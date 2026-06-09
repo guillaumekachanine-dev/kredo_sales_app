@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   KREDO — Design System · Palette "Cobalt Franc"
+   Tailwind v4 : @theme génère automatiquement les classes
+   utilitaires (bg-primary, text-heading, border-border, etc.)
+   Ne JAMAIS mettre de couleur en dur dans un composant.
+   ============================================================ */
+
+@theme {
+
+  /* ── Brand ─────────────────────────────────────────────── */
+  --color-primary:     #2554B8;   /* bg-primary  text-primary  */
+  --color-primary-fg:  #F2F5FB;   /* bg-primary-fg  text-primary-fg */
+
+  /* ── Structure ──────────────────────────────────────────── */
+  --color-canvas:        #F4F2ED; /* bg-canvas   — fond de l'app   */
+  --color-surface:       #FDFCFA; /* bg-surface  — cartes, panneaux */
+  --color-surface-hover: #EDF0F7; /* hover:bg-surface-hover          */
+  --color-border:        #DBE0EB; /* border-border                   */
+
+  /* ── Typographie ────────────────────────────────────────── */
+  --color-heading:   #1A2540;     /* text-heading   — titres, chiffres clés */
+  --color-body:      #526074;     /* text-body      — texte courant         */
+  --color-muted:     #93A0B0;     /* text-muted     — labels, métadonnées   */
+
+  /* ── États fonctionnels ─────────────────────────────────── */
+  --color-success:     #2C7D5C;   /* bg-success  text-success  */
+  --color-warning:     #C08A20;   /* bg-warning  text-warning  */
+  --color-danger:      #BE3E3E;   /* bg-danger   text-danger   */
+  --color-accent:      #D97020;   /* bg-accent   text-accent   */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ── Base ─────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-canvas);
+  color: var(--color-heading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

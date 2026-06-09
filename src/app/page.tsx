@@ -1,65 +1,74 @@
-import Image from "next/image";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { error } = await supabase.from("crm_accounts").select("id").limit(1);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-canvas">
+
+      {/* ── Header ── */}
+      <header className="bg-surface border-b border-border px-8 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-xl font-bold tracking-tight text-heading">kredo</span>
+          <span className="text-xs text-muted border border-border px-2 py-0.5 rounded">
+            v0.1 · Phase 0
+          </span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <span className={`text-xs font-medium ${error ? "text-danger" : "text-success"}`}>
+          {error ? "⚠ DB déconnectée" : "● DB connectée"}
+        </span>
+      </header>
+
+      {/* ── Main ── */}
+      <main className="px-8 py-16 max-w-3xl">
+        <p className="text-xs font-medium text-muted tracking-widest uppercase mb-4">
+          Design System · Cobalt Franc
+        </p>
+        <h1 className="text-4xl font-bold text-heading mb-3">
+          Les fondations sont posées.
+        </h1>
+        <p className="text-body text-lg mb-16">
+          Palette active, base connectée, tokens prêts.
+          Phase 1 en approche — le pipe des opportunités.
+        </p>
+
+        {/* ── Palette live ── */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <Swatch bg="bg-primary" label="primary" light />
+          <Swatch bg="bg-surface" label="surface" bordered />
+          <Swatch bg="bg-accent" label="accent" light />
+          <Swatch bg="bg-canvas" label="canvas" bordered />
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <Swatch bg="bg-success" label="success" light />
+          <Swatch bg="bg-warning" label="warning" light />
+          <Swatch bg="bg-danger" label="danger" light />
+          <div className="h-16 bg-surface border border-border rounded flex items-end gap-1 p-2">
+            <span className="text-heading  text-xs font-mono">heading</span>
+            <span className="text-body    text-xs font-mono">body</span>
+            <span className="text-muted   text-xs font-mono">muted</span>
+          </div>
         </div>
       </main>
+
+    </div>
+  );
+}
+
+/* ── Micro-composant local (usage unique, pas dans components/) ── */
+function Swatch({
+  bg, label, light = false, bordered = false,
+}: {
+  bg: string; label: string; light?: boolean; bordered?: boolean;
+}) {
+  return (
+    <div
+      className={`h-16 ${bg} rounded flex items-end p-2 ${bordered ? "border border-border" : ""}`}
+    >
+      <span className={`text-xs font-mono ${light ? "text-primary-fg" : "text-body"}`}>
+        {label}
+      </span>
     </div>
   );
 }
