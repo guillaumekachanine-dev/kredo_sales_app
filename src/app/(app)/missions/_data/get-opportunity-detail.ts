@@ -1,3 +1,5 @@
+"use server"
+
 import { createClient } from "@/lib/supabase/server"
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent } from "@/types/database"
 
