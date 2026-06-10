@@ -29,6 +29,20 @@ const MANUAL_MATCHES = {
   "aeroport-cote-d-azur": "aeroport cote d azur.png",
   "aeroports-de-la-cote-d-azur": "aeroport cote d azur.png",
   "nice-cote-d-azur": "aeroport cote d azur.png",
+  "aeroport-nice-cote-d-azur": "aeroport cote d azur.png",
+  "banque-populaire-mediterranee": "BPMed.png",
+  "bpmed": "BPMed.png",
+  "centre-lacassagne": "antoine lacassagne.png",
+  "centre-antoine-lacassagne": "antoine lacassagne.png",
+  "cnrs-institut-de-la-mer-de-villefranche": "IMEV.png",
+  "institut-de-la-mer-de-villefranche": "IMEV.png",
+  "imev": "IMEV.png",
+  "cnrs-observatoire-cote-d-azur": "Observatoire-Cote-dAzur.svg.png",
+  "euro-protection-surveillance": "eps.png",
+  "eps": "eps.png",
+  "regie-ligne-d-azur": "lignes d azur.png",
+  "seqoia-soft": "sequoia.png",
+  "sequoia-soft": "sequoia.png",
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

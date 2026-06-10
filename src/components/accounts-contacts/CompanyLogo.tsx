@@ -21,10 +21,12 @@ function initials(name: string): string {
 export function CompanyLogo({
   name,
   logoPath,
+  website,
   size = "md",
 }: {
   name: string
   logoPath?: string | null
+  website?: string | null
   size?: Size
 }) {
   const { px, text } = SIZES[size]
@@ -36,13 +38,29 @@ export function CompanyLogo({
   if (logoPath) {
     return (
       <div className={base} style={{ width: px, height: px }}>
-        <Image
-          src={logoPath}
-          alt={`Logo ${name}`}
-          width={px}
-          height={px}
-          className="object-contain w-full h-full"
-        />
+        {logoPath.startsWith("http") ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoPath} alt={`Logo ${name}`} width={px} height={px} className="h-full w-full object-contain" />
+        ) : (
+          <Image
+            src={logoPath}
+            alt={`Logo ${name}`}
+            width={px}
+            height={px}
+            className="object-contain w-full h-full"
+          />
+        )}
+      </div>
+    )
+  }
+
+  const faviconUrl = getFaviconUrl(website)
+
+  if (faviconUrl) {
+    return (
+      <div className={base} style={{ width: px, height: px }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={faviconUrl} alt={`Logo ${name}`} width={px} height={px} className="h-full w-full object-contain p-0.5" />
       </div>
     )
   }
@@ -56,4 +74,15 @@ export function CompanyLogo({
       {initials(name)}
     </div>
   )
+}
+
+function getFaviconUrl(website?: string | null): string | null {
+  if (!website) return null
+
+  try {
+    const parsed = new URL(website.startsWith("http") ? website : `https://${website}`)
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(parsed.hostname)}&sz=64`
+  } catch {
+    return null
+  }
 }

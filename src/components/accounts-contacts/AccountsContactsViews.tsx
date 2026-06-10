@@ -375,15 +375,15 @@ function StudyDetailsModal({ study, onClose }: { study: StudyRow; onClose: () =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <SurfaceCard className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
-        <div className="flex items-start justify-between border-b border-border/60 px-6 py-5 bg-canvas/30">
+        <div className="flex items-start justify-between border-b border-primary/30 bg-primary px-6 py-5 shadow-sm">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold font-heading text-heading">{study.companyName}</h2>
-              <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">Score IA: {formatScore(study.score)}</span>
+              <h2 className="text-lg font-bold font-heading text-primary-fg">{study.companyName}</h2>
+              <span className="rounded bg-primary-fg px-2 py-0.5 text-xs font-bold text-primary shadow-sm">Score IA: {formatScore(study.score)}</span>
             </div>
-            <p className="mt-1 text-xs text-muted">{study.sector} · {study.segment}</p>
+            <p className="mt-1 text-xs font-medium text-primary-fg/75">{study.sector} · {study.segment}</p>
           </div>
-          <button onClick={onClose} className="rounded p-1 hover:bg-canvas/80 text-muted hover:text-heading transition-colors" aria-label="Fermer">
+          <button onClick={onClose} className="rounded p-1 text-primary-fg/75 transition-colors hover:bg-primary-fg/15 hover:text-primary-fg" aria-label="Fermer">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -469,7 +469,7 @@ function AccountsDesktop({
                 <tr key={account.id} className="transition-colors hover:bg-canvas/40">
                   <td className="max-w-[220px] px-5 py-3">
                     <div className="flex items-center gap-2.5">
-                      <CompanyLogo name={account.name} logoPath={account.logoPath} size="sm" />
+                      <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
                       <div className="min-w-0">
                         <div className="font-semibold text-heading truncate">{account.name}</div>
                         <div className="truncate text-[11px] text-muted">{account.website ?? "Site non renseigné"}</div>
@@ -528,7 +528,7 @@ function AccountsMobile({
           <SurfaceCard key={account.id} className="p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <CompanyLogo name={account.name} logoPath={account.logoPath} size="md" />
+                <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" />
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-bold text-heading">{account.name}</h2>
                   <p className="mt-0.5 text-xs text-body">{account.sector} · {account.location}</p>
