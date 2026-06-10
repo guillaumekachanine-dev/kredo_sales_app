@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import { Lato, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+// Graisses limitées à celles réellement utilisées dans le code (audit perf) :
+// font-light (300) et font-black (900) n'apparaissent nulle part → retirées
+// pour éviter 2 téléchargements de fichiers de police inutiles.
 const lato = Lato({
   variable: "--font-sans",
-  weight: ["300", "400", "700", "900"],
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -14,8 +17,11 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
+// Fix : la variable était "--" (jamais reliée à --font-mono dans globals.css),
+// donc JetBrains_Mono était téléchargée mais jamais appliquée (font-mono tombait
+// sur le mono système). On rétablit le mapping prévu par le design system.
 const jetbrainsMono = JetBrains_Mono({
-  variable: "--",
+  variable: "--font-mono",
   weight: ["400", "500"],
   subsets: ["latin"],
 });

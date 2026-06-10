@@ -4,7 +4,13 @@
 
 ## [Non publié]
 
+### 2026-06-11
+- **UI (Lot 2)** : `CompanyIdentityDrawer` enrichi — 6ème onglet "Pitchs" (objet, destinataire, ton, points clés, corps avec bouton Copier), section "Étude Sectorielle IA" dans l'onglet Marché (synthèse, volume, segments, acteurs, concurrence, normatif), badge IA vert sur données Phase 2, empty states pour données non encore générées. Score IA corrigé `/5` → `/10`. Types `SectorAnalysisData` + `PitchData` ajoutés.
+
 ### 2026-06-10
+- **Base de données (Lot 1)** : migration `006_ai_intelligence` appliquée — 3 tables (`ai_intelligence_runs/results/logs`), 2 enums, 10 policies RLS, 17 index dont GIN JSONB + partiel erreurs, 2 triggers `updated_at`, vue `v_ai_intelligence_summary` security_invoker, contrainte `UNIQUE(run_id,phase)`. Types TypeScript régénérés (`src/types/database.ts`).
+- **Base de données (Lot 0.5)** : backfill ETL FOLIO agent → KREDO — 84 comptes enrichis (81 études sectorielles + 38 pitchs) dans `companies.metadata`. Script idempotent `scripts/backfill-folio-intelligence.py`.
+- **Sécurité (Lot 0)** : rotation clé Anthropic (`…RAAA` révoquée), credential n8n `Anthropic real API` créé, nœud `LLM enrichissement client` migré de clé en dur vers credential, fichiers `ba-phase1-webhook*.json` supprimés du repo FOLIO + historique Git purgé (356 commits réécrits, force push toutes branches).
 - **Décision** : ADR-0007 — moteur d'intelligence commerciale internalisé (D-12). Audit critique de la proposition FOLIO→KREDO, vérifié contre la base live : 3 tables `ai_intelligence_*` (vs 5), `content_json` source unique, statut unifié, scoring déterministe 1–10, orchestration hybride durcie (callback HMAC/idempotent/service-role, `workspace_id` explicite), vue `security_invoker`, lot de backfill ETL FOLIO ajouté. Périmètre V1 = Lots 0→5.
 - **Pilotage** : refonte de `docs/ROADMAP.md` (Now/Next/Later + phases + risques + capacité) après audit complet du codebase. Création de `docs/BACKLOG.md` (tickets K-001→K-092).
 - **Décision** : ADR-0006 — stratégie device « adaptive ciblé + responsive par défaut » (D-11). Assouplit la règle stricte de CLAUDE.md/ARCHITECTURE.md §5.

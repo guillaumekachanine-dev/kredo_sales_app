@@ -72,6 +72,8 @@ export type ContactFormData = {
   company_id?: string
   job_title?: string
   relationship_role?: string
+  department?: string
+  manager_contact_id?: string
 }
 
 export async function createContact(data: ContactFormData) {
@@ -85,6 +87,7 @@ export async function createContact(data: ContactFormData) {
       primary_email: data.primary_email?.trim() || null,
       phone: data.phone?.trim() || null,
       linkedin_url: data.linkedin_url?.trim() || null,
+      metadata: data.manager_contact_id ? { manager_contact_id: data.manager_contact_id } : {},
     })
     .select("id")
     .single()
@@ -96,6 +99,7 @@ export async function createContact(data: ContactFormData) {
     company_id: data.company_id || null,
     job_title: data.job_title?.trim() || null,
     relationship_role: data.relationship_role || null,
+    department: data.department?.trim() || null,
     status: "actif",
   })
 
@@ -111,6 +115,19 @@ export async function updateContact(
 ) {
   const supabase = await createClient()
 
+  // Safely retrieve existing metadata to merge it
+  const { data: currentPerson } = await supabase
+    .from("persons")
+    .select("metadata")
+    .eq("id", personId)
+    .maybeSingle()
+
+  const currentMeta = (currentPerson?.metadata || {}) as Record<string, any>
+  const updatedMeta = {
+    ...currentMeta,
+    manager_contact_id: data.manager_contact_id || null
+  }
+
   const [personResult, contactResult] = await Promise.all([
     supabase
       .from("persons")
@@ -120,6 +137,7 @@ export async function updateContact(
         primary_email: data.primary_email?.trim() || null,
         phone: data.phone?.trim() || null,
         linkedin_url: data.linkedin_url?.trim() || null,
+        metadata: updatedMeta,
       })
       .eq("id", personId),
     supabase
@@ -128,6 +146,7 @@ export async function updateContact(
         company_id: data.company_id || null,
         job_title: data.job_title?.trim() || null,
         relationship_role: data.relationship_role || null,
+        department: data.department?.trim() || null,
       })
       .eq("id", contactId),
   ])
@@ -251,7 +270,209 @@ export async function getCompanyIdentity(companyId: string) {
       },
     }
   } catch (err) {
-    console.error("Unhanlded exception in getCompanyIdentity:", err)
+    console.error("Unhandled exception in getCompanyIdentity:", err)
+    return { error: "Une erreur inattendue est survenue", data: null }
+  }
+}
+
+export async function getContactIdentity(contactId: string) {
+  if (!contactId) return { error: "Identifiant manquant", data: null }
+  
+  try {
+    const supabase = await createClient()
+
+    // 1. Fetch contact details (with person and company)
+    const { data: contact, error: contactError } = await supabase
+      .from("contacts")
+      .select(`
+        id,
+        person_id,
+        company_id,
+        job_title,
+        relationship_role,
+        relationship_level,
+        decision_power,
+        department,
+        notes,
+        status,
+        persons (
+          id,
+          full_name,
+          first_name,
+          last_name,
+          primary_email,
+          phone,
+          linkedin_url,
+          location,
+          notes
+        ),
+        companies (
+          id,
+          name,
+          sector,
+          segment,
+          website,
+          hq_location,
+          priority,
+          lifecycle_status,
+          description,
+          revenue,
+          employee_count,
+          size_band,
+          health,
+          ai_score
+        )
+      `)
+      .eq("id", contactId)
+      .maybeSingle()
+
+    if (contactError) return { error: contactError.message, data: null }
+    if (!contact) return { error: "Contact introuvable", data: null }
+
+    // 2. Fetch interactions linked to this contact
+    const { data: interactions, error: interactionsError } = await supabase
+      .from("interactions")
+      .select(`
+        id,
+        type,
+        occurred_at,
+        summary,
+        sentiment,
+        details,
+        next_action
+      `)
+      .eq("contact_id", contactId)
+      .order("occurred_at", { ascending: false })
+
+    if (interactionsError) {
+      console.error("Error fetching contact interactions:", interactionsError)
+    }
+
+    // 3. Fetch opportunities linked to this contact via opportunity_contacts
+    const { data: opportunityContacts, error: oppsError } = await supabase
+      .from("opportunity_contacts")
+      .select(`
+        role,
+        opportunities (
+          id,
+          title,
+          opportunity_type,
+          stage,
+          priority,
+          conviction,
+          target_daily_rate,
+          duration_days,
+          estimated_gain,
+          target_close_date,
+          acv
+        )
+      `)
+      .eq("contact_id", contactId)
+
+    if (oppsError) {
+      console.error("Error fetching contact opportunities:", oppsError)
+    }
+
+    // Extract flat opportunity list with their role in opportunity_contacts
+    const opportunities = (opportunityContacts || [])
+      .map((oc) => {
+        if (!oc.opportunities) return null
+        const opp = Array.isArray(oc.opportunities) ? oc.opportunities[0] : oc.opportunities
+        if (!opp) return null
+        return {
+          ...opp,
+          contact_role: oc.role,
+        }
+      })
+      .filter((opp): opp is NonNullable<typeof opp> => opp !== null)
+
+    // 4. Fetch tasks linked to the contact
+    const { data: tasks, error: tasksError } = await supabase
+      .from("tasks")
+      .select(`
+        id,
+        title,
+        description,
+        due_date,
+        priority,
+        status,
+        completed_at
+      `)
+      .eq("entity_id", contactId)
+      .eq("entity_type", "contact")
+      .order("due_date", { ascending: true, nullsFirst: false })
+
+    if (tasksError) {
+      console.error("Error fetching contact tasks:", tasksError)
+    }
+
+    // Fetch sibling contacts in the same company to identify hierarchy (N+1 / N-1)
+    let manager = null
+    let reports: Array<{ id: string; fullName: string; job_title: string | null }> = []
+
+    if (contact.company_id) {
+      const { data: siblings } = await supabase
+        .from("contacts")
+        .select(`
+          id,
+          job_title,
+          persons (
+            id,
+            full_name,
+            first_name,
+            last_name,
+            metadata
+          )
+        `)
+        .eq("company_id", contact.company_id)
+
+      if (siblings) {
+        const personObj = Array.isArray(contact.persons) ? contact.persons[0] : contact.persons
+        const personMetadata = (personObj as any)?.metadata as Record<string, any> | null
+        const managerContactId = personMetadata?.manager_contact_id
+
+        if (managerContactId) {
+          const m = siblings.find(s => s.id === managerContactId)
+          if (m) {
+            const mPersonObj = Array.isArray(m.persons) ? m.persons[0] : m.persons
+            manager = {
+              id: m.id,
+              fullName: (mPersonObj as any)?.full_name || `${(mPersonObj as any)?.first_name || ""} ${(mPersonObj as any)?.last_name || ""}`.trim(),
+              job_title: m.job_title
+            }
+          }
+        }
+
+        reports = siblings
+          .filter(s => {
+            const sPersonObj = Array.isArray(s.persons) ? s.persons[0] : s.persons
+            const meta = (sPersonObj as any)?.metadata as Record<string, any> | null
+            return meta?.manager_contact_id === contactId
+          })
+          .map(s => {
+            const sPersonObj = Array.isArray(s.persons) ? s.persons[0] : s.persons
+            return {
+              id: s.id,
+              fullName: (sPersonObj as any)?.full_name || `${(sPersonObj as any)?.first_name || ""} ${(sPersonObj as any)?.last_name || ""}`.trim(),
+              job_title: s.job_title
+            }
+          })
+      }
+    }
+
+    return {
+      error: null,
+      data: {
+        contact,
+        interactions: interactions || [],
+        opportunities: opportunities || [],
+        tasks: tasks || [],
+        manager,
+        reports,
+      },
+    }
+  } catch (err) {
+    console.error("Unhandled exception in getContactIdentity:", err)
     return { error: "Une erreur inattendue est survenue", data: null }
   }
 }

@@ -42,7 +42,7 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 **Projet ID :** `jvzgmhvwirsbdkjpmvla`
 **URL :** `https://jvzgmhvwirsbdkjpmvla.supabase.co`
 
-### Migrations appliquées (10)
+### Migrations appliquées (11)
 | Version | Nom |
 |---|---|
 | 20260608230043 | 001_module_opportunite |
@@ -55,6 +55,7 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | 20260609230333 | staging_contacts_import_setup |
 | 20260609235801 | add_test_consultant_missions_cra |
 | 20260610000318 | seed_test_open_opportunities_mapped_companies |
+| 20260611 | 006_ai_intelligence (ADR-0007) |
 
 ### Architecture multi-tenant (ACTIF)
 
@@ -69,7 +70,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 21 tables
+### Schéma public — 24 tables + 1 vue
 
 #### Domaine Core
 | Table | Rows | Description |
@@ -252,9 +253,9 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - [ ] Page /missions
 
 ### Dernière session
-**Date :** 2026-06-10
-**Travail effectué :** Exploration DB + optimisation CLAUDE.md
-**Prochain focus :** Setup Supabase × Next.js 15 (clients + middleware + première page)
+**Date :** 2026-06-11
+**Travail effectué :** Lots 0/0.5/1 — rotation secrets, backfill FOLIO (84 comptes, 81 sectorielles, 38 pitchs → companies.metadata), migration 006_ai_intelligence (3 tables ai_intelligence_*, 2 enums, RLS, vue security_invoker), types régénérés.
+**Prochain focus :** Lot 2 — affichage intelligence commerciale dans le drawer Comptes & Contacts (Desktop/Mobile)
 
 ---
 

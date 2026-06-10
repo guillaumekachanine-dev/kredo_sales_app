@@ -31,6 +31,7 @@ import {
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
+import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,11 +231,13 @@ function CompanyFormModal({
 function ContactFormModal({
   initial,
   accounts,
+  contacts,
   onClose,
   onSuccess,
 }: {
   initial?: ContactRow
   accounts: AccountRow[]
+  contacts: ContactRow[]
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -247,12 +250,19 @@ function ContactFormModal({
     company_id: initial?.companyId ?? "",
     job_title: initial?.jobTitle === "Fonction non renseignée" ? "" : (initial?.jobTitle ?? ""),
     relationship_role: initial?.relationshipRole ?? "",
+    department: initial?.department ?? "",
+    manager_contact_id: initial?.managerContactId ?? "",
   })
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   const set = (key: keyof ContactFormData, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const companyContacts = useMemo(() => {
+    if (!form.company_id) return []
+    return contacts.filter((c) => c.companyId === form.company_id && c.id !== initial?.id)
+  }, [contacts, form.company_id, initial?.id])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -318,6 +328,19 @@ function ContactFormModal({
               <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
                 <option value="">— Aucun —</option>
                 {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Département">
+              <input className={inputCls} value={form.department} onChange={(e) => set("department", e.target.value)} placeholder="R&D, Commercial..." />
+            </Field>
+            <Field label="N+1 (Manager)">
+              <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
+                <option value="">— Aucun —</option>
+                {companyContacts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
+                ))}
               </select>
             </Field>
           </div>
@@ -606,10 +629,14 @@ function AccountsMobile({
 
 function ContactsDesktop({
   contacts,
+  onOpenIdentity,
+  onOpenCompanyIdentity,
   onEdit,
   onDelete,
 }: {
   contacts: ContactRow[]
+  onOpenIdentity: (contactId: string) => void
+  onOpenCompanyIdentity: (companyId: string) => void
   onEdit: (contact: ContactRow) => void
   onDelete: (contact: ContactRow) => void
 }) {
@@ -635,8 +662,28 @@ function ContactsDesktop({
           <tbody className="divide-y divide-border/50">
             {contacts.map((contact) => (
               <tr key={contact.id} className="transition-colors hover:bg-canvas/40">
-                <td className="px-5 py-3 font-semibold text-heading">{contact.fullName}</td>
-                <td className="px-3 py-3 text-body">{contact.companyName}</td>
+                <td className="px-5 py-3 font-semibold text-heading">
+                  <span
+                    onClick={() => onOpenIdentity(contact.id)}
+                    className="cursor-pointer hover:text-primary transition-colors"
+                    title="Voir la fiche contact"
+                  >
+                    {contact.fullName}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-body">
+                  {contact.companyId ? (
+                    <span
+                      onClick={() => onOpenCompanyIdentity(contact.companyId!)}
+                      className="cursor-pointer hover:text-primary transition-colors font-semibold"
+                      title="Voir la fiche entreprise"
+                    >
+                      {contact.companyName}
+                    </span>
+                  ) : (
+                    contact.companyName
+                  )}
+                </td>
                 <td className="max-w-[240px] truncate px-3 py-3 text-body">{contact.jobTitle || "—"}</td>
                 <td className="px-3 py-3 text-body capitalize">{contact.relationshipRole?.replace("_", " ") ?? "—"}</td>
                 <td className="px-5 py-3 text-body">{contact.email ?? "—"}</td>
@@ -662,10 +709,14 @@ function ContactsDesktop({
 
 function ContactsMobile({
   contacts,
+  onOpenIdentity,
+  onOpenCompanyIdentity,
   onEdit,
   onDelete,
 }: {
   contacts: ContactRow[]
+  onOpenIdentity: (contactId: string) => void
+  onOpenCompanyIdentity: (companyId: string) => void
   onEdit: (contact: ContactRow) => void
   onDelete: (contact: ContactRow) => void
 }) {
@@ -675,9 +726,25 @@ function ContactsMobile({
         <SurfaceCard key={contact.id} className="p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-heading">{contact.fullName}</h2>
+              <h2
+                onClick={() => onOpenIdentity(contact.id)}
+                className="text-sm font-bold text-heading cursor-pointer hover:text-primary transition-colors"
+                title="Voir la fiche contact"
+              >
+                {contact.fullName}
+              </h2>
               <p className="mt-1 text-xs text-body">{contact.jobTitle || "Fonction non renseignée"}</p>
-              <p className="mt-1 text-xs font-semibold text-primary">{contact.companyName}</p>
+              {contact.companyId ? (
+                <span
+                  onClick={() => onOpenCompanyIdentity(contact.companyId!)}
+                  className="mt-1 text-xs font-semibold text-primary cursor-pointer hover:underline block"
+                  title="Voir la fiche entreprise"
+                >
+                  {contact.companyName}
+                </span>
+              ) : (
+                <p className="mt-1 text-xs font-semibold text-primary">{contact.companyName}</p>
+              )}
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
@@ -721,6 +788,8 @@ export function ProspectionAccountsView({
   const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
   const [selectedStudy, setSelectedStudy] = useState<StudyRow | null>(null)
   const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
+  const [selectedContactIdForIdentity, setSelectedContactIdForIdentity] = useState<string | null>(null)
+  const [companyDrawerReturnToContactId, setCompanyDrawerReturnToContactId] = useState<string | null>(null)
 
   // URL is the source of truth for tab + filters.
   const filters = useMemo(
@@ -767,6 +836,7 @@ export function ProspectionAccountsView({
   const [companyModal, setCompanyModal] = useState<{ open: boolean; editing?: AccountRow }>({ open: false })
   // Contact modal
   const [contactModal, setContactModal] = useState<{ open: boolean; editing?: ContactRow }>({ open: false })
+  const [editContactReturnToIdentityId, setEditContactReturnToIdentityId] = useState<string | null>(null)
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
@@ -931,12 +1001,22 @@ export function ProspectionAccountsView({
         device === "mobile" ? (
           <ContactsMobile
             contacts={displayContacts}
+            onOpenIdentity={setSelectedContactIdForIdentity}
+            onOpenCompanyIdentity={(companyId) => {
+              setCompanyDrawerReturnToContactId(null)
+              setSelectedCompanyIdForIdentity(companyId)
+            }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
             onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
         ) : (
           <ContactsDesktop
             contacts={displayContacts}
+            onOpenIdentity={setSelectedContactIdForIdentity}
+            onOpenCompanyIdentity={(companyId) => {
+              setCompanyDrawerReturnToContactId(null)
+              setSelectedCompanyIdForIdentity(companyId)
+            }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
             onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
@@ -956,8 +1036,21 @@ export function ProspectionAccountsView({
         <ContactFormModal
           initial={contactModal.editing}
           accounts={data.accounts}
-          onClose={() => setContactModal({ open: false })}
-          onSuccess={refreshData}
+          contacts={data.contacts}
+          onClose={() => {
+            setContactModal({ open: false })
+            if (editContactReturnToIdentityId) {
+              setSelectedContactIdForIdentity(editContactReturnToIdentityId)
+              setEditContactReturnToIdentityId(null)
+            }
+          }}
+          onSuccess={() => {
+            refreshData()
+            if (editContactReturnToIdentityId) {
+              setSelectedContactIdForIdentity(editContactReturnToIdentityId)
+              setEditContactReturnToIdentityId(null)
+            }
+          }}
         />
       )}
 
@@ -977,7 +1070,35 @@ export function ProspectionAccountsView({
       <CompanyIdentityDrawer
         companyId={selectedCompanyIdForIdentity}
         open={!!selectedCompanyIdForIdentity}
-        onOpenChange={(open) => !open && setSelectedCompanyIdForIdentity(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedCompanyIdForIdentity(null)
+            if (companyDrawerReturnToContactId) {
+              setSelectedContactIdForIdentity(companyDrawerReturnToContactId)
+              setCompanyDrawerReturnToContactId(null)
+            }
+          }
+        }}
+      />
+
+      <ContactIdentityDrawer
+        contactId={selectedContactIdForIdentity}
+        open={!!selectedContactIdForIdentity}
+        onOpenChange={(open) => !open && setSelectedContactIdForIdentity(null)}
+        onOpenCompanyIdentity={(companyId) => {
+          setCompanyDrawerReturnToContactId(selectedContactIdForIdentity)
+          setSelectedContactIdForIdentity(null)
+          setSelectedCompanyIdForIdentity(companyId)
+        }}
+        onOpenContactIdentity={setSelectedContactIdForIdentity}
+        onEditContact={(contactId) => {
+          const c = data.contacts.find((x) => x.id === contactId)
+          if (c) {
+            setEditContactReturnToIdentityId(contactId)
+            setSelectedContactIdForIdentity(null)
+            setContactModal({ open: true, editing: c })
+          }
+        }}
       />
 
       {device === "desktop" && (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState, useTransition, type ReactNode } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
@@ -115,11 +115,33 @@ interface CompanyAnalysisData {
   synthese_consultant?: string
 }
 
-type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu"
+interface SectorAnalysisData {
+  synthese_sectorielle?: string
+  volume_marche?: unknown
+  segment_clientele?: unknown
+  acteurs_cles?: unknown
+  chaine_valeur?: unknown
+  environnement_normatif?: unknown
+  analyse_concurrentielle?: unknown
+}
+
+interface PitchData {
+  id?: string
+  destinataire?: string
+  ton?: string
+  format_mail?: string
+  objet_mail?: string
+  corps_mail?: string
+  points_cles?: string | string[]
+  statut?: string
+  completed_at?: string
+}
+
+type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu" | "pitchs"
 
 function formatScore(score: number | string | null) {
   if (score === null || score === undefined) return "—"
-  return `${score}/5`
+  return `${score}/10`
 }
 
 function formatCurrency(amount: number | null) {
@@ -188,6 +210,8 @@ export function CompanyIdentityDrawer({
   const signaux = analysisData.signaux || {}
   const contexteSectoriel = analysisData.contexte_sectoriel || {}
   const synthese = analysisData.synthese_consultant || data?.company?.description || "Aucune synthèse disponible."
+  const sectorAnalysis = (metadata.sector_analysis || null) as SectorAnalysisData | null
+  const pitches = (metadata.pitches || []) as PitchData[]
 
 
 
@@ -309,7 +333,8 @@ export function CompanyIdentityDrawer({
                 { key: "intelligence", label: "Marché" },
                 { key: "contacts", label: `Contacts (${data.contacts.length})` },
                 { key: "crm", label: "Activité" },
-                { key: "actu", label: "Actualités" },
+                { key: "actu", label: "Actu" },
+                { key: "pitchs", label: pitches.length > 0 ? `Pitchs (${pitches.length})` : "Pitchs" },
               ] as const
             ).map((t) => (
               <button
@@ -465,6 +490,75 @@ export function CompanyIdentityDrawer({
                     </div>
                   </div>
                 )}
+
+                {/* Sector Analysis — Phase 2 (backfill FOLIO or future AI run) */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                      Étude Sectorielle
+                    </h4>
+                    {sectorAnalysis && (
+                      <span className="text-[9px] bg-success/10 border border-success/20 text-success px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                        IA
+                      </span>
+                    )}
+                  </div>
+                  {sectorAnalysis ? (
+                    <div className="space-y-3">
+                      {sectorAnalysis.synthese_sectorielle && (
+                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4">
+                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Synthèse</span>
+                          <p className="text-xs text-body leading-relaxed">{sectorAnalysis.synthese_sectorielle}</p>
+                        </div>
+                      )}
+                      {!!sectorAnalysis.volume_marche && (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
+                          <span className="text-[9px] text-muted font-bold uppercase">Volume de Marché</span>
+                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.volume_marche)}</div>
+                        </div>
+                      )}
+                      {!!sectorAnalysis.segment_clientele && (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
+                          <span className="text-[9px] text-muted font-bold uppercase">Segments Clients</span>
+                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.segment_clientele)}</div>
+                        </div>
+                      )}
+                      {!!sectorAnalysis.acteurs_cles && (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
+                          <span className="text-[9px] text-muted font-bold uppercase">Acteurs Clés</span>
+                          {Array.isArray(sectorAnalysis.acteurs_cles) && (sectorAnalysis.acteurs_cles as unknown[]).every(a => typeof a === "string") ? (
+                            <div className="flex flex-wrap gap-1">
+                              {(sectorAnalysis.acteurs_cles as string[]).map((actor, idx) => (
+                                <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-body font-medium">
+                                  {actor}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.acteurs_cles)}</div>
+                          )}
+                        </div>
+                      )}
+                      {!!sectorAnalysis.analyse_concurrentielle && (
+                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4">
+                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Analyse Concurrentielle</span>
+                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.analyse_concurrentielle)}</div>
+                        </div>
+                      )}
+                      {!!sectorAnalysis.environnement_normatif && (
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
+                          <span className="text-[9px] text-muted font-bold uppercase">Environnement Normatif</span>
+                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.environnement_normatif)}</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5 py-7 bg-canvas/20 rounded-lg border border-dashed border-border/60 text-center">
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Étude sectorielle non générée</span>
+                      <p className="text-[10px] text-muted/60">Disponible après lancement de l&apos;analyse IA (Lot 3)</p>
+                    </div>
+                  )}
+                </div>
 
               </div>
             )}
@@ -671,6 +765,85 @@ export function CompanyIdentityDrawer({
                 )}
               </div>
             )}
+
+            {activeTab === "pitchs" && (
+              <div className="space-y-4">
+                {pitches.length === 0 ? (
+                  <div className="flex flex-col items-center gap-1.5 py-10 bg-canvas/20 rounded-lg border border-dashed border-border/60 text-center">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Aucun pitch généré</span>
+                    <p className="text-[10px] text-muted/60">Les pitchs email seront disponibles après l&apos;analyse IA (Lot 3)</p>
+                  </div>
+                ) : (
+                  pitches.map((pitch, idx) => (
+                    <div key={pitch.id || idx} className="bg-canvas/20 rounded-lg border border-border/50 overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3 p-3 border-b border-border/40 bg-surface">
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <span className="text-xs font-bold text-heading truncate">
+                            {pitch.objet_mail || "Objet non renseigné"}
+                          </span>
+                          <div className="flex items-center gap-2 text-[10px] text-muted font-medium mt-0.5 flex-wrap">
+                            {pitch.destinataire && <span>→ {pitch.destinataire}</span>}
+                            {pitch.ton && <span className="capitalize">· Ton : {pitch.ton}</span>}
+                            {pitch.format_mail && <span>· {pitch.format_mail}</span>}
+                          </div>
+                        </div>
+                        {pitch.statut && (
+                          <span className={cn(
+                            "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border shrink-0",
+                            pitch.statut === "completed"
+                              ? "bg-success/10 border-success/20 text-success"
+                              : "bg-warning/10 border-warning/20 text-warning"
+                          )}>
+                            {pitch.statut === "completed" ? "Finalisé" : "Review"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Points clés */}
+                      {pitch.points_cles && (
+                        <div className="px-3 pt-3 pb-2">
+                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Points clés</span>
+                          {Array.isArray(pitch.points_cles) ? (
+                            <ul className="space-y-1">
+                              {(pitch.points_cles as string[]).map((pt, i) => (
+                                <li key={i} className="flex gap-2 items-start text-xs text-body">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                                  <span>{pt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-body leading-relaxed">{pitch.points_cles as string}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Corps du mail */}
+                      {pitch.corps_mail && (
+                        <div className="px-3 pt-2 pb-3">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9px] text-muted font-bold uppercase">Corps du mail</span>
+                            <button
+                              onClick={() => copyText(pitch.corps_mail || "")}
+                              className="flex items-center gap-1 text-[9px] text-primary font-semibold hover:underline transition-colors"
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                              Copier
+                            </button>
+                          </div>
+                          <div className="bg-canvas/40 rounded border border-border/40 p-3 text-xs text-body leading-relaxed whitespace-pre-wrap font-sans max-h-52 overflow-y-auto">
+                            {pitch.corps_mail}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -685,4 +858,61 @@ function formatEuro(amount: number | null): string {
     currency: "EUR",
     maximumFractionDigits: 0,
   }).format(amount)
+}
+
+function copyText(text: string) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text))
+  } else {
+    fallbackCopy(text)
+  }
+}
+
+function fallbackCopy(text: string) {
+  const ta = document.createElement("textarea")
+  ta.value = text
+  ta.style.cssText = "position:fixed;opacity:0;pointer-events:none"
+  document.body.appendChild(ta)
+  ta.select()
+  try { document.execCommand("copy") } catch { /* silent */ }
+  document.body.removeChild(ta)
+}
+
+function renderJsonValue(value: unknown, depth = 0): ReactNode {
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null
+    // flat string/number array → comma-separated
+    if (value.every(i => typeof i === "string" || typeof i === "number")) {
+      return <span>{(value as (string | number)[]).join(", ")}</span>
+    }
+    // complex items → bulleted list, recurse
+    return (
+      <ul className="space-y-1.5 mt-0.5">
+        {value.map((item, i) => (
+          <li key={i} className="flex gap-2 items-start">
+            <span className="w-1.5 h-1.5 rounded-full bg-muted shrink-0 mt-1.5" />
+            <span className="flex-1 leading-relaxed">{renderJsonValue(item, depth + 1)}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  if (typeof value === "object") {
+    return (
+      <div className={depth > 0 ? "space-y-1" : "space-y-2"}>
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k}>
+            <span className="text-[9px] text-muted/70 font-semibold uppercase tracking-wide block mb-0.5">
+              {k.replace(/_/g, " ")}
+            </span>
+            <div className="leading-relaxed">{renderJsonValue(v, depth + 1)}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return String(value)
 }

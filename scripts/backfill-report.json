@@ -1,0 +1,551 @@
+[
+  {
+    "company": "Régie ligne d azur",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "L Occitane",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Interima",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "MP SA (AVATACAR)",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Pizzorno Environnement",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Medipath",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Seqoia soft",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Audemard",
+    "status": "ok",
+    "sector": true,
+    "pitches": 2
+  },
+  {
+    "company": "Pilatus Groupe",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Iselection",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Renaudi",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CNRS Geoazur",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Exail Robotics",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Ubaldi",
+    "status": "ok",
+    "sector": false,
+    "pitches": 1
+  },
+  {
+    "company": "Bourbon Offshore",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Polytech Nice Sophia",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "PARFEX",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Robertet",
+    "status": "ok",
+    "sector": true,
+    "pitches": 3
+  },
+  {
+    "company": "Harvest",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Argeville",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Jean Niel",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Skema Business School",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Schneider",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Retif",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "KEOLIS Alpes-Maritimes",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Expressions Parfumees",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Nice Matin",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Laboratoires INELDEA",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Groupe Ippolito",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Sepalumic",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Adecco",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "SOS Oxygene",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Maman Bulle",
+    "status": "ok",
+    "sector": true,
+    "pitches": 2
+  },
+  {
+    "company": "Experis France",
+    "status": "ok",
+    "sector": true,
+    "pitches": 3
+  },
+  {
+    "company": "Payan Bertrand",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "CASA (Communauté d agglomérations)",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Emera",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Voyage Privé",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "ESCOTA (VINCI)",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Fragonard",
+    "status": "ok",
+    "sector": false,
+    "pitches": 2
+  },
+  {
+    "company": "Vulog",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Ampère Software Factory",
+    "status": "ok",
+    "sector": true,
+    "pitches": 2
+  },
+  {
+    "company": "ACRI-ST",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Appolonia",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Domusvi",
+    "status": "ok",
+    "sector": true,
+    "pitches": 3
+  },
+  {
+    "company": "Cogepart",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CCI Cote d Azur",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Bioceanor",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CEGEMA",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Arkopharma",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Depil Tech",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Median Technologies",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Geostock",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Ciffreo Bona",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Groupe Transcan",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Les Mutuelles du Soleil",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Torbel Industrie",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Université Nice Cote d Azur",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CNRS Institut de la mer de Villefranche",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Aromatech Group",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Eurecom",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Malongo",
+    "status": "ok",
+    "sector": false,
+    "pitches": 1
+  },
+  {
+    "company": "Ascoma",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Ansys",
+    "status": "ok",
+    "sector": true,
+    "pitches": 3
+  },
+  {
+    "company": "CHU de Nice",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "European Society Of Cardiology",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CODIX",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Groupe Arthes",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Euro Protection Surveillance",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Lbm Bioesterel",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Aéroport Nice Cote d Azur",
+    "status": "ok",
+    "sector": true,
+    "pitches": 3
+  },
+  {
+    "company": "Keller Williams France",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Autogrill",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Naphtachimie",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Odalys Group",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Petroineos",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Tournaire",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Groupe IDEC",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Préfecture 06",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Richardson",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Solimut",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Horus Pharma",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "STMicroelectronics",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Rectorat de Nice",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Banque Populaire Mediterranée",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "UNAPEI PACA",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Giraudi",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Aqualung",
+    "status": "ok",
+    "sector": true,
+    "pitches": 1
+  },
+  {
+    "company": "Univet",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Ponant",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  },
+  {
+    "company": "Groupe Trecobat",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "Centre LACASSAGNE",
+    "status": "ok",
+    "sector": true,
+    "pitches": 0
+  },
+  {
+    "company": "CNRS Observatoire Cote d Azur",
+    "status": "skipped",
+    "reason": "no sector analysis and no pitches"
+  }
+]

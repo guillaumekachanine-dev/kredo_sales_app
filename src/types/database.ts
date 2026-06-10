@@ -14,6 +14,303 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_intelligence_logs: {
+        Row: {
+          action: string
+          company_id: string | null
+          cost_estimate: number | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          message: string | null
+          metadata: Json
+          model_provider: string | null
+          model_used: string | null
+          phase: number | null
+          result_id: string | null
+          run_id: string | null
+          status: string
+          tokens_input: number | null
+          tokens_output: number | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json
+          model_provider?: string | null
+          model_used?: string | null
+          phase?: number | null
+          result_id?: string | null
+          run_id?: string | null
+          status?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          workspace_id?: string
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json
+          model_provider?: string | null
+          model_used?: string | null
+          phase?: number | null
+          result_id?: string | null
+          run_id?: string | null
+          status?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_intelligence_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_logs_result_id_fkey"
+            columns: ["result_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_logs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_intelligence_results: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          content_json: Json
+          content_text: string | null
+          cost_estimate: number | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          metadata: Json
+          model_provider: string | null
+          model_used: string | null
+          needs_review: boolean
+          owner_id: string
+          phase: number
+          result_type: string
+          run_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["ai_result_status"]
+          title: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          content_json?: Json
+          content_text?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json
+          model_provider?: string | null
+          model_used?: string | null
+          needs_review?: boolean
+          owner_id?: string
+          phase: number
+          result_type: string
+          run_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_result_status"]
+          title?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          content_json?: Json
+          content_text?: string | null
+          cost_estimate?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          metadata?: Json
+          model_provider?: string | null
+          model_used?: string | null
+          needs_review?: boolean
+          owner_id?: string
+          phase?: number
+          result_type?: string
+          run_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_result_status"]
+          title?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_intelligence_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_intelligence_runs: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          config: Json
+          created_at: string
+          current_phase: number
+          error_message: string | null
+          failed_at: string | null
+          id: string
+          input_snapshot: Json
+          needs_review: boolean
+          owner_id: string
+          run_type: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["ai_run_status"]
+          total_cost_estimate: number
+          total_tokens_input: number
+          total_tokens_output: number
+          trigger_source: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          config?: Json
+          created_at?: string
+          current_phase?: number
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          input_snapshot?: Json
+          needs_review?: boolean
+          owner_id?: string
+          run_type?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          total_cost_estimate?: number
+          total_tokens_input?: number
+          total_tokens_output?: number
+          trigger_source?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          config?: Json
+          created_at?: string
+          current_phase?: number
+          error_message?: string | null
+          failed_at?: string | null
+          id?: string
+          input_snapshot?: Json
+          needs_review?: boolean
+          owner_id?: string
+          run_type?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          total_cost_estimate?: number
+          total_tokens_input?: number
+          total_tokens_output?: number
+          trigger_source?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_intelligence_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -365,6 +662,13 @@ export type Database = {
             foreignKeyName: "company_relationships_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -449,6 +753,13 @@ export type Database = {
             foreignKeyName: "contacts_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -528,6 +839,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "interactions_company_id_fkey"
@@ -807,6 +1125,13 @@ export type Database = {
             foreignKeyName: "missions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "missions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -936,6 +1261,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "opportunities_company_id_fkey"
@@ -1421,6 +1753,27 @@ export type Database = {
       }
     }
     Views: {
+      v_ai_intelligence_summary: {
+        Row: {
+          ai_score: number | null
+          company_id: string | null
+          company_name: string | null
+          count_results: number | null
+          count_runs: number | null
+          has_client_analysis: boolean | null
+          has_legacy_analysis: boolean | null
+          has_legacy_pitches: boolean | null
+          has_legacy_sector: boolean | null
+          has_process_diagnostic: boolean | null
+          has_roadmap: boolean | null
+          has_sector_analysis: boolean | null
+          latest_run_at: string | null
+          latest_run_status: Database["public"]["Enums"]["ai_run_status"] | null
+          priority: string | null
+          sector: string | null
+        }
+        Relationships: []
+      }
       v_mission_quarterly_revenue: {
         Row: {
           billable_days: number | null
@@ -1460,7 +1813,13 @@ export type Database = {
       current_workspace_id: { Args: never; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      ai_result_status:
+        | "queued"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+      ai_run_status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1587,63 +1946,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      ai_result_status: [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+      ],
+      ai_run_status: ["queued", "running", "succeeded", "failed", "cancelled"],
+    },
   },
 } as const
-
-// ------------------------------------------------------------
-//  Raccourcis pratiques
-// ------------------------------------------------------------
-type PublicSchema = Database["public"]
-
-export type Opportunity = PublicSchema["Tables"]["opportunities"]["Row"] & {
-  account_id?: string | null
-  duration?: number | null
-  need_detail?: string | null
-  client_context?: string | null
-  engagement_notes?: string | null
-  outcome?: SalesOutcome | null
-}
-export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"]
-export type OpportunityUpdate = PublicSchema["Tables"]["opportunities"]["Update"]
-
-export type Account = PublicSchema["Tables"]["companies"]["Row"]
-
-export type Mission = PublicSchema["Tables"]["missions"]["Row"]
-export type MissionInsert = PublicSchema["Tables"]["missions"]["Insert"]
-export type MissionUpdate = PublicSchema["Tables"]["missions"]["Update"]
-
-export type Contact = {
-  id: string
-  account_id: string | null
-  full_name: string
-  email: string | null
-  phone: string | null
-  job_title: string | null
-  notes: string | null
-  created_at: string
-}
-
-export type OpportunitySkill = {
-  id: string
-  opportunity_id: string
-  skill_name: string
-  importance: SkillImportance
-  min_years: number | null
-  created_at: string
-}
-
-export type OpportunityEvent = {
-  id: string
-  opportunity_id: string
-  event_type: string
-  body: string | null
-  occurred_at: string
-}
-
-export type SalesStage = "detection" | "cv_envoyes" | "entretien_client" | "gagne" | "perdu" | "abandonne"
-export type SalesOutcome = "gagnee" | "perdue" | "abandonnee"
-export type SalesPriority = "haute" | "moyenne" | "basse"
-export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
-export type SkillImportance = "indispensable" | "souhaitee" | "bonus"
-

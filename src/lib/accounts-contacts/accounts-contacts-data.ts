@@ -41,6 +41,8 @@ export type ContactRow = {
   jobTitle: string
   relationshipRole: string | null
   status: string
+  department: string | null
+  managerContactId: string | null
 }
 
 export type StudyRow = {
@@ -119,6 +121,7 @@ type PersonRelation = {
   primary_email: string | null
   phone: string | null
   linkedin_url: string | null
+  metadata: unknown
 }
 
 type CompanyRelation = {
@@ -134,6 +137,7 @@ type ContactQueryRow = {
   job_title: string | null
   relationship_role: string | null
   status: string
+  department: string | null
   persons: PersonRelation | PersonRelation[] | null
   companies: CompanyRelation | CompanyRelation[] | null
 }
@@ -242,6 +246,8 @@ function buildContact(row: ContactQueryRow): ContactRow {
   const person = firstRelation(row.persons)
   const company = firstRelation(row.companies)
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
+  const meta = asRecord(person?.metadata)
+  const managerContactId = typeof meta.manager_contact_id === "string" ? meta.manager_contact_id : null
 
   return {
     id: row.id,
@@ -258,6 +264,8 @@ function buildContact(row: ContactQueryRow): ContactRow {
     jobTitle: cleanText(row.job_title, ""),
     relationshipRole: row.relationship_role ?? null,
     status: row.status,
+    department: row.department,
+    managerContactId,
   }
 }
 
@@ -297,7 +305,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,status,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector)", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector)", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase
