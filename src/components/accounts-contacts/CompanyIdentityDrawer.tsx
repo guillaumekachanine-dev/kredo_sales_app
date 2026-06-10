@@ -309,7 +309,7 @@ export function CompanyIdentityDrawer({
                 { key: "intelligence", label: "Marché" },
                 { key: "contacts", label: `Contacts (${data.contacts.length})` },
                 { key: "crm", label: "Activité" },
-                { key: "actu", label: "Actu" },
+                { key: "actu", label: "Actualités" },
               ] as const
             ).map((t) => (
               <button
@@ -357,14 +357,14 @@ export function CompanyIdentityDrawer({
                       <span className="text-[9px] text-muted font-bold uppercase">Effectifs</span>
                       <span className="text-xs font-bold text-heading">
                         {data.company.employee_count !== null 
-                          ? `${data.company.employee_count} ${data.company.size_band ? `(${data.company.size_band})` : ""}`.trim()
+                          ? data.company.employee_count
                           : (identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Siège social / Adresse</span>
+                      <span className="text-[9px] text-muted font-bold uppercase">Siège social</span>
                       <span className="text-xs font-bold text-heading">
-                        {identite.siege_social || data.company.hq_location || "Non renseigné"}
+                        {data.company.hq_location || "Non renseigné"}
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
@@ -429,12 +429,6 @@ export function CompanyIdentityDrawer({
                     <span className="text-[9px] text-muted font-bold uppercase">Maturité Digitale</span>
                     <p className="text-xs text-body leading-relaxed">{signaux.indices_maturite_digitale || "Non renseignée"}</p>
                   </div>
-                  {signaux.recrutements_recents && (
-                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
-                      <span className="text-[9px] text-muted font-bold uppercase">Recrutements Récents</span>
-                      <p className="text-xs text-body leading-relaxed">{signaux.recrutements_recents}</p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Sector Context & Competitors */}
@@ -502,8 +496,8 @@ export function CompanyIdentityDrawer({
                       const person = contact.persons
                       if (!person) return null
                       return (
-                        <SurfaceCard key={contact.id} className="p-4 flex flex-col gap-3">
-                          <div className="flex items-start justify-between gap-3">
+                        <SurfaceCard key={contact.id} className="px-4 py-2.5 flex flex-col gap-2">
+                          <div className="flex items-start justify-between gap-2.5">
                             <div>
                               <h5 className="text-xs font-bold text-heading">
                                 {person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}
@@ -520,7 +514,7 @@ export function CompanyIdentityDrawer({
                           </div>
 
                           {/* Contact information details */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] border-t border-border/30 pt-3 font-mono text-muted">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 font-mono text-muted">
                             {person.primary_email && (
                               <a
                                 href={`mailto:${person.primary_email}`}
@@ -646,7 +640,7 @@ export function CompanyIdentityDrawer({
             )}
 
             {activeTab === "actu" && (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Recent News list */}
                 {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 ? (
                   <div>
@@ -663,8 +657,16 @@ export function CompanyIdentityDrawer({
                     </ul>
                   </div>
                 ) : (
-                  <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                  <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
                     Aucune actualité ou signal faible disponible.
+                  </div>
+                )}
+
+                {/* Recrutements Récents */}
+                {signaux.recrutements_recents && (
+                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                    <span className="text-[9px] text-muted font-bold uppercase">Recrutements Récents</span>
+                    <p className="text-xs text-body leading-relaxed font-normal">{signaux.recrutements_recents}</p>
                   </div>
                 )}
               </div>
