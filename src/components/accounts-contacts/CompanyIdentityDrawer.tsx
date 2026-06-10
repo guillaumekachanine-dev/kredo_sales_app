@@ -196,7 +196,11 @@ export function CompanyIdentityDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={data?.company?.name || "Chargement..."}
-      subtitle={data?.company?.sector || "Fiche d'identité"}
+      subtitle={
+        data?.company
+          ? [data.company.sector, data.company.segment].filter(Boolean).join(" - ") || "Fiche d'identité"
+          : "Fiche d'identité"
+      }
       className="max-w-2xl"
     >
       {loading ? (
@@ -275,22 +279,17 @@ export function CompanyIdentityDrawer({
 
             {/* Tags / Badges row */}
             <div className="flex flex-wrap gap-1.5 items-center pt-2 border-t border-border/40 text-[10px]">
+              <span className="rounded bg-primary-fg border border-border px-2 py-0.5 font-semibold text-body capitalize">
+                {data.company.lifecycle_status.replace("_", " ")}
+              </span>
               <span className={cn(
-                "rounded px-2 py-0.5 font-bold uppercase tracking-wider border",
+                "rounded px-2 py-0.5 font-bold border",
                 data.company.priority === "haute" 
                   ? "bg-warning/10 border-warning/20 text-warning" 
                   : "bg-canvas text-body border-border"
               )}>
                 Priorité {data.company.priority}
               </span>
-              <span className="rounded bg-primary-fg border border-border px-2 py-0.5 font-semibold text-body capitalize">
-                {data.company.lifecycle_status.replace("_", " ")}
-              </span>
-              {data.company.segment && (
-                <span className="rounded bg-primary/5 border border-primary/10 px-2 py-0.5 font-bold uppercase tracking-wider text-primary">
-                  {data.company.segment}
-                </span>
-              )}
               {data.company.hq_location && (
                 <span className="text-muted flex items-center gap-1 ml-auto font-medium">
                   <svg className="w-3 h-3 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -306,10 +305,10 @@ export function CompanyIdentityDrawer({
           <div className="flex border-b border-border gap-1 shrink-0">
             {(
               [
-                { key: "apercu", label: "Aperçu & IA" },
-                { key: "intelligence", label: "Intelligence & Marché" },
+                { key: "apercu", label: "Aperçu" },
+                { key: "intelligence", label: "Marché" },
                 { key: "contacts", label: `Contacts (${data.contacts.length})` },
-                { key: "crm", label: `CRM & Missions (${data.opportunities.length + data.missions.length})` },
+                { key: "crm", label: `Activité (${data.opportunities.length + data.missions.length})` },
               ] as const
             ).map((t) => (
               <button
@@ -362,41 +361,23 @@ export function CompanyIdentityDrawer({
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Date de création</span>
-                      <span className="text-xs font-bold text-heading">
-                        {identite.date_creation || "Non renseignée"}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Forme juridique</span>
-                      <span className="text-xs font-bold text-heading">
-                        {identite.forme_juridique || "Non renseignée"}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
                       <span className="text-[9px] text-muted font-bold uppercase">Siège social / Adresse</span>
                       <span className="text-xs font-bold text-heading">
                         {identite.siege_social || data.company.hq_location || "Non renseigné"}
                       </span>
                     </div>
-                    {identite.dirigeants && identite.dirigeants.length > 0 && (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 sm:col-span-2">
-                        <span className="text-[9px] text-muted font-bold uppercase">Dirigeants & Fondateurs</span>
-                        <div className="flex flex-wrap gap-1">
-                          {identite.dirigeants.map((leader: string, idx: number) => (
-                            <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-heading font-medium">
-                              {leader}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {identite.code_naf && (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
-                        <span className="text-[9px] text-muted font-bold uppercase">Code NAF / Activité</span>
-                        <span className="text-xs font-bold text-heading">{identite.code_naf}</span>
-                      </div>
-                    )}
+                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                      <span className="text-[9px] text-muted font-bold uppercase">Date de création</span>
+                      <span className="text-xs font-bold text-heading">
+                        {identite.date_creation || "Non renseignée"}
+                      </span>
+                    </div>
+                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
+                      <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
+                      <span className="text-xs font-bold text-heading">
+                        {data.company.health || "Aucun indicateur de dynamique renseigné"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -510,8 +491,20 @@ export function CompanyIdentityDrawer({
             )}
 
             {activeTab === "contacts" && (
-              <div className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-1">
+              <div className="space-y-4">
+                {identite.dirigeants && identite.dirigeants.length > 0 && (
+                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
+                    <span className="text-[9px] text-muted font-bold uppercase">Dirigeants & Fondateurs</span>
+                    <div className="flex flex-wrap gap-1">
+                      {identite.dirigeants.map((leader: string, idx: number) => (
+                        <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-heading font-medium">
+                          {leader}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
                   Contacts Rattachés ({data.contacts.length})
                 </h4>
                 {data.contacts.length === 0 ? (
