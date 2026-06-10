@@ -1,12 +1,12 @@
-import { AccountsContactsView } from "@/components/accounts-contacts/AccountsContactsViews"
+import { ProspectionAccountsView } from "@/components/accounts-contacts/AccountsContactsViews"
 import { getAccountsContactsData } from "@/lib/accounts-contacts/accounts-contacts-data"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
 export const dynamic = "force-dynamic"
 
-export default async function ContactsPage() {
+export default async function ProspectionAccountsPage() {
   const device = await getDashboardDevice()
   const data = await getAccountsContactsData(device)
 
-  return <AccountsContactsView data={data} device={device} activeTab="contacts" />
+  return <ProspectionAccountsView data={data} device={device} />
 }
