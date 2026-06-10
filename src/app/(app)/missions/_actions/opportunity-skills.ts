@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { Database, SkillImportance } from "@/types/database"
+import type { SkillImportance } from "@/types/database"
 
 export interface AddSkillInput {
   opportunity_id: string

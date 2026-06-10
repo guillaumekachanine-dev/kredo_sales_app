@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { SalesStage, SalesOutcome, SalesPriority, OpportunityUpdate } from "@/types/database"
+import type { Json, SalesStage, SalesOutcome, SalesPriority, OpportunityUpdate } from "@/types/database"
 
 export interface UpdateOpportunityInput {
   id: string
@@ -36,6 +36,10 @@ export interface UpdateOpportunityInput {
 export type UpdateOpportunityResult =
   | { success: true; error?: never }
   | { success?: never; error: string }
+
+function isJsonRecord(value: Json | null | undefined): value is Record<string, Json | undefined> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
 
 export async function updateOpportunity(
   input: UpdateOpportunityInput
@@ -86,8 +90,8 @@ export async function updateOpportunity(
     console.error("Erreur lors de la récupération du contexte actuel :", selectContextError)
   }
 
-  const currentContext = currentOpp?.context && typeof currentOpp.context === "object" ? currentOpp.context : {}
-  const newContext = { ...(currentContext as Record<string, any>) }
+  const currentContext = isJsonRecord(currentOpp?.context) ? currentOpp.context : {}
+  const newContext: Record<string, Json | undefined> = { ...currentContext }
   let hasContextChange = false
 
   if (input.need_detail !== undefined) {
@@ -214,10 +218,10 @@ export async function updateOpportunity(
   // La structure OpportunityUpdate possède les champs système en lecture seule mais nous ne devons PAS y toucher
   const cleanPayload = { ...updatePayload }
   delete cleanPayload.owner_id
-  delete (cleanPayload as any).created_at
-  delete (cleanPayload as any).updated_at
-  delete (cleanPayload as any).acv
-  delete (cleanPayload as any).weighted_gain
+  delete cleanPayload.created_at
+  delete cleanPayload.updated_at
+  delete cleanPayload.acv
+  delete cleanPayload.weighted_gain
 
   const { error } = await supabase
     .from("opportunities")
@@ -253,4 +257,3 @@ export async function updateOpportunity(
 
   return { success: true }
 }
-

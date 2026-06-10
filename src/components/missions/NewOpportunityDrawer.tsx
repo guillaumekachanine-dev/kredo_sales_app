@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import {
@@ -51,6 +51,13 @@ const INITIAL_FORM: FormState = {
   target_daily_rate: "",
 }
 
+function getInitialForm(defaultStage?: SalesStage): FormState {
+  return {
+    ...INITIAL_FORM,
+    stage: defaultStage ?? "detection",
+  }
+}
+
 interface NewOpportunityDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -64,20 +71,9 @@ export function NewOpportunityDrawer({
   onCreated,
   defaultStage,
 }: NewOpportunityDrawerProps) {
-  const [form, setForm] = useState<FormState>(INITIAL_FORM)
+  const [form, setForm] = useState<FormState>(() => getInitialForm(defaultStage))
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-
-  // Reset or initialize the form when drawer opens
-  useEffect(() => {
-    if (open) {
-      setForm({
-        ...INITIAL_FORM,
-        stage: defaultStage ?? "detection",
-      })
-      setServerError(null)
-    }
-  }, [open, defaultStage])
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -96,7 +92,7 @@ export function NewOpportunityDrawer({
 
   function handleClose() {
     if (isPending) return
-    setForm(INITIAL_FORM)
+    setForm(getInitialForm(defaultStage))
     setServerError(null)
     onOpenChange(false)
   }

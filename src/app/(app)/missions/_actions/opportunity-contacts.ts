@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { Database, ContactRole } from "@/types/database"
+import type { ContactRole } from "@/types/database"
 
 export interface LinkContactInput {
   opportunity_id: string

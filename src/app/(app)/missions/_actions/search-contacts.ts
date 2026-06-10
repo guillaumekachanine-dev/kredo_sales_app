@@ -10,6 +10,27 @@ export interface SearchContactResult {
   account_name: string | null
 }
 
+interface SearchContactPerson {
+  full_name: string | null
+  primary_email: string | null
+}
+
+interface SearchContactCompany {
+  name: string | null
+}
+
+interface SearchContactRow {
+  id: string
+  job_title: string | null
+  persons: SearchContactPerson | SearchContactPerson[] | null
+  companies: SearchContactCompany | SearchContactCompany[] | null
+}
+
+function pickOne<T>(value: T | T[] | null): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? value[0] ?? null : value
+}
+
 export async function searchContacts(query: string): Promise<SearchContactResult[]> {
   if (!query || query.trim().length < 1) {
     return []
@@ -65,25 +86,16 @@ export async function searchContacts(query: string): Promise<SearchContactResult
 
     if (!data) return []
 
-    return (data as any[]).map((item) => {
-      const person = item.persons && !Array.isArray(item.persons) ? item.persons : null
-      const company = item.companies
-
-      let accountName = null
-      if (company) {
-        if (Array.isArray(company)) {
-          accountName = company[0]?.name || null
-        } else {
-          accountName = company.name || null
-        }
-      }
+    return (data as SearchContactRow[]).map((item) => {
+      const person = pickOne(item.persons)
+      const company = pickOne(item.companies)
 
       return {
         id: item.id,
         full_name: person ? (person.full_name || "") : "",
         email: person?.primary_email || null,
         job_title: item.job_title,
-        account_name: accountName,
+        account_name: company?.name || null,
       }
     })
   } catch (err) {

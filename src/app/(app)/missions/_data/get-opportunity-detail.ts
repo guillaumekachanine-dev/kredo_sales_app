@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesOutcome, SkillImportance } from "@/types/database"
+import type { Json, Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesOutcome, SkillImportance } from "@/types/database"
 
 export type OpportunityDetailResult =
   | {
@@ -25,6 +25,20 @@ export type OpportunityDetailResult =
       data?: never
       error: string
     }
+
+function isJsonRecord(value: Json | null | undefined): value is Record<string, Json | undefined> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function getJsonString(value: Json | null | undefined, key: string): string | null {
+  if (!isJsonRecord(value)) return null
+  const field = value[key]
+  return typeof field === "string" ? field : null
+}
+
+type SkillRelation = {
+  name: string | null
+}
 
 export async function getOpportunityDetail(opportunityId: string): Promise<OpportunityDetailResult> {
   if (!opportunityId || opportunityId.trim() === "") {
@@ -60,11 +74,11 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       ...opportunity,
       account_id: opportunity.company_id, // Map company_id to account_id for compatibility
       duration: opportunity.duration_days, // Map duration_days to duration for compatibility
-      client_context: (opportunity.context as any)?.client_context || null,
-      need_detail: (opportunity.context as any)?.need_detail || null,
-      engagement_notes: (opportunity.context as any)?.engagement_notes || null,
+      client_context: getJsonString(opportunity.context, "client_context"),
+      need_detail: getJsonString(opportunity.context, "need_detail"),
+      engagement_notes: getJsonString(opportunity.context, "engagement_notes"),
       outcome,
-    } as any
+    }
 
     // 2. Récupération du compte lié (si renseigné)
     let account: { id: string; name: string; sector: string | null } | null = null
@@ -95,7 +109,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
     const skills: OpportunitySkill[] = (skillsData || []).map((s) => ({
       id: s.id,
       opportunity_id: s.opportunity_id,
-      skill_name: s.skills && !Array.isArray(s.skills) ? (s.skills as any).name : "",
+      skill_name: s.skills && !Array.isArray(s.skills) ? ((s.skills as SkillRelation).name ?? "") : "",
       importance: s.importance as SkillImportance,
       min_years: s.min_years,
       created_at: s.created_at,
@@ -161,7 +175,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       id: item.id,
       opportunity_id: item.opportunity_id || opportunityId,
       event_type: item.type,
-      body: item.summary || (item.details as any)?.body || null,
+      body: item.summary || getJsonString(item.details, "body"),
       occurred_at: item.occurred_at,
     }))
 

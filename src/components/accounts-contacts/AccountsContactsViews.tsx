@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
   AccountRow,
@@ -63,7 +62,7 @@ function StudyDetailsModal({ study, onClose }: { study: StudyRow; onClose: () =>
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Summary */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 font-heading">Synthèse de l'Étude</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 font-heading">Synthèse de l&apos;Étude</h3>
             <p className="text-sm leading-relaxed text-body bg-canvas/30 rounded border border-border/40 p-4 font-normal">
               {study.summary}
             </p>
@@ -115,7 +114,7 @@ function StudyDetailsModal({ study, onClose }: { study: StudyRow; onClose: () =>
             onClick={onClose}
             className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary/95"
           >
-            Fermer l'étude
+            Fermer l&apos;étude
           </button>
         </div>
 
@@ -141,7 +140,7 @@ function AccountsDesktop({
     <SurfaceCard className="overflow-hidden">
       <div className="border-b border-border px-5 py-4">
         <h2 className="text-sm font-semibold text-heading">Comptes prioritaires</h2>
-        <p className="mt-1 text-xs text-muted">Tri par score IA, nombre de contacts et nom d'entreprise.</p>
+        <p className="mt-1 text-xs text-muted">Tri par score IA, nombre de contacts et nom d&apos;entreprise.</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs">

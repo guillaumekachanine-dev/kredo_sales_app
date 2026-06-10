@@ -149,7 +149,17 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
 
-    return mapped.map(({ updatedAt: _updatedAt, ...row }) => row)
+    return mapped.map((row) => ({
+      entityId: row.entityId,
+      entityType: row.entityType,
+      title: row.title,
+      subtitle: row.subtitle,
+      status: row.status,
+      amount: row.amount,
+      date: row.date,
+      client: row.client,
+      tag: row.tag,
+    }))
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)
     return []
