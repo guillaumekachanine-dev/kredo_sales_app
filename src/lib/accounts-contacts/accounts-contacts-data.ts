@@ -40,6 +40,7 @@ export type ContactRow = {
   linkedinUrl: string | null
   jobTitle: string
   relationshipRole: string | null
+  relationshipLevel: string | null
   status: string
   department: string | null
   managerContactId: string | null
@@ -136,6 +137,7 @@ type ContactQueryRow = {
   company_id: string | null
   job_title: string | null
   relationship_role: string | null
+  relationship_level: string | null
   status: string
   department: string | null
   persons: PersonRelation | PersonRelation[] | null
@@ -263,6 +265,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
     linkedinUrl: person?.linkedin_url ?? null,
     jobTitle: cleanText(row.job_title, ""),
     relationshipRole: row.relationship_role ?? null,
+    relationshipLevel: row.relationship_level ?? null,
     status: row.status,
     department: row.department,
     managerContactId,
@@ -305,7 +308,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector)", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector)", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase

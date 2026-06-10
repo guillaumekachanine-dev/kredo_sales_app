@@ -74,6 +74,12 @@ const ROLE_OPTIONS = [
   { value: "direction_metier", label: "Direction métier" },
 ]
 
+const RELATIONSHIP_LEVEL_OPTIONS = [
+  { value: "faible", label: "Faible" },
+  { value: "moyen", label: "Moyen" },
+  { value: "fort", label: "Fort" },
+]
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -250,6 +256,7 @@ function ContactFormModal({
     company_id: initial?.companyId ?? "",
     job_title: initial?.jobTitle === "Fonction non renseignée" ? "" : (initial?.jobTitle ?? ""),
     relationship_role: initial?.relationshipRole ?? "",
+    relationship_level: initial?.relationshipLevel ?? "",
     department: initial?.department ?? "",
     manager_contact_id: initial?.managerContactId ?? "",
   })
@@ -341,6 +348,14 @@ function ContactFormModal({
                 {companyContacts.map((c) => (
                   <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
                 ))}
+              </select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Intimité">
+              <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
+                <option value="">— Aucun —</option>
+                {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
           </div>

@@ -72,6 +72,7 @@ export type ContactFormData = {
   company_id?: string
   job_title?: string
   relationship_role?: string
+  relationship_level?: string
   department?: string
   manager_contact_id?: string
 }
@@ -99,6 +100,7 @@ export async function createContact(data: ContactFormData) {
     company_id: data.company_id || null,
     job_title: data.job_title?.trim() || null,
     relationship_role: data.relationship_role || null,
+    relationship_level: data.relationship_level || null,
     department: data.department?.trim() || null,
     status: "actif",
   })
@@ -146,6 +148,7 @@ export async function updateContact(
         company_id: data.company_id || null,
         job_title: data.job_title?.trim() || null,
         relationship_role: data.relationship_role || null,
+        relationship_level: data.relationship_level || null,
         department: data.department?.trim() || null,
       })
       .eq("id", contactId),
