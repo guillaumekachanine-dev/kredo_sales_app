@@ -29,6 +29,7 @@ import {
   type ContactFormData,
 } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -466,9 +467,14 @@ function AccountsDesktop({
               const hasStudy = studies.some((s) => s.id === account.id)
               return (
                 <tr key={account.id} className="transition-colors hover:bg-canvas/40">
-                  <td className="max-w-[200px] px-5 py-3">
-                    <div className="font-semibold text-heading">{account.name}</div>
-                    <div className="truncate text-[11px] text-muted">{account.website ?? "Site non renseigné"}</div>
+                  <td className="max-w-[220px] px-5 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <CompanyLogo name={account.name} logoPath={account.logoPath} size="sm" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-heading truncate">{account.name}</div>
+                        <div className="truncate text-[11px] text-muted">{account.website ?? "Site non renseigné"}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-3 py-3 text-body">{account.sector}</td>
                   <td className="px-3 py-3 text-body">{account.location}</td>
@@ -521,9 +527,12 @@ function AccountsMobile({
         return (
           <SurfaceCard key={account.id} className="p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="truncate text-sm font-bold text-heading">{account.name}</h2>
-                <p className="mt-1 text-xs text-body">{account.sector} · {account.location}</p>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <CompanyLogo name={account.name} logoPath={account.logoPath} size="md" />
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-bold text-heading">{account.name}</h2>
+                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.location}</p>
+                </div>
               </div>
               <PriorityBadge priority={account.priority} />
             </div>

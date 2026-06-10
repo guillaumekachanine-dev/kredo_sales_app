@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:types": "supabase gen types typescript --project-id jvzgmhvwirsbdkjpmvla > src/types/database.ts"
+    "db:types": "supabase gen types typescript --project-id jvzgmhvwirsbdkjpmvla > src/types/database.ts",
+    "logos:attach": "node --env-file=.env.local scripts/attach-company-logos.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

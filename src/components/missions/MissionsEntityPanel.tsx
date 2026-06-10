@@ -2,6 +2,7 @@ import { SectionTab } from "@/lib/tabs/tab-types"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { OpportunityDetailPanel } from "./opportunity-detail/OpportunityDetailPanel"
+import { MissionDetailPanel } from "./mission-detail/MissionDetailPanel"
 
 interface MissionsEntityPanelProps {
   tab: SectionTab
@@ -26,6 +27,9 @@ function SkeletonRow({ width }: { width: string }) {
 export function MissionsEntityPanel({ tab }: MissionsEntityPanelProps) {
   if (tab.entityType === "opportunite") {
     return <OpportunityDetailPanel tab={tab} />
+  }
+  if (tab.entityType === "mission") {
+    return <MissionDetailPanel tab={tab} />
   }
 
   const label = entityLabels[tab.entityType]

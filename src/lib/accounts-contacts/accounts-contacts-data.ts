@@ -21,6 +21,7 @@ export type AccountRow = {
   contactCount: number
   emailCount: number
   summary: string
+  logoPath: string | null
 }
 
 export type ContactRow = {
@@ -200,6 +201,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number): AccountRow {
     contactCount: Math.max(contactCount, importedStats.contacts),
     emailCount: importedStats.emails,
     summary: cleanText(row.description, nestedText(study, ["synthese_consultant"]) || "Aucune synthèse disponible."),
+    logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
   }
 }
 
