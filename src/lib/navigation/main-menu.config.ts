@@ -161,23 +161,16 @@ export const mainMenuItems: MainMenuItem[] = [
         label: "Staffing",
         href: "/staffing",
         icon: "staffing",
-        comingSoon: true,
-        disabled: true,
-        // tabs ajoutés quand le module sera livré
       },
       {
         label: "Consultants",
         href: "/consultants",
         icon: "consultants",
-        comingSoon: true,
-        disabled: true,
       },
       {
         label: "Recrutement",
         href: "/recruitment",
         icon: "recrutement",
-        comingSoon: true,
-        disabled: true,
       },
     ],
   },
@@ -244,6 +237,5 @@ export const mainMenuItems: MainMenuItem[] = [
     label: "Paramètres",
     href: "/settings",
     icon: "settings",
-    disabled: true,
   },
 ]

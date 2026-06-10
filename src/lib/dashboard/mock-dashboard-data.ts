@@ -760,3 +760,385 @@ export const mockCockpitDashboardData: SectionDashboardData = {
   }
 }
 
+export const mockStaffingDashboardData: SectionDashboardData = {
+  metrics: [
+    {
+      id: "st1",
+      label: "Taux d'occupation (TACE)",
+      value: "84 %",
+      description: "Cible Q2: 85%",
+      trend: { label: "+2% vs mois dernier", direction: "up" },
+      status: "success"
+    },
+    {
+      id: "st2",
+      label: "Consultants Staffés",
+      value: "42 / 50",
+      description: "Affectations actives",
+      status: "success"
+    },
+    {
+      id: "st3",
+      label: "Intercontrats (IC)",
+      value: "8",
+      description: "Recherche de mission",
+      trend: { label: "-3 cette semaine", direction: "up" },
+      status: "warning"
+    }
+  ],
+  alerts: [
+    {
+      id: "sta1",
+      title: "Fin de mission imminente",
+      description: "La mission de Jean Dupont chez L'Oréal se termine le 15 juin.",
+      status: "warning",
+      href: "/consultants"
+    }
+  ],
+  priorities: [
+    {
+      id: "stp1",
+      title: "Staffer Sophie Martin",
+      description: "Compétences React/Next.js adaptées à l'opportunité AXA.",
+      dueLabel: "Ce soir",
+      status: "danger",
+      href: "/missions"
+    }
+  ],
+  mainInsight: {
+    title: "Analyse des intercontrats",
+    summary: "Nous avons actuellement 8 consultants en intercontrat, principalement sur des profils de gestion de projet. Le matching IA recommande de les positionner sur les besoins d'études de la prospection.",
+    recommendations: [
+      "Associer Sophie Martin à l'opportunité AXA Lead Dev.",
+      "Planifier un entretien client pour Marc Colin chez BNP."
+    ]
+  },
+  table: {
+    title: "Affectations Récentes",
+    description: "Derniers staffing validés ou en cours",
+    columns: [
+      { key: "consultant", label: "Consultant", align: "left" },
+      { key: "client", label: "Client", align: "left" },
+      { key: "rate", label: "TJM", align: "right" },
+      { key: "status", label: "Statut", align: "center" }
+    ],
+    rows: [
+      {
+        id: "rst1",
+        href: "/consultants",
+        cells: {
+          consultant: "Sophie Martin",
+          client: "AXA Group",
+          rate: "650 €",
+          status: "Proposé"
+        }
+      },
+      {
+        id: "rst2",
+        href: "/consultants",
+        cells: {
+          consultant: "Jean Dupont",
+          client: "L'Oréal",
+          rate: "700 €",
+          status: "Actif"
+        }
+      }
+    ]
+  },
+  activityFeed: [
+    {
+      id: "stac1",
+      label: "Consultant planifié",
+      description: "Sophie Martin proposée pour AXA Group",
+      dateLabel: "Il y a 1h"
+    }
+  ],
+  quickActions: [
+    { id: "stqa1", label: "Voir le plan de charge global", variant: "secondary", href: "/missions/planning" }
+  ],
+  syncStatus: {
+    source: "Kredo Staffing Engine",
+    lastSyncLabel: "Calculé il y a 5 min",
+    status: "ok"
+  }
+}
+
+export const mockConsultantsDashboardData: SectionDashboardData = {
+  metrics: [
+    {
+      id: "co1",
+      label: "Effectif Total",
+      value: "50",
+      description: "Consultants internes",
+      status: "neutral"
+    },
+    {
+      id: "co2",
+      label: "Compétences Référencées",
+      value: "142",
+      description: "Skills uniques validés",
+      status: "success"
+    },
+    {
+      id: "co3",
+      label: "Niveau moyen seniorité",
+      value: "Senior",
+      description: "Moyenne d'expérience 6.2 ans",
+      status: "neutral"
+    }
+  ],
+  alerts: [],
+  priorities: [
+    {
+      id: "cop1",
+      title: "Mise à jour profil Jean Dupont",
+      description: "REX technique de la mission L'Oréal à renseigner.",
+      dueLabel: "Sous 3 jours",
+      status: "warning",
+      href: "/consultants"
+    }
+  ],
+  mainInsight: {
+    title: "Cartographie des compétences",
+    summary: "Les technologies Cloud (AWS/Azure) et Data (Python, dbt) représentent 60% de nos compétences clés. Nous constatons une pénurie sur la cybersécurité.",
+    recommendations: [
+      "Lancer une formation interne sur la sécurité applicative.",
+      "Mettre à jour les CVs des consultants Data avant le Q3."
+    ]
+  },
+  table: {
+    title: "Derniers Profils Modifiés",
+    description: "Mise à jour des compétences et CVs",
+    columns: [
+      { key: "name", label: "Nom", align: "left" },
+      { key: "title", label: "Titre", align: "left" },
+      { key: "skills", label: "Compétences clés", align: "left" },
+      { key: "status", label: "Statut", align: "center" }
+    ],
+    rows: [
+      {
+        id: "rco1",
+        href: "/consultants",
+        cells: {
+          name: "Jean Dupont",
+          title: "Architecte Cloud",
+          skills: "AWS, Terraform, Python",
+          status: "Mission"
+        }
+      },
+      {
+        id: "rco2",
+        href: "/consultants",
+        cells: {
+          name: "Sophie Martin",
+          title: "Dev Lead Fullstack",
+          skills: "React, Next.js, Node.js",
+          status: "Intercontrat"
+        }
+      }
+    ]
+  },
+  activityFeed: [
+    {
+      id: "coac1",
+      label: "Fiche mise à jour",
+      description: "Compétence 'Next.js' ajoutée par Sophie Martin",
+      dateLabel: "Hier"
+    }
+  ],
+  quickActions: [
+    { id: "coqa1", label: "Ajouter un collaborateur", variant: "primary", href: "/consultants/new" }
+  ],
+  syncStatus: {
+    source: "Supabase Persons & Collaborators",
+    lastSyncLabel: "Synchronisé en temps réel",
+    status: "ok"
+  }
+}
+
+export const mockRecruitmentDashboardData: SectionDashboardData = {
+  metrics: [
+    {
+      id: "re1",
+      label: "Candidats Actifs",
+      value: "18",
+      description: "Dans le pipeline",
+      trend: { label: "+4 cette semaine", direction: "up" },
+      status: "success"
+    },
+    {
+      id: "re2",
+      label: "Entretiens planifiés",
+      value: "6",
+      description: "Cette semaine",
+      status: "success"
+    },
+    {
+      id: "re3",
+      label: "Délai de recrutement moyen",
+      value: "25j",
+      description: "Du sourcing à l'offre",
+      status: "success"
+    }
+  ],
+  alerts: [
+    {
+      id: "rea1",
+      title: "Entretien en attente de retour",
+      description: "Le candidat Marc Colin attend un feedback pour son entretien technique.",
+      status: "danger",
+      href: "/recruitment"
+    }
+  ],
+  priorities: [
+    {
+      id: "rep1",
+      title: "Planifier l'entretien final",
+      description: "Candidature de Sophie Martin (Lead Dev React) à valider avec le DG.",
+      dueLabel: "Demain",
+      status: "danger",
+      href: "/recruitment"
+    }
+  ],
+  mainInsight: {
+    title: "Performance IA Matching Sourcing",
+    summary: "Notre matching IA a analysé 42 CVs importés automatiquement de LinkedIn ce matin. 3 profils 'Cybersecurity' ont un score supérieur à 85% pour nos besoins futurs.",
+    recommendations: [
+      "Contacter Marc Colin pour planifier l'entretien RH.",
+      "Valider l'offre d'embauche pour Sophie Martin."
+    ]
+  },
+  table: {
+    title: "Pipeline Candidats",
+    description: "Suivi des candidatures à fort potentiel",
+    columns: [
+      { key: "candidate", label: "Candidat", align: "left" },
+      { key: "title", label: "Poste visé", align: "left" },
+      { key: "stage", label: "Étape", align: "center" },
+      { key: "score", label: "Score Match IA", align: "right" }
+    ],
+    rows: [
+      {
+        id: "rre1",
+        href: "/recruitment",
+        cells: {
+          candidate: "Marc Colin",
+          title: "Consultant Cyber",
+          stage: "Entretien tech",
+          score: "92%"
+        }
+      },
+      {
+        id: "rre2",
+        href: "/recruitment",
+        cells: {
+          candidate: "Sophie Martin",
+          title: "Dev Lead React",
+          stage: "Offre émise",
+          score: "88%"
+        }
+      }
+    ]
+  },
+  activityFeed: [
+    {
+      id: "reac1",
+      label: "Nouveau candidat importé",
+      description: "Marc Colin importé via LinkedIn Extension",
+      dateLabel: "Il y a 30m"
+    }
+  ],
+  quickActions: [
+    { id: "reqa1", label: "Importer un CV (PDF)", variant: "secondary", href: "/recruitment/import" }
+  ],
+  syncStatus: {
+    source: "Supabase Candidates & n8n Parser",
+    lastSyncLabel: "Synchronisé il y a 1 min",
+    status: "ok"
+  }
+}
+
+export const mockSettingsDashboardData: SectionDashboardData = {
+  metrics: [
+    {
+      id: "se1",
+      label: "Workspace ID",
+      value: "KREDO_ESN",
+      description: "Tenant principal actif",
+      status: "neutral"
+    },
+    {
+      id: "se2",
+      label: "Utilisateurs Actifs",
+      value: "14",
+      description: "Licences actives",
+      status: "success"
+    },
+    {
+      id: "se3",
+      label: "Dernière sauvegarde",
+      value: "Sauvegardé",
+      description: "Aujourd'hui, 04h00",
+      status: "success"
+    }
+  ],
+  alerts: [],
+  priorities: [
+    {
+      id: "sep1",
+      title: "Mettre à jour les RLS Supabase",
+      description: "Valider les nouvelles règles d'accès multi-tenant.",
+      dueLabel: "Ce soir",
+      status: "warning",
+      href: "/settings"
+    }
+  ],
+  mainInsight: {
+    title: "Sécurité & Profils",
+    summary: "Tous les utilisateurs du workspace ont activé l'authentification multifacteur (MFA). Deux clés API de connecteurs expireront dans moins de 30 jours.",
+    recommendations: [
+      "Renouveler la clé d'API Salesforce.",
+      "Vérifier les logs de connexion anormaux."
+    ]
+  },
+  table: {
+    title: "Historique d'activité système",
+    description: "Dernières modifications d'administration",
+    columns: [
+      { key: "action", label: "Action", align: "left" },
+      { key: "user", label: "Utilisateur", align: "left" },
+      { key: "ip", label: "Adresse IP", align: "right" },
+      { key: "status", label: "Statut", align: "center" }
+    ],
+    rows: [
+      {
+        id: "rse1",
+        href: "/settings",
+        cells: {
+          action: "Mise à jour variables d'env",
+          user: "Guillaume K.",
+          ip: "192.168.1.1",
+          status: "Succès"
+        }
+      }
+    ]
+  },
+  activityFeed: [
+    {
+      id: "seac1",
+      label: "Paramètres modifiés",
+      description: "Clé d'API n8n mise à jour par Guillaume K.",
+      dateLabel: "Il y a 3h"
+    }
+  ],
+  quickActions: [
+    { id: "seqa1", label: "Voir les logs d'audit", variant: "secondary", href: "/automations" }
+  ],
+  syncStatus: {
+    source: "Supabase Settings Schema",
+    lastSyncLabel: "Synchronisé en temps réel",
+    status: "ok"
+  }
+}
+
+
