@@ -26,14 +26,18 @@ export type AccountRow = {
 
 export type ContactRow = {
   id: string
+  personId: string | null
   companyId: string | null
   companyName: string
   companySector: string
   fullName: string
+  firstName: string
+  lastName: string
   email: string | null
   phone: string | null
   linkedinUrl: string | null
   jobTitle: string
+  relationshipRole: string | null
   status: string
 }
 
@@ -113,8 +117,10 @@ type CompanyRelation = {
 
 type ContactQueryRow = {
   id: string
+  person_id: string
   company_id: string | null
   job_title: string | null
+  relationship_role: string | null
   status: string
   persons: PersonRelation | PersonRelation[] | null
   companies: CompanyRelation | CompanyRelation[] | null
@@ -224,14 +230,18 @@ function buildContact(row: ContactQueryRow): ContactRow {
 
   return {
     id: row.id,
+    personId: row.person_id,
     companyId: row.company_id,
     companyName: cleanText(company?.name, "Entreprise non liée"),
     companySector: cleanText(company?.sector),
     fullName: cleanText(person?.full_name, fallbackName || "Contact sans nom"),
+    firstName: person?.first_name?.trim() ?? "",
+    lastName: person?.last_name?.trim() ?? "",
     email: person?.primary_email ?? null,
     phone: person?.phone ?? null,
     linkedinUrl: person?.linkedin_url ?? null,
-    jobTitle: cleanText(row.job_title, "Fonction non renseignée"),
+    jobTitle: cleanText(row.job_title, ""),
+    relationshipRole: row.relationship_role ?? null,
     status: row.status,
   }
 }
@@ -276,7 +286,7 @@ export async function getAccountsContactsData(device: DashboardDevice): Promise<
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,company_id,job_title,status,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector)", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,status,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector)", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
   ])
