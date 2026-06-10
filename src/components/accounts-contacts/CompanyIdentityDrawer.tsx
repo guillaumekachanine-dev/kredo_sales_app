@@ -115,7 +115,7 @@ interface CompanyAnalysisData {
   synthese_consultant?: string
 }
 
-type TabKey = "apercu" | "intelligence" | "contacts" | "crm"
+type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu"
 
 function formatScore(score: number | string | null) {
   if (score === null || score === undefined) return "—"
@@ -302,20 +302,21 @@ export function CompanyIdentityDrawer({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex border-b border-border gap-1 shrink-0">
+          <div className="flex w-full border-b border-border gap-1 shrink-0">
             {(
               [
                 { key: "apercu", label: "Aperçu" },
                 { key: "intelligence", label: "Marché" },
                 { key: "contacts", label: `Contacts (${data.contacts.length})` },
-                { key: "crm", label: `Activité (${data.opportunities.length + data.missions.length})` },
+                { key: "crm", label: "Activité" },
+                { key: "actu", label: "Actu" },
               ] as const
             ).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
                 className={cn(
-                  "px-3 py-2 text-xs font-semibold border-b-2 -mb-px transition-all outline-none whitespace-nowrap",
+                  "flex-1 px-2 py-2 text-xs font-semibold border-b-2 -mb-px transition-all outline-none text-center whitespace-nowrap",
                   activeTab === t.key
                     ? "border-primary text-primary"
                     : "border-transparent text-muted hover:text-heading"
@@ -374,7 +375,7 @@ export function CompanyIdentityDrawer({
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
                       <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
-                      <span className="text-xs font-bold text-heading">
+                      <span className="text-xs font-normal text-heading">
                         {data.company.health || "Aucun indicateur de dynamique renseigné"}
                       </span>
                     </div>
@@ -471,22 +472,6 @@ export function CompanyIdentityDrawer({
                   </div>
                 )}
 
-                {/* Recent News list */}
-                {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 && (
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                      Actualités Récentes & Signaux Faibles
-                    </h4>
-                    <ul className="space-y-2 bg-canvas/30 rounded-lg border border-border/50 p-4">
-                      {signaux.actualites_recentes.map((item: string, idx: number) => (
-                        <li key={idx} className="flex gap-2 items-start text-xs text-heading leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             )}
 
@@ -657,6 +642,31 @@ export function CompanyIdentityDrawer({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {activeTab === "actu" && (
+              <div className="space-y-5">
+                {/* Recent News list */}
+                {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 ? (
+                  <div>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
+                      Actualités Récentes & Signaux Faibles
+                    </h4>
+                    <ul className="space-y-2 bg-canvas/30 rounded-lg border border-border/50 p-4">
+                      {signaux.actualites_recentes.map((item: string, idx: number) => (
+                        <li key={idx} className="flex gap-2 items-start text-xs text-heading leading-relaxed">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                    Aucune actualité ou signal faible disponible.
+                  </div>
+                )}
               </div>
             )}
           </div>
