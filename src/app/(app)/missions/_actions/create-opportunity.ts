@@ -129,5 +129,6 @@ export async function createOpportunity(
   }
 
   revalidatePath("/missions/opps")
+  revalidatePath("/missions/actives")
   return { data }
 }

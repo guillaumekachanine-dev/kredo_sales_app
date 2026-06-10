@@ -249,6 +249,7 @@ export async function updateOpportunity(
 
   revalidatePath("/missions/opps")
   revalidatePath("/missions")
+  revalidatePath("/missions/actives")
 
   return { success: true }
 }

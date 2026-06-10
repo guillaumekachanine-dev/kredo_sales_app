@@ -122,6 +122,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "candidates_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "candidates_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -197,11 +204,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "collaborators_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
             foreignKeyName: "collaborators_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: true
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["person_id"]
           },
           {
             foreignKeyName: "collaborators_workspace_id_fkey"
@@ -332,6 +353,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "company_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "company_relationships_from_contact_id_fkey"
             columns: ["from_contact_id"]
             isOneToOne: false
@@ -409,11 +437,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "contacts_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["person_id"]
           },
           {
             foreignKeyName: "contacts_workspace_id_fkey"
@@ -477,6 +519,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "interactions_contact_id_fkey"
@@ -551,7 +600,216 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "match_scores_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["person_id"]
+          },
+          {
             foreignKeyName: "match_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_activity_reports: {
+        Row: {
+          billable_days: number
+          collaborator_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          mission_id: string
+          non_billable_days: number
+          period_end: string
+          period_start: string
+          status: string
+          taci_snapshot: number
+          tjm_snapshot: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billable_days: number
+          collaborator_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          mission_id: string
+          non_billable_days?: number
+          period_end: string
+          period_start: string
+          status?: string
+          taci_snapshot: number
+          tjm_snapshot: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          billable_days?: number
+          collaborator_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          mission_id?: string
+          non_billable_days?: number
+          period_end?: string
+          period_start?: string
+          status?: string
+          taci_snapshot?: number
+          tjm_snapshot?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["mission_id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missions: {
+        Row: {
+          collaborator_id: string
+          company_id: string
+          created_at: string
+          end_date: string | null
+          external_ref: string | null
+          gross_margin_pct: number | null
+          id: string
+          metadata: Json
+          opportunity_id: string | null
+          practice: string | null
+          role_title: string | null
+          seniority: string | null
+          source: string | null
+          start_date: string | null
+          status: string
+          taci: number
+          tags: string[]
+          title: string
+          tjm: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          collaborator_id: string
+          company_id: string
+          created_at?: string
+          end_date?: string | null
+          external_ref?: string | null
+          gross_margin_pct?: number | null
+          id?: string
+          metadata?: Json
+          opportunity_id?: string | null
+          practice?: string | null
+          role_title?: string | null
+          seniority?: string | null
+          source?: string | null
+          start_date?: string | null
+          status?: string
+          taci: number
+          tags?: string[]
+          title: string
+          tjm: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          collaborator_id?: string
+          company_id?: string
+          created_at?: string
+          end_date?: string | null
+          external_ref?: string | null
+          gross_margin_pct?: number | null
+          id?: string
+          metadata?: Json
+          opportunity_id?: string | null
+          practice?: string | null
+          role_title?: string | null
+          seniority?: string | null
+          source?: string | null
+          start_date?: string | null
+          status?: string
+          taci?: number
+          tags?: string[]
+          title?: string
+          tjm?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missions_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "missions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "missions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -669,6 +927,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "opportunities_workspace_id_fkey"
@@ -900,6 +1165,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "persons"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "person_skills_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["person_id"]
           },
           {
             foreignKeyName: "person_skills_skill_id_fkey"
@@ -1140,7 +1412,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_mission_quarterly_revenue: {
+        Row: {
+          billable_days: number | null
+          collaborator_id: string | null
+          company_id: string | null
+          company_name: string | null
+          consultant_name: string | null
+          cost: number | null
+          employee_ref: string | null
+          external_ref: string | null
+          gross_margin: number | null
+          gross_margin_pct: number | null
+          mission_id: string | null
+          mission_status: string | null
+          mission_title: string | null
+          person_id: string | null
+          practice: string | null
+          quarter_label: string | null
+          quarter_start: string | null
+          revenue: number | null
+          role_title: string | null
+          seniority: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_activity_reports_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       current_workspace_id: { Args: never; Returns: string }
@@ -1277,6 +1582,7 @@ export const Constants = {
   },
 } as const
 
+
 // ------------------------------------------------------------
 //  Raccourcis pratiques
 // ------------------------------------------------------------
@@ -1294,6 +1600,10 @@ export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"
 export type OpportunityUpdate = PublicSchema["Tables"]["opportunities"]["Update"]
 
 export type Account = PublicSchema["Tables"]["companies"]["Row"]
+
+export type Mission = PublicSchema["Tables"]["missions"]["Row"]
+export type MissionInsert = PublicSchema["Tables"]["missions"]["Insert"]
+export type MissionUpdate = PublicSchema["Tables"]["missions"]["Update"]
 
 export type Contact = {
   id: string

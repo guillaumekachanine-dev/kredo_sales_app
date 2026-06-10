@@ -2,6 +2,8 @@ import { MissionsListView } from "@/components/missions/MissionsListView"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
 
+export const dynamic = "force-dynamic"
+
 export default async function OpportunitesPage() {
   const opportunites = await getOpportunitiesList()
   const nbOuvertes = opportunites.filter((o) =>
