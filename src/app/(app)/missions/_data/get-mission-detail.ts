@@ -139,9 +139,14 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       return { error: "Mission introuvable." }
     }
 
-    // 2. Récupération du compte lié
-    let company: { id: string; name: string; description: string | null; sector: string | null } | null = null
-    if (mission.company_id) {
+    // Étapes 2 à 6 : les concerns ci-dessous ne dépendent QUE de `mission`
+    // (et plus l'un de l'autre) → on les exécute en parallèle au lieu d'enchaîner
+    // 5 allers-retours réseau séquentiels. La logique interne (fallbacks
+    // opportunité → entreprise pour contacts et interactions) est préservée.
+
+    // 2. Compte lié
+    const fetchCompany = async (): Promise<{ id: string; name: string; description: string | null; sector: string | null } | null> => {
+      if (!mission.company_id) return null
       const { data: companyData, error: companyError } = await supabase
         .from("companies")
         .select("id, name, description, sector")
@@ -150,14 +155,14 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
 
       if (companyError) {
         console.error("Erreur lors de la récupération de la compagnie:", companyError)
-      } else if (companyData) {
-        company = companyData
+        return null
       }
+      return companyData ?? null
     }
 
-    // 3. Récupération du collaborateur
-    let collaboratorData: { id: string; person: DBPerson | null } | null = null
-    if (mission.collaborator_id) {
+    // 3. Collaborateur
+    const fetchCollaborator = async (): Promise<{ id: string; person: DBPerson | null } | null> => {
+      if (!mission.collaborator_id) return null
       const { data: collab, error: collabError } = await supabase
         .from("collaborators")
         .select(`
@@ -177,32 +182,75 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
 
       if (collabError) {
         console.error("Erreur lors de la récupération du collaborateur:", collabError)
-      } else if (collab) {
-        const rawCollab = collab as unknown as DBCollaborator
-        const personObj = Array.isArray(rawCollab.persons) ? rawCollab.persons[0] : rawCollab.persons
-        collaboratorData = {
-          id: rawCollab.id,
-          person: personObj ? {
-            id: personObj.id,
-            full_name: personObj.full_name,
-            first_name: personObj.first_name,
-            last_name: personObj.last_name,
-            primary_email: personObj.primary_email,
-            phone: personObj.phone,
-          } : null,
-        }
+        return null
+      }
+      if (!collab) return null
+      const rawCollab = collab as unknown as DBCollaborator
+      const personObj = Array.isArray(rawCollab.persons) ? rawCollab.persons[0] : rawCollab.persons
+      return {
+        id: rawCollab.id,
+        person: personObj ? {
+          id: personObj.id,
+          full_name: personObj.full_name,
+          first_name: personObj.first_name,
+          last_name: personObj.last_name,
+          primary_email: personObj.primary_email,
+          phone: personObj.phone,
+        } : null,
       }
     }
 
-    // 4. Récupération des contacts
-    const contacts: Array<{ id: string; fullName: string; role: string | null; email: string | null; phone: string | null }> = []
+    // 4. Contacts (opportunité, fallback entreprise)
+    const fetchContacts = async (): Promise<Array<{ id: string; fullName: string; role: string | null; email: string | null; phone: string | null }>> => {
+      const contacts: Array<{ id: string; fullName: string; role: string | null; email: string | null; phone: string | null }> = []
 
-    if (mission.opportunity_id) {
-      const { data: opportunityContacts, error: oppContactsError } = await supabase
-        .from("opportunity_contacts")
-        .select(`
-          role,
-          contacts (
+      if (mission.opportunity_id) {
+        const { data: opportunityContacts, error: oppContactsError } = await supabase
+          .from("opportunity_contacts")
+          .select(`
+            role,
+            contacts (
+              id,
+              relationship_role,
+              persons (
+                id,
+                full_name,
+                first_name,
+                last_name,
+                primary_email,
+                phone
+              )
+            )
+          `)
+          .eq("opportunity_id", mission.opportunity_id)
+
+        if (oppContactsError) {
+          console.error("Erreur lors de la récupération des contacts de l'opportunité:", oppContactsError)
+        } else if (opportunityContacts) {
+          const rawOppContacts = opportunityContacts as unknown as DBOpportunityContact[]
+          rawOppContacts.forEach((oc) => {
+            const contactObj = Array.isArray(oc.contacts) ? oc.contacts[0] : oc.contacts
+            if (contactObj) {
+              const personObj = Array.isArray(contactObj.persons) ? contactObj.persons[0] : contactObj.persons
+              if (personObj) {
+                contacts.push({
+                  id: contactObj.id,
+                  fullName: personObj.full_name || `${personObj.first_name || ""} ${personObj.last_name || ""}`.trim(),
+                  role: oc.role || contactObj.relationship_role || "Contact opportunité",
+                  email: personObj.primary_email,
+                  phone: personObj.phone,
+                })
+              }
+            }
+          })
+        }
+      }
+
+      // Si aucun contact lié à l'opportunité (ou pas d'opportunité), récupérer ceux de l'entreprise
+      if (contacts.length === 0 && mission.company_id) {
+        const { data: companyContacts, error: compContactsError } = await supabase
+          .from("contacts")
+          .select(`
             id,
             relationship_role,
             persons (
@@ -213,79 +261,40 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
               primary_email,
               phone
             )
-          )
-        `)
-        .eq("opportunity_id", mission.opportunity_id)
+          `)
+          .eq("company_id", mission.company_id)
 
-      if (oppContactsError) {
-        console.error("Erreur lors de la récupération des contacts de l'opportunité:", oppContactsError)
-      } else if (opportunityContacts) {
-        const rawOppContacts = opportunityContacts as unknown as DBOpportunityContact[]
-        rawOppContacts.forEach((oc) => {
-          const contactObj = Array.isArray(oc.contacts) ? oc.contacts[0] : oc.contacts
-          if (contactObj) {
-            const personObj = Array.isArray(contactObj.persons) ? contactObj.persons[0] : contactObj.persons
+        if (compContactsError) {
+          console.error("Erreur lors de la récupération des contacts de la compagnie:", compContactsError)
+        } else if (companyContacts) {
+          const rawCompContacts = companyContacts as unknown as DBContact[]
+          rawCompContacts.forEach((cc) => {
+            const personObj = Array.isArray(cc.persons) ? cc.persons[0] : cc.persons
             if (personObj) {
               contacts.push({
-                id: contactObj.id,
+                id: cc.id,
                 fullName: personObj.full_name || `${personObj.first_name || ""} ${personObj.last_name || ""}`.trim(),
-                role: oc.role || contactObj.relationship_role || "Contact opportunité",
+                role: cc.relationship_role || "Contact entreprise",
                 email: personObj.primary_email,
                 phone: personObj.phone,
               })
             }
-          }
-        })
+          })
+        }
       }
+
+      return contacts
     }
 
-    // Si aucun contact lié à l'opportunité (ou pas d'opportunité), récupérer ceux de l'entreprise
-    if (contacts.length === 0 && mission.company_id) {
-      const { data: companyContacts, error: compContactsError } = await supabase
-        .from("contacts")
-        .select(`
-          id,
-          relationship_role,
-          persons (
-            id,
-            full_name,
-            first_name,
-            last_name,
-            primary_email,
-            phone
-          )
-        `)
-        .eq("company_id", mission.company_id)
-
-      if (compContactsError) {
-        console.error("Erreur lors de la récupération des contacts de la compagnie:", compContactsError)
-      } else if (companyContacts) {
-        const rawCompContacts = companyContacts as unknown as DBContact[]
-        rawCompContacts.forEach((cc) => {
-          const personObj = Array.isArray(cc.persons) ? cc.persons[0] : cc.persons
-          if (personObj) {
-            contacts.push({
-              id: cc.id,
-              fullName: personObj.full_name || `${personObj.first_name || ""} ${personObj.last_name || ""}`.trim(),
-              role: cc.relationship_role || "Contact entreprise",
-              email: personObj.primary_email,
-              phone: personObj.phone,
-            })
-          }
-        })
-      }
-    }
-
-    // 5. Récupération des rapports d'activité (CRA)
-    let activityReports: Array<{
+    // 5. Rapports d'activité (CRA)
+    const fetchActivityReports = async (): Promise<Array<{
       id: string
       billable_days: number
       non_billable_days: number
       period_start: string
       period_end: string
       status: string
-    }> = []
-    if (mission.id) {
+    }>> => {
       const { data: reports, error: reportsError } = await supabase
         .from("mission_activity_reports")
         .select("id, billable_days, non_billable_days, period_start, period_end, status")
@@ -294,54 +303,65 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
 
       if (reportsError) {
         console.error("Erreur lors de la récupération des rapports d'activité:", reportsError)
-      } else {
-        activityReports = (reports || []).map((r) => ({
-          id: r.id,
-          billable_days: r.billable_days,
-          non_billable_days: r.non_billable_days,
-          period_start: r.period_start,
-          period_end: r.period_end,
-          status: r.status,
-        }))
+        return []
       }
+      return (reports || []).map((r) => ({
+        id: r.id,
+        billable_days: r.billable_days,
+        non_billable_days: r.non_billable_days,
+        period_start: r.period_start,
+        period_end: r.period_end,
+        status: r.status,
+      }))
     }
 
-    // 6. Récupération de l'historique d'interactions
-    let interactions: Array<{
+    // 6. Historique d'interactions (opportunité, fallback entreprise)
+    const fetchInteractions = async (): Promise<Array<{
       id: string
       type: string
       summary: string | null
       details: Json
       occurred_at: string
       next_action: string | null
-    }> = []
-    if (mission.opportunity_id) {
-      const { data: oppInteractions, error: oppIntError } = await supabase
-        .from("interactions")
-        .select("id, type, summary, details, occurred_at, next_action")
-        .eq("opportunity_id", mission.opportunity_id)
-        .order("occurred_at", { ascending: false })
+    }>> => {
+      if (mission.opportunity_id) {
+        const { data: oppInteractions, error: oppIntError } = await supabase
+          .from("interactions")
+          .select("id, type, summary, details, occurred_at, next_action")
+          .eq("opportunity_id", mission.opportunity_id)
+          .order("occurred_at", { ascending: false })
 
-      if (oppIntError) {
-        console.error("Erreur lors de la récupération des interactions opportunité:", oppIntError)
-      } else if (oppInteractions && oppInteractions.length > 0) {
-        interactions = oppInteractions
+        if (oppIntError) {
+          console.error("Erreur lors de la récupération des interactions opportunité:", oppIntError)
+        } else if (oppInteractions && oppInteractions.length > 0) {
+          return oppInteractions
+        }
       }
+
+      if (mission.company_id) {
+        const { data: compInteractions, error: compIntError } = await supabase
+          .from("interactions")
+          .select("id, type, summary, details, occurred_at, next_action")
+          .eq("company_id", mission.company_id)
+          .order("occurred_at", { ascending: false })
+
+        if (compIntError) {
+          console.error("Erreur lors de la récupération des interactions compagnie:", compIntError)
+        } else if (compInteractions) {
+          return compInteractions
+        }
+      }
+
+      return []
     }
 
-    if (interactions.length === 0 && mission.company_id) {
-      const { data: compInteractions, error: compIntError } = await supabase
-        .from("interactions")
-        .select("id, type, summary, details, occurred_at, next_action")
-        .eq("company_id", mission.company_id)
-        .order("occurred_at", { ascending: false })
-
-      if (compIntError) {
-        console.error("Erreur lors de la récupération des interactions compagnie:", compIntError)
-      } else if (compInteractions) {
-        interactions = compInteractions
-      }
-    }
+    const [company, collaboratorData, contacts, activityReports, interactions] = await Promise.all([
+      fetchCompany(),
+      fetchCollaborator(),
+      fetchContacts(),
+      fetchActivityReports(),
+      fetchInteractions(),
+    ])
 
     return {
       data: {

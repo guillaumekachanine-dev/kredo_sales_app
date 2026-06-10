@@ -25,10 +25,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session — IMPORTANT : ne pas ajouter de logique entre createServerClient et getUser
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Validation de session — IMPORTANT : ne pas ajouter de logique entre createServerClient et l'appel auth.
+  // getClaims() vérifie le JWT LOCALEMENT (clé de signature asymétrique) → zéro aller-retour réseau,
+  // contrairement à getUser() qui interroge l'API Auth Supabase à chaque navigation.
+  // ⚠️ Nécessite une clé de signature asymétrique côté dashboard (Auth → Signing Keys).
+  //    Sans elle, getClaims() retombe sur une vérification réseau (donc migrer la clé pour le gain).
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const user = claimsData?.claims ?? null
 
   const { pathname } = request.nextUrl
 
