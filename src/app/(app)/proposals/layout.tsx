@@ -7,7 +7,7 @@ export default function ProposalsLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <SectionNavBar tabs={tabs} />
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </div>
     </div>

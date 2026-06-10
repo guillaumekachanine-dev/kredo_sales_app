@@ -20,9 +20,7 @@ export default function MissionsLayout({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <SectionNavBar tabs={missionsTabs} />
-      {/* min-h-0 indispensable : permet aux enfants flex de dépasser
-          leur contenu et d'activer l'overflow interne (MissionsTabbedShell) */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </div>
     </div>
