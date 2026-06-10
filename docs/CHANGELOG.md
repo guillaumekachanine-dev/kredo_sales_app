@@ -4,6 +4,11 @@
 
 ## [Non publié]
 
+### 2026-06-10
+- **Pilotage** : refonte de `docs/ROADMAP.md` (Now/Next/Later + phases + risques + capacité) après audit complet du codebase. Création de `docs/BACKLOG.md` (tickets K-001→K-092).
+- **Décision** : ADR-0006 — stratégie device « adaptive ciblé + responsive par défaut » (D-11). Assouplit la règle stricte de CLAUDE.md/ARCHITECTURE.md §5.
+- **Base de données (R1/K-001)** : résolution du drift schéma. `supabase/migrations/004_baseline_canonical.sql` générée par introspection du schéma live (20 tables canoniques, 73 policies RLS, 116 contraintes, 36 index, 16+1 triggers, 4 fonctions, vue `v_mission_quarterly_revenue`). Parité vérifiée objet par objet. Migrations 001-003 marquées historiques (`supabase/migrations/README.md`). Base confirmée `ACTIVE_HEALTHY`.
+
 ### 2026-06-09
 - **Base de données** : projet Supabase dédié `Kredo_Sales_App` créé (ref `jvzgmhvwirsbdkjpmvla`).
 - **Migration 001** appliquée : module Opportunité — 6 tables (`crm_accounts`, `crm_contacts`, `sales_opportunities`, `sales_opportunity_skills`, `sales_opportunity_contacts`, `sales_opportunity_events`), 5 types énumérés, colonne générée `weighted_gain`, trigger `set_updated_at()`, RLS activé sur les 6 tables (politique `owner_all`).
