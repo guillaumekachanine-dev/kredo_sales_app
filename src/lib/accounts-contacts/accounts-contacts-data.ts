@@ -22,6 +22,7 @@ export type AccountRow = {
   emailCount: number
   summary: string
   logoPath: string | null
+  taskCount: number
 }
 
 export type ContactRow = {
@@ -102,6 +103,12 @@ type CompanyQueryRow = {
   website: string | null
   description: string | null
   metadata: unknown
+}
+
+type TaskQueryRow = {
+  id: string
+  entity_id: string | null
+  entity_type: string | null
 }
 
 type PersonRelation = {
@@ -187,7 +194,7 @@ function getStudy(metadata: unknown) {
   return nestedRecord(asRecord(metadata), "analysis_data")
 }
 
-function buildAccount(row: CompanyQueryRow, contactCount: number): AccountRow {
+function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: number): AccountRow {
   const metadata = asRecord(row.metadata)
   const importedStats = getContactStats(row.metadata)
   const study = getStudy(row.metadata)
@@ -206,6 +213,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number): AccountRow {
     emailCount: importedStats.emails,
     summary: cleanText(row.description, nestedText(study, ["synthese_consultant"]) || "Aucune synthèse disponible."),
     logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
+    taskCount,
   }
 }
 
@@ -278,7 +286,7 @@ function buildSectorRows(accounts: AccountRow[]) {
 export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
-  const [companiesResult, contactsResult] = await Promise.all([
+  const [companiesResult, contactsResult, tasksResult] = await Promise.all([
     supabase
       .from<CompanyQueryRow>("companies")
       .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,ai_score,website,description,metadata", { count: "exact" })
@@ -290,6 +298,9 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .select("id,person_id,company_id,job_title,relationship_role,status,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector)", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
+    supabase
+      .from<TaskQueryRow>("tasks")
+      .select("id,entity_id,entity_type"),
   ])
 
   if (companiesResult.error) throw new Error(companiesResult.error.message)
@@ -297,6 +308,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
 
   const companies = companiesResult.data ?? []
   const rawContacts = contactsResult.data ?? []
+  const rawTasks = tasksResult.data ?? []
   const contactCounts = new Map<string, number>()
 
   for (const contact of rawContacts) {
@@ -305,8 +317,15 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     }
   }
 
+  const taskCounts = new Map<string, number>()
+  for (const task of rawTasks) {
+    if (task.entity_id && (task.entity_type === "company" || !task.entity_type)) {
+      taskCounts.set(task.entity_id, (taskCounts.get(task.entity_id) ?? 0) + 1)
+    }
+  }
+
   const accounts = companies
-    .map((company) => buildAccount(company, contactCounts.get(company.id) ?? 0))
+    .map((company) => buildAccount(company, contactCounts.get(company.id) ?? 0, taskCounts.get(company.id) ?? 0))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
 
   const contacts = rawContacts

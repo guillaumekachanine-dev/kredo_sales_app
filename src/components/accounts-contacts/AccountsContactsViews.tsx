@@ -457,11 +457,13 @@ function AccountsDesktop({
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3">Compte</th>
               <th className="px-3 py-3">Secteur</th>
-              <th className="px-3 py-3">Localisation</th>
               <th className="px-3 py-3 text-right">Contacts</th>
+              <th className="px-3 py-3 text-right">Activité</th>
+              <th className="px-3 py-3">Segment</th>
               <th className="px-3 py-3 text-right">Score</th>
               <th className="px-3 py-3 text-center">Priorité</th>
               <th className="px-3 py-3 text-center">Statut</th>
+              <th className="px-3 py-3 text-center">Analyses</th>
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -488,21 +490,26 @@ function AccountsDesktop({
                     </div>
                   </td>
                   <td className="px-3 py-3 text-body">{account.sector}</td>
-                  <td className="px-3 py-3 text-body">{account.location}</td>
                   <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.contactCount}</td>
+                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.taskCount}</td>
+                  <td className="px-3 py-3 text-body">{account.segment}</td>
                   <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center text-[11px] text-body capitalize">{account.status.replace("_", " ")}</td>
+                  <td className="px-3 py-3 text-center">
+                    {hasStudy ? (
+                      <button
+                        onClick={() => onOpenStudy(account.id)}
+                        className="rounded bg-warning/10 border border-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning transition-colors hover:bg-warning/20"
+                      >
+                        Consulter
+                      </button>
+                    ) : (
+                      <span className="text-muted text-[11px] italic">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => onOpenIdentity(account.id)} className="rounded bg-canvas border border-border px-2 py-1 text-[11px] font-semibold text-heading transition-colors hover:bg-canvas/80">
-                        Fiche
-                      </button>
-                      {hasStudy && (
-                        <button onClick={() => onOpenStudy(account.id)} className="rounded bg-primary/10 border border-primary/20 px-2 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20">
-                          Étude
-                        </button>
-                      )}
                       <button onClick={() => onEdit(account)} className="rounded p-1.5 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
                         <IconEdit />
                       </button>
@@ -550,7 +557,7 @@ function AccountsMobile({
                 <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" />
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-bold text-heading hover:text-primary transition-colors">{account.name}</h2>
-                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.location}</p>
+                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.segment}</p>
                 </div>
               </div>
               <PriorityBadge priority={account.priority} />
@@ -565,15 +572,12 @@ function AccountsMobile({
                 <p className="text-sm font-bold text-heading">{account.contactCount}</p>
               </div>
               <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Emails</p>
-                <p className="text-sm font-bold text-heading">{account.emailCount}</p>
+                <p className="text-[10px] text-muted">Activité</p>
+                <p className="text-sm font-bold text-heading">{account.taskCount}</p>
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-1">
               <div className="flex gap-2">
-                <button onClick={() => onOpenIdentity(account.id)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
-                  Fiche
-                </button>
                 <button onClick={() => onEdit(account)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
                   <IconEdit /> Modifier
                 </button>
@@ -582,8 +586,8 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-primary/10 border border-primary/20 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors">
-                  Étude
+                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-warning/10 border border-warning/20 px-2.5 py-1 text-xs font-semibold text-warning hover:bg-warning/20 transition-colors">
+                  Consulter
                 </button>
               )}
             </div>
