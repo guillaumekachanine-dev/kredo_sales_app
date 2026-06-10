@@ -11,6 +11,7 @@ interface CompanyIdentityDrawerProps {
   companyId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onOpenContactIdentity?: (contactId: string) => void
 }
 
 type IdentityData = {
@@ -141,7 +142,7 @@ type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu" | "pitchs"
 
 function formatScore(score: number | string | null) {
   if (score === null || score === undefined) return "—"
-  return `${score}/10`
+  return `${score}/5`
 }
 
 function formatCurrency(amount: number | null) {
@@ -168,6 +169,7 @@ export function CompanyIdentityDrawer({
   companyId,
   open,
   onOpenChange,
+  onOpenContactIdentity,
 }: CompanyIdentityDrawerProps) {
   const [data, setData] = useState<IdentityData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -331,7 +333,7 @@ export function CompanyIdentityDrawer({
               [
                 { key: "apercu", label: "Aperçu" },
                 { key: "intelligence", label: "Marché" },
-                { key: "contacts", label: `Contacts (${data.contacts.length})` },
+                { key: "contacts", label: "Contacts" },
                 { key: "crm", label: "Activité" },
                 { key: "actu", label: "Actu" },
                 { key: "pitchs", label: pitches.length > 0 ? `Pitchs (${pitches.length})` : "Pitchs" },
@@ -577,8 +579,8 @@ export function CompanyIdentityDrawer({
                     </div>
                   </div>
                 )}
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
-                  Contacts Rattachés ({data.contacts.length})
+                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
+                  Contacts Rattachés
                 </h4>
                 {data.contacts.length === 0 ? (
                   <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
@@ -593,7 +595,13 @@ export function CompanyIdentityDrawer({
                         <SurfaceCard key={contact.id} className="px-4 py-2.5 flex flex-col gap-2">
                           <div className="flex items-start justify-between gap-2.5">
                             <div>
-                              <h5 className="text-xs font-bold text-heading">
+                              <h5 
+                                onClick={() => onOpenContactIdentity?.(contact.id)}
+                                className={cn(
+                                  "text-xs font-bold text-heading",
+                                  onOpenContactIdentity ? "cursor-pointer hover:text-primary transition-colors hover:underline" : ""
+                                )}
+                              >
                                 {person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}
                               </h5>
                               <p className="text-[10px] text-muted mt-0.5 leading-snug">

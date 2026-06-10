@@ -837,6 +837,7 @@ export function ProspectionAccountsView({
   // Contact modal
   const [contactModal, setContactModal] = useState<{ open: boolean; editing?: ContactRow }>({ open: false })
   const [editContactReturnToIdentityId, setEditContactReturnToIdentityId] = useState<string | null>(null)
+  const [contactDrawerReturnToCompanyId, setContactDrawerReturnToCompanyId] = useState<string | null>(null)
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
@@ -1079,12 +1080,25 @@ export function ProspectionAccountsView({
             }
           }
         }}
+        onOpenContactIdentity={(contactId) => {
+          setContactDrawerReturnToCompanyId(selectedCompanyIdForIdentity)
+          setSelectedCompanyIdForIdentity(null)
+          setSelectedContactIdForIdentity(contactId)
+        }}
       />
 
       <ContactIdentityDrawer
         contactId={selectedContactIdForIdentity}
         open={!!selectedContactIdForIdentity}
-        onOpenChange={(open) => !open && setSelectedContactIdForIdentity(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedContactIdForIdentity(null)
+            if (contactDrawerReturnToCompanyId) {
+              setSelectedCompanyIdForIdentity(contactDrawerReturnToCompanyId)
+              setContactDrawerReturnToCompanyId(null)
+            }
+          }
+        }}
         onOpenCompanyIdentity={(companyId) => {
           setCompanyDrawerReturnToContactId(selectedContactIdForIdentity)
           setSelectedContactIdForIdentity(null)
