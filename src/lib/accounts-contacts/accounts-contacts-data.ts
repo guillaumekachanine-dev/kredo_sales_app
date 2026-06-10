@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
 export type AccountsContactsStats = {
   companies: number
@@ -270,11 +269,7 @@ function buildSectorRows(accounts: AccountRow[]) {
     .sort((a, b) => b.companies - a.companies)
 }
 
-function topForDevice<T>(rows: T[], device: DashboardDevice, desktopLimit: number, mobileLimit: number) {
-  return rows.slice(0, device === "mobile" ? mobileLimit : desktopLimit)
-}
-
-export async function getAccountsContactsData(device: DashboardDevice): Promise<AccountsContactsData> {
+export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
   const [companiesResult, contactsResult] = await Promise.all([
@@ -325,11 +320,13 @@ export async function getAccountsContactsData(device: DashboardDevice): Promise<
     highPriority: accounts.filter((account) => account.priority === "haute").length,
   }
 
+  // Full datasets are returned unsliced. Filtering and device-aware display
+  // limits are applied client-side (small volumes: ~96 companies / ~643 contacts).
   return {
     stats,
-    accounts: topForDevice(accounts, device, 120, 30),
-    contacts: topForDevice(contacts, device, 160, 40),
-    studies: topForDevice(studies, device, 120, 30),
-    sectors: topForDevice(buildSectorRows(accounts), device, 20, 10),
+    accounts,
+    contacts,
+    studies,
+    sectors: buildSectorRows(accounts),
   }
 }

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 
 export default async function ProspectionAccountsPage() {
   const device = await getDashboardDevice()
-  const data = await getAccountsContactsData(device)
+  const data = await getAccountsContactsData()
 
   return <ProspectionAccountsView data={data} device={device} />
 }

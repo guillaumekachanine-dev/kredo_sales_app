@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useDeferredValue, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
@@ -9,6 +9,15 @@ import {
   ContactRow,
   StudyRow,
 } from "@/lib/accounts-contacts/accounts-contacts-data"
+import {
+  parseFilters,
+  filterAccounts,
+  filterContacts,
+} from "@/lib/accounts-contacts/accounts-contacts-filters"
+import { useUrlFilters } from "@/lib/search/use-url-filters"
+import { SearchToolbar } from "@/components/search/SearchToolbar"
+import { FilterChip } from "@/components/search/FilterChip"
+import { FilterDropdown, type FilterOption } from "@/components/search/FilterDropdown"
 import {
   createCompany,
   updateCompany,
@@ -41,6 +50,12 @@ const PRIORITY_OPTIONS = [
   { value: "haute", label: "Haute" },
   { value: "normale", label: "Normale" },
   { value: "basse", label: "Basse" },
+]
+
+const SCORE_OPTIONS: FilterOption[] = [
+  { value: "4", label: "≥ 4" },
+  { value: "3", label: "≥ 3" },
+  { value: "2", label: "≥ 2" },
 ]
 
 const ROLE_OPTIONS = [
@@ -576,6 +591,7 @@ function ContactsDesktop({
               <th className="px-3 py-3">Fonction</th>
               <th className="px-3 py-3">Rôle</th>
               <th className="px-5 py-3">Email</th>
+              <th className="px-3 py-3">Téléphone</th>
               <th className="px-3 py-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -587,6 +603,7 @@ function ContactsDesktop({
                 <td className="max-w-[240px] truncate px-3 py-3 text-body">{contact.jobTitle || "—"}</td>
                 <td className="px-3 py-3 text-body capitalize">{contact.relationshipRole?.replace("_", " ") ?? "—"}</td>
                 <td className="px-5 py-3 text-body">{contact.email ?? "—"}</td>
+                <td className="px-3 py-3 text-body">{contact.phone ?? "—"}</td>
                 <td className="px-3 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => onEdit(contact)} className="rounded p-1.5 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
@@ -664,8 +681,49 @@ export function ProspectionAccountsView({
   device: DashboardDevice
 }) {
   const router = useRouter()
-  const [subTab, setSubTab] = useState<"accounts" | "contacts">("accounts")
+  const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
   const [selectedStudy, setSelectedStudy] = useState<StudyRow | null>(null)
+
+  // URL is the source of truth for tab + filters.
+  const filters = useMemo(
+    () => parseFilters(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  )
+  const subTab = filters.tab
+  const deferredQuery = useDeferredValue(filters.q)
+
+  const studyIds = useMemo(() => new Set(data.studies.map((study) => study.id)), [data.studies])
+
+  const sectorOptions = useMemo<FilterOption[]>(
+    () =>
+      [...new Set(data.accounts.map((account) => account.sector))]
+        .filter((sector) => sector.length > 0)
+        .sort((a, b) => a.localeCompare(b))
+        .map((sector) => ({ value: sector, label: sector })),
+    [data.accounts]
+  )
+
+  const filteredAccounts = useMemo(
+    () => filterAccounts(data.accounts, { ...filters, q: deferredQuery }, studyIds),
+    [data.accounts, filters, deferredQuery, studyIds]
+  )
+  const filteredContacts = useMemo(
+    () => filterContacts(data.contacts, { ...filters, q: deferredQuery }),
+    [data.contacts, filters, deferredQuery]
+  )
+
+  // Device-aware display limits applied AFTER filtering — never before.
+  const displayAccounts = useMemo(
+    () => filteredAccounts.slice(0, device === "mobile" ? 40 : 160),
+    [filteredAccounts, device]
+  )
+  const displayContacts = useMemo(
+    () => filteredContacts.slice(0, device === "mobile" ? 60 : 200),
+    [filteredContacts, device]
+  )
+
+  const totalFiltered = subTab === "accounts" ? filteredAccounts.length : filteredContacts.length
+  const totalAll = subTab === "accounts" ? data.accounts.length : data.contacts.length
 
   // Company modal
   const [companyModal, setCompanyModal] = useState<{ open: boolean; editing?: AccountRow }>({ open: false })
@@ -728,30 +786,91 @@ export function ProspectionAccountsView({
       {/* Sub-tab selection */}
       <div className="flex gap-2 border-b border-border pb-3">
         <button
-          onClick={() => setSubTab("accounts")}
+          onClick={() => setParam("tab", "accounts")}
           className={cn(
             "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
             subTab === "accounts" ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
           )}
         >
-          Comptes ({data.stats.companies})
+          Comptes ({filteredAccounts.length})
         </button>
         <button
-          onClick={() => setSubTab("contacts")}
+          onClick={() => setParam("tab", "contacts")}
           className={cn(
             "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
             subTab === "contacts" ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
           )}
         >
-          Contacts ({data.stats.contacts})
+          Contacts ({filteredContacts.length})
         </button>
       </div>
+
+      {/* Search & quick filters */}
+      <SearchToolbar
+        device={device}
+        query={filters.q}
+        totalFiltered={totalFiltered}
+        totalAll={totalAll}
+        placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
+        onQueryChange={(value) => setParam("q", value)}
+        onReset={() => clearAll(["tab"])}
+      >
+        {subTab === "accounts" ? (
+          <>
+            <FilterDropdown
+              label="Secteur"
+              options={sectorOptions}
+              selected={filters.includeSector}
+              onToggle={(value) => toggleListValue("incSector", value)}
+              onClear={() => setParam("incSector", null)}
+              fullWidthPanel
+            />
+            <FilterDropdown
+              label="Statut"
+              options={LIFECYCLE_OPTIONS}
+              selected={filters.includeStatus}
+              onToggle={(value) => toggleListValue("incStatus", value)}
+              onClear={() => setParam("incStatus", null)}
+              fullWidthPanel
+            />
+            <FilterDropdown
+              label="Score"
+              mode="single"
+              options={SCORE_OPTIONS}
+              selected={filters.minScore === null ? [] : [String(filters.minScore)]}
+              onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
+              onClear={() => setParam("minScore", null)}
+            />
+          </>
+        ) : (
+          <>
+            <FilterDropdown
+              label="Rôle"
+              options={ROLE_OPTIONS}
+              selected={filters.includeRole}
+              onToggle={(value) => toggleListValue("incRole", value)}
+              onClear={() => setParam("incRole", null)}
+              fullWidthPanel
+            />
+            <FilterChip
+              label="Avec email"
+              active={filters.hasEmail}
+              onToggle={() => setParam("hasEmail", filters.hasEmail ? null : "1")}
+            />
+            <FilterChip
+              label="Avec téléphone"
+              active={filters.hasPhone}
+              onToggle={() => setParam("hasPhone", filters.hasPhone ? null : "1")}
+            />
+          </>
+        )}
+      </SearchToolbar>
 
       {/* Dynamic Views */}
       {subTab === "accounts" && (
         device === "mobile" ? (
           <AccountsMobile
-            accounts={data.accounts}
+            accounts={displayAccounts}
             studies={data.studies}
             onOpenStudy={handleOpenStudy}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
@@ -759,7 +878,7 @@ export function ProspectionAccountsView({
           />
         ) : (
           <AccountsDesktop
-            accounts={data.accounts}
+            accounts={displayAccounts}
             studies={data.studies}
             onOpenStudy={handleOpenStudy}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
@@ -771,13 +890,13 @@ export function ProspectionAccountsView({
       {subTab === "contacts" && (
         device === "mobile" ? (
           <ContactsMobile
-            contacts={data.contacts}
+            contacts={displayContacts}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
             onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
         ) : (
           <ContactsDesktop
-            contacts={data.contacts}
+            contacts={displayContacts}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
             onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
