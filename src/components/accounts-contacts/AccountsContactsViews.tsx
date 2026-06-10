@@ -85,8 +85,8 @@ function PriorityBadge({ priority }: { priority: string }) {
   const label = priority === "haute" ? "Haute" : priority === "basse" ? "Basse" : "Normale"
   return (
     <span className={cn(
-      "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-      priority === "haute" ? "border-warning/30 bg-warning/10 text-warning" : "border-border bg-canvas text-body"
+      "font-semibold text-[11px]",
+      priority === "haute" ? "text-warning" : "text-body"
     )}>
       {label}
     </span>
@@ -457,9 +457,10 @@ function AccountsDesktop({
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3">Compte</th>
               <th className="px-3 py-3">Secteur</th>
+              <th className="px-3 py-3">Segment</th>
+              <th className="px-3 py-3 text-right">CA</th>
               <th className="px-3 py-3 text-right">Contacts</th>
               <th className="px-3 py-3 text-right">Activité</th>
-              <th className="px-3 py-3">Segment</th>
               <th className="px-3 py-3 text-right">Score</th>
               <th className="px-3 py-3 text-center">Priorité</th>
               <th className="px-3 py-3 text-center">Statut</th>
@@ -472,7 +473,7 @@ function AccountsDesktop({
               const hasStudy = studies.some((s) => s.id === account.id)
               return (
                 <tr key={account.id} className="transition-colors hover:bg-canvas/40">
-                  <td className="max-w-[220px] px-5 py-3">
+                  <td className="max-w-[160px] px-5 py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
                         <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
@@ -489,10 +490,11 @@ function AccountsDesktop({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-body">{account.sector}</td>
+                  <td className="px-3 py-3 text-body max-w-[100px] truncate" title={account.sector}>{account.sector}</td>
+                  <td className="px-3 py-3 text-body max-w-[110px] truncate" title={account.segment}>{account.segment}</td>
+                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.revenue || "—"}</td>
                   <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.contactCount}</td>
                   <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.taskCount}</td>
-                  <td className="px-3 py-3 text-body">{account.segment}</td>
                   <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center text-[11px] text-body capitalize">{account.status.replace("_", " ")}</td>
@@ -500,7 +502,7 @@ function AccountsDesktop({
                     {hasStudy ? (
                       <button
                         onClick={() => onOpenStudy(account.id)}
-                        className="rounded bg-warning/10 border border-warning/20 px-2.5 py-1 text-[11px] font-semibold text-warning transition-colors hover:bg-warning/20"
+                        className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20"
                       >
                         Consulter
                       </button>
@@ -509,7 +511,7 @@ function AccountsDesktop({
                     )}
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
                       <button onClick={() => onEdit(account)} className="rounded p-1.5 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
                         <IconEdit />
                       </button>
@@ -586,7 +588,7 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-warning/10 border border-warning/20 px-2.5 py-1 text-xs font-semibold text-warning hover:bg-warning/20 transition-colors">
+                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors">
                   Consulter
                 </button>
               )}

@@ -13,6 +13,7 @@ export type AccountRow = {
   name: string
   sector: string
   segment: string
+  revenue: string
   location: string
   priority: string
   status: string
@@ -204,6 +205,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: num
     name: row.name,
     sector: cleanText(row.sector),
     segment: cleanText(row.segment, "Segment non renseigné"),
+    revenue: cleanText(row.revenue),
     location: cleanText(row.hq_location),
     priority: row.priority,
     status: row.lifecycle_status,
