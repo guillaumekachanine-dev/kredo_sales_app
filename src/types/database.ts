@@ -238,6 +238,7 @@ export type Database = {
           ai_score: number | null
           created_at: string
           description: string | null
+          employee_count: number | null
           health: string | null
           hq_location: string | null
           id: string
@@ -250,7 +251,9 @@ export type Database = {
           next_action_label: string | null
           owner_id: string | null
           priority: string
+          revenue: string | null
           sector: string | null
+          segment: string | null
           size_band: string | null
           tags: string[]
           updated_at: string
@@ -261,6 +264,7 @@ export type Database = {
           ai_score?: number | null
           created_at?: string
           description?: string | null
+          employee_count?: number | null
           health?: string | null
           hq_location?: string | null
           id?: string
@@ -273,7 +277,9 @@ export type Database = {
           next_action_label?: string | null
           owner_id?: string | null
           priority?: string
+          revenue?: string | null
           sector?: string | null
+          segment?: string | null
           size_band?: string | null
           tags?: string[]
           updated_at?: string
@@ -284,6 +290,7 @@ export type Database = {
           ai_score?: number | null
           created_at?: string
           description?: string | null
+          employee_count?: number | null
           health?: string | null
           hq_location?: string | null
           id?: string
@@ -296,7 +303,9 @@ export type Database = {
           next_action_label?: string | null
           owner_id?: string | null
           priority?: string
+          revenue?: string | null
           sector?: string | null
+          segment?: string | null
           size_band?: string | null
           tags?: string[]
           updated_at?: string
@@ -1582,7 +1591,6 @@ export const Constants = {
   },
 } as const
 
-
 // ------------------------------------------------------------
 //  Raccourcis pratiques
 // ------------------------------------------------------------
@@ -1638,3 +1646,4 @@ export type SalesOutcome = "gagnee" | "perdue" | "abandonnee"
 export type SalesPriority = "haute" | "moyenne" | "basse"
 export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
 export type SkillImportance = "indispensable" | "souhaitee" | "bonus"
+

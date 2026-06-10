@@ -91,6 +91,10 @@ type CompanyQueryRow = {
   id: string
   name: string
   sector: string | null
+  segment: string | null
+  revenue: string | null
+  employee_count: number | null
+  size_band: string | null
   hq_location: string | null
   priority: string
   lifecycle_status: string
@@ -192,7 +196,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number): AccountRow {
     id: row.id,
     name: row.name,
     sector: cleanText(row.sector),
-    segment: cleanText(metadata.segment as string | null, "Segment non renseigné"),
+    segment: cleanText(row.segment, "Segment non renseigné"),
     location: cleanText(row.hq_location),
     priority: row.priority,
     status: row.lifecycle_status,
@@ -214,7 +218,7 @@ function buildStudy(row: CompanyQueryRow): StudyRow | null {
     id: row.id,
     companyName: row.name,
     sector: cleanText(row.sector),
-    segment: cleanText(metadata.segment as string | null, "Segment non renseigné"),
+    segment: cleanText(row.segment, "Segment non renseigné"),
     score: toNumber(row.ai_score),
     growthTrend: nestedText(study, ["signaux", "tendance_croissance"]) || "Non renseigné",
     digitalMaturity: nestedText(study, ["signaux", "indices_maturite_digitale"]) || "Non renseigné",
@@ -277,7 +281,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const [companiesResult, contactsResult] = await Promise.all([
     supabase
       .from<CompanyQueryRow>("companies")
-      .select("id,name,sector,hq_location,priority,lifecycle_status,ai_score,website,description,metadata", { count: "exact" })
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,ai_score,website,description,metadata", { count: "exact" })
       .order("ai_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
       .limit(300),

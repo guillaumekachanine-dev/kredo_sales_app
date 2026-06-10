@@ -30,6 +30,7 @@ import {
 } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -433,12 +434,14 @@ function AccountsDesktop({
   accounts,
   studies,
   onOpenStudy,
+  onOpenIdentity,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
   onOpenStudy: (id: string) => void
+  onOpenIdentity: (id: string) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
 }) {
@@ -469,9 +472,17 @@ function AccountsDesktop({
                 <tr key={account.id} className="transition-colors hover:bg-canvas/40">
                   <td className="max-w-[220px] px-5 py-3">
                     <div className="flex items-center gap-2.5">
-                      <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
+                      <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
+                        <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
+                      </div>
                       <div className="min-w-0">
-                        <div className="font-semibold text-heading truncate">{account.name}</div>
+                        <div 
+                          onClick={() => onOpenIdentity(account.id)} 
+                          className="font-semibold text-heading truncate cursor-pointer hover:text-primary transition-colors"
+                          title="Voir la fiche d'identité"
+                        >
+                          {account.name}
+                        </div>
                         <div className="truncate text-[11px] text-muted">{account.website ?? "Site non renseigné"}</div>
                       </div>
                     </div>
@@ -484,6 +495,9 @@ function AccountsDesktop({
                   <td className="px-3 py-3 text-center text-[11px] text-body capitalize">{account.status.replace("_", " ")}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => onOpenIdentity(account.id)} className="rounded bg-canvas border border-border px-2 py-1 text-[11px] font-semibold text-heading transition-colors hover:bg-canvas/80">
+                        Fiche
+                      </button>
                       {hasStudy && (
                         <button onClick={() => onOpenStudy(account.id)} className="rounded bg-primary/10 border border-primary/20 px-2 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20">
                           Étude
@@ -511,12 +525,14 @@ function AccountsMobile({
   accounts,
   studies,
   onOpenStudy,
+  onOpenIdentity,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
   onOpenStudy: (id: string) => void
+  onOpenIdentity: (id: string) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
 }) {
@@ -527,10 +543,13 @@ function AccountsMobile({
         return (
           <SurfaceCard key={account.id} className="p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div 
+                className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
+                onClick={() => onOpenIdentity(account.id)}
+              >
                 <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" />
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-bold text-heading">{account.name}</h2>
+                  <h2 className="truncate text-sm font-bold text-heading hover:text-primary transition-colors">{account.name}</h2>
                   <p className="mt-0.5 text-xs text-body">{account.sector} · {account.location}</p>
                 </div>
               </div>
@@ -552,6 +571,9 @@ function AccountsMobile({
             </div>
             <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-1">
               <div className="flex gap-2">
+                <button onClick={() => onOpenIdentity(account.id)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
+                  Fiche
+                </button>
                 <button onClick={() => onEdit(account)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
                   <IconEdit /> Modifier
                 </button>
@@ -692,6 +714,7 @@ export function ProspectionAccountsView({
   const router = useRouter()
   const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
   const [selectedStudy, setSelectedStudy] = useState<StudyRow | null>(null)
+  const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
 
   // URL is the source of truth for tab + filters.
   const filters = useMemo(
@@ -882,6 +905,7 @@ export function ProspectionAccountsView({
             accounts={displayAccounts}
             studies={data.studies}
             onOpenStudy={handleOpenStudy}
+            onOpenIdentity={setSelectedCompanyIdForIdentity}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />
@@ -890,6 +914,7 @@ export function ProspectionAccountsView({
             accounts={displayAccounts}
             studies={data.studies}
             onOpenStudy={handleOpenStudy}
+            onOpenIdentity={setSelectedCompanyIdForIdentity}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />
@@ -942,6 +967,12 @@ export function ProspectionAccountsView({
       {selectedStudy && (
         <StudyDetailsModal study={selectedStudy} onClose={() => setSelectedStudy(null)} />
       )}
+
+      <CompanyIdentityDrawer
+        companyId={selectedCompanyIdForIdentity}
+        open={!!selectedCompanyIdForIdentity}
+        onOpenChange={(open) => !open && setSelectedCompanyIdForIdentity(null)}
+      />
 
       {device === "desktop" && (
         <div className="flex items-center justify-between rounded border border-border bg-surface px-5 py-4 text-xs text-muted mt-2">

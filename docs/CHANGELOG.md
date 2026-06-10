@@ -5,6 +5,7 @@
 ## [Non publié]
 
 ### 2026-06-10
+- **Décision** : ADR-0007 — moteur d'intelligence commerciale internalisé (D-12). Audit critique de la proposition FOLIO→KREDO, vérifié contre la base live : 3 tables `ai_intelligence_*` (vs 5), `content_json` source unique, statut unifié, scoring déterministe 1–10, orchestration hybride durcie (callback HMAC/idempotent/service-role, `workspace_id` explicite), vue `security_invoker`, lot de backfill ETL FOLIO ajouté. Périmètre V1 = Lots 0→5.
 - **Pilotage** : refonte de `docs/ROADMAP.md` (Now/Next/Later + phases + risques + capacité) après audit complet du codebase. Création de `docs/BACKLOG.md` (tickets K-001→K-092).
 - **Décision** : ADR-0006 — stratégie device « adaptive ciblé + responsive par défaut » (D-11). Assouplit la règle stricte de CLAUDE.md/ARCHITECTURE.md §5.
 - **Base de données (R1/K-001)** : résolution du drift schéma. `supabase/migrations/004_baseline_canonical.sql` générée par introspection du schéma live (20 tables canoniques, 73 policies RLS, 116 contraintes, 36 index, 16+1 triggers, 4 fonctions, vue `v_mission_quarterly_revenue`). Parité vérifiée objet par objet. Migrations 001-003 marquées historiques (`supabase/migrations/README.md`). Base confirmée `ACTIVE_HEALTHY`.
