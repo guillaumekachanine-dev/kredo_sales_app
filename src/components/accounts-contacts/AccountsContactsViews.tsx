@@ -516,15 +516,15 @@ function AccountsDesktop({
         <table className="w-full border-collapse text-left text-xs table-fixed">
           <thead>
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
-              <th className="px-5 py-3 w-[22%]">Compte</th>
-              <th className="px-3 py-3 w-[12%]">Secteur</th>
+              <th className="px-5 py-3 w-[18%]">Compte</th>
+              <th className="px-3 py-3 w-[9%]">Secteur</th>
               <th className="px-3 py-3 w-[10%]">Statut</th>
               <th className="px-3 py-3 text-center w-[8%]">CA</th>
               <th className="px-3 py-3 text-center w-[8%]">Taille</th>
               <th className="px-3 py-3 text-center w-[8%]">Contacts</th>
               <th className="px-3 py-3 text-center w-[8%]">Score</th>
               <th className="px-3 py-3 text-center w-[10%]">Priorité</th>
-              <th className="px-3 py-3 text-center w-[12%]">Business Intelligence</th>
+              <th className="px-3 py-3 text-center w-[17%]">Business Intelligence</th>
               <th className="px-5 py-3 text-right w-[4%]"></th>
             </tr>
           </thead>
@@ -570,12 +570,9 @@ function AccountsDesktop({
                     )}
                   </td>
                   <td className="pl-1 pr-5 py-3">
-                    <div className="flex items-center justify-end gap-0.5">
+                    <div className="flex items-center justify-end">
                       <button onClick={() => onEdit(account)} className="rounded p-1 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
                         <IconEdit />
-                      </button>
-                      <button onClick={() => onDelete(account)} className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="Supprimer">
-                        <IconTrash />
                       </button>
                     </div>
                   </td>
@@ -641,9 +638,6 @@ function AccountsMobile({
               <div className="flex gap-2">
                 <button onClick={() => onEdit(account)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
                   <IconEdit /> Modifier
-                </button>
-                <button onClick={() => onDelete(account)} className="flex items-center gap-1 rounded border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors">
-                  <IconTrash /> Supprimer
                 </button>
               </div>
               {hasStudy && (

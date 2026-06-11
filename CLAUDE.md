@@ -22,10 +22,10 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 
 ## Stack technique EXCLUSIVE — aucune alternative non sollicitée
 
-- **Front-end** : Next.js 15 (App Router), React, Server Components, API routes → Vercel
+- **Front-end** : Next.js 16 (App Router), React 19, Server Components, API routes → Vercel
 - **Styling** : Tailwind CSS v4 (directive `@theme` dans globals.css, **SANS** tailwind.config.*)
 - **Design** : palette "Cobalt Franc" définie dans globals.css — lire ce fichier avant tout CSS
-- **UI components** : shadcn/ui
+- **UI components** : composants **maison** sur primitives `<dialog>` natives (`AppDrawer`, `AppDialog`, `SurfaceCard`, `ReadyActionButton`…) + utilitaires Tailwind v4. **PAS de shadcn/Radix** (aucune dépendance installée) — ne pas faire `npx shadcn add`, étendre les primitives existantes
 - **Base de données** : Supabase (PostgreSQL, RLS actif, pgvector prévu phase 3)
 - **Auth** : Supabase Auth + `@supabase/ssr` (App Router)
 - **Async/IA** : n8n self-hosted sur VPS, déclenché via webhooks Supabase ou API routes
@@ -70,7 +70,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 24 tables + 1 vue
+### Schéma public — 27 tables + 2 vues
 
 #### Domaine Core
 | Table | Rows | Description |
@@ -121,6 +121,19 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `acv` = `duration_days * target_daily_rate`
 
 `opportunities.opportunity_type` : `regie` · `forfait` · `centre_de_service` · `conseil` · `audit` · `staffing` · `extension` · `renouvellement` · `upsell` · `cross_sell`
+
+#### Domaine Intelligence commerciale (ADR-0007 / ADR-0008)
+| Table | Rows | Description |
+|---|---|---|
+| `ai_intelligence_runs` | — | Une exécution d'analyse / compte (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`) |
+| `ai_intelligence_results` | — | Un résultat **par phase** (`UNIQUE(run_id,phase)`, phase 1–10) — **`content_json` = source unique** (pas de html) |
+| `ai_intelligence_logs` | — | Append-only (coûts, erreurs, retries) — pas de policy update/delete client |
+
+**Vue `v_ai_intelligence_summary`** (`security_invoker`) : par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches` sur `companies.metadata`), dernier run, compteurs.
+
+**Phases** : `1=analyse client · 2=sectorielle (rattachée au SECTEUR, mutualisée) · 3=diagnostic process · 4=roadmap · 5=pitch` (ordre d'impl. `1→2→4→5→3`). `ai_run_status`/`ai_result_status` : `queued · running · succeeded · failed · cancelled` + `needs_review` **orthogonal**. Scoring = **fonction déterministe versionnée 1–10** (le LLM note des facettes, KREDO calcule).
+
+**Surface (ADR-0008)** : Hub `/prospection/accounts/[companyId]` (`index/DesktopView/MobileView`) lit `content_json` + fallback `companies.metadata` ; drawer `CompanyIdentityDrawer` = Quick View. Référentiel `offers` (lot B) à venir. ⚠️ Échelle score à trancher : 1–10 (ADR-0007) vs `/5` (UI actuelle).
 
 #### Domaine Delivery / Finance
 | Table | Rows | Description |
@@ -254,8 +267,8 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 
 ### Dernière session
 **Date :** 2026-06-11
-**Travail effectué :** Lots 0/0.5/1 — rotation secrets, backfill FOLIO (84 comptes, 81 sectorielles, 38 pitchs → companies.metadata), migration 006_ai_intelligence (3 tables ai_intelligence_*, 2 enums, RLS, vue security_invoker), types régénérés.
-**Prochain focus :** Lot 2 — affichage intelligence commerciale dans le drawer Comptes & Contacts (Desktop/Mobile)
+**Travail effectué :** ADR-0008 (Client Intelligence Hub) acté — page BI par compte `/prospection/accounts/[companyId]`, **réutilisation stricte du moteur 0007** (rejet argumenté du schéma 14 tables proposé en externe), seul ajout schéma = référentiel `offers` (lot B), contrat `content_json` typé (faits/hypothèses/inférences + Zod). Audit complet code + base. Correctifs stack CLAUDE.md (Next 16, UI maison sans shadcn, domaine Intelligence ajouté à l'état de la base). Tickets `K-060 → K-068`.
+**Prochain focus :** Lot A — scaffold du Hub (`index/DesktopView/MobileView`, onglets **Accueil + Analyse** en lecture sur `content_json` + fallback `metadata`) + drawer → CTA « Ouvrir le cockpit ».
 
 ---
 

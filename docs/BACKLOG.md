@@ -28,6 +28,22 @@
 | K-014 | **R5 — 1ʳᵉ preuve n8n bout-en-bout** : `lib/n8n/` + `app/api/` webhook trigger → workflow n8n → écriture Supabase → Realtime → affichage. Cas trivial (ex. enrichissement interaction). | P1 | P1 | Not Started | K-002 |
 | K-015 | **Catalogue d'outils n8n** (registre) : amorcer dès K-014, enregistrer chaque action. | P1 | P2 | Not Started | K-014 |
 
+## 🟣 NOW — Client Intelligence Hub (ADR-0008)
+
+> Surface BI par compte. Socle data = moteur 0007 (migration 006 ✅). Aucune table de résultat nouvelle ; seul ajout = référentiel `offers`.
+
+| ID | Ticket | Phase | Priorité | Statut | Dépend de |
+|----|--------|-------|----------|--------|-----------|
+| K-060 | **Lot A — Hub lecture.** Route `/prospection/accounts/[companyId]` (`index/DesktopView/MobileView`) ; onglets **Accueil + Analyse** lisant `ai_intelligence_results.content_json` *ou* fallback `companies.metadata` ; fraîcheur + sources. | BI | P1 | In Progress | K-010 |
+| K-061 | **Drawer → Quick View.** `CompanyIdentityDrawer` allégé (score, dernière analyse, 3 signaux/enjeux/offres) + CTA « Ouvrir le cockpit ↗ » (deep-link). | BI | P1 | Not Started | K-060 |
+| K-062 | **Lot B — Référentiel `offers`.** Migration `007_offers.sql` (RLS standard) + seed lignes de service ESN + `npm run db:types`. | BI | P1 | Not Started | K-001 |
+| K-063 | **`lib/intelligence/`.** `schemas.ts` (contrat `Claim` + Zod par phase) + `intelligence-data.ts` (lecture vue + results + fallback metadata). | BI | P1 | Not Started | K-060 |
+| K-064 | **Lot C — Run lifecycle.** `app/api/intelligence/run` (POST crée run / GET poll) + Realtime + bouton « Rafraîchir » + idempotence `(run_id,phase)`. | BI | P1 | Not Started | K-063, K-014 |
+| K-065 | **Lot D — Worker Phase 2** sectorielle mutualisée + callback HMAC durci → autonomie FOLIO. | BI | P2 | Not Started | K-064 |
+| K-066 | **Lot E — Scoring déterministe** versionné → `companies.ai_score` (**trancher 1–10 vs /5**) + onglet Breakdown + tri liste. | BI | P1 | Not Started | K-065 |
+| K-067 | **Lot F+G — Opportunités & Roadmap.** Matrice enjeux×offres (P3 ⨝ `offers`) ; Roadmap (P4) **matérialise `opportunities`/`tasks`**. | BI | P1 | Not Started | K-062, K-066 |
+| K-068 | **Lot H+I — Pitch & Feeders.** Onglet Pitch (`result_type='pitch'`) + historique ; Veille/Scan contacts = cron n8n surfacés Accueil/Analyse. | BI | P2 | Not Started | K-067 |
+
 ## 🔵 NEXT — Phases 2 → 4
 
 | ID | Ticket | Phase | Priorité | Statut | Dépend de |

@@ -11,5 +11,6 @@ Un ADR documente **une décision structurelle** : son contexte, les options envi
 | [0005](ADR-0005-navigation-deux-etages.md) | Navigation à deux étages | Accepté |
 | [0006](ADR-0006-strategie-device-adaptive-cible.md) | Stratégie device adaptive ciblée | Accepté |
 | [0007](ADR-0007-moteur-intelligence-commerciale.md) | Moteur d'intelligence commerciale (autonomie FOLIO) | Accepté |
+| [0008](ADR-0008-client-intelligence-hub.md) | Client Intelligence Hub — surface BI par compte | Accepté |
 
 > Règle : un ADR accepté ne se modifie pas. Si la décision change, on crée un nouvel ADR qui *remplace* (Superseded) l'ancien.

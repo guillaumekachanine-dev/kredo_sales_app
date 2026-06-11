@@ -1,0 +1,273 @@
+"use client"
+
+import { useState } from "react"
+import Link from "next/link"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { cn } from "@/lib/utils"
+import type { ClientIntelligenceData, IntelligenceSource } from "@/lib/intelligence/intelligence-data"
+import {
+  ComingSoon,
+  Field,
+  FreshnessLine,
+  KpiCard,
+  lifecycleLabel,
+  PhasePresence,
+  ProvenanceBadge,
+  ScorePill,
+  SectionBlock,
+  SignalList,
+  TagList,
+} from "./intelligence-parts"
+
+type TabKey = "accueil" | "analyse" | "opportunites" | "scoring" | "roadmap" | "pitch"
+
+const TABS: { key: TabKey; label: string; lot?: string }[] = [
+  { key: "accueil", label: "Accueil" },
+  { key: "analyse", label: "Analyse" },
+  { key: "opportunites", label: "Opportunités", lot: "lot F" },
+  { key: "scoring", label: "Scoring", lot: "lot E" },
+  { key: "roadmap", label: "Roadmap", lot: "lot G" },
+  { key: "pitch", label: "Pitch", lot: "lot H" },
+]
+
+export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
+  const [activeTab, setActiveTab] = useState<TabKey>("accueil")
+  const { company, client, freshness, presence, contacts } = data
+  const analysisSource: IntelligenceSource = client?.source ?? "none"
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <header className="border-b border-border bg-surface px-6 py-4">
+        <Link
+          href="/prospection/accounts"
+          className="mb-2 inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
+        >
+          ← Comptes &amp; contacts
+        </Link>
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-heading text-xl font-bold text-heading">{company.name}</h1>
+                <span className="rounded border border-border bg-canvas/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-body">
+                  {lifecycleLabel(company.lifecycleStatus)}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-body">
+                {company.sector} · {company.segment} · {company.hqLocation}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <ProvenanceBadge source={analysisSource} />
+                <FreshnessLine
+                  latestRunAt={freshness.latestRunAt}
+                  latestRunStatus={freshness.latestRunStatus}
+                  fallbackSource={analysisSource}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <ScorePill score={company.aiScore} />
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                disabled
+                title="Run lifecycle — lot C"
+                className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
+              >
+                Rafraîchir l&apos;analyse
+              </button>
+              <button
+                type="button"
+                disabled
+                title="Atelier pitch — lot H"
+                className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
+              >
+                Générer un pitch
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Onglets ─────────────────────────────────────────────────────────── */}
+      <nav className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-6">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
+              activeTab === tab.key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted hover:text-body",
+            )}
+          >
+            {tab.label}
+            {tab.lot && (
+              <span className="ml-1.5 rounded bg-surface-hover px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
+                à venir
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* ── Corps : contenu + right rail persistant ─────────────────────────── */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <main className="min-w-0 flex-1 overflow-y-auto p-6">
+          {activeTab === "accueil" && (
+            <AccueilTab data={data} onOpenAnalyse={() => setActiveTab("analyse")} />
+          )}
+          {activeTab === "analyse" && <AnalyseTab data={data} />}
+          {activeTab === "opportunites" && <ComingSoon lot="lot F">Matrice enjeux × offres</ComingSoon>}
+          {activeTab === "scoring" && <ComingSoon lot="lot E">Breakdown du score (déterministe, expliqué)</ComingSoon>}
+          {activeTab === "roadmap" && <ComingSoon lot="lot G">Roadmap commerciale → opportunités &amp; tâches</ComingSoon>}
+          {activeTab === "pitch" && <ComingSoon lot="lot H">Atelier de rédaction contextualisée</ComingSoon>}
+        </main>
+
+        <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-border bg-canvas/30 p-4 lg:block">
+          <div className="space-y-4">
+            <SectionBlock title="Fraîcheur & moteur">
+              <FreshnessLine
+                latestRunAt={freshness.latestRunAt}
+                latestRunStatus={freshness.latestRunStatus}
+                fallbackSource={analysisSource}
+              />
+              <div className="mt-3">
+                <PhasePresence presence={presence} />
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="Contacts clés">
+              {contacts.length === 0 ? (
+                <p className="text-xs italic text-muted">Aucun contact rattaché.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {contacts.map((contact) => (
+                    <li key={contact.id} className="rounded border border-border/60 bg-surface p-2.5">
+                      <p className="text-xs font-semibold text-heading">{contact.fullName}</p>
+                      <p className="text-[11px] text-muted">{contact.jobTitle ?? contact.relationshipRole ?? "—"}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionBlock>
+
+            <SectionBlock title="Prochaines actions">
+              <p className="text-xs italic text-muted">Générées par la roadmap commerciale (lot G).</p>
+            </SectionBlock>
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+// ─── Onglet Accueil — synthèse exécutive ──────────────────────────────────────
+
+function AccueilTab({ data, onOpenAnalyse }: { data: ClientIntelligenceData; onOpenAnalyse: () => void }) {
+  const { company, client, signals } = data
+  return (
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiCard label="Score IA" value={company.aiScore === null ? "—" : company.aiScore.toLocaleString("fr-FR")} hint="Échelle tranchée au lot E" />
+        <KpiCard label="Signaux récents" value={String(signals.length)} status={signals.length > 0 ? "warning" : "neutral"} />
+        <KpiCard label="Priorité" value={company.priority} />
+        <KpiCard label="Contacts" value={String(data.contacts.length)} />
+      </div>
+
+      <SectionBlock
+        title="Synthèse IA"
+        action={client ? <ProvenanceBadge source={client.source} /> : undefined}
+      >
+        <p className="whitespace-pre-line text-sm leading-relaxed text-body">
+          {client?.data.synthese || "Aucune synthèse disponible. Lance une analyse depuis le moteur (lot C)."}
+        </p>
+        <button
+          type="button"
+          onClick={onOpenAnalyse}
+          className="mt-3 text-xs font-semibold text-primary transition-colors hover:underline"
+        >
+          Voir l&apos;analyse détaillée →
+        </button>
+      </SectionBlock>
+
+      <SectionBlock title="Veille & signaux">
+        <SignalList signals={signals} />
+      </SectionBlock>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ComingSoon lot="lot F">Enjeux × offres ESN</ComingSoon>
+        <ComingSoon lot="lot E">Recommandation IA &amp; next best action</ComingSoon>
+      </div>
+    </div>
+  )
+}
+
+// ─── Onglet Analyse — fond documentaire ───────────────────────────────────────
+
+function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
+  const { client, sector } = data
+
+  if (!client && !sector) {
+    return <ComingSoon lot="lot A+">Aucune analyse client ni sectorielle pour ce compte</ComingSoon>
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-5">
+      {client && (
+        <SectionBlock title="Analyse client" action={<ProvenanceBadge source={client.source} />}>
+          {client.data.synthese && (
+            <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-body">{client.data.synthese}</p>
+          )}
+
+          {Object.keys(client.data.positionnement).length > 0 && (
+            <div className="mb-4 grid gap-2 sm:grid-cols-2">
+              {Object.entries(client.data.positionnement).map(([key, value]) => (
+                <Field key={key} label={key.replace(/_/g, " ")} value={value} />
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {client.data.signaux.tendanceCroissance && (
+              <Field label="Tendance de croissance" value={client.data.signaux.tendanceCroissance} />
+            )}
+            {client.data.signaux.maturiteDigitale && (
+              <Field label="Maturité digitale" value={client.data.signaux.maturiteDigitale} />
+            )}
+            {client.data.signaux.recrutementsRecents && (
+              <Field label="Recrutements récents" value={client.data.signaux.recrutementsRecents} />
+            )}
+            {client.data.contexteSectoriel.tendances && (
+              <Field label="Tendances sectorielles" value={client.data.contexteSectoriel.tendances} />
+            )}
+          </div>
+
+          {client.data.contexteSectoriel.concurrents.length > 0 && (
+            <div className="mt-4">
+              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
+                Concurrents identifiés
+              </span>
+              <TagList items={client.data.contexteSectoriel.concurrents} />
+            </div>
+          )}
+        </SectionBlock>
+      )}
+
+      {sector ? (
+        <SectionBlock title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
+        </SectionBlock>
+      ) : (
+        <ComingSoon lot="lot D">Étude sectorielle (mutualisée par secteur)</ComingSoon>
+      )}
+
+      <ComingSoon lot="lot I">Veille & signaux (feeders n8n) · Scan contacts</ComingSoon>
+    </div>
+  )
+}

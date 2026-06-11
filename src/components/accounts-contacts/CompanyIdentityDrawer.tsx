@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useTransition, type ReactNode } from "react"
+import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
@@ -358,6 +359,16 @@ export function CompanyIdentityDrawer({
           <div className="flex-1 overflow-y-auto pr-1">
             {activeTab === "apercu" && (
               <div className="space-y-5">
+                {/* CTA — ouvrir le cockpit Intelligence (ADR-0008) */}
+                {companyId && (
+                  <Link
+                    href={`/prospection/accounts/${companyId}`}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
+                  >
+                    Ouvrir le cockpit Intelligence ↗
+                  </Link>
+                )}
+
                 {/* Consultant Synthesis */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
