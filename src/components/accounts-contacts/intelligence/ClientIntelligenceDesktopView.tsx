@@ -11,13 +11,13 @@ import {
   FreshnessLine,
   KpiCard,
   lifecycleLabel,
-  PhasePresence,
   ProvenanceBadge,
   ScorePill,
   SectionBlock,
   SignalList,
   TagList,
 } from "./intelligence-parts"
+import { IntelligenceRightRail } from "./IntelligenceRightRail"
 
 type TabKey = "accueil" | "analyse" | "opportunites" | "scoring" | "roadmap" | "pitch"
 
@@ -40,88 +40,91 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
     : TABS
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="border-b border-border bg-surface px-6 py-4">
-        <Link
-          href="/prospection/accounts"
-          className="mb-2 inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
-        >
-          ← Comptes &amp; contacts
-        </Link>
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-start gap-4">
-            <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-heading text-xl font-bold text-heading">{company.name}</h1>
-                <span className="rounded border border-border bg-canvas/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-body">
-                  {lifecycleLabel(company.lifecycleStatus)}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-body">
-                {company.sector} · {company.segment} · {company.hqLocation}
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <ProvenanceBadge source={analysisSource} />
-                <FreshnessLine
-                  latestRunAt={freshness.latestRunAt}
-                  latestRunStatus={freshness.latestRunStatus}
-                  fallbackSource={analysisSource}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <ScorePill score={company.aiScore} />
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                disabled
-                title="Run lifecycle — lot C"
-                className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
-              >
-                Rafraîchir l&apos;analyse
-              </button>
-              <button
-                type="button"
-                disabled
-                title="Atelier pitch — lot H"
-                className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
-              >
-                Générer un pitch
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Onglets ─────────────────────────────────────────────────────────── */}
-      <nav className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-6">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              "relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
-              activeTab === tab.key
-                ? "border-primary text-primary"
-                : "border-transparent text-muted hover:text-body",
-            )}
+    <div className="flex h-full overflow-hidden">
+      {/* ── Colonne gauche : header + onglets + contenu ──────────────────────────
+          Le rail droit est pleine hauteur : le header ne fait donc que la largeur
+          de cette colonne (= la section principale juste en dessous). ─────────── */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* ── Header (compact) ─────────────────────────────────────────────── */}
+        <header className="shrink-0 border-b border-border bg-surface px-6 py-3">
+          <Link
+            href="/prospection/accounts"
+            className="mb-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
           >
-            {tab.label}
-            {tab.lot && (
-              <span className="ml-1.5 rounded bg-surface-hover px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
-                à venir
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
+            ← Comptes &amp; contacts
+          </Link>
+          <div className="flex items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="lg" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-heading text-xl font-bold text-heading">{company.name}</h1>
+                  <span className="rounded border border-border bg-canvas/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-body">
+                    {lifecycleLabel(company.lifecycleStatus)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-body">
+                  {company.sector} · {company.segment} · {company.hqLocation}
+                </p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <ProvenanceBadge source={analysisSource} />
+                  <FreshnessLine
+                    latestRunAt={freshness.latestRunAt}
+                    latestRunStatus={freshness.latestRunStatus}
+                    fallbackSource={analysisSource}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <ScorePill score={company.aiScore} />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled
+                  title="Run lifecycle — lot C"
+                  className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
+                >
+                  Rafraîchir l&apos;analyse
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  title="Atelier pitch — lot H"
+                  className="cursor-not-allowed rounded border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted opacity-60"
+                >
+                  Générer un pitch
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
 
-      {/* ── Corps : contenu + right rail persistant ─────────────────────────── */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* ── Onglets ───────────────────────────────────────────────────────── */}
+        <nav className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-6">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
+                activeTab === tab.key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted hover:text-body",
+              )}
+            >
+              {tab.label}
+              {tab.lot && (
+                <span className="ml-1.5 rounded bg-surface-hover px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
+                  à venir
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* ── Contenu de l'onglet actif ─────────────────────────────────────── */}
         <main className="min-w-0 flex-1 overflow-y-auto p-6">
           {activeTab === "accueil" && (
             <AccueilTab data={data} onOpenAnalyse={() => setActiveTab("analyse")} />
@@ -132,41 +135,15 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           {activeTab === "roadmap" && <ComingSoon lot="lot G">Roadmap commerciale → opportunités &amp; tâches</ComingSoon>}
           {activeTab === "pitch" && <PitchTab data={data} />}
         </main>
-
-        <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-border bg-canvas/30 p-4 lg:block">
-          <div className="space-y-4">
-            <SectionBlock title="Fraîcheur & moteur">
-              <FreshnessLine
-                latestRunAt={freshness.latestRunAt}
-                latestRunStatus={freshness.latestRunStatus}
-                fallbackSource={analysisSource}
-              />
-              <div className="mt-3">
-                <PhasePresence presence={presence} />
-              </div>
-            </SectionBlock>
-
-            <SectionBlock title="Contacts clés">
-              {contacts.length === 0 ? (
-                <p className="text-xs italic text-muted">Aucun contact rattaché.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {contacts.map((contact) => (
-                    <li key={contact.id} className="rounded border border-border/60 bg-surface p-2.5">
-                      <p className="text-xs font-semibold text-heading">{contact.fullName}</p>
-                      <p className="text-[11px] text-muted">{contact.jobTitle ?? contact.relationshipRole ?? "—"}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </SectionBlock>
-
-            <SectionBlock title="Prochaines actions">
-              <p className="text-xs italic text-muted">Générées par la roadmap commerciale (lot G).</p>
-            </SectionBlock>
-          </div>
-        </aside>
       </div>
+
+      {/* ── Tour de contrôle : rail droit pleine hauteur (tranche sur le cockpit clair) ── */}
+      <IntelligenceRightRail
+        freshness={freshness}
+        presence={presence}
+        contacts={contacts}
+        analysisSource={analysisSource}
+      />
     </div>
   )
 }

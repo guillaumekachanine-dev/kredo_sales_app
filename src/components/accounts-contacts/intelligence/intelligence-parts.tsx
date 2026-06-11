@@ -127,10 +127,11 @@ export function SignalList({ signals }: { signals: string[] }) {
 }
 
 /** Fraîcheur de l'analyse (dernier run moteur, sinon mention import legacy). */
-export function FreshnessLine({ latestRunAt, latestRunStatus, fallbackSource }: {
+export function FreshnessLine({ latestRunAt, latestRunStatus, fallbackSource, tone = "light" }: {
   latestRunAt: string | null
   latestRunStatus: string | null
   fallbackSource: IntelligenceSource
+  tone?: "light" | "dark"
 }) {
   let label: string
   if (latestRunAt) {
@@ -144,11 +145,11 @@ export function FreshnessLine({ latestRunAt, latestRunStatus, fallbackSource }: 
   } else {
     label = "Aucune analyse disponible"
   }
-  return <p className="text-[11px] text-muted">{label}</p>
+  return <p className={cn("text-[11px]", tone === "dark" ? "text-primary-fg/55" : "text-muted")}>{label}</p>
 }
 
 /** Checklist de présence par phase (vue de synthèse). */
-export function PhasePresence({ presence }: {
+export function PhasePresence({ presence, tone = "light" }: {
   presence: {
     hasClientAnalysis: boolean
     hasSectorAnalysis: boolean
@@ -158,7 +159,9 @@ export function PhasePresence({ presence }: {
     hasLegacySector: boolean
     hasLegacyPitches: boolean
   }
+  tone?: "light" | "dark"
 }) {
+  const dark = tone === "dark"
   const rows: { label: string; engine: boolean; legacy: boolean }[] = [
     { label: "Analyse client (P1)", engine: presence.hasClientAnalysis, legacy: presence.hasLegacyAnalysis },
     { label: "Étude sectorielle (P2)", engine: presence.hasSectorAnalysis, legacy: presence.hasLegacySector },
@@ -170,14 +173,15 @@ export function PhasePresence({ presence }: {
     <ul className="space-y-1.5">
       {rows.map((row) => {
         const state: IntelligenceSource = row.engine ? "engine" : row.legacy ? "folio" : "none"
-        const dot = state === "engine" ? "bg-success" : state === "folio" ? "bg-warning" : "bg-border"
+        const dot =
+          state === "engine" ? "bg-success" : state === "folio" ? "bg-warning" : dark ? "bg-primary-fg/20" : "bg-border"
         return (
           <li key={row.label} className="flex items-center justify-between gap-2 text-xs">
-            <span className="flex items-center gap-2 text-body">
+            <span className={cn("flex items-center gap-2", dark ? "text-primary-fg/80" : "text-body")}>
               <span className={cn("h-2 w-2 rounded-full", dot)} aria-hidden />
               {row.label}
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            <span className={cn("text-[10px] font-bold uppercase tracking-wider", dark ? "text-primary-fg/40" : "text-muted")}>
               {state === "engine" ? "Moteur" : state === "folio" ? "Legacy" : "—"}
             </span>
           </li>

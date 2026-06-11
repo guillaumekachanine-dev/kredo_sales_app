@@ -553,7 +553,7 @@ function AccountsDesktop({
                   <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
                   <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
                   <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{displayRevenue(account.revenue)}</td>
-                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString() : "-"}</td>
+                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
                   <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.contactCount}</td>
                   <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
@@ -627,7 +627,7 @@ function AccountsMobile({
               </div>
               <div className="rounded border border-border bg-canvas px-2 py-2">
                 <p className="text-[10px] text-muted">Taille</p>
-                <p className="text-sm font-bold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString() : "-"}</p>
+                <p className="text-sm font-bold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</p>
               </div>
               <div className="rounded border border-border bg-canvas px-2 py-2">
                 <p className="text-[10px] text-muted">Contacts</p>
