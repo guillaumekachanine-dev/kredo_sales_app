@@ -76,6 +76,8 @@ export type ContactFormData = {
   relationship_level?: string
   department?: string
   manager_contact_id?: string
+  is_priority?: boolean
+  campaign_id?: string
 }
 
 export async function createContact(data: ContactFormData) {
@@ -90,7 +92,6 @@ export async function createContact(data: ContactFormData) {
       phone: data.phone?.trim() || null,
       linkedin_url: data.linkedin_url?.trim() || null,
       metadata: {
-        ...(data.manager_contact_id ? { manager_contact_id: data.manager_contact_id } : {}),
         ...(data.phone_2?.trim() ? { phone_2: data.phone_2.trim() } : {}),
       },
     })
@@ -107,6 +108,9 @@ export async function createContact(data: ContactFormData) {
     relationship_level: data.relationship_level || null,
     department: data.department?.trim() || null,
     status: "actif",
+    is_priority: data.is_priority ?? false,
+    manager_contact_id: data.manager_contact_id || null,
+    campaign_id: data.campaign_id || null,
   })
 
   if (contactError) return { error: contactError.message }
@@ -129,9 +133,9 @@ export async function updateContact(
     .maybeSingle()
 
   const currentMeta = (currentPerson?.metadata || {}) as Record<string, unknown>
+  const { manager_contact_id, ...cleanedMeta } = currentMeta
   const updatedMeta = {
-    ...currentMeta,
-    manager_contact_id: data.manager_contact_id || null,
+    ...cleanedMeta,
     phone_2: data.phone_2?.trim() || null,
   }
 
@@ -155,6 +159,9 @@ export async function updateContact(
         relationship_role: data.relationship_role || null,
         relationship_level: data.relationship_level || null,
         department: data.department?.trim() || null,
+        is_priority: data.is_priority ?? false,
+        manager_contact_id: data.manager_contact_id || null,
+        campaign_id: data.campaign_id || null,
       })
       .eq("id", contactId),
   ])
@@ -198,7 +205,9 @@ export async function getCompanyIdentity(companyId: string) {
         person_id,
         job_title,
         relationship_role,
+        relationship_level,
         status,
+        is_priority,
         persons (
           id,
           full_name,
@@ -268,6 +277,19 @@ export async function getCompanyIdentity(companyId: string) {
       console.error("Error fetching company missions:", missionsError)
     }
 
+    // Fetch latest interaction
+    const { data: lastInteraction, error: interactionError } = await supabase
+      .from("interactions")
+      .select("id, type, occurred_at, summary, sentiment, next_action")
+      .eq("company_id", companyId)
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (interactionError) {
+      console.error("Error fetching latest company interaction:", interactionError)
+    }
+
     return {
       error: null,
       data: {
@@ -275,6 +297,7 @@ export async function getCompanyIdentity(companyId: string) {
         contacts: contacts || [],
         opportunities: opportunities || [],
         missions: missions || [],
+        lastInteraction: lastInteraction || null,
       },
     }
   } catch (err) {
@@ -303,6 +326,9 @@ export async function getContactIdentity(contactId: string) {
         department,
         notes,
         status,
+        is_priority,
+        manager_contact_id,
+        campaign_id,
         persons (
           id,
           full_name,
@@ -312,7 +338,8 @@ export async function getContactIdentity(contactId: string) {
           phone,
           linkedin_url,
           location,
-          notes
+          notes,
+          metadata
         ),
         companies (
           id,
@@ -424,20 +451,18 @@ export async function getContactIdentity(contactId: string) {
         .select(`
           id,
           job_title,
+          manager_contact_id,
           persons (
             id,
             full_name,
             first_name,
-            last_name,
-            metadata
+            last_name
           )
         `)
         .eq("company_id", contact.company_id)
 
       if (siblings) {
-        const personObj = Array.isArray(contact.persons) ? contact.persons[0] : contact.persons
-        const personMetadata = (personObj as any)?.metadata as Record<string, any> | null
-        const managerContactId = personMetadata?.manager_contact_id
+        const managerContactId = contact.manager_contact_id
 
         if (managerContactId) {
           const m = siblings.find(s => s.id === managerContactId)
@@ -452,11 +477,7 @@ export async function getContactIdentity(contactId: string) {
         }
 
         reports = siblings
-          .filter(s => {
-            const sPersonObj = Array.isArray(s.persons) ? s.persons[0] : s.persons
-            const meta = (sPersonObj as any)?.metadata as Record<string, any> | null
-            return meta?.manager_contact_id === contactId
-          })
+          .filter(s => s.manager_contact_id === contactId)
           .map(s => {
             const sPersonObj = Array.isArray(s.persons) ? s.persons[0] : s.persons
             return {

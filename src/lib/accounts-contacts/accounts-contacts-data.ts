@@ -46,6 +46,8 @@ export type ContactRow = {
   status: string
   department: string | null
   managerContactId: string | null
+  isPriority?: boolean | null
+  campaignId: string | null
 }
 
 export type StudyRow = {
@@ -144,6 +146,9 @@ type ContactQueryRow = {
   department: string | null
   persons: PersonRelation | PersonRelation[] | null
   companies: CompanyRelation | CompanyRelation[] | null
+  is_priority?: boolean | null
+  manager_contact_id?: string | null
+  campaign_id?: string | null
 }
 
 type JsonRecord = Record<string, unknown>
@@ -251,7 +256,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
   const company = firstRelation(row.companies)
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
   const meta = asRecord(person?.metadata)
-  const managerContactId = typeof meta.manager_contact_id === "string" ? meta.manager_contact_id : null
+  const managerContactId = row.manager_contact_id ?? null
   const phone2 = typeof meta.phone_2 === "string" ? meta.phone_2 : null
 
   return {
@@ -273,6 +278,8 @@ function buildContact(row: ContactQueryRow): ContactRow {
     status: row.status,
     department: row.department,
     managerContactId,
+    isPriority: row.is_priority ?? false,
+    campaignId: row.campaign_id ?? null,
   }
 }
 
@@ -312,7 +319,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector)", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector),is_priority,manager_contact_id,campaign_id", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase

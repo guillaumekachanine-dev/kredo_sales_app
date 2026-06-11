@@ -1,6 +1,6 @@
 "use client"
 
-import { useDeferredValue, useMemo, useState, useTransition } from "react"
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
@@ -30,10 +30,12 @@ import {
   type ContactFormData,
 } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
 import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
 import { cn } from "@/lib/utils"
+import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Constants
@@ -94,6 +96,7 @@ const ROLE_OPTIONS = [
 ]
 
 const RELATIONSHIP_LEVEL_OPTIONS = [
+  { value: "inexistant", label: "Inexistant" },
   { value: "faible", label: "Faible" },
   { value: "moyen", label: "Moyen" },
   { value: "fort", label: "Fort" },
@@ -372,12 +375,23 @@ function ContactFormModal({
     relationship_level: initial?.relationshipLevel ?? "",
     department: initial?.department ?? "",
     manager_contact_id: initial?.managerContactId ?? "",
+    is_priority: initial?.isPriority ?? false,
+    campaign_id: initial?.campaignId ?? "",
   })
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [deletePending, startDeleteTransition] = useTransition()
 
-  const set = (key: keyof ContactFormData, value: string) =>
+  const set = (key: keyof ContactFormData, value: any) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const selectedCompany = useMemo(() => {
+    if (!form.company_id) return null
+    return accounts.find((a) => a.id === form.company_id)
+  }, [accounts, form.company_id])
+
+  const isProspect = selectedCompany?.status === "prospect"
 
   const companyContacts = useMemo(() => {
     if (!form.company_id) return []
@@ -401,6 +415,19 @@ function ContactFormModal({
       if (result.error) { setError(result.error); return }
       onSuccess()
       onClose()
+    })
+  }
+
+  const handleDelete = () => {
+    if (!initial) return
+    startDeleteTransition(async () => {
+      const result = await deleteContact(initial.id)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        onSuccess()
+        onClose()
+      }
     })
   }
 
@@ -503,7 +530,10 @@ function ContactFormModal({
                   </select>
                 </Field>
                 <Field label="Département">
-                  <input className={inputCls} value={form.department} onChange={(e) => set("department", e.target.value)} placeholder="R&D, Commercial..." />
+                  <select className={selectCls} value={form.department} onChange={(e) => set("department", e.target.value)}>
+                    <option value="">— Sélectionner —</option>
+                    {CONTACT_DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -526,11 +556,8 @@ function ContactFormModal({
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Téléphone 1">
+                <Field label="Téléphone">
                   <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
-                </Field>
-                <Field label="Téléphone 2 (optionnel)">
-                  <input className={inputCls} value={form.phone_2 ?? ""} onChange={(e) => set("phone_2", e.target.value)} placeholder="+33 6 …" />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -551,16 +578,70 @@ function ContactFormModal({
               </div>
             </>
           )}
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {isProspect && (
+            <div className="grid grid-cols-2 gap-3 mt-2 shrink-0">
+              <Field label="Prioritaire">
+                <select
+                  className={selectCls}
+                  value={form.is_priority ? "oui" : "non"}
+                  onChange={(e) => set("is_priority", e.target.value === "oui")}
+                >
+                  <option value="non">Non</option>
+                  <option value="oui">Oui</option>
+                </select>
+              </Field>
+              <Field label="Campagne">
+                <select
+                  className={selectCls}
+                  value={form.campaign_id ?? ""}
+                  onChange={(e) => set("campaign_id", e.target.value)}
+                >
+                  <option value="">— Aucune campagne —</option>
+                </select>
+              </Field>
+            </div>
+          )}
+          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
         </form>
 
         <div className="flex items-center justify-between gap-2 border-t border-border/60 px-6 py-3 bg-canvas/30">
-          <button onClick={onClose} className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">Annuler</button>
-          <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          {initial ? (
+            <button
+              type="button"
+              onClick={() => setShowConfirmDelete(true)}
+              disabled={pending || deletePending}
+              className="rounded border border-danger text-danger px-4 py-2 text-xs font-semibold hover:bg-danger/5 transition-colors disabled:opacity-50"
+            >
+              {deletePending ? "Suppression…" : "Supprimer"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors"
+            >
+              Annuler
+            </button>
+          )}
+          <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending || deletePending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le contact"}
           </button>
         </div>
       </SurfaceCard>
+
+      {showConfirmDelete && (
+        <ConfirmDialog
+          open={showConfirmDelete}
+          onOpenChange={setShowConfirmDelete}
+          title="Supprimer le contact"
+          description={`Êtes-vous sûr de vouloir supprimer définitivement le contact ${form.first_name} ${form.last_name} ?`}
+          confirmLabel="Supprimer"
+          cancelLabel="Annuler"
+          variant="danger"
+          onConfirm={handleDelete}
+          isLoading={deletePending}
+        />
+      )}
     </div>
   )
 }
@@ -640,7 +721,7 @@ function AccountsDesktop({
             {accounts.map((account) => {
               const hasStudy = studies.some((s) => s.id === account.id)
               return (
-                <tr key={account.id} className="transition-colors hover:bg-canvas/40">
+                <tr key={account.id} id={`account-row-${account.id}`} className="transition-colors hover:bg-canvas/40">
                   <td className="px-5 py-3 truncate">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
@@ -712,7 +793,7 @@ function AccountsMobile({
       {accounts.map((account) => {
         const hasStudy = studies.some((s) => s.id === account.id)
         return (
-          <SurfaceCard key={account.id} className="p-4 flex flex-col gap-3">
+          <SurfaceCard key={account.id} id={`account-row-${account.id}`} className="p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
               <div 
                 className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
@@ -964,6 +1045,28 @@ export function ProspectionAccountsView({
   const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
   const [selectedContactIdForIdentity, setSelectedContactIdForIdentity] = useState<string | null>(null)
   const [companyDrawerReturnToContactId, setCompanyDrawerReturnToContactId] = useState<string | null>(null)
+
+  const processedDrawerRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const drawerId = searchParams.get("drawer")
+    if (drawerId && processedDrawerRef.current !== drawerId) {
+      processedDrawerRef.current = drawerId
+      setSelectedCompanyIdForIdentity(drawerId)
+      setParam("drawer", null)
+      
+      setTimeout(() => {
+        const row = document.getElementById(`account-row-${drawerId}`)
+        if (row) {
+          row.scrollIntoView({ behavior: "smooth", block: "center" })
+          row.classList.add("bg-primary/5")
+          setTimeout(() => {
+            row.classList.remove("bg-primary/5")
+          }, 2000)
+        }
+      }, 100)
+    }
+  }, [searchParams, setParam])
 
   // URL is the source of truth for tab + filters.
   const filters = useMemo(

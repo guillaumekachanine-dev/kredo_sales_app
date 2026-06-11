@@ -9,13 +9,15 @@ export type SurfaceCardProps = {
   className?: string
   accent?: "none" | "primary" | "success" | "warning" | "danger"
   href?: string
+  id?: string
 }
 
 export function SurfaceCard({
   children,
   className,
   accent = "none",
-  href
+  href,
+  id
 }: SurfaceCardProps) {
   const accentStyles = {
     none: "",
@@ -33,14 +35,14 @@ export function SurfaceCard({
 
   if (href) {
     return (
-      <Link href={href} className={baseClasses}>
+      <Link href={href} id={id} className={baseClasses}>
         {children}
       </Link>
     )
   }
 
   return (
-    <div className={baseClasses}>
+    <div id={id} className={baseClasses}>
       {children}
     </div>
   )

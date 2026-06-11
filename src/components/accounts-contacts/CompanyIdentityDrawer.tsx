@@ -7,6 +7,8 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { RatingIndicator } from "@/components/ui/RatingIndicator"
+import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -34,13 +36,18 @@ type IdentityData = {
     ai_score: number | string | null
     tags: string[] | null
     metadata: Record<string, unknown> | null
+    last_contact_at: string | null
+    next_action_label: string | null
+    next_action_at: string | null
   }
   contacts: Array<{
     id: string
     person_id: string
     job_title: string | null
     relationship_role: string | null
+    relationship_level: string | null
     status: string
+    is_priority?: boolean | null
     persons: {
       id: string
       full_name: string | null
@@ -84,6 +91,14 @@ type IdentityData = {
       } | null
     } | null
   }>
+  lastInteraction: {
+    id: string
+    type: string
+    occurred_at: string
+    summary: string | null
+    sentiment: string | null
+    next_action: string | null
+  } | null
 }
 
 interface CompanyAnalysisData {
@@ -117,29 +132,82 @@ interface CompanyAnalysisData {
   synthese_consultant?: string
 }
 
-interface SectorAnalysisData {
-  synthese_sectorielle?: string
-  volume_marche?: unknown
-  segment_clientele?: unknown
-  acteurs_cles?: unknown
-  chaine_valeur?: unknown
-  environnement_normatif?: unknown
-  analyse_concurrentielle?: unknown
+type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu"
+
+function parseHealthScore(health: string | null): number | null {
+  if (!health) return null
+  const h = health.toLowerCase().trim()
+  if (h === "" || h === "non trouvé" || h === "tbd" || h === "-") return null
+
+  // Very strong / excellent / 5
+  if (
+    h.includes("très forte croissance") ||
+    h.includes("forte croissance") ||
+    h.includes("croissance active") ||
+    h.includes("excellent") ||
+    h.includes("exceptionnel")
+  ) {
+    return 5
+  }
+
+  // Good / positive / 4
+  if (
+    h.includes("croissance durable") ||
+    h.includes("croissance soutenue") ||
+    h.includes("croissance positive") ||
+    h.includes("croissance structurée") ||
+    h.includes("dynamique positive") ||
+    h.includes("positive") ||
+    h.includes("reprise attendue") ||
+    h.includes("légère croissance") ||
+    h.includes("croissance confirmée") ||
+    h.includes("croissance internationale") ||
+    h.includes("expansion active")
+  ) {
+    return 4
+  }
+
+  // Stable / neutral / 3
+  if (
+    h.includes("stable") ||
+    h.includes("non applicable") ||
+    h.includes("entité publique") ||
+    h.includes("institution publique") ||
+    h.includes("réseau en évolution")
+  ) {
+    return 3
+  }
+
+  // Mixed / difficult / 2
+  if (
+    h.includes("mitigée") ||
+    h.includes("contrastée") ||
+    h.includes("difficile") ||
+    h.includes("sous pression") ||
+    h.includes("contraction")
+  ) {
+    return 2
+  }
+
+  // Bad / negative / 1
+  if (
+    h.includes("négative") ||
+    h.includes("déficitaire") ||
+    h.includes("difficultés financières") ||
+    h.includes("redressement") ||
+    h.includes("critique") ||
+    h.includes("faillite")
+  ) {
+    return 1
+  }
+
+  // Fallback heuristic:
+  if (h.includes("croissance")) return 4
+  if (h.includes("difficulté") || h.includes("négatif") || h.includes("baisse")) return 2
+
+  return 3
 }
 
-interface PitchData {
-  id?: string
-  destinataire?: string
-  ton?: string
-  format_mail?: string
-  objet_mail?: string
-  corps_mail?: string
-  points_cles?: string | string[]
-  statut?: string
-  completed_at?: string
-}
-
-type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu" | "pitchs"
 
 function formatScore(score: number | string | null) {
   if (score === null || score === undefined) return "—"
@@ -175,6 +243,7 @@ export function CompanyIdentityDrawer({
   const [data, setData] = useState<IdentityData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
+  const [syntheseExpanded, setSyntheseExpanded] = useState(false)
   const [transitionPending, startTransition] = useTransition()
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
@@ -201,6 +270,7 @@ export function CompanyIdentityDrawer({
 
     return () => {
       setData(null)
+      setSyntheseExpanded(false)
     }
   }, [companyId, open])
 
@@ -211,10 +281,52 @@ export function CompanyIdentityDrawer({
   const identite = analysisData.identite || {}
   const positionnement = analysisData.positionnement || {}
   const signaux = analysisData.signaux || {}
-  const contexteSectoriel = analysisData.contexte_sectoriel || {}
   const synthese = analysisData.synthese_consultant || data?.company?.description || "Aucune synthèse disponible."
-  const sectorAnalysis = (metadata.sector_analysis || null) as SectorAnalysisData | null
-  const pitches = (metadata.pitches || []) as PitchData[]
+  const healthScore = data ? parseHealthScore(data.company.health) : null
+  const riskScore = healthScore
+
+  const hasMaturite = !!(
+    signaux.indices_maturite_digitale &&
+    signaux.indices_maturite_digitale.trim() !== "" &&
+    signaux.indices_maturite_digitale.trim() !== "-" &&
+    !signaux.indices_maturite_digitale.toLowerCase().includes("non renseigné") &&
+    !signaux.indices_maturite_digitale.toLowerCase().includes("non renseignée")
+  )
+
+
+  const getHealthLabel = (score: number | null) => {
+    switch (score) {
+      case 5: return "Très bonne"
+      case 4: return "Bonne"
+      case 3: return "Stable"
+      case 2: return "Fragile"
+      case 1: return "Critique"
+      default: return "Non renseignée"
+    }
+  }
+
+  const getRiskLabel = (score: number | null) => {
+    switch (score) {
+      case 5: return "Très faible"
+      case 4: return "Faible"
+      case 3: return "Modéré"
+      case 2: return "Élevé"
+      case 1: return "Très élevé"
+      default: return "Non renseigné"
+    }
+  }
+
+  const getRiskDescription = (score: number | null) => {
+    switch (score) {
+      case 5: return "Risque très faible. Situation financière saine et stable."
+      case 4: return "Risque faible. Bons indicateurs de performance."
+      case 3: return "Risque modéré. Pas de signal critique détecté."
+      case 2: return "Risque élevé. Indicateurs financiers sous pression."
+      case 1: return "Risque très élevé. Difficultés ou restructuration critiques."
+      default: return "Risque non évaluable."
+    }
+  }
+
 
 
 
@@ -223,11 +335,7 @@ export function CompanyIdentityDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={data?.company?.name || "Chargement..."}
-      subtitle={
-        data?.company
-          ? [data.company.sector, data.company.segment].filter(Boolean).join(" - ") || "Fiche d'identité"
-          : "Fiche d'identité"
-      }
+      subtitle="Fiche d'identité"
       className="max-w-2xl"
     >
       {loading ? (
@@ -269,28 +377,37 @@ export function CompanyIdentityDrawer({
           <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <CompanyLogo
-                  name={data.company.name}
-                  logoPath={(data.company.metadata?.logo_path as string) || null}
-                  website={data.company.website}
-                  size="md"
-                />
+                {data.company.website ? (
+                  <a
+                    href={data.company.website.startsWith("http") ? data.company.website : `https://${data.company.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:opacity-80 transition-opacity shrink-0"
+                    title={`Visiter le site de ${data.company.name}`}
+                  >
+                    <CompanyLogo
+                      name={data.company.name}
+                      logoPath={(data.company.metadata?.logo_path as string) || null}
+                      website={data.company.website}
+                      size="md"
+                    />
+                  </a>
+                ) : (
+                  <CompanyLogo
+                    name={data.company.name}
+                    logoPath={(data.company.metadata?.logo_path as string) || null}
+                    website={data.company.website}
+                    size="md"
+                  />
+                )}
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm font-bold text-heading leading-tight">{data.company.name}</h3>
-                    {data.company.legal_name && data.company.legal_name !== data.company.name && (
-                      <span className="text-[10px] text-muted font-normal font-mono">({data.company.legal_name})</span>
-                    )}
                   </div>
-                  {data.company.website && (
-                    <a
-                      href={data.company.website.startsWith("http") ? data.company.website : `https://${data.company.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-primary font-semibold hover:underline block mt-0.5"
-                    >
-                      {data.company.website}
-                    </a>
+                  {(data.company.sector || data.company.segment) && (
+                    <span className="text-[11px] text-muted font-medium block mt-0.5">
+                      {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
+                    </span>
                   )}
                 </div>
               </div>
@@ -303,28 +420,40 @@ export function CompanyIdentityDrawer({
               </div>
             </div>
 
-            {/* Tags / Badges row */}
-            <div className="flex flex-wrap gap-1.5 items-center pt-2 border-t border-border/40 text-[10px]">
-              <span className="rounded bg-primary-fg border border-border px-2 py-0.5 font-semibold text-body capitalize">
-                {data.company.lifecycle_status.replace("_", " ")}
-              </span>
-              <span className={cn(
-                "rounded px-2 py-0.5 font-bold border",
-                data.company.priority === "haute" 
-                  ? "bg-warning/10 border-warning/20 text-warning" 
-                  : "bg-canvas text-body border-border"
-              )}>
-                Priorité {data.company.priority}
-              </span>
-              {data.company.hq_location && (
-                <span className="text-muted flex items-center gap-1 ml-auto font-medium">
-                  <svg className="w-3 h-3 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {data.company.hq_location}
-                </span>
-              )}
-            </div>
+            {/* Cockpit CTA Button in Footer */}
+            {companyId && (
+              <div className="pt-2 border-t border-border/40">
+                <Link
+                  href={`/prospection/accounts/${companyId}`}
+                  className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-lg bg-primary w-full py-2 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
+                >
+                  <span>Ouvrir le cockpit Intelligence</span>
+                  <span
+                    className="kredo-ready-action-circle"
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: "18px",
+                      height: "18px",
+                      minWidth: "18px",
+                      minHeight: "18px",
+                    }}
+                  >
+                    <svg
+                      className="w-2.5 h-2.5 relative z-10 text-white shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={4}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                    </svg>
+                  </span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Navigation Tabs */}
@@ -336,7 +465,6 @@ export function CompanyIdentityDrawer({
                 { key: "contacts", label: "Contacts" },
                 { key: "crm", label: "Activité" },
                 { key: "actu", label: "Actu" },
-                { key: "pitchs", label: pitches.length > 0 ? `Pitchs (${pitches.length})` : "Pitchs" },
               ] as const
             ).map((t) => (
               <button
@@ -358,46 +486,40 @@ export function CompanyIdentityDrawer({
           <div className="flex-1 overflow-y-auto pr-1">
             {activeTab === "apercu" && (
               <div className="space-y-5">
-                {/* CTA — ouvrir le cockpit Intelligence (ADR-0008) */}
-                {companyId && (
-                  <Link
-                    href={`/prospection/accounts/${companyId}`}
-                    className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
-                  >
-                    <span>Ouvrir le cockpit Intelligence</span>
-                    <span
-                      className="kredo-ready-action-circle"
-                      style={{
-                        position: "absolute",
-                        right: "8px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        width: "18px",
-                        height: "18px",
-                        minWidth: "18px",
-                        minHeight: "18px",
-                      }}
-                    >
-                      <svg
-                        className="w-2.5 h-2.5 relative z-10 text-white shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={4}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                      </svg>
+                {/* Statut & Priorité */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Statut</span>
+                    <span className="text-xs font-bold text-heading">
+                      {lifecycleLabel(data.company.lifecycle_status)}
                     </span>
-                  </Link>
-                )}
+                  </div>
+                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Priorité</span>
+                    <span className={cn(
+                      "text-xs font-bold capitalize",
+                      data.company.priority === "haute" ? "text-warning" : "text-heading"
+                    )}>
+                      {data.company.priority}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Consultant Synthesis */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                     Synthèse de l&apos;Intelligence Commerciale
                   </h4>
-                  <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm">
-                    {synthese}
+                  <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm flex flex-col gap-2">
+                    <span>{syntheseExpanded ? synthese : truncateToSentences(synthese, 2).short}</span>
+                    {truncateToSentences(synthese, 2).isTruncated && (
+                      <button
+                        onClick={() => setSyntheseExpanded((v) => !v)}
+                        className="self-start text-[10px] font-semibold text-primary hover:underline outline-none"
+                      >
+                        {syntheseExpanded ? "Voir moins" : "Voir la synthèse complète"}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -428,9 +550,11 @@ export function CompanyIdentityDrawer({
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Date de création</span>
-                      <span className="text-xs font-bold text-heading">
-                        {identite.date_creation || "Non renseignée"}
+                      <span className="text-[9px] text-muted font-bold uppercase">Dirigeant actuel</span>
+                      <span className="text-xs font-bold text-heading truncate" title={identite.dirigeants && identite.dirigeants.length > 0 ? identite.dirigeants.join(", ") : undefined}>
+                        {identite.dirigeants && identite.dirigeants.length > 0
+                          ? identite.dirigeants.join(", ")
+                          : "Non renseigné"}
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
@@ -439,189 +563,113 @@ export function CompanyIdentityDrawer({
                         {data.company.health || "Aucun indicateur de dynamique renseigné"}
                       </span>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "intelligence" && (
-              <div className="space-y-5">
-                {/* Brand Positioning */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                    Positionnement & Proposition de Valeur
-                  </h4>
-                  <div className="space-y-3 bg-canvas/20 rounded-lg border border-border/40 p-4">
-                    {positionnement.activite_principale && (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[9px] text-muted font-bold uppercase">Activité Principale</span>
-                        <p className="text-xs text-body leading-relaxed">{positionnement.activite_principale}</p>
+                    {hasMaturite && (
+                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
+                        <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
+                        <span className="text-xs font-normal text-heading">
+                          {signaux.indices_maturite_digitale}
+                        </span>
                       </div>
                     )}
-                    {positionnement.proposition_valeur && (
-                      <div className="flex flex-col gap-0.5 pt-2.5 border-t border-border/40">
-                        <span className="text-[9px] text-muted font-bold uppercase">Proposition de Valeur</span>
-                        <p className="text-xs text-body leading-relaxed">{positionnement.proposition_valeur}</p>
-                      </div>
-                    )}
-                    {positionnement.clients_types && (
-                      <div className="flex flex-col gap-0.5 pt-2.5 border-t border-border/40">
-                        <span className="text-[9px] text-muted font-bold uppercase">Clients Cibles / Typologie</span>
-                        <p className="text-xs text-body leading-relaxed">{positionnement.clients_types}</p>
-                      </div>
-                    )}
-                    {positionnement.zone_geographique && (
-                      <div className="flex flex-col gap-0.5 pt-2.5 border-t border-border/40">
-                        <span className="text-[9px] text-muted font-bold uppercase">Zone Géographique</span>
-                        <p className="text-xs text-body leading-relaxed font-medium">{positionnement.zone_geographique}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Market & Weak Signals */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase">Tendance de croissance</span>
-                    <p className="text-xs text-body leading-relaxed">{signaux.tendance_croissance || "Non renseignée"}</p>
-                  </div>
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase">Maturité Digitale</span>
-                    <p className="text-xs text-body leading-relaxed">{signaux.indices_maturite_digitale || "Non renseignée"}</p>
-                  </div>
-                </div>
-
-                {/* Sector Context & Competitors */}
-                {(contexteSectoriel.secteur || contexteSectoriel.tendances_sectorielles || (contexteSectoriel.concurrents_identifies && contexteSectoriel.concurrents_identifies.length > 0)) && (
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                      Contexte Sectoriel & Concurrence
-                    </h4>
-                    <div className="space-y-3 bg-canvas/20 rounded-lg border border-border/40 p-4">
-                      {contexteSectoriel.secteur && (
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] text-muted font-bold uppercase">Secteur</span>
-                          <p className="text-xs text-body leading-relaxed font-semibold">{contexteSectoriel.secteur}</p>
-                        </div>
-                      )}
-                      {contexteSectoriel.tendances_sectorielles && (
-                        <div className="flex flex-col gap-0.5 pt-2.5 border-t border-border/40">
-                          <span className="text-[9px] text-muted font-bold uppercase">Tendances du Marché</span>
-                          <p className="text-xs text-body leading-relaxed">{contexteSectoriel.tendances_sectorielles}</p>
-                        </div>
-                      )}
-                      {contexteSectoriel.concurrents_identifies && contexteSectoriel.concurrents_identifies.length > 0 && (
-                        <div className="flex flex-col gap-1.5 pt-2.5 border-t border-border/40">
-                          <span className="text-[9px] text-muted font-bold uppercase">Concurrents Identifiés</span>
-                          <div className="flex flex-wrap gap-1">
-                            {contexteSectoriel.concurrents_identifies.map((comp: string, idx: number) => (
-                              <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-body font-medium">
-                                {comp}
-                              </span>
-                            ))}
+                    {healthScore !== null && (
+                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 items-center justify-center min-h-[90px]">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Santé financière</span>
+                          <div className="mt-1">
+                            <RatingIndicator value={healthScore} mode="single" size="lg" showLabel={false} />
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Sector Analysis — Phase 2 (backfill FOLIO or future AI run) */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
-                      Étude Sectorielle
-                    </h4>
-                    {sectorAnalysis && (
-                      <span className="text-[9px] bg-success/10 border border-success/20 text-success px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                        IA
-                      </span>
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 items-center justify-center min-h-[90px]">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Risque financier</span>
+                          <div className="mt-1">
+                            <RatingIndicator value={riskScore} mode="single" size="lg" showLabel={false} />
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {sectorAnalysis ? (
-                    <div className="space-y-3">
-                      {sectorAnalysis.synthese_sectorielle && (
-                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4">
-                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Synthèse</span>
-                          <p className="text-xs text-body leading-relaxed">{sectorAnalysis.synthese_sectorielle}</p>
-                        </div>
-                      )}
-                      {!!sectorAnalysis.volume_marche && (
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
-                          <span className="text-[9px] text-muted font-bold uppercase">Volume de Marché</span>
-                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.volume_marche)}</div>
-                        </div>
-                      )}
-                      {!!sectorAnalysis.segment_clientele && (
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
-                          <span className="text-[9px] text-muted font-bold uppercase">Segments Clients</span>
-                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.segment_clientele)}</div>
-                        </div>
-                      )}
-                      {!!sectorAnalysis.acteurs_cles && (
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
-                          <span className="text-[9px] text-muted font-bold uppercase">Acteurs Clés</span>
-                          {Array.isArray(sectorAnalysis.acteurs_cles) && (sectorAnalysis.acteurs_cles as unknown[]).every(a => typeof a === "string") ? (
-                            <div className="flex flex-wrap gap-1">
-                              {(sectorAnalysis.acteurs_cles as string[]).map((actor, idx) => (
-                                <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-body font-medium">
-                                  {actor}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.acteurs_cles)}</div>
-                          )}
-                        </div>
-                      )}
-                      {!!sectorAnalysis.analyse_concurrentielle && (
-                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4">
-                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Analyse Concurrentielle</span>
-                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.analyse_concurrentielle)}</div>
-                        </div>
-                      )}
-                      {!!sectorAnalysis.environnement_normatif && (
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
-                          <span className="text-[9px] text-muted font-bold uppercase">Environnement Normatif</span>
-                          <div className="text-xs text-body leading-relaxed">{renderJsonValue(sectorAnalysis.environnement_normatif)}</div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1.5 py-7 bg-canvas/20 rounded-lg border border-dashed border-border/60 text-center">
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Étude sectorielle non générée</span>
-                      <p className="text-[10px] text-muted/60">Disponible après lancement de l&apos;analyse IA (Lot 3)</p>
-                    </div>
-                  )}
                 </div>
-
               </div>
             )}
 
-            {activeTab === "contacts" && (
+
+            {activeTab === "intelligence" && (
               <div className="space-y-4">
-                {identite.dirigeants && identite.dirigeants.length > 0 && (
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5">
-                    <span className="text-[9px] text-muted font-bold uppercase">Dirigeants & Fondateurs</span>
-                    <div className="flex flex-wrap gap-1">
-                      {identite.dirigeants.map((leader: string, idx: number) => (
-                        <span key={idx} className="inline-flex rounded bg-surface border border-border px-2 py-0.5 text-xs text-heading font-medium">
-                          {leader}
-                        </span>
-                      ))}
-                    </div>
+                {positionnement.activite_principale && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Activité Principale</span>
+                    <p className="text-xs text-body leading-relaxed">{positionnement.activite_principale}</p>
                   </div>
                 )}
+                {positionnement.proposition_valeur && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Proposition de Valeur</span>
+                    <p className="text-xs text-body leading-relaxed">{positionnement.proposition_valeur}</p>
+                  </div>
+                )}
+                {positionnement.clients_types && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Clients Cibles / Typologie</span>
+                    <p className="text-xs text-body leading-relaxed">{positionnement.clients_types}</p>
+                  </div>
+                )}
+                {positionnement.zone_geographique && (
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Zone Géographique</span>
+                    <p className="text-xs text-body leading-relaxed font-medium">{positionnement.zone_geographique}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "contacts" && (() => {
+              // Role hierarchy for sorting (lower index = higher priority)
+              const ROLE_ORDER: Record<string, number> = {
+                dsi: 0,
+                sponsor: 1,
+                decideur: 2,
+                prescripteur: 3,
+                direction_metier: 4,
+                manager_technique: 5,
+                operationnel: 6,
+                utilisateur_final: 7,
+              }
+              const INTIMACY_ORDER: Record<string, number> = {
+                fort: 0,
+                moyen: 1,
+                faible: 2,
+              }
+
+              const sortedContacts = [...data.contacts].sort((a, b) => {
+                // 1. Role hierarchy
+                const roleA = ROLE_ORDER[a.relationship_role?.toLowerCase() ?? ""] ?? 99
+                const roleB = ROLE_ORDER[b.relationship_role?.toLowerCase() ?? ""] ?? 99
+                if (roleA !== roleB) return roleA - roleB
+
+                // 2. Priority contacts first
+                const prioA = a.is_priority ? 0 : 1
+                const prioB = b.is_priority ? 0 : 1
+                if (prioA !== prioB) return prioA - prioB
+
+                // 3. Intimacy level
+                const intimacyA = INTIMACY_ORDER[a.relationship_level?.toLowerCase() ?? ""] ?? 99
+                const intimacyB = INTIMACY_ORDER[b.relationship_level?.toLowerCase() ?? ""] ?? 99
+                return intimacyA - intimacyB
+              })
+
+              return (
+              <div className="space-y-4">
+
                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
                   Contacts Rattachés
                 </h4>
-                {data.contacts.length === 0 ? (
+                {sortedContacts.length === 0 ? (
                   <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
                     Aucun contact lié à cette entreprise.
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {data.contacts.map((contact) => {
+                    {sortedContacts.map((contact) => {
                       const person = contact.persons
                       if (!person) return null
                       return (
@@ -689,90 +737,381 @@ export function CompanyIdentityDrawer({
                   </div>
                 )}
               </div>
-            )}
+              )
+            })()}
 
-            {activeTab === "crm" && (
-              <div className="space-y-6">
-                {/* Pipeline Opportunités */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
-                    Pipeline Commercial ({data.opportunities.length})
-                  </h4>
-                  {data.opportunities.length === 0 ? (
-                    <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                      Aucune opportunité commerciale enregistrée.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2.5">
-                      {data.opportunities.map((opp) => (
-                        <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
-                          <div className="flex justify-between items-start gap-3">
-                            <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
-                            <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
-                              {opp.stage.replace("_", " ")}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
-                            <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                            <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
-                            {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
-                          </div>
+            {activeTab === "crm" && (() => {
+              const status = data.company.lifecycle_status
+              const activeMissions = data.missions.filter((m) => m.status === "active")
+              const openOpps = data.opportunities.filter((o) => !["gagne", "perdu", "abandonne", "win", "lost"].includes(o.stage))
+              const priorityContacts = data.contacts.filter((c) => c.is_priority === true)
+
+              // Check if we have a Décideur or Sponsor for addressing strategy
+              const hasDecideur = data.contacts.some((c) => c.relationship_role === "decideur")
+              const hasSponsor = data.contacts.some((c) => c.relationship_role === "sponsor" || c.relationship_role === "prescripteur")
+
+              if (status === "client_actif") {
+                return (
+                  <div className="space-y-6">
+                    {/* 1. Engagements */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Engagements (Prestations en cours)
+                      </h4>
+                      {activeMissions.length === 0 ? (
+                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                          Aucune prestation active en cours.
                         </div>
-                      ))}
+                      ) : (
+                        <div className="flex flex-col gap-2.5">
+                          {activeMissions.map((mission) => {
+                            const collab = mission.collaborators?.persons
+                            const collabName = collab
+                              ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
+                              : "Non assigné"
+                            return (
+                              <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                                <div className="flex justify-between items-start gap-3">
+                                  <div>
+                                    <span className="text-xs font-bold text-heading block">{mission.title}</span>
+                                    <span className="text-[10px] text-muted mt-0.5 block">
+                                      Consultant : <strong className="text-body font-medium">{collabName}</strong>
+                                    </span>
+                                  </div>
+                                  <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success uppercase tracking-wider shrink-0">
+                                    En cours
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-mono">
+                                  <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
+                                  <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
+                                  {mission.gross_margin_pct !== null && (
+                                    <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Contrats Missions */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
-                    Missions & Contrats ({data.missions.length})
-                  </h4>
-                  {data.missions.length === 0 ? (
-                    <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                      Aucune mission active ou passée liée à ce compte.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2.5">
-                      {data.missions.map((mission) => {
-                        const collab = mission.collaborators?.persons
-                        const name = collab
-                          ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
-                          : "Non assigné"
-                        return (
-                          <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2.5">
-                            <div className="flex justify-between items-start gap-3">
-                              <div>
-                                <span className="text-xs font-bold text-heading block">{mission.title}</span>
-                                <span className="text-[10px] text-muted mt-0.5 block">
-                                  Consultant : <strong className="text-body font-medium">{name}</strong>
+                    {/* 2. Pipe opportunités */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Pipe opportunités
+                      </h4>
+                      {openOpps.length === 0 ? (
+                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                          Aucune opportunité commerciale en cours.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2.5">
+                          {openOpps.map((opp) => (
+                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                              <div className="flex justify-between items-start gap-3">
+                                <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
+                                <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
+                                  {opp.stage.replace("_", " ")}
                                 </span>
                               </div>
-                              <span className={cn(
-                                "rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border shrink-0",
-                                mission.status === "active" 
-                                  ? "bg-success/10 border-success/20 text-success" 
-                                  : "bg-muted/10 border-border text-muted"
-                              )}>
-                                {mission.status === "active" ? "Active" : "Terminée"}
+                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
+                                <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
+                                <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
+                                {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Actions */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Actions
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Dernière Action */}
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div>
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
+                            {data.lastInteraction ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
+                                </span>
+                                <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
+                                  {data.lastInteraction.summary || "Pas de résumé disponible."}
+                                </p>
+                              </div>
+                            ) : data.company.last_contact_at ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  Dernier contact : {formatDate(data.company.last_contact_at)}
+                                </span>
+                                <p className="text-muted italic mt-1 font-normal">
+                                  Pas de détails d&apos;interaction disponibles.
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted italic">Aucune action passée enregistrée.</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Prochaine Action */}
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div>
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
+                            {data.company.next_action_label ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  À faire : {data.company.next_action_label}
+                                </span>
+                                {data.company.next_action_at && (
+                                  <span className="text-[10px] text-muted mt-1 block font-mono">
+                                    Échéance : {formatDate(data.company.next_action_at)}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted italic">Aucune action programmée.</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              if (status === "prospect") {
+                return (
+                  <div className="space-y-6">
+                    {/* 1. Stratégie d'adressage (en premier) */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Stratégie d&apos;adressage
+                      </h4>
+                      <div className="bg-canvas/20 rounded-lg border border-border/40 p-4 space-y-4 shadow-xs">
+                        {priorityContacts.length === 0 ? (
+                          <div className="text-xs text-muted italic">
+                            Aucun contact prioritaire lié pour établir la stratégie d&apos;adressage.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2.5">
+                            {priorityContacts.map((contact) => {
+                              const person = contact.persons
+                              if (!person) return null
+                              const name = person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()
+                              return (
+                                <div key={contact.id} className="flex justify-between items-center bg-surface border border-border/40 rounded-lg p-2.5 shadow-xs">
+                                  <div>
+                                    <span
+                                      onClick={() => onOpenContactIdentity?.(contact.id)}
+                                      className="text-xs font-bold text-heading hover:text-primary hover:underline cursor-pointer transition-colors"
+                                    >
+                                      {name}
+                                    </span>
+                                    <span className="text-[10px] text-muted block mt-0.5">
+                                      {contact.job_title || "Fonction non spécifiée"}
+                                    </span>
+                                  </div>
+                                  {contact.relationship_role && (
+                                    <span className={cn(
+                                      "rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border shrink-0",
+                                      contact.relationship_role === "decideur"
+                                        ? "bg-success/10 border-success/20 text-success"
+                                        : contact.relationship_role === "sponsor" || contact.relationship_role === "prescripteur"
+                                        ? "bg-primary/10 border-primary/20 text-primary"
+                                        : "bg-muted/10 border-border text-muted"
+                                    )}>
+                                      {contact.relationship_role.replace("_", " ")}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Pipe opportunités */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Pipe opportunités
+                      </h4>
+                      {openOpps.length === 0 ? (
+                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                          Aucune opportunité commerciale en cours.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2.5">
+                          {openOpps.map((opp) => (
+                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                              <div className="flex justify-between items-start gap-3">
+                                <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
+                                <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
+                                  {opp.stage.replace("_", " ")}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
+                                <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
+                                <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
+                                {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Actions */}
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                        Actions
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Dernière Action */}
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div>
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
+                            {data.lastInteraction ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
+                                </span>
+                                <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
+                                  {data.lastInteraction.summary || "Pas de résumé disponible."}
+                                </p>
+                              </div>
+                            ) : data.company.last_contact_at ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  Dernier contact : {formatDate(data.company.last_contact_at)}
+                                </span>
+                                <p className="text-muted italic mt-1 font-normal">
+                                  Pas de détails d&apos;interaction disponibles.
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted italic">Aucune action passée enregistrée.</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Prochaine Action */}
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div>
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
+                            {data.company.next_action_label ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-heading block">
+                                  À faire : {data.company.next_action_label}
+                                </span>
+                                {data.company.next_action_at && (
+                                  <span className="text-[10px] text-muted mt-1 block font-mono">
+                                    Échéance : {formatDate(data.company.next_action_at)}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted italic">Aucune action programmée.</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              // Fallback default generic view for other lifecycle statuses
+              return (
+                <div className="space-y-6">
+                  {/* Pipeline Commercial */}
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                      Pipeline Commercial ({data.opportunities.length})
+                    </h4>
+                    {data.opportunities.length === 0 ? (
+                      <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                        Aucune opportunité commerciale enregistrée.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2.5">
+                        {data.opportunities.map((opp) => (
+                          <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                            <div className="flex justify-between items-start gap-3">
+                              <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
+                              <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
+                                {opp.stage.replace("_", " ")}
                               </span>
                             </div>
-
-                            <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-mono">
-                              <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
-                              <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
-                              {mission.gross_margin_pct !== null && (
-                                <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
-                              )}
+                            <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
+                              <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
+                              <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
+                              {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contrats Missions */}
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                      Missions & Contrats ({data.missions.length})
+                    </h4>
+                    {data.missions.length === 0 ? (
+                      <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                        Aucune mission active ou passée liée à ce compte.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2.5">
+                        {data.missions.map((mission) => {
+                          const collab = mission.collaborators?.persons
+                          const name = collab
+                            ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
+                            : "Non assigné"
+                          return (
+                            <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2.5 shadow-xs">
+                              <div className="flex justify-between items-start gap-3">
+                                <div>
+                                  <span className="text-xs font-bold text-heading block">{mission.title}</span>
+                                  <span className="text-[10px] text-muted mt-0.5 block">
+                                    Consultant : <strong className="text-body font-medium">{name}</strong>
+                                  </span>
+                                </div>
+                                <span className={cn(
+                                  "rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border shrink-0",
+                                  mission.status === "active" 
+                                    ? "bg-success/10 border-success/20 text-success" 
+                                    : "bg-muted/10 border-border text-muted"
+                                )}>
+                                  {mission.status === "active" ? "Active" : "Terminée"}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-mono">
+                                <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
+                                <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
+                                {mission.gross_margin_pct !== null && (
+                                  <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {activeTab === "actu" && (
               <div className="space-y-4">
@@ -806,90 +1145,17 @@ export function CompanyIdentityDrawer({
                 )}
               </div>
             )}
-
-            {activeTab === "pitchs" && (
-              <div className="space-y-4">
-                {pitches.length === 0 ? (
-                  <div className="flex flex-col items-center gap-1.5 py-10 bg-canvas/20 rounded-lg border border-dashed border-border/60 text-center">
-                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Aucun pitch généré</span>
-                    <p className="text-[10px] text-muted/60">Les pitchs email seront disponibles après l&apos;analyse IA (Lot 3)</p>
-                  </div>
-                ) : (
-                  pitches.map((pitch, idx) => (
-                    <div key={pitch.id || idx} className="bg-canvas/20 rounded-lg border border-border/50 overflow-hidden">
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-3 p-3 border-b border-border/40 bg-surface">
-                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-heading truncate">
-                            {pitch.objet_mail || "Objet non renseigné"}
-                          </span>
-                          <div className="flex items-center gap-2 text-[10px] text-muted font-medium mt-0.5 flex-wrap">
-                            {pitch.destinataire && <span>→ {pitch.destinataire}</span>}
-                            {pitch.ton && <span className="capitalize">· Ton : {pitch.ton}</span>}
-                            {pitch.format_mail && <span>· {pitch.format_mail}</span>}
-                          </div>
-                        </div>
-                        {pitch.statut && (
-                          <span className={cn(
-                            "text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border shrink-0",
-                            pitch.statut === "completed"
-                              ? "bg-success/10 border-success/20 text-success"
-                              : "bg-warning/10 border-warning/20 text-warning"
-                          )}>
-                            {pitch.statut === "completed" ? "Finalisé" : "Review"}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Points clés */}
-                      {pitch.points_cles && (
-                        <div className="px-3 pt-3 pb-2">
-                          <span className="text-[9px] text-muted font-bold uppercase block mb-1.5">Points clés</span>
-                          {Array.isArray(pitch.points_cles) ? (
-                            <ul className="space-y-1">
-                              {(pitch.points_cles as string[]).map((pt, i) => (
-                                <li key={i} className="flex gap-2 items-start text-xs text-body">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                                  <span>{pt}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-xs text-body leading-relaxed">{pitch.points_cles as string}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Corps du mail */}
-                      {pitch.corps_mail && (
-                        <div className="px-3 pt-2 pb-3">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[9px] text-muted font-bold uppercase">Corps du mail</span>
-                            <button
-                              onClick={() => copyText(pitch.corps_mail || "")}
-                              className="flex items-center gap-1 text-[9px] text-primary font-semibold hover:underline transition-colors"
-                            >
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                              Copier
-                            </button>
-                          </div>
-                          <div className="bg-canvas/40 rounded border border-border/40 p-3 text-xs text-body leading-relaxed whitespace-pre-wrap font-sans max-h-52 overflow-y-auto">
-                            {pitch.corps_mail}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
           </div>
         </div>
       ) : null}
     </AppDrawer>
   )
+}
+
+function truncateToSentences(text: string, max: number): { short: string; isTruncated: boolean } {
+  const sentences = text.match(/[^.!?]+[.!?]+(?:\s|$)/g)
+  if (!sentences || sentences.length <= max) return { short: text, isTruncated: false }
+  return { short: sentences.slice(0, max).join("").trim(), isTruncated: true }
 }
 
 function formatEuro(amount: number | null): string {

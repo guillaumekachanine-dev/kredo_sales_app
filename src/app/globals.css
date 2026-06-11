@@ -423,3 +423,49 @@ body {
     opacity: 0;
   }
 }
+
+/* ── Specific Rating Level 5 Blue Class (Static Electric Blue + Shine Sweep) ── */
+.kredo-rating-level5-blue {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 0;
+  overflow: hidden;
+  background-color: #2563EB; /* Static electric blue */
+}
+
+.kredo-rating-level5-blue::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0) 80%,
+    transparent 100%
+  );
+  animation: kredo-ready-shine 3s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-rating-level5-blue::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+

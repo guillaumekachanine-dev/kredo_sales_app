@@ -697,12 +697,15 @@ export type Database = {
       }
       contacts: {
         Row: {
+          campaign_id: string | null
           company_id: string | null
           created_at: string
           decision_power: string | null
           department: string | null
           id: string
+          is_priority: boolean | null
           job_title: string | null
+          manager_contact_id: string | null
           notes: string | null
           person_id: string
           relationship_level: string | null
@@ -712,12 +715,15 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          campaign_id?: string | null
           company_id?: string | null
           created_at?: string
           decision_power?: string | null
           department?: string | null
           id?: string
+          is_priority?: boolean | null
           job_title?: string | null
+          manager_contact_id?: string | null
           notes?: string | null
           person_id: string
           relationship_level?: string | null
@@ -727,12 +733,15 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          campaign_id?: string | null
           company_id?: string | null
           created_at?: string
           decision_power?: string | null
           department?: string | null
           id?: string
+          is_priority?: boolean | null
           job_title?: string | null
+          manager_contact_id?: string | null
           notes?: string | null
           person_id?: string
           relationship_level?: string | null

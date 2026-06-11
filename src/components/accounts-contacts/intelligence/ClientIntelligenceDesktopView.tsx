@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
@@ -48,7 +48,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         {/* ── Header (compact) ─────────────────────────────────────────────── */}
         <header className="shrink-0 border-b border-border bg-surface px-6 py-3">
           <Link
-            href="/prospection/accounts"
+            href={`/prospection/accounts?drawer=${company.id}`}
             className="mb-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
           >
             ← Comptes &amp; contacts
@@ -255,7 +255,54 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
 
       {sector ? (
         <SectionBlock title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
+          <div className="space-y-4">
+            <p className="whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
+            
+            {!!sector.data.volumeMarche && (
+              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Volume de Marché</span>
+                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.volumeMarche)}</div>
+              </div>
+            )}
+            
+            {!!sector.data.segmentClientele && (
+              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Segments Clients</span>
+                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.segmentClientele)}</div>
+              </div>
+            )}
+            
+            {!!sector.data.acteursCles && (
+              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Acteurs Clés</span>
+                {Array.isArray(sector.data.acteursCles) && (sector.data.acteursCles as unknown[]).every(a => typeof a === "string") ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(sector.data.acteursCles as string[]).map((actor, idx) => (
+                      <span key={idx} className="rounded border border-border bg-canvas/50 px-2 py-0.5 text-[11px] font-medium text-body">
+                        {actor}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.acteursCles)}</div>
+                )}
+              </div>
+            )}
+            
+            {!!sector.data.analyseConcurrentielle && (
+              <div className="rounded border border-border bg-canvas/40 p-4">
+                <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted">Analyse Concurrentielle</span>
+                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.analyseConcurrentielle)}</div>
+              </div>
+            )}
+            
+            {!!sector.data.environnementNormatif && (
+              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Environnement Normatif</span>
+                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.environnementNormatif)}</div>
+              </div>
+            )}
+          </div>
         </SectionBlock>
       ) : (
         <ComingSoon lot="lot D">Étude sectorielle (mutualisée par secteur)</ComingSoon>
@@ -264,6 +311,43 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
       <ComingSoon lot="lot I">Veille & signaux (feeders n8n) · Scan contacts</ComingSoon>
     </div>
   )
+}
+
+function renderJsonValue(value: unknown, depth = 0): ReactNode {
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null
+    if (value.every(i => typeof i === "string" || typeof i === "number")) {
+      return <span>{(value as (string | number)[]).join(", ")}</span>
+    }
+    return (
+      <ul className="space-y-1.5 mt-0.5">
+        {value.map((item, i) => (
+          <li key={i} className="flex gap-2 items-start">
+            <span className="w-1.5 h-1.5 rounded-full bg-muted shrink-0 mt-1.5" />
+            <span className="flex-1 leading-relaxed">{renderJsonValue(item, depth + 1)}</span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  if (typeof value === "object") {
+    return (
+      <div className={depth > 0 ? "space-y-1" : "space-y-2"}>
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k}>
+            <span className="text-[9px] text-muted/70 font-semibold uppercase tracking-wide block mb-0.5">
+              {k.replace(/_/g, " ")}
+            </span>
+            <div className="leading-relaxed">{renderJsonValue(v, depth + 1)}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return String(value)
 }
 
 // ─── Onglet Pitch — pitchs FOLIO importés (lecture seule, atelier au lot H) ────

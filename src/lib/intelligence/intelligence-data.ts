@@ -33,6 +33,12 @@ export type AnalyseClient = {
 
 export type AnalyseSector = {
   synthese: string
+  volumeMarche?: unknown
+  segmentClientele?: unknown
+  acteursCles?: unknown
+  chaineValeur?: unknown
+  environnementNormatif?: unknown
+  analyseConcurrentielle?: unknown
 }
 
 export type LegacyPitch = {
@@ -166,7 +172,15 @@ function parseAnalyseSector(raw: unknown): AnalyseSector | null {
   const root = asRecord(raw)
   const synthese = str(root.synthese_sectorielle) || str(root.synthese)
   if (!synthese) return null
-  return { synthese }
+  return {
+    synthese,
+    volumeMarche: root.volume_marche ?? root.volumeMarche ?? null,
+    segmentClientele: root.segment_clientele ?? root.segmentClientele ?? null,
+    acteursCles: root.acteurs_cles ?? root.acteursCles ?? null,
+    chaineValeur: root.chaine_valeur ?? root.chaineValeur ?? null,
+    environnementNormatif: root.environnement_normatif ?? root.environnementNormatif ?? null,
+    analyseConcurrentielle: root.analyse_concurrentielle ?? root.analyseConcurrentielle ?? null,
+  }
 }
 
 /**

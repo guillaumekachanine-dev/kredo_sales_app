@@ -5,6 +5,7 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -27,6 +28,7 @@ type ContactIdentityData = {
     department: string | null
     notes: string | null
     status: string
+    is_priority: boolean | null
     persons: {
       id: string
       full_name: string | null
@@ -299,14 +301,25 @@ export function ContactIdentityDrawer({
               <span className="rounded bg-primary-fg border border-border px-2 py-1 font-semibold text-body truncate">
                 Intimité : <span className="capitalize font-bold text-primary">{relationshipLevelDisplay}</span>
               </span>
-              <span className={cn(
-                "rounded border px-2 py-1 font-semibold truncate",
-                contact.status === "actif" 
-                  ? "bg-success/5 border-success/20 text-success" 
-                  : "bg-primary-fg border-border text-body"
-              )}>
-                Statut : <span className={cn("capitalize font-bold", contact.status === "actif" ? "text-success" : "text-primary")}>{contact.status}</span>
-              </span>
+              {company?.lifecycle_status === "prospect" ? (
+                <span className={cn(
+                  "rounded border px-2 py-1 font-semibold truncate",
+                  contact.is_priority 
+                    ? "bg-success/5 border-success/20 text-success" 
+                    : "bg-primary-fg border-border text-body"
+                )}>
+                  Prioritaire : <span className="font-bold">{contact.is_priority ? "oui" : "non"}</span>
+                </span>
+              ) : (
+                <span className={cn(
+                  "rounded border px-2 py-1 font-semibold truncate",
+                  contact.status === "actif" 
+                    ? "bg-success/5 border-success/20 text-success" 
+                    : "bg-primary-fg border-border text-body"
+                )}>
+                  Statut : <span className={cn("capitalize font-bold", contact.status === "actif" ? "text-success" : "text-primary")}>{contact.status}</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -567,7 +580,7 @@ export function ContactIdentityDrawer({
                     {/* Current Contact */}
                     <div className="bg-primary/5 border border-primary/30 rounded-lg p-3 w-full max-w-xs text-center shadow-sm relative">
                       <span className="text-[9px] text-primary font-bold uppercase tracking-tight block truncate">
-                        {contact.department ? contact.department : "Aucun département renseigné"}
+                        {contact.department ? departmentLabel(contact.department) : "Aucun département renseigné"}
                       </span>
                       <span className="text-xs font-extrabold text-heading block mt-0.5">
                         {fullName}

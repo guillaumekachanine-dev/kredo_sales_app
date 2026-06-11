@@ -20,7 +20,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   return (
     <div className="flex flex-col gap-4 p-4 pb-24">
-      <Link href="/prospection/accounts" className="text-[11px] font-semibold text-muted">
+      <Link href={`/prospection/accounts?drawer=${company.id}`} className="text-[11px] font-semibold text-muted">
         ← Comptes &amp; contacts
       </Link>
 
