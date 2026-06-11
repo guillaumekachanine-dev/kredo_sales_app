@@ -48,7 +48,7 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
     <div
       ref={railRef}
       role="tablist"
-      className="kredo-rail-in fixed bottom-16 left-0 right-0 z-40 bg-primary-deep border-t border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+      className="kredo-rail-in fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-0 right-0 z-40 bg-primary-deep border-t border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
     >
       <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-none px-3 h-11">
         {tabs.map((tab) => {
