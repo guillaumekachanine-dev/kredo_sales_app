@@ -1,6 +1,7 @@
 "use client"
 
 import { useDeferredValue, useMemo, useState, useTransition } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
@@ -47,13 +48,13 @@ const REVENUE_OPTIONS = [
 ]
 
 const SIZE_OPTIONS = [
-  { value: "1-50", label: "1-50 employés" },
-  { value: "50-200", label: "50-200 employés" },
-  { value: "201-500", label: "201-500 employés" },
-  { value: "501-1000", label: "501-1000 employés" },
-  { value: "1000-2000", label: "1000-2000 employés" },
-  { value: "2000-5000", label: "2000-5000 employés" },
-  { value: "+5k", label: "+5k employés" },
+  { value: "1-50", label: "1-50" },
+  { value: "50-200", label: "50-200" },
+  { value: "201-500", label: "201-500" },
+  { value: "501-1000", label: "501-1000" },
+  { value: "1000-2000", label: "1000-2000" },
+  { value: "2000-5000", label: "2000-5000" },
+  { value: "+5k", label: "+5k" },
 ]
 
 const LIFECYCLE_OPTIONS = [
@@ -97,6 +98,11 @@ const RELATIONSHIP_LEVEL_OPTIONS = [
   { value: "moyen", label: "Moyen" },
   { value: "fort", label: "Fort" },
 ]
+
+const CONTACT_FILTER_PANEL_WIDTH_CH = Math.max(
+  12,
+  ROLE_OPTIONS.reduce((longest, option) => Math.max(longest, option.label.length), 0) + 3
+)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helpers
@@ -155,16 +161,91 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const inputCls = "w-full rounded border border-border bg-canvas px-3 py-2 text-sm text-heading placeholder:text-muted/60 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-colors"
 const selectCls = "w-full rounded border border-border bg-canvas px-3 py-2 text-sm text-heading focus:outline-none focus:ring-1 focus:ring-primary/40 transition-colors"
 
+function ContactCompanyCombobox({
+  accounts,
+  value,
+  onChange,
+}: {
+  accounts: AccountRow[]
+  value: string
+  onChange: (value: string) => void
+}) {
+  const selectedAccount = accounts.find((account) => account.id === value)
+  const [query, setQuery] = useState(selectedAccount?.name ?? "")
+  const [isOpen, setIsOpen] = useState(false)
+
+  const filteredAccounts = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+    if (!normalizedQuery) return accounts.slice(0, 6)
+
+    return accounts
+      .filter((account) => account.name.toLowerCase().includes(normalizedQuery))
+      .slice(0, 6)
+  }, [accounts, query])
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextQuery = event.target.value
+    const exactMatch = accounts.find((account) => account.name.toLowerCase() === nextQuery.trim().toLowerCase())
+
+    setQuery(nextQuery)
+    onChange(exactMatch?.id ?? "")
+    setIsOpen(true)
+  }
+
+  const handleSelect = (account: AccountRow) => {
+    setQuery(account.name)
+    onChange(account.id)
+    setIsOpen(false)
+  }
+
+  return (
+    <div className="relative">
+      <input
+        className={inputCls}
+        value={query}
+        onChange={handleInputChange}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setIsOpen(false)}
+        placeholder="Rechercher une entreprise…"
+        autoComplete="off"
+      />
+      {isOpen && (
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface shadow-lg">
+          {filteredAccounts.length > 0 ? (
+            filteredAccounts.map((account) => (
+              <button
+                key={account.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => handleSelect(account)}
+                className="w-full px-3 py-2 text-left text-xs font-medium text-heading transition-colors hover:bg-canvas"
+              >
+                {account.name}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-xs text-muted">Aucune entreprise trouvée</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Company Form Modal
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CompanyFormModal({
   initial,
+  createKind,
+  onCreateKindChange,
   onClose,
   onSuccess,
 }: {
   initial?: AccountRow
+  createKind?: CreateEntityKind
+  onCreateKindChange?: (kind: CreateEntityKind) => void
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -201,9 +282,13 @@ function CompanyFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
-          <h2 className="text-base font-bold text-heading font-heading">
-            {initial ? "Modifier le compte" : "Nouveau compte"}
-          </h2>
+          {initial || !createKind || !onCreateKindChange ? (
+            <h2 className="text-base font-bold text-heading font-heading">
+              {initial ? "Modifier le compte" : "Nouveau compte"}
+            </h2>
+          ) : (
+            <NewEntityTitle kind={createKind} onKindChange={onCreateKindChange} />
+          )}
           <button onClick={onClose} className="rounded p-1 hover:bg-canvas/80 text-muted hover:text-heading transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -242,7 +327,7 @@ function CompanyFormModal({
           {error && <p className="text-xs text-red-500">{error}</p>}
         </form>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4 bg-canvas/30">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-6 py-3 bg-canvas/30">
           <button onClick={onClose} className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">Annuler</button>
           <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le compte"}
@@ -261,12 +346,16 @@ function ContactFormModal({
   initial,
   accounts,
   contacts,
+  createKind,
+  onCreateKindChange,
   onClose,
   onSuccess,
 }: {
   initial?: ContactRow
   accounts: AccountRow[]
   contacts: ContactRow[]
+  createKind?: CreateEntityKind
+  onCreateKindChange?: (kind: CreateEntityKind) => void
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -275,6 +364,7 @@ function ContactFormModal({
     last_name: initial?.lastName ?? "",
     primary_email: initial?.email ?? "",
     phone: initial?.phone ?? "",
+    phone_2: initial?.phone2 ?? "",
     linkedin_url: initial?.linkedinUrl ?? "",
     company_id: initial?.companyId ?? "",
     job_title: initial?.jobTitle === "Fonction non renseignée" ? "" : (initial?.jobTitle ?? ""),
@@ -293,6 +383,8 @@ function ContactFormModal({
     if (!form.company_id) return []
     return contacts.filter((c) => c.companyId === form.company_id && c.id !== initial?.id)
   }, [contacts, form.company_id, initial?.id])
+
+  const isMobileCreateContact = createKind === "contact" && !initial
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -316,76 +408,153 @@ function ContactFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
-          <h2 className="text-base font-bold text-heading font-heading">
-            {initial ? "Modifier le contact" : "Nouveau contact"}
-          </h2>
+          {initial || !createKind || !onCreateKindChange ? (
+            <h2 className="text-base font-bold text-heading font-heading">
+              {initial ? "Modifier le contact" : "Nouveau contact"}
+            </h2>
+          ) : (
+            <NewEntityTitle kind={createKind} onKindChange={onCreateKindChange} />
+          )}
           <button onClick={onClose} className="rounded p-1 hover:bg-canvas/80 text-muted hover:text-heading transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 py-5 overflow-y-auto max-h-[70vh]">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Prénom">
-              <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Marie" />
-            </Field>
-            <Field label="Nom *">
-              <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Dupont" />
-            </Field>
-          </div>
-          <Field label="Email">
-            <input className={inputCls} type="email" value={form.primary_email} onChange={(e) => set("primary_email", e.target.value)} placeholder="marie.dupont@entreprise.com" />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Téléphone">
-              <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
-            </Field>
-            <Field label="LinkedIn">
-              <input className={inputCls} value={form.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} placeholder="linkedin.com/in/…" />
-            </Field>
-          </div>
-          <Field label="Entreprise">
-            <select className={selectCls} value={form.company_id} onChange={(e) => set("company_id", e.target.value)}>
-              <option value="">— Aucune entreprise —</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Fonction">
-              <input className={inputCls} value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="Directeur IT" />
-            </Field>
-            <Field label="Rôle relationnel">
-              <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
-                <option value="">— Aucun —</option>
-                {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Département">
-              <input className={inputCls} value={form.department} onChange={(e) => set("department", e.target.value)} placeholder="R&D, Commercial..." />
-            </Field>
-            <Field label="N+1 (Manager)">
-              <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
-                <option value="">— Aucun —</option>
-                {companyContacts.map((c) => (
-                  <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Intimité">
-              <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
-                <option value="">— Aucun —</option>
-                {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Field>
-          </div>
+        <form
+          onSubmit={handleSubmit}
+          className={cn(
+            "flex flex-col px-6 overflow-y-auto max-h-[70vh]",
+            isMobileCreateContact ? "gap-3 py-4" : "gap-4 py-5"
+          )}
+        >
+          {isMobileCreateContact ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Prénom">
+                  <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Marie" />
+                </Field>
+                <Field label="Nom *">
+                  <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Dupont" />
+                </Field>
+              </div>
+
+              <Field label="Entreprise">
+                <ContactCompanyCombobox
+                  accounts={accounts}
+                  value={form.company_id ?? ""}
+                  onChange={(value) => set("company_id", value)}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Poste">
+                  <input className={inputCls} value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="Directeur IT" />
+                </Field>
+                <Field label="Rôle relationnel">
+                  <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="N+1 (Manager)">
+                  <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {companyContacts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Intimité">
+                  <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Email">
+                <input className={inputCls} type="email" value={form.primary_email} onChange={(e) => set("primary_email", e.target.value)} placeholder="marie.dupont@entreprise.com" />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Téléphone">
+                  <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
+                </Field>
+                <Field label="LinkedIn">
+                  <input className={inputCls} value={form.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} placeholder="linkedin.com/in/…" />
+                </Field>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Prénom">
+                  <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Marie" />
+                </Field>
+                <Field label="Nom *">
+                  <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Dupont" />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Entreprise">
+                  <select className={selectCls} value={form.company_id} onChange={(e) => set("company_id", e.target.value)}>
+                    <option value="">— Aucune entreprise —</option>
+                    {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </Field>
+                <Field label="Département">
+                  <input className={inputCls} value={form.department} onChange={(e) => set("department", e.target.value)} placeholder="R&D, Commercial..." />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Fonction">
+                  <input className={inputCls} value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="Directeur IT" />
+                </Field>
+                <Field label="Rôle relationnel">
+                  <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Email">
+                  <input className={inputCls} type="email" value={form.primary_email} onChange={(e) => set("primary_email", e.target.value)} placeholder="marie.dupont@entreprise.com" />
+                </Field>
+                <Field label="LinkedIn">
+                  <input className={inputCls} value={form.linkedin_url} onChange={(e) => set("linkedin_url", e.target.value)} placeholder="linkedin.com/in/…" />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Téléphone 1">
+                  <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
+                </Field>
+                <Field label="Téléphone 2 (optionnel)">
+                  <input className={inputCls} value={form.phone_2 ?? ""} onChange={(e) => set("phone_2", e.target.value)} placeholder="+33 6 …" />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="N+1 (Manager)">
+                  <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {companyContacts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Intimité">
+                  <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </>
+          )}
           {error && <p className="text-xs text-red-500">{error}</p>}
         </form>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4 bg-canvas/30">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-6 py-3 bg-canvas/30">
           <button onClick={onClose} className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">Annuler</button>
           <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
             {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le contact"}
@@ -429,63 +598,7 @@ function DeleteConfirmModal({
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Study Details Modal
-// ─────────────────────────────────────────────────────────────────────────────
 
-function StudyDetailsModal({ study, onClose }: { study: StudyRow; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <SurfaceCard className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
-        <div className="flex items-start justify-between border-b border-primary/30 bg-primary px-6 py-5 shadow-sm">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold font-heading text-primary-fg">{study.companyName}</h2>
-              <span className="rounded bg-primary-fg px-2 py-0.5 text-xs font-bold text-primary shadow-sm">Score IA: {formatScore(study.score)}</span>
-            </div>
-            <p className="mt-1 text-xs font-medium text-primary-fg/75">{study.sector} · {study.segment}</p>
-          </div>
-          <button onClick={onClose} className="rounded p-1 text-primary-fg/75 transition-colors hover:bg-primary-fg/15 hover:text-primary-fg" aria-label="Fermer">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 font-heading">Synthèse de l&apos;Étude</h3>
-            <p className="text-sm leading-relaxed text-body bg-canvas/30 rounded border border-border/40 p-4 font-normal">{study.summary}</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded border border-border/40 p-4 bg-canvas/10">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-1 font-heading">Indicateurs de Croissance</h4>
-              <p className="text-xs leading-relaxed text-body font-medium">{study.growthTrend}</p>
-            </div>
-            <div className="rounded border border-border/40 p-4 bg-canvas/10">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-1 font-heading">Maturité Digitale</h4>
-              <p className="text-xs leading-relaxed text-body font-medium">{study.digitalMaturity}</p>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 font-heading">Contexte & Tendances Sectorielles</h3>
-            <p className="text-xs leading-relaxed text-body bg-canvas/10 rounded border border-border/40 p-3">{study.sectorTrends}</p>
-          </div>
-          {study.competitors && study.competitors.length > 0 && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 font-heading">Concurrents Identifiés</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {study.competitors.map((comp, idx) => (
-                  <span key={idx} className="inline-flex items-center rounded border border-border bg-canvas px-2.5 py-1 text-xs text-body font-medium">{comp}</span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-end border-t border-border/60 px-6 py-4 bg-canvas/30">
-          <button onClick={onClose} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary/95">Fermer l&apos;étude</button>
-        </div>
-      </SurfaceCard>
-    </div>
-  )
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Accounts Sub-views
@@ -494,14 +607,12 @@ function StudyDetailsModal({ study, onClose }: { study: StudyRow; onClose: () =>
 function AccountsDesktop({
   accounts,
   studies,
-  onOpenStudy,
   onOpenIdentity,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
-  onOpenStudy: (id: string) => void
   onOpenIdentity: (id: string) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
@@ -559,12 +670,12 @@ function AccountsDesktop({
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center">
                     {hasStudy ? (
-                      <button
-                        onClick={() => onOpenStudy(account.id)}
-                        className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20 whitespace-nowrap"
+                      <Link
+                        href={`/prospection/accounts/${account.id}`}
+                        className="inline-flex items-center justify-center rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20 whitespace-nowrap"
                       >
                         Consulter la page
-                      </button>
+                      </Link>
                     ) : (
                       <span className="text-muted text-[11px] italic">—</span>
                     )}
@@ -589,14 +700,12 @@ function AccountsDesktop({
 function AccountsMobile({
   accounts,
   studies,
-  onOpenStudy,
   onOpenIdentity,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
-  onOpenStudy: (id: string) => void
   onOpenIdentity: (id: string) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
@@ -641,9 +750,9 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors whitespace-nowrap">
+                <Link href={`/prospection/accounts/${account.id}`} className="inline-flex items-center justify-center rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors whitespace-nowrap">
                   Consulter la page
-                </button>
+                </Link>
               )}
             </div>
           </SurfaceCard>
@@ -742,18 +851,16 @@ function ContactsMobile({
   onOpenIdentity,
   onOpenCompanyIdentity,
   onEdit,
-  onDelete,
 }: {
   contacts: ContactRow[]
   onOpenIdentity: (contactId: string) => void
   onOpenCompanyIdentity: (companyId: string) => void
   onEdit: (contact: ContactRow) => void
-  onDelete: (contact: ContactRow) => void
 }) {
   return (
     <div className="flex flex-col gap-3">
       {contacts.map((contact) => (
-        <SurfaceCard key={contact.id} className="p-4">
+        <SurfaceCard key={contact.id} className="p-3.5">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <h2
@@ -776,21 +883,31 @@ function ContactsMobile({
                 <p className="mt-1 text-xs font-semibold text-primary">{contact.companyName}</p>
               )}
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted">
-            <span className="rounded border border-border bg-canvas px-2 py-1">{contact.companySector}</span>
-            {contact.email && <span className="rounded border border-border bg-canvas px-2 py-1">Email OK</span>}
-            {contact.phone && <span className="rounded border border-border bg-canvas px-2 py-1">Tel OK</span>}
-            {contact.relationshipRole && (
-              <span className="rounded border border-border bg-canvas px-2 py-1 capitalize">{contact.relationshipRole.replace("_", " ")}</span>
-            )}
-          </div>
-          <div className="mt-3 flex gap-2 border-t border-border/40 pt-2">
-            <button onClick={() => onEdit(contact)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
-              <IconEdit /> Modifier
+            <button
+              type="button"
+              onClick={() => onEdit(contact)}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-border text-muted transition-colors hover:bg-canvas/60 hover:text-heading"
+              aria-label={`Modifier ${contact.fullName}`}
+              title="Modifier"
+            >
+              <IconEdit />
             </button>
-            <button onClick={() => onDelete(contact)} className="flex items-center gap-1 rounded border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors">
-              <IconTrash /> Supprimer
+          </div>
+          <div className="mt-2.5 flex items-end justify-between gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2 text-[11px] text-muted">
+              <span className="rounded border border-border bg-canvas px-2 py-1">{contact.companySector}</span>
+              {contact.email && <span className="rounded border border-border bg-canvas px-2 py-1">Email OK</span>}
+              {contact.phone && <span className="rounded border border-border bg-canvas px-2 py-1">Tel OK</span>}
+              {contact.relationshipRole && (
+                <span className="rounded border border-border bg-canvas px-2 py-1 capitalize">{contact.relationshipRole.replace("_", " ")}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenIdentity(contact.id)}
+              className="shrink-0 rounded bg-primary px-2.5 py-1 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary/90"
+            >
+              Fiche
             </button>
           </div>
         </SurfaceCard>
@@ -807,6 +924,41 @@ type DeleteTarget =
   | { kind: "company"; item: AccountRow }
   | { kind: "contact"; item: ContactRow }
 
+type CreateEntityKind = "company" | "contact"
+
+function NewEntityTitle({
+  kind,
+  onKindChange,
+}: {
+  kind: CreateEntityKind
+  onKindChange: (kind: CreateEntityKind) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-base font-bold text-heading font-heading">Nouveau</span>
+      <div className="ml-2 flex items-center gap-2">
+        {([
+          { value: "company", label: "Compte" },
+          { value: "contact", label: "Contact" },
+        ] as const).map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onKindChange(option.value)}
+            className={cn(
+              "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
+              kind === option.value ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
+            )}
+            aria-pressed={kind === option.value}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ProspectionAccountsView({
   data,
   device,
@@ -816,7 +968,6 @@ export function ProspectionAccountsView({
 }) {
   const router = useRouter()
   const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
-  const [selectedStudy, setSelectedStudy] = useState<StudyRow | null>(null)
   const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
   const [selectedContactIdForIdentity, setSelectedContactIdForIdentity] = useState<string | null>(null)
   const [companyDrawerReturnToContactId, setCompanyDrawerReturnToContactId] = useState<string | null>(null)
@@ -840,6 +991,22 @@ export function ProspectionAccountsView({
     [data.accounts]
   )
 
+  const accountFilterPanelWidthCh = useMemo(() => {
+    const accountFilterOptions = [
+      ...sectorOptions,
+      ...LIFECYCLE_OPTIONS,
+      ...REVENUE_OPTIONS,
+      ...SIZE_OPTIONS,
+      ...SCORE_OPTIONS,
+    ]
+    const longestLabelLength = accountFilterOptions.reduce(
+      (longest, option) => Math.max(longest, option.label.length),
+      0
+    )
+
+    return Math.max(12, longestLabelLength + 3)
+  }, [sectorOptions])
+
   const filteredAccounts = useMemo(
     () => filterAccounts(data.accounts, { ...filters, q: deferredQuery }, studyIds),
     [data.accounts, filters, deferredQuery, studyIds]
@@ -861,6 +1028,9 @@ export function ProspectionAccountsView({
 
   const totalFiltered = subTab === "accounts" ? filteredAccounts.length : filteredContacts.length
   const totalAll = subTab === "accounts" ? data.accounts.length : data.contacts.length
+  const isMobileAccounts = device === "mobile" && subTab === "accounts"
+  const isMobileContacts = device === "mobile" && subTab === "contacts"
+  const isMobileSearch = isMobileAccounts || isMobileContacts
 
   // Company modal
   const [companyModal, setCompanyModal] = useState<{ open: boolean; editing?: AccountRow }>({ open: false })
@@ -872,12 +1042,18 @@ export function ProspectionAccountsView({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
 
-  const handleOpenStudy = (companyId: string) => {
-    const study = data.studies.find((s) => s.id === companyId)
-    if (study) setSelectedStudy(study)
-  }
+
 
   const refreshData = () => router.refresh()
+
+  const openCreateModal = (kind: CreateEntityKind = subTab === "contacts" ? "contact" : "company") => {
+    setCompanyModal({ open: kind === "company" })
+    setContactModal({ open: kind === "contact" })
+  }
+
+  const handleCreateKindChange = (kind: CreateEntityKind) => {
+    openCreateModal(kind)
+  }
 
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return
@@ -902,23 +1078,38 @@ export function ProspectionAccountsView({
           <h1 className={cn("font-heading font-bold tracking-tight text-heading", device === "mobile" ? "text-2xl" : "text-3xl")}>
             Comptes & Contacts
           </h1>
-          <p className="mt-2 max-w-2xl text-sm text-body">
-            Vue consolidée des entreprises ciblées, des contacts clés et des analyses sectorielles stratégiques.
-          </p>
+          {device === "desktop" && (
+            <p className="mt-2 max-w-2xl text-sm text-body">
+              Vue consolidée des entreprises ciblées, des contacts clés et des analyses sectorielles stratégiques.
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setContactModal({ open: true })}
-            className="rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
-          >
-            + Contact
-          </button>
-          <button
-            onClick={() => setCompanyModal({ open: true })}
-            className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-colors"
-          >
-            + Compte
-          </button>
+        <div className={cn("flex items-center gap-2 shrink-0", device === "mobile" && "mt-5")}>
+          {device === "mobile" ? (
+            <button
+              type="button"
+              onClick={() => openCreateModal()}
+              className="flex h-9 w-9 items-center justify-center rounded bg-primary text-lg font-semibold leading-none text-primary-fg hover:bg-primary/90 transition-colors"
+              aria-label="Créer un compte ou un contact"
+            >
+              +
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setContactModal({ open: true })}
+                className="rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+              >
+                + Contact
+              </button>
+              <button
+                onClick={() => setCompanyModal({ open: true })}
+                className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-colors"
+              >
+                + Compte
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -950,6 +1141,8 @@ export function ProspectionAccountsView({
         query={filters.q}
         totalFiltered={totalFiltered}
         totalAll={totalAll}
+        mobileCompact={isMobileSearch}
+        resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
         placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
         onQueryChange={(value) => setParam("q", value)}
         onReset={() => clearAll(["tab"])}
@@ -962,6 +1155,8 @@ export function ProspectionAccountsView({
               selected={filters.includeSector}
               onToggle={(value) => toggleListValue("incSector", value)}
               onClear={() => setParam("incSector", null)}
+              compact={isMobileAccounts}
+              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
               fullWidthPanel
             />
             <FilterDropdown
@@ -970,14 +1165,18 @@ export function ProspectionAccountsView({
               selected={filters.includeStatus}
               onToggle={(value) => toggleListValue("incStatus", value)}
               onClear={() => setParam("incStatus", null)}
+              compact={isMobileAccounts}
+              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
               fullWidthPanel
             />
             <FilterDropdown
-              label="Chiffre affaire"
+              label={device === "mobile" ? "CA" : "Chiffre affaire"}
               options={REVENUE_OPTIONS}
               selected={filters.includeRevenue}
               onToggle={(value) => toggleListValue("incRevenue", value)}
               onClear={() => setParam("incRevenue", null)}
+              compact={isMobileAccounts}
+              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
               fullWidthPanel
             />
             <FilterDropdown
@@ -986,6 +1185,8 @@ export function ProspectionAccountsView({
               selected={filters.includeSize}
               onToggle={(value) => toggleListValue("incSize", value)}
               onClear={() => setParam("incSize", null)}
+              compact={isMobileAccounts}
+              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
               fullWidthPanel
             />
             <FilterDropdown
@@ -995,6 +1196,8 @@ export function ProspectionAccountsView({
               selected={filters.minScore === null ? [] : [String(filters.minScore)]}
               onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
               onClear={() => setParam("minScore", null)}
+              compact={isMobileAccounts}
+              panelWidthCh={isMobileAccounts ? 11 : undefined}
             />
           </>
         ) : (
@@ -1005,16 +1208,20 @@ export function ProspectionAccountsView({
               selected={filters.includeRole}
               onToggle={(value) => toggleListValue("incRole", value)}
               onClear={() => setParam("incRole", null)}
+              compact={isMobileContacts}
+              panelWidthCh={isMobileContacts ? CONTACT_FILTER_PANEL_WIDTH_CH : undefined}
               fullWidthPanel
             />
             <FilterChip
               label="Avec email"
               active={filters.hasEmail}
+              compact={isMobileContacts}
               onToggle={() => setParam("hasEmail", filters.hasEmail ? null : "1")}
             />
             <FilterChip
               label="Avec téléphone"
               active={filters.hasPhone}
+              compact={isMobileContacts}
               onToggle={() => setParam("hasPhone", filters.hasPhone ? null : "1")}
             />
           </>
@@ -1027,7 +1234,6 @@ export function ProspectionAccountsView({
           <AccountsMobile
             accounts={displayAccounts}
             studies={data.studies}
-            onOpenStudy={handleOpenStudy}
             onOpenIdentity={setSelectedCompanyIdForIdentity}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
@@ -1036,7 +1242,6 @@ export function ProspectionAccountsView({
           <AccountsDesktop
             accounts={displayAccounts}
             studies={data.studies}
-            onOpenStudy={handleOpenStudy}
             onOpenIdentity={setSelectedCompanyIdForIdentity}
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
@@ -1054,7 +1259,6 @@ export function ProspectionAccountsView({
               setSelectedCompanyIdForIdentity(companyId)
             }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
-            onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
         ) : (
           <ContactsDesktop
@@ -1074,6 +1278,8 @@ export function ProspectionAccountsView({
       {companyModal.open && (
         <CompanyFormModal
           initial={companyModal.editing}
+          createKind={device === "mobile" && !companyModal.editing ? "company" : undefined}
+          onCreateKindChange={device === "mobile" && !companyModal.editing ? handleCreateKindChange : undefined}
           onClose={() => setCompanyModal({ open: false })}
           onSuccess={refreshData}
         />
@@ -1084,6 +1290,8 @@ export function ProspectionAccountsView({
           initial={contactModal.editing}
           accounts={data.accounts}
           contacts={data.contacts}
+          createKind={device === "mobile" && !contactModal.editing ? "contact" : undefined}
+          onCreateKindChange={device === "mobile" && !contactModal.editing ? handleCreateKindChange : undefined}
           onClose={() => {
             setContactModal({ open: false })
             if (editContactReturnToIdentityId) {
@@ -1110,9 +1318,7 @@ export function ProspectionAccountsView({
         />
       )}
 
-      {selectedStudy && (
-        <StudyDetailsModal study={selectedStudy} onClose={() => setSelectedStudy(null)} />
-      )}
+
 
       <CompanyIdentityDrawer
         companyId={selectedCompanyIdForIdentity}
