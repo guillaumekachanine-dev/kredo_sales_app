@@ -32,8 +32,12 @@ const TABS: { key: TabKey; label: string; lot?: string }[] = [
 
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
-  const { company, client, freshness, presence, contacts } = data
+  const { company, client, freshness, presence, contacts, pitches } = data
   const analysisSource: IntelligenceSource = client?.source ?? "none"
+  // L'onglet Pitch perd son badge « à venir » dès que des pitchs FOLIO existent.
+  const tabs = pitches.length > 0
+    ? TABS.map((tab) => (tab.key === "pitch" ? { ...tab, lot: undefined } : tab))
+    : TABS
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -94,7 +98,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
 
       {/* ── Onglets ─────────────────────────────────────────────────────────── */}
       <nav className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-6">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.key}
             type="button"
@@ -126,7 +130,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           {activeTab === "opportunites" && <ComingSoon lot="lot F">Matrice enjeux × offres</ComingSoon>}
           {activeTab === "scoring" && <ComingSoon lot="lot E">Breakdown du score (déterministe, expliqué)</ComingSoon>}
           {activeTab === "roadmap" && <ComingSoon lot="lot G">Roadmap commerciale → opportunités &amp; tâches</ComingSoon>}
-          {activeTab === "pitch" && <ComingSoon lot="lot H">Atelier de rédaction contextualisée</ComingSoon>}
+          {activeTab === "pitch" && <PitchTab data={data} />}
         </main>
 
         <aside className="hidden w-80 shrink-0 overflow-y-auto border-l border-border bg-canvas/30 p-4 lg:block">
@@ -225,6 +229,19 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
             <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-body">{client.data.synthese}</p>
           )}
 
+          {Object.keys(client.data.identite).length > 0 && (
+            <div className="mb-4">
+              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
+                Identité &amp; chiffres clés
+              </span>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(client.data.identite).map(([key, value]) => (
+                  <Field key={key} label={key.replace(/_/g, " ")} value={value} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {Object.keys(client.data.positionnement).length > 0 && (
             <div className="mb-4 grid gap-2 sm:grid-cols-2">
               {Object.entries(client.data.positionnement).map(([key, value]) => (
@@ -268,6 +285,60 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
       )}
 
       <ComingSoon lot="lot I">Veille & signaux (feeders n8n) · Scan contacts</ComingSoon>
+    </div>
+  )
+}
+
+// ─── Onglet Pitch — pitchs FOLIO importés (lecture seule, atelier au lot H) ────
+
+function PitchTab({ data }: { data: ClientIntelligenceData }) {
+  const { pitches } = data
+
+  if (pitches.length === 0) {
+    return <ComingSoon lot="lot H">Atelier de rédaction contextualisée</ComingSoon>
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="flex items-center gap-2">
+        <ProvenanceBadge source="folio" />
+        <p className="text-xs text-muted">
+          {pitches.length} pitch{pitches.length > 1 ? "s" : ""} importé{pitches.length > 1 ? "s" : ""} · lecture seule — l&apos;atelier de génération arrive au lot H.
+        </p>
+      </div>
+
+      {pitches.map((pitch) => (
+        <SectionBlock key={pitch.id} title={pitch.objet || pitch.destinataire || "Pitch"}>
+          {(pitch.destinataire || pitch.ton || pitch.format) && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {pitch.destinataire && (
+                <span className="rounded border border-border bg-canvas/50 px-2 py-0.5 text-[11px] text-body">
+                  Pour : {pitch.destinataire}
+                </span>
+              )}
+              {pitch.ton && (
+                <span className="rounded border border-border bg-canvas/50 px-2 py-0.5 text-[11px] text-body">
+                  Ton : {pitch.ton}
+                </span>
+              )}
+              {pitch.format && (
+                <span className="rounded border border-border bg-canvas/50 px-2 py-0.5 text-[11px] text-body">
+                  {pitch.format}
+                </span>
+              )}
+            </div>
+          )}
+          {pitch.corps && (
+            <p className="whitespace-pre-line text-sm leading-relaxed text-body">{pitch.corps}</p>
+          )}
+          {pitch.pointsCles.length > 0 && (
+            <div className="mt-3">
+              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">Points clés</span>
+              <TagList items={pitch.pointsCles} />
+            </div>
+          )}
+        </SectionBlock>
+      ))}
     </div>
   )
 }

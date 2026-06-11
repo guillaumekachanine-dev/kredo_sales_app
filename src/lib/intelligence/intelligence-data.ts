@@ -35,6 +35,17 @@ export type AnalyseSector = {
   synthese: string
 }
 
+export type LegacyPitch = {
+  id: string
+  destinataire: string
+  objet: string
+  corps: string
+  ton: string
+  format: string
+  pointsCles: string[]
+  statut: string
+}
+
 export type ClientIntelligencePresence = {
   hasClientAnalysis: boolean
   hasSectorAnalysis: boolean
@@ -77,6 +88,7 @@ export type ClientIntelligenceData = {
   sector: { data: AnalyseSector; source: IntelligenceSource } | null
   signals: string[]
   contacts: ClientIntelligenceContact[]
+  pitches: LegacyPitch[]
 }
 
 // ─── Loose client (cohérent avec accounts-contacts-data.ts : évite la friction
@@ -155,6 +167,34 @@ function parseAnalyseSector(raw: unknown): AnalyseSector | null {
   const synthese = str(root.synthese_sectorielle) || str(root.synthese)
   if (!synthese) return null
   return { synthese }
+}
+
+/**
+ * Pitchs FOLIO importés (`metadata.pitches`) — lecture seule. Les pitchs moteur
+ * (result_type='pitch', phase 5) seront branchés au lot H ; même contrat de sortie.
+ */
+function parsePitches(raw: unknown): LegacyPitch[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((item, i): LegacyPitch => {
+      const r = asRecord(item)
+      const pts = r.points_cles
+      return {
+        id: str(r.id) || `pitch-${i}`,
+        destinataire: str(r.destinataire),
+        objet: str(r.objet_mail),
+        corps: str(r.corps_mail),
+        ton: str(r.ton),
+        format: str(r.format_mail),
+        pointsCles: Array.isArray(pts)
+          ? pts.filter((p): p is string => typeof p === "string")
+          : str(pts)
+            ? [str(pts)]
+            : [],
+        statut: str(r.statut),
+      }
+    })
+    .filter((p) => p.corps || p.objet || p.destinataire)
 }
 
 function clean(value: string | null | undefined, fallback = "Non renseigné"): string {
@@ -255,6 +295,7 @@ export async function getClientIntelligence(
       .from("contacts")
       .select<ContactRow>("id,job_title,relationship_role,persons(full_name,first_name,last_name,primary_email)")
       .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
       .limit(6),
   ])
 
@@ -337,6 +378,7 @@ export async function getClientIntelligence(
       sector,
       signals: client?.data.signaux.actualitesRecentes ?? [],
       contacts,
+      pitches: parsePitches(metadata.pitches),
     },
   }
 }
