@@ -19,6 +19,8 @@ export function SearchToolbar({
   query,
   totalFiltered,
   totalAll,
+  mobileCompact = false,
+  resultLabel,
   placeholder = "Rechercher…",
   onQueryChange,
   onReset,
@@ -28,6 +30,8 @@ export function SearchToolbar({
   query: string
   totalFiltered: number
   totalAll: number
+  mobileCompact?: boolean
+  resultLabel?: string
   placeholder?: string
   onQueryChange: (value: string) => void
   onReset: () => void
@@ -52,10 +56,16 @@ export function SearchToolbar({
   }, [text, query, onQueryChange])
 
   const isFiltered = totalFiltered !== totalAll
+  const resultText = resultLabel
+    ? `${totalFiltered}/${totalAll} ${resultLabel}`
+    : isFiltered
+      ? `${totalFiltered} / ${totalAll}`
+      : `${totalAll}`
+  const showCompactMobile = device === "mobile" && mobileCompact
 
   return (
     <div className="flex flex-col gap-3">
-      <div className={cn("flex gap-2", device === "mobile" ? "flex-col items-stretch" : "items-center")}>
+      <div className={cn("flex gap-2", device === "mobile" ? "items-stretch" : "items-center", !showCompactMobile && device === "mobile" && "flex-col")}>
         <div className="relative flex-1">
           <label htmlFor={inputId} className="sr-only">
             Rechercher
@@ -79,20 +89,41 @@ export function SearchToolbar({
             </button>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="whitespace-nowrap text-xs text-muted">
-            {isFiltered ? `${totalFiltered} / ${totalAll}` : `${totalAll}`}
-          </span>
+        <div className={cn("flex items-center gap-3", showCompactMobile ? "shrink-0" : "justify-between")}>
+          {!showCompactMobile && (
+            <span className="whitespace-nowrap text-xs text-muted">
+              {resultText}
+            </span>
+          )}
           <button
             type="button"
             onClick={onReset}
-            className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:text-heading"
+            aria-label="Réinitialiser"
+            className={cn(
+              "rounded-md border border-border text-xs font-semibold text-muted transition-colors hover:text-heading",
+              showCompactMobile ? "flex h-9 w-9 items-center justify-center p-0" : "px-3 py-2"
+            )}
           >
-            Réinitialiser
+            {showCompactMobile ? (
+              <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 0 1 15.36-6.36M21 12A9 9 0 0 1 5.64 18.36M18 5.64V3h2.64M6 18.36V21H3.36" />
+              </svg>
+            ) : (
+              "Réinitialiser"
+            )}
           </button>
         </div>
       </div>
-      {children && <div className="flex flex-wrap gap-2">{children}</div>}
+      {children && (
+        <div className={cn("flex", showCompactMobile ? "flex-nowrap gap-1" : "flex-wrap gap-2")}>
+          {children}
+        </div>
+      )}
+      {showCompactMobile && (
+        <div className="text-xs font-bold text-heading">
+          {resultText}
+        </div>
+      )}
     </div>
   )
 }

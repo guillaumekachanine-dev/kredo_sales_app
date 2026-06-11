@@ -5,10 +5,12 @@ import { cn } from "@/lib/utils"
 export function FilterChip({
   label,
   active,
+  compact = false,
   onToggle,
 }: {
   label: string
   active: boolean
+  compact?: boolean
   onToggle: () => void
 }) {
   return (
@@ -17,7 +19,8 @@ export function FilterChip({
       aria-pressed={active}
       onClick={onToggle}
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+        "inline-flex items-center rounded-full border font-semibold transition-colors",
+        compact ? "px-2.5 py-1 text-[11px] leading-4" : "px-3 py-1 text-xs",
         active
           ? "border-primary/40 bg-primary/10 text-primary"
           : "border-border bg-surface text-muted hover:border-primary/30 hover:text-heading"

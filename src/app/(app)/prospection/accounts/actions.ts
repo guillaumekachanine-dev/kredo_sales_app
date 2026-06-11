@@ -68,6 +68,7 @@ export type ContactFormData = {
   last_name: string
   primary_email?: string
   phone?: string
+  phone_2?: string
   linkedin_url?: string
   company_id?: string
   job_title?: string
@@ -88,7 +89,10 @@ export async function createContact(data: ContactFormData) {
       primary_email: data.primary_email?.trim() || null,
       phone: data.phone?.trim() || null,
       linkedin_url: data.linkedin_url?.trim() || null,
-      metadata: data.manager_contact_id ? { manager_contact_id: data.manager_contact_id } : {},
+      metadata: {
+        ...(data.manager_contact_id ? { manager_contact_id: data.manager_contact_id } : {}),
+        ...(data.phone_2?.trim() ? { phone_2: data.phone_2.trim() } : {}),
+      },
     })
     .select("id")
     .single()
@@ -124,10 +128,11 @@ export async function updateContact(
     .eq("id", personId)
     .maybeSingle()
 
-  const currentMeta = (currentPerson?.metadata || {}) as Record<string, any>
+  const currentMeta = (currentPerson?.metadata || {}) as Record<string, unknown>
   const updatedMeta = {
     ...currentMeta,
-    manager_contact_id: data.manager_contact_id || null
+    manager_contact_id: data.manager_contact_id || null,
+    phone_2: data.phone_2?.trim() || null,
   }
 
   const [personResult, contactResult] = await Promise.all([
@@ -479,4 +484,3 @@ export async function getContactIdentity(contactId: string) {
     return { error: "Une erreur inattendue est survenue", data: null }
   }
 }
-

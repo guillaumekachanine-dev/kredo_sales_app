@@ -109,15 +109,17 @@ export const mainMenuItems: MainMenuItem[] = [
         href: "/prospection",
         icon: "prospection",
         primary: true,
+        // Nav rationalisée — 2 grains : portefeuille (ces onglets) vs compte (hub
+        // Client Intelligence /accounts/[companyId]). Scoring, Atelier IA et la
+        // veille par compte ont migré dans le hub ; le radar de signaux transverse
+        // rejoint la Synthèse. Réglages = utilitaire de domaine (Sources + méthode
+        // de scoring en lecture + params pitch), placé en dernier.
         tabs: [
-          { label: "Vue d'ensemble",          shortLabel: "Synthèse", href: "/prospection" },
-          { label: "Comptes & contacts",      shortLabel: "Comptes",  href: "/prospection/accounts" },
-          { label: "Signaux & veille",        shortLabel: "Signaux",  href: "/prospection/signals" },
-          { label: "Études sectorielles",     shortLabel: "Études",   href: "/prospection/sector-studies" },
-          { label: "Séquences",                                       href: "/prospection/sequences" },
-          { label: "Atelier IA",              shortLabel: "Atelier",  href: "/prospection/ai-workshop" },
-          { label: "Scoring & qualification", shortLabel: "Scoring",  href: "/prospection/scoring" },
-          { label: "Sources",                                         href: "/prospection/sources" },
+          { label: "Synthèse",           shortLabel: "Synthèse", href: "/prospection" },
+          { label: "Comptes & contacts", shortLabel: "Comptes",  href: "/prospection/accounts" },
+          { label: "Études",             shortLabel: "Études",   href: "/prospection/sector-studies" },
+          { label: "Suivi",              shortLabel: "Suivi",    href: "/prospection/suivi" },
+          { label: "Réglages",           shortLabel: "Réglages", href: "/prospection/settings" },
         ],
       },
       {

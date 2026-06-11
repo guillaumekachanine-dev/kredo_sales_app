@@ -21,6 +21,9 @@ export function FilterDropdown({
   options,
   selected,
   mode = "multi",
+  compact = false,
+  panelWidthCh,
+  panelAlign = "left",
   onToggle,
   onClear,
   fullWidthPanel = false,
@@ -29,6 +32,9 @@ export function FilterDropdown({
   options: FilterOption[]
   selected: string[]
   mode?: "multi" | "single"
+  compact?: boolean
+  panelWidthCh?: number
+  panelAlign?: "left" | "right"
   onToggle: (value: string) => void
   onClear: () => void
   fullWidthPanel?: boolean
@@ -77,7 +83,8 @@ export function FilterDropdown({
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+          "inline-flex items-center rounded-full border font-semibold transition-colors",
+          compact ? "gap-1 px-2.5 py-1 text-[11px] leading-4" : "gap-1 px-3 py-1 text-xs",
           active
             ? "border-primary/40 bg-primary/10 text-primary"
             : "border-border bg-surface text-muted hover:border-primary/30 hover:text-heading"
@@ -95,9 +102,11 @@ export function FilterDropdown({
           role="listbox"
           aria-multiselectable={mode === "multi"}
           className={cn(
-            "absolute left-0 top-[calc(100%+4px)] z-20 max-h-72 overflow-y-auto rounded-md border border-border bg-surface p-1",
-            fullWidthPanel ? "w-[min(20rem,calc(100vw-2rem))]" : "min-w-[12rem]"
+            "absolute top-[calc(100%+4px)] z-[100] max-h-72 overflow-y-auto rounded-md border border-border bg-surface p-1 shadow-lg",
+            panelAlign === "right" ? "right-0" : "left-0",
+            !panelWidthCh && (fullWidthPanel ? "w-[min(20rem,calc(100vw-2rem))]" : "min-w-[12rem]")
           )}
+          style={panelWidthCh ? { width: `min(calc(100vw - 2rem), ${panelWidthCh}ch)` } : undefined}
         >
           {active && (
             <button

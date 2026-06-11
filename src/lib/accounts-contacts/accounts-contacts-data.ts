@@ -38,6 +38,7 @@ export type ContactRow = {
   lastName: string
   email: string | null
   phone: string | null
+  phone2: string | null
   linkedinUrl: string | null
   jobTitle: string
   relationshipRole: string | null
@@ -228,7 +229,6 @@ function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: num
 }
 
 function buildStudy(row: CompanyQueryRow): StudyRow | null {
-  const metadata = asRecord(row.metadata)
   const study = getStudy(row.metadata)
   if (Object.keys(study).length === 0) return null
 
@@ -252,6 +252,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
   const meta = asRecord(person?.metadata)
   const managerContactId = typeof meta.manager_contact_id === "string" ? meta.manager_contact_id : null
+  const phone2 = typeof meta.phone_2 === "string" ? meta.phone_2 : null
 
   return {
     id: row.id,
@@ -264,6 +265,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
     lastName: person?.last_name?.trim() ?? "",
     email: person?.primary_email ?? null,
     phone: person?.phone ?? null,
+    phone2,
     linkedinUrl: person?.linkedin_url ?? null,
     jobTitle: cleanText(row.job_title, ""),
     relationshipRole: row.relationship_role ?? null,
