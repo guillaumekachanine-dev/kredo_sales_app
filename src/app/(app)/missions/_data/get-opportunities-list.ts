@@ -136,6 +136,10 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         tag,
         status: mapStageToStatus(item.stage),
         updatedAt: item.updated_at,
+        conviction: item.conviction,
+        acv: item.acv,
+        estimatedGain: item.estimated_gain,
+        stage: item.stage,
       }
     })
 
@@ -159,6 +163,10 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       date: row.date,
       client: row.client,
       tag: row.tag,
+      conviction: row.conviction,
+      acv: row.acv,
+      estimatedGain: row.estimatedGain,
+      stage: row.stage,
     }))
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)

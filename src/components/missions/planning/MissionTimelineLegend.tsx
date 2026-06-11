@@ -9,15 +9,15 @@ const legendStatuses: MissionTemporalStatus[] = [
   "active",
   "ending_soon",
   "future",
-  "expired",
   "ongoing_open_end",
 ]
 
 interface MissionTimelineLegendProps {
   compact?: boolean
+  counts?: Record<MissionTemporalStatus, number>
 }
 
-export function MissionTimelineLegend({ compact = false }: MissionTimelineLegendProps) {
+export function MissionTimelineLegend({ compact = false, counts }: MissionTimelineLegendProps) {
   return (
     <div
       className={cn(
@@ -26,22 +26,21 @@ export function MissionTimelineLegend({ compact = false }: MissionTimelineLegend
       )}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        {legendStatuses.map((status) => (
-          <span key={status} className="inline-flex items-center gap-2">
-            <span
-              className={cn(
-                "h-2.5 w-2.5 rounded-sm shrink-0",
-                STATUS_DOT_CLASSES[status]
-              )}
-            />
-            {STATUS_LABELS[status]}
-          </span>
-        ))}
+        {legendStatuses.map((status) => {
+          const count = counts?.[status] ?? 0
+          return (
+            <span key={status} className="inline-flex items-center gap-2">
+              <span
+                className={cn(
+                  "h-2.5 w-2.5 rounded-sm shrink-0",
+                  STATUS_DOT_CLASSES[status]
+                )}
+              />
+              {STATUS_LABELS[status]} {counts ? `(${count})` : ""}
+            </span>
+          )
+        })}
       </div>
-      <span className="inline-flex items-center gap-2">
-        <span className="h-4 w-0.5 rounded-full bg-danger" />
-        Aujourd&apos;hui
-      </span>
     </div>
   )
 }

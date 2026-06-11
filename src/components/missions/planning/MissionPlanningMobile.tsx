@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { MissionPlanningRow } from "./mission-planning-types"
 import { MissionTimelineLegend } from "./MissionTimelineLegend"
+import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import {
+  addDays,
   formatDateFr,
   formatEuro,
   formatPercent,
@@ -15,7 +17,9 @@ import {
   getMissionSubtitle,
   getMissionTemporalStatus,
   getPersonName,
+  getStatusCounts,
   getTimelineRange,
+  parseDateOnly,
   startOfDay,
   STATUS_BADGE_CLASSES,
   STATUS_DOT_CLASSES,
@@ -41,30 +45,50 @@ export function MissionPlanningMobile({ rows }: MissionPlanningMobileProps) {
     (row) => getMissionTemporalStatus(row, today) === "ending_soon"
   ).length
 
+  const limitDate = useMemo(() => addDays(today, 21), [today])
+  const arretsS3 = useMemo(() => {
+    return rows.filter((row) => {
+      const endDate = parseDateOnly(row.endDate)
+      return endDate !== null && endDate >= today && endDate <= limitDate
+    }).length
+  }, [rows, today, limitDate])
+
+  const demarragesS3 = useMemo(() => {
+    return rows.filter((row) => {
+      const startDate = parseDateOnly(row.startDate)
+      return startDate !== null && startDate >= today && startDate <= limitDate
+    }).length
+  }, [rows, today, limitDate])
+
+  const deltaS3 = demarragesS3 - arretsS3
+  const formattedDeltaS3 = deltaS3 > 0 ? `+${deltaS3}` : `${deltaS3}`
+
+  const statusCounts = useMemo(() => getStatusCounts(rows, today), [rows, today])
+
   return (
     <div className="flex w-full flex-col gap-4 px-4 py-5">
-      <header className="border-b border-border pb-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="font-heading text-xl font-bold tracking-tight text-heading">
-              Planning
-            </h1>
-            <p className="mt-1 text-xs text-muted">
-              {rows.length} mission{rows.length > 1 ? "s" : ""} active{rows.length > 1 ? "s" : ""} · {formatDateFr(range.start)} à {formatDateFr(range.end)}
-            </p>
-          </div>
+      <header className="border-b border-border pb-4 flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-heading text-xl font-bold tracking-tight text-heading">
+            Planning
+          </h1>
           <span className="shrink-0 rounded border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-heading">
             {formatDateFr(today)}
           </span>
         </div>
+        <div className="flex items-center justify-around divide-x divide-border/60 w-full mt-2">
+          <HeaderKpiCard label="Arrêt mission S+3" value={arretsS3} className="flex-1" valueClassName={arretsS3 > 0 ? "text-danger" : ""} />
+          <HeaderKpiCard label="Démarrage S+3" value={demarragesS3} className="flex-1" valueClassName={demarragesS3 > 0 ? "text-success" : ""} />
+          <HeaderKpiCard label="Delta mission S+3" value={formattedDeltaS3} className="flex-1" valueClassName={deltaS3 < 0 ? "text-warning" : ""} />
+        </div>
         {endingSoonCount > 0 && (
-          <div className="mt-3 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">
+          <div className="mt-1 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-xs font-semibold text-warning">
             {endingSoonCount} mission{endingSoonCount > 1 ? "s" : ""} à sécuriser sous 30 jours.
           </div>
         )}
       </header>
 
-      <MissionTimelineLegend compact />
+      <MissionTimelineLegend compact counts={statusCounts} />
 
       {rows.length === 0 ? (
         <div className="flex min-h-[240px] items-center justify-center rounded-lg border border-dashed border-border bg-surface/60 px-5 text-center">

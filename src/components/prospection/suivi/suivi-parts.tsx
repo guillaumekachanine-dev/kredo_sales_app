@@ -1,21 +1,13 @@
-// Helpers partagés Desktop/Mobile du module Suivi. Composants purs, sans état.
-import Link from "next/link"
+// Helpers spécifiques au module Suivi. Les primitives génériques (StatusDot,
+// ProgressBar, CompanyLink, maps de statut) vivent dans ../prospection-parts et
+// sont re-exportées ici pour que les vues Suivi gardent un point d'import unique.
 import { cn } from "@/lib/utils"
+import { STATUS_TEXT, StatusDot } from "../prospection-parts"
 import type { SuiviStatus, SuiviCampaign, SuiviRoadmapItem } from "@/lib/prospection/suivi-data"
 
-export const STATUS_TEXT: Record<SuiviStatus, string> = {
-  danger: "text-danger",
-  warning: "text-warning",
-  success: "text-success",
-  neutral: "text-muted",
-}
+export { STATUS_TEXT, STATUS_DOT, StatusDot, ProgressBar, CompanyLink } from "../prospection-parts"
 
-export const STATUS_DOT: Record<SuiviStatus, string> = {
-  danger: "bg-danger",
-  warning: "bg-warning",
-  success: "bg-success",
-  neutral: "bg-muted",
-}
+export type SuiviDeadlineChannel = "email" | "linkedin" | "call" | "meeting" | "task"
 
 const CHANNEL_LABEL: Record<SuiviDeadlineChannel, string> = {
   email: "Email",
@@ -25,18 +17,12 @@ const CHANNEL_LABEL: Record<SuiviDeadlineChannel, string> = {
   task: "Tâche",
 }
 
-export type SuiviDeadlineChannel = "email" | "linkedin" | "call" | "meeting" | "task"
-
 export function ChannelTag({ channel }: { channel: SuiviDeadlineChannel }) {
   return (
     <span className="inline-flex items-center rounded border border-border bg-canvas px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
       {CHANNEL_LABEL[channel]}
     </span>
   )
-}
-
-export function StatusDot({ status }: { status: SuiviStatus }) {
-  return <span className={cn("inline-block h-2 w-2 shrink-0 rounded-full", STATUS_DOT[status])} aria-hidden />
 }
 
 const HORIZON_LABEL: Record<SuiviRoadmapItem["horizon"], string> = {
@@ -67,27 +53,5 @@ export function CampaignStatusPill({ status }: { status: SuiviCampaign["status"]
       <StatusDot status={tone} />
       {label}
     </span>
-  )
-}
-
-/** Jauge de progression pure HTML+Tailwind (zéro librairie, conforme stack). */
-export function ProgressBar({ value, tone = "primary" }: { value: number; tone?: "primary" | "success" }) {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-hover" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-      <div
-        className={cn("h-full rounded-full", tone === "success" ? "bg-success" : "bg-primary")}
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-      />
-    </div>
-  )
-}
-
-/** Lien compte → hub Client Intelligence, ou simple libellé si pas d'id. */
-export function CompanyLink({ company, companyId, className }: { company: string; companyId?: string; className?: string }) {
-  if (!companyId) return <span className={className}>{company}</span>
-  return (
-    <Link href={`/prospection/accounts/${companyId}`} className={cn("hover:text-primary hover:underline", className)}>
-      {company}
-    </Link>
   )
 }

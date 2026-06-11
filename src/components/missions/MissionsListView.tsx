@@ -15,6 +15,12 @@ export type MissionsListRow = {
   date?: string
   client?: string
   tag?: string
+  tjm?: number
+  grossMarginPct?: number | null
+  conviction?: number
+  acv?: number | null
+  estimatedGain?: number | null
+  stage?: string
 }
 
 interface MissionsListViewProps {

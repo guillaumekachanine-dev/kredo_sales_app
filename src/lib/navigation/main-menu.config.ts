@@ -117,8 +117,8 @@ export const mainMenuItems: MainMenuItem[] = [
         tabs: [
           { label: "Synthèse",           shortLabel: "Synthèse", href: "/prospection" },
           { label: "Comptes & contacts", shortLabel: "Comptes",  href: "/prospection/accounts" },
-          { label: "Études",             shortLabel: "Études",   href: "/prospection/sector-studies" },
-          { label: "Suivi",              shortLabel: "Suivi",    href: "/prospection/suivi" },
+          { label: "Analyses sectorielles", shortLabel: "Études",   href: "/prospection/sector-studies" },
+          { label: "Suivi des actions",     shortLabel: "Suivi",    href: "/prospection/suivi" },
           { label: "Réglages",           shortLabel: "Réglages", href: "/prospection/settings" },
         ],
       },

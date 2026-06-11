@@ -109,7 +109,7 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
                 <CampaignStatusPill status={c.status} />
               </div>
               <div className="mt-2">
-                <ProgressBar value={c.progress} tone={c.status === "active" ? "primary" : "success"} />
+                <ProgressBar value={c.progress} status={c.status === "active" ? "neutral" : "success"} />
               </div>
               <p className="mt-1.5 text-xs text-muted">{c.nextStepLabel}</p>
             </SurfaceCard>

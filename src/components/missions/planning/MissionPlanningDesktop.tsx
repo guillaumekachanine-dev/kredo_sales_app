@@ -6,11 +6,13 @@ import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { SectionTab } from "@/lib/tabs/tab-types"
 import type { MissionPlanningRow, MissionTemporalStatus } from "./mission-planning-types"
 import { MissionTimelineLegend } from "./MissionTimelineLegend"
+import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import {
   MissionTimelineTooltip,
   type MissionTooltipState,
 } from "./MissionTimelineTooltip"
 import {
+  addDays,
   clampPercent,
   formatDateFr,
   formatEuro,
@@ -22,6 +24,7 @@ import {
   getMissionTemporalStatus,
   getPercentOffset,
   getPersonName,
+  getStatusCounts,
   getTimelineBarLabel,
   getTimelineRange,
   parseDateOnly,
@@ -38,22 +41,6 @@ interface MissionPlanningDesktopProps {
 
 const LABEL_COLUMN_WIDTH = 280
 const MONTH_COLUMN_WIDTH = 104
-
-function getStatusCounts(rows: MissionPlanningRow[], today: Date) {
-  return rows.reduce<Record<MissionTemporalStatus, number>>(
-    (acc, row) => {
-      acc[getMissionTemporalStatus(row, today)] += 1
-      return acc
-    },
-    {
-      active: 0,
-      ending_soon: 0,
-      future: 0,
-      expired: 0,
-      ongoing_open_end: 0,
-    }
-  )
-}
 
 function getBarMetrics(row: MissionPlanningRow, today: Date, rangeStart: Date, totalDays: number) {
   const { startDate, endDate } = getMissionDisplayDates(row, today)
@@ -109,30 +96,45 @@ export function MissionPlanningDesktop({ rows }: MissionPlanningDesktopProps) {
   const todayLeft = `${clampPercent(todayOffset)}%`
   const endingSoon = rows.filter((row) => getDaysRemaining(row, today) !== null && getMissionTemporalStatus(row, today) === "ending_soon").length
 
+  const limitDate = useMemo(() => addDays(today, 21), [today])
+  const arretsS3 = useMemo(() => {
+    return rows.filter((row) => {
+      const endDate = parseDateOnly(row.endDate)
+      return endDate !== null && endDate >= today && endDate <= limitDate
+    }).length
+  }, [rows, today, limitDate])
+
+  const demarragesS3 = useMemo(() => {
+    return rows.filter((row) => {
+      const startDate = parseDateOnly(row.startDate)
+      return startDate !== null && startDate >= today && startDate <= limitDate
+    }).length
+  }, [rows, today, limitDate])
+
+  const deltaS3 = demarragesS3 - arretsS3
+  const formattedDeltaS3 = deltaS3 > 0 ? `+${deltaS3}` : `${deltaS3}`
+
   return (
     <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 px-6 py-6">
-      <header className="flex items-start justify-between gap-5 border-b border-border pb-4">
-        <div className="min-w-0">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-            Planning
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {rows.length} mission{rows.length > 1 ? "s" : ""} active{rows.length > 1 ? "s" : ""} · Période {formatDateFr(range.start)} à {formatDateFr(range.end)}
-          </p>
+      <header className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-border pb-4 w-full">
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-heading shrink-0">
+          Planning
+        </h1>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center justify-around divide-x divide-border/60 w-full max-w-2xl">
+            <HeaderKpiCard label="Arrêt mission S+3" value={arretsS3} className="flex-1" valueClassName={arretsS3 > 0 ? "text-danger" : ""} />
+            <HeaderKpiCard label="Démarrage S+3" value={demarragesS3} className="flex-1" valueClassName={demarragesS3 > 0 ? "text-success" : ""} />
+            <HeaderKpiCard label="Delta mission S+3" value={formattedDeltaS3} className="flex-1" valueClassName={deltaS3 < 0 ? "text-warning" : ""} />
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2 text-[11px]">
-          <span className="rounded border border-border bg-surface px-2.5 py-1 font-semibold text-heading">
-            Aujourd&apos;hui · {formatDateFr(today)}
+        <div className="shrink-0 flex items-center text-[11px]">
+          <span className="rounded border border-border bg-surface px-2.5 py-1 font-semibold text-heading shadow-sm">
+            {formatDateFr(today)}
           </span>
-          {endingSoon > 0 && (
-            <span className="rounded border border-warning/20 bg-warning/10 px-2.5 py-1 font-semibold text-warning">
-              {endingSoon} fin{endingSoon > 1 ? "s" : ""} proche{endingSoon > 1 ? "s" : ""}
-            </span>
-          )}
         </div>
       </header>
 
-      <MissionTimelineLegend />
+      <MissionTimelineLegend counts={statusCounts} />
 
       {rows.length === 0 ? (
         <div className="flex min-h-[320px] items-center justify-center rounded-lg border border-dashed border-border bg-surface/60 px-6 text-center">
@@ -294,25 +296,7 @@ export function MissionPlanningDesktop({ rows }: MissionPlanningDesktopProps) {
         </section>
       )}
 
-      {rows.length > 0 && (
-        <div className="grid grid-cols-5 gap-2 border-t border-border pt-3 text-[11px]">
-          {(Object.keys(STATUS_LABELS) as MissionTemporalStatus[]).map((status) => (
-            <div key={status} className={cn("rounded border px-2.5 py-2", STATUS_BADGE_CLASSES[status])}>
-              <div className="flex items-center gap-1.5 font-bold">
-                <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT_CLASSES[status])} />
-                {STATUS_LABELS[status]}
-              </div>
-              <div className="mt-1 tabular-nums text-heading">{statusCounts[status]}</div>
-            </div>
-          ))}
-        </div>
-      )}
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-muted">
-        <span>TJM moyen · {formatEuro(rows.length ? Math.round(rows.reduce((sum, row) => sum + (row.tjm ?? 0), 0) / rows.length) : null)}</span>
-        <span>Marge moyenne · {formatPercent(rows.length ? rows.reduce((sum, row) => sum + (row.grossMarginPct ?? 0), 0) / rows.length : null)}</span>
-        <span>Survoler une barre affiche le détail, cliquer ouvre la fiche mission.</span>
-      </div>
 
       <MissionTimelineTooltip state={tooltip} today={today} />
     </div>

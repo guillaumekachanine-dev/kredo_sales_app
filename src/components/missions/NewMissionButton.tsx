@@ -11,9 +11,12 @@ export function NewMissionButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="px-4 py-2 text-xs font-semibold rounded-md bg-primary text-primary-fg hover:bg-primary/90 active:scale-[.98] transition-all shrink-0"
+        className="w-9 h-9 flex items-center justify-center rounded-md bg-primary text-primary-fg hover:bg-primary/90 active:scale-[.98] transition-all shrink-0"
+        title="Nouvelle mission"
       >
-        Nouvelle mission
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
       </button>
 
       <NewOpportunityDrawer open={open} onOpenChange={setOpen} defaultStage="gagne" />

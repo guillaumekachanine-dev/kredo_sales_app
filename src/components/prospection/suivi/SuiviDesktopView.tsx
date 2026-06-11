@@ -122,7 +122,7 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
                   <CampaignStatusPill status={c.status} />
                 </div>
                 <div className="mt-2">
-                  <ProgressBar value={c.progress} tone={c.status === "active" ? "primary" : "success"} />
+                  <ProgressBar value={c.progress} status={c.status === "active" ? "neutral" : "success"} />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-muted">
                   <span>{c.channel} · {c.targets} cibles</span>

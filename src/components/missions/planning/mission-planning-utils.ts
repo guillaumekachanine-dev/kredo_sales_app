@@ -158,6 +158,22 @@ export function getMissionTemporalStatus(
   return "active"
 }
 
+export function getStatusCounts(rows: MissionPlanningRow[], today: Date) {
+  return rows.reduce<Record<MissionTemporalStatus, number>>(
+    (acc, row) => {
+      acc[getMissionTemporalStatus(row, today)] += 1
+      return acc
+    },
+    {
+      active: 0,
+      ending_soon: 0,
+      future: 0,
+      expired: 0,
+      ongoing_open_end: 0,
+    }
+  )
+}
+
 export function getPercentOffset(
   date: Date,
   rangeStart: Date,

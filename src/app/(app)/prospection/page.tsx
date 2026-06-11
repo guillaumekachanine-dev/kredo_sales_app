@@ -1,16 +1,10 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { prospectionDashboardConfig } from "@/lib/dashboard/configs/prospection-dashboard.config"
-import { mockProspectionDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { SyntheseSection } from "@/components/prospection/synthese"
 
-export default async function ProspectionPage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={prospectionDashboardConfig}
-      data={mockProspectionDashboardData}
-    />
-  )
+// Onglet Synthèse — cockpit décisionnel du portefeuille de prospection (radar de
+// signaux, secteurs chauds, pipeline pondéré, comptes à activer). Agrégats réels
+// Supabase (RLS workspace). L'exécution/action se pilote dans l'onglet Suivi.
+export default function ProspectionPage() {
+  return <SyntheseSection />
 }

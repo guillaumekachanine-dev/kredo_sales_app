@@ -139,6 +139,8 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         date: formatDate(item.start_date),
         tag,
         status,
+        tjm: item.tjm,
+        grossMarginPct: item.gross_margin_pct,
       }
     })
 

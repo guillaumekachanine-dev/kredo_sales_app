@@ -619,10 +619,7 @@ function AccountsDesktop({
 }) {
   return (
     <SurfaceCard className="overflow-hidden">
-      <div className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-heading">Comptes prioritaires</h2>
-        <p className="mt-1 text-xs text-muted">Tri par score IA, nombre de contacts et nom d&apos;entreprise.</p>
-      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs table-fixed">
           <thead>
@@ -781,10 +778,6 @@ function ContactsDesktop({
 }) {
   return (
     <SurfaceCard className="overflow-hidden">
-      <div className="border-b border-border px-5 py-4">
-        <h2 className="text-sm font-semibold text-heading">Répertoire contacts</h2>
-        <p className="mt-1 text-xs text-muted">Contacts rattachés aux entreprises importées.</p>
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs">
           <thead>
@@ -1069,20 +1062,13 @@ export function ProspectionAccountsView({
   }
 
   return (
-    <div className={cn("mx-auto flex w-full max-w-7xl flex-col bg-canvas", device === "mobile" ? "gap-4 px-4 py-5" : "gap-6 px-6 py-8")}>
+    <div className={cn("mx-auto flex w-full max-w-7xl flex-col bg-canvas", device === "mobile" ? "gap-3 px-4 py-4" : "gap-5 px-6 py-6")}>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 border-b border-border pb-5">
+      <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Prospection Intelligence</p>
           <h1 className={cn("font-heading font-bold tracking-tight text-heading", device === "mobile" ? "text-2xl" : "text-3xl")}>
             Comptes & Contacts
           </h1>
-          {device === "desktop" && (
-            <p className="mt-2 max-w-2xl text-sm text-body">
-              Vue consolidée des entreprises ciblées, des contacts clés et des analyses sectorielles stratégiques.
-            </p>
-          )}
         </div>
         <div className={cn("flex items-center gap-2 shrink-0", device === "mobile" && "mt-5")}>
           {device === "mobile" ? (
@@ -1114,7 +1100,7 @@ export function ProspectionAccountsView({
       </div>
 
       {/* Sub-tab selection */}
-      <div className="flex gap-2 border-b border-border pb-3">
+      <div className="flex gap-2">
         <button
           onClick={() => setParam("tab", "accounts")}
           className={cn(

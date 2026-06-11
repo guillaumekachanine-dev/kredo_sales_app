@@ -297,7 +297,7 @@ export function CompanyIdentityDrawer({
 
               {/* AI Score Badge */}
               <div className="flex shrink-0">
-                <span className="kredo-cockpit-cta-button inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 px-3 py-1 rounded shadow-sm">
+                <span className="inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded shadow-sm">
                   {formatScore(data.company.ai_score)}
                 </span>
               </div>
@@ -362,9 +362,32 @@ export function CompanyIdentityDrawer({
                 {companyId && (
                   <Link
                     href={`/prospection/accounts/${companyId}`}
-                    className="kredo-cockpit-cta-button flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
+                    className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
                   >
-                    Ouvrir le cockpit Intelligence ↗
+                    <span>Ouvrir le cockpit Intelligence</span>
+                    <span
+                      className="kredo-ready-action-circle"
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: "18px",
+                        height: "18px",
+                        minWidth: "18px",
+                        minHeight: "18px",
+                      }}
+                    >
+                      <svg
+                        className="w-2.5 h-2.5 relative z-10 text-white shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={4}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                      </svg>
+                    </span>
                   </Link>
                 )}
 
