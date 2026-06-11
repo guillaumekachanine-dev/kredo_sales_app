@@ -312,6 +312,53 @@ body {
   }
 }
 
+/* ── Cockpit CTA Button (Sweep & Multicolored Border, Solid Background, No Pulse) ──── */
+.kredo-cockpit-cta-button {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  z-index: 1;
+}
+
+.kredo-cockpit-cta-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px; /* border thickness */
+  background: linear-gradient(
+    135deg,
+    #5b57f5,
+    #7c4fff,
+    #b84dff,
+    #ff004d,
+    #ff7a00,
+    #ffb700,
+    #33d17a,
+    #00c2ff,
+    #4f6bff,
+    #5b57f5,
+    #b84dff,
+    #5b57f5
+  );
+  background-size: 400% 400%;
+  -webkit-mask: 
+     linear-gradient(#fff 0 0) content-box, 
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: kredo-ready-gradient-flow 3s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-cockpit-cta-button::before {
+    animation: none;
+  }
+}
+
+
 /* ── Nested Ready Action Circle (Smaller version of ReadyActionButton) ── */
 .kredo-ready-action-circle {
   position: relative;

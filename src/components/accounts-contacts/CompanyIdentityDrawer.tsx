@@ -363,7 +363,7 @@ export function CompanyIdentityDrawer({
                 {companyId && (
                   <Link
                     href={`/prospection/accounts/${companyId}`}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
+                    className="kredo-cockpit-cta-button flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
                   >
                     Ouvrir le cockpit Intelligence ↗
                   </Link>
