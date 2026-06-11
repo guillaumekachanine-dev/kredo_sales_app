@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Lato, Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,9 +26,31 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2554B8",
+};
+
 export const metadata: Metadata = {
   title: "KREDO",
   description: "Workspace de pilotage",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "KREDO",
+    startupImage: [
+      {
+        url: "/apple-touch-startup-image-1170x2532.png",
+        media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
+      },
+    ],
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -41,6 +63,13 @@ export default function RootLayout({
       lang="en"
       className={`${lato.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <link
+          rel="apple-touch-startup-image"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"
+          href="/apple-touch-startup-image-1170x2532.png"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

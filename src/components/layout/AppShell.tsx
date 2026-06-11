@@ -15,7 +15,7 @@ export function AppShell({ device, children }: AppShellProps) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas">
         {/* Main Content Area */}
-        <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-y-auto">
+        <main className="flex-1 pb-20 overflow-y-auto">
           {children}
         </main>
 
