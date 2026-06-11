@@ -10,8 +10,9 @@
 @theme {
 
   /* ── Brand ─────────────────────────────────────────────── */
-  --color-primary:     #2554B8;   /* bg-primary  text-primary  */
-  --color-primary-fg:  #F2F5FB;   /* bg-primary-fg  text-primary-fg */
+  --color-primary:      #2554B8;  /* bg-primary  text-primary  */
+  --color-primary-deep: #1E4596;  /* bg-primary-deep — cobalt recessed (surfaces secondaires sous la nav) */
+  --color-primary-fg:   #F2F5FB;  /* bg-primary-fg  text-primary-fg */
 
   /* ── Structure ──────────────────────────────────────────── */
   --color-canvas:        #F4F2ED; /* bg-canvas   — fond de l'app   */
@@ -104,6 +105,16 @@ dialog[open].kredo-drawer-bottom {
 /* Sortie — bas */
 dialog[open].kredo-drawer-bottom.kredo-drawer-closing {
   animation: kredo-drawer-out-bottom 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+/* ── MobileSectionRail — déploiement du rail d'onglets au-dessus de la nav ──── */
+@keyframes kredo-rail-in {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.kredo-rail-in {
+  animation: kredo-rail-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 body {

@@ -1,5 +1,5 @@
 import { getModuleTabs } from "@/lib/navigation/main-menu.config"
-import { SectionNavBar } from "@/components/layout/SectionNavBar"
+import { SectionNavBarSlot } from "@/components/layout/SectionNavBarSlot"
 
 // Layout commun à toutes les pages du module Missions :
 //   /missions           → vue d'ensemble
@@ -19,7 +19,7 @@ export default function MissionsLayout({
 }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <SectionNavBar tabs={missionsTabs} />
+      <SectionNavBarSlot tabs={missionsTabs} />
       <div className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </div>

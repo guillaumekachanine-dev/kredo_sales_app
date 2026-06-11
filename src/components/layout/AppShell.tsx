@@ -1,6 +1,6 @@
 import { DesktopSidebar } from "./DesktopSidebar"
 import { AppHeader } from "./AppHeader"
-import { MobileBottomNav } from "./MobileBottomNav"
+import { MobileNav } from "./MobileNav"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
 interface AppShellProps {
@@ -15,12 +15,12 @@ export function AppShell({ device, children }: AppShellProps) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas">
         {/* Main Content Area */}
-        <main className="flex-1 pb-20 overflow-y-auto">
+        <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] overflow-y-auto">
           {children}
         </main>
-        
-        {/* Mobile Bottom Navigation */}
-        <MobileBottomNav />
+
+        {/* Mobile Navigation — bottom nav bleue + rail d'onglets contextuel */}
+        <MobileNav />
       </div>
     )
   }

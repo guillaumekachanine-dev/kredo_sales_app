@@ -9,6 +9,7 @@
 
 export type SectionTab = {
   label: string
+  shortLabel?: string        // label abrégé pour le rail d'onglets mobile
   href: string
   disabled?: boolean
   comingSoon?: boolean
@@ -94,10 +95,10 @@ export const mainMenuItems: MainMenuItem[] = [
         icon: "sales",
         primary: true,
         tabs: [
-          { label: "Vue d'ensemble",   href: "/missions" },
-          { label: "Missions actives", href: "/missions/actives" },
-          { label: "Opportunités",     href: "/missions/opps" },
-          { label: "Planning",         href: "/missions/planning" },
+          { label: "Vue d'ensemble",   shortLabel: "Synthèse", href: "/missions" },
+          { label: "Missions actives", shortLabel: "Actives",  href: "/missions/actives" },
+          { label: "Opportunités",     shortLabel: "Opps",     href: "/missions/opps" },
+          { label: "Planning",                                 href: "/missions/planning" },
           { label: "Documents",        href: "/missions/docs",   comingSoon: true, disabled: true },
           { label: "P&L",              href: "/missions/pnl",    comingSoon: true, disabled: true },
         ],
@@ -109,14 +110,14 @@ export const mainMenuItems: MainMenuItem[] = [
         icon: "prospection",
         primary: true,
         tabs: [
-          { label: "Vue d'ensemble",        href: "/prospection" },
-          { label: "Comptes & contacts",    href: "/prospection/accounts" },
-          { label: "Signaux & veille",      href: "/prospection/signals" },
-          { label: "Études sectorielles",   href: "/prospection/sector-studies" },
-          { label: "Séquences",             href: "/prospection/sequences" },
-          { label: "Atelier IA",            href: "/prospection/ai-workshop" },
-          { label: "Scoring & qualification", href: "/prospection/scoring" },
-          { label: "Sources",               href: "/prospection/sources" },
+          { label: "Vue d'ensemble",          shortLabel: "Synthèse", href: "/prospection" },
+          { label: "Comptes & contacts",      shortLabel: "Comptes",  href: "/prospection/accounts" },
+          { label: "Signaux & veille",        shortLabel: "Signaux",  href: "/prospection/signals" },
+          { label: "Études sectorielles",     shortLabel: "Études",   href: "/prospection/sector-studies" },
+          { label: "Séquences",                                       href: "/prospection/sequences" },
+          { label: "Atelier IA",              shortLabel: "Atelier",  href: "/prospection/ai-workshop" },
+          { label: "Scoring & qualification", shortLabel: "Scoring",  href: "/prospection/scoring" },
+          { label: "Sources",                                         href: "/prospection/sources" },
         ],
       },
       {

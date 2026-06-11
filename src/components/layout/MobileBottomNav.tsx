@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
@@ -9,8 +8,14 @@ import { cn } from "@/lib/utils"
 // ─────────────────────────────────────────────────────────────────────────────
 //  MobileBottomNav — dérivée du config, modules marqués `primary: true`
 //
-//  Source unique : main-menu.config.ts
-//  Affiche `shortLabel` si défini, sinon `label`.
+//  Source unique : main-menu.config.ts · Affiche `shortLabel` sinon `label`.
+//  Fond bleu de marque (`bg-primary`), contenu blanc — miroir de la sidebar
+//  desktop. Présentationnel : piloté par MobileNav (pathname + rail).
+//
+//  Sémantique du tap :
+//    · module inactif            → navigation (<Link>)
+//    · module actif AVEC rail    → toggle du rail (<button>)
+//    · module actif SANS rail    → navigation (<Link>, no-op vers lui-même)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function collectPrimaryItems(items: MainMenuItem[]): MainMenuItem[] {
@@ -28,35 +33,71 @@ function collectPrimaryItems(items: MainMenuItem[]): MainMenuItem[] {
 
 const primaryNavItems = collectPrimaryItems(mainMenuItems)
 
-export function MobileBottomNav() {
-  const pathname = usePathname()
+interface MobileBottomNavProps {
+  pathname: string
+  isRailOpen: boolean
+  /** Le module actif possède-t-il un rail d'onglets cliquables ? */
+  activeHasRail: boolean
+  onActiveModulePress: () => void
+}
 
+export function MobileBottomNav({
+  pathname,
+  isRailOpen,
+  activeHasRail,
+  onActiveModulePress,
+}: MobileBottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-surface border-t border-border flex items-center justify-around px-2 pb-safe z-50 shadow-[0_-2px_10px_-4px_rgba(0,0,0,0.06)]">
+    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-primary border-t border-white/10 flex items-center justify-around px-2 pb-safe z-50">
       {primaryNavItems.map((item) => {
-        const isActive = item.href
-          ? pathname === item.href || pathname.startsWith(item.href + "/")
-          : false
+        const href = item.href!
+        const isActive = pathname === href || pathname.startsWith(href + "/")
+        const togglesRail = isActive && activeHasRail
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href!}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] gap-1 transition-all duration-150 active:scale-95 text-center px-1",
-              isActive ? "text-primary font-semibold" : "text-muted hover:text-heading"
-            )}
-          >
-            <div className={cn(
-              "p-1 rounded-md transition-colors",
-              isActive ? "bg-primary/5 text-primary" : "text-muted"
-            )}>
+        const inner = (
+          <>
+            <div
+              className={cn(
+                "p-1 rounded-md transition-colors",
+                isActive ? "bg-white/10 text-primary-fg" : "text-primary-fg/60"
+              )}
+            >
               {item.icon && getNavigationIcon(item.icon)}
             </div>
             <span className="text-[10px] tracking-tight truncate max-w-full">
               {item.shortLabel ?? item.label}
             </span>
+          </>
+        )
+
+        const className = cn(
+          "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] gap-1 transition-all duration-150 active:scale-95 text-center px-1",
+          isActive ? "text-primary-fg font-semibold" : "text-primary-fg/60 hover:text-primary-fg"
+        )
+
+        if (togglesRail) {
+          return (
+            <button
+              key={href}
+              type="button"
+              onClick={onActiveModulePress}
+              aria-current="page"
+              aria-expanded={isRailOpen}
+              className={className}
+            >
+              {inner}
+            </button>
+          )
+        }
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive ? "page" : undefined}
+            className={className}
+          >
+            {inner}
           </Link>
         )
       })}
