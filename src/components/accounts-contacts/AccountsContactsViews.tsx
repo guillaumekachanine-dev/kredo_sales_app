@@ -546,7 +546,7 @@ function AccountsDesktop({
                         >
                           {account.name}
                         </div>
-                        <div className="truncate text-[11px] text-muted">{account.website ?? "Site non renseigné"}</div>
+                        <div className="truncate text-[11px] text-muted" title={account.segment}>{account.segment}</div>
                       </div>
                     </div>
                   </td>
