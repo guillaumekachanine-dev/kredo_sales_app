@@ -267,7 +267,7 @@ export function CompanyIdentityDrawer({
         <div className="flex flex-col h-full gap-5">
           {/* Company identity card summary */}
           <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <CompanyLogo
                   name={data.company.name}
@@ -296,9 +296,8 @@ export function CompanyIdentityDrawer({
               </div>
 
               {/* AI Score Badge */}
-              <div className="flex flex-col items-end shrink-0">
-                <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Score IA</span>
-                <span className="text-sm font-extrabold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded shadow-sm">
+              <div className="flex shrink-0">
+                <span className="kredo-cockpit-cta-button inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 px-3 py-1 rounded shadow-sm">
                   {formatScore(data.company.ai_score)}
                 </span>
               </div>
