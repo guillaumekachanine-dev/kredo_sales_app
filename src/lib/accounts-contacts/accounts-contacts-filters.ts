@@ -14,6 +14,8 @@ export type AccountsContactsFilters = {
   excludeSector: string[]
   includeRole: string[]
   excludeRole: string[]
+  includeRevenue: string[]
+  includeSize: string[]
   minScore: number | null
   hasEmail: boolean
   missingEmail: boolean
@@ -33,6 +35,8 @@ const KEYS = {
   excludeSector: "excSector",
   includeRole: "incRole",
   excludeRole: "excRole",
+  includeRevenue: "incRevenue",
+  includeSize: "incSize",
   minScore: "minScore",
   hasEmail: "hasEmail",
   missingEmail: "missingEmail",
@@ -69,6 +73,8 @@ export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
     excludeSector: readList(params, KEYS.excludeSector),
     includeRole: readList(params, KEYS.includeRole),
     excludeRole: readList(params, KEYS.excludeRole),
+    includeRevenue: readList(params, KEYS.includeRevenue),
+    includeSize: readList(params, KEYS.includeSize),
     minScore: readNumber(params, KEYS.minScore),
     hasEmail: readBool(params, KEYS.hasEmail),
     missingEmail: readBool(params, KEYS.missingEmail),
@@ -85,6 +91,22 @@ function passesIncludeExclude(value: string, include: string[], exclude: string[
   return true
 }
 
+function parseRevenueToMillions(revenueStr: string | null): number | null {
+  if (!revenueStr) return null
+  const cleaned = revenueStr.replace(/\s+/g, "").replace(",", ".").toLowerCase()
+  if (cleaned.includes("mds") || cleaned.includes("billion") || cleaned.includes("milliard")) {
+    const num = parseFloat(cleaned)
+    if (Number.isFinite(num)) {
+      return num * 1000
+    }
+  }
+  const num = parseFloat(cleaned)
+  if (Number.isFinite(num)) {
+    return num
+  }
+  return null
+}
+
 export function filterAccounts(
   accounts: AccountRow[],
   filters: AccountsContactsFilters,
@@ -99,6 +121,45 @@ export function filterAccounts(
     if (filters.hasEmail && account.emailCount === 0) return false
     if (filters.missingEmail && account.emailCount > 0) return false
     if (filters.hasStudy && !studyIds.has(account.id)) return false
+    
+    // Revenue Filter (Chiffre affaire)
+    if (filters.includeRevenue.length > 0) {
+      const rev = parseRevenueToMillions(account.revenue)
+      if (rev === null) {
+        return false
+      } else {
+        const matches = filters.includeRevenue.some((range) => {
+          if (range === "0-100M€") return rev >= 0 && rev <= 100
+          if (range === "100-300M€") return rev > 100 && rev <= 300
+          if (range === "300-500M€") return rev > 300 && rev <= 500
+          if (range === "500-999M€") return rev > 500 && rev <= 999
+          if (range === "+1Mds") return rev >= 1000
+          return false
+        })
+        if (!matches) return false
+      }
+    }
+
+    // Size Filter (employee count)
+    if (filters.includeSize.length > 0) {
+      const count = account.employeeCount
+      if (count === null) {
+        return false
+      } else {
+        const matches = filters.includeSize.some((range) => {
+          if (range === "1-50") return count >= 1 && count <= 50
+          if (range === "50-200") return count > 50 && count <= 200
+          if (range === "201-500") return count > 200 && count <= 500
+          if (range === "501-1000") return count > 500 && count <= 1000
+          if (range === "1000-2000") return count > 1000 && count <= 2000
+          if (range === "2000-5000") return count > 2000 && count <= 5000
+          if (range === "+5k") return count > 5000
+          return false
+        })
+        if (!matches) return false
+      }
+    }
+
     if (needle.length > 0) {
       const haystack = fold(
         `${account.name} ${account.sector} ${account.location} ${account.segment} ${account.summary}`

@@ -24,6 +24,7 @@ export type AccountRow = {
   summary: string
   logoPath: string | null
   taskCount: number
+  employeeCount: number | null
 }
 
 export type ContactRow = {
@@ -222,6 +223,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: num
     summary: cleanText(row.description, nestedText(study, ["synthese_consultant"]) || "Aucune synthèse disponible."),
     logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
     taskCount,
+    employeeCount: row.employee_count,
   }
 }
 

@@ -38,6 +38,24 @@ import { cn } from "@/lib/utils"
 //  Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
+const REVENUE_OPTIONS = [
+  { value: "0-100M€", label: "0-100M€" },
+  { value: "100-300M€", label: "100-300M€" },
+  { value: "300-500M€", label: "300-500M€" },
+  { value: "500-999M€", label: "500-999M€" },
+  { value: "+1Mds", label: "+1Mds" },
+]
+
+const SIZE_OPTIONS = [
+  { value: "1-50", label: "1-50 employés" },
+  { value: "50-200", label: "50-200 employés" },
+  { value: "201-500", label: "201-500 employés" },
+  { value: "501-1000", label: "501-1000 employés" },
+  { value: "1000-2000", label: "1000-2000 employés" },
+  { value: "2000-5000", label: "2000-5000 employés" },
+  { value: "+5k", label: "+5k employés" },
+]
+
 const LIFECYCLE_OPTIONS = [
   { value: "cible", label: "Cible" },
   { value: "prospect", label: "Prospect" },
@@ -86,6 +104,11 @@ const RELATIONSHIP_LEVEL_OPTIONS = [
 
 function formatScore(score: number | null) {
   return score === null ? "—" : `${score}/5`
+}
+
+function displayRevenue(revenue: string | null | undefined) {
+  if (!revenue || revenue === "Non renseigné" || revenue === "-") return "-"
+  return revenue
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -490,20 +513,19 @@ function AccountsDesktop({
         <p className="mt-1 text-xs text-muted">Tri par score IA, nombre de contacts et nom d&apos;entreprise.</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-xs">
+        <table className="w-full border-collapse text-left text-xs table-fixed">
           <thead>
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
-              <th className="px-5 py-3">Compte</th>
-              <th className="px-3 py-3">Secteur</th>
-              <th className="px-3 py-3">Segment</th>
-              <th className="px-3 py-3 text-right">CA</th>
-              <th className="px-3 py-3 text-right">Contacts</th>
-              <th className="px-3 py-3 text-right">Activité</th>
-              <th className="px-3 py-3 text-right">Score</th>
-              <th className="px-3 py-3 text-center">Priorité</th>
-              <th className="px-3 py-3 text-center">Statut</th>
-              <th className="px-3 py-3 text-center">Analyses</th>
-              <th className="px-5 py-3 text-right">Actions</th>
+              <th className="px-5 py-3 w-[22%]">Compte</th>
+              <th className="px-3 py-3 w-[12%]">Secteur</th>
+              <th className="px-3 py-3 w-[10%]">Statut</th>
+              <th className="px-3 py-3 text-center w-[8%]">CA</th>
+              <th className="px-3 py-3 text-center w-[8%]">Taille</th>
+              <th className="px-3 py-3 text-center w-[8%]">Contacts</th>
+              <th className="px-3 py-3 text-center w-[8%]">Score</th>
+              <th className="px-3 py-3 text-center w-[10%]">Priorité</th>
+              <th className="px-3 py-3 text-center w-[12%]">Business Intelligence</th>
+              <th className="px-5 py-3 text-right w-[4%]"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -511,12 +533,12 @@ function AccountsDesktop({
               const hasStudy = studies.some((s) => s.id === account.id)
               return (
                 <tr key={account.id} className="transition-colors hover:bg-canvas/40">
-                  <td className="max-w-[160px] px-5 py-3">
-                    <div className="flex items-center gap-2.5">
+                  <td className="px-5 py-3 truncate">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
                         <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div 
                           onClick={() => onOpenIdentity(account.id)} 
                           className="font-semibold text-heading truncate cursor-pointer hover:text-primary transition-colors"
@@ -528,32 +550,31 @@ function AccountsDesktop({
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-body max-w-[100px] truncate" title={account.sector}>{account.sector}</td>
-                  <td className="px-3 py-3 text-body max-w-[110px] truncate" title={account.segment}>{account.segment}</td>
-                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.revenue || "—"}</td>
-                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.contactCount}</td>
-                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{account.taskCount}</td>
-                  <td className="px-3 py-3 text-right font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
+                  <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
+                  <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
+                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{displayRevenue(account.revenue)}</td>
+                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString() : "-"}</td>
+                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.contactCount}</td>
+                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
-                  <td className="px-3 py-3 text-center text-[11px] text-body capitalize">{account.status.replace("_", " ")}</td>
                   <td className="px-3 py-3 text-center">
                     {hasStudy ? (
                       <button
                         onClick={() => onOpenStudy(account.id)}
-                        className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20"
+                        className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20 whitespace-nowrap"
                       >
-                        Consulter
+                        Consulter la page
                       </button>
                     ) : (
                       <span className="text-muted text-[11px] italic">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => onEdit(account)} className="rounded p-1.5 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
+                  <td className="pl-1 pr-5 py-3">
+                    <div className="flex items-center justify-end gap-0.5">
+                      <button onClick={() => onEdit(account)} className="rounded p-1 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
                         <IconEdit />
                       </button>
-                      <button onClick={() => onDelete(account)} className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="Supprimer">
+                      <button onClick={() => onDelete(account)} className="rounded p-1 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="Supprimer">
                         <IconTrash />
                       </button>
                     </div>
@@ -597,7 +618,7 @@ function AccountsMobile({
                 <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" />
                 <div className="min-w-0">
                   <h2 className="truncate text-sm font-bold text-heading hover:text-primary transition-colors">{account.name}</h2>
-                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.segment}</p>
+                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.status.replace("_", " ")} · CA: {displayRevenue(account.revenue)}</p>
                 </div>
               </div>
               <PriorityBadge priority={account.priority} />
@@ -608,12 +629,12 @@ function AccountsMobile({
                 <p className="text-sm font-bold text-heading">{formatScore(account.score)}</p>
               </div>
               <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Contacts</p>
-                <p className="text-sm font-bold text-heading">{account.contactCount}</p>
+                <p className="text-[10px] text-muted">Taille</p>
+                <p className="text-sm font-bold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString() : "-"}</p>
               </div>
               <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Activité</p>
-                <p className="text-sm font-bold text-heading">{account.taskCount}</p>
+                <p className="text-[10px] text-muted">Contacts</p>
+                <p className="text-sm font-bold text-heading">{account.contactCount}</p>
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-1">
@@ -626,8 +647,8 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors">
-                  Consulter
+                <button onClick={() => onOpenStudy(account.id)} className="rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors whitespace-nowrap">
+                  Consulter la page
                 </button>
               )}
             </div>
@@ -955,6 +976,22 @@ export function ProspectionAccountsView({
               selected={filters.includeStatus}
               onToggle={(value) => toggleListValue("incStatus", value)}
               onClear={() => setParam("incStatus", null)}
+              fullWidthPanel
+            />
+            <FilterDropdown
+              label="Chiffre affaire"
+              options={REVENUE_OPTIONS}
+              selected={filters.includeRevenue}
+              onToggle={(value) => toggleListValue("incRevenue", value)}
+              onClear={() => setParam("incRevenue", null)}
+              fullWidthPanel
+            />
+            <FilterDropdown
+              label="Taille"
+              options={SIZE_OPTIONS}
+              selected={filters.includeSize}
+              onToggle={(value) => toggleListValue("incSize", value)}
+              onClear={() => setParam("incSize", null)}
               fullWidthPanel
             />
             <FilterDropdown
