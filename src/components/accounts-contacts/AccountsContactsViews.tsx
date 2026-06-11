@@ -750,9 +750,17 @@ function AccountsDesktop({
                     {hasStudy ? (
                       <Link
                         href={`/prospection/accounts/${account.id}`}
-                        className="inline-flex items-center justify-center rounded bg-success/10 border border-success/20 px-2.5 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20 whitespace-nowrap"
+                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95 whitespace-nowrap"
                       >
-                        Consulter la page
+                        <span>Cockpit client</span>
+                        <span
+                          className="kredo-ready-action-circle"
+                          style={{ width: "14px", height: "14px", minWidth: "14px", minHeight: "14px" }}
+                        >
+                          <svg className="w-2 h-2 relative z-10 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        </span>
                       </Link>
                     ) : (
                       <span className="text-muted text-[11px] italic">—</span>
@@ -828,8 +836,19 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <Link href={`/prospection/accounts/${account.id}`} className="inline-flex items-center justify-center rounded bg-success/10 border border-success/20 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20 transition-colors whitespace-nowrap">
-                  Consulter la page
+                <Link
+                  href={`/prospection/accounts/${account.id}`}
+                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95 whitespace-nowrap"
+                >
+                  <span>Cockpit client</span>
+                  <span
+                    className="kredo-ready-action-circle"
+                    style={{ width: "14px", height: "14px", minWidth: "14px", minHeight: "14px" }}
+                  >
+                    <svg className="w-2 h-2 relative z-10 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                    </svg>
+                  </span>
                 </Link>
               )}
             </div>

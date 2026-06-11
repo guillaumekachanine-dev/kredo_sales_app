@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition, type ReactNode } from "react"
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
@@ -245,6 +245,7 @@ export function CompanyIdentityDrawer({
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
   const [syntheseExpanded, setSyntheseExpanded] = useState(false)
   const [transitionPending, startTransition] = useTransition()
+  const prevCompanyIdRef = useRef<string | null>(null)
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
 
@@ -255,7 +256,12 @@ export function CompanyIdentityDrawer({
 
     startTransition(async () => {
       setError(null)
-      setActiveTab("apercu")
+      // Only reset to default tab when navigating to a different company,
+      // not when the same drawer reopens after a contact drawer was closed.
+      if (companyId !== prevCompanyIdRef.current) {
+        setActiveTab("apercu")
+        prevCompanyIdRef.current = companyId
+      }
       try {
         const response = await getCompanyIdentity(companyId)
         if (response.error) {
@@ -697,7 +703,7 @@ export function CompanyIdentityDrawer({
                           </div>
 
                           {/* Contact information details */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 font-mono text-muted">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 text-muted">
                             {person.primary_email && (
                               <a
                                 href={`mailto:${person.primary_email}`}

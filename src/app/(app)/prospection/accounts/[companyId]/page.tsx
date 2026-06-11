@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { ClientIntelligenceView } from "@/components/accounts-contacts/intelligence/ClientIntelligenceView"
+import { RegisterBreadcrumbLabel } from "@/components/layout/RegisterBreadcrumbLabel"
 import { getClientIntelligence } from "@/lib/intelligence/intelligence-data"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
@@ -26,5 +27,10 @@ export default async function ClientIntelligencePage({
     notFound()
   }
 
-  return <ClientIntelligenceView data={result.data} device={device} />
+  return (
+    <>
+      <RegisterBreadcrumbLabel segment={companyId} label={result.data.company.name} />
+      <ClientIntelligenceView data={result.data} device={device} />
+    </>
+  )
 }
