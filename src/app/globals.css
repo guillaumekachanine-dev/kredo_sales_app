@@ -71,13 +71,18 @@
   --color-body:          #D6E1F4; /* texte courant clair                */
   --color-muted:         #A9BDE6; /* labels / métadonnées               */
   --color-primary:       #FFB812; /* liens, soulignement onglet, accents → or */
-  --color-rail:          #93A0B0; /* Tour de contrôle : couleur unie de la palette (#93A0B0) */
+  --color-rail:          #FDFCFA; /* Tour de contrôle : même blanc que le menu de navigation à gauche */
 }
 
-/* Redéfinition des couleurs à l'intérieur du rail d'intelligence sous cockpit (fond gris #93A0B0) */
+/* Redéfinition des couleurs à l'intérieur du rail d'intelligence sous cockpit (fond blanc #FDFCFA) */
 [data-theme="cockpit"] aside.bg-rail {
   --color-primary-fg:    #1A2540; /* text-primary-fg devient bleu marine foncé */
   --color-primary:       #2554B8; /* primary devient bleu cobalt standard */
+  --color-heading:       #1A2540; /* titres foncés */
+  --color-body:          #526074; /* texte courant foncé */
+  --color-muted:         #93A0B0; /* métadonnées grises */
+  --color-border:        #DBE0EB; /* bordures claires */
+  --color-surface:       #FDFCFA; /* surfaces claires */
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
