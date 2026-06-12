@@ -26,7 +26,7 @@ export function lifecycleLabel(status: string): string {
 export function ProvenanceBadge({ source }: { source: IntelligenceSource }) {
   const map: Record<IntelligenceSource, { label: string; cls: string }> = {
     engine: { label: "Moteur IA", cls: "bg-primary/10 text-primary border-primary/20" },
-    folio: { label: "FOLIO · importé", cls: "bg-warning/10 text-warning border-warning/25" },
+    folio: { label: "FOLIO", cls: "bg-warning/10 text-warning border-warning/25" },
     none: { label: "Aucune analyse", cls: "bg-surface-hover text-muted border-border" },
   }
   const { label, cls } = map[source]
@@ -40,7 +40,7 @@ export function ProvenanceBadge({ source }: { source: IntelligenceSource }) {
 /** Pastille de score. Échelle volontairement non suffixée (1–10 vs /5 tranché au lot E). */
 export function ScorePill({ score, className }: { score: number | null; className?: string }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center rounded-lg border border-border bg-surface px-4 py-2", className)}>
+    <div className={cn("flex flex-col items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 rainbow-border-sweep", className)}>
       <span className="font-heading text-2xl font-bold leading-none text-heading">
         {score === null ? "—" : score.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}
       </span>
@@ -145,7 +145,7 @@ export function FreshnessLine({ latestRunAt, latestRunStatus, fallbackSource, to
       : d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
     label = `Dernier run moteur · ${date}${latestRunStatus ? ` · ${latestRunStatus}` : ""}`
   } else if (fallbackSource === "folio") {
-    label = "Données importées depuis FOLIO · run moteur jamais lancé"
+    label = "FOLIO · run moteur jamais lancé"
   } else {
     label = "Aucune analyse disponible"
   }

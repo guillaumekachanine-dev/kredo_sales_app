@@ -42,6 +42,8 @@ export type DashboardAction = {
   id: string
   label: string
   href?: string
+  onClick?: () => void
+  icon?: React.ReactNode
   variant?: "primary" | "secondary" | "ghost"
 }
 

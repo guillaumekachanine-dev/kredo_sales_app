@@ -1,12 +1,13 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-type Size = "sm" | "md" | "lg"
+type Size = "sm" | "md" | "lg" | "xl"
 
 const SIZES: Record<Size, { px: number; text: string }> = {
   sm: { px: 24, text: "text-[9px]" },
   md: { px: 32, text: "text-[11px]" },
   lg: { px: 48, text: "text-sm" },
+  xl: { px: 64, text: "text-base" },
 }
 
 function initials(name: string): string {
@@ -23,16 +24,19 @@ export function CompanyLogo({
   logoPath,
   website,
   size = "md",
+  className,
 }: {
   name: string
   logoPath?: string | null
   website?: string | null
   size?: Size
+  className?: string
 }) {
   const { px, text } = SIZES[size]
 
   const base = cn(
     "shrink-0 overflow-hidden rounded border border-border bg-surface flex items-center justify-center",
+    className
   )
 
   if (logoPath) {

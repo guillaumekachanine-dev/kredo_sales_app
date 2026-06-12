@@ -6,21 +6,23 @@ import { cn } from "@/lib/utils"
 interface DashboardQuickActionsProps {
   actions?: DashboardAction[]
   className?: string
+  showHeader?: boolean
 }
 
-export function DashboardQuickActions({ actions, className }: DashboardQuickActionsProps) {
+export function DashboardQuickActions({ actions, className, showHeader = true }: DashboardQuickActionsProps) {
   if (!actions || actions.length === 0) return null
 
   const renderAction = (action: DashboardAction) => {
     const baseActionClasses = "inline-flex items-center justify-center w-full min-h-[44px] px-4 py-2 text-xs font-semibold rounded transition-all duration-150 active:scale-98 border"
     const variantClasses = {
       primary: "bg-primary text-primary-fg border-transparent hover:bg-primary/95 shadow-sm",
-      secondary: "bg-surface text-heading border-border hover:bg-surface-hover",
+      secondary: "bg-white text-brand-blue border-border hover:bg-surface-hover",
       ghost: "text-body border-transparent hover:bg-surface-hover hover:text-heading"
     }[action.variant || "secondary"]
 
     const content = (
       <span className="flex items-center gap-2">
+        {action.icon}
         {action.label}
         {/* Subtly indicate link direction */}
         {action.href && (
@@ -40,7 +42,12 @@ export function DashboardQuickActions({ actions, className }: DashboardQuickActi
     }
 
     return (
-      <button key={action.id} className={cn(baseActionClasses, variantClasses)}>
+      <button
+        key={action.id}
+        type="button"
+        onClick={action.onClick}
+        className={cn(baseActionClasses, variantClasses)}
+      >
         {content}
       </button>
     )
@@ -48,14 +55,16 @@ export function DashboardQuickActions({ actions, className }: DashboardQuickActi
 
   return (
     <SurfaceCard className={cn("p-5 flex flex-col gap-4 h-full", className)}>
-      <div>
-        <h3 className="text-sm font-semibold text-heading leading-tight">
-          Actions Rapides
-        </h3>
-        <p className="text-xs text-muted mt-0.5">
-          Raccourcis et opérations contextualisées
-        </p>
-      </div>
+      {showHeader && (
+        <div>
+          <h3 className="text-sm font-semibold text-heading leading-tight">
+            Actions Rapides
+          </h3>
+          <p className="text-xs text-muted mt-0.5">
+            Raccourcis et opérations contextualisées
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {actions.map(renderAction)}

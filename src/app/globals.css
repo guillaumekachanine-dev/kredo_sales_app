@@ -11,6 +11,7 @@
 
   /* ── Brand ─────────────────────────────────────────────── */
   --color-primary:      #2554B8;  /* bg-primary  text-primary  */
+  --color-brand-blue:   #2554B8;  /* bg-brand-blue text-brand-blue */
   --color-primary-deep: #1E4596;  /* bg-primary-deep — cobalt recessed (surfaces secondaires sous la nav) */
   --color-primary-fg:   #F2F5FB;  /* bg-primary-fg  text-primary-fg */
 
@@ -531,4 +532,39 @@ body {
     opacity: 0;
   }
 }
+
+/* Animated rainbow sweep border effect for AI Score */
+.rainbow-border-sweep {
+  position: relative;
+  border: 2px solid transparent !important;
+  background-clip: padding-box, border-box !important;
+  background-origin: padding-box, border-box !important;
+  background-image: 
+    linear-gradient(var(--color-surface, #FDFCFA), var(--color-surface, #FDFCFA)),
+    linear-gradient(
+      135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5
+    ) !important;
+  background-size: 100% 100%, 400% 400% !important;
+  animation: kredo-ready-gradient-flow 3s linear infinite !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-border-sweep {
+    animation: none !important;
+    background-size: 100% 100%, 100% 100% !important;
+  }
+}
+
 
