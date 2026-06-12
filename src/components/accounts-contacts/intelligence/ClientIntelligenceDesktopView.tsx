@@ -6,7 +6,7 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
 import type { DashboardAction } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
-import type { ClientIntelligenceData, IntelligenceSource } from "@/lib/intelligence/intelligence-data"
+import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector } from "@/lib/intelligence/intelligence-data"
 import {
   ComingSoon,
   Field,
@@ -316,126 +316,177 @@ function AccueilTab({
   )
 }
 
-// ─── Onglet Analyse — fond documentaire ───────────────────────────────────────
+// ─── Onglet Analyse — sélecteur + raccourcis + sections aérées ───────────────
+
+type AnalysisTypeKey = "client" | "sector"
+
+const ANALYSIS_CATALOG: {
+  key: AnalysisTypeKey
+  label: string
+  subtitle: string
+  icon: (p: { className?: string }) => ReactNode
+}[] = [
+  {
+    key: "client",
+    label: "Analyse client",
+    subtitle: "Portrait stratégique · signaux · contexte business",
+    icon: ClientAnalysisIcon,
+  },
+  {
+    key: "sector",
+    label: "Étude sectorielle",
+    subtitle: "Marché · acteurs · concurrence · normatif",
+    icon: SectorStudyIcon,
+  },
+]
+
+const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
+  client: [
+    { id: "ac-synthese",       label: "Synthèse",       icon: SectionSyntheseIcon },
+    { id: "ac-identite",       label: "Identité",        icon: SectionIdentiteIcon },
+    { id: "ac-positionnement", label: "Positionnement", icon: SectionPositionnementIcon },
+    { id: "ac-signaux",        label: "Signaux",         icon: SectionSignauxIcon },
+    { id: "ac-contexte",       label: "Contexte",        icon: SectionContexteIcon },
+  ],
+  sector: [
+    { id: "se-synthese",    label: "Synthèse",    icon: SectionSyntheseIcon },
+    { id: "se-marche",      label: "Marché",       icon: SectionMarcheIcon },
+    { id: "se-segments",    label: "Segments",    icon: SectionSegmentsIcon },
+    { id: "se-acteurs",     label: "Acteurs",     icon: SectionActeursIcon },
+    { id: "se-concurrence", label: "Concurrence", icon: SectionConcurrenceIcon },
+    { id: "se-normatif",    label: "Normatif",    icon: SectionNormatifIcon },
+  ],
+}
 
 function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
+  const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
   const { client, sector } = data
 
-  if (!client && !sector) {
-    return <ComingSoon lot="lot A+">Aucune analyse client ni sectorielle pour ce compte</ComingSoon>
+  function isAvailable(key: AnalysisTypeKey) {
+    return key === "client" ? !!client : !!sector
   }
 
+  function getSource(key: AnalysisTypeKey): IntelligenceSource {
+    return key === "client" ? (client?.source ?? "none") : (sector?.source ?? "none")
+  }
+
+  const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
+
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
-      {client && (
-        <SectionBlock reading title="Analyse client" action={<ProvenanceBadge source={client.source} />}>
-          {client.data.synthese && (
-            <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-body">{client.data.synthese}</p>
-          )}
-
-          {Object.keys(client.data.identite).length > 0 && (
-            <div className="mb-4">
-              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
-                Identité &amp; chiffres clés
-              </span>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {Object.entries(client.data.identite).map(([key, value]) => (
-                  <Field key={key} label={key.replace(/_/g, " ")} value={value} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {Object.keys(client.data.positionnement).length > 0 && (
-            <div className="mb-4 grid gap-2 sm:grid-cols-2">
-              {Object.entries(client.data.positionnement).map(([key, value]) => (
-                <Field key={key} label={key.replace(/_/g, " ")} value={value} />
-              ))}
-            </div>
-          )}
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {client.data.signaux.tendanceCroissance && (
-              <Field label="Tendance de croissance" value={client.data.signaux.tendanceCroissance} />
-            )}
-            {client.data.signaux.maturiteDigitale && (
-              <Field label="Maturité digitale" value={client.data.signaux.maturiteDigitale} />
-            )}
-            {client.data.signaux.recrutementsRecents && (
-              <Field label="Recrutements récents" value={client.data.signaux.recrutementsRecents} />
-            )}
-            {client.data.contexteSectoriel.tendances && (
-              <Field label="Tendances sectorielles" value={client.data.contexteSectoriel.tendances} />
-            )}
-          </div>
-
-          {client.data.contexteSectoriel.concurrents.length > 0 && (
-            <div className="mt-4">
-              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
-                Concurrents identifiés
-              </span>
-              <TagList items={client.data.contexteSectoriel.concurrents} />
-            </div>
-          )}
-        </SectionBlock>
-      )}
-
-      {sector ? (
-        <SectionBlock reading title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
-          <div className="space-y-4">
-            <p className="whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
-            
-            {!!sector.data.volumeMarche && (
-              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Volume de Marché</span>
-                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.volumeMarche)}</div>
-              </div>
-            )}
-            
-            {!!sector.data.segmentClientele && (
-              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Segments Clients</span>
-                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.segmentClientele)}</div>
-              </div>
-            )}
-            
-            {!!sector.data.acteursCles && (
-              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Acteurs Clés</span>
-                {Array.isArray(sector.data.acteursCles) && (sector.data.acteursCles as unknown[]).every(a => typeof a === "string") ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(sector.data.acteursCles as string[]).map((actor, idx) => (
-                      <span key={idx} className="rounded border border-border bg-canvas/50 px-2 py-0.5 text-[11px] font-medium text-body">
-                        {actor}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.acteursCles)}</div>
+    <div className="mx-auto max-w-4xl">
+      {/* ── Sélecteur d'analyse ──────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
+          Sélectionner une analyse
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {ANALYSIS_CATALOG.map((entry) => {
+            const available = isAvailable(entry.key)
+            const source = getSource(entry.key)
+            const isSelected = selected === entry.key
+            const Icon = entry.icon
+            return (
+              <button
+                key={entry.key}
+                type="button"
+                disabled={!available}
+                onClick={() => setSelected(isSelected ? null : entry.key)}
+                className={cn(
+                  "group relative flex items-start gap-4 rounded-xl border p-5 text-left transition-all duration-200",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  isSelected
+                    ? "border-primary bg-surface cursor-pointer"
+                    : available
+                    ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover cursor-pointer"
+                    : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
                 )}
-              </div>
-            )}
-            
-            {!!sector.data.analyseConcurrentielle && (
-              <div className="rounded border border-border bg-canvas/40 p-4">
-                <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted">Analyse Concurrentielle</span>
-                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.analyseConcurrentielle)}</div>
-              </div>
-            )}
-            
-            {!!sector.data.environnementNormatif && (
-              <div className="rounded border border-border/60 bg-canvas/40 p-3 flex flex-col gap-1.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted">Environnement Normatif</span>
-                <div className="text-xs text-body leading-relaxed">{renderJsonValue(sector.data.environnementNormatif)}</div>
-              </div>
-            )}
+              >
+                {isSelected && (
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-4 bottom-4 w-0.5 rounded-r-full bg-primary"
+                  />
+                )}
+                <div className={cn(
+                  "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition-colors duration-200",
+                  isSelected
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
+                )}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className={cn(
+                      "font-heading text-sm font-bold leading-tight",
+                      isSelected ? "text-primary" : "text-heading",
+                    )}>
+                      {entry.label}
+                    </span>
+                    <ProvenanceBadge source={source} />
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted">
+                    {entry.subtitle}
+                  </p>
+                </div>
+              </button>
+            )
+          })}
+          {/* Prochaine analyse — Diagnostic process (lot C) */}
+          <div className="flex items-start gap-4 rounded-xl border border-dashed border-border/40 p-5 opacity-40">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-border">
+              <PlusCircleIcon className="h-4 w-4 text-muted" />
+            </div>
+            <div>
+              <p className="font-heading text-sm font-bold text-heading">Diagnostic process</p>
+              <p className="mt-1 text-[11px] text-muted">Analyse interne · enjeux · transformation</p>
+              <span className="mt-2 inline-block text-[9px] font-bold uppercase tracking-wider text-muted/70">
+                Lot C
+              </span>
+            </div>
           </div>
-        </SectionBlock>
-      ) : (
-        <ComingSoon lot="lot D">Étude sectorielle (mutualisée par secteur)</ComingSoon>
+        </div>
+      </div>
+
+      {/* ── Barre de raccourcis (sticky dans le scroll container de <main>) ─── */}
+      {selected && activeSections.length > 0 && (
+        <div className="sticky top-0 z-10 -mx-6 mb-5 border-b border-border/30 bg-canvas/90 px-6 py-2.5 backdrop-blur-sm">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-muted/70 pr-1">
+              Aller à
+            </span>
+            {activeSections.map((section) => {
+              const SIcon = section.icon
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() =>
+                    document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface/80 px-3 py-1 text-[11px] font-semibold text-body transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 cursor-pointer"
+                >
+                  <SIcon className="h-3 w-3" />
+                  {section.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       )}
 
-      <ComingSoon lot="lot I">Veille & signaux (feeders n8n) · Scan contacts</ComingSoon>
+      {/* ── Contenu de l'analyse sélectionnée ──────────────────────────────── */}
+      {selected === "client" && client && (
+        <ClientAnalysisContent data={client.data} />
+      )}
+      {selected === "sector" && sector && (
+        <SectorAnalysisContent data={sector.data} />
+      )}
+
+      {/* État vide global */}
+      {!selected && !client && !sector && (
+        <ComingSoon lot="lot A+">Aucune analyse disponible pour ce compte</ComingSoon>
+      )}
     </div>
   )
 }
@@ -478,6 +529,362 @@ function renderJsonValue(value: unknown, depth = 0): ReactNode {
 }
 
 
+
+// ─── Wrapper de section aérée (cockpit-reading) ──────────────────────────────
+
+function AnalysisSection({
+  id,
+  icon,
+  label,
+  description,
+  children,
+}: {
+  id: string
+  icon: ReactNode
+  label: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <section
+      id={id}
+      className="cockpit-reading overflow-hidden rounded-xl border border-border scroll-mt-14"
+    >
+      {/* En-tête de section */}
+      <div className="flex items-center gap-4 border-b border-border bg-canvas/30 px-6 py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-body">
+          {icon}
+        </div>
+        <div>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted">
+            {label}
+          </h3>
+          {description && (
+            <p className="mt-0.5 text-xs text-body/70">{description}</p>
+          )}
+        </div>
+      </div>
+      {/* Contenu */}
+      <div className="px-6 py-5">{children}</div>
+    </section>
+  )
+}
+
+// ─── Analyse client — sections ────────────────────────────────────────────────
+
+function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
+  return (
+    <div className="space-y-3">
+      {data.synthese && (
+        <AnalysisSection
+          id="ac-synthese"
+          icon={<SectionSyntheseIcon className="h-5 w-5" />}
+          label="Synthèse exécutive"
+          description="Vue d'ensemble stratégique du compte"
+        >
+          <p className="text-sm leading-relaxed text-body whitespace-pre-line">{data.synthese}</p>
+        </AnalysisSection>
+      )}
+
+      {Object.keys(data.identite).length > 0 && (
+        <AnalysisSection
+          id="ac-identite"
+          icon={<SectionIdentiteIcon className="h-5 w-5" />}
+          label="Identité & chiffres clés"
+          description="Données factuelles et métriques essentielles"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {Object.entries(data.identite).map(([key, value]) => (
+              <Field key={key} label={key.replace(/_/g, " ")} value={value} />
+            ))}
+          </div>
+        </AnalysisSection>
+      )}
+
+      {Object.keys(data.positionnement).length > 0 && (
+        <AnalysisSection
+          id="ac-positionnement"
+          icon={<SectionPositionnementIcon className="h-5 w-5" />}
+          label="Positionnement"
+          description="Stratégie, différenciation et axes de développement"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {Object.entries(data.positionnement).map(([key, value]) => (
+              <Field key={key} label={key.replace(/_/g, " ")} value={value} />
+            ))}
+          </div>
+        </AnalysisSection>
+      )}
+
+      {(data.signaux.tendanceCroissance || data.signaux.maturiteDigitale || data.signaux.recrutementsRecents) && (
+        <AnalysisSection
+          id="ac-signaux"
+          icon={<SectionSignauxIcon className="h-5 w-5" />}
+          label="Signaux & dynamiques"
+          description="Tendances de croissance, maturité digitale et recrutements"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {data.signaux.tendanceCroissance && (
+              <Field label="Tendance de croissance" value={data.signaux.tendanceCroissance} />
+            )}
+            {data.signaux.maturiteDigitale && (
+              <Field label="Maturité digitale" value={data.signaux.maturiteDigitale} />
+            )}
+            {data.signaux.recrutementsRecents && (
+              <Field label="Recrutements récents" value={data.signaux.recrutementsRecents} />
+            )}
+          </div>
+        </AnalysisSection>
+      )}
+
+      {(data.contexteSectoriel.tendances || data.contexteSectoriel.concurrents.length > 0) && (
+        <AnalysisSection
+          id="ac-contexte"
+          icon={<SectionContexteIcon className="h-5 w-5" />}
+          label="Contexte sectoriel"
+          description="Tendances de marché et paysage concurrentiel"
+        >
+          {data.contexteSectoriel.tendances && (
+            <div className="mb-4">
+              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
+                Tendances
+              </span>
+              <p className="text-xs leading-relaxed text-body">{data.contexteSectoriel.tendances}</p>
+            </div>
+          )}
+          {data.contexteSectoriel.concurrents.length > 0 && (
+            <div>
+              <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted">
+                Concurrents identifiés
+              </span>
+              <TagList items={data.contexteSectoriel.concurrents} />
+            </div>
+          )}
+        </AnalysisSection>
+      )}
+    </div>
+  )
+}
+
+// ─── Étude sectorielle — sections ─────────────────────────────────────────────
+
+function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
+  return (
+    <div className="space-y-3">
+      <AnalysisSection
+        id="se-synthese"
+        icon={<SectionSyntheseIcon className="h-5 w-5" />}
+        label="Synthèse sectorielle"
+        description="Vue stratégique du secteur d'activité"
+      >
+        <p className="text-sm leading-relaxed text-body whitespace-pre-line">{data.synthese}</p>
+      </AnalysisSection>
+
+      {!!data.volumeMarche && (
+        <AnalysisSection
+          id="se-marche"
+          icon={<SectionMarcheIcon className="h-5 w-5" />}
+          label="Volume de marché"
+          description="Taille, croissance et dynamiques du marché"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.volumeMarche)}</div>
+        </AnalysisSection>
+      )}
+
+      {!!data.segmentClientele && (
+        <AnalysisSection
+          id="se-segments"
+          icon={<SectionSegmentsIcon className="h-5 w-5" />}
+          label="Segments clients"
+          description="Découpage et caractéristiques des segments cibles"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.segmentClientele)}</div>
+        </AnalysisSection>
+      )}
+
+      {!!data.acteursCles && (
+        <AnalysisSection
+          id="se-acteurs"
+          icon={<SectionActeursIcon className="h-5 w-5" />}
+          label="Acteurs clés"
+          description="Leaders, challengers et acteurs émergents"
+        >
+          {Array.isArray(data.acteursCles) && (data.acteursCles as unknown[]).every((a) => typeof a === "string") ? (
+            <div className="flex flex-wrap gap-2">
+              {(data.acteursCles as string[]).map((actor, idx) => (
+                <span key={idx} className="rounded-full border border-border bg-canvas/50 px-3 py-1 text-[11px] font-medium text-body">
+                  {actor}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.acteursCles)}</div>
+          )}
+        </AnalysisSection>
+      )}
+
+      {!!data.analyseConcurrentielle && (
+        <AnalysisSection
+          id="se-concurrence"
+          icon={<SectionConcurrenceIcon className="h-5 w-5" />}
+          label="Analyse concurrentielle"
+          description="Forces en présence et dynamiques compétitives"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.analyseConcurrentielle)}</div>
+        </AnalysisSection>
+      )}
+
+      {!!data.environnementNormatif && (
+        <AnalysisSection
+          id="se-normatif"
+          icon={<SectionNormatifIcon className="h-5 w-5" />}
+          label="Environnement normatif"
+          description="Cadre réglementaire, normes et conformité"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.environnementNormatif)}</div>
+        </AnalysisSection>
+      )}
+    </div>
+  )
+}
+
+// ─── Icônes — sélecteur d'analyses ───────────────────────────────────────────
+
+function ClientAnalysisIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function SectorStudyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+}
+
+function PlusCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  )
+}
+
+// ─── Icônes — sections d'analyse ─────────────────────────────────────────────
+
+function SectionSyntheseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <line x1="10" y1="9" x2="8" y2="9" />
+    </svg>
+  )
+}
+
+function SectionIdentiteIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
+function SectionPositionnementIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  )
+}
+
+function SectionSignauxIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  )
+}
+
+function SectionContexteIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+}
+
+function SectionMarcheIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+      <line x1="2" y1="20" x2="22" y2="20" />
+    </svg>
+  )
+}
+
+function SectionSegmentsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
+function SectionActeursIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="4" r="2" />
+      <line x1="12" y1="6" x2="12" y2="11" />
+      <circle cx="5" cy="18" r="2" />
+      <circle cx="19" cy="18" r="2" />
+      <line x1="12" y1="11" x2="5" y2="16" />
+      <line x1="12" y1="11" x2="19" y2="16" />
+    </svg>
+  )
+}
+
+function SectionConcurrenceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+function SectionNormatifIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="12" y1="3" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="21" />
+      <path d="M5 6l-1.5 3a3 3 0 0 0 6 0L8 6" />
+      <path d="M19 6l-1.5 3a3 3 0 0 0 6 0L22 6" />
+      <line x1="5" y1="6" x2="19" y2="6" />
+      <line x1="4" y1="21" x2="20" y2="21" />
+    </svg>
+  )
+}
 
 function AnalyseIcon({ className }: { className?: string }) {
   return (
