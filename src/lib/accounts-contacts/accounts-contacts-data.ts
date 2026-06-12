@@ -38,7 +38,6 @@ export type ContactRow = {
   lastName: string
   email: string | null
   phone: string | null
-  phone2: string | null
   linkedinUrl: string | null
   jobTitle: string
   relationshipRole: string | null
@@ -126,7 +125,6 @@ type PersonRelation = {
   primary_email: string | null
   phone: string | null
   linkedin_url: string | null
-  metadata: unknown
 }
 
 type CompanyRelation = {
@@ -255,9 +253,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
   const person = firstRelation(row.persons)
   const company = firstRelation(row.companies)
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
-  const meta = asRecord(person?.metadata)
   const managerContactId = row.manager_contact_id ?? null
-  const phone2 = typeof meta.phone_2 === "string" ? meta.phone_2 : null
 
   return {
     id: row.id,
@@ -270,7 +266,6 @@ function buildContact(row: ContactQueryRow): ContactRow {
     lastName: person?.last_name?.trim() ?? "",
     email: person?.primary_email ?? null,
     phone: person?.phone ?? null,
-    phone2,
     linkedinUrl: person?.linkedin_url ?? null,
     jobTitle: cleanText(row.job_title, ""),
     relationshipRole: row.relationship_role ?? null,
@@ -319,12 +314,13 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url,metadata),companies(id,name,sector),is_priority,manager_contact_id,campaign_id", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector),is_priority,manager_contact_id,campaign_id", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase
       .from<TaskQueryRow>("tasks")
-      .select("id,entity_id,entity_type"),
+      .select("id,entity_id,entity_type")
+      .limit(2000),
   ])
 
   if (companiesResult.error) throw new Error(companiesResult.error.message)

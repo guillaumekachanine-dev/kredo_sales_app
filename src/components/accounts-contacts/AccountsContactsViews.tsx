@@ -1,6 +1,7 @@
 "use client"
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
@@ -32,8 +33,14 @@ import {
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
-import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
+const CompanyIdentityDrawer = dynamic(
+  () => import("@/components/accounts-contacts/CompanyIdentityDrawer").then((m) => ({ default: m.CompanyIdentityDrawer })),
+  { ssr: false }
+)
+const ContactIdentityDrawer = dynamic(
+  () => import("@/components/accounts-contacts/ContactIdentityDrawer").then((m) => ({ default: m.ContactIdentityDrawer })),
+  { ssr: false }
+)
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
 
@@ -367,7 +374,7 @@ function ContactFormModal({
     last_name: initial?.lastName ?? "",
     primary_email: initial?.email ?? "",
     phone: initial?.phone ?? "",
-    phone_2: initial?.phone2 ?? "",
+    phone_2: "",
     linkedin_url: initial?.linkedinUrl ?? "",
     company_id: initial?.companyId ?? "",
     job_title: initial?.jobTitle === "Fonction non renseignée" ? "" : (initial?.jobTitle ?? ""),
