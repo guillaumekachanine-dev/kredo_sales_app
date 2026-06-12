@@ -35,6 +35,58 @@
   --color-warning:     #C08A20;   /* bg-warning  text-warning  */
   --color-danger:      #BE3E3E;   /* bg-danger   text-danger   */
   --color-accent:      #D97020;   /* bg-accent   text-accent   */
+
+  /* ── Secondary — Sunshine Gold ──────────────────────────────
+     Couleur de personnalité. Brille sur fond cobalt (cockpit),
+     interdite en encre sur fond clair (contraste ~1,7:1).
+     Sur aplat gold → texte foncé (--color-secondary-fg). */
+  --color-secondary:    #FFB812;  /* bg-secondary */
+  --color-secondary-fg: #3A2A02;  /* texte foncé sur aplat gold */
+
+  /* ── Rail (panneau « Tour de contrôle », ADR-0008) ──────────
+     Token de SURFACE dédié — auparavant `bg-heading` réutilisait
+     le token de texte (surcharge). Séparé pour permettre l'inversion
+     cockpit sans casser le rail. */
+  --color-rail:         #1A2540;  /* bg-rail — navy */
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Thème « Cockpit Intelligence » — inversion immersive (ADR-0008)
+
+   Scope : [data-theme="cockpit"] posé sur la racine du hub
+   /prospection/accounts/[companyId]. Le fond bascule cobalt, les
+   titres passent en or, liens/accents/onglet actif en or. Les
+   composants sont token-driven → ils basculent SANS modification.
+   Seul le rail garde un navy dédié via --color-rail.
+
+   Contraste : or #FFC233 sur cobalt #2554B8 ≈ 4,5:1 (AA).
+   Le gris du chrome (sidebar/header/onglets) reste clair → seuil net.
+   ────────────────────────────────────────────────────────────── */
+[data-theme="cockpit"] {
+  --color-canvas:        #2554B8; /* le fond de la zone devient cobalt */
+  --color-surface:       #1E4596; /* cartes / header : cobalt enfoncé   */
+  --color-surface-hover: #22489D;
+  --color-border:        #3A60B5; /* liseré clair sur cobalt            */
+  --color-heading:       #FFC233; /* titres + chiffres-clés EN OR       */
+  --color-body:          #D6E1F4; /* texte courant clair                */
+  --color-muted:         #A9BDE6; /* labels / métadonnées               */
+  --color-primary:       #FFB812; /* liens, soulignement onglet, accents → or */
+  --color-rail:          #16294D; /* navy profond, tranche sur le cobalt */
+}
+
+/* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
+   les tokens en clair pour préserver le confort de lecture — le bleu encadre,
+   le texte long revient sur surface claire. Sans effet hors cockpit. */
+[data-theme="cockpit"] .cockpit-reading {
+  /* Surface/bordure en propriétés réelles : s'appliquent direct (spécificité
+     (0,2,0) > utilitaire bg-surface (0,1,0)) et évitent l'élagage Lightning CSS
+     des règles 100% custom-properties. */
+  background-color: #FBFAF6;
+  border-color: #E7E4DC;
+  /* Tokens hérités par le texte descendant (text-heading/body/muted). */
+  --color-heading: #1A2540;
+  --color-body:    #3E4A5E;
+  --color-muted:   #7C879A;
 }
 
 /* ── Base ─────────────────────────────────────────────────── */

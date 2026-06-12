@@ -70,14 +70,18 @@ export function KpiCard({ label, value, hint, status = "neutral" }: {
   )
 }
 
-export function SectionBlock({ title, action, children, className }: {
+export function SectionBlock({ title, action, children, className, reading }: {
   title: string
   action?: ReactNode
   children: ReactNode
   className?: string
+  /** Bloc de prose longue : sous le thème cockpit, repasse sur une surface
+   *  de lecture claire (cf. .cockpit-reading dans globals.css). Sans effet
+   *  hors cockpit. */
+  reading?: boolean
 }) {
   return (
-    <section className={cn("rounded-lg border border-border bg-surface p-5", className)}>
+    <section className={cn("rounded-lg border border-border bg-surface p-5", reading && "cockpit-reading", className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-muted">{title}</h3>
         {action}

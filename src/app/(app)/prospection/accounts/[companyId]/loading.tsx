@@ -1,7 +1,7 @@
 // Squelette du Client Intelligence Hub, affiché le temps des requêtes serveur.
 export default function ClientIntelligenceLoading() {
   return (
-    <div className="flex h-full flex-col overflow-hidden" aria-busy="true" aria-label="Chargement de l'intelligence compte…">
+    <div data-theme="cockpit" className="flex h-full flex-col overflow-hidden bg-canvas" aria-busy="true" aria-label="Chargement de l'intelligence compte…">
       {/* Header */}
       <div className="animate-pulse border-b border-border bg-surface px-6 py-4">
         <div className="mb-3 h-3 w-32 rounded bg-surface-hover" />

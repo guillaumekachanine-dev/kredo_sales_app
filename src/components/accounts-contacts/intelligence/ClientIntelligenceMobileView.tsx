@@ -19,7 +19,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const analysisSource: IntelligenceSource = client?.source ?? "none"
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-24">
+    <div data-theme="cockpit" className="flex min-h-full flex-col gap-4 bg-canvas p-4 pb-24">
       <Link href={`/prospection/accounts?drawer=${company.id}`} className="text-[11px] font-semibold text-muted">
         ← Comptes &amp; contacts
       </Link>
@@ -52,7 +52,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
       </div>
 
       {/* Synthèse courte */}
-      <SectionBlock title="Synthèse IA" action={client ? <ProvenanceBadge source={client.source} /> : undefined}>
+      <SectionBlock reading title="Synthèse IA" action={client ? <ProvenanceBadge source={client.source} /> : undefined}>
         <p className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-body">
           {client?.data.synthese || "Aucune synthèse disponible."}
         </p>

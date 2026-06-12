@@ -40,7 +40,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
     : TABS
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div data-theme="cockpit" className="flex h-full overflow-hidden bg-canvas">
       {/* ── Colonne gauche : header + onglets + contenu ──────────────────────────
           Le rail droit est pleine hauteur : le header ne fait donc que la largeur
           de cette colonne (= la section principale juste en dessous). ─────────── */}
@@ -162,6 +162,7 @@ function AccueilTab({ data, onOpenAnalyse }: { data: ClientIntelligenceData; onO
       </div>
 
       <SectionBlock
+        reading
         title="Synthèse IA"
         action={client ? <ProvenanceBadge source={client.source} /> : undefined}
       >
@@ -201,7 +202,7 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       {client && (
-        <SectionBlock title="Analyse client" action={<ProvenanceBadge source={client.source} />}>
+        <SectionBlock reading title="Analyse client" action={<ProvenanceBadge source={client.source} />}>
           {client.data.synthese && (
             <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-body">{client.data.synthese}</p>
           )}
@@ -254,7 +255,7 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
       )}
 
       {sector ? (
-        <SectionBlock title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
+        <SectionBlock reading title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
           <div className="space-y-4">
             <p className="whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
             
@@ -369,7 +370,7 @@ function PitchTab({ data }: { data: ClientIntelligenceData }) {
       </div>
 
       {pitches.map((pitch) => (
-        <SectionBlock key={pitch.id} title={pitch.objet || pitch.destinataire || "Pitch"}>
+        <SectionBlock key={pitch.id} reading title={pitch.objet || pitch.destinataire || "Pitch"}>
           {(pitch.destinataire || pitch.ton || pitch.format) && (
             <div className="mb-3 flex flex-wrap gap-1.5">
               {pitch.destinataire && (
