@@ -26,7 +26,6 @@ type ContactIdentityData = {
     relationship_level: string | null
     decision_power: string | null
     department: string | null
-    notes: string | null
     status: string
     is_priority: boolean | null
     persons: {
@@ -453,13 +452,13 @@ export function ContactIdentityDrawer({
                 </div>
 
                 {/* Personal notes */}
-                {(contact.notes || person.notes) && (
+                {person.notes && (
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                       Notes & Observations
                     </h4>
                     <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm whitespace-pre-wrap">
-                      {contact.notes || person.notes}
+                      {person.notes}
                     </div>
                   </div>
                 )}

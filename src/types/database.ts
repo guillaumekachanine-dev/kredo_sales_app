@@ -706,7 +706,6 @@ export type Database = {
           is_priority: boolean | null
           job_title: string | null
           manager_contact_id: string | null
-          notes: string | null
           person_id: string
           relationship_level: string | null
           relationship_role: string | null
@@ -724,7 +723,6 @@ export type Database = {
           is_priority?: boolean | null
           job_title?: string | null
           manager_contact_id?: string | null
-          notes?: string | null
           person_id: string
           relationship_level?: string | null
           relationship_role?: string | null
@@ -742,7 +740,6 @@ export type Database = {
           is_priority?: boolean | null
           job_title?: string | null
           manager_contact_id?: string | null
-          notes?: string | null
           person_id?: string
           relationship_level?: string | null
           relationship_role?: string | null

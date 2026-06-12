@@ -324,7 +324,6 @@ export async function getContactIdentity(contactId: string) {
         relationship_level,
         decision_power,
         department,
-        notes,
         status,
         is_priority,
         manager_contact_id,

@@ -150,7 +150,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
                 email: personObj?.primary_email || null,
                 phone: personObj?.phone || null,
                 job_title: contactObj.job_title,
-                notes: contactObj.notes,
+                notes: personObj?.notes || null,
                 created_at: contactObj.created_at,
               },
               role: lc.role,

@@ -56,16 +56,6 @@ export function IntelligenceRightRail({
 }) {
   return (
     <aside className="relative hidden w-80 shrink-0 overflow-y-auto bg-rail lg:block">
-      {/* Voile cobalt en haut */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent"
-        aria-hidden
-      />
-      {/* Liseré cobalt vertical à gauche */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b from-primary/70 via-primary/20 to-transparent"
-        aria-hidden
-      />
 
       <div className="relative space-y-6 p-5">
         {/* Eyebrow — identité du panneau + puce live */}

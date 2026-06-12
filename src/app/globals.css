@@ -71,7 +71,13 @@
   --color-body:          #D6E1F4; /* texte courant clair                */
   --color-muted:         #A9BDE6; /* labels / métadonnées               */
   --color-primary:       #FFB812; /* liens, soulignement onglet, accents → or */
-  --color-rail:          #16294D; /* navy profond, tranche sur le cobalt */
+  --color-rail:          #93A0B0; /* Tour de contrôle : couleur unie de la palette (#93A0B0) */
+}
+
+/* Redéfinition des couleurs à l'intérieur du rail d'intelligence sous cockpit (fond gris #93A0B0) */
+[data-theme="cockpit"] aside.bg-rail {
+  --color-primary-fg:    #1A2540; /* text-primary-fg devient bleu marine foncé */
+  --color-primary:       #2554B8; /* primary devient bleu cobalt standard */
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
