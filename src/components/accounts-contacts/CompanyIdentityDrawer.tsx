@@ -534,7 +534,7 @@ export function CompanyIdentityDrawer({
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                     Fiche Administrative & Chiffres Clés
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Chiffre d&apos;Affaires</span>
                       <span className="text-xs font-bold text-heading">
@@ -563,14 +563,14 @@ export function CompanyIdentityDrawer({
                           : "Non renseigné"}
                       </span>
                     </div>
-                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
+                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 col-span-2">
                       <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
                       <span className="text-xs font-normal text-heading">
                         {data.company.health || "Aucun indicateur de dynamique renseigné"}
                       </span>
                     </div>
                     {hasMaturite && (
-                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 sm:col-span-2">
+                      <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 col-span-2">
                         <span className="text-[9px] text-muted font-bold uppercase">Maturité digitale</span>
                         <span className="text-xs font-normal text-heading">
                           {signaux.indices_maturite_digitale}
@@ -578,7 +578,7 @@ export function CompanyIdentityDrawer({
                       </div>
                     )}
                     {healthScore !== null && (
-                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                      <div className="grid grid-cols-2 gap-3 col-span-2">
                         <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 items-center justify-center min-h-[90px]">
                           <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Santé financière</span>
                           <div className="mt-1">
