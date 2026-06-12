@@ -96,19 +96,19 @@ export function AppDrawer({
         className
       )}
     >
-      <div className="flex flex-col h-full p-4 sm:p-6">
+      <div className="flex flex-col h-full pt-2.5 px-4 pb-4 sm:p-6">
         {/* Header */}
         <div className={cn(
-          "flex flex-col pb-2 sm:pb-4 border-b border-transparent sm:border-border/40 shrink-0",
+          "flex flex-col pb-1 sm:pb-4 border-b border-transparent sm:border-border/40 shrink-0",
           description ? "gap-1.5" : ""
         )}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold font-heading leading-snug sm:block hidden">{title}</h2>
               {subtitle ? (
-                <h2 className="text-sm font-bold font-heading leading-snug sm:hidden block">{subtitle}</h2>
+                <h2 className="text-xs font-normal text-muted leading-none sm:hidden block">{subtitle}</h2>
               ) : (
-                <h2 className="text-sm font-bold font-heading leading-snug sm:hidden block">{title}</h2>
+                <h2 className="text-sm font-normal text-muted leading-none sm:hidden block">{title}</h2>
               )}
               {subtitle && (
                 <p className="text-xs text-muted mt-0.5 font-normal leading-none sm:block hidden">{subtitle}</p>
