@@ -84,15 +84,15 @@ export function AppDrawer({
         // Position + animation selon le côté
         isRight
           ? cn(
-              "inset-y-0 right-0 left-auto m-0 w-full max-w-md h-full border-l",
-              "kredo-drawer-right",
-              isClosing && "kredo-drawer-closing"
-            )
+            "inset-y-0 right-0 left-auto m-0 w-full max-w-md h-full border-l",
+            "kredo-drawer-right",
+            isClosing && "kredo-drawer-closing"
+          )
           : cn(
-              "inset-x-0 bottom-0 top-auto m-0 w-full max-h-[85vh] border-t rounded-t-xl",
-              "kredo-drawer-bottom",
-              isClosing && "kredo-drawer-closing"
-            ),
+            "inset-x-0 bottom-0 top-auto m-0 w-full max-h-[85vh] border-t rounded-t-xl",
+            "kredo-drawer-bottom",
+            isClosing && "kredo-drawer-closing"
+          ),
         className
       )}
     >
