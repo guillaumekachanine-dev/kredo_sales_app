@@ -48,7 +48,7 @@ export function MobileBottomNav({
   onActiveModulePress,
 }: MobileBottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-bottom))] bg-primary border-t border-white/10 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] z-50">
+    <nav className="fixed bottom-0 left-0 right-0 h-[calc(4rem+1px)] bg-primary border-t border-white/10 flex items-center justify-around px-2 pb-[1px] z-50">
       {primaryNavItems.map((item) => {
         const href = item.href!
         const isActive = pathname === href || pathname.startsWith(href + "/")
