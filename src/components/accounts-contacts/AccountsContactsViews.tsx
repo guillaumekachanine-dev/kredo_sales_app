@@ -1457,6 +1457,7 @@ export function ProspectionAccountsView({
       <ContactIdentityDrawer
         contactId={selectedContactIdForIdentity}
         open={!!selectedContactIdForIdentity}
+        device={device}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedContactIdForIdentity(null)

@@ -6,6 +6,7 @@ import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -14,6 +15,7 @@ interface ContactIdentityDrawerProps {
   onOpenCompanyIdentity?: (companyId: string) => void
   onOpenContactIdentity?: (contactId: string) => void
   onEditContact?: (contactId: string) => void
+  device?: "mobile" | "desktop"
 }
 
 type ContactIdentityData = {
@@ -89,7 +91,7 @@ type ContactIdentityData = {
     status: string
     completed_at: string | null
   }>
-  manager: { id: string; fullName: string; job_title: string | null } | null
+  manager: { id: string; fullName: string; job_title: string | null; email: string | null; phone: string | null } | null
   reports: Array<{ id: string; fullName: string; job_title: string | null }>
 }
 
@@ -143,6 +145,164 @@ function getAvatarBgColor(name: string) {
   return `hsl(${h}, 55%, 43%)`
 }
 
+function CompanyMiniModal({
+  company,
+  onClose,
+  onOpenCompany,
+}: {
+  company: NonNullable<ContactIdentityData["contact"]["companies"]>
+  onClose: () => void
+  onOpenCompany?: (companyId: string) => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[340px]">
+        <SurfaceCard
+          className="w-full p-5 shadow-2xl border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-muted hover:text-heading transition-colors"
+            title="Fermer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <h3 className="text-sm font-bold text-heading font-heading pr-6 leading-tight border-b border-border/40 pb-2.5">
+            {company.name}
+          </h3>
+
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Secteur</span>
+              <span className="font-bold text-heading truncate" title={company.sector || "—"}>{company.sector || "—"}</span>
+            </div>
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Segment</span>
+              <span className="font-bold text-heading truncate" title={company.segment || "—"}>{company.segment || "—"}</span>
+            </div>
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Chiffre d'affaires</span>
+              <span className="font-bold text-heading truncate" title={company.revenue || "—"}>{company.revenue || "—"}</span>
+            </div>
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Employés</span>
+              <span className="font-bold text-heading">
+                {company.employee_count !== null ? company.employee_count.toLocaleString("fr-FR") : "—"}
+              </span>
+            </div>
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Priorité</span>
+              <span className="font-bold text-heading capitalize truncate" title={company.priority || "—"}>{company.priority || "—"}</span>
+            </div>
+            <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Score IA</span>
+              <span className="font-bold text-primary">{formatScore(company.ai_score)}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-border/40 mt-1">
+            <button
+              onClick={() => {
+                if (onOpenCompany) {
+                  onOpenCompany(company.id)
+                }
+                onClose()
+              }}
+              className="text-[9px] font-bold text-primary hover:underline bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded transition-colors flex items-center gap-1 shrink-0"
+              title="Consulter la fiche complète de l'entreprise"
+            >
+              Consulter la fiche
+              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </SurfaceCard>
+      </div>
+    </div>
+  )
+}
+
+function ManagerMiniModal({
+  manager,
+  onClose,
+  onOpenContact,
+}: {
+  manager: NonNullable<ContactIdentityData["manager"]>
+  onClose: () => void
+  onOpenContact?: (contactId: string) => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/85 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[320px]">
+        <SurfaceCard
+          className="w-full p-5 shadow-2xl border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 text-muted hover:text-heading transition-colors"
+            title="Fermer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <h3 className="text-sm font-bold text-heading font-heading pr-6 leading-tight border-b border-border/40 pb-2.5">
+            {manager.fullName}
+          </h3>
+
+          <div className="flex flex-col gap-2.5 text-[11px]">
+            <div className="flex justify-between items-center py-1 border-b border-border/20">
+              <span className="text-muted font-medium">Fonction :</span>
+              <span className="font-bold text-heading text-right truncate max-w-[170px]" title={manager.job_title || "—"}>
+                {manager.job_title || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-border/20">
+              <span className="text-muted font-medium">Téléphone :</span>
+              <span className="font-bold text-heading text-right">{manager.phone || "—"}</span>
+            </div>
+            <div className="flex justify-between items-center py-1">
+              <span className="text-muted font-medium">E-mail :</span>
+              <span className="font-bold text-heading text-right truncate max-w-[170px]" title={manager.email || "—"}>
+                {manager.email || "—"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t border-border/40 mt-1">
+            <button
+              onClick={() => {
+                if (onOpenContact) {
+                  onOpenContact(manager.id)
+                }
+                onClose()
+              }}
+              className="text-[9px] font-bold text-primary hover:underline bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded transition-colors flex items-center gap-1 shrink-0"
+              title="Consulter la fiche complète du contact"
+            >
+              Consulter la fiche
+              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </button>
+          </div>
+        </SurfaceCard>
+      </div>
+    </div>
+  )
+}
+
 export function ContactIdentityDrawer({
   contactId,
   open,
@@ -150,10 +310,13 @@ export function ContactIdentityDrawer({
   onOpenCompanyIdentity,
   onOpenContactIdentity,
   onEditContact,
+  device,
 }: ContactIdentityDrawerProps) {
   const [data, setData] = useState<ContactIdentityData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
+  const [isManagerModalOpen, setIsManagerModalOpen] = useState(false)
   const [transitionPending, startTransition] = useTransition()
 
   const loading = transitionPending || (open && !!contactId && !data && !error)
@@ -166,6 +329,8 @@ export function ContactIdentityDrawer({
     startTransition(async () => {
       setError(null)
       setActiveTab("apercu")
+      setIsCompanyModalOpen(false)
+      setIsManagerModalOpen(false)
       try {
         const response = await getContactIdentity(contactId)
         if (response.error) {
@@ -254,30 +419,90 @@ export function ContactIdentityDrawer({
         </div>
       ) : data && contact && person ? (
         <div className="flex flex-col h-full gap-5">
+          {/* Mini-modal for company details on mobile */}
+          {device === "mobile" && company && isCompanyModalOpen && (
+            <CompanyMiniModal
+              company={company}
+              onClose={() => setIsCompanyModalOpen(false)}
+              onOpenCompany={onOpenCompanyIdentity}
+            />
+          )}
+
+          {/* Mini-modal for N+1 manager details on mobile */}
+          {device === "mobile" && data.manager && isManagerModalOpen && (
+            <ManagerMiniModal
+              manager={data.manager}
+              onClose={() => setIsManagerModalOpen(false)}
+              onOpenContact={onOpenContactIdentity}
+            />
+          )}
+
           {/* Identity Summary Card */}
           <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white font-heading font-extrabold text-lg shadow-inner shrink-0"
-                  style={{ backgroundColor: avatarBg }}
-                >
-                  {initials}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-heading leading-tight">{fullName}</h3>
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                {device === "mobile" && company ? (
+                  <div
+                    onClick={() => setIsCompanyModalOpen(true)}
+                    className="cursor-pointer transition-transform hover:scale-105 active:scale-95 shrink-0"
+                    title="Voir les détails du compte"
+                  >
+                    <CompanyLogo
+                      name={company.name}
+                      logoPath={(company.metadata?.logo_path as string) || null}
+                      website={company.website}
+                      size="xl"
+                      className="rounded-full w-14 h-14 border-border/80 shadow-sm"
+                    />
                   </div>
-                  {contact.job_title && (
-                    <span className="text-[11px] text-muted font-medium block mt-0.5 leading-tight">
-                      {contact.job_title}
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-heading font-extrabold text-lg shadow-inner shrink-0"
+                    style={{ backgroundColor: avatarBg }}
+                  >
+                    {initials}
+                  </div>
+                )}
+                
+                {device === "mobile" ? (
+                  <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-heading leading-tight truncate">{fullName}</h3>
+                      {contact.job_title && (
+                        <span className="text-[11px] text-muted font-medium block mt-0.5 leading-tight truncate">
+                          {contact.job_title}
+                        </span>
+                      )}
+                    </div>
+                    {onEditContact && (
+                      <button
+                        onClick={() => onEditContact(contact.id)}
+                        className="rounded-full p-2 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary transition-colors flex items-center justify-center shrink-0"
+                        title="Modifier les informations du contact"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold text-heading leading-tight">{fullName}</h3>
+                    </div>
+                    {contact.job_title && (
+                      <span className="text-[11px] text-muted font-medium block mt-0.5 leading-tight">
+                        {contact.job_title}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-                         {/* Edit Button */}
-              <div className="flex flex-col items-end shrink-0">
-                {onEditContact && (
+
+              {/* Edit Button for Desktop */}
+              {device !== "mobile" && onEditContact && (
+                <div className="flex flex-col items-end shrink-0">
                   <button
                     onClick={() => onEditContact(contact.id)}
                     className="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2 py-0.5 rounded transition-colors"
@@ -288,8 +513,8 @@ export function ContactIdentityDrawer({
                     </svg>
                     Éditer
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Quick professional attributes row - Distributed equally */}
@@ -355,7 +580,7 @@ export function ContactIdentityDrawer({
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                     Coordonnées personnelles
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={cn("grid gap-3", device === "mobile" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
                     {/* E-mail */}
                     {person.primary_email ? (
                       <a
@@ -464,7 +689,7 @@ export function ContactIdentityDrawer({
                 )}
 
                 {/* Associated Company Card */}
-                {company && (
+                {company && device !== "mobile" && (
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                       Compte associé
@@ -537,7 +762,7 @@ export function ContactIdentityDrawer({
                 {/* Organigramme / Hiérarchie */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                    Organigramme & Hiérarchie
+                    {device === "mobile" ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
                   </h4>
                   <div className="bg-canvas/30 rounded-xl border border-border/50 p-4 flex flex-col items-center">
                     {/* N+1 Manager */}
@@ -545,15 +770,17 @@ export function ContactIdentityDrawer({
                       <div className="flex flex-col items-center w-full max-w-xs animate-in fade-in slide-in-from-top-1 duration-200">
                         <div 
                           onClick={() => {
-                            if (data.manager?.id && onOpenContactIdentity) {
+                            if (device === "mobile") {
+                              setIsManagerModalOpen(true)
+                            } else if (data.manager?.id && onOpenContactIdentity) {
                               onOpenContactIdentity(data.manager.id)
                             }
                           }}
                           className={cn(
                             "bg-canvas/50 border border-border/60 rounded-lg p-2.5 w-full text-center transition-all shadow-sm group",
-                            onOpenContactIdentity ? "cursor-pointer hover:border-primary/50 hover:bg-canvas/80" : ""
+                            device === "mobile" || onOpenContactIdentity ? "cursor-pointer hover:border-primary/50 hover:bg-canvas/80" : ""
                           )}
-                          title={onOpenContactIdentity ? "Consulter la fiche du manager" : undefined}
+                          title={device === "mobile" ? "Voir les coordonnées du manager" : (onOpenContactIdentity ? "Consulter la fiche du manager" : undefined)}
                         >
                           <span className="text-[9px] text-muted font-bold uppercase tracking-tight block">N+1 · Manager</span>
                           <span className={cn(
@@ -651,11 +878,7 @@ export function ContactIdentityDrawer({
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-3">
                     Opportunités rattachées ({data.opportunities.length})
                   </h4>
-                  {data.opportunities.length === 0 ? (
-                    <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                      Ce contact n&apos;est rattaché à aucune opportunité commerciale.
-                    </div>
-                  ) : (
+                  {data.opportunities.length === 0 ? null : (
                     <div className="flex flex-col gap-2.5">
                       {data.opportunities.map((opp) => (
                         <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
@@ -688,11 +911,7 @@ export function ContactIdentityDrawer({
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-4">
                     Timeline des interactions ({data.interactions.length})
                   </h4>
-                  {data.interactions.length === 0 ? (
-                    <div className="text-center py-8 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                      Aucun historique d&apos;interaction avec ce contact.
-                    </div>
-                  ) : (
+                  {data.interactions.length === 0 ? null : (
                     <div className="relative pl-5 border-l border-border/60 ml-2.5 space-y-5">
                       {data.interactions.map((it) => {
                         let dotColor = "bg-border"
@@ -756,11 +975,7 @@ export function ContactIdentityDrawer({
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
                   Tâches et Relances ({data.tasks.length})
                 </h4>
-                {data.tasks.length === 0 ? (
-                  <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                    Aucune relance ou tâche planifiée pour ce contact.
-                  </div>
-                ) : (
+                {data.tasks.length === 0 ? null : (
                   <div className="flex flex-col gap-3">
                     {data.tasks.map((task) => (
                       <SurfaceCard key={task.id} className="p-3.5 flex flex-col gap-2">
@@ -826,6 +1041,22 @@ export function ContactIdentityDrawer({
                     ))}
                   </div>
                 )}
+
+                {/* Centered Add Task Action Button */}
+                <div className="flex justify-center pt-2">
+                  <button
+                    onClick={() => {
+                      alert("Fonctionnalité d'ajout de tâche bientôt disponible !");
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95 hover:shadow"
+                    title="Ajouter une nouvelle tâche"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Ajouter une tâche
+                  </button>
+                </div>
               </div>
             )}
           </div>

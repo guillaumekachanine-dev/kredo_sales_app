@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
     // pattern : ajouter ici toute future lib volumineuse (icônes, date, ui-kit).
     optimizePackageImports: ["zustand"],
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = false;
+    }
+    return config;
+  },
+  turbopack: {},
 };
 
 export default nextConfig;

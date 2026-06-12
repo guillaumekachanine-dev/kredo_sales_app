@@ -94,7 +94,10 @@ export function SectionBlock({ title, action, children, className, reading }: {
 export function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-border/60 bg-canvas/40 p-3">
-      <span className="block text-[9px] font-bold uppercase tracking-wider text-muted">{label}</span>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-heading">{label}</span>
+      </div>
       <p className="mt-1 text-xs leading-relaxed text-body">{value}</p>
     </div>
   )
@@ -122,7 +125,9 @@ export function SignalList({ signals }: { signals: string[] }) {
     <ul className="space-y-2">
       {signals.map((signal, i) => (
         <li key={i} className="flex gap-2.5 rounded border border-border/60 bg-canvas/40 p-2.5">
-          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+          <svg className="mt-1 h-2 w-2 text-heading shrink-0" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+            <polygon points="20,10 80,50 20,90" />
+          </svg>
           <span className="text-xs leading-relaxed text-body">{signal}</span>
         </li>
       ))}

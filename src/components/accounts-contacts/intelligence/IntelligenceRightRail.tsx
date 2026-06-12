@@ -4,6 +4,8 @@ import type {
   IntelligenceSource,
 } from "@/lib/intelligence/intelligence-data"
 import { FreshnessLine, PhasePresence } from "./intelligence-parts"
+import Link from "next/link"
+import type { DashboardAction } from "@/lib/dashboard/dashboard-types"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  IntelligenceRightRail — « Tour de contrôle » (ADR-0008)
@@ -43,6 +45,8 @@ export function IntelligenceRightRail({
   presence,
   contacts,
   analysisSource,
+  quickActions,
+  message,
 }: {
   freshness: {
     latestRunAt: string | null
@@ -53,6 +57,8 @@ export function IntelligenceRightRail({
   presence: ClientIntelligencePresence
   contacts: ClientIntelligenceContact[]
   analysisSource: IntelligenceSource
+  quickActions: DashboardAction[]
+  message?: string | null
 }) {
   return (
     <aside className="relative hidden w-80 shrink-0 overflow-y-auto bg-rail lg:block">
@@ -68,6 +74,46 @@ export function IntelligenceRightRail({
             Tour de contrôle
           </span>
         </div>
+
+        {/* Actions rapides */}
+        {quickActions && quickActions.length > 0 && (
+          <section>
+            <RailHeading title="Actions rapides" />
+            <div className="grid grid-cols-2 gap-2">
+              {quickActions.map((action) => {
+                const btnCls = "inline-flex items-center justify-center gap-2 rounded border border-primary-fg/10 bg-primary-fg/[0.04] px-2.5 py-2 text-center text-xs font-semibold text-primary-fg transition-all active:scale-95 hover:bg-primary-fg/[0.08] cursor-pointer min-h-[40px]"
+                const content = (
+                  <>
+                    {action.icon}
+                    <span>{action.label}</span>
+                  </>
+                )
+                if (action.href) {
+                  return (
+                    <Link key={action.id} href={action.href} className={btnCls}>
+                      {content}
+                    </Link>
+                  )
+                }
+                return (
+                  <button
+                    key={action.id}
+                    type="button"
+                    onClick={action.onClick}
+                    className={btnCls}
+                  >
+                    {content}
+                  </button>
+                )
+              })}
+            </div>
+            {message && (
+              <p className="mt-2 text-center text-[11px] text-primary-fg/50 font-medium transition-opacity">
+                {message}
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Fraîcheur & moteur */}
         <section>

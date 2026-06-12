@@ -108,62 +108,47 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           de cette colonne (= la section principale juste en dessous). ─────────── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* ── Header (compact) ─────────────────────────────────────────────── */}
-        <header className="shrink-0 border-b border-border bg-surface px-6 py-3 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <Link
-              href={`/prospection/accounts?drawer=${company.id}`}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
-            >
-              ← Comptes &amp; contacts
-            </Link>
-            <button
-              type="button"
-              onClick={() => setMessage("Workflow à connecter")}
-              className="inline-flex items-center gap-1.5 rounded border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-body hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
-            >
-              <RefreshIcon className="h-3.5 w-3.5" />
-              Mettre à jour
-            </button>
-          </div>
-          <h2 className="font-heading text-xl font-bold text-heading">
-            Cockpit intelligence
-          </h2>
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4">
-                <CompanyLogo name={company.name} logoPath={company.logoPath} website={company.website} size="xl" className="bg-white p-1" />
-                <div>
-                  <h1 className="font-heading text-xl font-bold text-heading">{company.name}</h1>
-                  <p className="mt-1 text-xs text-body">
+        <header className="shrink-0 border-b border-border bg-surface px-6 py-3">
+          <div className="flex flex-col items-start gap-2 w-full">
+            <div className="flex flex-col items-start">
+              <Link
+                href={`/prospection/accounts?drawer=${company.id}`}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
+              >
+                ← Comptes &amp; contacts
+              </Link>
+              <h2 className="font-heading text-xl font-bold text-heading leading-tight mt-1">
+                Cockpit intelligence
+              </h2>
+            </div>
+
+            <div className="flex items-start justify-between gap-6 w-full mt-1">
+              {/* Côté gauche : Logo + Informations du compte */}
+              <div className="flex items-start gap-4">
+                <CompanyLogo
+                  name={company.name}
+                  logoPath={company.logoPath}
+                  website={company.website}
+                  size="2xl"
+                  className="bg-white p-1 shrink-0"
+                />
+                <div className="flex flex-col items-start gap-1">
+                  <h1 className="font-heading text-2xl font-bold text-white leading-tight">
+                    {company.name}
+                  </h1>
+                  <p className="text-xs text-body leading-normal">
                     {company.sector} · {company.segment} · {company.hqLocation}
                   </p>
-                  <div className="mt-1.5">
-                    <span className="inline-block rounded border border-border bg-canvas/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-body">
-                      {lifecycleLabel(company.lifecycleStatus)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <ScorePill score={company.aiScore} />
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-start gap-1 min-w-[340px]">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                    Actions rapides
+                  <span className="text-xs text-muted">
+                    {lifecycleLabel(company.lifecycleStatus)}
                   </span>
-                  <DashboardQuickActions
-                    actions={quickActions}
-                    showHeader={false}
-                    className="p-0 gap-0 shadow-none border-0 bg-transparent w-full"
-                  />
                 </div>
               </div>
-              {message && (
-                <p className="text-[11px] text-muted font-medium mr-1.5 transition-opacity">
-                  {message}
-                </p>
-              )}
+
+              {/* Côté droit : Score IA */}
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <ScorePill score={company.aiScore} />
+              </div>
             </div>
           </div>
         </header>
@@ -189,25 +174,33 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         </nav>
 
         {/* ── Contenu de l'onglet actif ─────────────────────────────────────── */}
-        <main className="min-w-0 flex-1 overflow-y-auto p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto px-6 pb-6 pt-0">
           {activeTab === "accueil" && (
             <AccueilTab
               data={data}
               onOpenTab={(tab) => setActiveTab(tab)}
             />
           )}
-          {activeTab === "analyses" && <AnalyseTab data={data} />}
+          {activeTab === "analyses" && <AnalyseTab data={data} setMessage={setMessage} />}
           {activeTab === "enjeux" && (
-            <ComingSoon lot="lot F">Cartographie enjeux × offres ESN</ComingSoon>
+            <div className="pt-6">
+              <ComingSoon lot="lot F">Cartographie enjeux × offres ESN</ComingSoon>
+            </div>
           )}
           {activeTab === "scoring" && (
-            <ComingSoon lot="lot E">Breakdown du score déterministe et expliqué</ComingSoon>
+            <div className="pt-6">
+              <ComingSoon lot="lot E">Breakdown du score déterministe et expliqué</ComingSoon>
+            </div>
           )}
           {activeTab === "strategie" && (
-            <ComingSoon lot="lot H">Stratégie commerciale : angles d’approche, interlocuteurs, messages clés</ComingSoon>
+            <div className="pt-6">
+              <ComingSoon lot="lot H">Stratégie commerciale : angles d’approche, interlocuteurs, messages clés</ComingSoon>
+            </div>
           )}
           {activeTab === "roadmap" && (
-            <ComingSoon lot="lot G">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
+            <div className="pt-6">
+              <ComingSoon lot="lot G">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
+            </div>
           )}
         </main>
       </div>
@@ -242,6 +235,8 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         presence={presence}
         contacts={contacts}
         analysisSource={analysisSource}
+        quickActions={quickActions}
+        message={message}
       />
     </div>
   )
@@ -258,7 +253,7 @@ function AccueilTab({
 }) {
   const { signals } = data
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 pt-6">
 
       {/* ── Frise process horizontal ── */}
       <div className="flex items-stretch gap-2 py-2">
@@ -358,7 +353,7 @@ const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; ic
   ],
 }
 
-function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
+function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMessage: (msg: string | null) => void }) {
   const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
   const { client, sector } = data
 
@@ -373,88 +368,84 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
   const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl pt-6">
       {/* ── Sélecteur d'analyse ──────────────────────────────────────────────── */}
       <div className="mb-6">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
           Sélectionner une analyse
         </p>
-        <div className="grid grid-cols-2 gap-3">
-          {ANALYSIS_CATALOG.map((entry) => {
-            const available = isAvailable(entry.key)
-            const source = getSource(entry.key)
-            const isSelected = selected === entry.key
-            const Icon = entry.icon
-            return (
-              <button
-                key={entry.key}
-                type="button"
-                disabled={!available}
-                onClick={() => setSelected(isSelected ? null : entry.key)}
-                className={cn(
-                  "group relative flex items-start gap-4 rounded-xl border p-5 text-left transition-all duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isSelected
-                    ? "border-primary bg-surface cursor-pointer"
-                    : available
-                    ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover cursor-pointer"
-                    : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
-                )}
-              >
-                {isSelected && (
-                  <span
-                    aria-hidden
-                    className="absolute left-0 top-4 bottom-4 w-0.5 rounded-r-full bg-primary"
-                  />
-                )}
-                <div className={cn(
-                  "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition-colors duration-200",
-                  isSelected
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
-                )}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className={cn(
-                      "font-heading text-sm font-bold leading-tight",
-                      isSelected ? "text-primary" : "text-heading",
-                    )}>
-                      {entry.label}
-                    </span>
-                    <ProvenanceBadge source={source} />
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            {ANALYSIS_CATALOG.map((entry) => {
+              const available = isAvailable(entry.key)
+              const isSelected = selected === entry.key
+              const Icon = entry.icon
+              return (
+                <button
+                  key={entry.key}
+                  type="button"
+                  disabled={!available}
+                  onClick={() => setSelected(isSelected ? null : entry.key)}
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition-all duration-200 cursor-pointer min-h-[38px]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                    isSelected
+                      ? "border-primary bg-surface"
+                      : available
+                      ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover"
+                      : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
+                  )}
+                >
+                  {isSelected && (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full bg-primary"
+                    />
+                  )}
+                  <div className={cn(
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors duration-200",
+                    isSelected
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
+                  )}>
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
-                  <p className="text-[11px] leading-relaxed text-muted">
-                    {entry.subtitle}
-                  </p>
-                </div>
-              </button>
-            )
-          })}
-          {/* Prochaine analyse — Diagnostic process (lot C) */}
-          <div className="flex items-start gap-4 rounded-xl border border-dashed border-border/40 p-5 opacity-40">
-            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-border">
-              <PlusCircleIcon className="h-4 w-4 text-muted" />
-            </div>
-            <div>
-              <p className="font-heading text-sm font-bold text-heading">Diagnostic process</p>
-              <p className="mt-1 text-[11px] text-muted">Analyse interne · enjeux · transformation</p>
-              <span className="mt-2 inline-block text-[9px] font-bold uppercase tracking-wider text-muted/70">
-                Lot C
+                  <span className={cn(
+                    "font-heading text-xs font-bold leading-tight",
+                    isSelected ? "text-primary" : "text-heading",
+                  )}>
+                    {entry.label}
+                  </span>
+                </button>
+              )
+            })}
+            {/* Prochaine analyse — Diagnostic process (lot C) */}
+            <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-border/40 px-3.5 py-2 opacity-40 min-h-[38px]">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border">
+                <PlusCircleIcon className="h-3 w-3 text-muted" />
+              </div>
+              <span className="font-heading text-xs font-bold text-heading">
+                Diagnostic process
               </span>
             </div>
           </div>
+
+          {/* Bouton Lancer/actualiser une analyse */}
+          <button
+            type="button"
+            onClick={() => setMessage("Lancement de l'analyse en cours...")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer ml-auto min-h-[38px]"
+          >
+            <RefreshIcon className="h-3.5 w-3.5" />
+            Lancer/actualiser une analyse
+          </button>
         </div>
       </div>
 
       {/* ── Barre de raccourcis (sticky dans le scroll container de <main>) ─── */}
       {selected && activeSections.length > 0 && (
         <div className="sticky top-0 z-10 -mx-6 mb-5 border-b border-border/30 bg-canvas/90 px-6 py-2.5 backdrop-blur-sm">
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-muted/70 pr-1">
-              Aller à
-            </span>
+          <div className="flex items-center gap-2 overflow-x-auto justify-start">
             {activeSections.map((section) => {
               const SIcon = section.icon
               return (
@@ -491,7 +482,7 @@ function AnalyseTab({ data }: { data: ClientIntelligenceData }) {
   )
 }
 
-function renderJsonValue(value: unknown, depth = 0): ReactNode {
+function renderJsonValue(value: unknown, depth = 0, hasBullet = false): ReactNode {
   if (value === null || value === undefined) return null
   if (typeof value === "string") return value
   if (typeof value === "number" || typeof value === "boolean") return String(value)
@@ -504,8 +495,10 @@ function renderJsonValue(value: unknown, depth = 0): ReactNode {
       <ul className="space-y-1.5 mt-0.5">
         {value.map((item, i) => (
           <li key={i} className="flex gap-2 items-start">
-            <span className="w-1.5 h-1.5 rounded-full bg-muted shrink-0 mt-1.5" />
-            <span className="flex-1 leading-relaxed">{renderJsonValue(item, depth + 1)}</span>
+            <svg className="w-2 h-2 text-heading/70 shrink-0 mt-1.5" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+              <polygon points="20,10 80,50 20,90" />
+            </svg>
+            <span className="flex-1 leading-relaxed">{renderJsonValue(item, depth + 1, true)}</span>
           </li>
         ))}
       </ul>
@@ -514,14 +507,34 @@ function renderJsonValue(value: unknown, depth = 0): ReactNode {
   if (typeof value === "object") {
     return (
       <div className={depth > 0 ? "space-y-1" : "space-y-2"}>
-        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
-          <div key={k}>
-            <span className="text-[9px] text-muted/70 font-semibold uppercase tracking-wide block mb-0.5">
-              {k.replace(/_/g, " ")}
-            </span>
-            <div className="leading-relaxed">{renderJsonValue(v, depth + 1)}</div>
-          </div>
-        ))}
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => {
+          const lk = k.toLowerCase()
+          const isInlineKey = lk.includes("nom") || lk.includes("forces") || lk.includes("faiblesses") || lk.includes("impact") || lk.includes("échéance") || lk.includes("echeance")
+          if (isInlineKey) {
+            return (
+              <div key={k} className="mt-1 first:mt-0 flex items-baseline gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1">
+                  {!hasBullet && <span className="h-2 w-0.5 rounded-full bg-primary shrink-0" />}
+                  <span className="text-[10px] text-heading font-bold uppercase tracking-wider whitespace-nowrap">
+                    {k.replace(/_/g, " ")} :
+                  </span>
+                </div>
+                <span className="text-xs text-body leading-relaxed">{renderJsonValue(v, depth + 1, hasBullet)}</span>
+              </div>
+            )
+          }
+          return (
+            <div key={k} className="mt-3.5 first:mt-0">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                {!hasBullet && <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />}
+                <span className="text-[10px] text-heading font-bold uppercase tracking-wider">
+                  {k.replace(/_/g, " ")}
+                </span>
+              </div>
+              <div className="leading-relaxed">{renderJsonValue(v, depth + 1, hasBullet)}</div>
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -551,16 +564,16 @@ function AnalysisSection({
       className="cockpit-reading overflow-hidden rounded-xl border border-border scroll-mt-14"
     >
       {/* En-tête de section */}
-      <div className="flex items-center gap-4 border-b border-border bg-canvas/30 px-6 py-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-body">
+      <div className="flex items-center gap-4 border-b border-border bg-primary px-6 py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white">
           {icon}
         </div>
         <div>
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-white">
             {label}
           </h3>
           {description && (
-            <p className="mt-0.5 text-xs text-body/70">{description}</p>
+            <p className="mt-0.5 text-xs text-white/80 font-medium">{description}</p>
           )}
         </div>
       </div>
@@ -574,7 +587,7 @@ function AnalysisSection({
 
 function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {data.synthese && (
         <AnalysisSection
           id="ac-synthese"
@@ -646,17 +659,23 @@ function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
         >
           {data.contexteSectoriel.tendances && (
             <div className="mb-4">
-              <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-wider text-muted">
-                Tendances
-              </span>
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-heading">
+                  Tendances
+                </span>
+              </div>
               <p className="text-xs leading-relaxed text-body">{data.contexteSectoriel.tendances}</p>
             </div>
           )}
           {data.contexteSectoriel.concurrents.length > 0 && (
-            <div>
-              <span className="mb-2 block text-[9px] font-bold uppercase tracking-wider text-muted">
-                Concurrents identifiés
-              </span>
+            <div className="mt-4">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-heading">
+                  Concurrents identifiés
+                </span>
+              </div>
               <TagList items={data.contexteSectoriel.concurrents} />
             </div>
           )}
@@ -670,7 +689,7 @@ function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
 
 function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <AnalysisSection
         id="se-synthese"
         icon={<SectionSyntheseIcon className="h-5 w-5" />}

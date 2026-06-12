@@ -354,7 +354,8 @@ export async function getContactIdentity(contactId: string) {
           employee_count,
           size_band,
           health,
-          ai_score
+          ai_score,
+          metadata
         )
       `)
       .eq("id", contactId)
@@ -455,7 +456,9 @@ export async function getContactIdentity(contactId: string) {
             id,
             full_name,
             first_name,
-            last_name
+            last_name,
+            primary_email,
+            phone
           )
         `)
         .eq("company_id", contact.company_id)
@@ -470,7 +473,9 @@ export async function getContactIdentity(contactId: string) {
             manager = {
               id: m.id,
               fullName: (mPersonObj as any)?.full_name || `${(mPersonObj as any)?.first_name || ""} ${(mPersonObj as any)?.last_name || ""}`.trim(),
-              job_title: m.job_title
+              job_title: m.job_title,
+              email: (mPersonObj as any)?.primary_email || null,
+              phone: (mPersonObj as any)?.phone || null,
             }
           }
         }
