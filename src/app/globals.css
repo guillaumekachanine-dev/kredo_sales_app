@@ -95,10 +95,18 @@
      des règles 100% custom-properties. */
   background-color: #FBFAF6;
   border-color: #E7E4DC;
-  /* Tokens hérités par le texte descendant (text-heading/body/muted). */
+  /* Tokens texte hérités par les descendants. */
   --color-heading: #1A2540;
   --color-body:    #3E4A5E;
   --color-muted:   #7C879A;
+  /* Tokens structuraux — évite que bg-canvas/bg-surface/border-border renvoient
+     du cobalt sur la surface de lecture claire. */
+  --color-canvas:        #F4F2ED;
+  --color-surface:       #FDFCFA;
+  --color-surface-hover: #EDF0F7;
+  --color-border:        #DBE0EB;
+  /* Primary repassé en cobalt standard pour les liens dans la prose. */
+  --color-primary: #2554B8;
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
