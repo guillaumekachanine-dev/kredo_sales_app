@@ -234,6 +234,13 @@ function formatDate(dateStr: string | null) {
   })
 }
 
+function formatManagerName(name: string): string {
+  if (!name) return ""
+  let clean = name.replace(/\s*\(.*?\)/g, "")
+  clean = clean.split(",")[0].split(" - ")[0].split(" :")[0]
+  return clean.trim()
+}
+
 export function CompanyIdentityDrawer({
   companyId,
   open,
@@ -559,7 +566,7 @@ export function CompanyIdentityDrawer({
                       <span className="text-[9px] text-muted font-bold uppercase">Dirigeant actuel</span>
                       <span className="text-xs font-bold text-heading truncate" title={identite.dirigeants && identite.dirigeants.length > 0 ? identite.dirigeants.join(", ") : undefined}>
                         {identite.dirigeants && identite.dirigeants.length > 0
-                          ? identite.dirigeants.join(", ")
+                          ? identite.dirigeants.map(formatManagerName).join(", ")
                           : "Non renseigné"}
                       </span>
                     </div>
