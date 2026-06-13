@@ -252,6 +252,7 @@ export function CompanyIdentityDrawer({
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
   const [syntheseExpanded, setSyntheseExpanded] = useState(false)
   const [transitionPending, startTransition] = useTransition()
+  const [contactFilter, setContactFilter] = useState<"all" | "decideur" | "activity" | "cible" | "other">("all")
   const prevCompanyIdRef = useRef<string | null>(null)
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
@@ -284,6 +285,7 @@ export function CompanyIdentityDrawer({
     return () => {
       setData(null)
       setSyntheseExpanded(false)
+      setContactFilter("all")
     }
   }, [companyId, open])
 
@@ -350,6 +352,7 @@ export function CompanyIdentityDrawer({
       title={data?.company?.name || "Chargement..."}
       subtitle="Fiche d'identité"
       className="max-w-2xl"
+      hideMobileBackBtn={true}
     >
       {loading ? (
         <div className="flex flex-col gap-6 p-2">
@@ -390,6 +393,18 @@ export function CompanyIdentityDrawer({
           <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
+                {/* Mobile back arrow button */}
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="sm:hidden flex items-center justify-center text-muted hover:text-heading transition-colors cursor-pointer mr-0.5"
+                  aria-label="Retour"
+                >
+                  <svg className="h-4 w-4 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="16,5 7,12 16,19" />
+                  </svg>
+                </button>
+
                 {data.company.website ? (
                   <a
                     href={data.company.website.startsWith("http") ? data.company.website : `https://${data.company.website}`}
@@ -499,49 +514,30 @@ export function CompanyIdentityDrawer({
           <div className="flex-1 overflow-y-auto pr-1">
             {activeTab === "apercu" && (
               <div className="space-y-5">
-                {/* Statut & Priorité */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Statut</span>
-                    <span className="text-xs font-bold text-heading">
-                      {lifecycleLabel(data.company.lifecycle_status)}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Priorité</span>
-                    <span className={cn(
-                      "text-xs font-bold capitalize",
-                      data.company.priority === "haute" ? "text-warning" : "text-heading"
-                    )}>
-                      {data.company.priority}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Consultant Synthesis */}
-                <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                    Synthèse de l&apos;Intelligence Commerciale
-                  </h4>
-                  <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm flex flex-col gap-2">
-                    <span>{syntheseExpanded ? synthese : truncateToSentences(synthese, 2).short}</span>
-                    {truncateToSentences(synthese, 2).isTruncated && (
-                      <button
-                        onClick={() => setSyntheseExpanded((v) => !v)}
-                        className="self-start text-[10px] font-semibold text-primary hover:underline outline-none"
-                      >
-                        {syntheseExpanded ? "Voir moins" : "Voir la synthèse complète"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
                 {/* Core Administrative Identity */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                    Fiche Administrative & Chiffres Clés
+                    Statut & chiffres clés
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
+                    {/* Statut */}
+                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Statut</span>
+                      <span className="text-xs font-bold text-heading">
+                        {lifecycleLabel(data.company.lifecycle_status)}
+                      </span>
+                    </div>
+                    {/* Priorité */}
+                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Priorité</span>
+                      <span className={cn(
+                        "text-xs font-bold capitalize",
+                        data.company.priority === "haute" ? "text-warning" : "text-heading"
+                      )}>
+                        {data.company.priority}
+                      </span>
+                    </div>
+
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
                       <span className="text-[9px] text-muted font-bold uppercase">Chiffre d&apos;Affaires</span>
                       <span className="text-xs font-bold text-heading">
@@ -586,15 +582,15 @@ export function CompanyIdentityDrawer({
                     )}
                     {healthScore !== null && (
                       <div className="grid grid-cols-2 gap-3 col-span-2">
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 items-center justify-center min-h-[90px]">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Santé financière</span>
-                          <div className="mt-1">
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Santé financière</span>
+                          <div className="flex items-center mt-0.5">
                             <RatingIndicator value={healthScore} mode="single" size="lg" showLabel={false} />
                           </div>
                         </div>
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 items-center justify-center min-h-[90px]">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Risque financier</span>
-                          <div className="mt-1">
+                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
+                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Risque financier</span>
+                          <div className="flex items-center mt-0.5">
                             <RatingIndicator value={riskScore} mode="single" size="lg" showLabel={false} />
                           </div>
                         </div>
@@ -608,28 +604,64 @@ export function CompanyIdentityDrawer({
 
             {activeTab === "intelligence" && (
               <div className="space-y-4">
+                {/* Consultant Synthesis moved here from Aperçu */}
+                <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm flex flex-col gap-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                    Synthèse de l&apos;Intelligence Commerciale
+                  </h4>
+                  <span>{syntheseExpanded ? synthese : truncateToSentences(synthese, 2).short}</span>
+                  {truncateToSentences(synthese, 2).isTruncated && (
+                    <button
+                      onClick={() => setSyntheseExpanded((v) => !v)}
+                      className="self-start text-[10px] font-semibold text-primary hover:underline outline-none"
+                    >
+                      {syntheseExpanded ? "Voir moins" : "Voir la synthèse complète"}
+                    </button>
+                  )}
+                </div>
+
                 {positionnement.activite_principale && (
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Activité Principale</span>
-                    <p className="text-xs text-body leading-relaxed">{positionnement.activite_principale}</p>
+                  <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Activité Principale</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.activite_principale}</p>
                   </div>
                 )}
                 {positionnement.proposition_valeur && (
                   <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Proposition de Valeur</span>
-                    <p className="text-xs text-body leading-relaxed">{positionnement.proposition_valeur}</p>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Proposition de Valeur</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.proposition_valeur}</p>
                   </div>
                 )}
                 {positionnement.clients_types && (
                   <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Clients Cibles / Typologie</span>
-                    <p className="text-xs text-body leading-relaxed">{positionnement.clients_types}</p>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Clients Cibles / Typologie</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed pl-3.5">{positionnement.clients_types}</p>
                   </div>
                 )}
                 {positionnement.zone_geographique && (
                   <div className="flex flex-col gap-1 pt-3 border-t border-border/30">
-                    <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Zone Géographique</span>
-                    <p className="text-xs text-body leading-relaxed font-medium">{positionnement.zone_geographique}</p>
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-2 h-2 fill-current text-heading shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="6,4 18,12 6,20" />
+                      </svg>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Zone Géographique</span>
+                    </div>
+                    <p className="text-xs text-body leading-relaxed font-medium pl-3.5">{positionnement.zone_geographique}</p>
                   </div>
                 )}
               </div>
@@ -670,86 +702,195 @@ export function CompanyIdentityDrawer({
                 return intimacyA - intimacyB
               })
 
+              const filteredContacts = sortedContacts.filter((contact) => {
+                if (contactFilter === "all") return true
+                if (contactFilter === "decideur") return contact.relationship_role === "decideur"
+                if (contactFilter === "activity") {
+                  return !!(
+                    contact.relationship_level &&
+                    contact.relationship_level.trim() !== "" &&
+                    contact.relationship_level.toLowerCase() !== "aucun" &&
+                    contact.relationship_level.toLowerCase() !== "none"
+                  )
+                }
+                if (contactFilter === "cible") return contact.is_priority === true
+                if (contactFilter === "other") {
+                  const isDecideur = contact.relationship_role === "decideur"
+                  const hasActivity = !!(
+                    contact.relationship_level &&
+                    contact.relationship_level.trim() !== "" &&
+                    contact.relationship_level.toLowerCase() !== "aucun" &&
+                    contact.relationship_level.toLowerCase() !== "none"
+                  )
+                  const isCible = contact.is_priority === true
+                  return !isDecideur && !hasActivity && !isCible
+                }
+                return true
+              })
+
+              const countAll = sortedContacts.length
+              const countDecideurs = sortedContacts.filter(c => c.relationship_role === "decideur").length
+              const countActivity = sortedContacts.filter(c => c.relationship_level && c.relationship_level.trim() !== "" && c.relationship_level.toLowerCase() !== "aucun" && c.relationship_level.toLowerCase() !== "none").length
+              const countCibles = sortedContacts.filter(c => c.is_priority === true).length
+              const countOthers = sortedContacts.filter(c => {
+                const isDec = c.relationship_role === "decideur"
+                const hasAct = !!(c.relationship_level && c.relationship_level.trim() !== "" && c.relationship_level.toLowerCase() !== "aucun" && c.relationship_level.toLowerCase() !== "none")
+                const isCib = c.is_priority === true
+                return !isDec && !hasAct && !isCib
+              }).length
+
               return (
-              <div className="space-y-4">
-
-                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
-                  Contacts Rattachés
-                </h4>
-                {sortedContacts.length === 0 ? (
-                  <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
-                    Aucun contact lié à cette entreprise.
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
+                      Contacts Rattachés
+                    </h4>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {sortedContacts.map((contact) => {
-                      const person = contact.persons
-                      if (!person) return null
-                      return (
-                        <SurfaceCard key={contact.id} className="px-4 py-2.5 flex flex-col gap-2">
-                          <div className="flex items-start justify-between gap-2.5">
-                            <div>
-                              <h5 
-                                onClick={() => onOpenContactIdentity?.(contact.id)}
-                                className={cn(
-                                  "text-xs font-bold text-heading",
-                                  onOpenContactIdentity ? "cursor-pointer hover:text-primary transition-colors hover:underline" : ""
-                                )}
-                              >
-                                {person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}
-                              </h5>
-                              <p className="text-[10px] text-muted mt-0.5 leading-snug">
-                                {contact.job_title || "Fonction non spécifiée"}
-                              </p>
+
+                  {/* Ligne de filtres */}
+                  {sortedContacts.length > 0 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-border/20 no-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => setContactFilter("all")}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
+                          contactFilter === "all"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-surface text-muted hover:text-heading"
+                        )}
+                      >
+                        Tous ({countAll})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactFilter("decideur")}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
+                          contactFilter === "decideur"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-surface text-muted hover:text-heading"
+                        )}
+                      >
+                        Décideurs ({countDecideurs})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactFilter("activity")}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
+                          contactFilter === "activity"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-surface text-muted hover:text-heading"
+                        )}
+                      >
+                        Activité ({countActivity})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactFilter("cible")}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
+                          contactFilter === "cible"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-surface text-muted hover:text-heading"
+                        )}
+                      >
+                        Cibles ({countCibles})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactFilter("other")}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
+                          contactFilter === "other"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-surface text-muted hover:text-heading"
+                        )}
+                      >
+                        Autres ({countOthers})
+                      </button>
+                    </div>
+                  )}
+
+                  {sortedContacts.length === 0 ? (
+                    <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                      Aucun contact lié à cette entreprise.
+                    </div>
+                  ) : filteredContacts.length === 0 ? (
+                    <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                      Aucun contact ne correspond à ce filtre.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {filteredContacts.map((contact) => {
+                        const person = contact.persons
+                        if (!person) return null
+                        return (
+                          <SurfaceCard key={contact.id} className="px-4 py-2.5 flex flex-col gap-2">
+                            <div className="flex items-start justify-between gap-2.5">
+                              <div>
+                                <h5 
+                                  onClick={() => onOpenContactIdentity?.(contact.id)}
+                                  className={cn(
+                                    "text-xs font-bold text-heading",
+                                    onOpenContactIdentity ? "cursor-pointer hover:text-primary transition-colors hover:underline" : ""
+                                  )}
+                                >
+                                  {person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}
+                                </h5>
+                                <p className="text-[10px] text-muted mt-0.5 leading-snug">
+                                  {contact.job_title || "Fonction non spécifiée"}
+                                </p>
+                              </div>
+                              {contact.relationship_role && (
+                                <span className="rounded bg-primary/5 border border-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider shrink-0">
+                                  {contact.relationship_role.replace("_", " ")}
+                                </span>
+                              )}
                             </div>
-                            {contact.relationship_role && (
-                              <span className="rounded bg-primary/5 border border-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider shrink-0">
-                                {contact.relationship_role.replace("_", " ")}
-                              </span>
-                            )}
-                          </div>
 
-                          {/* Contact information details */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 text-muted">
-                            {person.primary_email && (
-                              <a
-                                href={`mailto:${person.primary_email}`}
-                                className="flex items-center gap-1.5 hover:text-primary hover:underline truncate"
-                              >
-                                <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                                <span className="truncate">{person.primary_email}</span>
-                              </a>
-                            )}
-                            {person.phone && (
-                              <span className="flex items-center gap-1.5 truncate">
-                                <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                </svg>
-                                {person.phone}
-                              </span>
-                            )}
-                            {person.linkedin_url && (
-                              <a
-                                href={person.linkedin_url.startsWith("http") ? person.linkedin_url : `https://${person.linkedin_url}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 hover:text-primary hover:underline sm:col-span-2 text-primary/80"
-                              >
-                                <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                                </svg>
-                                <span className="truncate">Profil LinkedIn</span>
-                              </a>
-                            )}
-                          </div>
-                        </SurfaceCard>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+                            {/* Contact information details */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 text-muted">
+                              {person.primary_email && (
+                                <a
+                                  href={`mailto:${person.primary_email}`}
+                                  className="flex items-center gap-1.5 hover:text-primary hover:underline truncate"
+                                >
+                                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                  </svg>
+                                  <span className="truncate">{person.primary_email}</span>
+                                </a>
+                              )}
+                              {person.phone && (
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                  </svg>
+                                  {person.phone}
+                                </span>
+                              )}
+                              {person.linkedin_url && (
+                                <a
+                                  href={person.linkedin_url.startsWith("http") ? person.linkedin_url : `https://${person.linkedin_url}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 hover:text-primary hover:underline sm:col-span-2 text-primary/80"
+                                >
+                                  <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                  </svg>
+                                  <span className="truncate">Profil LinkedIn</span>
+                                </a>
+                              )}
+                            </div>
+                          </SurfaceCard>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )
             })()}
 
@@ -772,9 +913,9 @@ export function CompanyIdentityDrawer({
                         Engagements (Prestations en cours)
                       </h4>
                       {activeMissions.length === 0 ? (
-                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                        <p className="text-xs text-muted italic py-1">
                           Aucune prestation active en cours.
-                        </div>
+                        </p>
                       ) : (
                         <div className="flex flex-col gap-2.5">
                           {activeMissions.map((mission) => {
@@ -815,9 +956,9 @@ export function CompanyIdentityDrawer({
                         Pipe opportunités
                       </h4>
                       {openOpps.length === 0 ? (
-                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                        <p className="text-xs text-muted italic py-1">
                           Aucune opportunité commerciale en cours.
-                        </div>
+                        </p>
                       ) : (
                         <div className="flex flex-col gap-2.5">
                           {openOpps.map((opp) => (
@@ -846,38 +987,43 @@ export function CompanyIdentityDrawer({
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* Dernière Action */}
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
-                          <div>
-                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
-                            {data.lastInteraction ? (
-                              <div className="text-xs">
-                                <span className="font-semibold text-heading block">
-                                  {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
-                                </span>
-                                <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
-                                  {data.lastInteraction.summary || "Pas de résumé disponible."}
-                                </p>
-                              </div>
-                            ) : data.company.last_contact_at ? (
-                              <div className="text-xs">
-                                <span className="font-semibold text-heading block">
-                                  Dernier contact : {formatDate(data.company.last_contact_at)}
-                                </span>
-                                <p className="text-muted italic mt-1 font-normal">
-                                  Pas de détails d&apos;interaction disponibles.
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted italic">Aucune action passée enregistrée.</span>
-                            )}
+                        {data.lastInteraction || data.company.last_contact_at ? (
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                            <div>
+                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
+                              {data.lastInteraction ? (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-heading block">
+                                    {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
+                                  </span>
+                                  <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
+                                    {data.lastInteraction.summary || "Pas de résumé disponible."}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-heading block">
+                                    Dernier contact : {formatDate(data.company.last_contact_at)}
+                                  </span>
+                                  <p className="text-muted italic mt-1 font-normal">
+                                    Pas de détails d&apos;interaction disponibles.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Dernière action réalisée</span>
+                            <p className="text-xs text-muted italic py-1">Aucune action passée enregistrée.</p>
+                          </div>
+                        )}
 
                         {/* Prochaine Action */}
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
-                          <div>
-                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
-                            {data.company.next_action_label ? (
+                        {data.company.next_action_label ? (
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                            <div>
+                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
                               <div className="text-xs">
                                 <span className="font-semibold text-heading block">
                                   À faire : {data.company.next_action_label}
@@ -888,11 +1034,14 @@ export function CompanyIdentityDrawer({
                                   </span>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-xs text-muted italic">Aucune action programmée.</span>
-                            )}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Prochaine action programmée</span>
+                            <p className="text-xs text-muted italic py-1">Aucune action programmée.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -907,12 +1056,12 @@ export function CompanyIdentityDrawer({
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
                         Stratégie d&apos;adressage
                       </h4>
-                      <div className="bg-canvas/20 rounded-lg border border-border/40 p-4 space-y-4 shadow-xs">
-                        {priorityContacts.length === 0 ? (
-                          <div className="text-xs text-muted italic">
-                            Aucun contact prioritaire lié pour établir la stratégie d&apos;adressage.
-                          </div>
-                        ) : (
+                      {priorityContacts.length === 0 ? (
+                        <p className="text-xs text-muted italic py-1">
+                          Aucun contact prioritaire lié pour établir la stratégie d&apos;adressage.
+                        </p>
+                      ) : (
+                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4 space-y-4 shadow-xs">
                           <div className="flex flex-col gap-2.5">
                             {priorityContacts.map((contact) => {
                               const person = contact.persons
@@ -947,8 +1096,8 @@ export function CompanyIdentityDrawer({
                               )
                             })}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 2. Pipe opportunités */}
@@ -957,9 +1106,9 @@ export function CompanyIdentityDrawer({
                         Pipe opportunités
                       </h4>
                       {openOpps.length === 0 ? (
-                        <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                        <p className="text-xs text-muted italic py-1">
                           Aucune opportunité commerciale en cours.
-                        </div>
+                        </p>
                       ) : (
                         <div className="flex flex-col gap-2.5">
                           {openOpps.map((opp) => (
@@ -988,38 +1137,43 @@ export function CompanyIdentityDrawer({
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* Dernière Action */}
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
-                          <div>
-                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
-                            {data.lastInteraction ? (
-                              <div className="text-xs">
-                                <span className="font-semibold text-heading block">
-                                  {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
-                                </span>
-                                <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
-                                  {data.lastInteraction.summary || "Pas de résumé disponible."}
-                                </p>
-                              </div>
-                            ) : data.company.last_contact_at ? (
-                              <div className="text-xs">
-                                <span className="font-semibold text-heading block">
-                                  Dernier contact : {formatDate(data.company.last_contact_at)}
-                                </span>
-                                <p className="text-muted italic mt-1 font-normal">
-                                  Pas de détails d&apos;interaction disponibles.
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted italic">Aucune action passée enregistrée.</span>
-                            )}
+                        {data.lastInteraction || data.company.last_contact_at ? (
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                            <div>
+                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
+                              {data.lastInteraction ? (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-heading block">
+                                    {data.lastInteraction.type.toUpperCase()} — {formatDate(data.lastInteraction.occurred_at)}
+                                  </span>
+                                  <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
+                                    {data.lastInteraction.summary || "Pas de résumé disponible."}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="text-xs">
+                                  <span className="font-semibold text-heading block">
+                                    Dernier contact : {formatDate(data.company.last_contact_at)}
+                                  </span>
+                                  <p className="text-muted italic mt-1 font-normal">
+                                    Pas de détails d&apos;interaction disponibles.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Dernière action réalisée</span>
+                            <p className="text-xs text-muted italic py-1">Aucune action passée enregistrée.</p>
+                          </div>
+                        )}
 
                         {/* Prochaine Action */}
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
-                          <div>
-                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
-                            {data.company.next_action_label ? (
+                        {data.company.next_action_label ? (
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                            <div>
+                              <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
                               <div className="text-xs">
                                 <span className="font-semibold text-heading block">
                                   À faire : {data.company.next_action_label}
@@ -1030,11 +1184,14 @@ export function CompanyIdentityDrawer({
                                   </span>
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-xs text-muted italic">Aucune action programmée.</span>
-                            )}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] text-muted font-bold uppercase tracking-wider block">Prochaine action programmée</span>
+                            <p className="text-xs text-muted italic py-1">Aucune action programmée.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1050,9 +1207,9 @@ export function CompanyIdentityDrawer({
                       Pipeline Commercial ({data.opportunities.length})
                     </h4>
                     {data.opportunities.length === 0 ? (
-                      <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                      <p className="text-xs text-muted italic py-1">
                         Aucune opportunité commerciale enregistrée.
-                      </div>
+                      </p>
                     ) : (
                       <div className="flex flex-col gap-2.5">
                         {data.opportunities.map((opp) => (
@@ -1080,9 +1237,9 @@ export function CompanyIdentityDrawer({
                       Missions & Contrats ({data.missions.length})
                     </h4>
                     {data.missions.length === 0 ? (
-                      <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                      <p className="text-xs text-muted italic py-1">
                         Aucune mission active ou passée liée à ce compte.
-                      </div>
+                      </p>
                     ) : (
                       <div className="flex flex-col gap-2.5">
                         {data.missions.map((mission) => {
@@ -1132,7 +1289,7 @@ export function CompanyIdentityDrawer({
                 {signaux.actualites_recentes && signaux.actualites_recentes.length > 0 ? (
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                      Actualités Récentes & Signaux Faibles
+                      Actualité récente
                     </h4>
                     <ul className="space-y-2 bg-canvas/30 rounded-lg border border-border/50 p-4">
                       {signaux.actualites_recentes.map((item: string, idx: number) => (
@@ -1152,7 +1309,7 @@ export function CompanyIdentityDrawer({
                 {/* Recrutements Récents */}
                 {signaux.recrutements_recents && (
                   <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                    <span className="text-[9px] text-muted font-bold uppercase">Recrutements Récents</span>
+                    <span className="text-[9px] text-muted font-bold uppercase">Actualité recrutement</span>
                     <p className="text-xs text-body leading-relaxed font-normal">{signaux.recrutements_recents}</p>
                   </div>
                 )}

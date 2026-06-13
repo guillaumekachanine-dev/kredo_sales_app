@@ -313,7 +313,7 @@ function AccueilTab({
 
 // ─── Onglet Analyse — sélecteur + raccourcis + sections aérées ───────────────
 
-type AnalysisTypeKey = "client" | "sector"
+export type AnalysisTypeKey = "client" | "sector"
 
 const ANALYSIS_CATALOG: {
   key: AnalysisTypeKey
@@ -335,7 +335,7 @@ const ANALYSIS_CATALOG: {
   },
 ]
 
-const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
+export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
   client: [
     { id: "ac-synthese",       label: "Synthèse",       icon: SectionSyntheseIcon },
     { id: "ac-identite",       label: "Identité",        icon: SectionIdentiteIcon },
@@ -585,7 +585,7 @@ function AnalysisSection({
 
 // ─── Analyse client — sections ────────────────────────────────────────────────
 
-function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
+export function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
   return (
     <div className="space-y-6">
       {data.synthese && (
@@ -687,7 +687,7 @@ function ClientAnalysisContent({ data }: { data: AnalyseClient }) {
 
 // ─── Étude sectorielle — sections ─────────────────────────────────────────────
 
-function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
+export function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
   return (
     <div className="space-y-6">
       <AnalysisSection
@@ -769,7 +769,7 @@ function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
 
 // ─── Icônes — sélecteur d'analyses ───────────────────────────────────────────
 
-function ClientAnalysisIcon({ className }: { className?: string }) {
+export function ClientAnalysisIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
@@ -778,7 +778,7 @@ function ClientAnalysisIcon({ className }: { className?: string }) {
   )
 }
 
-function SectorStudyIcon({ className }: { className?: string }) {
+export function SectorStudyIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
@@ -788,7 +788,7 @@ function SectorStudyIcon({ className }: { className?: string }) {
   )
 }
 
-function PlusCircleIcon({ className }: { className?: string }) {
+export function PlusCircleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />

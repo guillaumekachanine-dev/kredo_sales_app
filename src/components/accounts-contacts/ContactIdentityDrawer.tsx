@@ -383,6 +383,7 @@ export function ContactIdentityDrawer({
           : "Fiche contact"
       }
       className="max-w-2xl"
+      hideMobileBackBtn={true}
     >
       {loading ? (
         <div className="flex flex-col gap-6 p-2">
@@ -441,6 +442,18 @@ export function ContactIdentityDrawer({
           <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0 flex-1">
+                {/* Mobile back arrow button */}
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="sm:hidden flex items-center justify-center text-muted hover:text-heading transition-colors cursor-pointer mr-0.5"
+                  aria-label="Retour"
+                >
+                  <svg className="h-4 w-4 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <polygon points="16,5 7,12 16,19" />
+                  </svg>
+                </button>
+
                 {device === "mobile" && company ? (
                   <div
                     onClick={() => setIsCompanyModalOpen(true)}

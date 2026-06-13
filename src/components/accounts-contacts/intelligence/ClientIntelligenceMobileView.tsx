@@ -13,12 +13,22 @@ import {
   ScorePill,
   SectionBlock,
   SignalList,
+  FreshnessLine,
 } from "./intelligence-parts"
 import { PitchMailDrawerContent, SummaryDrawerContent, CampaignDrawerContent } from "./IntelligenceActionDrawers"
 import {
   type TabKey,
   INTELLIGENCE_PROCESS_STEPS,
 } from "./intelligence-process"
+import {
+  type AnalysisTypeKey,
+  ANALYSIS_SECTIONS,
+  ClientAnalysisContent,
+  SectorAnalysisContent,
+  ClientAnalysisIcon,
+  SectorStudyIcon,
+  PlusCircleIcon,
+} from "./ClientIntelligenceDesktopView"
 
 type MobilePanelKey = TabKey | "pitch" | "summary" | "campaign"
 
@@ -28,6 +38,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [activePanel, setActivePanel] = useState<MobilePanelKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
 
   const quickActions: DashboardAction[] = [
     {
@@ -86,13 +97,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
       ),
       variant: "secondary",
     },
-    {
-      id: "veille-ia",
-      label: "Veille IA",
-      onClick: () => setMessage("Veille IA en cours de chargement..."),
-      icon: <VeilleIaIcon className="h-4 w-4" />,
-      variant: "secondary",
-    },
   ]
 
   if (activePanel !== "accueil") {
@@ -133,45 +137,160 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
     return (
       <div data-theme="cockpit" className="flex min-h-full flex-col gap-4 bg-canvas p-4 pb-24">
-        <button
-          type="button"
-          onClick={() => {
-            setActivePanel("accueil")
-            setMessage(null)
-          }}
-          className="self-start text-[11px] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded px-1.5 py-0.5 cursor-pointer min-h-[44px] flex items-center"
-        >
-          ← Retour à l&apos;accueil
-        </button>
-
         <div className="border-b border-border pb-3">
-          <h1 className="font-heading text-base font-bold text-heading uppercase tracking-wide">
-            {stepDetails.title}
-          </h1>
-          <p className="text-[11px] text-body mt-0.5">
-            {stepDetails.description}
-          </p>
+          <div className="flex items-center gap-1.5 -ml-1">
+            <button
+              type="button"
+              onClick={() => {
+                setActivePanel("accueil")
+                setMessage(null)
+              }}
+              className="inline-flex items-center justify-center text-white hover:text-white/80 transition-colors rounded p-1 min-h-[44px] cursor-pointer"
+              aria-label="Retour à l'accueil"
+            >
+              <svg className="h-4.5 w-4.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="16,5 7,12 16,19" />
+              </svg>
+            </button>
+            <h1 className="font-heading text-base font-bold text-heading uppercase tracking-wide">
+              {stepDetails.title}
+            </h1>
+          </div>
+          {activePanel !== "analyses" && stepDetails.description && (
+            <p className="text-[11px] text-body mt-0.5 font-medium">
+              {stepDetails.description}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-4 mt-1">
           {activePanel === "analyses" && (
             <>
-              {client ? (
-                <SectionBlock reading title="Synthèse IA" action={<ProvenanceBadge source={client.source} />}>
-                  <p className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-body">
-                    {client.data.synthese || "Aucune synthèse disponible."}
-                  </p>
-                </SectionBlock>
-              ) : (
-                <p className="text-xs text-muted italic">Aucune synthèse client disponible.</p>
+              {/* 3 analyses sous forme d'icônes sur une seule ligne */}
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnalysis(selectedAnalysis === "client" ? null : "client")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
+                    selectedAnalysis === "client"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-surface hover:bg-surface-hover text-muted"
+                  )}
+                >
+                  <ClientAnalysisIcon className="h-6 w-6" />
+                  <span className="text-[10px] font-bold leading-tight">Analyse client</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnalysis(selectedAnalysis === "sector" ? null : "sector")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
+                    selectedAnalysis === "sector"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-surface hover:bg-surface-hover text-muted"
+                  )}
+                >
+                  <SectorStudyIcon className="h-6 w-6" />
+                  <span className="text-[10px] font-bold leading-tight">Étude sectorielle</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedAnalysis(selectedAnalysis === "processus" ? null : "processus")}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
+                    selectedAnalysis === "processus"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-surface hover:bg-surface-hover text-muted"
+                  )}
+                >
+                  <PlusCircleIcon className="h-6 w-6" />
+                  <span className="text-[10px] font-bold leading-tight">Cartographie processus</span>
+                </button>
+              </div>
+
+              {/* Raccourcis/Pastilles vers les sections d'analyse */}
+              {selectedAnalysis && selectedAnalysis !== "processus" && ANALYSIS_SECTIONS[selectedAnalysis].length > 0 && (
+                <div className="sticky top-0 z-10 -mx-4 mb-2 border-b border-border/30 bg-canvas/90 px-4 py-2.5 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 overflow-x-auto justify-start no-scrollbar">
+                    {ANALYSIS_SECTIONS[selectedAnalysis].map((section) => {
+                      const SIcon = section.icon
+                      return (
+                        <button
+                          key={section.id}
+                          type="button"
+                          onClick={() =>
+                            document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+                          }
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface/80 px-3 py-1 text-[11px] font-semibold text-body transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 cursor-pointer"
+                        >
+                          <SIcon className="h-3 w-3" />
+                          {section.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
 
-              {sector ? (
-                <SectionBlock title="Étude sectorielle" action={<ProvenanceBadge source={sector.source} />}>
-                  <p className="line-clamp-5 whitespace-pre-line text-sm leading-relaxed text-body">{sector.data.synthese}</p>
-                </SectionBlock>
-              ) : (
-                <p className="text-xs text-muted italic">Aucune étude sectorielle disponible.</p>
+              {/* Contenu complet de l'analyse */}
+              {selectedAnalysis === "client" && (
+                client ? (
+                  <>
+                    {/* Cadre indiquant la date de réalisation / dernière mise à jour */}
+                    <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
+                        <div className="mt-1">
+                          <FreshnessLine
+                            latestRunAt={data.freshness.latestRunAt}
+                            latestRunStatus={data.freshness.latestRunStatus}
+                            fallbackSource={client.source}
+                          />
+                        </div>
+                      </div>
+                      <ProvenanceBadge source={client.source} />
+                    </div>
+                    <ClientAnalysisContent data={client.data} />
+                  </>
+                ) : (
+                  <p className="text-xs text-muted italic">Aucune synthèse client disponible.</p>
+                )
+              )}
+
+              {selectedAnalysis === "sector" && (
+                sector ? (
+                  <>
+                    {/* Cadre indiquant la date de réalisation / dernière mise à jour */}
+                    <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
+                        <div className="mt-1">
+                          <FreshnessLine
+                            latestRunAt={data.freshness.latestRunAt}
+                            latestRunStatus={data.freshness.latestRunStatus}
+                            fallbackSource={sector.source}
+                          />
+                        </div>
+                      </div>
+                      <ProvenanceBadge source={sector.source} />
+                    </div>
+                    <SectorAnalysisContent data={sector.data} />
+                  </>
+                ) : (
+                  <p className="text-xs text-muted italic">Aucune étude sectorielle disponible.</p>
+                )
+              )}
+
+              {selectedAnalysis === "processus" && (
+                <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted">
+                    Diagnostic process à connecter
+                  </span>
+                  <span className="text-[11px] text-muted/70">Disponible au lot C</span>
+                </div>
               )}
             </>
           )}
@@ -235,22 +354,20 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   return (
     <div data-theme="cockpit" className="flex min-h-full flex-col gap-4 bg-canvas p-4 pb-24">
-      <div className="flex items-center justify-between">
-        <Link href={`/prospection/accounts?drawer=${company.id}`} className="text-[11px] font-semibold text-muted block">
-          ← Comptes &amp; contacts
-        </Link>
-        <button
-          type="button"
-          onClick={() => setMessage("Workflow à connecter")}
-          className="inline-flex items-center gap-1.5 rounded border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-body hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
+      <div className="flex items-center gap-1.5 -ml-1">
+        <Link
+          href={`/prospection/accounts?drawer=${company.id}`}
+          className="inline-flex items-center justify-center text-white hover:text-white/80 transition-colors rounded p-1 min-h-[44px]"
+          aria-label="Retour"
         >
-          <RefreshIcon className="h-3.5 w-3.5" />
-          Mettre à jour
-        </button>
+          <svg className="h-4.5 w-4.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="16,5 7,12 16,19" />
+          </svg>
+        </Link>
+        <h2 className="font-heading text-xl font-bold text-heading">
+          Cockpit intelligence
+        </h2>
       </div>
-      <h2 className="font-heading text-xl font-bold text-heading">
-        Cockpit intelligence
-      </h2>
 
       {/* Header compact */}
       <div className="flex items-center justify-between gap-3">
@@ -326,6 +443,21 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 ))}
               </ul>
             )}
+
+            {/* Action Veille IA paramétrable à la fin des signaux */}
+            <div className="mt-3 pt-3 border-t border-border/30">
+              <button
+                type="button"
+                onClick={() => setMessage("Veille IA en cours de chargement...")}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors active:scale-98 cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <VeilleIaIcon className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold text-primary">Paramétrer la veille IA</span>
+                </div>
+                <ChevronRightIcon className="h-3.5 w-3.5 text-primary" />
+              </button>
+            </div>
           </div>
         )}
       </div>
