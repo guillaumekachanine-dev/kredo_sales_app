@@ -6,7 +6,8 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
 import type { DashboardAction } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
-import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector } from "@/lib/intelligence/intelligence-data"
+import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
+import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import {
   ComingSoon,
   Field,
@@ -313,7 +314,7 @@ function AccueilTab({
 
 // ─── Onglet Analyse — sélecteur + raccourcis + sections aérées ───────────────
 
-export type AnalysisTypeKey = "client" | "sector"
+export type AnalysisTypeKey = "client" | "sector" | "process"
 
 const ANALYSIS_CATALOG: {
   key: AnalysisTypeKey
@@ -333,6 +334,12 @@ const ANALYSIS_CATALOG: {
     subtitle: "Marché · acteurs · concurrence · normatif",
     icon: SectorStudyIcon,
   },
+  {
+    key: "process",
+    label: "Diagnostic process",
+    subtitle: "Activités · frictions · pain points · feuille de route",
+    icon: ProcessDiagnosticIcon,
+  },
 ]
 
 export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
@@ -351,18 +358,29 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
     { id: "se-concurrence", label: "Concurrence", icon: SectionConcurrenceIcon },
     { id: "se-normatif",    label: "Normatif",    icon: SectionNormatifIcon },
   ],
+  process: [
+    { id: "dp-synthese",      label: "Synthèse",      icon: SectionSyntheseIcon },
+    { id: "dp-activites",     label: "Activités",      icon: SectionCartographieIcon },
+    { id: "dp-frictions",     label: "Frictions",      icon: SectionFrictionsIcon },
+    { id: "dp-roadmap",       label: "Feuille de route", icon: SectionRoadmapFDRIcon },
+    { id: "dp-matrice",       label: "Matrice impact", icon: SectionMatriceIcon },
+  ],
 }
 
 function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMessage: (msg: string | null) => void }) {
   const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
-  const { client, sector } = data
+  const { client, sector, diagnostic, diagnosticPdfUrl, company } = data
 
   function isAvailable(key: AnalysisTypeKey) {
-    return key === "client" ? !!client : !!sector
+    if (key === "client") return !!client
+    if (key === "sector") return !!sector
+    return !!diagnostic
   }
 
   function getSource(key: AnalysisTypeKey): IntelligenceSource {
-    return key === "client" ? (client?.source ?? "none") : (sector?.source ?? "none")
+    if (key === "client") return client?.source ?? "none"
+    if (key === "sector") return sector?.source ?? "none"
+    return diagnostic?.source ?? "none"
   }
 
   const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
@@ -419,15 +437,6 @@ function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMes
                 </button>
               )
             })}
-            {/* Prochaine analyse — Diagnostic process (lot C) */}
-            <div className="flex items-center gap-2.5 rounded-lg border border-dashed border-border/40 px-3.5 py-2 opacity-40 min-h-[38px]">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-border">
-                <PlusCircleIcon className="h-3 w-3 text-muted" />
-              </div>
-              <span className="font-heading text-xs font-bold text-heading">
-                Diagnostic process
-              </span>
-            </div>
           </div>
 
           {/* Bouton Lancer/actualiser une analyse */}
@@ -473,9 +482,26 @@ function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMes
       {selected === "sector" && sector && (
         <SectorAnalysisContent data={sector.data} />
       )}
+      {selected === "process" && diagnostic && (
+        diagnosticPdfUrl ? (
+          <div className="h-[calc(100vh-220px)] min-h-[600px]">
+            <DocumentViewerShell
+              fileName={`Diagnostic process — ${company.name}`}
+              fileUrl={diagnosticPdfUrl}
+              metadata={{
+                "Compte": company.name,
+                "Type": "Diagnostic process",
+                "Source": diagnostic.source === "engine" ? "Moteur IA" : "Import",
+              }}
+            />
+          </div>
+        ) : (
+          <ProcessDiagnosticContent data={diagnostic.data} />
+        )
+      )}
 
       {/* État vide global */}
-      {!selected && !client && !sector && (
+      {!selected && !client && !sector && !diagnostic && (
         <ComingSoon lot="lot A+">Aucune analyse disponible pour ce compte</ComingSoon>
       )}
     </div>
@@ -767,6 +793,123 @@ export function SectorAnalysisContent({ data }: { data: AnalyseSector }) {
   )
 }
 
+// ─── Diagnostic process — sections ───────────────────────────────────────────
+
+export function ProcessDiagnosticContent({ data }: { data: AnalyseDiagnostic }) {
+  return (
+    <div className="space-y-6">
+      <AnalysisSection
+        id="dp-synthese"
+        icon={<SectionSyntheseIcon className="h-5 w-5" />}
+        label="Synthèse exécutive"
+        description="Vue d'ensemble du diagnostic opérationnel"
+      >
+        <p className="text-sm leading-relaxed text-body whitespace-pre-line">{data.synthese}</p>
+      </AnalysisSection>
+
+      {!!data.cartographieActivites && (
+        <AnalysisSection
+          id="dp-activites"
+          icon={<SectionCartographieIcon className="h-5 w-5" />}
+          label="Cartographie des activités"
+          description="Répartition du temps par fonction et activité opérationnelle"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.cartographieActivites)}</div>
+        </AnalysisSection>
+      )}
+
+      {!!data.frictions && (
+        <AnalysisSection
+          id="dp-frictions"
+          icon={<SectionFrictionsIcon className="h-5 w-5" />}
+          label="Frictions & pain points"
+          description="Frictions systémiques, par fonction et goulots d'étranglement"
+        >
+          <div className="space-y-4">
+            {!!data.frictions.systemiques && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Frictions systémiques transverses</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.frictions.systemiques)}</div>
+              </div>
+            )}
+            {!!data.frictions.parFonction && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Par fonction</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.frictions.parFonction)}</div>
+              </div>
+            )}
+            {!!data.frictions.goulots && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Zones grises & goulots</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.frictions.goulots)}</div>
+              </div>
+            )}
+          </div>
+        </AnalysisSection>
+      )}
+
+      {!!data.feuilleDeRoute && (
+        <AnalysisSection
+          id="dp-roadmap"
+          icon={<SectionRoadmapFDRIcon className="h-5 w-5" />}
+          label="Feuille de route d'optimisation"
+          description="Quick Wins · Projets structurants · Transformations profondes"
+        >
+          <div className="space-y-4">
+            {!!data.feuilleDeRoute.quickWins && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-success shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Quick Wins — 0 à 3 mois</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.feuilleDeRoute.quickWins)}</div>
+              </div>
+            )}
+            {!!data.feuilleDeRoute.projetsStructurants && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-warning shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Projets structurants — 3 à 12 mois</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.feuilleDeRoute.projetsStructurants)}</div>
+              </div>
+            )}
+            {!!data.feuilleDeRoute.transformationsProfonde && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-primary shrink-0" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-heading">Transformations profondes — 12 à 24 mois</span>
+                </div>
+                <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.feuilleDeRoute.transformationsProfonde)}</div>
+              </div>
+            )}
+          </div>
+        </AnalysisSection>
+      )}
+
+      {!!data.matriceImpact && (
+        <AnalysisSection
+          id="dp-matrice"
+          icon={<SectionMatriceIcon className="h-5 w-5" />}
+          label="Matrice d'impact et priorisation"
+          description="Classement des actions par impact et effort"
+        >
+          <div className="text-xs leading-relaxed text-body">{renderJsonValue(data.matriceImpact)}</div>
+        </AnalysisSection>
+      )}
+    </div>
+  )
+}
+
 // ─── Icônes — sélecteur d'analyses ───────────────────────────────────────────
 
 export function ClientAnalysisIcon({ className }: { className?: string }) {
@@ -972,6 +1115,60 @@ const STEP_ICONS: Record<ProcessStepKey, (props: { className?: string }) => Reac
   scoring: ScoreIcon,
   strategie: StrategyIcon,
   roadmap: RoadmapIcon,
+}
+
+export function ProcessDiagnosticIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18" />
+    </svg>
+  )
+}
+
+function SectionCartographieIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  )
+}
+
+function SectionFrictionsIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function SectionRoadmapFDRIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  )
+}
+
+function SectionMatriceIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+      <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
+      <circle cx="16.5" cy="16.5" r="1.5" fill="currentColor" />
+    </svg>
+  )
 }
 
 // ─── Actions Rapides du Header ──────────────────────────────────────────────

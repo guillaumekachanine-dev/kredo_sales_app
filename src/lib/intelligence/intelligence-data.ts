@@ -41,6 +41,24 @@ export type AnalyseSector = {
   analyseConcurrentielle?: unknown
 }
 
+export type AnalyseDiagnostic = {
+  synthese: string
+  cartographieActivites?: unknown
+  repartitionCharge?: unknown
+  cartographieInterlocuteurs?: unknown
+  frictions?: {
+    systemiques?: unknown
+    parFonction?: unknown
+    goulots?: unknown
+  }
+  feuilleDeRoute?: {
+    quickWins?: unknown
+    projetsStructurants?: unknown
+    transformationsProfonde?: unknown
+  }
+  matriceImpact?: unknown
+}
+
 export type LegacyPitch = {
   id: string
   destinataire: string
@@ -83,6 +101,7 @@ export type ClientIntelligenceData = {
     hqLocation: string
     logoPath: string | null
   }
+  diagnosticPdfUrl: string | null
   freshness: {
     latestRunAt: string | null
     latestRunStatus: string | null
@@ -92,6 +111,7 @@ export type ClientIntelligenceData = {
   presence: ClientIntelligencePresence
   client: { data: AnalyseClient; source: IntelligenceSource } | null
   sector: { data: AnalyseSector; source: IntelligenceSource } | null
+  diagnostic: { data: AnalyseDiagnostic; source: IntelligenceSource } | null
   signals: string[]
   contacts: ClientIntelligenceContact[]
   pitches: LegacyPitch[]
@@ -165,6 +185,31 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
       concurrents: strArray(contexte.concurrents_identifies),
       tendances: str(contexte.tendances_sectorielles),
     },
+  }
+}
+
+function parseAnalyseDiagnostic(raw: unknown): AnalyseDiagnostic | null {
+  const root = asRecord(raw)
+  const synthese = str(root.synthese) || str(root.synthese_executive)
+  if (!synthese) return null
+  const frictions = asRecord(root.frictions)
+  const fdr = asRecord(root.feuille_de_route ?? root.feuilleDeRoute)
+  return {
+    synthese,
+    cartographieActivites: root.cartographie_activites ?? root.cartographieActivites ?? null,
+    repartitionCharge: root.repartition_charge ?? root.repartitionCharge ?? null,
+    cartographieInterlocuteurs: root.cartographie_interlocuteurs ?? root.cartographieInterlocuteurs ?? null,
+    frictions: Object.keys(frictions).length > 0 ? {
+      systemiques: frictions.systemiques ?? null,
+      parFonction: frictions.par_fonction ?? frictions.parFonction ?? null,
+      goulots: frictions.goulots ?? null,
+    } : undefined,
+    feuilleDeRoute: Object.keys(fdr).length > 0 ? {
+      quickWins: fdr.quick_wins ?? fdr.quickWins ?? null,
+      projetsStructurants: fdr.projets_structurants ?? fdr.projetsStructurants ?? null,
+      transformationsProfonde: fdr.transformations_profondes ?? fdr.transformationsProfonde ?? null,
+    } : undefined,
+    matriceImpact: root.matrice_impact ?? root.matriceImpact ?? null,
   }
 }
 
@@ -249,6 +294,7 @@ type ResultRow = {
   phase: number
   result_type: string
   content_json: unknown
+  metadata: unknown
   created_at: string
 }
 
@@ -282,7 +328,8 @@ export async function getClientIntelligence(
 ): Promise<{ error: string | null; data: ClientIntelligenceData | null }> {
   if (!companyId) return { error: "Identifiant manquant", data: null }
 
-  const supabase = (await createClient()) as unknown as LooseClient
+  const supabaseReal = await createClient()
+  const supabase = supabaseReal as unknown as LooseClient
 
   const [companyResult, summaryResult, resultsResult, contactsResult] = await Promise.all([
     supabase
@@ -301,7 +348,7 @@ export async function getClientIntelligence(
       .maybeSingle(),
     supabase
       .from("ai_intelligence_results")
-      .select<ResultRow>("phase,result_type,content_json,created_at")
+      .select<ResultRow>("phase,result_type,content_json,metadata,created_at")
       .eq("company_id", companyId)
       .eq("status", "succeeded")
       .order("created_at", { ascending: false }),
@@ -324,6 +371,7 @@ export async function getClientIntelligence(
   // Source de vérité : moteur d'abord (phase succeeded), sinon fallback FOLIO.
   const enginePhase1 = results.find((r) => r.phase === 1)?.content_json
   const enginePhase2 = results.find((r) => r.phase === 2)?.content_json
+  const enginePhase3 = results.find((r) => r.phase === 3)?.content_json
 
   let client: ClientIntelligenceData["client"] = null
   const clientFromEngine = parseAnalyseClient(enginePhase1)
@@ -339,6 +387,23 @@ export async function getClientIntelligence(
   else {
     const sectorFromFolio = parseAnalyseSector(metadata.sector_analysis)
     if (sectorFromFolio) sector = { data: sectorFromFolio, source: "folio" }
+  }
+
+  let diagnostic: ClientIntelligenceData["diagnostic"] = null
+  const diagnosticFromEngine = parseAnalyseDiagnostic(enginePhase3)
+  if (diagnosticFromEngine) diagnostic = { data: diagnosticFromEngine, source: "engine" }
+
+  // Signed URL pour le PDF source (bucket privé, valide 1h)
+  let diagnosticPdfUrl: string | null = null
+  const phase3Meta = asRecord(results.find((r) => r.phase === 3)?.metadata)
+  const pdfStoragePath = str(phase3Meta.pdf_storage_path)
+  const pdfBucket = str(phase3Meta.pdf_bucket) || "ai_intelligence_process_diagnostics"
+  if (pdfStoragePath) {
+    const { data: signedData, error: signedError } = await supabaseReal.storage
+      .from(pdfBucket)
+      .createSignedUrl(pdfStoragePath, 3600)
+    if (signedError) console.error("[intelligence] createSignedUrl failed:", signedError.message, { pdfBucket, pdfStoragePath })
+    diagnosticPdfUrl = signedData?.signedUrl ?? null
   }
 
   // Synthèse fallback : description compte si aucune analyse.
@@ -390,6 +455,8 @@ export async function getClientIntelligence(
       },
       client,
       sector,
+      diagnostic,
+      diagnosticPdfUrl,
       signals: client?.data.signaux.actualitesRecentes ?? [],
       contacts,
       pitches: parsePitches(metadata.pitches),

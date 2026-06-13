@@ -25,15 +25,17 @@ import {
   ANALYSIS_SECTIONS,
   ClientAnalysisContent,
   SectorAnalysisContent,
+  ProcessDiagnosticContent,
   ClientAnalysisIcon,
   SectorStudyIcon,
+  ProcessDiagnosticIcon,
   PlusCircleIcon,
 } from "./ClientIntelligenceDesktopView"
 
 type MobilePanelKey = TabKey | "pitch" | "summary" | "campaign"
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
-  const { company, client, sector, signals } = data
+  const { company, client, sector, diagnostic, signals } = data
 
   const [activePanel, setActivePanel] = useState<MobilePanelKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
@@ -198,21 +200,24 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
                 <button
                   type="button"
+                  disabled={!diagnostic}
                   onClick={() => setSelectedAnalysis(selectedAnalysis === "processus" ? null : "processus")}
                   className={cn(
                     "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
                     selectedAnalysis === "processus"
                       ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-surface hover:bg-surface-hover text-muted"
+                      : diagnostic
+                      ? "border-border bg-surface hover:bg-surface-hover text-muted"
+                      : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed text-muted"
                   )}
                 >
-                  <PlusCircleIcon className="h-6 w-6" />
-                  <span className="text-[10px] font-bold leading-tight">Cartographie processus</span>
+                  <ProcessDiagnosticIcon className="h-6 w-6" />
+                  <span className="text-[10px] font-bold leading-tight">Diagnostic process</span>
                 </button>
               </div>
 
               {/* Raccourcis/Pastilles vers les sections d'analyse */}
-              {selectedAnalysis && selectedAnalysis !== "processus" && ANALYSIS_SECTIONS[selectedAnalysis].length > 0 && (
+              {selectedAnalysis && selectedAnalysis !== "processus" && ANALYSIS_SECTIONS[selectedAnalysis as AnalysisTypeKey]?.length > 0 && (
                 <div className="sticky top-0 z-10 -mx-4 mb-2 border-b border-border/30 bg-canvas/90 px-4 py-2.5 backdrop-blur-sm">
                   <div className="flex items-center gap-2 overflow-x-auto justify-start no-scrollbar">
                     {ANALYSIS_SECTIONS[selectedAnalysis].map((section) => {
@@ -285,12 +290,11 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               )}
 
               {selectedAnalysis === "processus" && (
-                <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                    Diagnostic process à connecter
-                  </span>
-                  <span className="text-[11px] text-muted/70">Disponible au lot C</span>
-                </div>
+                diagnostic ? (
+                  <ProcessDiagnosticContent data={diagnostic.data} />
+                ) : (
+                  <p className="text-xs text-muted italic">Aucun diagnostic process disponible.</p>
+                )
               )}
             </>
           )}
