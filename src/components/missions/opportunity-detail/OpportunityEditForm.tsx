@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
+import { cn } from "@/lib/utils"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
@@ -43,6 +44,13 @@ interface OpportunityDetailData {
   events: OpportunityEvent[]
 }
 
+const SEQUENTIAL_STEPS = [
+  { key: "detection", label: "Demande", num: 1 },
+  { key: "qualification", label: "Qualification", num: 2 },
+  { key: "cv_envoyes", label: "CV sent", num: 3 },
+  { key: "entretien_client", label: "RT", num: 4 },
+]
+
 interface OpportunityEditFormProps {
   data: OpportunityDetailData
   onSuccess: () => void
@@ -53,6 +61,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [loadingStage, setLoadingStage] = useState<string | null>(null)
 
   const initialAccountValue: AccountValue | null = account
     ? { id: account.id, name: account.name, isNew: false }
@@ -128,6 +137,285 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       win_reason: opportunity.win_reason || "",
       loss_reason: opportunity.loss_reason || "",
     })
+  }
+
+  const getStageIndex = (stage: string) => {
+    if (stage === "gagne" || stage === "perdu") return 4
+    return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
+  }
+
+  const currentIdx = getStageIndex(form.stage)
+
+  const handleStageSelect = async (newStage: SalesStage) => {
+    if (isEditing) {
+      setForm((prev) => ({ ...prev, stage: newStage }))
+      return
+    }
+
+    setLoadingStage(newStage)
+    setErrorMsg(null)
+    startTransition(async () => {
+      const result = await updateOpportunity({
+        id: opportunity.id,
+        stage: newStage,
+      })
+
+      if (result.error) {
+        setErrorMsg(result.error)
+      } else {
+        onSuccess()
+        setForm((prev) => ({ ...prev, stage: newStage }))
+      }
+      setLoadingStage(null)
+    })
+  }
+
+  const renderPipelineTimeline = (isDesktopView: boolean) => {
+    return (
+      <div className={cn("flex flex-col gap-3.5", isDesktopView ? "w-full" : "w-full")}>
+        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-heading flex items-center gap-2">
+            <span className="w-1.5 h-3.5 rounded-full bg-primary" />
+            Progression commerciale
+          </span>
+          {isPending && !loadingStage && (
+            <span className="text-[10px] font-semibold text-primary/70 animate-pulse uppercase tracking-wider">
+              Enregistrement...
+            </span>
+          )}
+        </div>
+        
+        {/* Timeline container */}
+        <div className={cn(
+          "relative flex items-stretch justify-between bg-canvas/30 rounded-2xl border border-border/60 shadow-sm backdrop-blur-sm",
+          isDesktopView 
+            ? "flex-row p-6 md:p-8 gap-4" 
+            : "flex-col p-5 gap-7"
+        )}>
+          
+          {/* Sequential steps */}
+          <div className={cn(
+            "flex flex-1 relative w-full",
+            isDesktopView ? "flex-row items-center gap-4" : "flex-col items-start gap-7"
+          )}>
+            {SEQUENTIAL_STEPS.map((step, idx) => {
+              const isCompleted = currentIdx > idx
+              const isActive = currentIdx === idx
+              const isSelected = form.stage === step.key
+              const isLoading = loadingStage === step.key
+
+              return (
+                <div key={step.key} className={cn(
+                  "flex-1 flex w-full relative z-10",
+                  isDesktopView ? "flex-col items-center gap-3" : "flex-row items-center gap-4"
+                )}>
+                  {/* Step Circle & Connector Line */}
+                  <div className="flex items-center justify-center relative shrink-0">
+                    {/* Connector line */}
+                    {idx < SEQUENTIAL_STEPS.length - 1 && (
+                      <div 
+                        className={cn(
+                          "absolute transition-all duration-300 -z-10",
+                          // Desktop line
+                          "hidden md:block md:left-1/2 md:top-[20px] md:w-full md:h-[4px] rounded-full",
+                          // Mobile line
+                          "block left-[19px] top-[20px] w-[4px] h-[calc(100%+28px)] rounded-full",
+                          isCompleted ? "bg-gradient-to-r from-primary to-primary/80" : "bg-border/60"
+                        )}
+                      />
+                    )}
+
+                    {/* Connector to Outcomes from last sequential step (RT) */}
+                    {idx === SEQUENTIAL_STEPS.length - 1 && (
+                      <div 
+                        className={cn(
+                          "absolute transition-all duration-300 -z-10",
+                          // Desktop line
+                          "hidden md:block md:left-1/2 md:top-[20px] md:w-full md:h-[4px] rounded-full",
+                          // Mobile line
+                          "block left-[19px] top-[20px] w-[4px] h-[calc(100%+28px)] rounded-full",
+                          form.stage === "gagne"
+                            ? "bg-gradient-to-r from-success to-success/80"
+                            : form.stage === "perdu"
+                            ? "bg-gradient-to-r from-danger to-danger/80"
+                            : "bg-border/60"
+                        )}
+                      />
+                    )}
+
+                    {/* Circle Button */}
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleStageSelect(step.key as SalesStage)}
+                      className={cn(
+                        "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer select-none z-10 disabled:opacity-75 disabled:cursor-not-allowed",
+                        isActive
+                          ? "border-primary bg-canvas text-primary ring-6 ring-primary/15 scale-110 shadow-lg shadow-primary/15 font-black"
+                          : isCompleted
+                          ? "border-primary bg-primary text-white shadow-md hover:opacity-90"
+                          : "border-border bg-canvas/60 text-muted hover:border-muted hover:bg-canvas"
+                      )}
+                    >
+                      {isLoading ? (
+                        <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : isCompleted ? (
+                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        step.num
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Label */}
+                  <div className={cn(
+                    "flex flex-col",
+                    isDesktopView ? "items-center text-center" : "items-start text-left"
+                  )}>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleStageSelect(step.key as SalesStage)}
+                      className={cn(
+                        "text-[10px] md:text-xs font-extrabold uppercase tracking-widest cursor-pointer transition-all disabled:cursor-not-allowed",
+                        isActive || isCompleted ? "text-primary font-black" : "text-muted hover:text-heading"
+                      )}
+                    >
+                      {step.label}
+                    </button>
+                    {isActive && (
+                      <span className="text-[9px] text-primary/80 font-bold uppercase tracking-wider animate-pulse mt-0.5">
+                        Étape Actuelle
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Outcome Node (Step 5) */}
+          <div className={cn(
+            "flex flex-col relative z-10 shrink-0",
+            isDesktopView 
+              ? "items-center text-center pl-6 border-l border-border/60 min-w-[170px]" 
+              : "items-start text-left pt-5 border-t border-border/60 w-full"
+          )}>
+            <div className="flex items-center gap-3 w-full md:justify-center">
+              <div className="shrink-0 relative flex items-center justify-center">
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 shadow-md",
+                    form.stage === "gagne"
+                      ? "border-success bg-success text-white ring-6 ring-success/15 scale-110 shadow-lg shadow-success/10"
+                      : form.stage === "perdu"
+                      ? "border-danger bg-danger text-white ring-6 ring-danger/15 scale-110 shadow-lg shadow-danger/10"
+                      : "border-border bg-canvas/60 text-muted"
+                  )}
+                >
+                  {loadingStage === "gagne" || loadingStage === "perdu" ? (
+                    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : form.stage === "gagne" ? (
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : form.stage === "perdu" ? (
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <div className="w-2.5 h-2.5 rounded-full bg-muted/60" />
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex flex-col text-left">
+                <span className={cn(
+                  "text-[9px] font-extrabold uppercase tracking-widest",
+                  form.stage === "gagne"
+                    ? "text-success"
+                    : form.stage === "perdu"
+                    ? "text-danger"
+                    : "text-muted"
+                )}>
+                  {form.stage === "gagne" ? "Gagné" : form.stage === "perdu" ? "Perdu" : "Issue commerciale"}
+                </span>
+                {!isDesktopView && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleStageSelect("gagne")}
+                      className={cn(
+                        "py-1 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none",
+                        form.stage === "gagne"
+                          ? "bg-success text-white border-success shadow-md shadow-success/15"
+                          : "border-border/80 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
+                      )}
+                    >
+                      WIN
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleStageSelect("perdu")}
+                      className={cn(
+                        "py-1 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none",
+                        form.stage === "perdu"
+                          ? "bg-danger text-white border-danger shadow-md shadow-danger/15"
+                          : "border-border/80 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
+                      )}
+                    >
+                      LOST
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {isDesktopView && (
+              <div className="flex items-center gap-2 mt-3 w-full justify-center">
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => handleStageSelect("gagne")}
+                  className={cn(
+                    "flex-1 py-1.5 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none text-center justify-center flex items-center gap-1",
+                    form.stage === "gagne"
+                      ? "bg-success text-white border-success shadow-md shadow-success/15"
+                      : "border-border/80 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
+                  )}
+                >
+                  WIN
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => handleStageSelect("perdu")}
+                  className={cn(
+                    "flex-1 py-1.5 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none text-center justify-center flex items-center gap-1",
+                    form.stage === "perdu"
+                      ? "bg-danger text-white border-danger shadow-md shadow-danger/15"
+                      : "border-border/80 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
+                  )}
+                >
+                  LOST
+                </button>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    )
   }
 
   const handleSave = () => {
@@ -277,6 +565,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </>
           )}
         </div>
+
+        {/* Timeline Progression Mobile */}
+        {renderPipelineTimeline(false)}
 
         {/* 1. Synthèse */}
         <SurfaceCard className="p-4 flex flex-col gap-3">
@@ -710,6 +1001,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </div>
         </div>
       </div>
+
+      {/* Timeline Progression */}
+      {renderPipelineTimeline(true)}
 
       {/* Colonnes Desktop */}
       <div className="grid grid-cols-12 gap-6">
