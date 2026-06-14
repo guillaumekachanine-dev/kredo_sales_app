@@ -118,11 +118,11 @@ const STAGE_LABEL: Record<string, string> = {
   rt: "Entretien client",
   win: "Gagné",
   lost: "Perdu",
-  non_traitee: "Détection",
+  non_traitee: "Non traitée",
 }
 
 // stages considérés « fermés » → exclus du pipeline ouvert
-const CLOSED_STAGES = new Set(["gagne", "perdu", "abandonne", "win", "lost"])
+const CLOSED_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee", "win", "lost"])
 
 // ─── Loose client (même approche que intelligence-data.ts) ────────────────────
 

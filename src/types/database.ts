@@ -2667,8 +2667,8 @@ export type OpportunityEvent = {
   occurred_at: string
 }
 
-export type SalesStage = "detection" | "cv_envoyes" | "entretien_client" | "gagne" | "perdu" | "abandonne"
-export type SalesOutcome = "gagnee" | "perdue" | "abandonnee"
+export type SalesStage = "qualification" | "recherche_profil" | "cv_envoyes" | "entretien_client" | "gagne" | "perdu" | "abandonne" | "non_traitee"
+export type SalesOutcome = "gagnee" | "perdue" | "abandonnee" | "non_traitee"
 export type SalesPriority = "haute" | "moyenne" | "basse"
 export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
 export type SkillImportance = "indispensable" | "souhaitee" | "bonus"

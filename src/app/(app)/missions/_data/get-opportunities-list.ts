@@ -68,9 +68,9 @@ function getCompanyName(companies: DBQueryResult["companies"]): string {
 }
 
 function mapStageToStatus(stage: string): MissionsListRow["status"] {
-  if (["win", "gagne"].includes(stage)) return "won"
-  if (["lost", "perdu", "abandonne"].includes(stage)) return "lost"
-  if (["en_cours", "cv_sent", "rt", "qualification", "besoin_confirme", "recherche_profil", "cv_envoyes", "entretien_client", "negociation"].includes(stage)) return "active"
+  if (["gagne"].includes(stage)) return "won"
+  if (["perdu", "abandonne", "non_traitee"].includes(stage)) return "lost"
+  if (["qualification", "recherche_profil", "cv_envoyes", "entretien_client"].includes(stage)) return "active"
   return "pending"
 }
 

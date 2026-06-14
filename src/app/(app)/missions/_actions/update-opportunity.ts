@@ -118,18 +118,20 @@ export async function updateOpportunity(
     targetStage = "perdu"
   } else if (input.outcome === "abandonnee") {
     targetStage = "abandonne"
+  } else if (input.outcome === "non_traitee") {
+    targetStage = "non_traitee"
   } else if (input.outcome === null) {
-    if (targetStage === "gagne" || targetStage === "perdu" || targetStage === "abandonne" || !targetStage) {
+    if (targetStage === "gagne" || targetStage === "perdu" || targetStage === "abandonne" || targetStage === "non_traitee" || !targetStage) {
       const { data: currentOpp } = await supabase
         .from("opportunities")
         .select("stage")
         .eq("id", input.id)
         .maybeSingle()
       const currentStage = currentOpp?.stage as SalesStage | undefined
-      if (currentStage && currentStage !== "gagne" && currentStage !== "perdu" && currentStage !== "abandonne") {
+      if (currentStage && currentStage !== "gagne" && currentStage !== "perdu" && currentStage !== "abandonne" && currentStage !== "non_traitee") {
         targetStage = currentStage
       } else {
-        targetStage = "detection"
+        targetStage = "qualification"
       }
     }
   }
@@ -193,12 +195,14 @@ export async function updateOpportunity(
   if (input.loss_reason !== undefined) updatePayload.loss_reason = normalizeText(input.loss_reason)
 
   const STAGE_LABELS_LOCAL: Record<string, string> = {
-    detection: "Détection",
+    qualification: "Qualification",
+    recherche_profil: "Recherche profils",
     cv_envoyes: "CV envoyés",
     entretien_client: "Entretien client",
     gagne: "Gagné",
     perdu: "Perdu",
     abandonne: "Abandonné",
+    non_traitee: "Non traitée",
   }
 
   let oldStage: SalesStage | null = null

@@ -48,21 +48,13 @@ export const SENIORITY_OPTIONS = [
 ]
 
 export const STAGE_LABELS: Record<string, string> = {
-  detection: "Détection",
   qualification: "Qualification",
-  besoin_confirme: "Besoin confirmé",
-  recherche_profil: "Recherche profil",
+  recherche_profil: "Recherche profils",
   cv_envoyes: "CV envoyés",
   entretien_client: "Entretien client",
-  negociation: "Négociation",
   gagne: "Gagné",
   perdu: "Perdu",
   abandonne: "Abandonné",
-  en_cours: "En cours",
-  cv_sent: "CV sent",
-  rt: "RT",
-  win: "Win",
-  lost: "Lost",
   non_traitee: "Non traitée",
 }
 
@@ -76,6 +68,7 @@ export const OUTCOME_LABELS: Record<string, string> = {
   gagnee: "Gagnée",
   perdue: "Perdue",
   abandonnee: "Abandonnée",
+  non_traitee: "Non traitée",
 }
 
 export function getStageLabel(stage: string | null | undefined): string {

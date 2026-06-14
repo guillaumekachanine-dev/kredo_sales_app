@@ -7,7 +7,6 @@ import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportun
 import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
-import { OpportunityTimelinePanel } from "./OpportunityTimelinePanel"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { upsertAccountByName } from "@/app/(app)/missions/_actions/upsert-account"
 import {
@@ -45,10 +44,10 @@ interface OpportunityDetailData {
 }
 
 const SEQUENTIAL_STEPS = [
-  { key: "detection", label: "Demande", num: 1 },
-  { key: "qualification", label: "Qualification", num: 2 },
-  { key: "cv_envoyes", label: "CV sent", num: 3 },
-  { key: "entretien_client", label: "RT", num: 4 },
+  { key: "qualification", label: "Qualification", num: 1 },
+  { key: "recherche_profil", label: "Recherche profils", num: 2 },
+  { key: "cv_envoyes", label: "CV envoyés", num: 3 },
+  { key: "entretien_client", label: "Entretien client", num: 4 },
 ]
 
 interface OpportunityEditFormProps {
@@ -56,12 +55,34 @@ interface OpportunityEditFormProps {
   onSuccess: () => void
 }
 
+// Pencil icon helper
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width={14}
+      height={14}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
+
 export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProps) {
   const { opportunity, account } = data
-  const [isEditing, setIsEditing] = useState(false)
+  // editingSection: null = lecture, string = section en cours d'édition
+  const [editingSection, setEditingSection] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [loadingStage, setLoadingStage] = useState<string | null>(null)
+  const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false)
 
   const initialAccountValue: AccountValue | null = account
     ? { id: account.id, name: account.name, isNew: false }
@@ -106,11 +127,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     return () => window.removeEventListener("resize", checkLayout)
   }, [])
 
-  const handleCancel = () => {
-    setIsEditing(false)
-    setErrorMsg(null)
-    setSelectedAccount(initialAccountValue)
-    // Réinitialise
+  const resetForm = () => {
     setForm({
       title: opportunity.title,
       practice: opportunity.practice || "",
@@ -139,15 +156,23 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     })
   }
 
+  const handleCancel = () => {
+    setEditingSection(null)
+    setErrorMsg(null)
+    setSelectedAccount(initialAccountValue)
+    resetForm()
+  }
+
   const getStageIndex = (stage: string) => {
-    if (stage === "gagne" || stage === "perdu") return 4
+    if (stage === "gagne" || stage === "perdu" || stage === "abandonne" || stage === "non_traitee") return 4
     return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
   }
 
   const currentIdx = getStageIndex(form.stage)
 
   const handleStageSelect = async (newStage: SalesStage) => {
-    if (isEditing) {
+    // If a section is being edited, just update local state
+    if (editingSection !== null) {
       setForm((prev) => ({ ...prev, stage: newStage }))
       return
     }
@@ -171,307 +196,622 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   }
 
   const renderPipelineTimeline = (isDesktopView: boolean) => {
-    return (
-      <div className={cn("flex flex-col gap-3.5", isDesktopView ? "w-full" : "w-full")}>
-        <div className="flex items-center justify-between border-b border-border/40 pb-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-heading flex items-center gap-2">
-            <span className="w-1.5 h-3.5 rounded-full bg-primary" />
-            Progression commerciale
-          </span>
-          {isPending && !loadingStage && (
-            <span className="text-[10px] font-semibold text-primary/70 animate-pulse uppercase tracking-wider">
-              Enregistrement...
-            </span>
+    // ── DESKTOP ──
+    if (isDesktopView) {
+      return (
+        <div className="w-full">
+          {isPending && loadingStage && (
+            <div className="flex justify-center mb-3">
+              <span className="text-[10px] font-semibold animate-pulse uppercase tracking-wider" style={{ color: "#2C7D5C" }}>
+                Mise à jour en cours...
+              </span>
+            </div>
           )}
-        </div>
-        
-        {/* Timeline container */}
-        <div className={cn(
-          "relative flex items-stretch justify-between bg-canvas/30 rounded-2xl border border-border/60 shadow-sm backdrop-blur-sm",
-          isDesktopView 
-            ? "flex-row p-6 md:p-8 gap-4" 
-            : "flex-col p-5 gap-7"
-        )}>
-          
-          {/* Sequential steps */}
-          <div className={cn(
-            "flex flex-1 relative w-full",
-            isDesktopView ? "flex-row items-center gap-4" : "flex-col items-start gap-7"
-          )}>
+
+          {/* Nodes row */}
+          <div className="flex items-start w-full">
             {SEQUENTIAL_STEPS.map((step, idx) => {
               const isCompleted = currentIdx > idx
               const isActive = currentIdx === idx
-              const isSelected = form.stage === step.key
               const isLoading = loadingStage === step.key
 
               return (
-                <div key={step.key} className={cn(
-                  "flex-1 flex w-full relative z-10",
-                  isDesktopView ? "flex-col items-center gap-3" : "flex-row items-center gap-4"
-                )}>
-                  {/* Step Circle & Connector Line */}
-                  <div className="flex items-center justify-center relative shrink-0">
-                    {/* Connector line */}
-                    {idx < SEQUENTIAL_STEPS.length - 1 && (
-                      <div 
-                        className={cn(
-                          "absolute transition-all duration-300 -z-10",
-                          // Desktop line
-                          "hidden md:block md:left-1/2 md:top-[20px] md:w-full md:h-[4px] rounded-full",
-                          // Mobile line
-                          "block left-[19px] top-[20px] w-[4px] h-[calc(100%+28px)] rounded-full",
-                          isCompleted ? "bg-gradient-to-r from-primary to-primary/80" : "bg-border/60"
-                        )}
-                      />
-                    )}
+                <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
 
-                    {/* Connector to Outcomes from last sequential step (RT) */}
-                    {idx === SEQUENTIAL_STEPS.length - 1 && (
-                      <div 
-                        className={cn(
-                          "absolute transition-all duration-300 -z-10",
-                          // Desktop line
-                          "hidden md:block md:left-1/2 md:top-[20px] md:w-full md:h-[4px] rounded-full",
-                          // Mobile line
-                          "block left-[19px] top-[20px] w-[4px] h-[calc(100%+28px)] rounded-full",
-                          form.stage === "gagne"
-                            ? "bg-gradient-to-r from-success to-success/80"
-                            : form.stage === "perdu"
-                            ? "bg-gradient-to-r from-danger to-danger/80"
-                            : "bg-border/60"
-                        )}
-                      />
-                    )}
+                  {/* Connector line to next (behind nodes) */}
+                  {idx < SEQUENTIAL_STEPS.length - 1 && (
+                    <div
+                      className="absolute z-0"
+                      style={{
+                        top: 18,
+                        left: "calc(50% + 22px)",
+                        right: "-50%",
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: isCompleted ? "#2C7D5C" : "#E5E7EB",
+                        transition: "background-color 0.4s ease",
+                      }}
+                    />
+                  )}
+                  {/* Connector from last sequential step → outcome area */}
+                  {idx === SEQUENTIAL_STEPS.length - 1 && (
+                    <div
+                      className="absolute z-0"
+                      style={{
+                        top: 18,
+                        left: "calc(50% + 22px)",
+                        right: "-50%", // goes to the issue node
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor:
+                          form.stage === "gagne" ? "#2C7D5C"
+                          : form.stage === "perdu" ? "#DC2626"
+                          : form.stage === "abandonne" ? "#F59E0B"
+                          : form.stage === "non_traitee" ? "#9CA3AF"
+                          : isCompleted ? "#2C7D5C" : "#E5E7EB",
+                        transition: "background-color 0.4s ease",
+                      }}
+                    />
+                  )}
 
-                    {/* Circle Button */}
+                  {/* Date label above */}
+                  <span
+                    className="text-[11px] font-bold mb-1.5 leading-none"
+                    style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                  >
+                    {isActive ? "En cours" : isCompleted ? "✓" : "—"}
+                  </span>
+
+                  {/* Node circle */}
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handleStageSelect(step.key as SalesStage)}
+                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
+                      border: isActive ? "3px solid #1a5c41" : "2px solid transparent",
+                      boxShadow: isActive ? "0 0 0 4px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 8px rgba(44,125,92,0.22)" : "none",
+                      transform: isActive ? "scale(1.12)" : "scale(1)",
+                    }}
+                  >
+                    {isLoading ? (
+                      <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : isActive ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
+                        <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+                      </svg>
+                    ) : isCompleted ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Label + sub below */}
+                  <div className="flex flex-col items-center mt-3 px-1 text-center">
                     <button
                       type="button"
                       disabled={isPending}
                       onClick={() => handleStageSelect(step.key as SalesStage)}
-                      className={cn(
-                        "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer select-none z-10 disabled:opacity-75 disabled:cursor-not-allowed",
-                        isActive
-                          ? "border-primary bg-canvas text-primary ring-6 ring-primary/15 scale-110 shadow-lg shadow-primary/15 font-black"
-                          : isCompleted
-                          ? "border-primary bg-primary text-white shadow-md hover:opacity-90"
-                          : "border-border bg-canvas/60 text-muted hover:border-muted hover:bg-canvas"
-                      )}
-                    >
-                      {isLoading ? (
-                        <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      ) : isCompleted ? (
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        step.num
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Label */}
-                  <div className={cn(
-                    "flex flex-col",
-                    isDesktopView ? "items-center text-center" : "items-start text-left"
-                  )}>
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleStageSelect(step.key as SalesStage)}
-                      className={cn(
-                        "text-[10px] md:text-xs font-extrabold uppercase tracking-widest cursor-pointer transition-all disabled:cursor-not-allowed",
-                        isActive || isCompleted ? "text-primary font-black" : "text-muted hover:text-heading"
-                      )}
+                      className="text-[12px] font-bold leading-tight cursor-pointer disabled:cursor-not-allowed transition-colors"
+                      style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
                     >
                       {step.label}
                     </button>
-                    {isActive && (
-                      <span className="text-[9px] text-primary/80 font-bold uppercase tracking-wider animate-pulse mt-0.5">
-                        Étape Actuelle
-                      </span>
-                    )}
+                    <span className="text-[10px] leading-snug mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                      {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                    </span>
                   </div>
+
                 </div>
               )
             })}
-          </div>
 
-          {/* Outcome Node (Step 5) */}
-          <div className={cn(
-            "flex flex-col relative z-10 shrink-0",
-            isDesktopView 
-              ? "items-center text-center pl-6 border-l border-border/60 min-w-[170px]" 
-              : "items-start text-left pt-5 border-t border-border/60 w-full"
-          )}>
-            <div className="flex items-center gap-3 w-full md:justify-center">
-              <div className="shrink-0 relative flex items-center justify-center">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-300 shadow-md",
-                    form.stage === "gagne"
-                      ? "border-success bg-success text-white ring-6 ring-success/15 scale-110 shadow-lg shadow-success/10"
-                      : form.stage === "perdu"
-                      ? "border-danger bg-danger text-white ring-6 ring-danger/15 scale-110 shadow-lg shadow-danger/10"
-                      : "border-border bg-canvas/60 text-muted"
-                  )}
-                >
-                  {loadingStage === "gagne" || loadingStage === "perdu" ? (
-                    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            {/* Issue column */}
+            <div className="flex-1 flex flex-col items-center relative min-w-0">
+              {/* Date/Status label above */}
+              <span
+                className="text-[11px] font-bold mb-1.5 leading-none"
+                style={{
+                  color:
+                    form.stage === "gagne" ? "#2C7D5C"
+                    : form.stage === "perdu" ? "#DC2626"
+                    : form.stage === "abandonne" ? "#F59E0B"
+                    : form.stage === "non_traitee" ? "#6B7280"
+                    : "#9CA3AF"
+                }}
+              >
+                {form.stage === "gagne" ? "Gagné"
+                  : form.stage === "perdu" ? "Perdu"
+                  : form.stage === "abandonne" ? "Abandonné"
+                  : form.stage === "non_traitee" ? "Non traitée"
+                  : "Issue"}
+              </span>
+
+              {/* Node circle & dropdown trigger */}
+              <div className="relative">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      backgroundColor:
+                        form.stage === "gagne" ? "#2C7D5C"
+                        : form.stage === "perdu" ? "#DC2626"
+                        : form.stage === "abandonne" ? "#F59E0B"
+                        : form.stage === "non_traitee" ? "#9CA3AF"
+                        : "#F3F4F6",
+                      border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
+                        ? "none"
+                        : "2px solid #D1D5DB",
+                      boxShadow:
+                        form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18), 0 2px 8px rgba(44,125,92,0.25)"
+                        : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15), 0 2px 8px rgba(220,38,38,0.25)"
+                        : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15), 0 2px 8px rgba(245,158,11,0.25)"
+                        : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15), 0 2px 8px rgba(156,163,175,0.25)"
+                        : "none",
+                    }}
+                  >
+                    {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
+                      <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : form.stage === "gagne" ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : form.stage === "perdu" ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : form.stage === "abandonne" ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                      </svg>
+                    ) : form.stage === "non_traitee" ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="8" y1="12" x2="16" y2="12" />
+                      </svg>
+                    ) : (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                    className="p-1 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
+                    title="Choisir l'issue"
+                  >
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M6 9l6 6 6-6" />
                     </svg>
-                  ) : form.stage === "gagne" ? (
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : form.stage === "perdu" ? (
-                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <div className="w-2.5 h-2.5 rounded-full bg-muted/60" />
-                  )}
+                  </button>
                 </div>
-              </div>
-              
-              <div className="flex flex-col text-left">
-                <span className={cn(
-                  "text-[9px] font-extrabold uppercase tracking-widest",
-                  form.stage === "gagne"
-                    ? "text-success"
-                    : form.stage === "perdu"
-                    ? "text-danger"
-                    : "text-muted"
-                )}>
-                  {form.stage === "gagne" ? "Gagné" : form.stage === "perdu" ? "Perdu" : "Issue commerciale"}
-                </span>
-                {!isDesktopView && (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleStageSelect("gagne")}
-                      className={cn(
-                        "py-1 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none",
-                        form.stage === "gagne"
-                          ? "bg-success text-white border-success shadow-md shadow-success/15"
-                          : "border-border/80 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
-                      )}
-                    >
-                      WIN
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleStageSelect("perdu")}
-                      className={cn(
-                        "py-1 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none",
-                        form.stage === "perdu"
-                          ? "bg-danger text-white border-danger shadow-md shadow-danger/15"
-                          : "border-border/80 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
-                      )}
-                    >
-                      LOST
-                    </button>
-                  </div>
+
+                {/* Floating dropdown menu */}
+                {isIssueDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
+                      {[
+                        { key: "gagne", label: "Gagné", color: "#2C7D5C" },
+                        { key: "perdu", label: "Perdu", color: "#DC2626" },
+                        { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
+                        { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => {
+                            handleStageSelect(opt.key as SalesStage)
+                            setIsIssueDropdownOpen(false)
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+                          <span className="text-heading">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
 
-            {isDesktopView && (
-              <div className="flex items-center gap-2 mt-3 w-full justify-center">
+              {/* Label + sub description below */}
+              <div className="flex flex-col items-center mt-3 px-1 text-center">
+                <span
+                  className="text-[12px] font-bold"
+                  style={{
+                    color:
+                      form.stage === "gagne" ? "#111827"
+                      : form.stage === "perdu" ? "#111827"
+                      : form.stage === "abandonne" ? "#111827"
+                      : form.stage === "non_traitee" ? "#111827"
+                      : "#6B7280"
+                  }}
+                >
+                  {form.stage === "gagne" ? "Gagné"
+                    : form.stage === "perdu" ? "Perdu"
+                    : form.stage === "abandonne" ? "Abandonné"
+                    : form.stage === "non_traitee" ? "Non traitée"
+                    : "Issue"}
+                </span>
+                <span className="text-[10px] mt-0.5 text-muted">
+                  Processus terminé
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // ── MOBILE: vertical ──
+    return (
+      <div className="w-full">
+        {isPending && loadingStage && (
+          <div className="flex justify-center mb-3">
+            <span className="text-[10px] font-semibold animate-pulse uppercase tracking-wider" style={{ color: "#2C7D5C" }}>
+              Mise à jour en cours...
+            </span>
+          </div>
+        )}
+        <div className="flex flex-col gap-0">
+          {SEQUENTIAL_STEPS.map((step, idx) => {
+            const isCompleted = currentIdx > idx
+            const isActive = currentIdx === idx
+            const isLast = idx === SEQUENTIAL_STEPS.length - 1
+            const isLoading = loadingStage === step.key
+
+            return (
+              <div key={step.key} className="flex items-stretch gap-4">
+                {/* Left: node + connector */}
+                <div className="flex flex-col items-center shrink-0" style={{ width: 44 }}>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handleStageSelect(step.key as SalesStage)}
+                    className="flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 shrink-0 z-10"
+                    style={{
+                      width: 44,
+                      height: 44,
+                      backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
+                      boxShadow: isActive ? "0 0 0 4px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 8px rgba(44,125,92,0.2)" : "none",
+                      transform: isActive ? "scale(1.08)" : "scale(1)",
+                    }}
+                  >
+                    {isLoading ? (
+                      <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : isActive ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
+                        <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+                      </svg>
+                    ) : isCompleted ? (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                  {/* Vertical connector pill */}
+                  <div
+                    style={{
+                      width: 8,
+                      flex: 1,
+                      minHeight: 20,
+                      marginTop: 4,
+                      borderRadius: 4,
+                      backgroundColor: isCompleted
+                        ? "#2C7D5C"
+                        : isLast
+                          ? form.stage === "gagne" ? "#2C7D5C"
+                          : form.stage === "perdu" ? "#DC2626"
+                          : form.stage === "abandonne" ? "#F59E0B"
+                          : form.stage === "non_traitee" ? "#9CA3AF"
+                          : "#E5E7EB"
+                        : "#E5E7EB",
+                      transition: "background-color 0.4s",
+                    }}
+                  />
+                </div>
+
+                {/* Right: date + label */}
+                <div className="flex flex-col justify-start py-1 pb-6">
+                  <span className="text-[11px] font-bold leading-none mb-1" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                    {isActive ? "En cours" : isCompleted ? "Terminé" : "À venir"}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => handleStageSelect(step.key as SalesStage)}
+                    className="text-[13px] font-bold text-left cursor-pointer disabled:cursor-not-allowed"
+                    style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
+                  >
+                    {step.label}
+                  </button>
+                  <span className="text-[11px] mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                    {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                  </span>
+                </div>
+              </div>
+            )
+          })
+        }
+
+          {/* Outcome row */}
+          <div className="flex items-start gap-4 mt-1 relative">
+            <div className="flex flex-col items-center shrink-0" style={{ width: 44 }}>
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => handleStageSelect("gagne")}
-                  className={cn(
-                    "flex-1 py-1.5 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none text-center justify-center flex items-center gap-1",
-                    form.stage === "gagne"
-                      ? "bg-success text-white border-success shadow-md shadow-success/15"
-                      : "border-border/80 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
-                  )}
+                  onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                  className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer"
+                  style={{
+                    width: 44,
+                    height: 44,
+                    backgroundColor:
+                      form.stage === "gagne" ? "#2C7D5C"
+                      : form.stage === "perdu" ? "#DC2626"
+                      : form.stage === "abandonne" ? "#F59E0B"
+                      : form.stage === "non_traitee" ? "#9CA3AF"
+                      : "#F3F4F6",
+                    border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
+                      ? "none"
+                      : "2px solid #D1D5DB",
+                    boxShadow:
+                      form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18)"
+                      : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15)"
+                      : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15)"
+                      : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15)"
+                      : "none",
+                    transform: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee") ? "scale(1.08)" : "scale(1)",
+                  }}
                 >
-                  WIN
+                  {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
+                    <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
+                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                  ) : form.stage === "gagne" ? (
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : form.stage === "perdu" ? (
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : form.stage === "abandonne" ? (
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg>
+                  ) : form.stage === "non_traitee" ? (
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                  ) : (
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  )}
                 </button>
+
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() => handleStageSelect("perdu")}
-                  className={cn(
-                    "flex-1 py-1.5 px-3 text-[9px] font-black rounded-md border uppercase tracking-widest transition-all duration-150 cursor-pointer select-none text-center justify-center flex items-center gap-1",
-                    form.stage === "perdu"
-                      ? "bg-danger text-white border-danger shadow-md shadow-danger/15"
-                      : "border-border/80 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
-                  )}
+                  onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                  className="p-1 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
                 >
-                  LOST
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+            <div className="flex-1 flex flex-col justify-start py-1 pb-6 relative">
+              <span
+                className="text-[11px] font-bold leading-none mb-1"
+                style={{
+                  color:
+                    form.stage === "gagne" ? "#2C7D5C"
+                    : form.stage === "perdu" ? "#DC2626"
+                    : form.stage === "abandonne" ? "#F59E0B"
+                    : form.stage === "non_traitee" ? "#6B7280"
+                    : "#9CA3AF"
+                }}
+              >
+                {form.stage === "gagne" ? "Gagné"
+                  : form.stage === "perdu" ? "Perdu"
+                  : form.stage === "abandonne" ? "Abandonné"
+                  : form.stage === "non_traitee" ? "Non traitée"
+                  : "Issue"}
+              </span>
+              <span className="text-[13px] font-bold text-heading">
+                Issue du processus
+              </span>
+              <span className="text-[11px] mt-0.5 text-muted">
+                Déterminer l&apos;issue finale
+              </span>
 
+              {/* Floating dropdown menu for mobile */}
+              {isIssueDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
+                  <div className="absolute left-0 top-12 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
+                    {[
+                      { key: "gagne", label: "Gagné", color: "#2C7D5C" },
+                      { key: "perdu", label: "Perdu", color: "#DC2626" },
+                      { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
+                      { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => {
+                          handleStageSelect(opt.key as SalesStage)
+                          setIsIssueDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+                        <span className="text-heading">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const handleSave = () => {
+  const handleSave = (section: string) => {
     setErrorMsg(null)
     startTransition(async () => {
-      let finalAccountId: string | null = null
+      let payload: Parameters<typeof updateOpportunity>[0] = { id: opportunity.id }
 
-      if (selectedAccount) {
-        if (selectedAccount.isNew) {
-          const upsertRes = await upsertAccountByName(selectedAccount.name)
-          if (upsertRes.error) {
-            setErrorMsg(upsertRes.error)
-            return
+      if (section === "identite") {
+        let finalAccountId: string | null = null
+        if (selectedAccount) {
+          if (selectedAccount.isNew) {
+            const upsertRes = await upsertAccountByName(selectedAccount.name)
+            if (upsertRes.error) { setErrorMsg(upsertRes.error); return }
+            finalAccountId = upsertRes.data?.id ?? null
+          } else {
+            finalAccountId = selectedAccount.id
           }
-          finalAccountId = upsertRes.data?.id ?? null
-        } else {
-          finalAccountId = selectedAccount.id
         }
+        payload = { ...payload, title: form.title, account_id: finalAccountId }
+      } else if (section === "besoin") {
+        payload = { ...payload, need_summary: form.need_summary || null, need_detail: form.need_detail || null, client_context: form.client_context || null }
+      } else if (section === "engagement") {
+        payload = { ...payload, source: form.source || null, next_action_label: form.next_action_label || null, next_action_at: form.next_action_at || null, engagement_notes: form.engagement_notes || null }
+      } else if (section === "resultat") {
+        payload = { ...payload, outcome: form.outcome, win_reason: form.win_reason || null, loss_reason: form.loss_reason || null }
+      } else if (section === "qualification") {
+        payload = { ...payload, practice: form.practice || null, opportunity_type: form.opportunity_type || null, seniority: form.seniority || null, stage: form.stage, priority: form.priority, conviction: form.conviction }
+      } else if (section === "economie") {
+        payload = { ...payload, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
+      } else if (section === "planning") {
+        payload = { ...payload, start_date: form.start_date || null, target_close_date: form.target_close_date || null }
+      } else if (section === "contexte") {
+        payload = { ...payload, location: form.location || null, remote_policy: form.remote_policy || null }
+      } else if (section === "synthese-mobile") {
+        payload = { ...payload, need_summary: form.need_summary || null, conviction: form.conviction }
+      } else if (section === "qualification-mobile") {
+        payload = { ...payload, practice: form.practice || null, opportunity_type: form.opportunity_type || null, seniority: form.seniority || null, source: form.source || null, stage: form.stage, priority: form.priority }
+      } else if (section === "economie-mobile") {
+        payload = { ...payload, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
+      } else if (section === "prochaine-action-mobile") {
+        payload = { ...payload, next_action_label: form.next_action_label || null, next_action_at: form.next_action_at || null }
+      } else if (section === "contexte-mobile") {
+        payload = { ...payload, location: form.location || null, remote_policy: form.remote_policy || null }
       }
 
-      const result = await updateOpportunity({
-        id: opportunity.id,
-        title: form.title,
-        account_id: finalAccountId,
-        practice: form.practice || null,
-        opportunity_type: form.opportunity_type || null,
-        source: form.source || null,
-        stage: form.stage,
-        outcome: form.outcome,
-        priority: form.priority,
-        conviction: form.conviction,
-        seniority: form.seniority || null,
-        need_summary: form.need_summary || null,
-        need_detail: form.need_detail || null,
-        client_context: form.client_context || null,
-        engagement_notes: form.engagement_notes || null,
-        target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate),
-        duration: form.duration === "" ? null : Number(form.duration),
-        estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain),
-        target_close_date: form.target_close_date || null,
-        start_date: form.start_date || null,
-        next_action_label: form.next_action_label || null,
-        next_action_at: form.next_action_at || null,
-        location: form.location || null,
-        remote_policy: form.remote_policy || null,
-        win_reason: form.win_reason || null,
-        loss_reason: form.loss_reason || null,
-      })
+      const result = await updateOpportunity(payload)
 
       if (result.error) {
         setErrorMsg(result.error)
       } else {
-        setIsEditing(false)
+        setEditingSection(null)
         onSuccess()
       }
     })
+  }
+
+  // Boutons Annuler / Enregistrer inline dans chaque section
+  const SectionEditControls = ({ section }: { section: string }) => (
+    <div className="flex items-center gap-1.5 shrink-0">
+      <button
+        type="button"
+        onClick={handleCancel}
+        disabled={isPending}
+        className="px-2.5 py-1 text-[11px] font-semibold rounded-md bg-canvas border border-border text-muted hover:text-heading transition-colors disabled:opacity-40"
+      >
+        Annuler
+      </button>
+      <button
+        type="button"
+        onClick={() => handleSave(section)}
+        disabled={isPending}
+        className="px-2.5 py-1 text-[11px] font-semibold rounded-md bg-success text-success-fg hover:bg-success/90 transition-colors disabled:opacity-40"
+      >
+        {isPending ? "…" : "Enregistrer"}
+      </button>
+    </div>
+  )
+
+  const SectionHeader = ({
+    title,
+    sectionKey,
+    isDesktop = false,
+  }: {
+    title: string
+    sectionKey: string
+    isDesktop?: boolean
+  }) => {
+    const isCurrentEditing = editingSection === sectionKey
+    return (
+      <div className="flex items-center justify-between pb-1.5 border-b border-border/40 w-full mb-3">
+        <h2 className={cn(
+          "font-bold text-heading font-heading",
+          isDesktop ? "text-sm" : "text-xs uppercase tracking-wider"
+        )}>
+          {title}
+        </h2>
+        {isCurrentEditing ? (
+          <SectionEditControls section={sectionKey} />
+        ) : (
+          editingSection === null && (
+            <button
+              type="button"
+              onClick={() => setEditingSection(sectionKey)}
+              className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
+              title={`Modifier ${title}`}
+            >
+              <PencilIcon className="w-3.5 h-3.5" />
+            </button>
+          )
+        )}
+      </div>
+    )
   }
 
   // Render helpers
@@ -495,30 +835,18 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
 
             {/* Boutons d'action mobile */}
-            {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-3 py-1 text-[11px] font-semibold rounded bg-primary text-primary-fg hover:bg-primary/90 transition-colors"
-              >
-                Modifier
-              </button>
+            {editingSection === "identite" ? (
+              <SectionEditControls section="identite" />
             ) : (
-              <div className="flex items-center gap-1.5">
+              editingSection === null && (
                 <button
-                  onClick={handleCancel}
-                  disabled={isPending}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded bg-canvas border border-border text-muted hover:text-heading transition-colors disabled:opacity-40"
+                  onClick={() => setEditingSection("identite")}
+                  className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
+                  title="Modifier l'identité"
                 >
-                  Annuler
+                  <PencilIcon className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isPending}
-                  className="px-2.5 py-1 text-[11px] font-semibold rounded bg-success text-success-fg hover:bg-success/90 transition-colors disabled:opacity-40"
-                >
-                  {isPending ? "Enregistrement…" : "Enregistrer"}
-                </button>
-              </div>
+              )
             )}
           </div>
 
@@ -529,7 +857,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
           )}
 
-          {isEditing ? (
+          {editingSection === "identite" ? (
             <div className="mt-2 flex flex-col gap-3">
               <div>
                 <label className={labelClass}>Intitulé de l&apos;opportunité</label>
@@ -570,163 +898,163 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         {renderPipelineTimeline(false)}
 
         {/* 1. Synthèse */}
-        <SurfaceCard className="p-4 flex flex-col gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-            Synthèse
-          </h2>
-          {isEditing ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className={labelClass}>Résumé du besoin</label>
-                <input
-                  type="text"
-                  value={form.need_summary}
-                  onChange={(e) => setForm({ ...form, need_summary: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Confiance (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={form.conviction}
-                  onChange={(e) => setForm({ ...form, conviction: Number(e.target.value) })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3">
+        <SurfaceCard className="p-4 flex flex-col">
+          <SectionHeader title="Synthèse" sectionKey="synthese-mobile" isDesktop={false} />
+          <div className="flex flex-col mt-1">
+            {editingSection === "synthese-mobile" ? (
+              <div className="flex flex-col gap-3">
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">ACV</span>
-                  <p className="text-sm font-bold text-heading tabular-nums mt-0.5">
-                    {formatEuro(opportunity.acv ?? opportunity.estimated_gain)}
-                  </p>
+                  <label className={labelClass}>Résumé du besoin</label>
+                  <input
+                    type="text"
+                    value={form.need_summary}
+                    onChange={(e) => setForm({ ...form, need_summary: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
                 </div>
                 <div>
-                  <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Confiance</span>
-                  <p className="text-sm font-bold text-heading mt-0.5">{opportunity.conviction}%</p>
+                  <label className={labelClass}>Confiance (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={form.conviction}
+                    onChange={(e) => setForm({ ...form, conviction: Number(e.target.value) })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
                 </div>
               </div>
-              {opportunity.need_summary && (
-                <div className="mt-1">
-                  <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Résumé du besoin</span>
-                  <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2 rounded border border-border/40">
-                    {opportunity.need_summary}
-                  </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">ACV</span>
+                    <p className="text-sm font-bold text-heading tabular-nums mt-0.5">
+                      {formatEuro(opportunity.acv ?? opportunity.estimated_gain)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Confiance</span>
+                    <p className="text-sm font-bold text-heading mt-0.5">{opportunity.conviction}%</p>
+                  </div>
                 </div>
-              )}
-            </>
-          )}
+                {opportunity.need_summary && (
+                  <div className="mt-1">
+                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Résumé du besoin</span>
+                    <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2 rounded border border-border/40">
+                      {opportunity.need_summary}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </SurfaceCard>
 
         {/* 2. Qualification */}
-        <SurfaceCard className="p-4 flex flex-col gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-            Qualification
-          </h2>
-          {isEditing ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className={labelClass}>Practice</label>
-                <select
-                  value={form.practice}
-                  onChange={(e) => setForm({ ...form, practice: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {PRACTICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+        <SurfaceCard className="p-4 flex flex-col">
+          <SectionHeader title="Qualification" sectionKey="qualification-mobile" isDesktop={false} />
+          <div className="flex flex-col mt-1">
+            {editingSection === "qualification-mobile" ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className={labelClass}>Practice</label>
+                  <select
+                    value={form.practice}
+                    onChange={(e) => setForm({ ...form, practice: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {PRACTICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Type d&apos;opportunité</label>
+                  <select
+                    value={form.opportunity_type}
+                    onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Séniorité</label>
+                  <select
+                    value={form.seniority}
+                    onChange={(e) => setForm({ ...form, seniority: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {SENIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Source</label>
+                  <select
+                    value={form.source}
+                    onChange={(e) => setForm({ ...form, source: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Étape</label>
+                  <select
+                    value={form.stage}
+                    onChange={(e) => setForm({ ...form, stage: e.target.value as SalesStage })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Priorité</label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Type d&apos;opportunité</label>
-                <select
-                  value={form.opportunity_type}
-                  onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+            ) : (
+              <div className="flex flex-col gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted">Practice</span>
+                  <span className="font-semibold text-heading">{opportunity.practice || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Type d&apos;opportunité</span>
+                  <span className="font-semibold text-heading capitalize">
+                    {opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Séniorité</span>
+                  <span className="font-semibold text-heading capitalize">{opportunity.seniority || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Source</span>
+                  <span className="font-semibold text-heading capitalize">
+                    {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
+                  </span>
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Séniorité</label>
-                <select
-                  value={form.seniority}
-                  onChange={(e) => setForm({ ...form, seniority: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {SENIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Source</label>
-                <select
-                  value={form.source}
-                  onChange={(e) => setForm({ ...form, source: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Étape</label>
-                <select
-                  value={form.stage}
-                  onChange={(e) => setForm({ ...form, stage: e.target.value as SalesStage })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Priorité</label>
-                <select
-                  value={form.priority}
-                  onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted">Practice</span>
-                <span className="font-semibold text-heading">{opportunity.practice || "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Type d&apos;opportunité</span>
-                <span className="font-semibold text-heading capitalize">
-                  {opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Séniorité</span>
-                <span className="font-semibold text-heading capitalize">{opportunity.seniority || "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Source</span>
-                <span className="font-semibold text-heading capitalize">
-                  {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
-                </span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </SurfaceCard>
 
         <OpportunitySkillsPanel
@@ -736,170 +1064,163 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         />
 
         {/* 3. Économie */}
-        <SurfaceCard className="p-4 flex flex-col gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-            Économie
-          </h2>
-          {isEditing ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className={labelClass}>TJM Cible (€)</label>
-                <input
-                  type="number"
-                  value={form.target_daily_rate}
-                  onChange={(e) => setForm({ ...form, target_daily_rate: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Durée (jours)</label>
-                <input
-                  type="number"
-                  value={form.duration}
-                  onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Gain estimé (€)</label>
-                <input
-                  type="number"
-                  value={form.estimated_gain}
-                  onChange={(e) => setForm({ ...form, estimated_gain: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-xs bg-canvas/30 p-2.5 rounded border border-border/40">
+        <SurfaceCard className="p-4 flex flex-col">
+          <SectionHeader title="Économie" sectionKey="economie-mobile" isDesktop={false} />
+          <div className="flex flex-col mt-1">
+            {editingSection === "economie-mobile" ? (
+              <div className="flex flex-col gap-3">
                 <div>
-                  <span className="text-muted block text-[9px] uppercase">ACV (Généré)</span>
-                  <span className="font-bold text-heading">{formatEuro(opportunity.acv)}</span>
+                  <label className={labelClass}>TJM Cible (€)</label>
+                  <input
+                    type="number"
+                    value={form.target_daily_rate}
+                    onChange={(e) => setForm({ ...form, target_daily_rate: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
                 </div>
                 <div>
-                  <span className="text-muted block text-[9px] uppercase">Gain Pondéré</span>
-                  <span className="font-bold text-heading">{formatEuro(opportunity.weighted_gain)}</span>
+                  <label className={labelClass}>Durée (jours)</label>
+                  <input
+                    type="number"
+                    value={form.duration}
+                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Gain estimé (€)</label>
+                  <input
+                    type="number"
+                    value={form.estimated_gain}
+                    onChange={(e) => setForm({ ...form, estimated_gain: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs bg-canvas/30 p-2.5 rounded border border-border/40">
+                  <div>
+                    <span className="text-muted block text-[9px] uppercase">ACV (Généré)</span>
+                    <span className="font-bold text-heading">{formatEuro(opportunity.acv)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted block text-[9px] uppercase">Gain Pondéré</span>
+                    <span className="font-bold text-heading">{formatEuro(opportunity.weighted_gain)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted">TJM Cible</span>
-                <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
+            ) : (
+              <div className="flex flex-col gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted">TJM Cible</span>
+                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Durée</span>
+                  <span className="font-semibold text-heading">{opportunity.duration ? `${opportunity.duration} jours` : "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Gain estimé</span>
+                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Gain pondéré</span>
+                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Durée</span>
-                <span className="font-semibold text-heading">{opportunity.duration ? `${opportunity.duration} jours` : "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Gain estimé</span>
-                <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Gain pondéré</span>
-                <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </SurfaceCard>
 
         {/* 4. Prochaine Action */}
-        {isEditing ? (
-          <SurfaceCard className="p-4 flex flex-col gap-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-              Prochaine Action
-            </h2>
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className={labelClass}>Libellé de l&apos;action</label>
-                <input
-                  type="text"
-                  value={form.next_action_label}
-                  onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
+        <SurfaceCard className="p-4 flex flex-col">
+          <SectionHeader title="Prochaine Action" sectionKey="prochaine-action-mobile" isDesktop={false} />
+          <div className="flex flex-col mt-1">
+            {editingSection === "prochaine-action-mobile" ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className={labelClass}>Libellé de l&apos;action</label>
+                  <input
+                    type="text"
+                    value={form.next_action_label}
+                    onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Date de l&apos;action</label>
+                  <input
+                    type="datetime-local"
+                    value={form.next_action_at}
+                    onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Date de l&apos;action</label>
-                <input
-                  type="datetime-local"
-                  value={form.next_action_at}
-                  onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              </div>
-            </div>
-          </SurfaceCard>
-        ) : (
-          (opportunity.next_action_label || opportunity.next_action_at) && (
-            <SurfaceCard className="p-4 flex flex-col gap-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-                Prochaine action
-              </h2>
+            ) : (
               <div className="text-xs">
-                <p className="font-semibold text-heading">{opportunity.next_action_label || "—"}</p>
-                {opportunity.next_action_at && (
-                  <p className="text-[10px] text-muted mt-1">
-                    Prévue le : {formatDateTime(opportunity.next_action_at)}
-                  </p>
+                {opportunity.next_action_label || opportunity.next_action_at ? (
+                  <>
+                    <p className="font-semibold text-heading">{opportunity.next_action_label || "—"}</p>
+                    {opportunity.next_action_at && (
+                      <p className="text-[10px] text-muted mt-1">
+                        Prévue le : {formatDateTime(opportunity.next_action_at)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted italic">Aucune action prévue</p>
                 )}
               </div>
-            </SurfaceCard>
-          )
-        )}
-
-        <OpportunityTimelinePanel
-          opportunityId={opportunity.id}
-          events={data.events}
-          onRefresh={onSuccess}
-        />
+            )}
+          </div>
+        </SurfaceCard>
 
         {/* 5. Contexte mission */}
-        <SurfaceCard className="p-4 flex flex-col gap-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-1.5">
-            Contexte mission
-          </h2>
-          {isEditing ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className={labelClass}>Localisation</label>
-                <input
-                  type="text"
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
+        <SurfaceCard className="p-4 flex flex-col">
+          <SectionHeader title="Contexte mission" sectionKey="contexte-mobile" isDesktop={false} />
+          <div className="flex flex-col mt-1">
+            {editingSection === "contexte-mobile" ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className={labelClass}>Localisation</label>
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Télétravail</label>
+                  <select
+                    value={form.remote_policy}
+                    onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
+                    className={inputClass}
+                    disabled={isPending}
+                  >
+                    <option value="">— Sélectionner —</option>
+                    {REMOTE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Télétravail</label>
-                <select
-                  value={form.remote_policy}
-                  onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
-                  className={inputClass}
-                  disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {REMOTE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+            ) : (
+              <div className="flex flex-col gap-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted">Localisation</span>
+                  <span className="font-semibold text-heading">{opportunity.location || "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted">Télétravail</span>
+                  <span className="font-semibold text-heading capitalize">{opportunity.remote_policy || "—"}</span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted">Localisation</span>
-                <span className="font-semibold text-heading">{opportunity.location || "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Télétravail</span>
-                <span className="font-semibold text-heading capitalize">{opportunity.remote_policy || "—"}</span>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </SurfaceCard>
 
         <OpportunityContactsPanel
@@ -926,7 +1247,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             {account && <span className="text-xs text-muted">{account.name}</span>}
           </div>
 
-          {isEditing ? (
+          {editingSection === "identite" ? (
             <div className="mt-2 flex flex-col gap-3.5 w-2/3">
               <div>
                 <label className={labelClass}>Intitulé de l&apos;opportunité</label>
@@ -953,9 +1274,21 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
             </div>
           ) : (
-            <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
-              {opportunity.title}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
+                {opportunity.title}
+              </h1>
+              {editingSection === null && (
+                <button
+                  type="button"
+                  onClick={() => setEditingSection("identite")}
+                  className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
+                  title="Modifier l'identité"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -967,30 +1300,8 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </span>
           )}
 
-          {!isEditing ? (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 text-xs font-semibold rounded-md bg-primary text-primary-fg hover:bg-primary/90 transition-colors"
-            >
-              Modifier
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleCancel}
-                disabled={isPending}
-                className="px-3 py-2 text-xs font-semibold rounded-md bg-canvas border border-border text-muted hover:text-heading transition-colors disabled:opacity-40"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isPending}
-                className="px-4 py-2 text-xs font-semibold rounded-md bg-success text-success-fg hover:bg-success/90 transition-colors disabled:opacity-40"
-              >
-                {isPending ? "Enregistrement…" : "Enregistrer"}
-              </button>
-            </div>
+          {editingSection === "identite" && (
+            <SectionEditControls section="identite" />
           )}
 
           <div className="flex flex-col items-end border-l border-border pl-4">
@@ -1010,14 +1321,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         {/* Colonne Principale (8) */}
         <div className="col-span-8 flex flex-col gap-6">
           {/* Besoin client */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Besoin client
-            </h2>
-            <div className="flex flex-col gap-4">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Besoin client" sectionKey="besoin" isDesktop={true} />
+            <div className="flex flex-col gap-4 mt-2">
               <div>
                 <label className={labelClass}>Résumé du besoin</label>
-                {isEditing ? (
+                {editingSection === "besoin" ? (
                   <input
                     type="text"
                     value={form.need_summary}
@@ -1033,7 +1342,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
               <div>
                 <label className={labelClass}>Détail du besoin</label>
-                {isEditing ? (
+                {editingSection === "besoin" ? (
                   <textarea
                     value={form.need_detail}
                     onChange={(e) => setForm({ ...form, need_detail: e.target.value })}
@@ -1048,7 +1357,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
               <div>
                 <label className={labelClass}>Contexte client</label>
-                {isEditing ? (
+                {editingSection === "besoin" ? (
                   <textarea
                     value={form.client_context}
                     onChange={(e) => setForm({ ...form, client_context: e.target.value })}
@@ -1065,93 +1374,85 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </SurfaceCard>
 
           {/* Engagement commercial */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Engagement commercial
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Engagement commercial" sectionKey="engagement" isDesktop={true} />
+            <div className="flex flex-col gap-4 mt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Source de l&apos;opportunité</label>
+                  {editingSection === "engagement" ? (
+                    <select
+                      value={form.source}
+                      onChange={(e) => setForm({ ...form, source: e.target.value })}
+                      className={inputClass}
+                      disabled={isPending}
+                    >
+                      <option value="">— Sélectionner —</option>
+                      {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-body mt-1 font-medium capitalize">
+                      {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className={labelClass}>Prochaine action</label>
+                  {editingSection === "engagement" ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        value={form.next_action_label}
+                        onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
+                        className={inputClass}
+                        placeholder="Libellé de l'action"
+                        disabled={isPending}
+                      />
+                      <input
+                        type="datetime-local"
+                        value={form.next_action_at}
+                        onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
+                        className={inputClass}
+                        disabled={isPending}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-body mt-1 font-medium">
+                      {opportunity.next_action_label || "—"}
+                      {opportunity.next_action_at && (
+                        <span className="text-muted block text-[10px] mt-0.5 font-normal">
+                          Prévue le : {formatDateTime(opportunity.next_action_at)}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
               <div>
-                <label className={labelClass}>Source de l&apos;opportunité</label>
-                {isEditing ? (
-                  <select
-                    value={form.source}
-                    onChange={(e) => setForm({ ...form, source: e.target.value })}
-                    className={inputClass}
+                <label className={labelClass}>Notes d&apos;engagement</label>
+                {editingSection === "engagement" ? (
+                  <textarea
+                    value={form.engagement_notes}
+                    onChange={(e) => setForm({ ...form, engagement_notes: e.target.value })}
+                    className={inputClass + " h-20 resize-none"}
                     disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  />
                 ) : (
-                  <p className="text-xs text-body mt-1 font-medium capitalize">
-                    {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
+                  <p className="text-xs text-body mt-1 whitespace-pre-wrap">
+                    {opportunity.engagement_notes || "—"}
                   </p>
                 )}
               </div>
-              <div>
-                <label className={labelClass}>Prochaine action</label>
-                {isEditing ? (
-                  <div className="flex flex-col gap-2">
-                    <input
-                      type="text"
-                      value={form.next_action_label}
-                      onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
-                      className={inputClass}
-                      placeholder="Libellé de l'action"
-                      disabled={isPending}
-                    />
-                    <input
-                      type="datetime-local"
-                      value={form.next_action_at}
-                      onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
-                      className={inputClass}
-                      disabled={isPending}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs text-body mt-1 font-medium">
-                    {opportunity.next_action_label || "—"}
-                    {opportunity.next_action_at && (
-                      <span className="text-muted block text-[10px] mt-0.5 font-normal">
-                        Prévue le : {formatDateTime(opportunity.next_action_at)}
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className={labelClass}>Notes d&apos;engagement</label>
-              {isEditing ? (
-                <textarea
-                  value={form.engagement_notes}
-                  onChange={(e) => setForm({ ...form, engagement_notes: e.target.value })}
-                  className={inputClass + " h-20 resize-none"}
-                  disabled={isPending}
-                />
-              ) : (
-                <p className="text-xs text-body mt-1 whitespace-pre-wrap">
-                  {opportunity.engagement_notes || "—"}
-                </p>
-              )}
             </div>
           </SurfaceCard>
 
-          <OpportunityTimelinePanel
-            opportunityId={opportunity.id}
-            events={data.events}
-            onRefresh={onSuccess}
-          />
-
           {/* Résultat */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Résultat
-            </h2>
-            <div className="grid grid-cols-3 gap-4">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Résultat" sectionKey="resultat" isDesktop={true} />
+            <div className="grid grid-cols-3 gap-4 mt-2">
               <div>
                 <label className={labelClass}>Outcome (Statut)</label>
-                {isEditing ? (
+                {editingSection === "resultat" ? (
                   <select
                     value={form.outcome || ""}
                     onChange={(e) => setForm({ ...form, outcome: (e.target.value as SalesOutcome) || null })}
@@ -1169,7 +1470,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </div>
               <div className="col-span-2">
                 <label className={labelClass}>Raison (Gain / Perte / Abandon)</label>
-                {isEditing ? (
+                {editingSection === "resultat" ? (
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
@@ -1203,15 +1504,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         {/* Colonne Latérale (4) */}
         <div className="col-span-4 flex flex-col gap-6">
           {/* Qualification */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Qualification
-            </h2>
-            <div className="flex flex-col gap-3">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Qualification" sectionKey="qualification" isDesktop={true} />
+            <div className="flex flex-col gap-3 mt-2">
               {/* Practice */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Practice</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <select
                     value={form.practice}
                     onChange={(e) => setForm({ ...form, practice: e.target.value })}
@@ -1229,7 +1528,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Type */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Type d&apos;opportunité</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <select
                     value={form.opportunity_type}
                     onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
@@ -1249,7 +1548,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Séniorité */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Séniorité requise</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <select
                     value={form.seniority}
                     onChange={(e) => setForm({ ...form, seniority: e.target.value })}
@@ -1267,7 +1566,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Étape */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Étape</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <select
                     value={form.stage}
                     onChange={(e) => setForm({ ...form, stage: e.target.value as SalesStage })}
@@ -1284,7 +1583,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Priorité */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Priorité</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <select
                     value={form.priority}
                     onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
@@ -1301,7 +1600,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Conviction */}
               <div className="flex flex-col gap-1 pb-1">
                 <span className="text-[10px] text-muted font-medium">Confiance (%)</span>
-                {isEditing ? (
+                {editingSection === "qualification" ? (
                   <input
                     type="number"
                     min="0"
@@ -1325,15 +1624,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           />
 
           {/* Économie */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Économie
-            </h2>
-            <div className="flex flex-col gap-3">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Économie" sectionKey="economie" isDesktop={true} />
+            <div className="flex flex-col gap-3 mt-2">
               {/* TJM */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">TJM Cible</span>
-                {isEditing ? (
+                {editingSection === "economie" ? (
                   <input
                     type="number"
                     value={form.target_daily_rate}
@@ -1349,7 +1646,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Durée */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Durée (jours)</span>
-                {isEditing ? (
+                {editingSection === "economie" ? (
                   <input
                     type="number"
                     value={form.duration}
@@ -1365,7 +1662,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Gain estimé */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Gain estimé</span>
-                {isEditing ? (
+                {editingSection === "economie" ? (
                   <input
                     type="number"
                     value={form.estimated_gain}
@@ -1393,15 +1690,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </SurfaceCard>
 
           {/* Planning */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Planning
-            </h2>
-            <div className="flex flex-col gap-3">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Planning" sectionKey="planning" isDesktop={true} />
+            <div className="flex flex-col gap-3 mt-2">
               {/* Date Début */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Date de début</span>
-                {isEditing ? (
+                {editingSection === "planning" ? (
                   <input
                     type="date"
                     value={form.start_date}
@@ -1417,7 +1712,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Date Clôture */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Clôture cible</span>
-                {isEditing ? (
+                {editingSection === "planning" ? (
                   <input
                     type="date"
                     value={form.target_close_date}
@@ -1439,15 +1734,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </SurfaceCard>
 
           {/* Contexte mission */}
-          <SurfaceCard className="p-5 flex flex-col gap-4">
-            <h2 className="text-sm font-bold font-heading text-heading border-b border-border/40 pb-2">
-              Contexte mission
-            </h2>
-            <div className="flex flex-col gap-3">
+          <SurfaceCard className="p-5 flex flex-col">
+            <SectionHeader title="Contexte mission" sectionKey="contexte" isDesktop={true} />
+            <div className="flex flex-col gap-3 mt-2">
               {/* Localisation */}
               <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
                 <span className="text-[10px] text-muted font-medium">Localisation</span>
-                {isEditing ? (
+                {editingSection === "contexte" ? (
                   <input
                     type="text"
                     value={form.location}
@@ -1463,7 +1756,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Télétravail */}
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] text-muted font-medium">Politique de télétravail</span>
-                {isEditing ? (
+                {editingSection === "contexte" ? (
                   <select
                     value={form.remote_policy}
                     onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}

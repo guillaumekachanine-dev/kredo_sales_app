@@ -23,16 +23,17 @@ interface OpportunityQuickEditFormProps {
 }
 
 const SEQUENTIAL_STEPS = [
-  { key: "detection", label: "Demande", num: 1 },
-  { key: "qualification", label: "Qualification", num: 2 },
-  { key: "cv_envoyes", label: "CV sent", num: 3 },
-  { key: "entretien_client", label: "RT", num: 4 },
+  { key: "qualification", label: "Qualification", num: 1 },
+  { key: "recherche_profil", label: "Recherche profils", num: 2 },
+  { key: "cv_envoyes", label: "CV envoyés", num: 3 },
+  { key: "entretien_client", label: "Entretien client", num: 4 },
 ]
 
 export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false)
 
   const { opportunity, account } = data
 
@@ -48,7 +49,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
   })
 
   const getStageIndex = (stage: string) => {
-    if (stage === "gagne" || stage === "perdu") return 4
+    if (stage === "gagne" || stage === "perdu" || stage === "abandonne" || stage === "non_traitee") return 4
     return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
   }
 
@@ -108,174 +109,451 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
         )}
 
         <SurfaceCard className="p-5 flex flex-col gap-5">
-          {/* Stepper design line */}
-          <div className="flex flex-col gap-3">
+          {/* ── Pipeline timeline ── */}
+          <div className="flex flex-col gap-2">
             <span className={labelClass}>Étape de l&apos;opportunité</span>
-            
-            {/* Timeline container */}
-            <div className="relative flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-4 bg-canvas/30 p-5 rounded-xl border border-border/60">
-              
-              {/* Sequential steps */}
-              <div className="flex flex-col md:flex-row flex-1 items-start md:items-center gap-6 md:gap-4 relative w-full">
-                {SEQUENTIAL_STEPS.map((step, idx) => {
-                  const isCompleted = currentIdx > idx
-                  const isActive = currentIdx === idx
-                  const isPassedOrActive = currentIdx >= idx
 
-                  return (
-                    <div key={step.key} className="flex-1 flex flex-row md:flex-col items-center gap-3 md:gap-2 w-full relative z-10">
-                      {/* Step Circle & Connector Line */}
-                      <div className="flex items-center justify-center relative">
-                        {/* Connector line */}
-                        {idx < SEQUENTIAL_STEPS.length - 1 && (
-                          <div 
-                            className={cn(
-                              "absolute transition-all duration-300 -z-10",
-                              // Desktop line
-                              "hidden md:block md:left-1/2 md:top-[16px] md:w-full md:h-[2px]",
-                              // Mobile line
-                              "block left-[15px] top-[16px] w-[2px] h-[calc(100%+24px)]",
-                              isCompleted ? "bg-primary" : "bg-border/60"
-                            )}
-                          />
-                        )}
+            {/* Desktop: horizontal */}
+            <div className="hidden md:flex items-start w-full">
+              {SEQUENTIAL_STEPS.map((step, idx) => {
+                const isCompleted = currentIdx > idx
+                const isActive = currentIdx === idx
 
-                        {/* Connector to Outcomes from last sequential step (RT) */}
-                        {idx === SEQUENTIAL_STEPS.length - 1 && (
-                          <div 
-                            className={cn(
-                              "absolute transition-all duration-300 -z-10",
-                              // Desktop line
-                              "hidden md:block md:left-1/2 md:top-[16px] md:w-full md:h-[2px]",
-                              // Mobile line
-                              "block left-[15px] top-[16px] w-[2px] h-[calc(100%+24px)]",
-                              form.stage === "gagne"
-                                ? "bg-success"
-                                : form.stage === "perdu"
-                                ? "bg-danger"
-                                : "bg-border/60"
-                            )}
-                          />
-                        )}
+                return (
+                  <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
+                    {/* Connector → next */}
+                    {idx < SEQUENTIAL_STEPS.length - 1 && (
+                      <div
+                        className="absolute z-0"
+                        style={{
+                          top: 15,
+                          left: "calc(50% + 18px)",
+                          right: "-50%",
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor: isCompleted ? "#2C7D5C" : "#E5E7EB",
+                          transition: "background-color 0.4s ease",
+                        }}
+                      />
+                    )}
+                    {/* Connector last → outcome */}
+                    {idx === SEQUENTIAL_STEPS.length - 1 && (
+                      <div
+                        className="absolute z-0"
+                        style={{
+                          top: 15,
+                          left: "calc(50% + 18px)",
+                          right: "-50%", // goes to the issue node
+                          height: 6,
+                          borderRadius: 3,
+                          backgroundColor:
+                            form.stage === "gagne" ? "#2C7D5C"
+                            : form.stage === "perdu" ? "#DC2626"
+                            : form.stage === "abandonne" ? "#F59E0B"
+                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            : isCompleted ? "#2C7D5C" : "#E5E7EB",
+                          transition: "background-color 0.4s ease",
+                        }}
+                      />
+                    )}
 
-                        {/* Circle Button */}
-                        <button
-                          type="button"
-                          onClick={() => setForm({ ...form, stage: step.key })}
-                          className={cn(
-                            "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-200 cursor-pointer select-none z-10",
-                            isActive
-                              ? "border-primary bg-canvas text-primary ring-4 ring-primary/15 scale-110 shadow-md"
-                              : isCompleted
-                              ? "border-primary bg-primary text-white shadow-sm"
-                              : "border-border/80 bg-canvas/50 text-muted hover:border-muted hover:bg-canvas"
-                          )}
-                        >
-                          {isCompleted ? (
-                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            step.num
-                          )}
-                        </button>
-                      </div>
+                    {/* Status above */}
+                    <span
+                      className="text-[10px] font-bold mb-1 leading-none"
+                      style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                    >
+                      {isActive ? "En cours" : isCompleted ? "✓" : "—"}
+                    </span>
 
-                      {/* Label */}
-                      <div className="flex flex-col items-start md:items-center text-left md:text-center">
-                        <button
-                          type="button"
-                          onClick={() => setForm({ ...form, stage: step.key })}
-                          className={cn(
-                            "text-[10px] font-extrabold uppercase tracking-wider cursor-pointer transition-all",
-                            isActive || isCompleted ? "text-primary" : "text-muted"
-                          )}
-                        >
-                          {step.label}
-                        </button>
-                        {isActive && (
-                          <span className="text-[8px] text-primary/70 font-semibold uppercase tracking-wider animate-pulse">
-                            En cours
-                          </span>
-                        )}
-                      </div>
+                    {/* Node */}
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stage: step.key as any })}
+                      className="relative z-10 flex items-center justify-center rounded-full cursor-pointer transition-all duration-300 focus:outline-none"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
+                        border: isActive ? "2.5px solid #1a5c41" : "2px solid transparent",
+                        boxShadow: isActive
+                          ? "0 0 0 3px rgba(44,125,92,0.18)"
+                          : isCompleted
+                          ? "0 2px 6px rgba(44,125,92,0.22)"
+                          : "none",
+                        transform: isActive ? "scale(1.12)" : "scale(1)",
+                      }}
+                    >
+                      {isActive ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
+                          <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                          <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                          <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+                        </svg>
+                      ) : isCompleted ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+
+                    {/* Label below */}
+                    <div className="flex flex-col items-center mt-2 px-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        className="text-[10px] font-bold leading-tight cursor-pointer transition-colors focus:outline-none"
+                        style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
+                      >
+                        {step.label}
+                      </button>
+                      <span
+                        className="text-[9px] leading-snug mt-0.5"
+                        style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                      >
+                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
+                  </div>
+                )
+              })}
 
-              {/* Outcome Node (Step 5) */}
-              <div className="flex-initial flex flex-row md:flex-col items-center gap-3 md:gap-2 w-full md:w-auto relative z-10 pl-0 md:pl-6 border-t md:border-t-0 md:border-l border-border/60 pt-4 md:pt-0 shrink-0">
-                <div className="flex items-center justify-center relative">
-                  <div
-                    className={cn(
-                      "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-sm",
-                      form.stage === "gagne"
-                        ? "border-success bg-success text-white ring-4 ring-success/15 scale-110"
-                        : form.stage === "perdu"
-                        ? "border-danger bg-danger text-white ring-4 ring-danger/15 scale-110"
-                        : "border-border/80 bg-canvas/50 text-muted"
-                    )}
+              {/* Issue column */}
+              <div className="flex-1 flex flex-col items-center relative min-w-0">
+                {/* Status above */}
+                <span
+                  className="text-[10px] font-bold mb-1 leading-none"
+                  style={{
+                    color:
+                      form.stage === "gagne" ? "#2C7D5C"
+                      : form.stage === "perdu" ? "#DC2626"
+                      : form.stage === "abandonne" ? "#F59E0B"
+                      : form.stage === "non_traitee" ? "#6B7280"
+                      : "#9CA3AF"
+                  }}
+                >
+                  {form.stage === "gagne" ? "Gagné"
+                    : form.stage === "perdu" ? "Perdu"
+                    : form.stage === "abandonne" ? "Abandonné"
+                    : form.stage === "non_traitee" ? "Non traitée"
+                    : "—"}
+                </span>
+
+                {/* Node & Dropdown trigger */}
+                <div className="relative">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                      className="relative z-10 flex items-center justify-center rounded-full cursor-pointer transition-all duration-300 focus:outline-none"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor:
+                          form.stage === "gagne" ? "#2C7D5C"
+                          : form.stage === "perdu" ? "#DC2626"
+                          : form.stage === "abandonne" ? "#F59E0B"
+                          : form.stage === "non_traitee" ? "#9CA3AF"
+                          : "#F3F4F6",
+                        border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
+                          ? "none"
+                          : "2px solid #D1D5DB",
+                        boxShadow:
+                          form.stage === "gagne" ? "0 0 0 3px rgba(44,125,92,0.18), 0 2px 6px rgba(44,125,92,0.22)"
+                          : form.stage === "perdu" ? "0 0 0 3px rgba(220,38,38,0.15), 0 2px 6px rgba(220,38,38,0.22)"
+                          : form.stage === "abandonne" ? "0 0 0 3px rgba(245,158,11,0.15), 0 2px 6px rgba(245,158,11,0.22)"
+                          : form.stage === "non_traitee" ? "0 0 0 3px rgba(156,163,175,0.15), 0 2px 6px rgba(156,163,175,0.22)"
+                          : "none",
+                      }}
+                    >
+                      {form.stage === "gagne" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : form.stage === "perdu" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : form.stage === "abandonne" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                        </svg>
+                      ) : form.stage === "non_traitee" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                      ) : (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 5v14M5 12h14" />
+                        </svg>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                      className="p-0.5 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
+                    >
+                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Floating dropdown menu */}
+                  {isIssueDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
+                        {[
+                          { key: "gagne", label: "Gagné", color: "#2C7D5C" },
+                          { key: "perdu", label: "Perdu", color: "#DC2626" },
+                          { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
+                          { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, stage: opt.key as any })
+                              setIsIssueDropdownOpen(false)
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+                            <span className="text-heading">{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-center mt-2 text-center">
+                  <span
+                    className="text-[10px] font-bold"
+                    style={{
+                      color:
+                        form.stage === "gagne" ? "#111827"
+                        : form.stage === "perdu" ? "#111827"
+                        : form.stage === "abandonne" ? "#111827"
+                        : form.stage === "non_traitee" ? "#111827"
+                        : "#6B7280"
+                    }}
                   >
-                    {form.stage === "gagne" ? (
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : form.stage === "perdu" ? (
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    ) : (
-                      <div className="w-2 h-2 rounded-full bg-muted/60" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Buttons and label */}
-                <div className="flex flex-col items-start md:items-center text-left md:text-center w-full md:w-auto">
-                  <span className={cn(
-                    "text-[9px] font-bold uppercase tracking-wider mb-1.5",
-                    form.stage === "gagne"
-                      ? "text-success"
-                      : form.stage === "perdu"
-                      ? "text-danger"
-                      : "text-muted"
-                  )}>
-                    {form.stage === "gagne" ? "Gagné" : form.stage === "perdu" ? "Perdu" : "Issue commerciale"}
+                    {form.stage === "gagne" ? "Gagné"
+                      : form.stage === "perdu" ? "Perdu"
+                      : form.stage === "abandonne" ? "Abandonné"
+                      : form.stage === "non_traitee" ? "Non traitée"
+                      : "Issue"}
                   </span>
-                  <div className="flex flex-row items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, stage: "gagne" })}
-                      className={cn(
-                        "py-1 px-2.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider transition-all duration-150 cursor-pointer select-none",
-                        form.stage === "gagne"
-                          ? "bg-success text-white border-success shadow-sm"
-                          : "border-border/60 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
-                      )}
-                    >
-                      WIN
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, stage: "perdu" })}
-                      className={cn(
-                        "py-1 px-2.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider transition-all duration-150 cursor-pointer select-none",
-                        form.stage === "perdu"
-                          ? "bg-danger text-white border-danger shadow-sm"
-                          : "border-border/60 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
-                      )}
-                    >
-                      LOST
-                    </button>
-                  </div>
+                  <span className="text-[9px] mt-0.5 text-muted">Terminé</span>
                 </div>
               </div>
-
             </div>
-          </div>
 
-          {/* Form Grid */}
+            {/* Mobile: vertical */}
+            <div className="flex md:hidden flex-col gap-0">
+              {SEQUENTIAL_STEPS.map((step, idx) => {
+                const isCompleted = currentIdx > idx
+                const isActive = currentIdx === idx
+                const isLast = idx === SEQUENTIAL_STEPS.length - 1
+                const subs = ["Identification", "Analyse besoin", "Envoi profils", "Rendez-vous"]
+
+                return (
+                  <div key={step.key} className="flex items-stretch gap-3">
+                    <div className="flex flex-col items-center shrink-0" style={{ width: 36 }}>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        className="flex items-center justify-center rounded-full cursor-pointer transition-all duration-300 shrink-0 z-10 focus:outline-none"
+                        style={{
+                          width: 36,
+                          height: 36,
+                          backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
+                          boxShadow: isActive ? "0 0 0 3px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 6px rgba(44,125,92,0.2)" : "none",
+                          transform: isActive ? "scale(1.08)" : "scale(1)",
+                        }}
+                      >
+                        {isActive ? (
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
+                            <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+                          </svg>
+                        ) : isCompleted ? (
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                      <div style={{
+                        width: 6,
+                        flex: 1,
+                        minHeight: 16,
+                        marginTop: 3,
+                        borderRadius: 3,
+                        backgroundColor: isCompleted
+                          ? "#2C7D5C"
+                          : isLast
+                            ? form.stage === "gagne" ? "#2C7D5C"
+                            : form.stage === "perdu" ? "#DC2626"
+                            : form.stage === "abandonne" ? "#F59E0B"
+                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            : "#E5E7EB"
+                          : "#E5E7EB",
+                        transition: "background-color 0.4s",
+                      }} />
+                    </div>
+                    <div className="flex flex-col justify-start py-1 pb-5">
+                      <span className="text-[10px] font-bold leading-none mb-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                        {isActive ? "En cours" : isCompleted ? "Terminé" : "À venir"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        className="text-[11px] font-bold text-left cursor-pointer focus:outline-none"
+                        style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
+                      >
+                        {step.label}
+                      </button>
+                      <span className="text-[10px] mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Outcome row */}
+              <div className="flex items-start gap-3 mt-1 relative">
+                <div className="flex flex-col items-center shrink-0" style={{ width: 36 }}>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                      className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer focus:outline-none"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        backgroundColor:
+                          form.stage === "gagne" ? "#2C7D5C"
+                          : form.stage === "perdu" ? "#DC2626"
+                          : form.stage === "abandonne" ? "#F59E0B"
+                          : form.stage === "non_traitee" ? "#9CA3AF"
+                          : "#F3F4F6",
+                        border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
+                          ? "none"
+                          : "2px solid #D1D5DB",
+                        boxShadow:
+                          form.stage === "gagne" ? "0 0 0 3px rgba(44,125,92,0.18)"
+                          : form.stage === "perdu" ? "0 0 0 3px rgba(220,38,38,0.15)"
+                          : form.stage === "abandonne" ? "0 0 0 3px rgba(245,158,11,0.15)"
+                          : form.stage === "non_traitee" ? "0 0 0 3px rgba(156,163,175,0.15)"
+                          : "none",
+                        transform: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee") ? "scale(1.08)" : "scale(1)",
+                      }}
+                    >
+                      {form.stage === "gagne" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : form.stage === "perdu" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      ) : form.stage === "abandonne" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                        </svg>
+                      ) : form.stage === "non_traitee" ? (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                      ) : (
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                      className="p-0.5 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
+                    >
+                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 flex flex-col justify-start py-1 pb-5 relative">
+                  <span
+                    className="text-[10px] font-bold leading-none mb-0.5"
+                    style={{
+                      color:
+                        form.stage === "gagne" ? "#2C7D5C"
+                        : form.stage === "perdu" ? "#DC2626"
+                        : form.stage === "abandonne" ? "#F59E0B"
+                        : form.stage === "non_traitee" ? "#6B7280"
+                        : "#9CA3AF"
+                    }}
+                  >
+                    {form.stage === "gagne" ? "Gagné"
+                      : form.stage === "perdu" ? "Perdu"
+                      : form.stage === "abandonne" ? "Abandonné"
+                      : form.stage === "non_traitee" ? "Non traitée"
+                      : "Issue"}
+                  </span>
+                  <span className="text-[11px] font-bold text-heading">
+                    Issue du processus
+                  </span>
+
+                  {/* Floating dropdown menu for mobile */}
+                  {isIssueDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
+                      <div className="absolute left-0 top-10 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
+                        {[
+                          { key: "gagne", label: "Gagné", color: "#2C7D5C" },
+                          { key: "perdu", label: "Perdu", color: "#DC2626" },
+                          { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
+                          { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, stage: opt.key as any })
+                              setIsIssueDropdownOpen(false)
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"
+                          >
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+                            <span className="text-heading">{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>          {/* Form Grid */}
           <div className="flex flex-col gap-4">
             {/* Title */}
             <div>

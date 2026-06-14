@@ -11,12 +11,10 @@ import {
 import { cn } from "@/lib/utils"
 
 export const STAGE_OPTIONS: Array<{ value: SalesStage; label: string }> = [
-  { value: "detection",        label: "Détection" },
+  { value: "qualification",    label: "Qualification" },
+  { value: "recherche_profil",  label: "Recherche profils" },
   { value: "cv_envoyes",       label: "CV envoyés" },
   { value: "entretien_client", label: "Entretien client" },
-  { value: "gagne",            label: "Gagné" },
-  { value: "perdu",            label: "Perdu" },
-  { value: "abandonne",        label: "Abandonné" },
 ]
 
 const PRIORITY_OPTIONS: Array<{ value: SalesPriority; label: string }> = [
@@ -41,7 +39,7 @@ interface FormState {
 const INITIAL_FORM: FormState = {
   title: "",
   account: null,
-  stage: "detection",
+  stage: "qualification",
   priority: "normale",
   conviction: 50,
   target_close_date: "",
@@ -54,7 +52,7 @@ const INITIAL_FORM: FormState = {
 function getInitialForm(defaultStage?: SalesStage): FormState {
   return {
     ...INITIAL_FORM,
-    stage: defaultStage ?? "detection",
+    stage: defaultStage ?? "qualification",
   }
 }
 
