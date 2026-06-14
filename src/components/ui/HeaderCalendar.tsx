@@ -41,6 +41,23 @@ export function HeaderCalendar() {
 
   const days = getWeekDays()
 
+  // Get ISO week number
+  const getWeekNumber = (d: Date) => {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+    const dayNum = date.getUTCDay() || 7
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return weekNo
+  }
+
+  // Format date as DD/MM
+  const formatDate = (d: Date) => {
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    return `${day}/${month}`
+  }
+
   // mock alerts/urgencies
   // E.g., Monday: Urgence (Red warning), Wednesday: Info (Amber clock), Friday: Success (Green check)
   const mockAlerts: Record<number, { type: "urgency" | "info" | "success"; label: string }[]> = {
@@ -52,15 +69,15 @@ export function HeaderCalendar() {
   const dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
   return (
-    <div ref={containerRef} className="relative select-none shrink-0">
+    <div ref={containerRef} className="relative w-9 h-9 select-none shrink-0 flex items-center justify-center">
       {/* Collapsed/Expanded Container */}
       <div
         onClick={() => !isOpen && setIsOpen(true)}
         className={cn(
-          "transition-all duration-500 ease-in-out border bg-surface text-body cursor-pointer overflow-hidden",
+          "transition-all duration-500 ease-in-out border bg-surface text-body cursor-pointer absolute right-0",
           isOpen
-            ? "absolute right-0 top-1/2 -translate-y-1/2 w-[480px] h-[86px] rounded-xl border-border shadow-lg p-3 cursor-default z-50 origin-right"
-            : "w-9 h-9 rounded-lg border-border hover:bg-surface-hover flex items-center justify-center z-10"
+            ? "top-1/2 -translate-y-1/2 w-[480px] h-[86px] rounded-xl border-border shadow-lg p-3 cursor-default z-50 origin-right overflow-visible"
+            : "top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg border-border hover:bg-surface-hover flex items-center justify-center z-10 overflow-hidden"
         )}
       >
         {!isOpen ? (
@@ -74,7 +91,7 @@ export function HeaderCalendar() {
             {/* Header of unfold calendar */}
             <div className="flex items-center justify-between mb-1.5 px-1">
               <span className="text-[9px] font-bold text-muted uppercase tracking-wider">
-                Semaine en cours
+                Semaine {getWeekNumber(new Date())} - du {formatDate(days[0])} au {formatDate(days[6])}
               </span>
               <button
                 type="button"
@@ -140,13 +157,15 @@ export function HeaderCalendar() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         )}
-
-                        {/* Tooltip on hover over the alert indicator */}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[9px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-50 select-none">
-                          {alert.label}
-                        </span>
                       </div>
                     ))}
+
+                    {/* Centered tooltip on day card hover */}
+                    {alerts.length > 0 && (
+                      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[9px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-50 select-none pointer-events-none">
+                        {alerts[0].label}
+                      </span>
+                    )}
                   </div>
                 )
               })}
@@ -154,8 +173,6 @@ export function HeaderCalendar() {
           </div>
         )}
       </div>
-      {/* Spacer to maintain layout when expanded (avoids collapsing elements shifts) */}
-      <div className="w-9 h-9" />
     </div>
   )
 }
