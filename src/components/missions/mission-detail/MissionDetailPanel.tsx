@@ -871,140 +871,92 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         <div className="md:col-span-4 flex flex-col gap-5">
           
           {/* Bloc 2: Conditions financières */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-warning/[0.02] to-transparent">
-            <div className="flex flex-col select-none mb-1">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-4 shadow-sm flex flex-col gap-3 relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent text-xs">
+            <div className="flex items-center justify-between select-none pb-1 border-b border-border/20">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Conditions financières
               </h3>
-              <div className="w-8 h-0.5 bg-cat-warning mt-1.5 rounded-full" />
+              {/* Pencil button */}
+              <button
+                onClick={openEditFinance}
+                className="p-1 text-muted hover:text-heading hover:bg-canvas rounded transition-all border border-transparent hover:border-border"
+                title="Modifier cette section"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
             </div>
 
-            {/* Pencil button */}
-            <button
-              onClick={openEditFinance}
-              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
-              title="Modifier cette section"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-
-            {/* 1. Tarifs et marge */}
-            <div className="flex flex-col gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Tarifs & Marge</h4>
+            <div className="flex flex-col gap-3">
               
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 bg-canvas/40 rounded-lg border border-border/50 flex flex-col gap-0.5">
+              {/* 1. Tarifs & Marge */}
+              <div className="grid grid-cols-3 gap-1 bg-canvas/30 p-2 rounded-lg border border-border/50">
+                <div className="flex flex-col">
                   <span className="text-[9px] font-semibold text-muted uppercase">TJ Vendu</span>
-                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.tjm)}</span>
-                  <span className="text-[9px] text-muted-foreground">Facturé au client</span>
+                  <span className="text-sm font-extrabold text-heading tracking-tight">{formatEuro(mission.tjm)}</span>
                 </div>
-                <div className="p-2.5 bg-canvas/40 rounded-lg border border-border/50 flex flex-col gap-0.5">
-                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne (CJM)</span>
-                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.cjm)}</span>
-                  <span className="text-[9px] text-muted-foreground">Coût journalier chargé</span>
+                <div className="flex flex-col border-l border-border/30 pl-2">
+                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne</span>
+                  <span className="text-sm font-bold text-muted-foreground tracking-tight">{formatEuro(mission.cjm)}</span>
                 </div>
-              </div>
-
-              <div className="p-2.5 bg-canvas/20 rounded-lg border border-border/40 flex items-center justify-between text-xs">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-semibold text-muted uppercase">Salaire estimé</span>
-                  <span className="font-bold text-heading">{formatEuro(estimatedSalary)}<span className="text-[10px] text-muted font-normal"> / mois brut</span></span>
-                </div>
-                <div className="flex flex-col items-end gap-0.5">
+                <div className="flex flex-col border-l border-border/30 pl-2">
                   <span className="text-[9px] font-semibold text-muted uppercase">Marge brute</span>
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
-                    (stats?.computedMarginPct ?? 0) >= 30 
-                      ? "bg-success/10 border-success/20 text-success" 
-                      : (stats?.computedMarginPct ?? 0) >= 20 
-                      ? "bg-warning/10 border-warning/20 text-warning" 
-                      : "bg-danger/10 border-danger/20 text-danger"
-                  }`}>
-                    {stats ? `${stats.computedMarginPct.toFixed(1)} %` : "—"}
+                  <span className={`text-sm font-extrabold tracking-tight ${(stats?.computedMarginPct ?? 0) >= 30 ? "text-success" : (stats?.computedMarginPct ?? 0) >= 20 ? "text-warning" : "text-danger"}`}>
+                    {stats ? `${stats.computedMarginPct.toFixed(0)}%` : "—"}
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* 2. Quantité */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Volume & Production</h4>
-              
-              <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-[11px] font-medium text-heading">
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    <span>Début : <strong>{formatDateFr(mission.start_date)}</strong></span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500/60" />
-                    <span>
-                      Fin : <strong>{mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</strong>
-                      {!mission.end_date && <span className="text-[9px] text-amber-500 font-semibold ml-1" title="Date de fin par défaut (31 déc. de l'année en cours)">[par défaut]</span>}
-                    </span>
-                  </div>
+              {/* 2. Salaire & Facturation mensuelle */}
+              <div className="grid grid-cols-2 gap-3 text-[11px] px-1">
+                <div className="flex justify-between border-b border-border/20 pb-1">
+                  <span className="text-muted">Salaire est. :</span>
+                  <span className="font-bold text-heading">{formatEuro(estimatedSalary)}<span className="text-[9px] font-normal text-muted">/m</span></span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-semibold text-muted uppercase">Jours ouvrés</span>
-                    <span className="text-sm font-bold text-heading">{workingDays} j</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-semibold text-muted uppercase">Production (85%)</span>
-                    <span className="text-sm font-bold text-primary">{weightedDays} j</span>
-                  </div>
+                <div className="flex justify-between border-b border-border/20 pb-1">
+                  <span className="text-muted">Moy. Facture :</span>
+                  <span className="font-bold text-heading">{formatEuro(avgBilledMonthly)}<span className="text-[9px] font-normal text-muted">/m</span></span>
                 </div>
               </div>
-            </div>
 
-            {/* 3. Gain */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Performance & Gains</h4>
-              
-              <div className="grid grid-cols-1 gap-2">
-                <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-semibold text-muted uppercase">CA Annuel Visé (ACV)</span>
-                    <span className="text-sm font-bold text-heading">{formatEuro(acv)}</span>
-                  </div>
-                  <span className="text-[9px] text-muted bg-border/40 px-1.5 py-0.5 rounded font-medium select-none">Théorique</span>
+              {/* 3. Dates & Jours */}
+              <div className="flex flex-col gap-1.5 bg-canvas/10 p-2 rounded-lg border border-border/40">
+                <div className="flex justify-between text-[10px] text-muted font-medium px-0.5">
+                  <span>{formatDateFr(mission.start_date)} — {mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</span>
+                  {!mission.end_date && <span className="text-[8px] text-amber-600 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded uppercase">Par défaut</span>}
                 </div>
-
-                <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-[9px] font-semibold text-muted uppercase">Produit YTD (Réel)</span>
-                      <span className="text-base font-extrabold text-emerald-500 tracking-tight">{formatEuro(ytdRevenue)}</span>
-                    </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      <span className="text-[9px] font-semibold text-muted uppercase">Activité réelle</span>
-                      <span className="text-[11px] font-bold text-heading">{realActivityRate.toFixed(1)} %</span>
-                    </div>
-                  </div>
-                  <p className="text-[9px] text-muted leading-normal border-t border-border/30 pt-1">
-                    Prestation réelle déclarée en CRA (absences/congés déduits).
-                  </p>
+                <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
+                  <span className="text-muted">Jours ouvrés : <strong className="text-heading font-bold">{workingDays} j</strong></span>
+                  <span className="text-muted">Production (85%) : <strong className="text-primary font-bold">{weightedDays} j</strong></span>
                 </div>
               </div>
-            </div>
 
-            {/* 4. Facturation */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Cycle de Facturation</h4>
-              
-              <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2 text-xs">
-                  <span className="text-muted shrink-0 select-none">Règlement :</span>
-                  <span className="font-semibold text-heading text-right">{billingTerms}</span>
+              {/* 4. ACV & YTD */}
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center text-[11px] px-1">
+                  <span className="text-muted">CA Annuel Visé (ACV) :</span>
+                  <span className="font-bold text-heading">{formatEuro(acv)}</span>
                 </div>
                 
-                <div className="flex items-center justify-between gap-2 text-xs pt-1.5 border-t border-border/30">
-                  <span className="text-muted select-none">Moyenne facturée / mois :</span>
-                  <span className="font-extrabold text-heading">{formatEuro(avgBilledMonthly)}</span>
+                <div className="p-2 bg-emerald-500/[0.04] border border-emerald-500/20 rounded-lg flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-semibold text-muted uppercase">Produit YTD (Réel)</span>
+                    <span className="text-sm font-extrabold text-emerald-600 tracking-tight">{formatEuro(ytdRevenue)}</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[9px] font-semibold text-muted uppercase">Taux réel</span>
+                    <span className="text-xs font-bold text-heading">{realActivityRate.toFixed(0)} %</span>
+                  </div>
                 </div>
               </div>
+
+              {/* 5. Conditions de Facturation */}
+              <div className="text-[10px] text-muted border-t border-border/30 pt-2 flex justify-between px-1">
+                <span>Règlement :</span>
+                <span className="font-bold text-heading truncate max-w-[170px]" title={billingTerms}>{billingTerms}</span>
+              </div>
+
             </div>
           </div>
 
