@@ -59,6 +59,15 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | … | 015_offer_catalog (référentiel offres) |
 | 016 | 016_collaborator_compensation (RH/coût confidentiel + `is_workspace_admin()`) |
 | 017 | 017_rename_taci_to_cjm (correction sémantique TACI → CJM) |
+| 018a | 018a_seed_collaborators_entry_dates (spread entry_date 2018→2025) |
+| 018b | 018_job_profiles_referentiel (référentiel profils recrutement + embedding) |
+| 019a | 019a_seed_person_skills (75 compétences / 15 personnes, inference_ia) |
+| 019b | 019_pgvector_pricing_grid_seed (grille tarifaire + pgvector) |
+| 020 | 020_enrich_mission_activity_reports (business_days / pto_days / sick_days / activity_rate_percent GENERATED) |
+| 021 | 021_seed_mission_activity_reports (80 CRA, 16 collab × 5 mois, Jan→Mai 2026) |
+| 022 | 022_seed_mission_activity_reports_fixed (correctif post-seed, no-op local) |
+| 023 | 023_missions_billing_description (billing_condition + description sur missions) |
+| 024 | 024_pnl_monthly (P&L mensuel consolidé + seed 12 mois) |
 
 ### Architecture multi-tenant (ACTIF)
 
@@ -74,7 +83,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 28 tables + 2 vues
+### Schéma public — 35 tables + 2 vues
+> ⚠️ Migrations en double numérotation : les slots 018/019 sont occupés deux fois (seeds + référentiels). Supabase utilise le timestamp comme clé primaire, pas le nom. Se référer à la liste complète ci-dessus.
 
 #### Domaine Core
 | Table | Rows | Description |
@@ -126,6 +136,17 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 `opportunities.opportunity_type` : `regie` · `forfait` · `centre_de_service` · `conseil` · `audit` · `staffing` · `extension` · `renouvellement` · `upsell` · `cross_sell`
 
+#### Domaine Intelligence sectorielle
+| Table | Rows | Description |
+|---|---|---|
+| `sector_intelligence` | 0 | Référentiel sectoriel (name, slug, attractiveness_score, market_size_eur_bn, practices_fit JSONB, playbook JSONB) — UNIQUE(workspace_id, slug) |
+| `sector_news` | 0 | Actualités par secteur (published_at, relevance_score, is_trigger_event, tags[]) |
+| `sector_events` | 0 | Événements commerciaux (event_type, event_date, commercial_opportunity) |
+| `sector_pain_points` | 0 | Points de douleur consolidés (frequency_count, source_company_ids uuid[]) |
+| `sector_regulatory_items` | 0 | Réglementations (urgency, deadline_date, is_commercial_window) |
+
+⚠️ **RLS sector tables** : policy unique `workspace_isolation FOR ALL` (pas le motif 4-policies standard). Toutes FK vers `sector_intelligence.id`. Triggers `trg_*_updated_at` uniquement (pas de log_audit).
+
 #### Domaine Intelligence commerciale (ADR-0007 / ADR-0008)
 | Table | Rows | Description |
 |---|---|---|
@@ -143,8 +164,13 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 | Table | Rows | Description |
 |---|---|---|
 | `missions` | 16 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
-| `mission_activity_reports` | 32 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
+| `mission_activity_reports` | 80 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
 | `collaborator_compensation` | 16 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
+| `pnl_monthly` | 12 | P&L mensuel consolidé — inputs stockés, dérivés GENERATED ; `source` ∈ `import/cra_derived/budget/forecast` |
+
+**`pnl_monthly`** — colonnes GENERATED : `gross_margin_value`, `gross_margin_percent`, `operating_profit_value`, `operating_profit_percent`. Ne jamais recalculer côté front. Seed fictif couvre 2025-06 → 2026-05. UNIQUE(workspace_id, period_month).
+
+> Chemin d'évolution : quand les CRA couvriront 12 mois complets, les lignes récentes pourront être remplacées par `source='cra_derived'` via une vue ou un job n8n.
 
 **`missions.gross_margin_pct`** = `ROUND((tjm - cjm) / NULLIF(tjm, 0) * 100, 2)` — colonne générée, ne jamais recalculer côté front.
 
@@ -163,8 +189,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 ### Triggers actifs
 | Trigger | Tables |
 |---|---|
-| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports, collaborator_compensation |
-| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, collaborator_compensation |
+| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports, collaborator_compensation, **pnl_monthly** |
+| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, collaborator_compensation, **pnl_monthly** |
 
 > ⚠️ `missions` et `mission_activity_reports` n'ont **pas** de trigger `log_audit` actuellement.
 
@@ -262,6 +288,7 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - Ne jamais recalculer la marge côté front — lire `missions.gross_margin_pct` directement
 - Les snapshots financiers sont dans `mission_activity_reports` (tjm_snapshot, cjm_snapshot)
 - ⚠️ `cjm` = coût (ex-`taci`). Le `taci` désigne désormais UNIQUEMENT le taux d'activité (`collaborator_compensation.taci`)
+- **Page P&L** : lire `pnl_monthly` (ORDER BY period_month DESC). Colonnes GENERATED → ne pas recalculer. `source='import'` = seed fictif, `source='cra_derived'` = donnée réelle future
 
 ### Debug / correction
 1. Lire les fichiers concernés AVANT de proposer quoi que ce soit
@@ -283,7 +310,9 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 
 ### Dernière session
 **Date :** 2026-06-14
-**Travail effectué — RH/coût collaborateur + correction sémantique TACI (migrations 016–017) :** audit DB (base saine, 28 tables, zéro table superflue, party model + colonnes générées préservés). **Constat clé** : `collaborators` n'a jamais porté de financier ; le « coût » vivait sur `missions.taci` (~434 €) sous RLS workspace permissive. La reco Gemini (`collaborator_contracts` + RLS sur table `roles` inexistante + injection en `metadata` + shadcn charts) a été **rejetée dans son exécution** (contradiction confidentialité, stack hallucinée, table `roles` absente) mais **validée dans l'intuition** (isoler le coût RH). **Migration 016** : table `collaborator_compensation` **datée** (effective-dated, 1 ligne en vigueur/collab) avec `gross_annual`, `charges_rate`, `working_days_per_year`, **`taci` = vrai taux d'activité (0–1)**, **`cjm` GÉNÉRÉ** = `gross_annual*(1+charges_rate)/(working_days_per_year*taci)` ; helper **`is_workspace_admin()`** (security definer) ; **RLS confidentielle** owner/admin (4 policies `AND is_workspace_admin()`) ; triggers `set_updated_at` + `log_audit`. **Seed fictif** rétro-calculé depuis `metadata.test_dataset.taci_reference` (le CJM généré retombe exactement sur les coûts validés : 442/434/360… ; salaires réalistes par séniorité : junior ~31k, senior ~63k, expert ~100k) ; purge de `taci_reference`/`margin_pct_reference` hors de `metadata` (confidentialité). **Migration 017 — correction sémantique majeure** : l'ex-`taci` (un COÛT, pas un taux) renommé **`cjm`** partout. `missions.taci → missions.cjm` (colonne générée `gross_margin_pct` reconstruite sur `cjm`, marges préservées : 32/38/40 %), `mission_activity_reports.taci_snapshot → cjm_snapshot`. **Front** : 9 fichiers `src/` migrés `taci → cjm` (types, `update-mission`, `get-mission-detail`, `get-active-missions-planning`, planning types/tooltip, `MissionDetailPanel`, `CompanyIdentityDrawer`, nav) + labels (« CJ Interne (CJM) », « TJM / CJM ») ; `database.ts` régénéré (collaborator_compensation + is_workspace_admin inclus). Vérifié : seed cohérent + marges intactes en base. **Reste à faire** : brancher `MissionDetailPanel.estimatedSalary` sur `collaborator_compensation.gross_annual` (RLS) au lieu de l'heuristique CJM×218×0.65 ; hygiène d'enum `seniority` (accents/langues mélangés) ; UI RH desktop/mobile (tableau maison + barres pur Tailwind, ZÉRO lib de chart) ; spread réaliste des `entry_date` (tous à 2026-01-01 actuellement).
+**Travail effectué — P&L mensuel (migration 024) + réconciliation drift migrations :** audit complet de la base (34 tables live, 27 migrations, 6 tables non documentées : `job_profiles`, `sector_intelligence`, `sector_news`, `sector_events`, `sector_pain_points`, `sector_regulatory_items`). Aucune table P&L existante. Cross-check dataset fictif CSV vs CRA réels (2026-01→05) : ordres de grandeur cohérents (delta CA < 10% sur 4 mois, écart mai justifié par CRA incomplets). Écart de marge CSV(31–34%) vs CRA(36.4%) expliqué : CSV inclut coûts sous-traitants absents du schéma CRA. **Migration 024** : table `pnl_monthly` — inputs stockés (revenue, salaires, sous-traitants, charges structure), colonnes GENERATED (`gross_margin_value/percent`, `operating_profit_value/percent`) ; UNIQUE(workspace_id, period_month) ; triggers `set_updated_at` + `log_audit` ; RLS standard workspace ; colonne `source` ∈ `import/cra_derived/budget/forecast`. Seed idempotent de 12 mois (2025-06 → 2026-05). Vérifié : 12 lignes, colonnes dérivées exactes. **Réconciliation drift** : 7 fichiers locaux créés par rétro-ingénierie du remote (010b_sector_intelligence ← 5 tables DDL ; 018a_seed_collaborators_entry_dates ← 16 UPDATE ; 019a_seed_person_skills ← 75 lignes ; 020 ← 4 colonnes MAR dont GENERATED activity_rate_percent ; 021 ← 80 CRA complets 16×5 mois ; 022 ← no-op correctif ; 023 ← billing_condition + description sur missions). Docuementé : 5 tables sectorielles (sector_intelligence + 4 satellites) avec RLS `workspace_isolation FOR ALL` (≠ motif standard). Numérotation 018/019 double : slots occupés deux fois (seeds remote antérieurs aux référentiels locaux) — Supabase utilise le timestamp comme clé primaire, sans collision.
+
+**Session précédente (2026-06-14) — RH/coût collaborateur + correction sémantique TACI (migrations 016–017) :** audit DB (base saine, 28 tables, zéro table superflue, party model + colonnes générées préservés). **Constat clé** : `collaborators` n'a jamais porté de financier ; le « coût » vivait sur `missions.taci` (~434 €) sous RLS workspace permissive. La reco Gemini (`collaborator_contracts` + RLS sur table `roles` inexistante + injection en `metadata` + shadcn charts) a été **rejetée dans son exécution** (contradiction confidentialité, stack hallucinée, table `roles` absente) mais **validée dans l'intuition** (isoler le coût RH). **Migration 016** : table `collaborator_compensation` **datée** (effective-dated, 1 ligne en vigueur/collab) avec `gross_annual`, `charges_rate`, `working_days_per_year`, **`taci` = vrai taux d'activité (0–1)**, **`cjm` GÉNÉRÉ** = `gross_annual*(1+charges_rate)/(working_days_per_year*taci)` ; helper **`is_workspace_admin()`** (security definer) ; **RLS confidentielle** owner/admin (4 policies `AND is_workspace_admin()`) ; triggers `set_updated_at` + `log_audit`. **Seed fictif** rétro-calculé depuis `metadata.test_dataset.taci_reference` (le CJM généré retombe exactement sur les coûts validés : 442/434/360… ; salaires réalistes par séniorité : junior ~31k, senior ~63k, expert ~100k) ; purge de `taci_reference`/`margin_pct_reference` hors de `metadata` (confidentialité). **Migration 017 — correction sémantique majeure** : l'ex-`taci` (un COÛT, pas un taux) renommé **`cjm`** partout. `missions.taci → missions.cjm` (colonne générée `gross_margin_pct` reconstruite sur `cjm`, marges préservées : 32/38/40 %), `mission_activity_reports.taci_snapshot → cjm_snapshot`. **Front** : 9 fichiers `src/` migrés `taci → cjm` (types, `update-mission`, `get-mission-detail`, `get-active-missions-planning`, planning types/tooltip, `MissionDetailPanel`, `CompanyIdentityDrawer`, nav) + labels (« CJ Interne (CJM) », « TJM / CJM ») ; `database.ts` régénéré (collaborator_compensation + is_workspace_admin inclus). Vérifié : seed cohérent + marges intactes en base. **Reste à faire** : brancher `MissionDetailPanel.estimatedSalary` sur `collaborator_compensation.gross_annual` (RLS) au lieu de l'heuristique CJM×218×0.65 ; hygiène d'enum `seniority` (accents/langues mélangés) ; UI RH desktop/mobile (tableau maison + barres pur Tailwind, ZÉRO lib de chart) ; spread réaliste des `entry_date` (tous à 2026-01-01 actuellement).
 
 **Session précédente (2026-06-14) — Diagnostic process (Phase 3) dans le Cockpit Intelligence :** intégration de 3 études de diagnostic process (Robertet, DomusVi, Experis) produites par LETHIA AI hors KREDO. **Architecture duale** : `content_json` complet et fidèle au PDF (source unique pour les modules futurs) + `metadata.pdf_storage_path` pour affichage via `DocumentViewerShell` (iframe). **Stockage** : bucket privé Supabase Storage `ai_intelligence_process_diagnostics`. **Migrations 011–013** : pattern lookup-only (ILIKE, RAISE EXCEPTION si non trouvé), pas d'INSERT dans `companies` ; INSERT dans `ai_intelligence_runs` (run_type `process_diagnostic_import`) puis `ai_intelligence_results` (phase 3). **Migration 014** : Storage policy `authenticated_read_process_diagnostics` sur `storage.objects` — nécessaire pour que `createSignedUrl` fonctionne avec la clé anon + session user (sans cette policy, signed URL échoue silencieusement). **Front** : `ClientIntelligenceDesktopView` — 3e entrée dans `ANALYSIS_CATALOG` (`process`) + `ProcessDiagnosticContent` (rendu JSON fallback) + affichage `DocumentViewerShell` si `diagnosticPdfUrl` présent. Mobile : JSON fallback systématique (pas d'iframe sur mobile, ADR-0006). `intelligence-data.ts` : `parseAnalyseDiagnostic`, `diagnosticPdfUrl` via signed URL 1h, log erreur Storage en cas d'échec.
 

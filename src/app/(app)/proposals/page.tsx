@@ -1,16 +1,9 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { proposalDashboardConfig } from "@/lib/dashboard/configs/proposal-dashboard.config"
-import { mockProposalDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { SyntheseProposalSection } from "@/components/proposals"
 
-export default async function ProposalsPage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={proposalDashboardConfig}
-      data={mockProposalDashboardData}
-    />
-  )
+// Onglet Proposal Intelligence — Tour de contrôle et cockpit de propositions
+// (CA pondéré du pipe, temps de cycle de rédaction, audit qualité IA, goulots de vente).
+export default function ProposalsPage() {
+  return <SyntheseProposalSection />
 }

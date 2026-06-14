@@ -1,16 +1,9 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { cockpitDashboardConfig } from "@/lib/dashboard/configs/cockpit-dashboard.config"
-import { mockCockpitDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { SyntheseCockpitSection } from "@/components/cockpit"
 
-export default async function CockpitPage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={cockpitDashboardConfig}
-      data={mockCockpitDashboardData}
-    />
-  )
+// Onglet Cockpit — Tour de contrôle et cockpit de pilotage à 360° du centre de profit
+// (CA du pipe, marge projet moyenne, bench global, précision du matching IA).
+export default function CockpitPage() {
+  return <SyntheseCockpitSection />
 }
