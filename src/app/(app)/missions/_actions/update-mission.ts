@@ -27,7 +27,7 @@ export async function updateMission(input: UpdateMissionInput) {
     // 1. Récupération de la mission actuelle pour fusionner les metadata
     const { data: mission, error: getError } = await supabase
       .from("missions")
-      .select("tjm, taci, metadata")
+      .select("tjm, cjm, metadata")
       .eq("id", input.id)
       .maybeSingle()
 
@@ -56,13 +56,13 @@ export async function updateMission(input: UpdateMissionInput) {
     if (input.title !== undefined) updatePayload.title = input.title
     if (input.tjm !== undefined) updatePayload.tjm = input.tjm
     
-    // gross_margin_pct is a GENERATED ALWAYS Stored column in PostgreSQL. We calculate and update taci instead.
+    // gross_margin_pct is a GENERATED ALWAYS Stored column in PostgreSQL. We calculate and update cjm instead.
     if (input.gross_margin_pct !== undefined) {
       const activeTjm = input.tjm !== undefined ? input.tjm : ((mission as any).tjm || 0)
       if (input.gross_margin_pct === null) {
-        updatePayload.taci = activeTjm
+        updatePayload.cjm = activeTjm
       } else {
-        updatePayload.taci = Math.round(activeTjm * (1 - input.gross_margin_pct / 100))
+        updatePayload.cjm = Math.round(activeTjm * (1 - input.gross_margin_pct / 100))
       }
     }
 

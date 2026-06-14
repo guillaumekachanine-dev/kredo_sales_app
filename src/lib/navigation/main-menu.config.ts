@@ -180,7 +180,7 @@ export const mainMenuItems: MainMenuItem[] = [
           { label: "P&L",                 href: "/finance/pnl",                  comingSoon: true, disabled: true },
           { label: "CA & Forecast",       href: "/finance/revenue-forecast",     comingSoon: true, disabled: true },
           { label: "Marge & Rentabilité", href: "/finance/margin-profitability", comingSoon: true, disabled: true },
-          { label: "TJM / TACI",          href: "/finance/rates",                comingSoon: true, disabled: true },
+          { label: "TJM / CJM",          href: "/finance/rates",                comingSoon: true, disabled: true },
           { label: "Facturation",         href: "/finance/invoicing",            comingSoon: true, disabled: true },
           { label: "Objectifs & Budget",  href: "/finance/targets-budget",       comingSoon: true, disabled: true },
           { label: "Alertes financières", href: "/finance/alerts",               comingSoon: true, disabled: true },

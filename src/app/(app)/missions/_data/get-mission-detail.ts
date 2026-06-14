@@ -13,7 +13,7 @@ export interface MissionDetail {
   practice: string | null
   seniority: string | null
   tjm: number
-  taci: number
+  cjm: number
   gross_margin_pct: number | null
   metadata: Json
   opportunity_id: string | null
@@ -80,6 +80,7 @@ export type MissionDetailResult =
           fullName: string
           role: string | null
         }>
+        grossAnnual: number | null
       }
       error?: never
     }
@@ -139,7 +140,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         practice,
         seniority,
         tjm,
-        taci,
+        cjm,
         gross_margin_pct,
         metadata,
         opportunity_id,
@@ -440,6 +441,18 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       return []
     }
 
+    // 7. Rémunération du collaborateur (null si non admin — RLS confidentielle)
+    const fetchCompensation = async (): Promise<number | null> => {
+      if (!mission.collaborator_id) return null
+      const { data: comp } = await supabase
+        .from("collaborator_compensation")
+        .select("gross_annual")
+        .eq("collaborator_id", mission.collaborator_id)
+        .is("effective_to", null)
+        .maybeSingle()
+      return comp?.gross_annual ?? null
+    }
+
     const fetchCompanyContacts = async (): Promise<Array<{ id: string; fullName: string; role: string | null }>> => {
       if (!mission.company_id) return []
       const { data: companyContacts, error: compContactsError } = await supabase
@@ -471,13 +484,14 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       })
     }
 
-    const [company, collaboratorData, contacts, activityReports, interactions, companyContacts] = await Promise.all([
+    const [company, collaboratorData, contacts, activityReports, interactions, companyContacts, grossAnnual] = await Promise.all([
       fetchCompany(),
       fetchCollaborator(),
       fetchContacts(),
       fetchActivityReports(),
       fetchInteractions(),
       fetchCompanyContacts(),
+      fetchCompensation(),
     ])
 
     return {
@@ -489,6 +503,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         activityReports,
         interactions,
         companyContacts,
+        grossAnnual,
       },
     }
   } catch (err) {

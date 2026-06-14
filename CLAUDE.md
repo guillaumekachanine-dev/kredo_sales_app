@@ -42,7 +42,7 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 **Projet ID :** `jvzgmhvwirsbdkjpmvla`
 **URL :** `https://jvzgmhvwirsbdkjpmvla.supabase.co`
 
-### Migrations appliquées (11)
+### Migrations appliquées (14)
 | Version | Nom |
 |---|---|
 | 20260608230043 | 001_module_opportunite |
@@ -56,6 +56,9 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | 20260609235801 | add_test_consultant_missions_cra |
 | 20260610000318 | seed_test_open_opportunities_mapped_companies |
 | 20260611 | 006_ai_intelligence (ADR-0007) |
+| … | 015_offer_catalog (référentiel offres) |
+| 016 | 016_collaborator_compensation (RH/coût confidentiel + `is_workspace_admin()`) |
+| 017 | 017_rename_taci_to_cjm (correction sémantique TACI → CJM) |
 
 ### Architecture multi-tenant (ACTIF)
 
@@ -66,11 +69,12 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 **Fonctions Postgres (public) :**
 - `current_workspace_id()` — security definer, lit `profiles` → renvoie le workspace de l'user connecté
+- `is_workspace_admin()` — security definer, TRUE si l'user courant est `owner`/`admin` du workspace ; utilisé par les RLS des données confidentielles (rémunération)
 - `handle_new_user()` — trigger auth, crée le profil à l'inscription
 - `log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 27 tables + 2 vues
+### Schéma public — 28 tables + 2 vues
 
 #### Domaine Core
 | Table | Rows | Description |
@@ -88,7 +92,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 | `companies` | 96 | Comptes (lifecycle_status, priority, tags[], metadata JSONB) |
 | `persons` | 659 | Party model — `full_name` est une **colonne générée** (TRIM first+last) |
 | `contacts` | 643 | Person dans son rôle chez un compte (relationship_role, decision_power) |
-| `collaborators` | 16 | Person dans son rôle consultant interne (status, tjm, taci via missions) |
+| `collaborators` | 16 | Person dans son rôle consultant interne (status ; rémunération/coût → `collaborator_compensation`) |
 | `candidates` | 0 | Person dans son rôle recrutement (status, expected_daily_rate) |
 | `company_relationships` | 0 | Arêtes organigramme client (reporte_a, influence, collabore_avec) |
 | `skills` | 20 | Référentiel contrôlé (name canonique + aliases[], category) |
@@ -138,10 +142,19 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 #### Domaine Delivery / Finance
 | Table | Rows | Description |
 |---|---|---|
-| `missions` | 16 | Contrats actifs (tjm, taci, gross_margin_pct GÉNÉRÉ) |
-| `mission_activity_reports` | 32 | CRA par période (billable_days, tjm_snapshot, taci_snapshot) |
+| `missions` | 16 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
+| `mission_activity_reports` | 32 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
+| `collaborator_compensation` | 16 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
 
-**`missions.gross_margin_pct`** = `ROUND((tjm - taci) / NULLIF(tjm, 0) * 100, 2)` — colonne générée, ne jamais recalculer côté front.
+**`missions.gross_margin_pct`** = `ROUND((tjm - cjm) / NULLIF(tjm, 0) * 100, 2)` — colonne générée, ne jamais recalculer côté front.
+
+> ⚠️ **Vocabulaire finance (corrigé) — ne plus jamais confondre :**
+> - **TJM** = Taux Journalier Moyen (vendu au client).
+> - **CJM** = Coût Journalier Moyen (coût interne chargé). C'est l'ex-`taci` renommé partout (migration 017).
+> - **TACI** = **Taux d'Activité Congés Inclus** — un **TAUX (0–1)**, PAS un coût. Porté par `collaborator_compensation.taci`, il pondère les jours ouvrés → jours facturables → alimente le CJM.
+> - **Marge brute** = (TJM − CJM) / TJM.
+
+**`collaborator_compensation`** (effective-dated) : `gross_annual`, `charges_rate` (déf. 0.45), `working_days_per_year` (déf. 218), `taci` (taux 0–1), `cjm` **GÉNÉRÉ** = `round(gross_annual*(1+charges_rate)/(working_days_per_year*taci), 2)`. Une seule ligne en vigueur (`effective_to IS NULL`) par collaborateur. **RLS confidentielle** : `workspace_id = current_workspace_id() AND is_workspace_admin()` (≠ motif uniforme).
 
 `missions.status` : `active` · `paused` · `ended` · `cancelled`
 
@@ -150,8 +163,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 ### Triggers actifs
 | Trigger | Tables |
 |---|---|
-| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports |
-| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates |
+| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports, collaborator_compensation |
+| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, collaborator_compensation |
 
 > ⚠️ `missions` et `mission_activity_reports` n'ont **pas** de trigger `log_audit` actuellement.
 
@@ -159,6 +172,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 Toutes les tables sauf `workspaces` et `profiles` : 4 policies (SELECT/INSERT/UPDATE/DELETE).
 - SELECT/UPDATE/DELETE : `workspace_id = current_workspace_id()`
 - INSERT : sans check (le DEFAULT `current_workspace_id()` garantit l'isolation)
+
+> 🔒 **Exception confidentielle :** `collaborator_compensation` ajoute `AND is_workspace_admin()` sur les 4 policies (rémunération réservée owner/admin).
 
 ---
 
@@ -243,9 +258,10 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 5. Mettre à jour la section **État de la base** dans ce fichier
 
 ### Nouveau composant financier
-- `tjm`, `taci`, `gross_margin_pct` viennent toujours de la base (colonnes générées)
+- `tjm`, `cjm`, `gross_margin_pct` viennent toujours de la base (`gross_margin_pct` et `cjm` de `collaborator_compensation` sont générés)
 - Ne jamais recalculer la marge côté front — lire `missions.gross_margin_pct` directement
-- Les snapshots financiers sont dans `mission_activity_reports` (tjm_snapshot, taci_snapshot)
+- Les snapshots financiers sont dans `mission_activity_reports` (tjm_snapshot, cjm_snapshot)
+- ⚠️ `cjm` = coût (ex-`taci`). Le `taci` désigne désormais UNIQUEMENT le taux d'activité (`collaborator_compensation.taci`)
 
 ### Debug / correction
 1. Lire les fichiers concernés AVANT de proposer quoi que ce soit
@@ -267,7 +283,9 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 
 ### Dernière session
 **Date :** 2026-06-14
-**Travail effectué — Diagnostic process (Phase 3) dans le Cockpit Intelligence :** intégration de 3 études de diagnostic process (Robertet, DomusVi, Experis) produites par LETHIA AI hors KREDO. **Architecture duale** : `content_json` complet et fidèle au PDF (source unique pour les modules futurs) + `metadata.pdf_storage_path` pour affichage via `DocumentViewerShell` (iframe). **Stockage** : bucket privé Supabase Storage `ai_intelligence_process_diagnostics`. **Migrations 011–013** : pattern lookup-only (ILIKE, RAISE EXCEPTION si non trouvé), pas d'INSERT dans `companies` ; INSERT dans `ai_intelligence_runs` (run_type `process_diagnostic_import`) puis `ai_intelligence_results` (phase 3). **Migration 014** : Storage policy `authenticated_read_process_diagnostics` sur `storage.objects` — nécessaire pour que `createSignedUrl` fonctionne avec la clé anon + session user (sans cette policy, signed URL échoue silencieusement). **Front** : `ClientIntelligenceDesktopView` — 3e entrée dans `ANALYSIS_CATALOG` (`process`) + `ProcessDiagnosticContent` (rendu JSON fallback) + affichage `DocumentViewerShell` si `diagnosticPdfUrl` présent. Mobile : JSON fallback systématique (pas d'iframe sur mobile, ADR-0006). `intelligence-data.ts` : `parseAnalyseDiagnostic`, `diagnosticPdfUrl` via signed URL 1h, log erreur Storage en cas d'échec.
+**Travail effectué — RH/coût collaborateur + correction sémantique TACI (migrations 016–017) :** audit DB (base saine, 28 tables, zéro table superflue, party model + colonnes générées préservés). **Constat clé** : `collaborators` n'a jamais porté de financier ; le « coût » vivait sur `missions.taci` (~434 €) sous RLS workspace permissive. La reco Gemini (`collaborator_contracts` + RLS sur table `roles` inexistante + injection en `metadata` + shadcn charts) a été **rejetée dans son exécution** (contradiction confidentialité, stack hallucinée, table `roles` absente) mais **validée dans l'intuition** (isoler le coût RH). **Migration 016** : table `collaborator_compensation` **datée** (effective-dated, 1 ligne en vigueur/collab) avec `gross_annual`, `charges_rate`, `working_days_per_year`, **`taci` = vrai taux d'activité (0–1)**, **`cjm` GÉNÉRÉ** = `gross_annual*(1+charges_rate)/(working_days_per_year*taci)` ; helper **`is_workspace_admin()`** (security definer) ; **RLS confidentielle** owner/admin (4 policies `AND is_workspace_admin()`) ; triggers `set_updated_at` + `log_audit`. **Seed fictif** rétro-calculé depuis `metadata.test_dataset.taci_reference` (le CJM généré retombe exactement sur les coûts validés : 442/434/360… ; salaires réalistes par séniorité : junior ~31k, senior ~63k, expert ~100k) ; purge de `taci_reference`/`margin_pct_reference` hors de `metadata` (confidentialité). **Migration 017 — correction sémantique majeure** : l'ex-`taci` (un COÛT, pas un taux) renommé **`cjm`** partout. `missions.taci → missions.cjm` (colonne générée `gross_margin_pct` reconstruite sur `cjm`, marges préservées : 32/38/40 %), `mission_activity_reports.taci_snapshot → cjm_snapshot`. **Front** : 9 fichiers `src/` migrés `taci → cjm` (types, `update-mission`, `get-mission-detail`, `get-active-missions-planning`, planning types/tooltip, `MissionDetailPanel`, `CompanyIdentityDrawer`, nav) + labels (« CJ Interne (CJM) », « TJM / CJM ») ; `database.ts` régénéré (collaborator_compensation + is_workspace_admin inclus). Vérifié : seed cohérent + marges intactes en base. **Reste à faire** : brancher `MissionDetailPanel.estimatedSalary` sur `collaborator_compensation.gross_annual` (RLS) au lieu de l'heuristique CJM×218×0.65 ; hygiène d'enum `seniority` (accents/langues mélangés) ; UI RH desktop/mobile (tableau maison + barres pur Tailwind, ZÉRO lib de chart) ; spread réaliste des `entry_date` (tous à 2026-01-01 actuellement).
+
+**Session précédente (2026-06-14) — Diagnostic process (Phase 3) dans le Cockpit Intelligence :** intégration de 3 études de diagnostic process (Robertet, DomusVi, Experis) produites par LETHIA AI hors KREDO. **Architecture duale** : `content_json` complet et fidèle au PDF (source unique pour les modules futurs) + `metadata.pdf_storage_path` pour affichage via `DocumentViewerShell` (iframe). **Stockage** : bucket privé Supabase Storage `ai_intelligence_process_diagnostics`. **Migrations 011–013** : pattern lookup-only (ILIKE, RAISE EXCEPTION si non trouvé), pas d'INSERT dans `companies` ; INSERT dans `ai_intelligence_runs` (run_type `process_diagnostic_import`) puis `ai_intelligence_results` (phase 3). **Migration 014** : Storage policy `authenticated_read_process_diagnostics` sur `storage.objects` — nécessaire pour que `createSignedUrl` fonctionne avec la clé anon + session user (sans cette policy, signed URL échoue silencieusement). **Front** : `ClientIntelligenceDesktopView` — 3e entrée dans `ANALYSIS_CATALOG` (`process`) + `ProcessDiagnosticContent` (rendu JSON fallback) + affichage `DocumentViewerShell` si `diagnosticPdfUrl` présent. Mobile : JSON fallback systématique (pas d'iframe sur mobile, ADR-0006). `intelligence-data.ts` : `parseAnalyseDiagnostic`, `diagnosticPdfUrl` via signed URL 1h, log erreur Storage en cas d'échec.
 
 **Session précédente (2026-06-12) — thème « Cockpit Intelligence » inversé (ADR-0008) :** introduction d'une **couleur secondaire Sunshine Gold `#FFB812`** (token `--color-secondary` / `-fg`) + token de surface dédié `--color-rail` (le rail n'utilise plus `bg-heading` surchargé). Le hub `/prospection/accounts/[companyId]` reçoit un **thème immersif inversé** via un scope CSS `[data-theme="cockpit"]` (dans `globals.css`) qui redéfinit les tokens : fond cobalt, titres/chiffres en or, liens + onglet actif en or, rail en navy profond. Comme l'app est **token-driven**, la bascule se fait **sans modifier les composants**. Posé sur la racine de `ClientIntelligenceDesktopView` / `MobileView` / `loading.tsx` (`data-theme="cockpit" bg-canvas`). La **sidebar devient claire** sur ces routes (`DesktopSidebar` route-aware via `usePathname`, `pathname.startsWith("/prospection/accounts/")`) pour éviter un cobalt-sur-cobalt. Les **blocs de prose longue** (Synthèse IA, Analyse client, Étude sectorielle, Pitch) repassent sur surface claire via `SectionBlock reading` → classe `.cockpit-reading` (réinitialise les tokens en clair ; propriétés réelles `background-color`/`border-color` pour éviter l'élagage Lightning-CSS des règles 100 % custom-props). ⚠️ **Contrainte gold** : `#FFB812` échoue le contraste sur fond clair (~1,7:1) → réservé aux surfaces cobalt / texte foncé sur aplat, **jamais en encre sur clair**. Vérifié en preview (sidebar claire, fond cobalt #2554B8, titres or, panneau lecture #FBFAF6) + `tsc` clean. Mobile non exerçable en preview (device détecté par UA serveur, ADR-0006).
 

@@ -78,7 +78,7 @@ type IdentityData = {
     start_date: string | null
     end_date: string | null
     tjm: number
-    taci: number
+    cjm: number
     gross_margin_pct: number | null
     collaborator_id: string
     collaborators: {

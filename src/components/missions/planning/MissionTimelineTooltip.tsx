@@ -78,8 +78,8 @@ export function MissionTimelineTooltip({ state, today }: MissionTimelineTooltipP
         <span className="text-muted">TJM</span>
         <span className="tabular-nums">{formatEuro(row.tjm)}</span>
 
-        <span className="text-muted">TACI</span>
-        <span className="tabular-nums">{formatEuro(row.taci)}</span>
+        <span className="text-muted">CJM</span>
+        <span className="tabular-nums">{formatEuro(row.cjm)}</span>
 
         <span className="text-muted">Marge brute</span>
         <span className="tabular-nums">{formatPercent(row.grossMarginPct)}</span>

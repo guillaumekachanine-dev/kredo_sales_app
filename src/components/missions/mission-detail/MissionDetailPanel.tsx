@@ -24,7 +24,7 @@ interface MissionDetailData {
     practice: string | null
     seniority: string | null
     tjm: number
-    taci: number
+    cjm: number
     gross_margin_pct: number | null
     metadata: Json
     opportunity_id: string | null
@@ -86,6 +86,7 @@ interface MissionDetailData {
     fullName: string
     role: string | null
   }>
+  grossAnnual: number | null
 }
 
 interface MissionDetailPanelProps {
@@ -400,10 +401,10 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
   // Compute stats and indicators
   const stats = useMemo(() => {
     if (!data) return null
-    const { start_date, end_date, tjm, taci, gross_margin_pct } = data.mission
+    const { start_date, end_date, tjm, cjm, gross_margin_pct } = data.mission
 
     // Margins
-    const computedMarginPct = gross_margin_pct ?? (tjm > 0 ? Math.round(((tjm - taci) / tjm) * 100 * 100) / 100 : 0)
+    const computedMarginPct = gross_margin_pct ?? (tjm > 0 ? Math.round(((tjm - cjm) / tjm) * 100 * 100) / 100 : 0)
 
     // Jours de production estimés
     const workingDays = getWorkingDaysCount(start_date, end_date)
@@ -449,16 +450,17 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
     return Math.round(workingDays * 0.85)
   }, [workingDays])
 
-  // Estimated gross monthly salary based on TACI
+  // Salaire mensuel brut estimé.
+  // Source 1 (fiable, admin only) : collaborator_compensation.gross_annual via RLS.
+  // Source 2 (fallback) : heuristique CJM × 218 × 0.65 / 12.
   const estimatedSalary = useMemo(() => {
     if (!data?.mission) return 0
+    if (data.grossAnnual != null) return Math.round(data.grossAnnual / 12)
     const collabMeta = data.collaborator?.metadata as any
     if (collabMeta?.salary) return Number(collabMeta.salary)
     if (collabMeta?.salaire) return Number(collabMeta.salaire)
-    // TACI is daily cost. Annual loaded cost is TACI * 218. Monthly loaded is / 12.
-    // Gross salary is approx 65% of loaded cost.
-    return Math.round((data.mission.taci * 218) / 12 * 0.65)
-  }, [data?.mission?.taci, data?.collaborator])
+    return Math.round((data.mission.cjm * 218) / 12 * 0.65)
+  }, [data?.mission?.cjm, data?.collaborator, data?.grossAnnual])
 
   // ACV (Contract Value for the current year / period)
   const acv = useMemo(() => {
@@ -689,7 +691,7 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         <div className="md:col-span-8 flex flex-col gap-5">
           
           {/* Bloc 1: Synthèse */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Synthèse mission
@@ -869,15 +871,15 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         <div className="md:col-span-4 flex flex-col gap-5">
           
           {/* Bloc 2: Conditions financières */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative border-l-4 border-amber-500/80 bg-gradient-to-br from-amber-500/[0.01] to-transparent">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-warning/[0.02] to-transparent">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="w-3.5 h-3.5 text-cat-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Conditions financières
               </h3>
-              <div className="w-8 h-0.5 bg-amber-500 mt-1.5 rounded-full" />
+              <div className="w-8 h-0.5 bg-cat-warning mt-1.5 rounded-full" />
             </div>
 
             {/* Pencil button */}
@@ -902,8 +904,8 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
                   <span className="text-[9px] text-muted-foreground">Facturé au client</span>
                 </div>
                 <div className="p-2.5 bg-canvas/40 rounded-lg border border-border/50 flex flex-col gap-0.5">
-                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne (TACI)</span>
-                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.taci)}</span>
+                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne (CJM)</span>
+                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.cjm)}</span>
                   <span className="text-[9px] text-muted-foreground">Coût journalier chargé</span>
                 </div>
               </div>
@@ -1010,12 +1012,12 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           </div>
 
           {/* Bloc 3: Activité commerciale */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Activité commerciale
               </h3>
-              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+              <div className="w-8 h-0.5 bg-cat-success mt-1.5 rounded-full" />
             </div>
 
             {/* Pencil button */}
@@ -1081,12 +1083,12 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           </div>
 
           {/* Bloc 4: Liens utiles */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-idea rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-idea/[0.02] to-transparent">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Liens utiles
               </h3>
-              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+              <div className="w-8 h-0.5 bg-cat-idea mt-1.5 rounded-full" />
             </div>
 
             <div className="grid grid-cols-4 gap-2 mt-1">
@@ -1149,12 +1151,12 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           </div>
 
           {/* Bloc 5: Actions rapides */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-info rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-info/[0.02] to-transparent">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Actions rapides
               </h3>
-              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+              <div className="w-8 h-0.5 bg-cat-info mt-1.5 rounded-full" />
             </div>
 
             <div className="flex flex-col gap-2">

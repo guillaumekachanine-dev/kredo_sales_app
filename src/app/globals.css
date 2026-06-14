@@ -44,6 +44,41 @@
   --color-secondary:    #FFB812;  /* bg-secondary */
   --color-secondary-fg: #3A2A02;  /* texte foncé sur aplat gold */
 
+  /* ── Couleurs catégorielles ────────────────────────────────────
+     Usage : étiquettes, badges, catégorisation visuelle.
+     Ces couleurs sont VIVES — réservées aux petites surfaces (chips,
+     dots, badges). Ne jamais les utiliser comme fond de page ou fond
+     de carte.
+     Convention : --color-cat-[nom]     → fond de l'étiquette
+                  --color-cat-[nom]-fg  → texte/icône sur cet aplat
+     Contraste vérifié AA minimum sur chaque paire. */
+
+  /* Vert Émeraude Vif — Validations · Succès */
+  --color-cat-success:    #00C853;
+  --color-cat-success-fg: #FFFFFF;
+
+  /* Orange Mandarine — Actif · Progression */
+  --color-cat-active:    #FF9800;
+  --color-cat-active-fg: #FFFFFF;
+
+  /* Rouge Corail — Erreur · Alerte · Priorité Haute */
+  --color-cat-urgent:    #FF5252;
+  --color-cat-urgent-fg: #FFFFFF;
+
+  /* Jaune Ambre — Avertissement · Important
+     ⚠️ Texte FONCÉ obligatoire : contraste blanc sur jaune < 2:1. */
+  --color-cat-warning:    #FFC107;
+  --color-cat-warning-fg: #3A2A02;
+
+  /* Violet Pourpre — Innovation · Projet · Note */
+  --color-cat-idea:    #9C27B0;
+  --color-cat-idea-fg: #FFFFFF;
+
+  /* Bleu Turquoise — Information · Note · Général
+     Texte FONCÉ : contraste blanc sur turquoise ~3,7:1 (borderline AA). */
+  --color-cat-info:    #00BCD4;
+  --color-cat-info-fg: #0A2C33;
+
   /* ── Rail (panneau « Tour de contrôle », ADR-0008) ──────────
      Token de SURFACE dédié — auparavant `bg-heading` réutilisait
      le token de texte (surcharge). Séparé pour permettre l'inversion

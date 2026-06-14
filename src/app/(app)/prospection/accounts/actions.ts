@@ -257,7 +257,7 @@ export async function getCompanyIdentity(companyId: string) {
         start_date,
         end_date,
         tjm,
-        taci,
+        cjm,
         gross_margin_pct,
         collaborator_id,
         collaborators (

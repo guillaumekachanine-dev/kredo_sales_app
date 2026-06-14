@@ -434,6 +434,79 @@ export type Database = {
           },
         ]
       }
+      collaborator_compensation: {
+        Row: {
+          charges_rate: number
+          cjm: number | null
+          collaborator_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          gross_annual: number
+          id: string
+          notes: string | null
+          taci: number
+          updated_at: string
+          variable_pay: number | null
+          working_days_per_year: number
+          workspace_id: string
+        }
+        Insert: {
+          charges_rate?: number
+          cjm?: number | null
+          collaborator_id: string
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          gross_annual: number
+          id?: string
+          notes?: string | null
+          taci?: number
+          updated_at?: string
+          variable_pay?: number | null
+          working_days_per_year?: number
+          workspace_id?: string
+        }
+        Update: {
+          charges_rate?: number
+          cjm?: number | null
+          collaborator_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          gross_annual?: number
+          id?: string
+          notes?: string | null
+          taci?: number
+          updated_at?: string
+          variable_pay?: number | null
+          working_days_per_year?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_compensation_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_compensation_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "collaborator_compensation_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           agency: string | null
@@ -550,6 +623,7 @@ export type Database = {
           priority: string
           revenue: string | null
           sector: string | null
+          sector_id: string | null
           segment: string | null
           size_band: string | null
           tags: string[]
@@ -576,6 +650,7 @@ export type Database = {
           priority?: string
           revenue?: string | null
           sector?: string | null
+          sector_id?: string | null
           segment?: string | null
           size_band?: string | null
           tags?: string[]
@@ -602,6 +677,7 @@ export type Database = {
           priority?: string
           revenue?: string | null
           sector?: string | null
+          sector_id?: string | null
           segment?: string | null
           size_band?: string | null
           tags?: string[]
@@ -610,6 +686,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "companies_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "companies_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -768,6 +851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contacts_manager_contact_id_fkey"
+            columns: ["manager_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contacts_person_id_fkey"
@@ -951,6 +1041,7 @@ export type Database = {
       mission_activity_reports: {
         Row: {
           billable_days: number
+          cjm_snapshot: number
           collaborator_id: string
           created_at: string
           id: string
@@ -960,13 +1051,13 @@ export type Database = {
           period_end: string
           period_start: string
           status: string
-          taci_snapshot: number
           tjm_snapshot: number
           updated_at: string
           workspace_id: string
         }
         Insert: {
           billable_days: number
+          cjm_snapshot: number
           collaborator_id: string
           created_at?: string
           id?: string
@@ -976,13 +1067,13 @@ export type Database = {
           period_end: string
           period_start: string
           status?: string
-          taci_snapshot: number
           tjm_snapshot: number
           updated_at?: string
           workspace_id?: string
         }
         Update: {
           billable_days?: number
+          cjm_snapshot?: number
           collaborator_id?: string
           created_at?: string
           id?: string
@@ -992,7 +1083,6 @@ export type Database = {
           period_end?: string
           period_start?: string
           status?: string
-          taci_snapshot?: number
           tjm_snapshot?: number
           updated_at?: string
           workspace_id?: string
@@ -1037,6 +1127,7 @@ export type Database = {
       }
       missions: {
         Row: {
+          cjm: number
           collaborator_id: string
           company_id: string
           created_at: string
@@ -1052,7 +1143,6 @@ export type Database = {
           source: string | null
           start_date: string | null
           status: string
-          taci: number
           tags: string[]
           title: string
           tjm: number
@@ -1060,6 +1150,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          cjm: number
           collaborator_id: string
           company_id: string
           created_at?: string
@@ -1075,7 +1166,6 @@ export type Database = {
           source?: string | null
           start_date?: string | null
           status?: string
-          taci: number
           tags?: string[]
           title: string
           tjm: number
@@ -1083,6 +1173,7 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          cjm?: number
           collaborator_id?: string
           company_id?: string
           created_at?: string
@@ -1098,7 +1189,6 @@ export type Database = {
           source?: string | null
           start_date?: string | null
           status?: string
-          taci?: number
           tags?: string[]
           title?: string
           tjm?: number
@@ -1157,6 +1247,231 @@ export type Database = {
           },
         ]
       }
+      offer_engagement_types: {
+        Row: {
+          billing_model: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          typical_duration: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_model: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          typical_duration?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          billing_model?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          typical_duration?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      offer_practices: {
+        Row: {
+          color_hex: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          perimeter: string | null
+          slug: string
+          sort_order: number
+          stack_tags: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color_hex?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          perimeter?: string | null
+          slug: string
+          sort_order?: number
+          stack_tags?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          color_hex?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          perimeter?: string | null
+          slug?: string
+          sort_order?: number
+          stack_tags?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      offer_pricing_grids: {
+        Row: {
+          created_at: string
+          currency: string
+          engagement_type_id: string | null
+          id: string
+          notes: string | null
+          offer_id: string | null
+          practice_id: string | null
+          profile_name: string
+          seniority_level: string
+          tjm_max: number | null
+          tjm_min: number | null
+          updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          engagement_type_id?: string | null
+          id?: string
+          notes?: string | null
+          offer_id?: string | null
+          practice_id?: string | null
+          profile_name: string
+          seniority_level: string
+          tjm_max?: number | null
+          tjm_min?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          engagement_type_id?: string | null
+          id?: string
+          notes?: string | null
+          offer_id?: string | null
+          practice_id?: string | null
+          profile_name?: string
+          seniority_level?: string
+          tjm_max?: number | null
+          tjm_min?: number | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_pricing_grids_engagement_type_id_fkey"
+            columns: ["engagement_type_id"]
+            isOneToOne: false
+            referencedRelation: "offer_engagement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_pricing_grids_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_pricing_grids_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          created_at: string
+          full_description: string | null
+          id: string
+          is_active: boolean
+          keywords: string[]
+          name: string
+          practice_id: string
+          short_description: string | null
+          slug: string
+          sort_order: number
+          typical_deliverables: string[]
+          typical_profiles: string[]
+          updated_at: string
+          use_cases: string[]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_description?: string | null
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          name: string
+          practice_id: string
+          short_description?: string | null
+          slug: string
+          sort_order?: number
+          typical_deliverables?: string[]
+          typical_profiles?: string[]
+          updated_at?: string
+          use_cases?: string[]
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          full_description?: string | null
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          name?: string
+          practice_id?: string
+          short_description?: string | null
+          slug?: string
+          sort_order?: number
+          typical_deliverables?: string[]
+          typical_profiles?: string[]
+          updated_at?: string
+          use_cases?: string[]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opportunities: {
         Row: {
           acv: number | null
@@ -1178,6 +1493,7 @@ export type Database = {
           practice: string | null
           priority: string
           remote_policy: string | null
+          sector_id: string | null
           seniority: string | null
           source: string | null
           stage: string
@@ -1212,6 +1528,7 @@ export type Database = {
           practice?: string | null
           priority?: string
           remote_policy?: string | null
+          sector_id?: string | null
           seniority?: string | null
           source?: string | null
           stage?: string
@@ -1246,6 +1563,7 @@ export type Database = {
           practice?: string | null
           priority?: string
           remote_policy?: string | null
+          sector_id?: string | null
           seniority?: string | null
           source?: string | null
           stage?: string
@@ -1281,6 +1599,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "opportunities_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "opportunities_workspace_id_fkey"
@@ -1633,6 +1958,317 @@ export type Database = {
           },
         ]
       }
+      sector_events: {
+        Row: {
+          commercial_opportunity: string | null
+          created_at: string
+          description: string | null
+          event_date: string | null
+          event_type: string
+          id: string
+          sector_id: string
+          source_url: string | null
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          commercial_opportunity?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_type: string
+          id?: string
+          sector_id: string
+          source_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          commercial_opportunity?: string | null
+          created_at?: string
+          description?: string | null
+          event_date?: string | null
+          event_type?: string
+          id?: string
+          sector_id?: string
+          source_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_events_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_intelligence: {
+        Row: {
+          attractiveness_score: number | null
+          avg_tjm_max: number | null
+          avg_tjm_min: number | null
+          created_at: string
+          description: string | null
+          digital_maturity: string | null
+          id: string
+          key_players_national: Json
+          key_players_paca: Json
+          market_growth_pct: number | null
+          market_size_eur_bn: number | null
+          name: string
+          playbook: Json
+          practices_fit: Json
+          slug: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attractiveness_score?: number | null
+          avg_tjm_max?: number | null
+          avg_tjm_min?: number | null
+          created_at?: string
+          description?: string | null
+          digital_maturity?: string | null
+          id?: string
+          key_players_national?: Json
+          key_players_paca?: Json
+          market_growth_pct?: number | null
+          market_size_eur_bn?: number | null
+          name: string
+          playbook?: Json
+          practices_fit?: Json
+          slug: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attractiveness_score?: number | null
+          avg_tjm_max?: number | null
+          avg_tjm_min?: number | null
+          created_at?: string
+          description?: string | null
+          digital_maturity?: string | null
+          id?: string
+          key_players_national?: Json
+          key_players_paca?: Json
+          market_growth_pct?: number | null
+          market_size_eur_bn?: number | null
+          name?: string
+          playbook?: Json
+          practices_fit?: Json
+          slug?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_intelligence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_news: {
+        Row: {
+          created_at: string
+          id: string
+          is_trigger_event: boolean
+          published_at: string | null
+          relevance_score: number | null
+          sector_id: string
+          source: string | null
+          summary: string | null
+          tags: string[]
+          title: string
+          url: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_trigger_event?: boolean
+          published_at?: string | null
+          relevance_score?: number | null
+          sector_id: string
+          source?: string | null
+          summary?: string | null
+          tags?: string[]
+          title: string
+          url?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_trigger_event?: boolean
+          published_at?: string | null
+          relevance_score?: number | null
+          sector_id?: string
+          source?: string | null
+          summary?: string | null
+          tags?: string[]
+          title?: string
+          url?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_news_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_news_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_pain_points: {
+        Row: {
+          created_at: string
+          description: string | null
+          frequency_count: number
+          id: string
+          kredo_practice: string | null
+          sector_id: string
+          source_company_ids: string[]
+          title: string
+          updated_at: string
+          verbatim: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          frequency_count?: number
+          id?: string
+          kredo_practice?: string | null
+          sector_id: string
+          source_company_ids?: string[]
+          title: string
+          updated_at?: string
+          verbatim?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          frequency_count?: number
+          id?: string
+          kredo_practice?: string | null
+          sector_id?: string
+          source_company_ids?: string[]
+          title?: string
+          updated_at?: string
+          verbatim?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_pain_points_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_pain_points_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sector_regulatory_items: {
+        Row: {
+          authority: string | null
+          commercial_angle: string | null
+          created_at: string
+          deadline_date: string | null
+          description: string | null
+          id: string
+          is_commercial_window: boolean
+          kredo_practice: string | null
+          name: string
+          sector_id: string
+          updated_at: string
+          urgency: string
+          workspace_id: string
+        }
+        Insert: {
+          authority?: string | null
+          commercial_angle?: string | null
+          created_at?: string
+          deadline_date?: string | null
+          description?: string | null
+          id?: string
+          is_commercial_window?: boolean
+          kredo_practice?: string | null
+          name: string
+          sector_id: string
+          updated_at?: string
+          urgency?: string
+          workspace_id: string
+        }
+        Update: {
+          authority?: string | null
+          commercial_angle?: string | null
+          created_at?: string
+          deadline_date?: string | null
+          description?: string | null
+          id?: string
+          is_commercial_window?: boolean
+          kredo_practice?: string | null
+          name?: string
+          sector_id?: string
+          updated_at?: string
+          urgency?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_regulatory_items_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sector_intelligence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_regulatory_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skills: {
         Row: {
           aliases: string[]
@@ -1817,6 +2453,7 @@ export type Database = {
     }
     Functions: {
       current_workspace_id: { Args: never; Returns: string }
+      is_workspace_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       ai_result_status:
@@ -1965,9 +2602,6 @@ export const Constants = {
   },
 } as const
 
-// ------------------------------------------------------------
-//  Raccourcis pratiques
-// ------------------------------------------------------------
 type PublicSchema = Database["public"]
 
 export type Opportunity = PublicSchema["Tables"]["opportunities"]["Row"] & {

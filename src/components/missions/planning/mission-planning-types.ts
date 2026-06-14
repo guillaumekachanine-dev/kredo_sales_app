@@ -51,7 +51,7 @@ export type MissionPlanningRow = {
   practice: string | null
   seniority: string | null
   tjm: number | null
-  taci: number | null
+  cjm: number | null
   grossMarginPct: number | null
   companyId: string | null
   collaboratorId: string | null

@@ -42,7 +42,7 @@ type MissionPlanningQueryRow = Pick<
   | "practice"
   | "seniority"
   | "tjm"
-  | "taci"
+  | "cjm"
   | "gross_margin_pct"
   | "company_id"
   | "collaborator_id"
@@ -193,7 +193,7 @@ export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]>
         practice,
         seniority,
         tjm,
-        taci,
+        cjm,
         gross_margin_pct,
         company_id,
         collaborator_id,
@@ -258,7 +258,7 @@ export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]>
         practice: mission.practice,
         seniority: mission.seniority,
         tjm: mission.tjm,
-        taci: mission.taci,
+        cjm: mission.cjm,
         grossMarginPct: mission.gross_margin_pct,
         companyId: mission.company_id,
         collaboratorId: mission.collaborator_id,
