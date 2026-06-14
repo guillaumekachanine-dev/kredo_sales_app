@@ -1,16 +1,9 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { financeDashboardConfig } from "@/lib/dashboard/configs/finance-dashboard.config"
-import { mockFinanceDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { SyntheseFinanceSection } from "@/components/finance"
 
-export default async function FinancePage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={financeDashboardConfig}
-      data={mockFinanceDashboardData}
-    />
-  )
+// Onglet Finance — Synthèse financière décisionnelle (CA réalisé YTD, pipeCRM,
+// marges, P&L mensuels, anomalies facturation auditées par IA, cash flow dunning).
+export default function FinancePage() {
+  return <SyntheseFinanceSection />
 }

@@ -1,6 +1,5 @@
----
-name: budget-dashboard-visual-polish
-description: Use for final visual polish of budget_dashboard pages: spacing, typography, colors, card hierarchy, icon usage, mobile density, premium feel.
+name: kredo-visual-polish
+description: Use for final visual polish of kredo sales app for IT services companies. Focus on spacing, typography, colors, card hierarchy, icon usage, mobile density, premium feel.
 ---
 
 Visual polish checklist:

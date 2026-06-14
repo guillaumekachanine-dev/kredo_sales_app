@@ -38,6 +38,7 @@ interface DBQueryResult {
   conviction: number
   acv: number | null
   estimated_gain: number | null
+  target_daily_rate: number | null
   target_close_date: string | null
   start_date: string | null
   updated_at: string
@@ -88,6 +89,7 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         conviction,
         acv,
         estimated_gain,
+        target_daily_rate,
         target_close_date,
         start_date,
         updated_at,
@@ -140,6 +142,8 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         acv: item.acv,
         estimatedGain: item.estimated_gain,
         stage: item.stage,
+        priority: item.priority,
+        targetDailyRate: item.target_daily_rate,
       }
     })
 
@@ -167,6 +171,8 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       acv: row.acv,
       estimatedGain: row.estimatedGain,
       stage: row.stage,
+      priority: (row as any).priority,
+      targetDailyRate: (row as any).targetDailyRate,
     }))
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)

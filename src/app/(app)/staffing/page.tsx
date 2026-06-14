@@ -1,16 +1,9 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { staffingDashboardConfig } from "@/lib/dashboard/configs/staffing-dashboard.config"
-import { mockStaffingDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { SyntheseStaffingSection } from "@/components/staffing"
 
-export default async function StaffingPage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={staffingDashboardConfig}
-      data={mockStaffingDashboardData}
-    />
-  )
+// Onglet Staffing — Tour de contrôle et cockpit de staffing (TACE, intercontrat,
+// plan de charge vs demande, matching de profils).
+export default function StaffingPage() {
+  return <SyntheseStaffingSection />
 }

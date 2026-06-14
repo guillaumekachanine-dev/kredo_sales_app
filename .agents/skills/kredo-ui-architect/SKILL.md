@@ -1,12 +1,11 @@
----
-name: budget-dashboard-ui-architect
-description: Use for UI/UX refactors in the budget_dashboard React app. Focus on compact premium mobile-first financial dashboards, visual hierarchy, density, color semantics, reusable components, and no database changes.
+name: kredo-ui-architect
+description: Use for UI/UX refactors in the kredo sales app for IT services companies. Focus on compact premium desktop-first sales app for IT services companies, visual hierarchy, density, color semantics, reusable components, and no database changes.
 ---
 
-You are working on the budget_dashboard React + TypeScript + Supabase app.
+You are working on the Kredo sales app for IT services companies. It is built with React + TypeScript + Supabase app.
 
 Principles:
-- Mobile-first.
+- Desktop-first.
 - Compact, premium, readable.
 - One card = one idea.
 - One page section = one decision.

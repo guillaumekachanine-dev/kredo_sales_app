@@ -1,9 +1,8 @@
----
-name: budget-dashboard-component-system
+name: kredo-component-system
 description: Use when refactoring repeated dashboard cards, KPI blocks, stat rows, badges, tabs, lists, and mobile tables into reusable React TypeScript components.
 ---
 
-Create reusable, typed, low-abstraction components for financial dashboard UI.
+Create reusable, typed, low-abstraction components for sales app UI.
 
 Prefer components such as:
 - MetricCard

@@ -1,6 +1,5 @@
----
-name: budget-dashboard-data-ux
-description: Use when displaying Supabase analytics payloads in the budget_dashboard app. Focus on null handling, loading states, empty states, data freshness, and avoiding misleading zeros.
+name: kredo-data-ux
+description: Use when displaying Supabase analytics payloads in the kredo sales app for IT services companies. Focus on null handling, loading states, empty states, data freshness, and avoiding misleading zeros.
 ---
 
 Data UX rules:
