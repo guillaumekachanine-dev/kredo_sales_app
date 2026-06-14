@@ -684,14 +684,14 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         </div>
       </div>
 
-      {/* Main Grid: 8 cols left / 4 cols right on Desktop, stacked on Mobile */}
+      {/* Main Grid: Row 1 containing Synthèse and Conditions financières of matching height */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
         
-        {/* LEFT COLUMN: Synthèse & Finances */}
-        <div className="md:col-span-8 flex flex-col gap-5">
+        {/* LEFT COLUMN: Synthèse */}
+        <div className="md:col-span-8 flex flex-col">
           
           {/* Bloc 1: Synthèse */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent h-full">
             <div className="flex flex-col select-none mb-1">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Synthèse mission
@@ -867,11 +867,11 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Activité & Actions rapides */}
-        <div className="md:col-span-4 flex flex-col gap-5">
+        {/* RIGHT COLUMN: Conditions financières */}
+        <div className="md:col-span-4 flex flex-col">
           
           {/* Bloc 2: Conditions financières */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-4 shadow-sm flex flex-col gap-3 relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent text-xs">
+          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-4 shadow-sm flex flex-col h-full relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent text-xs">
             <div className="flex items-center justify-between select-none pb-1 border-b border-border/20">
               <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Conditions financières
@@ -888,7 +888,7 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
               </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col flex-1 justify-between gap-3 mt-2">
               
               {/* 1. Tarifs & Marge */}
               <div className="grid grid-cols-3 gap-1 bg-canvas/30 p-2 rounded-lg border border-border/50">
@@ -959,6 +959,15 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
 
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Main Grid Row 2: Activité commerciale & other right column widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mt-5">
+        <div className="md:col-span-8">
+          {/* Empty spacer block to align items under synthesis */}
+        </div>
+        <div className="md:col-span-4 flex flex-col gap-5">
 
           {/* Bloc 3: Activité commerciale */}
           <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
