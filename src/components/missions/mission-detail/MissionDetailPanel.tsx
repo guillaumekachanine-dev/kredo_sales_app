@@ -430,6 +430,79 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
     }
   }, [data])
 
+  // Default end date (defaulting to December 31st of current year if null)
+  const defaultEndDate = useMemo(() => {
+    if (!data?.mission) return null
+    if (data.mission.end_date) return data.mission.end_date
+    const currentYear = new Date().getFullYear()
+    return `${currentYear}-12-31`
+  }, [data?.mission?.end_date])
+
+  // Working days count using the default end date if needed
+  const workingDays = useMemo(() => {
+    if (!data?.mission) return 0
+    return getWorkingDaysCount(data.mission.start_date, defaultEndDate) || 0
+  }, [data?.mission?.start_date, defaultEndDate])
+
+  // Weighted days by theoretical activity rate of 85%
+  const weightedDays = useMemo(() => {
+    return Math.round(workingDays * 0.85)
+  }, [workingDays])
+
+  // Estimated gross monthly salary based on TACI
+  const estimatedSalary = useMemo(() => {
+    if (!data?.mission) return 0
+    const collabMeta = data.collaborator?.metadata as any
+    if (collabMeta?.salary) return Number(collabMeta.salary)
+    if (collabMeta?.salaire) return Number(collabMeta.salaire)
+    // TACI is daily cost. Annual loaded cost is TACI * 218. Monthly loaded is / 12.
+    // Gross salary is approx 65% of loaded cost.
+    return Math.round((data.mission.taci * 218) / 12 * 0.65)
+  }, [data?.mission?.taci, data?.collaborator])
+
+  // ACV (Contract Value for the current year / period)
+  const acv = useMemo(() => {
+    if (!data?.mission) return 0
+    return workingDays * data.mission.tjm
+  }, [workingDays, data?.mission?.tjm])
+
+  // YTD billable days from CRA reports
+  const ytdBillableDays = useMemo(() => {
+    if (!data?.activityReports) return 0
+    return data.activityReports.reduce((acc, curr) => acc + (curr.billable_days || 0), 0)
+  }, [data?.activityReports])
+
+  // Produit YTD (Revenue generated to date, taking into account leaves and absences)
+  const ytdRevenue = useMemo(() => {
+    if (!data?.mission) return 0
+    return ytdBillableDays * data.mission.tjm
+  }, [ytdBillableDays, data?.mission?.tjm])
+
+  // Real activity rate taking into account leaves and absences
+  const realActivityRate = useMemo(() => {
+    if (!data?.activityReports) return 100
+    const totalBillable = data.activityReports.reduce((acc, curr) => acc + (curr.billable_days || 0), 0)
+    const totalNonBillable = data.activityReports.reduce((acc, curr) => acc + (curr.non_billable_days || 0), 0)
+    const total = totalBillable + totalNonBillable
+    return total > 0 ? (totalBillable / total) * 100 : 100
+  }, [data?.activityReports])
+
+  // Average amount billed each month
+  const avgBilledMonthly = useMemo(() => {
+    if (!data) return 0
+    const { mission, activityReports } = data
+    if (activityReports.length > 0) {
+      return (ytdBillableDays / activityReports.length) * mission.tjm
+    }
+    const start = parseDateOnly(mission.start_date)
+    const end = parseDateOnly(defaultEndDate)
+    if (start && end) {
+      const diffMonths = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1)
+      return acv / diffMonths
+    }
+    return 19 * mission.tjm
+  }, [data, ytdBillableDays, defaultEndDate, acv])
+
   // Extract events to anticipate
   const eventsToAnticipate = useMemo(() => {
     if (!data) return []
@@ -790,14 +863,21 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
               </div>
             </div>
           </div>
+        </div>
 
+        {/* RIGHT COLUMN: Activité & Actions rapides */}
+        <div className="md:col-span-4 flex flex-col gap-5">
+          
           {/* Bloc 2: Conditions financières */}
-          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative">
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative border-l-4 border-amber-500/80 bg-gradient-to-br from-amber-500/[0.01] to-transparent">
             <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 Conditions financières
               </h3>
-              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+              <div className="w-8 h-0.5 bg-amber-500 mt-1.5 rounded-full" />
             </div>
 
             {/* Pencil button */}
@@ -811,84 +891,124 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
               </svg>
             </button>
 
-            {/* 3 mini KPI cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 1. Tarifs et marge */}
+            <div className="flex flex-col gap-2.5">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Tarifs & Marge</h4>
               
-              {/* Card 1: TJ & Marges */}
-              <div className="p-3 bg-canvas/40 rounded-lg border border-border/60 flex flex-col justify-between gap-2">
-                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Tarifs & Marge</span>
-                <div>
-                  <div className="flex items-baseline gap-1 text-heading">
-                    <span className="text-base font-bold">{formatEuro(mission.tjm)}</span>
-                    <span className="text-[10px] text-muted">TJ client</span>
-                  </div>
-                  <div className="flex items-baseline gap-1 text-body mt-0.5">
-                    <span className="text-xs font-medium">{formatEuro(mission.taci)}</span>
-                    <span className="text-[10px] text-muted">TJM coût</span>
-                  </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 bg-canvas/40 rounded-lg border border-border/50 flex flex-col gap-0.5">
+                  <span className="text-[9px] font-semibold text-muted uppercase">TJ Vendu</span>
+                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.tjm)}</span>
+                  <span className="text-[9px] text-muted-foreground">Facturé au client</span>
                 </div>
-                <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs">
-                  <span className="text-muted">Marge</span>
-                  <span className="font-bold text-success">
+                <div className="p-2.5 bg-canvas/40 rounded-lg border border-border/50 flex flex-col gap-0.5">
+                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne (TACI)</span>
+                  <span className="text-base font-extrabold text-heading tracking-tight">{formatEuro(mission.taci)}</span>
+                  <span className="text-[9px] text-muted-foreground">Coût journalier chargé</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-canvas/20 rounded-lg border border-border/40 flex items-center justify-between text-xs">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-semibold text-muted uppercase">Salaire estimé</span>
+                  <span className="font-bold text-heading">{formatEuro(estimatedSalary)}<span className="text-[10px] text-muted font-normal"> / mois brut</span></span>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[9px] font-semibold text-muted uppercase">Marge brute</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                    (stats?.computedMarginPct ?? 0) >= 30 
+                      ? "bg-success/10 border-success/20 text-success" 
+                      : (stats?.computedMarginPct ?? 0) >= 20 
+                      ? "bg-warning/10 border-warning/20 text-warning" 
+                      : "bg-danger/10 border-danger/20 text-danger"
+                  }`}>
                     {stats ? `${stats.computedMarginPct.toFixed(1)} %` : "—"}
                   </span>
                 </div>
               </div>
+            </div>
 
-              {/* Card 2: Dates & Jours */}
-              <div className="p-3 bg-canvas/40 rounded-lg border border-border/60 flex flex-col justify-between gap-2">
-                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Dates & Production</span>
-                <div>
-                  <div className="text-xs text-heading flex flex-col gap-0.5">
-                    <div>
-                      <span className="text-[10px] text-muted">Début :</span> <span className="font-semibold">{formatDateFr(mission.start_date)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted">Fin :</span> <span className="font-semibold">{mission.end_date ? formatDateFr(mission.end_date) : "Indéterminée"}</span>
-                    </div>
+            {/* 2. Quantité */}
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Volume & Production</h4>
+              
+              <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-[11px] font-medium text-heading">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                    <span>Début : <strong>{formatDateFr(mission.start_date)}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500/60" />
+                    <span>
+                      Fin : <strong>{mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</strong>
+                      {!mission.end_date && <span className="text-[9px] text-amber-500 font-semibold ml-1" title="Date de fin par défaut (31 déc. de l'année en cours)">[par défaut]</span>}
+                    </span>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs">
-                  <span className="text-muted">Jours ouvrés</span>
-                  <span className="font-bold text-heading">
-                    {stats && stats.workingDays !== null ? `${stats.workingDays} j` : "—"}
-                  </span>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/30">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-semibold text-muted uppercase">Jours ouvrés</span>
+                    <span className="text-sm font-bold text-heading">{workingDays} j</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-semibold text-muted uppercase">Production (85%)</span>
+                    <span className="text-sm font-bold text-primary">{weightedDays} j</span>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Card 3: ACV */}
-              <div className="p-3 bg-canvas/40 rounded-lg border border-border/60 flex flex-col justify-between gap-2">
-                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Valeur Contractuelle (ACV)</span>
-                <div>
-                  <div className="text-lg font-extrabold text-heading tracking-tight mt-1">
-                    {stats && stats.acv ? formatEuro(stats.acv) : "—"}
+            {/* 3. Gain */}
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Performance & Gains</h4>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-semibold text-muted uppercase">CA Annuel Visé (ACV)</span>
+                    <span className="text-sm font-bold text-heading">{formatEuro(acv)}</span>
                   </div>
-                  <p className="text-[9px] text-muted mt-1 leading-normal">
-                    Estimée sur la base des jours ouvrés et du TJ client.
+                  <span className="text-[9px] text-muted bg-border/40 px-1.5 py-0.5 rounded font-medium select-none">Théorique</span>
+                </div>
+
+                <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[9px] font-semibold text-muted uppercase">Produit YTD (Réel)</span>
+                      <span className="text-base font-extrabold text-emerald-500 tracking-tight">{formatEuro(ytdRevenue)}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="text-[9px] font-semibold text-muted uppercase">Activité réelle</span>
+                      <span className="text-[11px] font-bold text-heading">{realActivityRate.toFixed(1)} %</span>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted leading-normal border-t border-border/30 pt-1">
+                    Prestation réelle déclarée en CRA (absences/congés déduits).
                   </p>
                 </div>
               </div>
-
             </div>
 
-            {/* Facturation details row */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border/40 text-xs">
-              <div>
-                <span className="text-muted">Facturation :</span>{" "}
-                <span className="font-semibold text-heading">{billingTerms}</span>
-              </div>
-              <div>
-                <span className="text-muted">Prochaine facture :</span>{" "}
-                <span className="font-semibold text-heading">{nextInvoice}</span>
+            {/* 4. Facturation */}
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted select-none">Cycle de Facturation</h4>
+              
+              <div className="p-2.5 bg-canvas/30 rounded-lg border border-border/50 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2 text-xs">
+                  <span className="text-muted shrink-0 select-none">Règlement :</span>
+                  <span className="font-semibold text-heading text-right">{billingTerms}</span>
+                </div>
+                
+                <div className="flex items-center justify-between gap-2 text-xs pt-1.5 border-t border-border/30">
+                  <span className="text-muted select-none">Moyenne facturée / mois :</span>
+                  <span className="font-extrabold text-heading">{formatEuro(avgBilledMonthly)}</span>
+                </div>
               </div>
             </div>
           </div>
 
-        </div>
-
-        {/* RIGHT COLUMN: Activité & Actions rapides */}
-        <div className="md:col-span-4 flex flex-col gap-5">
-          
           {/* Bloc 3: Activité commerciale */}
           <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative">
             <div className="flex flex-col select-none mb-1">
