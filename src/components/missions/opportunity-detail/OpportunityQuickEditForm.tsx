@@ -22,13 +22,11 @@ interface OpportunityQuickEditFormProps {
   data: OpportunityDetailData
 }
 
-const STEPS = [
-  { key: "detection", label: "Demande", colorClass: "bg-primary text-white border-primary" },
-  { key: "qualification", label: "Qualification", colorClass: "bg-warning text-white border-warning" },
-  { key: "cv_envoyes", label: "CV sent", colorClass: "bg-cat-idea text-white border-cat-idea" },
-  { key: "entretien_client", label: "RT", colorClass: "bg-cat-info text-cat-info-fg border-cat-info" },
-  { key: "gagne", label: "WIN", colorClass: "bg-success text-white border-success" },
-  { key: "perdu", label: "LOST", colorClass: "bg-danger text-white border-danger" }
+const SEQUENTIAL_STEPS = [
+  { key: "detection", label: "Demande", num: 1 },
+  { key: "qualification", label: "Qualification", num: 2 },
+  { key: "cv_envoyes", label: "CV sent", num: 3 },
+  { key: "entretien_client", label: "RT", num: 4 },
 ]
 
 export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps) {
@@ -48,6 +46,13 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
     practice: opportunity.practice || "",
     stage: opportunity.stage,
   })
+
+  const getStageIndex = (stage: string) => {
+    if (stage === "gagne" || stage === "perdu") return 4
+    return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
+  }
+
+  const currentIdx = getStageIndex(form.stage)
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,27 +109,169 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
 
         <SurfaceCard className="p-5 flex flex-col gap-5">
           {/* Stepper design line */}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-3">
             <span className={labelClass}>Étape de l&apos;opportunité</span>
-            <div className="grid grid-cols-3 sm:flex sm:flex-row items-center gap-2 bg-canvas/30 p-2 rounded-xl border border-border/60">
-              {STEPS.map((step) => {
-                const isActive = form.stage === step.key
-                return (
-                  <button
-                    key={step.key}
-                    type="button"
-                    onClick={() => setForm({ ...form, stage: step.key })}
+            
+            {/* Timeline container */}
+            <div className="relative flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-4 bg-canvas/30 p-5 rounded-xl border border-border/60">
+              
+              {/* Sequential steps */}
+              <div className="flex flex-col md:flex-row flex-1 items-start md:items-center gap-6 md:gap-4 relative w-full">
+                {SEQUENTIAL_STEPS.map((step, idx) => {
+                  const isCompleted = currentIdx > idx
+                  const isActive = currentIdx === idx
+                  const isPassedOrActive = currentIdx >= idx
+
+                  return (
+                    <div key={step.key} className="flex-1 flex flex-row md:flex-col items-center gap-3 md:gap-2 w-full relative z-10">
+                      {/* Step Circle & Connector Line */}
+                      <div className="flex items-center justify-center relative">
+                        {/* Connector line */}
+                        {idx < SEQUENTIAL_STEPS.length - 1 && (
+                          <div 
+                            className={cn(
+                              "absolute transition-all duration-300 -z-10",
+                              // Desktop line
+                              "hidden md:block md:left-1/2 md:top-[16px] md:w-full md:h-[2px]",
+                              // Mobile line
+                              "block left-[15px] top-[16px] w-[2px] h-[calc(100%+24px)]",
+                              isCompleted ? "bg-primary" : "bg-border/60"
+                            )}
+                          />
+                        )}
+
+                        {/* Connector to Outcomes from last sequential step (RT) */}
+                        {idx === SEQUENTIAL_STEPS.length - 1 && (
+                          <div 
+                            className={cn(
+                              "absolute transition-all duration-300 -z-10",
+                              // Desktop line
+                              "hidden md:block md:left-1/2 md:top-[16px] md:w-full md:h-[2px]",
+                              // Mobile line
+                              "block left-[15px] top-[16px] w-[2px] h-[calc(100%+24px)]",
+                              form.stage === "gagne"
+                                ? "bg-success"
+                                : form.stage === "perdu"
+                                ? "bg-danger"
+                                : "bg-border/60"
+                            )}
+                          />
+                        )}
+
+                        {/* Circle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, stage: step.key })}
+                          className={cn(
+                            "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-200 cursor-pointer select-none z-10",
+                            isActive
+                              ? "border-primary bg-canvas text-primary ring-4 ring-primary/15 scale-110 shadow-md"
+                              : isCompleted
+                              ? "border-primary bg-primary text-white shadow-sm"
+                              : "border-border/80 bg-canvas/50 text-muted hover:border-muted hover:bg-canvas"
+                          )}
+                        >
+                          {isCompleted ? (
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            step.num
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Label */}
+                      <div className="flex flex-col items-start md:items-center text-left md:text-center">
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, stage: step.key })}
+                          className={cn(
+                            "text-[10px] font-extrabold uppercase tracking-wider cursor-pointer transition-all",
+                            isActive || isCompleted ? "text-primary" : "text-muted"
+                          )}
+                        >
+                          {step.label}
+                        </button>
+                        {isActive && (
+                          <span className="text-[8px] text-primary/70 font-semibold uppercase tracking-wider animate-pulse">
+                            En cours
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Outcome Node (Step 5) */}
+              <div className="flex-initial flex flex-row md:flex-col items-center gap-3 md:gap-2 w-full md:w-auto relative z-10 pl-0 md:pl-6 border-t md:border-t-0 md:border-l border-border/60 pt-4 md:pt-0 shrink-0">
+                <div className="flex items-center justify-center relative">
+                  <div
                     className={cn(
-                      "flex-1 py-2 px-3 text-center text-[10px] font-extrabold rounded-lg border uppercase tracking-wider transition-all duration-150 cursor-pointer select-none",
-                      isActive
-                        ? `${step.colorClass} shadow-sm scale-102`
-                        : "border-border/60 hover:bg-canvas/50 text-muted bg-transparent"
+                      "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all duration-200 shadow-sm",
+                      form.stage === "gagne"
+                        ? "border-success bg-success text-white ring-4 ring-success/15 scale-110"
+                        : form.stage === "perdu"
+                        ? "border-danger bg-danger text-white ring-4 ring-danger/15 scale-110"
+                        : "border-border/80 bg-canvas/50 text-muted"
                     )}
                   >
-                    {step.label}
-                  </button>
-                )
-              })}
+                    {form.stage === "gagne" ? (
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : form.stage === "perdu" ? (
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-muted/60" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Buttons and label */}
+                <div className="flex flex-col items-start md:items-center text-left md:text-center w-full md:w-auto">
+                  <span className={cn(
+                    "text-[9px] font-bold uppercase tracking-wider mb-1.5",
+                    form.stage === "gagne"
+                      ? "text-success"
+                      : form.stage === "perdu"
+                      ? "text-danger"
+                      : "text-muted"
+                  )}>
+                    {form.stage === "gagne" ? "Gagné" : form.stage === "perdu" ? "Perdu" : "Issue commerciale"}
+                  </span>
+                  <div className="flex flex-row items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stage: "gagne" })}
+                      className={cn(
+                        "py-1 px-2.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider transition-all duration-150 cursor-pointer select-none",
+                        form.stage === "gagne"
+                          ? "bg-success text-white border-success shadow-sm"
+                          : "border-border/60 hover:bg-success/5 hover:text-success hover:border-success/40 text-muted bg-transparent"
+                      )}
+                    >
+                      WIN
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, stage: "perdu" })}
+                      className={cn(
+                        "py-1 px-2.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider transition-all duration-150 cursor-pointer select-none",
+                        form.stage === "perdu"
+                          ? "bg-danger text-white border-danger shadow-sm"
+                          : "border-border/60 hover:bg-danger/5 hover:text-danger hover:border-danger/40 text-muted bg-transparent"
+                      )}
+                    >
+                      LOST
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
 
