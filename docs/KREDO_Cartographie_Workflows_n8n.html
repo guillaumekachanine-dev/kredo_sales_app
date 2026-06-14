@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>KREDO — Cartographie fonctionnelle des workflows n8n</title>
+<style>
+  :root{
+    --cobalt:#2554B8; --cobalt-deep:#1E4596; --navy:#1A2540;
+    --canvas:#F4F2ED; --surface:#FDFCFA; --border:#DBE0EB;
+    --muted:#6B7686; --ink:#1A2540; --accent:#D97020; --gold:#FFB812; --gold-fg:#3A2A02;
+    --ok:#1E7A4D; --warn:#B45309; --crit:#B42318; --soft:#EDF0F7;
+  }
+  @page{
+    size:A4 portrait; margin:18mm 16mm 16mm 16mm;
+    @top-left{ content:"KREDO — Cartographie des workflows n8n"; font-size:7.5pt; color:#93A0B0; }
+    @top-right{ content:"Étude fonctionnelle · v1.0"; font-size:7.5pt; color:#93A0B0; }
+    @bottom-right{ content:"p. " counter(page) " / " counter(pages); font-size:7.5pt; color:#93A0B0; }
+    @bottom-left{ content:"14 juin 2026 · confidentiel"; font-size:7.5pt; color:#93A0B0; }
+  }
+  @page landscape{ size:A4 landscape; margin:14mm 12mm; }
+  @page cover{ margin:0; @top-left{content:""} @top-right{content:""} @bottom-left{content:""} @bottom-right{content:""} }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--ink);
+        font-size:9.6pt; line-height:1.5; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  h1,h2,h3,h4{ color:var(--navy); line-height:1.25; }
+  h2{ font-size:15pt; margin:0 0 6px; padding-bottom:5px; border-bottom:2px solid var(--cobalt); }
+  h3{ font-size:11.5pt; margin:16px 0 4px; color:var(--cobalt-deep); }
+  h4{ font-size:10pt; margin:11px 0 3px; }
+  p{ margin:5px 0; }
+  a{ color:var(--cobalt); text-decoration:none; }
+  .section{ page-break-before:always; }
+  .landscape{ page:landscape; page-break-before:always; }
+  ul,ol{ margin:5px 0 5px 0; padding-left:18px; }
+  li{ margin:2px 0; }
+  small{ color:var(--muted); }
+  code{ background:var(--soft); padding:1px 4px; border-radius:3px; font-size:8.6pt; color:var(--cobalt-deep); }
+  table{ width:100%; border-collapse:collapse; margin:8px 0; font-size:8.2pt; }
+  th,td{ border:1px solid var(--border); padding:4px 6px; text-align:left; vertical-align:top; }
+  thead th{ background:var(--navy); color:#fff; font-weight:600; font-size:8pt; }
+  tbody tr:nth-child(even){ background:#FAFBFD; }
+  .tight td,.tight th{ padding:3px 5px; font-size:7.8pt; }
+  .lead{ font-size:10pt; color:#2c3852; }
+  .kpis{ display:flex; gap:8px; margin:10px 0; }
+  .kpi{ flex:1; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--cobalt); border-radius:6px; padding:8px 10px; }
+  .kpi .n{ font-size:17pt; font-weight:700; color:var(--cobalt-deep); display:block; }
+  .kpi .l{ font-size:7.6pt; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  .callout{ background:var(--soft); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:6px; padding:8px 11px; margin:9px 0; }
+  .callout.warn{ border-left-color:var(--warn); background:#FFF7ED; }
+  .callout.ok{ border-left-color:var(--ok); background:#F0FAF4; }
+  .pill{ display:inline-block; padding:1px 6px; border-radius:9px; font-size:7pt; font-weight:700;
+         text-transform:uppercase; letter-spacing:.3px; }
+  .s-op{ background:#D6F0E1; color:#0F5A38; }
+  .s-pa{ background:#CFE0FB; color:#1B3F86; }
+  .s-fa{ background:#FDE2C8; color:#8A4708; }
+  .s-pl{ background:#E5E0FA; color:#473B97; }
+  .s-ev{ background:#FBE6F0; color:#8A2360; }
+  .s-in{ background:#EAEDF2; color:#46505F; }
+  .p0{ color:#B42318; font-weight:700; } .p1{ color:#B45309; font-weight:700; }
+  .p2{ color:#1B3F86; font-weight:700; } .p3{ color:#46505F; font-weight:700; }
+  /* Cover */
+  .cover{ page:cover; height:297mm; position:relative; color:#fff;
+          background:linear-gradient(150deg,#1A2540 0%,#1E4596 52%,#2554B8 100%); page-break-after:always; }
+  .cover .pad{ position:absolute; inset:0; padding:34mm 26mm; display:flex; flex-direction:column; }
+  .brand{ font-size:13pt; font-weight:700; letter-spacing:5px; color:var(--gold); }
+  .brand small{ color:#A9BDE6; letter-spacing:1px; font-weight:400; display:block; margin-top:3px; }
+  .cover h1{ color:#fff; font-size:30pt; line-height:1.12; margin:auto 0 0; }
+  .cover .sub{ color:#CADAF6; font-size:12.5pt; margin-top:10px; max-width:135mm; }
+  .cover .meta{ margin-top:26px; border-top:1px solid #3A60B5; padding-top:14px; color:#A9BDE6; font-size:9.5pt; }
+  .cover .meta b{ color:#fff; }
+  .cover .tag{ display:inline-block; margin-top:18px; background:rgba(255,184,18,.15); border:1px solid var(--gold);
+               color:var(--gold); padding:5px 12px; border-radius:14px; font-size:9pt; font-weight:600; }
+  .toc-li{ display:flex; justify-content:space-between; border-bottom:1px dotted var(--border); padding:3px 0; font-size:9.4pt; }
+  .toc-li .num{ color:var(--cobalt); font-weight:700; width:20px; }
+  .toc-li .t{ flex:1; padding-left:6px; }
+  .grid2{ column-count:2; column-gap:16px; }
+  .legend td{ font-size:8pt; }
+  .nowrap{ white-space:nowrap; }
+  .mini{ font-size:7.6pt; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ░░ COUVERTURE ░░ -->
+<section class="cover">
+  <div class="pad">
+    <div class="brand">KREDO <small>Super-assistant ESN · Centre de profit</small></div>
+    <h1>Cartographie fonctionnelle<br>des workflows n8n</h1>
+    <div class="sub">Audit de l'existant, frontière d'orchestration, inventaire priorisé et roadmap réaliste pour une équipe solo.</div>
+    <span class="tag">Étude fonctionnelle — pas d'architecture technique détaillée</span>
+    <div class="meta">
+      <b>Version</b> 1.0 &nbsp;·&nbsp; <b>Date</b> 14 juin 2026 &nbsp;·&nbsp; <b>Horizon</b> jusqu'au 1ᵉʳ septembre 2026<br>
+      <b>Périmètre</b> 11 modules de navigation · ~45 workflows candidats · 34 tables Supabase live<br>
+      <b>Sources</b> dépôt local <code>kredo</code> · base live <code>jvzgmhvwirsbdkjpmvla</code> · docs/ADR · mémoire projet
+    </div>
+  </div>
+</section>
+
+<!-- ░░ SOMMAIRE ░░ -->
+<section>
+  <h2>Sommaire</h2>
+  <div class="toc-li"><span class="num">1</span><span class="t">Synthèse exécutive</span><span class="mini">verdict, maturité, risques</span></div>
+  <div class="toc-li"><span class="num">2</span><span class="t">Audit de l'état actuel &amp; écarts constatés</span><span class="mini">code · base · docs · vision</span></div>
+  <div class="toc-li"><span class="num">3</span><span class="t">Principes de cartographie retenus</span><span class="mini">frontière, mutualisation, notation</span></div>
+  <div class="toc-li"><span class="num">4</span><span class="t">Cartographie exhaustive des workflows</span><span class="mini">~45 fiches par famille</span></div>
+  <div class="toc-li"><span class="num">5</span><span class="t">Matrice de couverture fonctionnelle</span><span class="mini">par module</span></div>
+  <div class="toc-li"><span class="num">6</span><span class="t">Ce qui ne doit PAS devenir un workflow n8n</span><span class="mini">Next / Supabase / moteur métier</span></div>
+  <div class="toc-li"><span class="num">7</span><span class="t">Priorités (top 15, quick wins, fondations)</span><span class="mini"></span></div>
+  <div class="toc-li"><span class="num">8</span><span class="t">Roadmap par phases</span><span class="mini">fourchettes &amp; critères de sortie</span></div>
+  <div class="toc-li"><span class="num">9</span><span class="t">Prérequis structurants</span><span class="mini"></span></div>
+  <div class="toc-li"><span class="num">10</span><span class="t">Décisions à prendre (avec recommandation)</span><span class="mini"></span></div>
+  <div class="toc-li"><span class="num">11</span><span class="t">Conclusion</span><span class="mini">premier workflow · 3 capacités · à repousser</span></div>
+
+  <h3 style="margin-top:20px">Légende — statuts &amp; notation</h3>
+  <table class="legend tight">
+    <tr>
+      <td><span class="pill s-op">Opérationnel</span> live, données réelles</td>
+      <td><span class="pill s-pa">Partiel</span> une partie du parcours marche</td>
+      <td><span class="pill s-fa">Façade</span> UI présente, logique absente</td>
+    </tr>
+    <tr>
+      <td><span class="pill s-pl">Planifié</span> documenté / validé</td>
+      <td><span class="pill s-ev">Évoqué</span> discuté, non formalisé</td>
+      <td><span class="pill s-in">Inféré</span> nécessaire selon l'analyse</td>
+    </tr>
+  </table>
+  <table class="legend tight">
+    <thead><tr><th>Échelle</th><th>5</th><th>4</th><th>3</th><th>2</th><th>1</th></tr></thead>
+    <tbody>
+      <tr><td><b>Criticité</b></td><td>Critique / fondation</td><td>Élevée</td><td>Significative</td><td>Modérée</td><td>Faible</td></tr>
+      <tr><td><b>Valeur métier</b></td><td>Transformationnelle</td><td>Forte</td><td>Moyenne</td><td>Faible</td><td>Marginale</td></tr>
+    </tbody>
+  </table>
+  <p class="mini"><b>Effort</b> : XS (adaptation) · S (simple) · M (multi-étapes) · L (complexe/IA) · XL (chantier à découper).
+  &nbsp;<b>Priorité</b> : <span class="p0">P0</span> fondation bloquante · <span class="p1">P1</span> cœur de valeur · <span class="p2">P2</span> extension · <span class="p3">P3</span> différé.</p>
+</section>
+
+<!-- ░░ 1. SYNTHÈSE ░░ -->
+<section class="section">
+  <h2>1 · Synthèse exécutive</h2>
+  <p class="lead"><b>Verdict.</b> KREDO possède des <b>fondations data sérieuses</b> et un <b>cœur commercial réel</b> (Missions/Opps, Comptes &amp; Contacts en lecture live), mais la couche d'orchestration asynchrone — la promesse différenciante du produit — est <b>à 0 % en code</b>. Aucune route API, aucun <code>lib/n8n</code>, aucun aller-retour Front→n8n→Supabase→UI n'existe. La spécification est mûre (4 workflows du Cockpit Intelligence entièrement décrits, callback durci HMAC/idempotent acté dans l'ADR-0007), mais rien n'est branché.</p>
+
+  <div class="kpis">
+    <div class="kpi"><span class="n">0 %</span><span class="l">n8n implémenté en code</span></div>
+    <div class="kpi"><span class="n">~45</span><span class="l">workflows candidats</span></div>
+    <div class="kpi"><span class="n">34</span><span class="l">tables live (RLS 100 %)</span></div>
+    <div class="kpi"><span class="n">~3</span><span class="l">vraiment prioritaires (P0)</span></div>
+  </div>
+
+  <h4>Niveau de maturité</h4>
+  <p>Fin de Phase 0, ~40 % de Phase 1 (cohérent avec la roadmap du dépôt). Le moteur d'intelligence (3 tables <code>ai_intelligence_*</code>) est posé et porte 4 résultats (diagnostics process importés manuellement, pas des runs live). Le référentiel offres + grille tarifaire (120 lignes) + fiches métier est tout neuf, et <b>pgvector 0.8.0 est déjà installé</b> — en avance sur la documentation.</p>
+
+  <h4>Principaux domaines de valeur (par ROI décroissant pour une ESN)</h4>
+  <ol>
+    <li><b>Client &amp; Prospection Intelligence</b> — étude sectorielle mutualisée, qualification de signal, rédaction assistée (pitch/synthèse/campagne). Le moat : grounding sur les données KREDO réelles.</li>
+    <li><b>Recrutement &amp; matching pgvector</b> — ingestion CV → vectorisation → scoring explicable. Capacité réutilisable par le Staffing.</li>
+    <li><b>Proposal Intelligence + RAG</b> — exploitation de ~100 offres pour pré-rédiger une proposition. Forte valeur, fortes dépendances (Knowledge Hub).</li>
+  </ol>
+
+  <h4>Risques majeurs</h4>
+  <ul>
+    <li><b>Chaîne jamais éprouvée</b> (R5) : tant qu'un aller-retour complet n'existe pas, toute phase IA repose sur du vide. <span class="crit">Risque n°1.</span></li>
+    <li><b>Dispersion</b> : 36 sous-pages <code>comingSoon</code> vs capacité solo (~8 semaines). Le périmètre est une vision, pas un engagement.</li>
+    <li><b>Dette de cohérence</b> : drift docs (Next 15 vs 16.2.7 ; « multi-tenant écarté » vs workspaces actifs) et <b>drift migrations</b> (numéros 018/019 en collision local↔remote, <code>010_sector_intelligence</code> absent du dépôt).</li>
+    <li><b>Dépendance FOLIO</b> : l'autonomie suppose un backfill ETL one-shot + rotation de secrets exposés.</li>
+  </ul>
+
+  <h4>Recommandation de séquencement (résumé)</h4>
+  <p>Construire d'abord les <b>3 fondations invisibles</b> (passerelle de déclenchement, callback durci, sous-workflow de cycle de vie de run), prouvées par <b>un cas trivial</b> (enrichissement d'interaction). Puis industrialiser, dans l'ordre : <b>étude sectorielle mutualisée → rédaction assistée → qualification de signal → recrutement/matching</b>. Repousser explicitement : Knowledge RAG complet, Finance au-delà du moteur de calcul, copilot transverse, sync Salesforce.</p>
+</section>
+
+<!-- ░░ 2. AUDIT ░░ -->
+<section class="section">
+  <h2>2 · Audit de l'état actuel &amp; écarts</h2>
+
+  <h3>2.1 Réellement opérationnel (live)</h3>
+  <ul>
+    <li>Auth + protection des routes (<code>proxy.ts</code>, <code>getClaims</code>), login/logout.</li>
+    <li>Base live <b>34 tables</b> RLS active, multi-tenant <code>workspace_id</code> + <code>current_workspace_id()</code> + <code>is_workspace_admin()</code>.</li>
+    <li>Module <b>Missions &amp; Opps</b> (le pivot) branché live : liste, actives, planning, fiche détail, édition/création inline, CRA (80 lignes), CJM/marge en colonnes générées.</li>
+    <li><b>Prospection › Comptes &amp; Contacts &amp; Études</b> : lecture live <code>companies</code>(95)/<code>contacts</code>(643)/<code>persons</code>(659).</li>
+    <li><b>Référentiels</b> : offres (5 practices/4 offres/5 engagements), grille tarifaire TJM (120 lignes), fiches métier (6), compétences (77), person_skills (75).</li>
+  </ul>
+
+  <h3>2.2 Partiel</h3>
+  <ul>
+    <li><b>Client Intelligence Hub</b> : page <code>/prospection/accounts/[companyId]</code> lit <code>ai_intelligence_results.content_json</code> + fallback <code>companies.metadata</code> ; 4 résultats présents = <b>diagnostics process importés à la main</b> (migrations 011-013), pas des runs n8n. Phase 1 (analyse client) vit en <code>metadata</code> (héritage FOLIO).</li>
+    <li><b>Synthèse Prospection</b> : agrégats réels Supabase (cycle de vie, pipeline pondéré) ; le radar de signaux reste mock (pas de table <code>signals</code>).</li>
+  </ul>
+
+  <h3>2.3 Façade (UI sans logique)</h3>
+  <ul>
+    <li>Dashboards d'<b>overview</b> de Cockpit, Finance, Proposals, Knowledge, Automations, Staffing, Consultants, Recrutement (config-driven sur <code>mock-dashboard-data</code>).</li>
+    <li><b>4 drawers d'actions rapides</b> du Hub (refresh / pitch-mail / synthèse / campagne) : formulaires complets, mais <i>« payload préparé pour le branchement futur n8n »</i> — aucun <code>fetch</code>, aucune route.</li>
+    <li>Tables <b>sector_intelligence</b> (5 tables, migration 010) : schéma prêt, <code>sector_news</code> annotée <i>« insérées exclusivement par n8n via webhook »</i> — <b>0 ligne</b>.</li>
+  </ul>
+
+  <h3>2.4 Prévu (documenté/validé, non implémenté)</h3>
+  <ul>
+    <li>4 workflows Cockpit (<code>docs/client-intelligence-workflows.md</code>) : contrats payload, sécurité, routes <code>/api/intelligence/...</code>, persistance — tout spécifié.</li>
+    <li>Orchestration hybride durcie ADR-0007 (worker n8n + prompts/Zod in-repo + callback HMAC/idempotent/service-role).</li>
+    <li>Recrutement pgvector (K-030/031), moteur financier isolé <code>lib/finance/</code> (K-040).</li>
+  </ul>
+
+  <h3>2.5 Manquant</h3>
+  <ul>
+    <li><code>src/app/api/</code> <b>vide</b> · pas de <code>lib/n8n/</code> · pas de <code>lib/finance/</code> · pas de Realtime · pas de catalogue d'outils · pas de monitoring.</li>
+    <li>pg_cron / pg_net <b>non installés</b> (disponibles) → la planification devra venir des crons n8n, pas de la base, en V1.</li>
+  </ul>
+
+  <h3 style="color:var(--crit)">2.6 Écarts &amp; incohérences constatés</h3>
+  <table class="tight">
+    <thead><tr><th style="width:20%">Sujet</th><th>Réalité (code/base)</th><th>Documentation</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Version Next.js</td><td><code>next 16.2.7</code> (package.json)</td><td>ARCHITECTURE.md &amp; D-04 : « Next.js 15 »</td><td>Doc obsolète — corriger</td></tr>
+      <tr><td>Multi-tenant</td><td>Tables <code>workspaces</code>/<code>profiles</code> actives, RLS workspace partout</td><td>D-07 : « Multi-tenant écarté, pas de table workspaces »</td><td>Contradiction majeure — pivot non journalisé en ADR</td></tr>
+      <tr><td>Préfixes de tables</td><td><code>companies</code>, <code>opportunities</code> (sans préfixe)</td><td>STRUCTURE.md/ARCHITECTURE : <code>crm_</code>, <code>sales_</code></td><td>Doc obsolète</td></tr>
+      <tr><td>pgvector</td><td><b>Installé</b> (0.8.0), <code>job_profiles.embedding</code> existe (0 peuplé)</td><td>« réservé Phase 3 / prévu »</td><td>En avance — re-documenter</td></tr>
+      <tr><td>Nb de tables</td><td>34 live</td><td>CLAUDE.md : 28</td><td>Sous-évalué (+ sector_*, offers, job_profiles)</td></tr>
+      <tr><td>Migrations</td><td>Remote a <code>010_sector_intelligence</code>, <code>020-023</code> ; deux <code>018</code> &amp; deux <code>019</code> (sens différents)</td><td>Dépôt : <code>010_normalize_contact</code>, fichiers 004/007/011-014 hors historique remote</td><td><b>Drift migrations</b> — renuméroter/réconcilier avant toute nouvelle</td></tr>
+      <tr><td>Échelle de score IA</td><td>UI affiche /10 ; payloads exemple <code>aiScore 8.5</code></td><td>ADR-0007 : 1–10 ; open question /5 non tranchée</td><td>À trancher (reco : 1–10)</td></tr>
+      <tr><td>URL n8n</td><td><code>N8N_WEBHOOK_BASE_URL</code> = VPS réel en <code>.env</code></td><td>« infra non connectée »</td><td>Infra prête, code absent</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ░░ 3. PRINCIPES ░░ -->
+<section class="section">
+  <h2>3 · Principes de cartographie retenus</h2>
+  <h3>Frontière n8n (test à 4 questions)</h3>
+  <p>Un candidat devient workflow n8n <b>seulement si</b> il coche au moins une réponse « oui » : (1) durée &gt; ~15 s (timeout Vercel) ? (2) appel externe / LLM / scraping / vectorisation ? (3) planifié (cron) ou multi-étapes avec attente ? (4) intégration tierce nécessitant des secrets serveur ? Sinon → Next.js (CRUD), Supabase (relationnel/déterministe), ou moteur métier (calcul testable).</p>
+  <h3>Mutualisation</h3>
+  <p>On distingue <b>4 sous-workflows réutilisables</b> (passerelle, callback, cycle de vie de run, appel LLM mutualisé) que <b>tous</b> les workflows métier appellent — au lieu de recâbler la plomberie à chaque page. Le moteur de <b>matching</b> est unique et sert recrutement <i>et</i> staffing. Le scan d'<b>échéances de mission</b> est unique et alimente Missions, Staffing et Consultants. On ne fusionne jamais deux processus aux cycles de vie distincts.</p>
+  <h3>Classification &amp; notation</h3>
+  <p>Statuts en 7 niveaux (de Opérationnel à Hors périmètre) ; criticité et valeur sur 5 ; effort XS→XL ; priorité <b>non</b> dérivée d'une multiplication mais d'un jugement intégrant dépendances, réduction de risque, time-to-value, réutilisabilité, maturité des données et capacité solo.</p>
+</section>
+
+<!-- ░░ 4. CARTOGRAPHIE (landscape) ░░ -->
+<section class="landscape">
+  <h2>4 · Cartographie exhaustive — fondations &amp; transverses</h2>
+  <table class="tight">
+    <thead><tr>
+      <th class="nowrap">ID</th><th>Nom</th><th>Statut</th><th>Déclencheur</th><th>Résultat</th><th>Justification n8n</th>
+      <th>Dépend de</th><th>Val.</th><th>Crit.</th><th>Eff.</th><th>Prio.</th><th>Conf.</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>CORE-001</td><td>Passerelle de déclenchement de run (Next→n8n)</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI / event Supabase</td><td>Run créé + accusé 202</td><td>Point d'entrée unique sécurisé (HMAC, auth, RLS) vers tout worker long</td><td>—</td><td>5</td><td>5</td><td>S</td><td class="p0">P0</td><td>Forte</td></tr>
+      <tr><td>CORE-002</td><td>Callback de persistance durci</td><td><span class="pill s-pl">Planifié</span></td><td>Fin de worker n8n</td><td>Écriture <code>results</code> validée Zod, idempotente</td><td>Service-role, HMAC, <code>UNIQUE(run_id,phase)</code> — hors RLS, non faisable en route synchrone</td><td>CORE-001</td><td>5</td><td>5</td><td>M</td><td class="p0">P0</td><td>Forte</td></tr>
+      <tr><td>CORE-003</td><td>Orchestrateur générique cycle de vie de run</td><td><span class="pill s-in">Inféré</span></td><td>Appelé par tout workflow métier</td><td>États queued→running→succeeded/failed + logs</td><td>Sous-workflow réutilisable : statut, retries, coûts, traçabilité mutualisés</td><td>CORE-002</td><td>4</td><td>5</td><td>M</td><td class="p0">P0</td><td>Moyenne</td></tr>
+      <tr><td>CORE-004</td><td>Appel LLM mutualisé (coûts/tokens/retry)</td><td><span class="pill s-in">Inféré</span></td><td>Appelé par tout workflow IA</td><td>Réponse LLM + log coût/token</td><td>Maîtrise des coûts &amp; fournisseur centralisée ; évite la duplication de config par workflow</td><td>CORE-003</td><td>4</td><td>4</td><td>M</td><td class="p1">P1</td><td>Moyenne</td></tr>
+      <tr><td>OPS-001</td><td>Digest périodique &amp; comptes-rendus</td><td><span class="pill s-ev">Évoqué</span></td><td>Cron (quotidien/hebdo)</td><td>Synthèse → notification + <code>tasks</code></td><td>Planifié, agrège plusieurs domaines, hors requête utilisateur</td><td>CORE-003</td><td>3</td><td>2</td><td>M</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>OPS-002</td><td>Alerting centralisé</td><td><span class="pill s-in">Inféré</span></td><td>Cron / seuils</td><td>Alertes (fin mission, écart, signal)</td><td>Surveillance planifiée multi-source ; sinon dispersé en N crons</td><td>CORE-003</td><td>3</td><td>3</td><td>M</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>OPS-003</td><td>Monitoring exécutions &amp; coûts IA (feed Automations)</td><td><span class="pill s-in">Inféré</span></td><td>Event fin de run / cron</td><td>Registre métier des runs &amp; coûts</td><td>Consolide l'historique n8n dans Supabase pour la page Automations</td><td>CORE-003</td><td>2</td><td>2</td><td>S</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>OPS-004</td><td>Reprise sur incident / relance runs échoués</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Re-exécution idempotente des <code>failed</code></td><td>Résilience planifiée ; s'appuie sur l'idempotence CORE-002</td><td>CORE-002</td><td>2</td><td>3</td><td>S</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>CORE-006</td><td>Copilot transverse (orchestration par intention)</td><td><span class="pill s-ev">Évoqué</span></td><td>Requête langage naturel (header)</td><td>Action cross-domaine + deep-link</td><td>Routage multi-outils + jointures ; suppose catalogue d'outils mûr</td><td>tous</td><td>4</td><td>2</td><td>XL</td><td class="p3">P3</td><td>Faible</td></tr>
+    </tbody>
+  </table>
+  <p class="mini">Les sous-workflows CORE-001→004 sont la « plomberie invisible » : faibles en visibilité, maximaux en criticité. Tout le reste de la cartographie en dépend.</p>
+</section>
+
+<section class="landscape">
+  <h2>4 · Missions &amp; Opps · Prospection · Client Intelligence</h2>
+  <table class="tight">
+    <thead><tr>
+      <th class="nowrap">ID</th><th>Nom</th><th>Statut</th><th>Déclencheur</th><th>Résultat</th><th>Justification n8n</th>
+      <th>Dépend de</th><th>Val.</th><th>Crit.</th><th>Eff.</th><th>Prio.</th><th>Conf.</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>SALES-001</td><td>Enrichissement d'interaction (1ʳᵉ preuve E2E)</td><td><span class="pill s-pl">Planifié</span></td><td>Création interaction (UI)</td><td>Interaction enrichie réécrite + Realtime</td><td>Cas trivial qui <b>prouve la chaîne</b> Front→n8n→Supabase→UI (K-014/R5)</td><td>CORE-001/002</td><td>3</td><td>4</td><td>S</td><td class="p0">P0</td><td>Forte</td></tr>
+      <tr><td>SALES-002</td><td>Scan échéances mission (fin / intercontrat)</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Alertes + <code>tasks</code> (mutualisé Staffing/Consultants)</td><td>Balayage planifié des dates de fin ; un seul workflow pour 3 domaines</td><td>OPS-002</td><td>4</td><td>3</td><td>M</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>SALES-003 / INT-001</td><td>Synchronisation CRM Salesforce</td><td><span class="pill s-ev">Évoqué</span></td><td>Cron + event bidirectionnel</td><td>Comptes/opps synchronisés</td><td>Intégration tierce, mapping, secrets, gros volumes — typiquement n8n</td><td>CORE-003</td><td>3</td><td>2</td><td>L</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>INTEL-001</td><td>Qualification de signal</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI / nouveau signal</td><td>Signal scoré + reco d'action</td><td>LLM + grounding données KREDO ; long (K-020)</td><td>CORE-004</td><td>4</td><td>3</td><td>M</td><td class="p1">P1</td><td>Moyenne</td></tr>
+      <tr><td>INTEL-002</td><td>Veille marché &amp; détection de signaux</td><td><span class="pill s-pl">Planifié</span></td><td>Cron (scraping/flux)</td><td>Insertion <code>sector_news</code>/<code>sector_events</code></td><td>Scraping + LLM planifié ; schéma déjà prévu « inséré par n8n »</td><td>CORE-004</td><td>4</td><td>2</td><td>L</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>INTEL-003</td><td>Enrichissement comptes &amp; contacts</td><td><span class="pill s-ev">Évoqué</span></td><td>Action UI / cron</td><td>Firmographie + contacts enrichis</td><td>Appels API externes + dédup ; hors timeout</td><td>CORE-004</td><td>3</td><td>2</td><td>M</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>INTEL-004</td><td>Détection changements de poste</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Alerte contact + opportunité</td><td>Veille externe planifiée ; trigger commercial fort en ESN</td><td>INTEL-002</td><td>3</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>INTEL-010</td><td>client_intelligence_refresh</td><td><span class="pill s-pl">Planifié</span></td><td>Action rapide « Mettre à jour »</td><td>Signaux + scan contacts + score IA</td><td>Multi-étapes (collecte + LLM + scoring) ; spécifié</td><td>CORE-004,INTEL-002/011</td><td>4</td><td>3</td><td>L</td><td class="p1">P1</td><td>Forte</td></tr>
+      <tr><td>INTEL-011</td><td>Étude sectorielle mutualisée (Phase 2)</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI / cron secteur</td><td><code>sector_intelligence</code> par secteur</td><td>LLM lourd, <b>mutualisé par secteur</b> (coût ÷5) ; clé d'autonomie FOLIO (K-065)</td><td>CORE-004</td><td>5</td><td>4</td><td>L</td><td class="p1">P1</td><td>Forte</td></tr>
+      <tr><td>INTEL-012</td><td>Analyse client autonome (Phase 1)</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI</td><td>Analyse client regénérée (≠ héritage FOLIO)</td><td>LLM long + grounding ; remplace l'import FOLIO</td><td>CORE-004</td><td>4</td><td>3</td><td>L</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>INTEL-013</td><td>Roadmap → matérialisation opps/tâches (Phase 4)</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI</td><td><code>opportunities</code>/<code>tasks</code> réelles</td><td>Croise enjeux×offres puis écrit le CRM — boucle de valeur (K-067)</td><td>INTEL-011, offers</td><td>5</td><td>3</td><td>L</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>INTEL-014</td><td>Diagnostic process (Phase 3)</td><td><span class="pill s-ev">Évoqué</span></td><td>Action UI / upload</td><td>Diagnostic structuré</td><td>LLM long ; jugé le moins fiable → reporté en dernier (ADR-0007)</td><td>CORE-004</td><td>3</td><td>2</td><td>L</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>INTEL-015</td><td>Backfill ETL FOLIO (one-shot)</td><td><span class="pill s-pl">Planifié</span></td><td>Manuel (Lot 0.5)</td><td>~81 sectorielles + 38 pitchs rapatriés</td><td>Migration cross-projet ponctuelle ; débloque l'affichage avant autonomie</td><td>CORE-002</td><td>4</td><td>3</td><td>M</td><td class="p1">P1</td><td>Forte</td></tr>
+      <tr><td>INTEL-020</td><td>pitch_mail_generation (rédaction assistée)</td><td><span class="pill s-pl">Planifié</span></td><td>Drawer « pitch/mail »</td><td>Message contextualisé (<code>result_type=pitch</code>)</td><td>LLM ; fonction <b>transverse</b> (Hub + Proposals + Suivi)</td><td>CORE-004</td><td>4</td><td>3</td><td>M</td><td class="p1">P1</td><td>Forte</td></tr>
+      <tr><td>INTEL-021</td><td>client_summary_generation</td><td><span class="pill s-pl">Planifié</span></td><td>Drawer « synthèse »</td><td>Fiche de synthèse exécutive</td><td>LLM de consolidation multi-source</td><td>INTEL-020</td><td>3</td><td>2</td><td>M</td><td class="p2">P2</td><td>Forte</td></tr>
+      <tr><td>INTEL-022</td><td>campaign_creation</td><td><span class="pill s-pl">Planifié</span></td><td>Drawer « campagne »</td><td>Séquence multi-canal</td><td>LLM + futur connecteur emailing</td><td>INTEL-020, INT-002</td><td>3</td><td>2</td><td>M</td><td class="p2">P2</td><td>Forte</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="landscape">
+  <h2>4 · Proposal · Recrutement · Staffing · Consultants · Finance · Knowledge · Intégrations</h2>
+  <table class="tight">
+    <thead><tr>
+      <th class="nowrap">ID</th><th>Nom</th><th>Statut</th><th>Déclencheur</th><th>Résultat</th><th>Justification n8n</th>
+      <th>Dépend de</th><th>Val.</th><th>Crit.</th><th>Eff.</th><th>Prio.</th><th>Conf.</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>PROP-001</td><td>Ingestion &amp; analyse de cahier des charges</td><td><span class="pill s-ev">Évoqué</span></td><td>Upload RFP</td><td>Exigences extraites + zones d'ambiguïté</td><td>Parsing doc + LLM long</td><td>CORE-004</td><td>4</td><td>3</td><td>L</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>PROP-002</td><td>Recherche RAG bibliothèque d'offres</td><td><span class="pill s-ev">Évoqué</span></td><td>Action atelier réponse</td><td>Passages pertinents (≈100 offres)</td><td>Vectorisation + retrieval ; dépend du corpus</td><td>KNOW-001</td><td>5</td><td>3</td><td>L</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>PROP-003</td><td>Génération de proposition assistée</td><td><span class="pill s-ev">Évoqué</span></td><td>Action atelier réponse</td><td>V1 de proposition (validation humaine)</td><td>LLM long sur contexte RAG + solution design</td><td>PROP-001/002</td><td>5</td><td>3</td><td>XL</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>PROP-005</td><td>Analyse Win/Loss (capitalisation)</td><td><span class="pill s-in">Inféré</span></td><td>Cron / clôture opp</td><td>Insights forces/faiblesses</td><td>Agrégation + LLM sur historique</td><td>CORE-004</td><td>3</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>REC-001</td><td>Ingestion &amp; parsing CV</td><td><span class="pill s-pl">Planifié</span></td><td>Upload CV</td><td><code>candidates</code> + compétences extraites</td><td>Parsing + LLM ; hors timeout (K-030)</td><td>CORE-004</td><td>4</td><td>3</td><td>L</td><td class="p2">P2</td><td>Forte</td></tr>
+      <tr><td>REC-002</td><td>Vectorisation profils &amp; besoins</td><td><span class="pill s-pl">Planifié</span></td><td>Après parsing / maj besoin</td><td>Embeddings → pgvector</td><td>Calcul d'embeddings par lots</td><td>REC-001</td><td>4</td><td>3</td><td>M</td><td class="p2">P2</td><td>Forte</td></tr>
+      <tr><td>REC-003</td><td>Matching IA &amp; scoring explicable</td><td><span class="pill s-pl">Planifié</span></td><td>Action UI / nouveau besoin</td><td><code>match_scores</code> classés</td><td>Recherche vectorielle + scoring versionné (K-031)</td><td>REC-002</td><td>5</td><td>3</td><td>L</td><td class="p2">P2</td><td>Forte</td></tr>
+      <tr><td>REC-004</td><td>Détection de doublons candidats</td><td><span class="pill s-in">Inféré</span></td><td>À l'ingestion</td><td>Fusion / flag doublon</td><td>Similarité (trgm/embeddings) — peut rester sous-étape de REC-001</td><td>REC-002</td><td>3</td><td>3</td><td>S</td><td class="p2">P2</td><td>Moyenne</td></tr>
+      <tr><td>REC-006</td><td>Comptes-rendus d'entretien</td><td><span class="pill s-ev">Évoqué</span></td><td>Upload audio/notes</td><td>CR structuré</td><td>Transcription + LLM</td><td>CORE-004</td><td>3</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>REC-007</td><td>Relances pipeline &amp; actualisation viviers</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Relances + profils rafraîchis</td><td>Planifié, multi-candidats</td><td>OPS-001</td><td>2</td><td>2</td><td>S</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>STAFF-001</td><td>Suggestions de profils (= moteur REC-003)</td><td><span class="pill s-in">Inféré</span></td><td>Demande de staffing</td><td>Collaborateurs adéquats classés</td><td><b>Réutilise REC-003</b> sur le corpus interne — pas un nouveau workflow</td><td>REC-003</td><td>4</td><td>3</td><td>S</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>STAFF-002</td><td>Alertes capacité &amp; sortie de mission</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Alertes sous/sur-capacité</td><td><b>Réutilise SALES-002</b> + projection capacité</td><td>SALES-002</td><td>3</td><td>2</td><td>S</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>CONS-001</td><td>Maj/enrichissement profils &amp; synthèses</td><td><span class="pill s-in">Inféré</span></td><td>Cron / action</td><td>Profils à jour + synthèse périodique</td><td>LLM + agrégation planifiée</td><td>CORE-004</td><td>2</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>FIN-001</td><td>Forecast CA/marge &amp; probabilisation</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Snapshot forecast persisté + alertes</td><td>n8n <b>planifie et persiste</b> ; le <b>calcul reste dans le moteur métier</b></td><td>moteur finance</td><td>4</td><td>3</td><td>M</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>FIN-003</td><td>Rapports financiers périodiques</td><td><span class="pill s-in">Inféré</span></td><td>Cron mensuel</td><td>Rapport / CR diffusé</td><td>Génération planifiée + diffusion</td><td>FIN-001</td><td>2</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>KNOW-001</td><td>Pipeline d'ingestion documentaire</td><td><span class="pill s-ev">Évoqué</span></td><td>Import / upload</td><td>chunks + métadonnées + embeddings indexés</td><td>parse→chunk→embed→index : long, par lots ; fondation RAG</td><td>CORE-004</td><td>4</td><td>3</td><td>L</td><td class="p3">P3</td><td>Moyenne</td></tr>
+      <tr><td>KNOW-002</td><td>Réindexation &amp; contrôle fraîcheur/qualité</td><td><span class="pill s-in">Inféré</span></td><td>Cron</td><td>Corpus réindexé, fraîcheur contrôlée</td><td>Maintenance planifiée du corpus vectoriel</td><td>KNOW-001</td><td>2</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>INT-002</td><td>Connecteur email / séquences</td><td><span class="pill s-in">Inféré</span></td><td>Étape de campagne</td><td>Emails envoyés / suivis</td><td>Intégration messagerie + cadencement</td><td>INTEL-022</td><td>3</td><td>2</td><td>M</td><td class="p3">P3</td><td>Faible</td></tr>
+      <tr><td>INT-003</td><td>Connecteur calendrier (entretiens)</td><td><span class="pill s-in">Inféré</span></td><td>Planif. entretien</td><td>Créneaux synchronisés</td><td>Intégration tierce</td><td>CORE-003</td><td>2</td><td>1</td><td>S</td><td class="p3">P3</td><td>Faible</td></tr>
+    </tbody>
+  </table>
+  <p class="mini"><b>Dédoublonnages signalés :</b> STAFF-001 ≡ REC-003 (même moteur de matching, corpus interne) · STAFF-002 ≡ SALES-002 (scan échéances mutualisé Missions/Staffing/Consultants) · SALES-003 ≡ INT-001 (Salesforce). Ne pas créer de workflows distincts.</p>
+</section>
+
+<!-- ░░ 5. MATRICE ░░ -->
+<section class="landscape">
+  <h2>5 · Matrice de couverture fonctionnelle</h2>
+  <table class="tight">
+    <thead><tr><th>Module / page</th><th>Processus attendus</th><th>Workflows associés</th><th>Couverture</th><th>Lacunes / doublons</th></tr></thead>
+    <tbody>
+      <tr><td><b>Cockpit</b></td><td>Agrégation pilotage, alertes, synthèses</td><td>OPS-001/002, FIN-001</td><td>Façade (mock)</td><td>Dépend d'agrégats réels (post-finance) ; pas de n8n pour l'affichage</td></tr>
+      <tr><td><b>Missions &amp; Opps</b></td><td>CRUD, transitions, P&amp;L, anticipation fin</td><td>SALES-001/002</td><td>Live (CRUD) ; n8n absent</td><td>Transitions/P&amp;L = Next/Supabase, <b>pas n8n</b></td></tr>
+      <tr><td><b>Prospection › Synthèse</b></td><td>Agrégats portefeuille, radar signaux</td><td>INTEL-002</td><td>Partiel (agrégats live, radar mock)</td><td>Table <code>signals</code> manquante</td></tr>
+      <tr><td><b>Prospection › Comptes</b></td><td>Lecture, enrichissement, priorisation</td><td>INTEL-003/004</td><td>Live (lecture) ; enrichissement absent</td><td>CRUD écriture = Next (K-010), pas n8n</td></tr>
+      <tr><td><b>Prospection › Études</b></td><td>Études sectorielles</td><td>INTEL-011</td><td>Façade (0 ligne sector_*)</td><td>Chemin critique d'autonomie FOLIO</td></tr>
+      <tr><td><b>Client Intelligence Hub</b></td><td>10+ processus (analyse, scoring, roadmap, pitch, veille)</td><td>INTEL-010→022, INTEL-015</td><td>Partiel (lecture) ; 4 actions en façade</td><td>Cœur de valeur ; scoring déterministe = <b>moteur métier</b> pas n8n</td></tr>
+      <tr><td><b>Proposal Intelligence</b></td><td>RFP, exigences, RAG, génération, win/loss</td><td>PROP-001/002/003/005</td><td>Façade (9 sous-pages)</td><td>Dépend du Knowledge Hub ; chiffrage = déterministe</td></tr>
+      <tr><td><b>Staffing</b></td><td>Besoins, dispo, suggestions, capacité</td><td>STAFF-001(=REC-003), STAFF-002(=SALES-002)</td><td>Façade</td><td>Aucun workflow propre — mutualisation</td></tr>
+      <tr><td><b>Consultants</b></td><td>Profils, dispo, alertes, synthèses</td><td>CONS-001, SALES-002</td><td>Façade</td><td>Gestion = CRUD ; n8n minoritaire</td></tr>
+      <tr><td><b>Recrutement</b></td><td>Ingestion, parsing, matching, scoring, viviers</td><td>REC-001→007</td><td>Façade (candidates=0)</td><td>2ᵉ pôle de valeur ; pgvector prêt</td></tr>
+      <tr><td><b>Finance &amp; Delivery</b></td><td>P&amp;L, forecast, marge, alertes, rapports</td><td>FIN-001/003</td><td>Façade</td><td><b>Calcul = moteur métier isolé</b> ; n8n = cron + alertes</td></tr>
+      <tr><td><b>Knowledge Hub</b></td><td>Ingestion, RAG, recherche, fraîcheur</td><td>KNOW-001/002</td><td>Façade (9 sous-pages)</td><td>Recherche sémantique = Supabase, pas n8n</td></tr>
+      <tr><td><b>Automations</b></td><td>Catalogue, exécutions, incidents, coûts</td><td>OPS-003/004</td><td>Façade</td><td>V1 = n8n direct + registre minimal Supabase</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ░░ 6. PAS n8n ░░ -->
+<section class="section">
+  <h2>6 · Ce qui ne doit PAS devenir un workflow n8n</h2>
+  <table>
+    <thead><tr><th style="width:22%">Fonction</th><th style="width:18%">Doit vivre dans</th><th>Pourquoi</th></tr></thead>
+    <tbody>
+      <tr><td>CRUD comptes/contacts/opportunités, transitions de stage</td><td>Next.js (Server Actions) + Supabase RLS</td><td>Court, transactionnel, déjà sécurisé par RLS. n8n n'apporterait que latence et complexité.</td></tr>
+      <tr><td>Calcul marge / TJM / CJM / pipe pondéré / forecast</td><td>Moteur métier <code>lib/finance/</code> + colonnes générées</td><td>Déterministe, testable unitairement, doit survivre à un changement de schéma (D-10). <b>n8n ne doit jamais être le moteur de calcul financier.</b></td></tr>
+      <tr><td>Scoring IA (note finale 1–10)</td><td>Fonction Postgres/in-repo déterministe versionnée</td><td>Le LLM note des facettes ; KREDO calcule. Reproductible et explicable (ADR-0007).</td></tr>
+      <tr><td>Recherche sémantique / requête vectorielle</td><td>Supabase pgvector (lecture via Next)</td><td>Une requête <code>SELECT … ORDER BY embedding</code> — pas une orchestration. n8n sert à <b>produire</b> les embeddings, pas à les interroger.</td></tr>
+      <tr><td>Agrégats de dashboard, KPI, filtres</td><td>Vues/requêtes Supabase + Next</td><td>Lecture relationnelle. Passer à des vues SQL à l'échelle, pas à n8n.</td></tr>
+      <tr><td>Validation de formulaire, upload de fichier brut</td><td>Next.js + Supabase Storage</td><td>Synchrone et léger ; n8n démarre seulement au traitement (parsing, embedding).</td></tr>
+      <tr><td>Idempotence / RLS / audit / <code>updated_at</code></td><td>Supabase (contraintes, triggers, policies)</td><td>Garanties de la base, pas d'un orchestrateur externe.</td></tr>
+      <tr><td>Décisions de staffing, validation de proposition, envoi commercial</td><td>Action humaine</td><td>Validation humaine systématique : n8n prépare, l'humain tranche.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ░░ 7. PRIORITÉS ░░ -->
+<section class="section">
+  <h2>7 · Priorités</h2>
+  <h3>Top 15 (ordre de construction recommandé)</h3>
+  <table class="tight">
+    <thead><tr><th>#</th><th>ID</th><th>Workflow</th><th>Pourquoi maintenant</th><th>Prio.</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>CORE-001</td><td>Passerelle de déclenchement</td><td>Rien ne part sans le point d'entrée sécurisé</td><td class="p0">P0</td></tr>
+      <tr><td>2</td><td>CORE-002</td><td>Callback durci</td><td>Rien ne revient sans le récepteur idempotent</td><td class="p0">P0</td></tr>
+      <tr><td>3</td><td>CORE-003</td><td>Cycle de vie de run</td><td>Statut/retry/coûts mutualisés</td><td class="p0">P0</td></tr>
+      <tr><td>4</td><td>SALES-001</td><td>Enrichissement interaction</td><td><b>Preuve E2E</b> sur un cas trivial (dérisque tout)</td><td class="p0">P0</td></tr>
+      <tr><td>5</td><td>CORE-004</td><td>Appel LLM mutualisé</td><td>Coûts &amp; provider centralisés avant le 1ᵉʳ vrai LLM</td><td class="p1">P1</td></tr>
+      <tr><td>6</td><td>INTEL-015</td><td>Backfill ETL FOLIO</td><td>Remplit le Hub avant de générer (one-shot)</td><td class="p1">P1</td></tr>
+      <tr><td>7</td><td>INTEL-011</td><td>Étude sectorielle mutualisée</td><td>Valeur max / coût ÷5 / autonomie FOLIO</td><td class="p1">P1</td></tr>
+      <tr><td>8</td><td>INTEL-020</td><td>Rédaction pitch/mail</td><td>Fonction transverse très demandée, effort M</td><td class="p1">P1</td></tr>
+      <tr><td>9</td><td>INTEL-010</td><td>client_intelligence_refresh</td><td>Active l'action rapide phare du Hub</td><td class="p1">P1</td></tr>
+      <tr><td>10</td><td>INTEL-001</td><td>Qualification de signal</td><td>Branche la Prospection sur du réel</td><td class="p1">P1</td></tr>
+      <tr><td>11</td><td>REC-001</td><td>Ingestion/parsing CV</td><td>Ouvre le 2ᵉ pôle de valeur</td><td class="p2">P2</td></tr>
+      <tr><td>12</td><td>REC-002/003</td><td>Vectorisation + matching</td><td>Cœur recrutement (pgvector prêt)</td><td class="p2">P2</td></tr>
+      <tr><td>13</td><td>INTEL-013</td><td>Roadmap → opps/tâches</td><td>Boucle CRM = preuve de valeur business</td><td class="p2">P2</td></tr>
+      <tr><td>14</td><td>INTEL-002</td><td>Veille &amp; signaux (cron)</td><td>Alimente sector_news/events</td><td class="p2">P2</td></tr>
+      <tr><td>15</td><td>INTEL-021/022</td><td>Synthèse + campagne</td><td>Complète la rédaction assistée</td><td class="p2">P2</td></tr>
+    </tbody>
+  </table>
+  <div class="kpis">
+    <div class="kpi"><span class="l" style="color:var(--ok);font-weight:700">QUICK WINS</span>
+      <p class="mini" style="margin:4px 0 0">SALES-001 (preuve E2E) · INTEL-015 (backfill) · INTEL-020 (pitch, réutilisé partout) · STAFF-001/002 (gratuits via mutualisation).</p></div>
+    <div class="kpi" style="border-left-color:var(--navy)"><span class="l" style="color:var(--navy);font-weight:700">FONDATIONS INVISIBLES</span>
+      <p class="mini" style="margin:4px 0 0">CORE-001/002/003/004 + catalogue d'outils + deep-links. Faible visibilité, criticité maximale.</p></div>
+    <div class="kpi" style="border-left-color:var(--accent)"><span class="l" style="color:var(--accent);font-weight:700">VALEUR MAIS À DIFFÉRER</span>
+      <p class="mini" style="margin:4px 0 0">PROP-002/003 (RAG, dépend du corpus) · CORE-006 (copilot) · INT-001 (Salesforce) · FIN-003 · KNOW complet.</p></div>
+  </div>
+</section>
+
+<!-- ░░ 8. ROADMAP ░░ -->
+<section class="section">
+  <h2>8 · Roadmap par phases</h2>
+  <p class="mini">Capacité solo ~8 semaines productives d'ici le 1ᵉʳ sept. La cible affichée (10 phases) est irréaliste : on vise un <b>MVP d'automatisation</b> + une <b>V1 exploitable</b> sur 2 domaines, le reste assumé post-septembre.</p>
+  <table class="tight">
+    <thead><tr><th>Phase</th><th>Objectif</th><th>Workflows</th><th>Critère de sortie</th><th>Durée</th><th>Risque principal</th></tr></thead>
+    <tbody>
+      <tr><td><b>F0 — Socle</b></td><td>Plomberie + preuve E2E (<b>MVP automatisation</b>)</td><td>CORE-001/002/003, SALES-001</td><td>Une action UI déclenche n8n, écrit Supabase, l'UI se met à jour en Realtime</td><td>1–2 sem.</td><td>Sécurité callback (HMAC) sous-estimée</td></tr>
+      <tr><td><b>F1 — IA Hub</b></td><td>Autonomie FOLIO + 1ʳᵉ valeur IA (<b>chemin critique</b>)</td><td>CORE-004, INTEL-015, INTEL-011, INTEL-020, INTEL-010</td><td>Une étude sectorielle générée par KREDO ; un pitch produit ; Hub rempli</td><td>2–3 sem.</td><td>Coûts LLM, qualité prompts</td></tr>
+      <tr><td><b>F2 — Prospection</b></td><td>Signaux &amp; boucle CRM (<b>V1 exploitable #1</b>)</td><td>INTEL-001, INTEL-002, INTEL-013, INTEL-021/022</td><td>Un signal qualifié devient opportunité ; veille alimente sector_*</td><td>1.5–2 sem.</td><td>Scraping fragile, table <code>signals</code></td></tr>
+      <tr><td><b>F3 — Recrutement</b></td><td>Matching pgvector (<b>V1 exploitable #2</b>)</td><td>REC-001/002/003/004 (+ STAFF-001 gratuit)</td><td>Un CV uploadé est scoré/classé contre un besoin</td><td>2–2.5 sem.</td><td>Qualité parsing/embeddings</td></tr>
+      <tr><td><b>F4 — Finance &amp; échéances</b></td><td>Cron + alertes (calcul = moteur métier)</td><td>FIN-001, SALES-002 (+ STAFF/CONS gratuits), OPS-001/002</td><td>Forecast snapshoté ; alertes fin de mission</td><td>1.5 sem.</td><td>Ne pas mettre le calcul dans n8n</td></tr>
+      <tr><td><b>F5 — Différé</b></td><td>Industrialisation &amp; cerveau</td><td>PROP-001/002/003, KNOW-001/002, OPS-003/004, CORE-006, INT-001/002/003</td><td>Post-septembre — itération 2</td><td>—</td><td>Dispersion : à <b>ne pas</b> lancer avant V1</td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><b>À ne surtout pas lancer simultanément :</b> Proposal RAG (F5) et Recrutement (F3) — tous deux gros consommateurs pgvector/LLM et chronophages. De même, ne pas démarrer Finance avant le moteur de calcul isolé (<code>lib/finance/</code>).</div>
+  <div class="callout warn"><b>Divergence avec la roadmap du dépôt.</b> Le dépôt place l'IA amont (P2) avant le Recrutement (P3) puis la Finance (P4) — cohérent. Cette étude <b>insère une phase F0 de plomberie explicite</b> (absente, sous-estimée comme « 1 preuve n8n » noyée dans P1) et <b>rétrograde Knowledge/Proposal RAG et le copilot en post-septembre</b>, là où la roadmap les garde en « Later » mais sans assumer qu'ils ne tiendront pas la cible. Le backfill ETL FOLIO (INTEL-015) est promu au rang de prérequis bloquant, pas d'option.</div>
+</section>
+
+<!-- ░░ 9. PRÉREQUIS ░░ -->
+<section class="section">
+  <h2>9 · Prérequis structurants</h2>
+  <table>
+    <thead><tr><th style="width:26%">Prérequis</th><th>Décision fonctionnelle attendue (sans détail technique)</th></tr></thead>
+    <tbody>
+      <tr><td>Connexion sécurisée KREDO↔n8n↔Supabase</td><td>Appels client→webhook <b>interdits</b> ; passerelle Next obligatoire (auth + RLS) ; n8n écrit en service-role. URL VPS déjà en <code>.env</code>.</td></tr>
+      <tr><td>Modèle générique de suivi des runs</td><td>Réutiliser <code>ai_intelligence_runs/results/logs</code> au-delà de l'IA commerciale (recrutement, finance) — généraliser plutôt que dupliquer.</td></tr>
+      <tr><td>Catalogue des workflows</td><td>Registre métier minimal en Supabase dès CORE-001 (chaque action enregistrée) — fondation du copilot et de la page Automations.</td></tr>
+      <tr><td>Conventions d'identification</td><td>Adopter les IDs stables de cette étude (<code>CORE/INTEL/REC/…-NNN</code>) comme clés du catalogue.</td></tr>
+      <tr><td>Gestion des secrets</td><td>Rotation immédiate des secrets FOLIO exposés ; secrets serveur uniquement (jamais <code>NEXT_PUBLIC_</code>).</td></tr>
+      <tr><td>Idempotence &amp; callbacks</td><td><code>UNIQUE(run_id,phase)</code> + upsert rejouable + signature HMAC à temps constant (acté ADR-0007).</td></tr>
+      <tr><td>Reprise sur erreur &amp; observabilité</td><td>Statut unifié + <code>needs_review</code> orthogonal ; logs append-only ; OPS-004 pour relances.</td></tr>
+      <tr><td>Validation humaine</td><td>Par défaut sur tout livrable commercial (pitch, proposition, campagne, staffing).</td></tr>
+      <tr><td>Maîtrise des coûts IA</td><td>Centralisée dans CORE-004 (log tokens/coût par run) ; mutualisation sectorielle pour diviser le volume.</td></tr>
+      <tr><td>Qualité &amp; disponibilité des données</td><td>Backfill FOLIO avant génération ; contrôle de fraîcheur pour la veille et le corpus RAG.</td></tr>
+      <tr><td>Planification</td><td>pg_cron/pg_net non installés → crons portés par n8n en V1 (décision réversible).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ░░ 10. DÉCISIONS ░░ -->
+<section class="section">
+  <h2>10 · Décisions à prendre (avec recommandation)</h2>
+  <table>
+    <thead><tr><th style="width:30%">Arbitrage</th><th>Recommandation</th></tr></thead>
+    <tbody>
+      <tr><td>Échelle de score IA : /5 vs 1–10</td><td><b>1–10</b> — déjà actée en ADR-0007 et présente dans les payloads ; aligner l'UI et clore l'open question.</td></tr>
+      <tr><td>Planification : pg_cron vs crons n8n</td><td><b>Crons n8n</b> en V1 (moins de surface, un seul lieu d'orchestration) ; réévaluer pg_cron si n8n devient un point de friction.</td></tr>
+      <tr><td>Salesforce : remplacer vs cohabiter</td><td><b>Cohabiter</b> — KREDO = couche d'intelligence/orchestration ; sync (INT-001) différée en F5.</td></tr>
+      <tr><td>Drift migrations (018/019 en double)</td><td><b>Réconcilier d'abord</b> : renuméroter les fichiers locaux, réimporter <code>010_sector_intelligence</code> dans le dépôt, avant toute nouvelle migration.</td></tr>
+      <tr><td>Worker : n8n vs Edge Function durable</td><td><b>n8n</b> (déjà hébergé, maîtrisé, &gt;300 s) ; garder l'option Edge/Workflow Vercel comme repli documenté.</td></tr>
+      <tr><td>Périmètre septembre</td><td><b>Assumer 2 domaines V1</b> (Intelligence + Recrutement) ; figer Knowledge RAG, Proposal génération et copilot en post-septembre.</td></tr>
+      <tr><td>Table <code>signals</code></td><td><b>Créer</b> une table dédiée (le radar et INTEL-001 en dépendent) plutôt que de prolonger le mock.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ░░ 11. CONCLUSION ░░ -->
+<section class="section">
+  <h2>11 · Conclusion</h2>
+  <div class="callout ok">
+    <h4 style="margin-top:0">Premier workflow à construire</h4>
+    <p style="margin:0"><b>SALES-001 — Enrichissement d'interaction</b>, porté par CORE-001/002/003. Cas métier trivial, mais il <b>prouve la chaîne complète</b> Front→n8n→Supabase→Realtime→UI. Tant que cette preuve n'existe pas, toute la valeur IA repose sur une infrastructure non éprouvée. C'est le dérisquage n°1.</p>
+  </div>
+  <h4>Trois premières capacités métier à industrialiser</h4>
+  <ol>
+    <li><b>Étude sectorielle mutualisée</b> (INTEL-011) — valeur transformationnelle, coût LLM ÷5, atteint l'autonomie FOLIO.</li>
+    <li><b>Rédaction assistée pitch/mail</b> (INTEL-020) — fonction transverse réutilisée par le Hub, Proposals et le Suivi ; effort modéré, usage quotidien.</li>
+    <li><b>Matching de recrutement pgvector</b> (REC-001→003) — 2ᵉ pôle de valeur, infra vectorielle déjà prête, capacité réutilisée par le Staffing.</li>
+  </ol>
+  <h4>Ce qu'il faut volontairement repousser</h4>
+  <p>Knowledge Hub / RAG complet, génération de propositions (PROP-003), copilot transverse (CORE-006), synchronisation Salesforce (INT-001), sous-pages Finance au-delà du moteur de calcul, et l'UI de monitoring Automations (n8n suffit en direct jusque-là). Les repousser n'est pas un renoncement : c'est la condition pour livrer deux chaînes complètes et fiables avant septembre, plutôt que dix amorces.</p>
+  <p class="mini" style="margin-top:18px;border-top:1px solid var(--border);padding-top:8px">
+    Étude fonctionnelle KREDO · v1.0 · 14 juin 2026 · ~45 workflows · 6 phases · grounded sur le dépôt local, la base live <code>jvzgmhvwirsbdkjpmvla</code> et les ADR 0001-0008. Aucune ressource externe inaccessible n'a été simulée : l'audit GitHub/Vercel distant a été substitué par le clone local et la base live, seules sources réellement consultables.</p>
+</section>
+
+</body>
+</html>
