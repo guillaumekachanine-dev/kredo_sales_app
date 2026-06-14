@@ -924,29 +924,28 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
               <div className="flex flex-col gap-1.5 bg-canvas/10 p-2 rounded-lg border border-border/40">
                 <div className="flex justify-between text-[10px] text-muted font-medium px-0.5">
                   <span>{formatDateFr(mission.start_date)} — {mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</span>
-                  {!mission.end_date && <span className="text-[8px] text-amber-600 font-bold bg-amber-500/10 px-1.5 py-0.2 rounded uppercase">Par défaut</span>}
+                  <span className="font-bold text-heading">{workingDays}j ouvrés</span>
                 </div>
                 <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
-                  <span className="text-muted">Jours ouvrés : <strong className="text-heading font-bold">{workingDays} j</strong></span>
-                  <span className="text-muted">Production (85%) : <strong className="text-primary font-bold">{weightedDays} j</strong></span>
+                  <span className="text-muted">Productivité (85%)</span>
+                  <span className="font-bold text-primary">{weightedDays}j produits</span>
                 </div>
               </div>
 
-              {/* 4. ACV & YTD */}
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center text-[11px] px-1">
+              {/* 4. ACV & YTD (dans le même cadre, sans couleurs) */}
+              <div className="bg-canvas/30 p-2 rounded-lg border border-border/50 flex flex-col gap-2">
+                <div className="flex justify-between items-center text-[11px] px-0.5">
                   <span className="text-muted">CA Annuel Visé (ACV) :</span>
                   <span className="font-bold text-heading">{formatEuro(acv)}</span>
                 </div>
                 
-                <div className="p-2 bg-emerald-500/[0.04] border border-emerald-500/20 rounded-lg flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-semibold text-muted uppercase">Produit YTD (Réel)</span>
-                    <span className="text-sm font-extrabold text-emerald-600 tracking-tight">{formatEuro(ytdRevenue)}</span>
+                <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-border/30 px-0.5">
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted">Produit YTD (Réel) :</span>
                   </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] font-semibold text-muted uppercase">Taux réel</span>
-                    <span className="text-xs font-bold text-heading">{realActivityRate.toFixed(0)} %</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[9px] text-muted">(Activité : {realActivityRate.toFixed(0)}%)</span>
+                    <span className="font-extrabold text-heading">{formatEuro(ytdRevenue)}</span>
                   </div>
                 </div>
               </div>
