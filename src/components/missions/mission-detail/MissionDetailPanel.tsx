@@ -93,6 +93,7 @@ interface MissionDetailData {
 
 interface MissionDetailPanelProps {
   tab: SectionTab
+  isMobile?: boolean
 }
 
 // Helper: Parse Date Only
@@ -178,7 +179,7 @@ function getInitials(fullName: string): string {
   return initials.slice(0, 2) || "KR"
 }
 
-export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
+export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanelProps) {
   const [data, setData] = useState<MissionDetailData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -637,6 +638,490 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
     ? "text-warning" 
     : "text-danger"
 
+  // Extract panels into individual components/elements for clean responsive layout
+  const blocSynthese = (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent h-full">
+      <div className="flex flex-col select-none mb-1">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          Synthèse mission
+        </h3>
+        <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+      </div>
+
+      {/* Pencil button */}
+      <button
+        onClick={openEditSynthese}
+        className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+        title="Modifier cette section"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </button>
+
+      <div className="flex flex-col sm:flex-row items-start gap-4">
+        {company ? (
+          <CompanyLogo
+            name={company.name}
+            logoPath={(company.metadata as any)?.logo_path || null}
+            website={company.website}
+            size="lg"
+            className="w-12 h-12 rounded-full border border-border shrink-0 select-none"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20 shrink-0 select-none">
+            KR
+          </div>
+        )}
+        
+        <div className="flex-1 flex flex-col gap-4">
+          <div>
+            <h4 className="text-sm font-bold text-heading">{company?.name || "Compte non renseigné"}</h4>
+            <p className="text-xs text-muted mt-0.5">
+              Département : <span className="font-semibold text-body">{mission.practice || "Non spécifié"}</span>
+              {!!(metadata.project || metadata.projet) && (
+                <span className="text-muted ml-2">
+                  · Projet : <span className="font-semibold text-body">{(metadata.project || metadata.projet) as string}</span>
+                </span>
+              )}
+            </p>
+          </div>
+
+          {/* Section Poste décrivant précisément les fonctions du collab */}
+          <div className="flex flex-col gap-1.5">
+            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Poste & Fonctions</h5>
+            <p className="text-xs text-body leading-relaxed">
+              {mission.description || (metadata.description as string | undefined) || (mission.role_title ? `Mission en tant que ${mission.role_title}.` : "Descriptif des fonctions du collaborateur non spécifié.")}
+            </p>
+          </div>
+
+          {/* Présentation client (abréger en Client) */}
+          <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
+            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Client</h5>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-2 select-none">
+              {company?.sector && (
+                <div className="flex items-center gap-2.5 min-w-0" title="Secteur d'activité">
+                  <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Secteur</span>
+                    <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                      {company.sector}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {company?.segment && (
+                <div className="flex items-center gap-2.5 min-w-0" title="Segment métier">
+                  <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Segment</span>
+                    <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                      {company.segment}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {company?.revenue && (
+                <div className="flex items-center gap-2.5 min-w-0" title="Chiffre d'affaires">
+                  <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">CA</span>
+                    <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                      {company.revenue}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {company?.employee_count && (
+                <div className="flex items-center gap-2.5 min-w-0" title="Nombre d'employés">
+                  <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Employés</span>
+                    <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                      {company.employee_count} {company.employee_count > 1 ? "employés" : "employé"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {company?.priority && (
+                <div className="flex items-center gap-2.5 min-w-0" title="Priorité du compte">
+                  <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                  </svg>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Priorité</span>
+                    <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                      {company.priority === "haute" ? "Haute" : company.priority === "basse" ? "Basse" : "Normale"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Collaborateur (KPIs avec icônes) */}
+          <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
+            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Collaborateur</h5>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 select-none">
+              <div className="flex items-center gap-2.5 min-w-0" title="Practice de rattachement">
+                <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Practice</span>
+                  <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                    {mission.practice || collaborator?.practice || "Non spécifiée"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 min-w-0" title="Séniorité du consultant">
+                <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Séniorité</span>
+                  <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                    {mission.seniority || collaborator?.seniority || "Non spécifiée"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 min-w-0" title="Ancienneté dans l'entreprise">
+                <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Ancienneté</span>
+                  <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                    {metadata.collab_tenure as string || getYearsSince(collaborator?.entry_date || null) || "Non renseignée"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 min-w-0" title="Missions réalisées">
+                <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Missions</span>
+                  <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                    {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contacts section (alignés et complets) */}
+          <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
+            <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Contacts mission</h5>
+            {contacts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                {contacts.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedContactId(c.id)
+                      setShowContactDrawer(true)
+                    }}
+                    className="flex flex-col gap-0.5 p-2 bg-canvas/30 rounded border border-border/50 hover:bg-canvas/50 hover:border-primary/30 cursor-pointer transition-all select-none"
+                  >
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="text-[11px] font-bold text-heading truncate">{c.fullName}</span>
+                      <span className="text-[8px] font-bold text-primary bg-primary/5 border border-primary/10 px-1 py-0.2 rounded shrink-0 uppercase tracking-wider">
+                        {c.role || "Contact"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col text-[9px] text-muted">
+                      {c.email && (
+                        <span className="font-mono truncate" title={c.email}>
+                          {c.email}
+                        </span>
+                      )}
+                      {c.phone && <span className="font-mono">{c.phone}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-muted italic">Aucun contact client lié à cette mission.</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const blocFinance = (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-4 shadow-sm flex flex-col h-full relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent text-xs">
+      <div className="flex items-center justify-between select-none pb-1 border-b border-border/20">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          Conditions financières
+        </h3>
+        {/* Pencil button */}
+        <button
+          onClick={openEditFinance}
+          className="p-1 text-muted hover:text-heading hover:bg-canvas rounded transition-all border border-transparent hover:border-border"
+          title="Modifier cette section"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex flex-col flex-1 justify-between gap-3 mt-2">
+        {/* 1. Tarifs & Marge */}
+        <div className="grid grid-cols-3 gap-1 bg-canvas/30 p-2 rounded-lg border border-border/50">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-semibold text-muted uppercase">TJ Vendu</span>
+            <span className="text-sm font-extrabold text-heading tracking-tight">{formatEuro(mission.tjm)}</span>
+          </div>
+          <div className="flex flex-col border-l border-border/30 pl-2">
+            <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne</span>
+            <span className="text-sm font-bold text-muted-foreground tracking-tight">{formatEuro(mission.cjm)}</span>
+          </div>
+          <div className="flex flex-col border-l border-border/30 pl-2">
+            <span className="text-[9px] font-semibold text-muted uppercase">Marge brute</span>
+            <span className={`text-sm font-extrabold tracking-tight ${(stats?.computedMarginPct ?? 0) >= 30 ? "text-success" : (stats?.computedMarginPct ?? 0) >= 20 ? "text-warning" : "text-danger"}`}>
+              {stats ? `${stats.computedMarginPct.toFixed(0)}%` : "—"}
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Salaire & Facturation mensuelle */}
+        <div className="grid grid-cols-2 gap-3 text-[11px] px-1">
+          <div className="flex justify-between border-b border-border/20 pb-1">
+            <span className="text-muted">Salaire est. :</span>
+            <span className="font-bold text-heading">{formatEuro(estimatedSalary)}<span className="text-[9px] font-normal text-muted">/m</span></span>
+          </div>
+          <div className="flex justify-between border-b border-border/20 pb-1">
+            <span className="text-muted">Moy. Facture :</span>
+            <span className="font-bold text-heading">{formatEuro(avgBilledMonthly)}<span className="text-[9px] font-normal text-muted">/m</span></span>
+          </div>
+        </div>
+
+        {/* 3. Dates & Jours */}
+        <div className="flex flex-col gap-1.5 bg-canvas/10 p-2 rounded-lg border border-border/40">
+          <div className="flex justify-between text-[10px] text-muted font-medium px-0.5">
+            <span>{formatDateFr(mission.start_date)} — {mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</span>
+            <span className="font-bold text-heading">{workingDays}j ouvrés</span>
+          </div>
+          <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
+            <span className="text-muted">Productivité (85%)</span>
+            <span className="font-bold text-primary">{weightedDays}j produits</span>
+          </div>
+        </div>
+
+        {/* 4. ACV & YTD (dans le même cadre, sans couleurs) */}
+        <div className="bg-canvas/30 p-2 rounded-lg border border-border/50 flex flex-col gap-2">
+          <div className="flex justify-between items-center text-[11px] px-0.5">
+            <span className="text-muted">CA Annuel Visé (ACV) :</span>
+            <span className="font-bold text-heading">{formatEuro(acv)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-border/30 px-0.5">
+            <div className="flex items-center gap-1">
+              <span className="text-muted">Produit YTD (Réel) :</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-extrabold text-heading">{formatEuro(ytdRevenue)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Conditions de Facturation */}
+        <div className="text-[10px] text-muted border-t border-border/30 pt-2 flex justify-between px-1">
+          <span>Règlement :</span>
+          <span className="font-bold text-heading truncate max-w-[170px]" title={billingTerms}>{billingTerms}</span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const blocActivite = (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
+      <div className="flex flex-col select-none mb-1">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          Activité commerciale
+        </h3>
+        <div className="w-8 h-0.5 bg-cat-success mt-1.5 rounded-full" />
+      </div>
+
+      {/* Pencil button */}
+      <button
+        onClick={openEditActivite}
+        className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+        title="Modifier cette section"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </button>
+
+      {/* À venir */}
+      <div className="flex flex-col gap-2.5">
+        <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À venir</h4>
+        {nextTaskText ? (
+          <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-lg text-xs text-body leading-relaxed flex items-start gap-2.5">
+            <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{nextTaskText}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted italic">Aucune action ou tâche planifiée.</span>
+        )}
+      </div>
+
+      {/* Activité récente */}
+      <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+        <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">Activité récente</h4>
+        {interactions.length > 0 ? (
+          <div className="p-2.5 bg-canvas/30 rounded border border-border/40 flex flex-col gap-1">
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="font-bold text-heading uppercase bg-border/50 px-1.5 py-0.2 rounded shrink-0">
+                {interactions[0].type}
+              </span>
+              <span className="text-muted font-mono">{formatDateFr(interactions[0].occurred_at)}</span>
+            </div>
+            <p className="text-xs text-body line-clamp-2 italic leading-relaxed mt-1">
+              &ldquo;{interactions[0].summary || "Aucune description écrite"}&rdquo;
+            </p>
+          </div>
+        ) : (
+          <span className="text-xs text-muted italic">Aucun historique récent.</span>
+        )}
+      </div>
+
+      {/* À anticiper */}
+      <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+        <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À anticiper</h4>
+        {toAnticipateText ? (
+          <div className="p-2.5 bg-warning/5 rounded border border-warning/20 text-xs text-body leading-relaxed flex items-start gap-2.5">
+            <svg className="w-4 h-4 text-warning shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>{toAnticipateText}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted italic">Aucun motif d&apos;attention particulier.</span>
+        )}
+      </div>
+    </div>
+  )
+
+  const blocLiens = (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-idea rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-idea/[0.02] to-transparent">
+      <div className="flex flex-col select-none mb-1">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          Liens utiles
+        </h3>
+        <div className="w-8 h-0.5 bg-cat-idea mt-1.5 rounded-full" />
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 mt-1">
+        {/* Contrat */}
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={() => setShowContratDialog(true)}
+            className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+            title="Consulter le contrat"
+          >
+            <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+          <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">contrat</span>
+        </div>
+
+        {/* ODM */}
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={() => setShowOrdreMissionDialog(true)}
+            className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+            title="Consulter l'ordre de mission"
+          >
+            <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          </button>
+          <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">ODM</span>
+        </div>
+
+        {/* Facturation */}
+        <div className="flex flex-col items-center gap-1.5">
+          <Link
+            href="/finance"
+            className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+            title="Consulter la facturation"
+          >
+            <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </Link>
+          <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">facturation</span>
+        </div>
+
+        {/* CRA */}
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={() => setShowCraDialog(true)}
+            className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+            title="Consulter les CRA"
+          >
+            <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">CRA</span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const blocActions = (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-info rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-info/[0.02] to-transparent">
+      <div className="flex flex-col select-none mb-1">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          Actions rapides
+        </h3>
+        <div className="w-8 h-0.5 bg-cat-info mt-1.5 rounded-full" />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {/* Synthèse financière */}
+        <Link
+          href="/finance"
+          className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
+        >
+          <span>Synthèse financière</span>
+          <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </Link>
+
+        {/* Synthèse des suivis missions */}
+        <Link
+          href="/missions"
+          className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
+        >
+          <span>Synthèse des suivis missions</span>
+          <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+        </Link>
+      </div>
+    </div>
+  )
+
   // Main layout render
   return (
     <div className="w-full max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8 flex flex-col gap-6">
@@ -695,509 +1180,44 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         </div>
       </div>
 
-      {/* Main Grid: Row 1 containing Synthèse and Conditions financières of matching height */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
-        {/* LEFT COLUMN: Synthèse */}
-        <div className="md:col-span-8 flex flex-col">
-          
-          {/* Bloc 1: Synthèse */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent h-full">
-            <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                Synthèse mission
-              </h3>
-              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
-            </div>
-
-            {/* Pencil button */}
-            <button
-              onClick={openEditSynthese}
-              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
-              title="Modifier cette section"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-
-            <div className="flex flex-col sm:flex-row items-start gap-4">
-              {company ? (
-                <CompanyLogo
-                  name={company.name}
-                  logoPath={(company.metadata as any)?.logo_path || null}
-                  website={company.website}
-                  size="lg"
-                  className="w-12 h-12 rounded-full border border-border shrink-0 select-none"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20 shrink-0 select-none">
-                  KR
-                </div>
-              )}
-              
-              <div className="flex-1 flex flex-col gap-4">
-                <div>
-                  <h4 className="text-sm font-bold text-heading">{company?.name || "Compte non renseigné"}</h4>
-                  <p className="text-xs text-muted mt-0.5">
-                    Département : <span className="font-semibold text-body">{mission.practice || "Non spécifié"}</span>
-                    {!!(metadata.project || metadata.projet) && (
-                      <span className="text-muted ml-2">
-                        · Projet : <span className="font-semibold text-body">{(metadata.project || metadata.projet) as string}</span>
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                {/* Section Poste décrivant précisément les fonctions du collab */}
-                <div className="flex flex-col gap-1.5">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Poste & Fonctions</h5>
-                  <p className="text-xs text-body leading-relaxed">
-                    {mission.description || (metadata.description as string | undefined) || (mission.role_title ? `Mission en tant que ${mission.role_title}.` : "Descriptif des fonctions du collaborateur non spécifié.")}
-                  </p>
-                </div>
-
-                {/* Présentation client (abréger en Client) */}
-                <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Client</h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-2 select-none">
-                    {company?.sector && (
-                      <div className="flex items-center gap-2.5 min-w-0" title="Secteur d'activité">
-                        <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Secteur</span>
-                          <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                            {company.sector}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {company?.segment && (
-                      <div className="flex items-center gap-2.5 min-w-0" title="Segment métier">
-                        <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Segment</span>
-                          <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                            {company.segment}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {company?.revenue && (
-                      <div className="flex items-center gap-2.5 min-w-0" title="Chiffre d'affaires">
-                        <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">CA</span>
-                          <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                            {company.revenue}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {company?.employee_count && (
-                      <div className="flex items-center gap-2.5 min-w-0" title="Nombre d'employés">
-                        <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Employés</span>
-                          <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                            {company.employee_count} {company.employee_count > 1 ? "employés" : "employé"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    {company?.priority && (
-                      <div className="flex items-center gap-2.5 min-w-0" title="Priorité du compte">
-                        <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                        </svg>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Priorité</span>
-                          <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                            {company.priority === "haute" ? "Haute" : company.priority === "basse" ? "Basse" : "Normale"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Collaborateur (KPIs avec icônes) */}
-                <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Collaborateur</h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 select-none">
-                    <div className="flex items-center gap-2.5 min-w-0" title="Practice de rattachement">
-                      <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Practice</span>
-                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                          {mission.practice || collaborator?.practice || "Non spécifiée"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5 min-w-0" title="Séniorité du consultant">
-                      <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                      </svg>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Séniorité</span>
-                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                          {mission.seniority || collaborator?.seniority || "Non spécifiée"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5 min-w-0" title="Ancienneté dans l'entreprise">
-                      <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Ancienneté</span>
-                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                          {metadata.collab_tenure as string || getYearsSince(collaborator?.entry_date || null) || "Non renseignée"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5 min-w-0" title="Missions réalisées">
-                      <svg className="w-5 h-5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                      </svg>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Missions</span>
-                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                          {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contacts section (alignés et complets) */}
-                <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Contacts mission</h5>
-                  {contacts.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                      {contacts.map((c) => (
-                        <div
-                          key={c.id}
-                          onClick={() => {
-                            setSelectedContactId(c.id)
-                            setShowContactDrawer(true)
-                          }}
-                          className="flex flex-col gap-0.5 p-2 bg-canvas/30 rounded border border-border/50 hover:bg-canvas/50 hover:border-primary/30 cursor-pointer transition-all select-none"
-                        >
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="text-[11px] font-bold text-heading truncate">{c.fullName}</span>
-                            <span className="text-[8px] font-bold text-primary bg-primary/5 border border-primary/10 px-1 py-0.2 rounded shrink-0 uppercase tracking-wider">
-                              {c.role || "Contact"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col text-[9px] text-muted">
-                            {c.email && (
-                              <span className="font-mono truncate" title={c.email}>
-                                {c.email}
-                              </span>
-                            )}
-                            {c.phone && <span className="font-mono">{c.phone}</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted italic">Aucun contact client lié à cette mission.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+      {isMobile ? (
+        /* Mobile Layout: linear stacked blocks */
+        <div className="flex flex-col gap-5">
+          {blocSynthese}
+          {blocFinance}
+          {blocActivite}
+          {blocLiens}
+          {blocActions}
         </div>
-
-        {/* RIGHT COLUMN: Conditions financières */}
-        <div className="md:col-span-4 flex flex-col">
-          
-          {/* Bloc 2: Conditions financières */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-4 shadow-sm flex flex-col h-full relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent text-xs">
-            <div className="flex items-center justify-between select-none pb-1 border-b border-border/20">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                Conditions financières
-              </h3>
-              {/* Pencil button */}
-              <button
-                onClick={openEditFinance}
-                className="p-1 text-muted hover:text-heading hover:bg-canvas rounded transition-all border border-transparent hover:border-border"
-                title="Modifier cette section"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
+      ) : (
+        /* Desktop Layout: grid of blocks */
+        <>
+          {/* Main Grid: Row 1 containing Synthèse and Conditions financières of matching height */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            {/* LEFT COLUMN: Synthèse */}
+            <div className="md:col-span-8 flex flex-col">
+              {blocSynthese}
             </div>
 
-            <div className="flex flex-col flex-1 justify-between gap-3 mt-2">
-              
-              {/* 1. Tarifs & Marge */}
-              <div className="grid grid-cols-3 gap-1 bg-canvas/30 p-2 rounded-lg border border-border/50">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-semibold text-muted uppercase">TJ Vendu</span>
-                  <span className="text-sm font-extrabold text-heading tracking-tight">{formatEuro(mission.tjm)}</span>
-                </div>
-                <div className="flex flex-col border-l border-border/30 pl-2">
-                  <span className="text-[9px] font-semibold text-muted uppercase">CJ Interne</span>
-                  <span className="text-sm font-bold text-muted-foreground tracking-tight">{formatEuro(mission.cjm)}</span>
-                </div>
-                <div className="flex flex-col border-l border-border/30 pl-2">
-                  <span className="text-[9px] font-semibold text-muted uppercase">Marge brute</span>
-                  <span className={`text-sm font-extrabold tracking-tight ${(stats?.computedMarginPct ?? 0) >= 30 ? "text-success" : (stats?.computedMarginPct ?? 0) >= 20 ? "text-warning" : "text-danger"}`}>
-                    {stats ? `${stats.computedMarginPct.toFixed(0)}%` : "—"}
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. Salaire & Facturation mensuelle */}
-              <div className="grid grid-cols-2 gap-3 text-[11px] px-1">
-                <div className="flex justify-between border-b border-border/20 pb-1">
-                  <span className="text-muted">Salaire est. :</span>
-                  <span className="font-bold text-heading">{formatEuro(estimatedSalary)}<span className="text-[9px] font-normal text-muted">/m</span></span>
-                </div>
-                <div className="flex justify-between border-b border-border/20 pb-1">
-                  <span className="text-muted">Moy. Facture :</span>
-                  <span className="font-bold text-heading">{formatEuro(avgBilledMonthly)}<span className="text-[9px] font-normal text-muted">/m</span></span>
-                </div>
-              </div>
-
-              {/* 3. Dates & Jours */}
-              <div className="flex flex-col gap-1.5 bg-canvas/10 p-2 rounded-lg border border-border/40">
-                <div className="flex justify-between text-[10px] text-muted font-medium px-0.5">
-                  <span>{formatDateFr(mission.start_date)} — {mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</span>
-                  <span className="font-bold text-heading">{workingDays}j ouvrés</span>
-                </div>
-                <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
-                  <span className="text-muted">Productivité (85%)</span>
-                  <span className="font-bold text-primary">{weightedDays}j produits</span>
-                </div>
-              </div>
-
-              {/* 4. ACV & YTD (dans le même cadre, sans couleurs) */}
-              <div className="bg-canvas/30 p-2 rounded-lg border border-border/50 flex flex-col gap-2">
-                <div className="flex justify-between items-center text-[11px] px-0.5">
-                  <span className="text-muted">CA Annuel Visé (ACV) :</span>
-                  <span className="font-bold text-heading">{formatEuro(acv)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-border/30 px-0.5">
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted">Produit YTD (Réel) :</span>
-                  </div>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[9px] text-muted">(Activité : {realActivityRate.toFixed(0)}%)</span>
-                    <span className="font-extrabold text-heading">{formatEuro(ytdRevenue)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 5. Conditions de Facturation */}
-              <div className="text-[10px] text-muted border-t border-border/30 pt-2 flex justify-between px-1">
-                <span>Règlement :</span>
-                <span className="font-bold text-heading truncate max-w-[170px]" title={billingTerms}>{billingTerms}</span>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Grid Row 2: Activité commerciale & other right column widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mt-5">
-        <div className="md:col-span-8">
-          {/* Empty spacer block to align items under synthesis */}
-        </div>
-        <div className="md:col-span-4 flex flex-col gap-5">
-
-          {/* Bloc 3: Activité commerciale */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
-            <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                Activité commerciale
-              </h3>
-              <div className="w-8 h-0.5 bg-cat-success mt-1.5 rounded-full" />
-            </div>
-
-            {/* Pencil button */}
-            <button
-              onClick={openEditActivite}
-              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
-              title="Modifier cette section"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-
-            {/* À venir */}
-            <div className="flex flex-col gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À venir</h4>
-              {nextTaskText ? (
-                <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-lg text-xs text-body leading-relaxed flex items-start gap-2.5">
-                  <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>{nextTaskText}</span>
-                </div>
-              ) : (
-                <span className="text-xs text-muted italic">Aucune action ou tâche planifiée.</span>
-              )}
-            </div>
-
-            {/* Activité récente */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">Activité récente</h4>
-              {interactions.length > 0 ? (
-                <div className="p-2.5 bg-canvas/30 rounded border border-border/40 flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-heading uppercase bg-border/50 px-1.5 py-0.2 rounded shrink-0">
-                      {interactions[0].type}
-                    </span>
-                    <span className="text-muted font-mono">{formatDateFr(interactions[0].occurred_at)}</span>
-                  </div>
-                  <p className="text-xs text-body line-clamp-2 italic leading-relaxed mt-1">
-                    &ldquo;{interactions[0].summary || "Aucune description écrite"}&rdquo;
-                  </p>
-                </div>
-              ) : (
-                <span className="text-xs text-muted italic">Aucun historique récent.</span>
-              )}
-            </div>
-
-            {/* À anticiper */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À anticiper</h4>
-              {toAnticipateText ? (
-                <div className="p-2.5 bg-warning/5 rounded border border-warning/20 text-xs text-body leading-relaxed flex items-start gap-2.5">
-                  <svg className="w-4 h-4 text-warning shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <span>{toAnticipateText}</span>
-                </div>
-              ) : (
-                <span className="text-xs text-muted italic">Aucun motif d&apos;attention particulier.</span>
-              )}
+            {/* RIGHT COLUMN: Conditions financières */}
+            <div className="md:col-span-4 flex flex-col">
+              {blocFinance}
             </div>
           </div>
 
-          {/* Bloc 4: Liens utiles */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-idea rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-idea/[0.02] to-transparent">
-            <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                Liens utiles
-              </h3>
-              <div className="w-8 h-0.5 bg-cat-idea mt-1.5 rounded-full" />
+          {/* Main Grid Row 2: Activité commerciale & other right column widgets */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mt-5">
+            <div className="md:col-span-8">
+              {/* Empty spacer block to align items under synthesis */}
             </div>
-
-            <div className="grid grid-cols-4 gap-2 mt-1">
-              {/* Contrat */}
-              <div className="flex flex-col items-center gap-1.5">
-                <button
-                  onClick={() => setShowContratDialog(true)}
-                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
-                  title="Consulter le contrat"
-                >
-                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </button>
-                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">contrat</span>
-              </div>
-
-              {/* ODM */}
-              <div className="flex flex-col items-center gap-1.5">
-                <button
-                  onClick={() => setShowOrdreMissionDialog(true)}
-                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
-                  title="Consulter l'ordre de mission"
-                >
-                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                </button>
-                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">ODM</span>
-              </div>
-
-              {/* Facturation */}
-              <div className="flex flex-col items-center gap-1.5">
-                <Link
-                  href="/finance"
-                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
-                  title="Consulter la facturation"
-                >
-                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </Link>
-                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">facturation</span>
-              </div>
-
-              {/* CRA */}
-              <div className="flex flex-col items-center gap-1.5">
-                <button
-                  onClick={() => setShowCraDialog(true)}
-                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
-                  title="Consulter les CRA"
-                >
-                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">CRA</span>
-              </div>
+            <div className="md:col-span-4 flex flex-col gap-5">
+              {blocActivite}
+              {blocLiens}
+              {blocActions}
             </div>
           </div>
-
-          {/* Bloc 5: Actions rapides */}
-          <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-info rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-info/[0.02] to-transparent">
-            <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                Actions rapides
-              </h3>
-              <div className="w-8 h-0.5 bg-cat-info mt-1.5 rounded-full" />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {/* Synthèse financière */}
-              <Link
-                href="/finance"
-                className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
-              >
-                <span>Synthèse financière</span>
-                <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </Link>
-
-              {/* Synthèse des suivis missions */}
-              <Link
-                href="/missions"
-                className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
-              >
-                <span>Synthèse des suivis missions</span>
-                <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
+        </>
+      )}
 
       {/* dialogs */}
       <AppDialog

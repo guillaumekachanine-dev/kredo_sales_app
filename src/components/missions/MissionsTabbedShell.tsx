@@ -38,9 +38,38 @@ export function MissionsTabbedShell({
     }
   }, [pathname, setActiveTab])
 
-  // Sur mobile : pas de tabs, rendu direct
+  // Sur mobile : rendu de la liste si "home", sinon rendu de la fiche active avec bouton de retour
   if (isMobile) {
-    return <>{children}</>
+    if (activeTabId === "home") {
+      return <>{children}</>
+    }
+
+    const activeTab = tabs.find((t) => t.id === activeTabId)
+    if (!activeTab) return <>{children}</>
+
+    return (
+      <div className="flex flex-col h-full bg-canvas overflow-y-auto">
+        {/* Mobile Header with Back Button */}
+        <div className="sticky top-0 bg-surface border-b border-border z-10 px-4 py-3 flex items-center gap-3 select-none shadow-sm">
+          <button
+            onClick={() => setActiveTab("home")}
+            className="flex items-center gap-1 text-xs font-bold text-primary hover:opacity-80 transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Retour
+          </button>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xs font-bold text-heading truncate">{activeTab.title}</h2>
+          </div>
+        </div>
+
+        <div className="flex-1">
+          <MissionsEntityPanel tab={activeTab} isMobile={true} />
+        </div>
+      </div>
+    )
   }
 
   return (

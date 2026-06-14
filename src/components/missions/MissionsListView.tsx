@@ -148,141 +148,242 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
 
   return (
     <>
-      <SurfaceCard className="overflow-hidden border-0 shadow-sm rounded-xl">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border bg-canvas/30">
-              <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Client
-              </th>
-              <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Intitulé
-              </th>
-              <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Consultant
-              </th>
-              <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Tarif
-              </th>
-              <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Marge
-              </th>
-              <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Date début
-              </th>
-              <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Date fin
-              </th>
-              <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                Statut
-              </th>
-              <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px] w-12">
-                {/* Edit Action Column */}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => {
-              const style = getPastilleStyles(row.riskLevel)
-              return (
-                <tr
-                  key={row.entityId}
-                  onClick={() =>
-                    openTab({
-                      entityType: row.entityType,
-                      entityId: row.entityId,
-                      title: row.title,
-                      subtitle: row.subtitle,
-                    })
-                  }
+      {/* Desktop view (table) */}
+      <div className="hidden md:block">
+        <SurfaceCard className="overflow-hidden border-0 shadow-sm rounded-xl">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-border bg-canvas/30">
+                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Client
+                </th>
+                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Intitulé
+                </th>
+                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Consultant
+                </th>
+                <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Tarif
+                </th>
+                <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Marge
+                </th>
+                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Date début
+                </th>
+                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Date fin
+                </th>
+                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
+                  Statut
+                </th>
+                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px] w-12">
+                  {/* Edit Action Column */}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const style = getPastilleStyles(row.riskLevel)
+                return (
+                  <tr
+                    key={row.entityId}
+                    onClick={() =>
+                      openTab({
+                        entityType: row.entityType,
+                        entityId: row.entityId,
+                        title: row.title,
+                        subtitle: row.subtitle,
+                      })
+                    }
+                    className={cn(
+                      "border-b border-border/40 last:border-0",
+                      "hover:bg-surface-hover/30 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:translate-x-0.5",
+                      "transform transition-all duration-200 cursor-pointer group"
+                    )}
+                  >
+                    {/* Client */}
+                    <td className="px-4 py-3.5 text-heading font-bold">
+                      <div className="flex items-center gap-2.5">
+                        <CompanyLogo
+                          name={row.client || "Client"}
+                          logoPath={row.clientLogoPath}
+                          website={row.clientWebsite}
+                          size="sm"
+                        />
+                        <span>{row.client ?? "—"}</span>
+                      </div>
+                    </td>
+
+                    {/* Intitulé */}
+                    <td className="px-4 py-3.5">
+                      <span className="font-semibold text-body group-hover:text-primary transition-colors duration-150">
+                        {row.title}
+                      </span>
+                    </td>
+
+                    {/* Consultant */}
+                    <td className="px-4 py-3.5 text-body">
+                      {row.consultant ?? "—"}
+                    </td>
+
+                    {/* Tarif */}
+                    <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
+                      {row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}
+                    </td>
+
+                    {/* Marge */}
+                    <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
+                      {row.grossMarginPct !== null && row.grossMarginPct !== undefined
+                        ? `${row.grossMarginPct} %`
+                        : "—"}
+                    </td>
+
+                    {/* Date début */}
+                    <td className="px-4 py-3.5 text-center text-body tabular-nums">
+                      {formatDateShort(row.startDate)}
+                    </td>
+
+                    {/* Date fin */}
+                    <td className="px-4 py-3.5 text-center text-body tabular-nums">
+                      {formatDateShort(row.endDate)}
+                    </td>
+
+                    {/* Statut pastille */}
+                    <td className="px-4 py-3.5 text-center">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
+                          style.bg
+                        )}
+                      >
+                        <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
+                        {style.label}
+                      </span>
+                    </td>
+
+                    {/* Crayon button */}
+                    <td className="px-4 py-3.5 text-center">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditClick(row)
+                        }}
+                        className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 active:scale-90"
+                        title="Modifier la mission"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </SurfaceCard>
+      </div>
+
+      {/* Mobile view (cards) - Mobile-First & Integrally Readable */}
+      <div className="md:hidden flex flex-col gap-3">
+        {rows.map((row) => {
+          const style = getPastilleStyles(row.riskLevel)
+          return (
+            <div
+              key={row.entityId}
+              onClick={() =>
+                openTab({
+                  entityType: row.entityType,
+                  entityId: row.entityId,
+                  title: row.title,
+                  subtitle: row.subtitle,
+                })
+              }
+              className={cn(
+                "bg-surface border border-border/50 rounded-xl p-4 shadow-sm flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all"
+              )}
+            >
+              {/* Row 1: Client logo + name, and risk level */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CompanyLogo
+                    name={row.client || "Client"}
+                    logoPath={row.clientLogoPath}
+                    website={row.clientWebsite}
+                    size="sm"
+                  />
+                  <span className="font-bold text-heading text-xs">{row.client ?? "—"}</span>
+                </div>
+                
+                <span
                   className={cn(
-                    "border-b border-border/40 last:border-0",
-                    "hover:bg-surface-hover/30 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:translate-x-0.5",
-                    "transform transition-all duration-200 cursor-pointer group"
+                    "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider select-none shrink-0",
+                    style.bg
                   )}
                 >
-                  {/* Client */}
-                  <td className="px-4 py-3.5 text-heading font-bold">
-                    <div className="flex items-center gap-2.5">
-                      <CompanyLogo
-                        name={row.client || "Client"}
-                        logoPath={row.clientLogoPath}
-                        website={row.clientWebsite}
-                        size="sm"
-                      />
-                      <span>{row.client ?? "—"}</span>
-                    </div>
-                  </td>
+                  <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
+                  {style.label}
+                </span>
+              </div>
 
-                  {/* Intitulé */}
-                  <td className="px-4 py-3.5">
-                    <span className="font-semibold text-body group-hover:text-primary transition-colors duration-150">
-                      {row.title}
+              {/* Row 2: Title and Edit pencil button */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col min-w-0">
+                  <h4 className="font-semibold text-body text-xs leading-snug group-hover:text-primary transition-colors duration-150">
+                    {row.title}
+                  </h4>
+                  <p className="text-[10px] text-muted mt-0.5">
+                    Consultant : <span className="font-medium text-body">{row.consultant ?? "—"}</span>
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEditClick(row)
+                  }}
+                  className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 shrink-0 self-start border border-transparent hover:border-border/60"
+                  title="Modifier la mission"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Row 3: Grid KPIs (TJM, Marge, Dates) */}
+              <div className="flex flex-col gap-2 bg-canvas/30 p-2.5 rounded-lg border border-border/40 text-[10px] text-body">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">TJM</span>
+                    <span className="font-extrabold text-heading">{row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}</span>
+                  </div>
+                  <div className="flex flex-col border-l border-border/30 pl-2">
+                    <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">Marge</span>
+                    <span className="font-extrabold text-heading">
+                      {row.grossMarginPct !== null && row.grossMarginPct !== undefined
+                        ? `${row.grossMarginPct} %`
+                        : "—"}
                     </span>
-                  </td>
-
-                  {/* Consultant */}
-                  <td className="px-4 py-3.5 text-body">
-                    {row.consultant ?? "—"}
-                  </td>
-
-                  {/* Tarif */}
-                  <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
-                    {row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}
-                  </td>
-
-                  {/* Marge */}
-                  <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
-                    {row.grossMarginPct !== null && row.grossMarginPct !== undefined
-                      ? `${row.grossMarginPct} %`
-                      : "—"}
-                  </td>
-
-                  {/* Date début */}
-                  <td className="px-4 py-3.5 text-center text-body tabular-nums">
-                    {formatDateShort(row.startDate)}
-                  </td>
-
-                  {/* Date fin */}
-                  <td className="px-4 py-3.5 text-center text-body tabular-nums">
-                    {formatDateShort(row.endDate)}
-                  </td>
-
-                  {/* Statut pastille */}
-                  <td className="px-4 py-3.5 text-center">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
-                        style.bg
-                      )}
-                    >
-                      <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
-                      {style.label}
-                    </span>
-                  </td>
-
-                  {/* Crayon button */}
-                  <td className="px-4 py-3.5 text-center">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEditClick(row)
-                      }}
-                      className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 active:scale-90"
-                      title="Modifier la mission"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </SurfaceCard>
+                  </div>
+                </div>
+                <div className="border-t border-border/20 pt-2 flex items-center gap-1.5 text-muted-foreground text-[9px]">
+                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>
+                    Période : <span className="font-semibold text-body">{formatDateShort(row.startDate)} au {formatDateShort(row.endDate)}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       {/* Rapid Edit Dialog */}
       <AppDialog

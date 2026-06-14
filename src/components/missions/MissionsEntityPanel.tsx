@@ -6,6 +6,7 @@ import { MissionDetailPanel } from "./mission-detail/MissionDetailPanel"
 
 interface MissionsEntityPanelProps {
   tab: SectionTab
+  isMobile?: boolean
 }
 
 const entityLabels: Record<SectionTab["entityType"], string> = {
@@ -24,12 +25,12 @@ function SkeletonRow({ width }: { width: string }) {
   return <div className={cn("h-3 bg-border/40 rounded animate-pulse", width)} />
 }
 
-export function MissionsEntityPanel({ tab }: MissionsEntityPanelProps) {
+export function MissionsEntityPanel({ tab, isMobile = false }: MissionsEntityPanelProps) {
   if (tab.entityType === "opportunite") {
     return <OpportunityDetailPanel tab={tab} />
   }
   if (tab.entityType === "mission") {
-    return <MissionDetailPanel tab={tab} />
+    return <MissionDetailPanel tab={tab} isMobile={isMobile} />
   }
 
   const label = entityLabels[tab.entityType]
