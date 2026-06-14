@@ -82,7 +82,12 @@ export type MissionDetailResult =
           fullName: string
           role: string | null
         }>
-        grossAnnual: number | null
+        compensation: {
+          gross_annual: number | null
+          charges_rate: number | null
+          working_days_per_year: number | null
+          taci: number | null
+        } | null
       }
       error?: never
     }
@@ -446,15 +451,26 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
     }
 
     // 7. Rémunération du collaborateur (null si non admin — RLS confidentielle)
-    const fetchCompensation = async (): Promise<number | null> => {
+    const fetchCompensation = async (): Promise<{
+      gross_annual: number | null
+      charges_rate: number | null
+      working_days_per_year: number | null
+      taci: number | null
+    } | null> => {
       if (!mission.collaborator_id) return null
       const { data: comp } = await supabase
         .from("collaborator_compensation")
-        .select("gross_annual")
+        .select("gross_annual, charges_rate, working_days_per_year, taci")
         .eq("collaborator_id", mission.collaborator_id)
         .is("effective_to", null)
         .maybeSingle()
-      return comp?.gross_annual ?? null
+      if (!comp) return null
+      return {
+        gross_annual: comp.gross_annual ? Number(comp.gross_annual) : null,
+        charges_rate: comp.charges_rate ? Number(comp.charges_rate) : null,
+        working_days_per_year: comp.working_days_per_year ? Number(comp.working_days_per_year) : null,
+        taci: comp.taci ? Number(comp.taci) : null,
+      }
     }
 
     const fetchCompanyContacts = async (): Promise<Array<{ id: string; fullName: string; role: string | null }>> => {
@@ -488,7 +504,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       })
     }
 
-    const [company, collaboratorData, contacts, activityReports, interactions, companyContacts, grossAnnual] = await Promise.all([
+    const [company, collaboratorData, contacts, activityReports, interactions, companyContacts, compensation] = await Promise.all([
       fetchCompany(),
       fetchCollaborator(),
       fetchContacts(),
@@ -507,7 +523,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         activityReports,
         interactions,
         companyContacts,
-        grossAnnual,
+        compensation,
       },
     }
   } catch (err) {

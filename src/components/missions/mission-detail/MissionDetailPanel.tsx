@@ -88,7 +88,12 @@ interface MissionDetailData {
     fullName: string
     role: string | null
   }>
-  grossAnnual: number | null
+  compensation: {
+    gross_annual: number | null
+    charges_rate: number | null
+    working_days_per_year: number | null
+    taci: number | null
+  } | null
 }
 
 interface MissionDetailPanelProps {
@@ -448,22 +453,28 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
     return getWorkingDaysCount(data.mission.start_date, defaultEndDate) || 0
   }, [data?.mission?.start_date, defaultEndDate])
 
-  // Weighted days by theoretical activity rate of 85%
+  // Weighted days by theoretical activity rate (TACI) from database
+  const taciRate = data?.compensation?.taci ?? 0.85
   const weightedDays = useMemo(() => {
-    return Math.round(workingDays * 0.85)
-  }, [workingDays])
+    return Math.round(workingDays * taciRate)
+  }, [workingDays, taciRate])
 
   // Salaire mensuel brut estimé.
   // Source 1 (fiable, admin only) : collaborator_compensation.gross_annual via RLS.
-  // Source 2 (fallback) : heuristique CJM × 218 × 0.65 / 12.
+  // Source 2 (fallback) : heuristique CJM × working_days_per_year × taci / (1 + charges_rate) / 12.
   const estimatedSalary = useMemo(() => {
     if (!data?.mission) return 0
-    if (data.grossAnnual != null) return Math.round(data.grossAnnual / 12)
+    if (data.compensation?.gross_annual != null) return Math.round(data.compensation.gross_annual / 12)
     const collabMeta = data.collaborator?.metadata as any
     if (collabMeta?.salary) return Number(collabMeta.salary)
     if (collabMeta?.salaire) return Number(collabMeta.salaire)
-    return Math.round((data.mission.cjm * 218) / 12 * 0.65)
-  }, [data?.mission?.cjm, data?.collaborator, data?.grossAnnual])
+
+    const workingDaysPerYear = data.compensation?.working_days_per_year ?? 218
+    const chargesRate = data.compensation?.charges_rate ?? 0.45
+    const taci = data.compensation?.taci ?? 0.85
+    const grossAnnualFallback = (data.mission.cjm * workingDaysPerYear * taci) / (1 + chargesRate)
+    return Math.round(grossAnnualFallback / 12)
+  }, [data?.mission?.cjm, data?.collaborator, data?.compensation])
 
   // ACV (Contract Value for the current year / period)
   const acv = useMemo(() => {
@@ -915,7 +926,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
             <span className="font-bold text-heading">{workingDays}j ouvrés</span>
           </div>
           <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
-            <span className="text-muted">Productivité (85%)</span>
+            <span className="text-muted">Productivité ({Math.round(taciRate * 100)}%)</span>
             <span className="font-bold text-primary">{weightedDays}j produits</span>
           </div>
         </div>
