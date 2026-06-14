@@ -5,7 +5,7 @@ import { SectionTab } from "@/lib/tabs/tab-types"
 import { getOpportunityDetail } from "@/app/(app)/missions/_data/get-opportunity-detail"
 import { OpportunityEditForm } from "./OpportunityEditForm"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent } from "@/types/database"
+import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, OpportunityStandingProfile } from "@/types/database"
 
 interface OpportunityDetailData {
   opportunity: Opportunity
@@ -20,6 +20,7 @@ interface OpportunityDetailData {
     role: string | null
   }>
   events: OpportunityEvent[]
+  standingProfiles: OpportunityStandingProfile[]
 }
 
 interface OpportunityDetailPanelProps {

@@ -1,31 +1,33 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
-import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
+import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, OpportunityStandingProfile, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
+import { OpportunityStandingPanel } from "./OpportunityStandingPanel"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { upsertAccountByName } from "@/app/(app)/missions/_actions/upsert-account"
+import {
+  createOpportunityStaffing,
+  searchOpportunityStaffingProfiles,
+  type StaffingSearchResult,
+  type StaffingSourceType,
+} from "@/app/(app)/missions/_actions/opportunity-staffing"
+import { createOpportunityInteraction } from "@/app/(app)/missions/_actions/opportunity-interactions"
 import {
   formatEuro,
   formatDate,
   formatDateTime,
 } from "./opportunity-detail-utils"
 import {
-  PRACTICE_OPTIONS,
   TYPE_OPTIONS,
   SOURCE_OPTIONS,
-  REMOTE_OPTIONS,
-  SENIORITY_OPTIONS,
-  STAGE_LABELS,
   PRIORITY_LABELS,
-  OUTCOME_LABELS,
   getStageLabel,
   getPriorityLabel,
-  getOutcomeLabel,
 } from "./opportunity-detail-options"
 
 interface OpportunityDetailData {
@@ -41,6 +43,7 @@ interface OpportunityDetailData {
     role: string | null
   }>
   events: OpportunityEvent[]
+  standingProfiles: OpportunityStandingProfile[]
 }
 
 const SEQUENTIAL_STEPS = [
@@ -49,6 +52,29 @@ const SEQUENTIAL_STEPS = [
   { key: "cv_envoyes", label: "CV envoyés", num: 3 },
   { key: "entretien_client", label: "Entretien client", num: 4 },
 ]
+
+const COMMERCIAL_ACTION_TYPES = [
+  "appel de qualification",
+  "envoi de CV",
+  "relance",
+  "présentation consultant",
+  "négociation",
+  "envoi devis",
+] as const
+
+type CommercialActionType = (typeof COMMERCIAL_ACTION_TYPES)[number]
+
+const OPPORTUNITY_LOCATION_OPTIONS = [
+  { value: "site client", label: "Site client" },
+  { value: "agence", label: "Agence" },
+  { value: "hybride", label: "Hybride" },
+] as const
+
+const OPPORTUNITY_REMOTE_OPTIONS = [
+  { value: "oui", label: "Oui" },
+  { value: "non", label: "Non" },
+  { value: "hybride", label: "Hybride" },
+] as const
 
 interface OpportunityEditFormProps {
   data: OpportunityDetailData
@@ -80,15 +106,40 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   // editingSection: null = lecture, string = section en cours d'édition
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [isCreatingStaffing, startCreatingStaffing] = useTransition()
+  const [isCreatingAction, startCreatingAction] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [loadingStage, setLoadingStage] = useState<string | null>(null)
   const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false)
+  const [isStaffingDialogOpen, setIsStaffingDialogOpen] = useState(false)
+  const [isCommercialActionDialogOpen, setIsCommercialActionDialogOpen] = useState(false)
+  const [staffingErrorMsg, setStaffingErrorMsg] = useState<string | null>(null)
+  const [commercialActionErrorMsg, setCommercialActionErrorMsg] = useState<string | null>(null)
 
   const initialAccountValue: AccountValue | null = account
     ? { id: account.id, name: account.name, isNew: false }
     : null
 
   const [selectedAccount, setSelectedAccount] = useState<AccountValue | null>(initialAccountValue)
+  const [staffingForm, setStaffingForm] = useState<{
+    sourceType: StaffingSourceType
+    query: string
+    selected: StaffingSearchResult | null
+  }>({
+    sourceType: "collaborator",
+    query: "",
+    selected: null,
+  })
+  const [staffingSearchResults, setStaffingSearchResults] = useState<StaffingSearchResult[]>([])
+  const [isSearchingStaffing, setIsSearchingStaffing] = useState(false)
+  const staffingSearchRequestRef = useRef(0)
+  const staffingSearchTimeoutRef = useRef<number | null>(null)
+  const [commercialActionForm, setCommercialActionForm] = useState({
+    type: COMMERCIAL_ACTION_TYPES[0] as CommercialActionType,
+    details: "",
+    occurred_at: new Date().toISOString().slice(0, 10),
+    contact_id: data.contacts[0]?.contact.id || "",
+  })
 
   // Form State
   const [form, setForm] = useState({
@@ -100,9 +151,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     outcome: opportunity.outcome as SalesOutcome | null,
     priority: opportunity.priority as SalesPriority,
     conviction: opportunity.conviction,
-    seniority: opportunity.seniority || "",
     need_summary: opportunity.need_summary || "",
-    need_detail: opportunity.need_detail || "",
     client_context: opportunity.client_context || "",
     engagement_notes: opportunity.engagement_notes || "",
     target_daily_rate: opportunity.target_daily_rate ?? "",
@@ -137,9 +186,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       outcome: opportunity.outcome as SalesOutcome | null,
       priority: opportunity.priority as SalesPriority,
       conviction: opportunity.conviction,
-      seniority: opportunity.seniority || "",
       need_summary: opportunity.need_summary || "",
-      need_detail: opportunity.need_detail || "",
       client_context: opportunity.client_context || "",
       engagement_notes: opportunity.engagement_notes || "",
       target_daily_rate: opportunity.target_daily_rate ?? "",
@@ -156,11 +203,83 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     })
   }
 
+  const resetStaffingDialog = () => {
+    setStaffingForm({
+      sourceType: "collaborator",
+      query: "",
+      selected: null,
+    })
+    setStaffingSearchResults([])
+    setStaffingErrorMsg(null)
+    setIsSearchingStaffing(false)
+  }
+
+  const resetCommercialActionDialog = () => {
+    setCommercialActionForm({
+      type: COMMERCIAL_ACTION_TYPES[0] as CommercialActionType,
+      details: "",
+      occurred_at: new Date().toISOString().slice(0, 10),
+      contact_id: data.contacts[0]?.contact.id || "",
+    })
+    setCommercialActionErrorMsg(null)
+  }
+
   const handleCancel = () => {
     setEditingSection(null)
     setErrorMsg(null)
     setSelectedAccount(initialAccountValue)
     resetForm()
+  }
+
+  useEffect(() => {
+    return () => {
+      if (staffingSearchTimeoutRef.current) {
+        window.clearTimeout(staffingSearchTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleStaffingDialogOpenChange = (open: boolean) => {
+    setIsStaffingDialogOpen(open)
+    if (!open) {
+      resetStaffingDialog()
+    }
+  }
+
+  const handleCommercialActionDialogOpenChange = (open: boolean) => {
+    setIsCommercialActionDialogOpen(open)
+    if (!open) {
+      resetCommercialActionDialog()
+    }
+  }
+
+  const handleStaffingQueryChange = (value: string) => {
+    setStaffingForm((prev) => ({
+      ...prev,
+      query: value,
+      selected: null,
+    }))
+
+    if (staffingSearchTimeoutRef.current) {
+      window.clearTimeout(staffingSearchTimeoutRef.current)
+    }
+
+    if (value.trim().length < 1) {
+      setStaffingSearchResults([])
+      setIsSearchingStaffing(false)
+      return
+    }
+
+    const requestId = staffingSearchRequestRef.current + 1
+    staffingSearchRequestRef.current = requestId
+    setIsSearchingStaffing(true)
+
+    staffingSearchTimeoutRef.current = window.setTimeout(async () => {
+      const results = await searchOpportunityStaffingProfiles(value.trim(), staffingForm.sourceType)
+      if (staffingSearchRequestRef.current !== requestId) return
+      setStaffingSearchResults(results)
+      setIsSearchingStaffing(false)
+    }, 250)
   }
 
   const getStageIndex = (stage: string) => {
@@ -719,30 +838,24 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           }
         }
         payload = { ...payload, title: form.title, account_id: finalAccountId }
+      } else if (section === "synthese-opportunite") {
+        payload = {
+          ...payload,
+          need_summary: form.need_summary || null,
+          client_context: form.client_context || null,
+          location: form.location || null,
+          remote_policy: form.remote_policy || null,
+          start_date: form.start_date || null,
+          target_close_date: form.target_close_date || null,
+        }
       } else if (section === "besoin") {
-        payload = { ...payload, need_summary: form.need_summary || null, need_detail: form.need_detail || null, client_context: form.client_context || null }
+        payload = { ...payload, need_summary: form.need_summary || null, client_context: form.client_context || null }
       } else if (section === "engagement") {
-        payload = { ...payload, source: form.source || null, next_action_label: form.next_action_label || null, next_action_at: form.next_action_at || null, engagement_notes: form.engagement_notes || null }
-      } else if (section === "resultat") {
-        payload = { ...payload, outcome: form.outcome, win_reason: form.win_reason || null, loss_reason: form.loss_reason || null }
-      } else if (section === "qualification") {
-        payload = { ...payload, practice: form.practice || null, opportunity_type: form.opportunity_type || null, seniority: form.seniority || null, stage: form.stage, priority: form.priority, conviction: form.conviction }
+        payload = { ...payload, source: form.source || null, next_action_label: form.next_action_label || null, next_action_at: form.next_action_at || null, engagement_notes: form.engagement_notes || null, priority: form.priority, conviction: form.conviction }
       } else if (section === "economie") {
-        payload = { ...payload, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
-      } else if (section === "planning") {
-        payload = { ...payload, start_date: form.start_date || null, target_close_date: form.target_close_date || null }
-      } else if (section === "contexte") {
-        payload = { ...payload, location: form.location || null, remote_policy: form.remote_policy || null }
-      } else if (section === "synthese-mobile") {
-        payload = { ...payload, need_summary: form.need_summary || null, conviction: form.conviction }
-      } else if (section === "qualification-mobile") {
-        payload = { ...payload, practice: form.practice || null, opportunity_type: form.opportunity_type || null, seniority: form.seniority || null, source: form.source || null, stage: form.stage, priority: form.priority }
-      } else if (section === "economie-mobile") {
-        payload = { ...payload, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
-      } else if (section === "prochaine-action-mobile") {
-        payload = { ...payload, next_action_label: form.next_action_label || null, next_action_at: form.next_action_at || null }
-      } else if (section === "contexte-mobile") {
-        payload = { ...payload, location: form.location || null, remote_policy: form.remote_policy || null }
+        payload = { ...payload, opportunity_type: form.opportunity_type || null, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
+      } else if (section === "staffing") {
+        payload = { ...payload, practice: form.practice || null }
       }
 
       const result = await updateOpportunity(payload)
@@ -756,8 +869,62 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     })
   }
 
+  const handleCreateStaffing = () => {
+    setStaffingErrorMsg(null)
+
+    if (!staffingForm.selected) {
+      setStaffingErrorMsg("Sélectionnez un collaborateur ou un candidat dans la liste.")
+      return
+    }
+
+    const selectedProfile = staffingForm.selected
+
+    startCreatingStaffing(async () => {
+      const result = await createOpportunityStaffing({
+        opportunity_id: opportunity.id,
+        source_type: selectedProfile.source_type,
+        source_id: selectedProfile.id,
+      })
+
+      if (result.error) {
+        setStaffingErrorMsg(result.error)
+        return
+      }
+
+      handleStaffingDialogOpenChange(false)
+      onSuccess()
+    })
+  }
+
+  const handleCreateCommercialAction = () => {
+    setCommercialActionErrorMsg(null)
+
+    if (!commercialActionForm.occurred_at) {
+      setCommercialActionErrorMsg("La date est requise.")
+      return
+    }
+
+    startCreatingAction(async () => {
+      const result = await createOpportunityInteraction({
+        opportunity_id: opportunity.id,
+        type: commercialActionForm.type,
+        details: commercialActionForm.details || null,
+        occurred_at: commercialActionForm.occurred_at,
+        contact_id: commercialActionForm.contact_id || null,
+      })
+
+      if (result.error) {
+        setCommercialActionErrorMsg(result.error)
+        return
+      }
+
+      handleCommercialActionDialogOpenChange(false)
+      onSuccess()
+    })
+  }
+
   // Boutons Annuler / Enregistrer inline dans chaque section
-  const SectionEditControls = ({ section }: { section: string }) => (
+  const renderSectionEditControls = (section: string) => (
     <div className="flex items-center gap-1.5 shrink-0">
       <button
         type="button"
@@ -778,51 +945,608 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     </div>
   )
 
-  const SectionHeader = ({
-    title,
-    sectionKey,
-    isDesktop = false,
-  }: {
-    title: string
-    sectionKey: string
-    isDesktop?: boolean
-  }) => {
-    const isCurrentEditing = editingSection === sectionKey
-    return (
-      <div className="flex items-center justify-between pb-1.5 border-b border-border/40 w-full mb-3">
-        <h2 className={cn(
-          "font-bold text-heading font-heading",
-          isDesktop ? "text-sm" : "text-xs uppercase tracking-wider"
-        )}>
-          {title}
-        </h2>
-        {isCurrentEditing ? (
-          <SectionEditControls section={sectionKey} />
+  // Render helpers
+  const inputClass = "w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
+  const labelClass = "block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1"
+
+  const renderPanelTitle = (title: string, accentClass = "bg-primary") => (
+    <div className="flex flex-col select-none mb-1">
+      <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+        {title}
+      </h3>
+      <div className={cn("w-8 h-0.5 mt-1.5 rounded-full", accentClass)} />
+    </div>
+  )
+
+  const primaryActionButtonClass = "px-3 py-1.5 text-[11px] font-semibold rounded-md bg-primary text-primary-fg hover:bg-primary/90 transition-colors disabled:opacity-40"
+
+  const renderSyntheseMissionSection = (className?: string) => (
+    <div className={cn("bg-surface border-y-0 border-r-0 border-l-4 border-primary rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent", className)}>
+      <div className="flex items-start justify-between gap-4">
+        {renderPanelTitle("Synthèse de l'opportunité")}
+        {editingSection === "synthese-opportunite" ? renderSectionEditControls("synthese-opportunite") : editingSection === null && (
+          <button
+            type="button"
+            onClick={() => setEditingSection("synthese-opportunite")}
+            className="p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+            title="Modifier cette section"
+          >
+            <PencilIcon className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
+          <h4 className="text-sm font-bold text-heading">Besoin client</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Résumé du besoin</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="text"
+                  value={form.need_summary}
+                  onChange={(e) => setForm({ ...form, need_summary: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2.5 rounded border border-border/40">
+                  {opportunity.need_summary || "—"}
+                </p>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Contexte client</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="text"
+                  value={form.client_context}
+                  onChange={(e) => setForm({ ...form, client_context: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs text-body mt-1 truncate" title={opportunity.client_context || ""}>
+                  {opportunity.client_context || "—"}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Lieu de la mission</label>
+              {editingSection === "synthese-opportunite" ? (
+                <select
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                >
+                  <option value="">— Sélectionner —</option>
+                  {OPPORTUNITY_LOCATION_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.location || "—"}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Télétravail</label>
+              {editingSection === "synthese-opportunite" ? (
+                <select
+                  value={form.remote_policy}
+                  onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                >
+                  <option value="">— Sélectionner —</option>
+                  {OPPORTUNITY_REMOTE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.remote_policy || "—"}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
+          <OpportunitySkillsPanel
+            opportunityId={opportunity.id}
+            skills={data.skills}
+            onRefresh={onSuccess}
+            embedded
+          />
+        </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
+          <h4 className="text-sm font-bold text-heading">Planning de l&apos;opportunité</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Date de début</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{formatDate(opportunity.start_date)}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Clôture cible</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="date"
+                  value={form.target_close_date}
+                  onChange={(e) => setForm({ ...form, target_close_date: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{formatDate(opportunity.target_close_date)}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
+          <OpportunityContactsPanel
+            opportunityId={opportunity.id}
+            contacts={data.contacts}
+            onRefresh={onSuccess}
+            embedded
+          />
+        </section>
+      </div>
+    </div>
+  )
+
+  const renderEngagementSection = () => (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
+      <div className="flex items-start justify-between gap-4">
+        {renderPanelTitle("Activité commerciale", "bg-cat-success")}
+        <div className="flex items-center gap-2 shrink-0">
+          {editingSection === null && (
+            <button
+              type="button"
+              onClick={() => setIsCommercialActionDialogOpen(true)}
+              className={primaryActionButtonClass}
+            >
+              Créer une action
+            </button>
+          )}
+          {editingSection === "engagement" ? (
+            renderSectionEditControls("engagement")
+          ) : (
+            editingSection === null && (
+              <button
+                type="button"
+                onClick={() => setEditingSection("engagement")}
+                className="p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+                title="Modifier cette section"
+              >
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            )
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className={labelClass}>Source de l&apos;opportunité</label>
+            {editingSection === "engagement" ? (
+              <select
+                value={form.source}
+                onChange={(e) => setForm({ ...form, source: e.target.value })}
+                className={inputClass}
+                disabled={isPending}
+              >
+                <option value="">— Sélectionner —</option>
+                {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <p className="text-xs text-body mt-1 font-medium capitalize">
+                {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>Priorité</label>
+            {editingSection === "engagement" ? (
+              <select
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
+                className={inputClass}
+                disabled={isPending}
+              >
+                {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            ) : (
+              <p className="text-xs text-body mt-1 font-medium">
+                {getPriorityLabel(opportunity.priority)}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>Confiance</label>
+            {editingSection === "engagement" ? (
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={form.conviction}
+                onChange={(e) => setForm({ ...form, conviction: Number(e.target.value) })}
+                className={inputClass}
+                disabled={isPending}
+              />
+            ) : (
+              <p className="text-xs text-body mt-1 font-medium">{opportunity.conviction}%</p>
+            )}
+          </div>
+          <div>
+            <label className={labelClass}>Prochaine action</label>
+            {editingSection === "engagement" ? (
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={form.next_action_label}
+                  onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
+                  className={inputClass}
+                  placeholder="Libellé de l'action"
+                  disabled={isPending}
+                />
+                <input
+                  type="datetime-local"
+                  value={form.next_action_at}
+                  onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              </div>
+            ) : (
+              <p className="text-xs text-body mt-1 font-medium">
+                {opportunity.next_action_label || "—"}
+                {opportunity.next_action_at && (
+                  <span className="text-muted block text-[10px] mt-0.5 font-normal">
+                    Prévue le : {formatDateTime(opportunity.next_action_at)}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Notes d&apos;engagement</label>
+          {editingSection === "engagement" ? (
+            <textarea
+              value={form.engagement_notes}
+              onChange={(e) => setForm({ ...form, engagement_notes: e.target.value })}
+              className={inputClass + " h-20 resize-none"}
+              disabled={isPending}
+            />
+          ) : (
+            <p className="text-xs text-body mt-1 whitespace-pre-wrap">
+              {opportunity.engagement_notes || "—"}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderFinancialEquationSection = () => (
+    <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent">
+      <div className="flex items-start justify-between gap-4">
+        {renderPanelTitle("Conditions financières", "bg-cat-warning")}
+        {editingSection === "economie" ? (
+          renderSectionEditControls("economie")
         ) : (
           editingSection === null && (
             <button
               type="button"
-              onClick={() => setEditingSection(sectionKey)}
-              className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
-              title={`Modifier ${title}`}
+              onClick={() => setEditingSection("economie")}
+              className="p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+              title="Modifier cette section"
             >
-              <PencilIcon className="w-3.5 h-3.5" />
+              <PencilIcon className="w-4 h-4" />
             </button>
           )
         )}
       </div>
-    )
-  }
+      <div className="flex flex-col gap-3 mt-2">
+        <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
+          <span className="text-[10px] font-bold text-heading">Type d&apos;engagement</span>
+          {editingSection === "economie" ? (
+            <select
+              value={form.opportunity_type}
+              onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
+              className={inputClass}
+              disabled={isPending}
+            >
+              <option value="">— Sélectionner —</option>
+              {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          ) : (
+            <span className="text-xs font-semibold text-heading capitalize">{opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}</span>
+          )}
+        </div>
 
-  // Render helpers
-  const inputClass = "w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
-  const labelClass = "block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1"
+        <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
+          <span className="text-[10px] text-muted font-medium">TJM Cible</span>
+          {editingSection === "economie" ? (
+            <input
+              type="number"
+              value={form.target_daily_rate}
+              onChange={(e) => setForm({ ...form, target_daily_rate: e.target.value })}
+              className={inputClass}
+              disabled={isPending}
+            />
+          ) : (
+            <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
+          <span className="text-[10px] text-muted font-medium">Durée (jours)</span>
+          {editingSection === "economie" ? (
+            <input
+              type="number"
+              value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })}
+              className={inputClass}
+              disabled={isPending}
+            />
+          ) : (
+            <span className="text-xs font-semibold text-heading">{opportunity.duration ? `${opportunity.duration} jours` : "—"}</span>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
+          <span className="text-[10px] text-muted font-medium">Gain estimé</span>
+          {editingSection === "economie" ? (
+            <input
+              type="number"
+              value={form.estimated_gain}
+              onChange={(e) => setForm({ ...form, estimated_gain: e.target.value })}
+              className={inputClass}
+              disabled={isPending}
+            />
+          ) : (
+            <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
+          )}
+        </div>
+
+        <div className="flex justify-between py-1 border-b border-border/30">
+          <span className="text-xs text-muted">ACV (calculé)</span>
+          <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.acv)}</span>
+        </div>
+
+        <div className="flex justify-between py-1">
+          <span className="text-xs text-muted">Gain pondéré</span>
+          <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderDialogs = () => (
+    <>
+      <AppDialog
+        open={isStaffingDialogOpen}
+        onOpenChange={handleStaffingDialogOpenChange}
+        title="Créer un staffing"
+        description="Rattachez un collaborateur ou un candidat à cette opportunité."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => handleStaffingDialogOpenChange(false)}
+              disabled={isCreatingStaffing}
+              className="px-3 py-1.5 text-xs text-muted hover:text-heading transition-colors disabled:opacity-40"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateStaffing}
+              disabled={isCreatingStaffing}
+              className={primaryActionButtonClass}
+            >
+              {isCreatingStaffing ? "Création…" : "Créer le staffing"}
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4 mt-1">
+          {staffingErrorMsg && (
+            <div className="rounded-md bg-danger/10 border border-danger/20 px-3 py-2 text-xs text-danger">
+              {staffingErrorMsg}
+            </div>
+          )}
+
+          <div>
+            <label className={labelClass}>Collaborateur / candidat</label>
+            <select
+              value={staffingForm.sourceType}
+              onChange={(e) => setStaffingForm({
+                sourceType: e.target.value as StaffingSourceType,
+                query: "",
+                selected: null,
+              })}
+              className={inputClass}
+              disabled={isCreatingStaffing}
+            >
+              <option value="collaborator">Collaborateur</option>
+              <option value="candidate">Candidat</option>
+            </select>
+          </div>
+
+          <div className="relative">
+            <label className={labelClass}>Nom et prénom</label>
+            <input
+              type="text"
+              value={staffingForm.query}
+              onChange={(e) => handleStaffingQueryChange(e.target.value)}
+              placeholder="Commencez à taper un nom…"
+              className={inputClass}
+              disabled={isCreatingStaffing}
+            />
+
+            {staffingForm.query.trim().length > 0 && (
+              <div className="mt-2 rounded-md border border-border bg-surface shadow-sm max-h-52 overflow-y-auto">
+                {isSearchingStaffing ? (
+                  <div className="px-3 py-2 text-[11px] text-muted italic">Recherche en cours…</div>
+                ) : staffingSearchResults.length === 0 ? (
+                  <div className="px-3 py-2 text-[11px] text-muted italic">Aucun résultat.</div>
+                ) : (
+                  staffingSearchResults.map((result) => (
+                    <button
+                      key={`${result.source_type}-${result.id}`}
+                      type="button"
+                      onClick={() => setStaffingForm((prev) => ({
+                        ...prev,
+                        query: result.full_name,
+                        selected: result,
+                      }))}
+                      className={cn(
+                        "w-full text-left px-3 py-2 border-b last:border-b-0 border-border/40 hover:bg-canvas/50 transition-colors",
+                        staffingForm.selected?.id === result.id && staffingForm.selected?.source_type === result.source_type && "bg-primary/8"
+                      )}
+                    >
+                      <div className="text-xs font-semibold text-heading">{result.full_name}</div>
+                      <div className="text-[10px] text-muted">
+                        {result.source_type === "collaborator" ? "Collaborateur" : "Candidat"}
+                        {result.subtitle ? ` · ${result.subtitle}` : ""}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {staffingForm.selected && (
+              <p className="mt-2 text-[11px] text-muted">
+                Sélectionné : <span className="font-semibold text-heading">{staffingForm.selected.full_name}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </AppDialog>
+
+      <AppDialog
+        open={isCommercialActionDialogOpen}
+        onOpenChange={handleCommercialActionDialogOpenChange}
+        title="Créer une action"
+        description="Ajoutez une action commerciale liée à cette opportunité."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => handleCommercialActionDialogOpenChange(false)}
+              disabled={isCreatingAction}
+              className="px-3 py-1.5 text-xs text-muted hover:text-heading transition-colors disabled:opacity-40"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateCommercialAction}
+              disabled={isCreatingAction}
+              className={primaryActionButtonClass}
+            >
+              {isCreatingAction ? "Création…" : "Créer l'action"}
+            </button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4 mt-1">
+          {commercialActionErrorMsg && (
+            <div className="rounded-md bg-danger/10 border border-danger/20 px-3 py-2 text-xs text-danger">
+              {commercialActionErrorMsg}
+            </div>
+          )}
+
+          <div>
+            <label className={labelClass}>Type d&apos;action</label>
+            <select
+              value={commercialActionForm.type}
+              onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, type: e.target.value as CommercialActionType }))}
+              className={inputClass}
+              disabled={isCreatingAction}
+            >
+              {COMMERCIAL_ACTION_TYPES.map((actionType) => (
+                <option key={actionType} value={actionType}>
+                  {actionType}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Détails</label>
+            <textarea
+              value={commercialActionForm.details}
+              onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, details: e.target.value }))}
+              className={inputClass + " h-24 resize-none"}
+              disabled={isCreatingAction}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Date</label>
+              <input
+                type="date"
+                value={commercialActionForm.occurred_at}
+                onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, occurred_at: e.target.value }))}
+                className={inputClass}
+                disabled={isCreatingAction}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Contact</label>
+              <select
+                value={commercialActionForm.contact_id}
+                onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, contact_id: e.target.value }))}
+                className={inputClass}
+                disabled={isCreatingAction || data.contacts.length === 0}
+              >
+                <option value="">Aucun contact</option>
+                {data.contacts.map(({ contact }) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.full_name}{contact.job_title ? ` (${contact.job_title})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </AppDialog>
+    </>
+  )
 
   if (isMobile) {
     // ----------------------------------------------------------------
     //  VUE MOBILE
     // ----------------------------------------------------------------
     return (
+      <>
       <div className="w-full px-4 py-6 flex flex-col gap-5">
         {/* Header mobile */}
         <div className="flex flex-col gap-2 pb-4 border-b border-border">
@@ -836,7 +1560,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
             {/* Boutons d'action mobile */}
             {editingSection === "identite" ? (
-              <SectionEditControls section="identite" />
+              renderSectionEditControls("identite")
             ) : (
               editingSection === null && (
                 <button
@@ -897,338 +1621,31 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         {/* Timeline Progression Mobile */}
         {renderPipelineTimeline(false)}
 
-        {/* 1. Synthèse */}
-        <SurfaceCard className="p-4 flex flex-col">
-          <SectionHeader title="Synthèse" sectionKey="synthese-mobile" isDesktop={false} />
-          <div className="flex flex-col mt-1">
-            {editingSection === "synthese-mobile" ? (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>Résumé du besoin</label>
-                  <input
-                    type="text"
-                    value={form.need_summary}
-                    onChange={(e) => setForm({ ...form, need_summary: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Confiance (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={form.conviction}
-                    onChange={(e) => setForm({ ...form, conviction: Number(e.target.value) })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">ACV</span>
-                    <p className="text-sm font-bold text-heading tabular-nums mt-0.5">
-                      {formatEuro(opportunity.acv ?? opportunity.estimated_gain)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Confiance</span>
-                    <p className="text-sm font-bold text-heading mt-0.5">{opportunity.conviction}%</p>
-                  </div>
-                </div>
-                {opportunity.need_summary && (
-                  <div className="mt-1">
-                    <span className="text-[9px] uppercase tracking-wider text-muted font-semibold">Résumé du besoin</span>
-                    <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2 rounded border border-border/40">
-                      {opportunity.need_summary}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </SurfaceCard>
-
-        {/* 2. Qualification */}
-        <SurfaceCard className="p-4 flex flex-col">
-          <SectionHeader title="Qualification" sectionKey="qualification-mobile" isDesktop={false} />
-          <div className="flex flex-col mt-1">
-            {editingSection === "qualification-mobile" ? (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>Practice</label>
-                  <select
-                    value={form.practice}
-                    onChange={(e) => setForm({ ...form, practice: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {PRACTICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Type d&apos;opportunité</label>
-                  <select
-                    value={form.opportunity_type}
-                    onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Séniorité</label>
-                  <select
-                    value={form.seniority}
-                    onChange={(e) => setForm({ ...form, seniority: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {SENIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Source</label>
-                  <select
-                    value={form.source}
-                    onChange={(e) => setForm({ ...form, source: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Étape</label>
-                  <select
-                    value={form.stage}
-                    onChange={(e) => setForm({ ...form, stage: e.target.value as SalesStage })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={labelClass}>Priorité</label>
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted">Practice</span>
-                  <span className="font-semibold text-heading">{opportunity.practice || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Type d&apos;opportunité</span>
-                  <span className="font-semibold text-heading capitalize">
-                    {opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Séniorité</span>
-                  <span className="font-semibold text-heading capitalize">{opportunity.seniority || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Source</span>
-                  <span className="font-semibold text-heading capitalize">
-                    {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        </SurfaceCard>
-
-        <OpportunitySkillsPanel
-          opportunityId={opportunity.id}
-          skills={data.skills}
-          onRefresh={onSuccess}
+        {renderSyntheseMissionSection()}
+        {renderEngagementSection()}
+        <OpportunityStandingPanel
+          profiles={data.standingProfiles}
+          headerActions={
+            <button
+              type="button"
+              onClick={() => setIsStaffingDialogOpen(true)}
+              className={primaryActionButtonClass}
+            >
+              Créer un staffing
+            </button>
+          }
+          practice={form.practice}
+          isEditing={editingSection === "staffing"}
+          isPending={isPending}
+          onStartEdit={() => setEditingSection("staffing")}
+          onCancel={handleCancel}
+          onSave={() => handleSave("staffing")}
+          onPracticeChange={(value) => setForm({ ...form, practice: value })}
         />
-
-        {/* 3. Économie */}
-        <SurfaceCard className="p-4 flex flex-col">
-          <SectionHeader title="Économie" sectionKey="economie-mobile" isDesktop={false} />
-          <div className="flex flex-col mt-1">
-            {editingSection === "economie-mobile" ? (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>TJM Cible (€)</label>
-                  <input
-                    type="number"
-                    value={form.target_daily_rate}
-                    onChange={(e) => setForm({ ...form, target_daily_rate: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Durée (jours)</label>
-                  <input
-                    type="number"
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Gain estimé (€)</label>
-                  <input
-                    type="number"
-                    value={form.estimated_gain}
-                    onChange={(e) => setForm({ ...form, estimated_gain: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-xs bg-canvas/30 p-2.5 rounded border border-border/40">
-                  <div>
-                    <span className="text-muted block text-[9px] uppercase">ACV (Généré)</span>
-                    <span className="font-bold text-heading">{formatEuro(opportunity.acv)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted block text-[9px] uppercase">Gain Pondéré</span>
-                    <span className="font-bold text-heading">{formatEuro(opportunity.weighted_gain)}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted">TJM Cible</span>
-                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Durée</span>
-                  <span className="font-semibold text-heading">{opportunity.duration ? `${opportunity.duration} jours` : "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Gain estimé</span>
-                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Gain pondéré</span>
-                  <span className="font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </SurfaceCard>
-
-        {/* 4. Prochaine Action */}
-        <SurfaceCard className="p-4 flex flex-col">
-          <SectionHeader title="Prochaine Action" sectionKey="prochaine-action-mobile" isDesktop={false} />
-          <div className="flex flex-col mt-1">
-            {editingSection === "prochaine-action-mobile" ? (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>Libellé de l&apos;action</label>
-                  <input
-                    type="text"
-                    value={form.next_action_label}
-                    onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Date de l&apos;action</label>
-                  <input
-                    type="datetime-local"
-                    value={form.next_action_at}
-                    onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="text-xs">
-                {opportunity.next_action_label || opportunity.next_action_at ? (
-                  <>
-                    <p className="font-semibold text-heading">{opportunity.next_action_label || "—"}</p>
-                    {opportunity.next_action_at && (
-                      <p className="text-[10px] text-muted mt-1">
-                        Prévue le : {formatDateTime(opportunity.next_action_at)}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-muted italic">Aucune action prévue</p>
-                )}
-              </div>
-            )}
-          </div>
-        </SurfaceCard>
-
-        {/* 5. Contexte mission */}
-        <SurfaceCard className="p-4 flex flex-col">
-          <SectionHeader title="Contexte mission" sectionKey="contexte-mobile" isDesktop={false} />
-          <div className="flex flex-col mt-1">
-            {editingSection === "contexte-mobile" ? (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>Localisation</label>
-                  <input
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>Télétravail</label>
-                  <select
-                    value={form.remote_policy}
-                    onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {REMOTE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted">Localisation</span>
-                  <span className="font-semibold text-heading">{opportunity.location || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Télétravail</span>
-                  <span className="font-semibold text-heading capitalize">{opportunity.remote_policy || "—"}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </SurfaceCard>
-
-        <OpportunityContactsPanel
-          opportunityId={opportunity.id}
-          contacts={data.contacts}
-          onRefresh={onSuccess}
-        />
+        {renderFinancialEquationSection()}
       </div>
+      {renderDialogs()}
+      </>
     )
   }
 
@@ -1236,6 +1653,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   //  VUE DESKTOP
   // ----------------------------------------------------------------
   return (
+    <>
     <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
       {/* Header Desktop */}
       <div className="flex items-start justify-between gap-4 pb-5 border-b border-border">
@@ -1300,9 +1718,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </span>
           )}
 
-          {editingSection === "identite" && (
-            <SectionEditControls section="identite" />
-          )}
+          {editingSection === "identite" && renderSectionEditControls("identite")}
 
           <div className="flex flex-col items-end border-l border-border pl-4">
             <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">ACV Estimé</span>
@@ -1316,470 +1732,38 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       {/* Timeline Progression */}
       {renderPipelineTimeline(true)}
 
-      {/* Colonnes Desktop */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Colonne Principale (8) */}
+      <div className="grid grid-cols-12 gap-6 items-start">
         <div className="col-span-8 flex flex-col gap-6">
-          {/* Besoin client */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Besoin client" sectionKey="besoin" isDesktop={true} />
-            <div className="flex flex-col gap-4 mt-2">
-              <div>
-                <label className={labelClass}>Résumé du besoin</label>
-                {editingSection === "besoin" ? (
-                  <input
-                    type="text"
-                    value={form.need_summary}
-                    onChange={(e) => setForm({ ...form, need_summary: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2.5 rounded border border-border/40">
-                    {opportunity.need_summary || "—"}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass}>Détail du besoin</label>
-                {editingSection === "besoin" ? (
-                  <textarea
-                    value={form.need_detail}
-                    onChange={(e) => setForm({ ...form, need_detail: e.target.value })}
-                    className={inputClass + " h-24 resize-none"}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <p className="text-xs text-body mt-1 whitespace-pre-wrap">
-                    {opportunity.need_detail || "—"}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className={labelClass}>Contexte client</label>
-                {editingSection === "besoin" ? (
-                  <textarea
-                    value={form.client_context}
-                    onChange={(e) => setForm({ ...form, client_context: e.target.value })}
-                    className={inputClass + " h-20 resize-none"}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <p className="text-xs text-body mt-1 whitespace-pre-wrap">
-                    {opportunity.client_context || "—"}
-                  </p>
-                )}
-              </div>
-            </div>
-          </SurfaceCard>
-
-          {/* Engagement commercial */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Engagement commercial" sectionKey="engagement" isDesktop={true} />
-            <div className="flex flex-col gap-4 mt-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Source de l&apos;opportunité</label>
-                  {editingSection === "engagement" ? (
-                    <select
-                      value={form.source}
-                      onChange={(e) => setForm({ ...form, source: e.target.value })}
-                      className={inputClass}
-                      disabled={isPending}
-                    >
-                      <option value="">— Sélectionner —</option>
-                      {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  ) : (
-                    <p className="text-xs text-body mt-1 font-medium capitalize">
-                      {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className={labelClass}>Prochaine action</label>
-                  {editingSection === "engagement" ? (
-                    <div className="flex flex-col gap-2">
-                      <input
-                        type="text"
-                        value={form.next_action_label}
-                        onChange={(e) => setForm({ ...form, next_action_label: e.target.value })}
-                        className={inputClass}
-                        placeholder="Libellé de l'action"
-                        disabled={isPending}
-                      />
-                      <input
-                        type="datetime-local"
-                        value={form.next_action_at}
-                        onChange={(e) => setForm({ ...form, next_action_at: e.target.value })}
-                        className={inputClass}
-                        disabled={isPending}
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-xs text-body mt-1 font-medium">
-                      {opportunity.next_action_label || "—"}
-                      {opportunity.next_action_at && (
-                        <span className="text-muted block text-[10px] mt-0.5 font-normal">
-                          Prévue le : {formatDateTime(opportunity.next_action_at)}
-                        </span>
-                      )}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className={labelClass}>Notes d&apos;engagement</label>
-                {editingSection === "engagement" ? (
-                  <textarea
-                    value={form.engagement_notes}
-                    onChange={(e) => setForm({ ...form, engagement_notes: e.target.value })}
-                    className={inputClass + " h-20 resize-none"}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <p className="text-xs text-body mt-1 whitespace-pre-wrap">
-                    {opportunity.engagement_notes || "—"}
-                  </p>
-                )}
-              </div>
-            </div>
-          </SurfaceCard>
-
-          {/* Résultat */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Résultat" sectionKey="resultat" isDesktop={true} />
-            <div className="grid grid-cols-3 gap-4 mt-2">
-              <div>
-                <label className={labelClass}>Outcome (Statut)</label>
-                {editingSection === "resultat" ? (
-                  <select
-                    value={form.outcome || ""}
-                    onChange={(e) => setForm({ ...form, outcome: (e.target.value as SalesOutcome) || null })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">En cours</option>
-                    {Object.entries(OUTCOME_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                ) : (
-                  <p className="text-xs text-body mt-1 font-medium capitalize">
-                    {opportunity.outcome ? getOutcomeLabel(opportunity.outcome) : "En cours"}
-                  </p>
-                )}
-              </div>
-              <div className="col-span-2">
-                <label className={labelClass}>Raison (Gain / Perte / Abandon)</label>
-                {editingSection === "resultat" ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Raison de gain"
-                      value={form.win_reason}
-                      onChange={(e) => setForm({ ...form, win_reason: e.target.value })}
-                      className={inputClass}
-                      disabled={isPending}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Raison de perte / abandon"
-                      value={form.loss_reason}
-                      onChange={(e) => setForm({ ...form, loss_reason: e.target.value })}
-                      className={inputClass}
-                      disabled={isPending}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs text-body mt-1 italic">
-                    {opportunity.outcome === "gagnee"
-                      ? (opportunity.win_reason || "Non renseignée")
-                      : (opportunity.loss_reason || "Non renseignée")}
-                  </p>
-                )}
-              </div>
-            </div>
-          </SurfaceCard>
+          {renderSyntheseMissionSection("h-full")}
+          {renderEngagementSection()}
         </div>
 
-        {/* Colonne Latérale (4) */}
         <div className="col-span-4 flex flex-col gap-6">
-          {/* Qualification */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Qualification" sectionKey="qualification" isDesktop={true} />
-            <div className="flex flex-col gap-3 mt-2">
-              {/* Practice */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Practice</span>
-                {editingSection === "qualification" ? (
-                  <select
-                    value={form.practice}
-                    onChange={(e) => setForm({ ...form, practice: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {PRACTICE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{opportunity.practice || "—"}</span>
-                )}
-              </div>
-
-              {/* Type */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Type d&apos;opportunité</span>
-                {editingSection === "qualification" ? (
-                  <select
-                    value={form.opportunity_type}
-                    onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading capitalize">
-                    {opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}
-                  </span>
-                )}
-              </div>
-
-              {/* Séniorité */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Séniorité requise</span>
-                {editingSection === "qualification" ? (
-                  <select
-                    value={form.seniority}
-                    onChange={(e) => setForm({ ...form, seniority: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {SENIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading capitalize">{opportunity.seniority || "—"}</span>
-                )}
-              </div>
-
-              {/* Étape */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Étape</span>
-                {editingSection === "qualification" ? (
-                  <select
-                    value={form.stage}
-                    onChange={(e) => setForm({ ...form, stage: e.target.value as SalesStage })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{getStageLabel(opportunity.stage)}</span>
-                )}
-              </div>
-
-              {/* Priorité */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Priorité</span>
-                {editingSection === "qualification" ? (
-                  <select
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{getPriorityLabel(opportunity.priority)}</span>
-                )}
-              </div>
-
-              {/* Conviction */}
-              <div className="flex flex-col gap-1 pb-1">
-                <span className="text-[10px] text-muted font-medium">Confiance (%)</span>
-                {editingSection === "qualification" ? (
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={form.conviction}
-                    onChange={(e) => setForm({ ...form, conviction: Number(e.target.value) })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{opportunity.conviction}%</span>
-                )}
-              </div>
-            </div>
-          </SurfaceCard>
-
-          <OpportunitySkillsPanel
-            opportunityId={opportunity.id}
-            skills={data.skills}
-            onRefresh={onSuccess}
+          <OpportunityStandingPanel
+            profiles={data.standingProfiles}
+            headerActions={
+              <button
+                type="button"
+                onClick={() => setIsStaffingDialogOpen(true)}
+                className={primaryActionButtonClass}
+              >
+                Créer un staffing
+              </button>
+            }
+            practice={form.practice}
+            isEditing={editingSection === "staffing"}
+            isPending={isPending}
+            onStartEdit={() => setEditingSection("staffing")}
+            onCancel={handleCancel}
+            onSave={() => handleSave("staffing")}
+            onPracticeChange={(value) => setForm({ ...form, practice: value })}
           />
-
-          {/* Économie */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Économie" sectionKey="economie" isDesktop={true} />
-            <div className="flex flex-col gap-3 mt-2">
-              {/* TJM */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">TJM Cible</span>
-                {editingSection === "economie" ? (
-                  <input
-                    type="number"
-                    value={form.target_daily_rate}
-                    onChange={(e) => setForm({ ...form, target_daily_rate: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
-                )}
-              </div>
-
-              {/* Durée */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Durée (jours)</span>
-                {editingSection === "economie" ? (
-                  <input
-                    type="number"
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{opportunity.duration ? `${opportunity.duration} jours` : "—"}</span>
-                )}
-              </div>
-
-              {/* Gain estimé */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Gain estimé</span>
-                {editingSection === "economie" ? (
-                  <input
-                    type="number"
-                    value={form.estimated_gain}
-                    onChange={(e) => setForm({ ...form, estimated_gain: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
-                )}
-              </div>
-
-              {/* ACV (lecture seule) */}
-              <div className="flex justify-between py-1 border-b border-border/30">
-                <span className="text-xs text-muted">ACV (calculé)</span>
-                <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.acv)}</span>
-              </div>
-
-              {/* Gain pondéré (lecture seule) */}
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-muted">Gain pondéré</span>
-                <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
-              </div>
-            </div>
-          </SurfaceCard>
-
-          {/* Planning */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Planning" sectionKey="planning" isDesktop={true} />
-            <div className="flex flex-col gap-3 mt-2">
-              {/* Date Début */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Date de début</span>
-                {editingSection === "planning" ? (
-                  <input
-                    type="date"
-                    value={form.start_date}
-                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{formatDate(opportunity.start_date)}</span>
-                )}
-              </div>
-
-              {/* Date Clôture */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Clôture cible</span>
-                {editingSection === "planning" ? (
-                  <input
-                    type="date"
-                    value={form.target_close_date}
-                    onChange={(e) => setForm({ ...form, target_close_date: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{formatDate(opportunity.target_close_date)}</span>
-                )}
-              </div>
-
-              {/* Dernière MàJ */}
-              <div className="flex justify-between py-1">
-                <span className="text-xs text-muted">Dernière MaJ</span>
-                <span className="text-xs font-semibold text-heading">{formatDate(opportunity.updated_at)}</span>
-              </div>
-            </div>
-          </SurfaceCard>
-
-          {/* Contexte mission */}
-          <SurfaceCard className="p-5 flex flex-col">
-            <SectionHeader title="Contexte mission" sectionKey="contexte" isDesktop={true} />
-            <div className="flex flex-col gap-3 mt-2">
-              {/* Localisation */}
-              <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
-                <span className="text-[10px] text-muted font-medium">Localisation</span>
-                {editingSection === "contexte" ? (
-                  <input
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  />
-                ) : (
-                  <span className="text-xs font-semibold text-heading">{opportunity.location || "—"}</span>
-                )}
-              </div>
-
-              {/* Télétravail */}
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-muted font-medium">Politique de télétravail</span>
-                {editingSection === "contexte" ? (
-                  <select
-                    value={form.remote_policy}
-                    onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
-                    className={inputClass}
-                    disabled={isPending}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {REMOTE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                ) : (
-                  <span className="text-xs font-semibold text-heading capitalize">{opportunity.remote_policy || "—"}</span>
-                )}
-              </div>
-            </div>
-          </SurfaceCard>
-
-          <OpportunityContactsPanel
-            opportunityId={opportunity.id}
-            contacts={data.contacts}
-            onRefresh={onSuccess}
-          />
+          {renderFinancialEquationSection()}
         </div>
       </div>
+
     </div>
+    {renderDialogs()}
+    </>
   )
 }

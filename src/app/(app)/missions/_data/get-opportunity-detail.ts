@@ -1,7 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import type { Json, Opportunity, OpportunitySkill, Contact, OpportunityEvent, SalesOutcome, SkillImportance } from "@/types/database"
+import type { Json, Opportunity, OpportunitySkill, Contact, OpportunityEvent, OpportunityStandingProfile, SalesOutcome, SkillImportance } from "@/types/database"
 
 export type OpportunityDetailResult =
   | {
@@ -18,6 +18,7 @@ export type OpportunityDetailResult =
           role: string | null
         }>
         events: OpportunityEvent[]
+        standingProfiles: OpportunityStandingProfile[]
       }
       error?: never
     }
@@ -38,6 +39,45 @@ function getJsonString(value: Json | null | undefined, key: string): string | nu
 
 type SkillRelation = {
   name: string | null
+}
+
+type CandidatePersonRelation = {
+  full_name: string | null
+  first_name: string | null
+  last_name: string | null
+}
+
+type CandidateWithPerson = {
+  id: string
+  seniority: string | null
+  availability: string | null
+  mobility: string | null
+  expected_daily_rate: number | null
+  source: string | null
+  summary: string | null
+  internal_score: number | null
+  status: string
+  persons: CandidatePersonRelation | CandidatePersonRelation[] | null
+}
+
+function getPersonDisplayName(person: CandidatePersonRelation | CandidatePersonRelation[] | null): string {
+  const personRecord = Array.isArray(person) ? person[0] : person
+  if (!personRecord) return "Profil sans nom"
+  return personRecord.full_name || `${personRecord.first_name || ""} ${personRecord.last_name || ""}`.trim() || "Profil sans nom"
+}
+
+function getStandingOrigin(source: string | null, opportunityStatus: string): "pressenti" | "ia" {
+  const normalized = `${source || ""} ${opportunityStatus}`.toLowerCase()
+  if (
+    normalized.includes("ia") ||
+    normalized.includes("ai") ||
+    normalized.includes("matching") ||
+    normalized.includes("auto") ||
+    normalized.includes("inference")
+  ) {
+    return "ia"
+  }
+  return "pressenti"
 }
 
 export async function getOpportunityDetail(opportunityId: string): Promise<OpportunityDetailResult> {
@@ -179,6 +219,57 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       occurred_at: item.occurred_at,
     }))
 
+    // 6. Récupération des profils pressentis / proposés pour l'opportunité
+    const { data: standingLinks, error: standingLinksError } = await supabase
+      .from("opportunity_candidates")
+      .select("id, candidate_id, status, proposed_at, sent_to_client_at, comment, next_action")
+      .eq("opportunity_id", opportunityId)
+      .order("created_at", { ascending: true })
+
+    if (standingLinksError) {
+      console.error("Erreur lors de la récupération du standing:", standingLinksError)
+    }
+
+    let standingProfiles: OpportunityStandingProfile[] = []
+    const candidateIds = standingLinks?.map((link) => link.candidate_id) || []
+
+    if (candidateIds.length > 0) {
+      const { data: candidatesData, error: candidatesError } = await supabase
+        .from("candidates")
+        .select("id, seniority, availability, mobility, expected_daily_rate, source, summary, internal_score, status, persons(full_name, first_name, last_name)")
+        .in("id", candidateIds)
+
+      if (candidatesError) {
+        console.error("Erreur lors de la récupération des profils candidats:", candidatesError)
+      } else if (candidatesData && standingLinks) {
+        const candidates = candidatesData as unknown as CandidateWithPerson[]
+        standingProfiles = standingLinks.flatMap((link) => {
+          const candidate = candidates.find((item) => item.id === link.candidate_id)
+          if (!candidate) return []
+
+          return [{
+            id: link.id,
+            candidate_id: link.candidate_id,
+            full_name: getPersonDisplayName(candidate.persons),
+            seniority: candidate.seniority,
+            availability: candidate.availability,
+            mobility: candidate.mobility,
+            expected_daily_rate: candidate.expected_daily_rate,
+            summary: candidate.summary,
+            internal_score: candidate.internal_score,
+            source: candidate.source,
+            candidate_status: candidate.status,
+            opportunity_status: link.status,
+            proposed_at: link.proposed_at,
+            sent_to_client_at: link.sent_to_client_at,
+            comment: link.comment,
+            next_action: link.next_action,
+            origin: getStandingOrigin(candidate.source, link.status),
+          }]
+        })
+      }
+    }
+
     return {
       data: {
         opportunity: opportunityMapped,
@@ -186,6 +277,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
         skills,
         contacts,
         events,
+        standingProfiles,
       },
     }
   } catch (err) {

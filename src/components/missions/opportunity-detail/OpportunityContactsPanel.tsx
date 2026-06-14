@@ -18,6 +18,8 @@ interface OpportunityContactsPanelProps {
     role: string | null
   }>
   onRefresh: () => void
+  className?: string
+  embedded?: boolean
 }
 
 const ROLE_OPTIONS: Array<{ value: ContactRole; label: string }> = [
@@ -31,6 +33,8 @@ export function OpportunityContactsPanel({
   opportunityId,
   contacts,
   onRefresh,
+  className,
+  embedded = false,
 }: OpportunityContactsPanelProps) {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -137,12 +141,12 @@ export function OpportunityContactsPanel({
 
   const inputClass = "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
 
-  return (
-    <SurfaceCard className="p-5 flex flex-col gap-4">
+  const content = (
+    <>
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
-        <h2 className="text-sm font-bold font-heading text-heading">
+        <h3 className="text-sm font-bold text-heading">
           Contacts liés
-        </h2>
+        </h3>
         {!isLinking && (
           <button
             onClick={() => setIsLinking(true)}
@@ -290,6 +294,16 @@ export function OpportunityContactsPanel({
           ))}
         </div>
       )}
+    </>
+  )
+
+  if (embedded) {
+    return <div className={cn("flex flex-col gap-4", className)}>{content}</div>
+  }
+
+  return (
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>
+      {content}
     </SurfaceCard>
   )
 }

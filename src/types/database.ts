@@ -2667,6 +2667,26 @@ export type OpportunityEvent = {
   occurred_at: string
 }
 
+export type OpportunityStandingProfile = {
+  id: string
+  candidate_id: string
+  full_name: string
+  seniority: string | null
+  availability: string | null
+  mobility: string | null
+  expected_daily_rate: number | null
+  summary: string | null
+  internal_score: number | null
+  source: string | null
+  candidate_status: string
+  opportunity_status: string
+  proposed_at: string | null
+  sent_to_client_at: string | null
+  comment: string | null
+  next_action: string | null
+  origin: "pressenti" | "ia"
+}
+
 export type SalesStage = "qualification" | "recherche_profil" | "cv_envoyes" | "entretien_client" | "gagne" | "perdu" | "abandonne" | "non_traitee"
 export type SalesOutcome = "gagnee" | "perdue" | "abandonnee" | "non_traitee"
 export type SalesPriority = "haute" | "moyenne" | "basse"
