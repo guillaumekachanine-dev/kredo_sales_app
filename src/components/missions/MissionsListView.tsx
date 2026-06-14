@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, FormEvent } from "react"
+import { useRouter } from "next/navigation"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { SectionTab } from "@/lib/tabs/tab-types"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -82,6 +83,7 @@ function getPastilleStyles(riskLevel?: "faible" | "modere" | "critique") {
 }
 
 export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: MissionsListViewProps) {
+  const router = useRouter()
   const { openTab } = useMissionsTabStore()
 
   // Rapid edition dialog state
@@ -96,6 +98,10 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleEditClick = (row: MissionsListRow) => {
+    if (row.entityType === "opportunite") {
+      router.push(`/missions/opps/${row.entityId}/edit`)
+      return
+    }
     setEditingMission(row)
     setFormTitle(row.title)
     setFormTjm(row.tjm || 0)
