@@ -873,10 +873,7 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           {/* Bloc 2: Conditions financières */}
           <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-warning/[0.02] to-transparent">
             <div className="flex flex-col select-none mb-1">
-              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-cat-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
                 Conditions financières
               </h3>
               <div className="w-8 h-0.5 bg-cat-warning mt-1.5 rounded-full" />
