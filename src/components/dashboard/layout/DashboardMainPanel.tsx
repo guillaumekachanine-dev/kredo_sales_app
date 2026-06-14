@@ -340,21 +340,17 @@ export function DashboardMainPanel({ mainPanel, className }: DashboardMainPanelP
   }
 
   return (
-    <SurfaceCard className={cn("p-5 flex flex-col justify-between h-full", className)}>
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-heading leading-tight">
+    <div className={cn("flex flex-col", className)}>
+      <div className="flex flex-col mb-3 select-none">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
           {title}
         </h3>
-        {description && (
-          <p className="text-xs text-muted mt-0.5">
-            {description}
-          </p>
-        )}
+        <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
       </div>
 
-      <div className="flex-1">
+      <div className="bg-surface border-0 rounded-xl p-5 shadow-sm flex-1">
         {renderContent()}
       </div>
-    </SurfaceCard>
+    </div>
   )
 }

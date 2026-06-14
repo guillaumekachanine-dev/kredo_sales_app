@@ -4,11 +4,14 @@ import { useEffect, useState, useMemo } from "react"
 import { SectionTab } from "@/lib/tabs/tab-types"
 import { getMissionDetail } from "@/app/(app)/missions/_data/get-mission-detail"
 import { updateMissionRisk } from "@/app/(app)/missions/_actions/update-mission-risk"
+import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AppDialog } from "@/components/ui/AppDialog"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { Json } from "@/types/database"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
 
 interface MissionDetailData {
   mission: {
@@ -33,9 +36,19 @@ interface MissionDetailData {
     name: string
     description: string | null
     sector: string | null
+    segment: string | null
+    website: string | null
+    employee_count: number | null
+    revenue: string | null
+    priority: string | null
+    metadata: Json
   } | null
   collaborator: {
     id: string
+    practice: string | null
+    seniority: string | null
+    entry_date: string | null
+    metadata: Json
     person: {
       id: string
       full_name: string | null
@@ -68,6 +81,11 @@ interface MissionDetailData {
     occurred_at: string
     next_action: string | null
   }>
+  companyContacts: Array<{
+    id: string
+    fullName: string
+    role: string | null
+  }>
 }
 
 interface MissionDetailPanelProps {
@@ -81,6 +99,20 @@ function parseDateOnly(value: string | null): Date | null {
   if (!year || !month || !day) return null
   const date = new Date(year, month - 1, day)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+// Helper: Calculate years since a date
+function getYearsSince(dateStr: string | null): string | null {
+  if (!dateStr) return null
+  const date = parseDateOnly(dateStr)
+  if (!date) return null
+  const today = new Date()
+  let diff = today.getFullYear() - date.getFullYear()
+  const monthDiff = today.getMonth() - date.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    diff--
+  }
+  return diff > 0 ? `${diff} ${diff > 1 ? "ans" : "an"}` : "Moins d'un an"
 }
 
 // Helper: Format Date Fr
@@ -124,6 +156,14 @@ function getWorkingDaysCount(startStr: string | null, endStr: string | null): nu
   return count
 }
 
+// Helper: Get Period Label for CRA
+function getPeriodLabel(startStr: string): string {
+  const date = parseDateOnly(startStr)
+  if (!date) return "Période inconnue"
+  const label = date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 // Helper: Get Initials for Company Monogram
 function getInitials(fullName: string): string {
   const initials = fullName
@@ -149,8 +189,9 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
   }
   
   // Dialog visibility states
-  const [showDocsDialog, setShowDocsDialog] = useState<boolean>(false)
-  const [showAiDialog, setShowAiDialog] = useState<boolean>(false)
+  const [showContratDialog, setShowContratDialog] = useState<boolean>(false)
+  const [showOrdreMissionDialog, setShowOrdreMissionDialog] = useState<boolean>(false)
+  const [showCraDialog, setShowCraDialog] = useState<boolean>(false)
 
   // Risk states
   const [riskLevel, setRiskLevel] = useState<"faible" | "modere" | "critique">("faible")
@@ -160,6 +201,166 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
   const [isUpdatingRisk, setIsUpdatingRisk] = useState<boolean>(false)
   const [riskFormLevel, setRiskFormLevel] = useState<"faible" | "modere" | "critique">("faible")
   const [riskFormDesc, setRiskFormDesc] = useState<string>("")
+
+  // Edit modals visibility states
+  const [showEditSynthese, setShowEditSynthese] = useState<boolean>(false)
+  const [showEditFinance, setShowEditFinance] = useState<boolean>(false)
+  const [showEditActivite, setShowEditActivite] = useState<boolean>(false)
+
+  // Form field states
+  // Synthèse
+  const [editTitle, setEditTitle] = useState<string>("")
+  const [editPractice, setEditPractice] = useState<string>("")
+  const [editProject, setEditProject] = useState<string>("")
+  const [editDescription, setEditDescription] = useState<string>("")
+  const [editContactIds, setEditContactIds] = useState<string[]>([])
+  const [isSavingSynthese, setIsSavingSynthese] = useState<boolean>(false)
+  const [editSeniority, setEditSeniority] = useState<string>("")
+  const [editCollabTenure, setEditCollabTenure] = useState<string>("")
+  const [editCollabMissionsCount, setEditCollabMissionsCount] = useState<string>("")
+
+  // Drawer states
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
+  const [showContactDrawer, setShowContactDrawer] = useState<boolean>(false)
+
+  // Finances
+  const [editTjm, setEditTjm] = useState<string>("")
+  const [editGrossMarginPct, setEditGrossMarginPct] = useState<string>("")
+  const [editStartDate, setEditStartDate] = useState<string>("")
+  const [editEndDate, setEditEndDate] = useState<string>("")
+  const [editPaymentTerms, setEditPaymentTerms] = useState<string>("")
+  const [editNextInvoiceDate, setEditNextInvoiceDate] = useState<string>("")
+  const [isSavingFinance, setIsSavingFinance] = useState<boolean>(false)
+
+  // Activité commerciale
+  const [editNextTask, setEditNextTask] = useState<string>("")
+  const [editToAnticipate, setEditToAnticipate] = useState<string>("")
+  const [isSavingActivite, setIsSavingActivite] = useState<boolean>(false)
+
+  // Handlers to open editing modals and initialize fields
+  const openEditSynthese = () => {
+    if (!data) return
+    setEditTitle(data.mission.title || "")
+    setEditPractice(data.mission.practice || data.collaborator?.practice || "")
+    setEditSeniority(data.mission.seniority || data.collaborator?.seniority || "")
+    const meta = (data.mission.metadata || {}) as Record<string, unknown>
+    setEditProject((meta.project || meta.projet || "") as string)
+    setEditDescription((meta.description as string) || "")
+    
+    // Ancienneté
+    const entryDateStr = data.collaborator?.entry_date || null
+    const calculatedTenure = getYearsSince(entryDateStr) || ""
+    setEditCollabTenure((meta.collab_tenure || calculatedTenure) as string)
+
+    // Missions count
+    const defaultMissionsCount = String((data.collaborator?.metadata as any)?.missions_count || "0")
+    setEditCollabMissionsCount((meta.collab_missions_count || defaultMissionsCount) as string)
+
+    const linkedContactIds = data.contacts.map((c) => c.id)
+    setEditContactIds(linkedContactIds)
+    setShowEditSynthese(true)
+  }
+
+  const openEditFinance = () => {
+    if (!data) return
+    setEditTjm(data.mission.tjm ? String(data.mission.tjm) : "0")
+    setEditGrossMarginPct(stats ? String(stats.computedMarginPct) : "")
+    setEditStartDate(data.mission.start_date || "")
+    setEditEndDate(data.mission.end_date || "")
+    const meta = (data.mission.metadata || {}) as Record<string, unknown>
+    setEditPaymentTerms((meta.payment_terms as string) || "Facturation mensuelle à terme échu")
+    setEditNextInvoiceDate((meta.next_invoice_date as string) || "Fin de mois en cours")
+    setShowEditFinance(true)
+  }
+
+  const openEditActivite = () => {
+    if (!data) return
+    const meta = (data.mission.metadata || {}) as Record<string, unknown>
+    setEditNextTask((meta.next_task as string) || "")
+    setEditToAnticipate((meta.to_anticipate as string) || "")
+    setShowEditActivite(true)
+  }
+
+  // Helper for silent updates
+  const refreshDetails = async () => {
+    try {
+      const result = await getMissionDetail(tab.entityId)
+      if (result.data) {
+        setData(result.data)
+      }
+    } catch (err) {
+      console.error("Erreur lors du rafraîchissement des données de mission:", err)
+    }
+  }
+
+  const handleSaveSynthese = async () => {
+    if (!data) return
+    setIsSavingSynthese(true)
+    const res = await updateMission({
+      id: data.mission.id,
+      title: editTitle,
+      practice: editPractice,
+      seniority: editSeniority,
+      metadata: {
+        description: editDescription,
+        project: editProject,
+        contact_ids: editContactIds,
+        collab_tenure: editCollabTenure,
+        collab_missions_count: editCollabMissionsCount
+      }
+    })
+    setIsSavingSynthese(false)
+    if (res.error) {
+      alert(res.error)
+    } else {
+      setShowEditSynthese(false)
+      await refreshDetails()
+    }
+  }
+
+  const handleSaveFinance = async () => {
+    if (!data) return
+    setIsSavingFinance(true)
+    const parsedTjm = parseFloat(editTjm) || 0
+    const parsedMargin = editGrossMarginPct ? parseFloat(editGrossMarginPct) : null
+    const res = await updateMission({
+      id: data.mission.id,
+      tjm: parsedTjm,
+      gross_margin_pct: parsedMargin,
+      start_date: editStartDate || null,
+      end_date: editEndDate || null,
+      metadata: {
+        payment_terms: editPaymentTerms,
+        next_invoice_date: editNextInvoiceDate
+      }
+    })
+    setIsSavingFinance(false)
+    if (res.error) {
+      alert(res.error)
+    } else {
+      setShowEditFinance(false)
+      await refreshDetails()
+    }
+  }
+
+  const handleSaveActivite = async () => {
+    if (!data) return
+    setIsSavingActivite(true)
+    const res = await updateMission({
+      id: data.mission.id,
+      metadata: {
+        next_task: editNextTask,
+        to_anticipate: editToAnticipate
+      }
+    })
+    setIsSavingActivite(false)
+    if (res.error) {
+      alert(res.error)
+    } else {
+      setShowEditActivite(false)
+      await refreshDetails()
+    }
+  }
 
   // Synchroniser le risque lors du chargement des données au rendu
   const [prevDataId, setPrevDataId] = useState<string | null>(null)
@@ -339,8 +540,8 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
   const billingTerms = (metadata.payment_terms || "Facturation mensuelle à terme échu") as string
   const nextInvoice = (metadata.next_invoice_date || "Fin de mois en cours") as string
 
-  const nextLeavesStr = (metadata.next_leaves || metadata.leaves || metadata.conges) as string | undefined
-  const closingStr = (metadata.client_closing || metadata.fermeture_site) as string | undefined
+  const nextTaskText = (metadata.next_task as string) || ""
+  const toAnticipateText = (metadata.to_anticipate as string) || ""
 
 
   const avgActivityRate = stats && stats.avgActivityRate !== null ? stats.avgActivityRate : 100
@@ -415,91 +616,200 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
         <div className="md:col-span-8 flex flex-col gap-5">
           
           {/* Bloc 1: Synthèse */}
-          <SurfaceCard className="p-5 md:p-6 flex flex-col gap-5" accent="primary">
-            <div>
-              <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Synthèse mission</h3>
-                {company?.sector && (
-                  <span className="text-[10px] text-muted font-medium uppercase tracking-wider bg-canvas px-2 py-0.5 rounded">
-                    {company.sector}
-                  </span>
-                )}
-              </div>
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-r from-primary/[0.03] to-transparent">
+            <div className="flex flex-col select-none mb-1">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Synthèse mission
+              </h3>
+              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
             </div>
 
+            {/* Pencil button */}
+            <button
+              onClick={openEditSynthese}
+              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+              title="Modifier cette section"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+
             <div className="flex flex-col sm:flex-row items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20 shrink-0 select-none">
-                {company ? getInitials(company.name) : "KR"}
-              </div>
+              {company ? (
+                <CompanyLogo
+                  name={company.name}
+                  logoPath={(company.metadata as any)?.logo_path || null}
+                  website={company.website}
+                  size="lg"
+                  className="w-12 h-12 rounded-full border border-border shrink-0 select-none"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-sm border border-primary/20 shrink-0 select-none">
+                  KR
+                </div>
+              )}
               
               <div className="flex-1 flex flex-col gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-heading">{company?.name || "Compte non renseigné"}</h4>
                   <p className="text-xs text-muted mt-0.5">
                     Département : <span className="font-semibold text-body">{mission.practice || "Non spécifié"}</span>
-                    {mission.seniority && (
+                    {!!(metadata.project || metadata.projet) && (
                       <span className="text-muted ml-2">
-                        · Séniorité : <span className="font-semibold text-body">{mission.seniority}</span>
+                        · Projet : <span className="font-semibold text-body">{(metadata.project || metadata.projet) as string}</span>
                       </span>
                     )}
                   </p>
                 </div>
 
-                {/* Présentation client abrégée */}
-                <div className="flex flex-col gap-1">
-                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Le Client</h5>
-                  <p className="text-xs text-body leading-relaxed">
-                    {company?.description 
-                      ? (company.description.length > 150 ? `${company.description.slice(0, 150)}...` : company.description) 
-                      : "Aucun contexte client disponible."}
-                  </p>
-                </div>
-
                 {/* Section Poste décrivant précisément les fonctions du collab */}
-                <div className="flex flex-col gap-1.5 pt-3 border-t border-border/40">
+                <div className="flex flex-col gap-1.5">
                   <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Poste & Fonctions</h5>
-                  <p className="text-xs text-body leading-relaxed bg-canvas/40 p-3 rounded-lg border border-border/40">
+                  <p className="text-xs text-body leading-relaxed">
                     {(metadata.description as string | undefined) || (mission.role_title ? `Mission en tant que ${mission.role_title}.` : "Descriptif des fonctions du collaborateur non spécifié.")}
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Contacts section (limités à 2 uniquement) */}
-            <div className="flex flex-col gap-2 pt-1 border-t border-border/40">
-              <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Contacts mission (max 2)</h5>
-              {contacts.slice(0, 2).length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                  {contacts.slice(0, 2).map((c) => (
-                    <div key={c.id} className="flex flex-col gap-1 p-2.5 bg-canvas/30 rounded border border-border/50">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-heading truncate">{c.fullName}</span>
-                        <span className="text-[9px] font-semibold text-primary bg-primary/5 border border-primary/10 px-1.5 py-0.2 rounded shrink-0">
-                          {c.role || "Contact"}
+                {/* Présentation client (abréger en Client) */}
+                <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
+                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Client</h5>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1 text-xs text-body font-medium select-none">
+                    {company?.sector && (
+                      <div className="flex items-center gap-1" title="Secteur d'activité">
+                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>{company.sector}</span>
+                      </div>
+                    )}
+                    {company?.segment && (
+                      <div className="flex items-center gap-1" title="Segment métier">
+                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>{company.segment}</span>
+                      </div>
+                    )}
+                    {company?.revenue && (
+                      <div className="flex items-center gap-1" title="Chiffre d'affaires">
+                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{company.revenue}</span>
+                      </div>
+                    )}
+                    {company?.employee_count && (
+                      <div className="flex items-center gap-1" title="Nombre d'employés">
+                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>{company.employee_count} {company.employee_count > 1 ? "employés" : "employé"}</span>
+                      </div>
+                    )}
+                    {company?.priority && (
+                      <div className="flex items-center gap-1" title="Priorité du compte">
+                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                        </svg>
+                        <span className="text-muted">
+                          {company.priority === "haute" ? "Priorité Haute" : company.priority === "basse" ? "Priorité Basse" : "Priorité Normale"}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-0.5 text-[10px] text-muted">
-                        {c.email && (
-                          <a href={`mailto:${c.email}`} className="hover:text-primary hover:underline font-mono truncate">
-                            {c.email}
-                          </a>
-                        )}
-                        {c.phone && <span className="font-mono">{c.phone}</span>}
-                      </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <span className="text-xs text-muted italic">Aucun contact client lié à cette mission.</span>
-              )}
+
+                {/* Collaborateur (KPIs avec icônes) */}
+                <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
+                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Collaborateur</h5>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1 text-xs text-body font-medium select-none">
+                    <div className="flex items-center gap-1" title="Practice de rattachement">
+                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Practice : {mission.practice || collaborator?.practice || "Non spécifiée"}</span>
+                    </div>
+                    <div className="flex items-center gap-1" title="Séniorité du consultant">
+                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      </svg>
+                      <span>Séniorité : {mission.seniority || collaborator?.seniority || "Non spécifiée"}</span>
+                    </div>
+                    <div className="flex items-center gap-1" title="Ancienneté dans l'entreprise">
+                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <span>Ancienneté : {metadata.collab_tenure as string || getYearsSince(collaborator?.entry_date || null) || "Non renseignée"}</span>
+                    </div>
+                    <div className="flex items-center gap-1" title="Missions réalisées">
+                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                      <span>Missions : {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contacts section (alignés et complets) */}
+                <div className="flex flex-col gap-2 pt-3 border-t border-border/40">
+                  <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Contacts mission</h5>
+                  {contacts.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      {contacts.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedContactId(c.id)
+                            setShowContactDrawer(true)
+                          }}
+                          className="flex flex-col gap-0.5 p-2 bg-canvas/30 rounded border border-border/50 hover:bg-canvas/50 hover:border-primary/30 cursor-pointer transition-all select-none"
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[11px] font-bold text-heading truncate">{c.fullName}</span>
+                            <span className="text-[8px] font-bold text-primary bg-primary/5 border border-primary/10 px-1 py-0.2 rounded shrink-0 uppercase tracking-wider">
+                              {c.role || "Contact"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-[9px] text-muted">
+                            {c.email && (
+                              <span className="font-mono truncate" title={c.email}>
+                                {c.email}
+                              </span>
+                            )}
+                            {c.phone && <span className="font-mono">{c.phone}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted italic">Aucun contact client lié à cette mission.</span>
+                  )}
+                </div>
+              </div>
             </div>
-          </SurfaceCard>
+          </div>
 
           {/* Bloc 2: Conditions financières */}
-          <SurfaceCard className="p-5 md:p-6 flex flex-col gap-5">
-            <div className="border-b border-border/40 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Conditions financières</h3>
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative">
+            <div className="flex flex-col select-none mb-1">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Conditions financières
+              </h3>
+              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
             </div>
+
+            {/* Pencil button */}
+            <button
+              onClick={openEditFinance}
+              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+              title="Modifier cette section"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
 
             {/* 3 mini KPI cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -572,49 +882,51 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
                 <span className="font-semibold text-heading">{nextInvoice}</span>
               </div>
             </div>
-          </SurfaceCard>
+          </div>
 
         </div>
 
         {/* RIGHT COLUMN: Activité & Actions rapides */}
         <div className="md:col-span-4 flex flex-col gap-5">
           
-          {/* Bloc 3: Activité */}
-          <SurfaceCard className="p-5 md:p-6 flex flex-col gap-5">
-            <div className="border-b border-border/40 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Activité</h3>
+          {/* Bloc 3: Activité commerciale */}
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative">
+            <div className="flex flex-col select-none mb-1">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Activité commerciale
+              </h3>
+              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
             </div>
 
-            {/* Production */}
+            {/* Pencil button */}
+            <button
+              onClick={openEditActivite}
+              className="absolute top-4 right-4 p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+              title="Modifier cette section"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+
+            {/* À venir */}
             <div className="flex flex-col gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">Production</h4>
-              <div className="flex flex-col gap-2.5 bg-canvas/20 p-3 rounded-lg border border-border/50">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-muted font-medium">TACE moyen constaté</span>
-                  <span className={cn("font-bold", taceColor)}>
-                    {avgActivityRate.toFixed(1)} %
-                  </span>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À venir</h4>
+              {nextTaskText ? (
+                <div className="p-2.5 bg-primary/5 border border-primary/10 rounded-lg text-xs text-body leading-relaxed flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>{nextTaskText}</span>
                 </div>
-                <div className="h-px bg-border/40" />
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-muted font-medium">Congés collaborateur</span>
-                  <span className="font-semibold text-body truncate max-w-[180px] text-right">
-                    {nextLeavesStr || "—"}
-                  </span>
-                </div>
-                <div className="h-px bg-border/40" />
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-muted font-medium">Fermeture site client</span>
-                  <span className="font-semibold text-body truncate max-w-[180px] text-right">
-                    {closingStr || "—"}
-                  </span>
-                </div>
-              </div>
+              ) : (
+                <span className="text-xs text-muted italic">Aucune action ou tâche planifiée.</span>
+              )}
             </div>
 
-            {/* Dernière action */}
-            <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">Dernière interaction</h4>
+            {/* Activité récente */}
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">Activité récente</h4>
               {interactions.length > 0 ? (
                 <div className="p-2.5 bg-canvas/30 rounded border border-border/40 flex flex-col gap-1">
                   <div className="flex items-center justify-between text-[10px]">
@@ -632,136 +944,123 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
               )}
             </div>
 
-            {/* Événements à anticiper */}
-            <div className="flex flex-col gap-2 border-t border-border/40 pt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">
-                {isFinProche ? "Planification" : "À anticiper"}
-              </h4>
-              {eventsToAnticipate.length > 0 ? (
-                <div className="flex flex-col gap-2 mt-1">
-                  {eventsToAnticipate.map((evt) => {
-                    const badgeColors = {
-                      warning: "bg-danger/10 border-danger/20 text-danger",
-                      success: "bg-success/10 border-success/20 text-success",
-                      primary: "bg-primary/10 border-primary/20 text-primary",
-                      warning_light: "bg-warning/10 border-warning/20 text-warning",
-                    }[evt.type]
-
-                    return (
-                      <div key={evt.id} className={cn("flex flex-col gap-1 p-2.5 rounded border text-xs", badgeColors)}>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`inline-block w-1.5 h-1.5 rounded-full ${
-                            evt.type === "warning" ? "bg-danger" : evt.type === "success" ? "bg-success" : evt.type === "primary" ? "bg-primary" : "bg-warning"
-                          }`} />
-                          <span className="font-bold text-heading">{evt.label}</span>
-                        </div>
-                        <p className="text-[10px] text-muted pl-3 leading-normal">{evt.desc}</p>
-                      </div>
-                    )
-                  })}
+            {/* À anticiper */}
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted">À anticiper</h4>
+              {toAnticipateText ? (
+                <div className="p-2.5 bg-warning/5 rounded border border-warning/20 text-xs text-body leading-relaxed flex items-start gap-2.5">
+                  <svg className="w-4 h-4 text-warning shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span>{toAnticipateText}</span>
                 </div>
               ) : (
-                <span className="text-xs text-muted italic">Aucun événement critique identifié à court terme.</span>
+                <span className="text-xs text-muted italic">Aucun motif d&apos;attention particulier.</span>
               )}
             </div>
+          </div>
 
-          </SurfaceCard>
+          {/* Bloc 4: Liens utiles */}
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative">
+            <div className="flex flex-col select-none mb-1">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Liens utiles
+              </h3>
+              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+            </div>
 
-          {/* Bloc 4: Actions rapides */}
-          <SurfaceCard className="p-5 md:p-6 flex flex-col gap-4">
-            <div className="border-b border-border/40 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Actions rapides</h3>
+            <div className="grid grid-cols-4 gap-2 mt-1">
+              {/* Contrat */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  onClick={() => setShowContratDialog(true)}
+                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+                  title="Consulter le contrat"
+                >
+                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">contrat</span>
+              </div>
+
+              {/* ODM */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  onClick={() => setShowOrdreMissionDialog(true)}
+                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+                  title="Consulter l'ordre de mission"
+                >
+                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </button>
+                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">ODM</span>
+              </div>
+
+              {/* Facturation */}
+              <div className="flex flex-col items-center gap-1.5">
+                <Link
+                  href="/finance"
+                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+                  title="Consulter la facturation"
+                >
+                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </Link>
+                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">facturation</span>
+              </div>
+
+              {/* CRA */}
+              <div className="flex flex-col items-center gap-1.5">
+                <button
+                  onClick={() => setShowCraDialog(true)}
+                  className="w-10 h-10 flex items-center justify-center border border-border rounded-lg bg-surface hover:bg-canvas/50 hover:text-heading transition-all cursor-pointer"
+                  title="Consulter les CRA"
+                >
+                  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <span className="text-[10px] text-muted text-center truncate w-full select-none font-medium">CRA</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bloc 5: Actions rapides */}
+          <div className="bg-surface border-0 rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative">
+            <div className="flex flex-col select-none mb-1">
+              <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                Actions rapides
+              </h3>
+              <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
             </div>
 
             <div className="flex flex-col gap-2">
-              {/* Contrat documents */}
-              <button
-                onClick={() => setShowDocsDialog(true)}
-                className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
-              >
-                <span>Consulter les Documents / Contrats</span>
-                <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </button>
-
-              {/* Facturation */}
+              {/* Synthèse financière */}
               <Link
                 href="/finance"
                 className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
               >
-                <span>Accéder à la Facturation</span>
+                <span>Synthèse financière</span>
                 <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </Link>
 
-              {/* Fiche collaborateur */}
-              {collaborator?.id ? (
-                <Link
-                  href={`/consultants?q=${encodeURIComponent(collaboratorName)}`}
-                  className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
-                >
-                  <span>Fiche Collaborateur ({collaboratorName})</span>
-                  <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </Link>
-              ) : (
-                <button
-                  disabled
-                  className="w-full text-left text-xs text-muted/60 bg-canvas/30 px-3 py-3 border border-border/50 rounded-md font-medium cursor-not-allowed flex items-center justify-between min-h-[44px]"
-                >
-                  <span>Fiche Collaborateur (Non assigné)</span>
-                  <svg className="w-4 h-4 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </button>
-              )}
-
-              {/* Fiche client */}
-              {company?.id ? (
-                <Link
-                  href={`/prospection/accounts?tab=accounts&q=${encodeURIComponent(company.name)}`}
-                  className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
-                >
-                  <span>Fiche Client ({company.name})</span>
-                  <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </Link>
-              ) : (
-                <button
-                  disabled
-                  className="w-full text-left text-xs text-muted/60 bg-canvas/30 px-3 py-3 border border-border/50 rounded-md font-medium cursor-not-allowed flex items-center justify-between min-h-[44px]"
-                >
-                  <span>Fiche Client (Non assigné)</span>
-                  <svg className="w-4 h-4 text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </button>
-              )}
-
-              {/* Analyse IA */}
-              <button
-                onClick={() => setShowAiDialog(true)}
-                className="w-full text-left text-xs px-3 py-3 rounded-md font-semibold flex items-center justify-between min-h-[44px] kredo-ai-analysis-button"
+              {/* Synthèse des suivis missions */}
+              <Link
+                href="/missions"
+                className="w-full text-left text-xs text-body hover:text-heading hover:bg-canvas/50 px-3 py-3 border border-border rounded-md font-medium transition-all flex items-center justify-between min-h-[44px]"
               >
-                <span className="relative z-10 text-primary font-semibold">Lancer l&apos;Analyse IA Kredo</span>
-                <div className="kredo-ready-action-circle">
-                  <svg
-                    className="w-3.5 h-3.5 relative z-10 text-white shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={3.5}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                  </svg>
-                </div>
-              </button>
+                <span>Synthèse des suivis missions</span>
+                <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              </Link>
             </div>
-          </SurfaceCard>
+          </div>
 
         </div>
 
@@ -769,10 +1068,10 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
 
       {/* dialogs */}
       <AppDialog
-        open={showDocsDialog}
-        onOpenChange={setShowDocsDialog}
-        title="Documents de la mission"
-        description={`Pièces contractuelles associées à la mission de ${collaboratorName}.`}
+        open={showContratDialog}
+        onOpenChange={setShowContratDialog}
+        title="Contrat de la mission"
+        description={`Contrat de prestation associé à la mission de ${collaboratorName}.`}
       >
         <div className="flex flex-col gap-4 mt-2">
           <div className="p-3 bg-canvas rounded border border-border/80 flex items-center justify-between">
@@ -788,6 +1087,19 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
             <button className="text-xs text-primary font-semibold hover:underline">Télécharger</button>
           </div>
 
+          <p className="text-[10px] text-muted italic text-center mt-2">
+            Module complet de signature électronique et de gestion de documents (Kredo Docs) à venir.
+          </p>
+        </div>
+      </AppDialog>
+
+      <AppDialog
+        open={showOrdreMissionDialog}
+        onOpenChange={setShowOrdreMissionDialog}
+        title="Ordre de mission"
+        description={`Pièce d'ordre de mission associée à la mission de ${collaboratorName}.`}
+      >
+        <div className="flex flex-col gap-4 mt-2">
           <div className="p-3 bg-canvas rounded border border-border/80 flex items-center justify-between">
             <div className="flex items-start gap-2.5">
               <svg className="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -808,31 +1120,59 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
       </AppDialog>
 
       <AppDialog
-        open={showAiDialog}
-        onOpenChange={setShowAiDialog}
-        title="Analyse IA Kredo (Copilot)"
-        description="Génération du rapport d'analyse financière et opérationnelle de la mission."
+        open={showCraDialog}
+        onOpenChange={setShowCraDialog}
+        title="Comptes Rendus d'Activité (CRA)"
+        description={`Liste des rapports d'activité pour la mission de ${collaboratorName}.`}
       >
-        <div className="flex flex-col gap-4 mt-2">
-          <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg flex flex-col gap-2">
-            <h4 className="font-bold text-heading text-xs flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Statut du module IA
-            </h4>
-            <p className="text-xs text-body leading-relaxed">
-              Le moteur d&apos;analyse IA Kredo est en cours d&apos;optimisation sur votre environnement. 
-              Une fois actif, il permettra d&apos;évaluer la rentabilité prévisionnelle, d&apos;anticiper les risques d&apos;intercontrat et d&apos;analyser le sentiment du client basé sur les interactions CRM.
+        <div className="flex flex-col gap-3 mt-2 max-h-[350px] overflow-y-auto pr-1">
+          {(!data?.activityReports || data.activityReports.length === 0) ? (
+            <p className="text-xs text-muted italic text-center py-4">
+              Aucun compte rendu d'activité enregistré pour cette mission.
             </p>
-          </div>
+          ) : (
+            data.activityReports.map((report) => {
+              const statusLower = report.status?.toLowerCase()
+              const isApproved = statusLower === "approved" || statusLower === "validated" || statusLower === "validé" || statusLower === "valide"
+              const isPending = statusLower === "pending" || statusLower === "en attente" || statusLower === "soumis"
+              
+              let statusLabel = report.status
+              let statusClass = "bg-muted/10 border-border text-muted"
+              
+              if (isApproved) {
+                statusLabel = "Validé"
+                statusClass = "bg-success/10 border-success/20 text-success"
+              } else if (isPending) {
+                statusLabel = "En attente"
+                statusClass = "bg-warning/10 border-warning/20 text-warning"
+              } else if (statusLower === "draft" || statusLower === "brouillon") {
+                statusLabel = "Brouillon"
+                statusClass = "bg-muted/10 border-border text-muted"
+              }
 
-          <div className="flex justify-end gap-2 mt-2">
-            <button
-              onClick={() => setShowAiDialog(false)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border hover:bg-canvas/50 transition-all text-heading"
-            >
-              Fermer
-            </button>
-          </div>
+              return (
+                <div key={report.id} className="p-3 bg-canvas rounded border border-border/80 flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-1">
+                    <div className="font-semibold text-heading text-xs">
+                      {getPeriodLabel(report.period_start)}
+                    </div>
+                    <div className="text-[10px] text-muted flex items-center gap-2">
+                      <span>Jours travaillés : <strong>{report.billable_days}</strong></span>
+                      {report.non_billable_days > 0 && (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-border" />
+                          <span>Absences : <strong>{report.non_billable_days}</strong></span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 text-[10px] font-semibold rounded border ${statusClass}`}>
+                    {statusLabel}
+                  </span>
+                </div>
+              )
+            })
+          )}
         </div>
       </AppDialog>
 
@@ -961,6 +1301,301 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
           )}
         </div>
       </AppDialog>
+
+      {/* Modale d'édition Synthèse */}
+      <AppDialog
+        open={showEditSynthese}
+        onOpenChange={setShowEditSynthese}
+        title="Modifier la Synthèse de la Mission"
+        description="Mettez à jour les informations générales et le descriptif du poste."
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Intitulé de la mission</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+              placeholder="Ex. Consultant Senior Fullstack Java/React"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Département / Practice</label>
+              <input
+                type="text"
+                value={editPractice}
+                onChange={(e) => setEditPractice(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. Technology & Engineering"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Projet</label>
+              <input
+                type="text"
+                value={editProject}
+                onChange={(e) => setEditProject(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. Migration Cloud"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Poste & Fonctions (Descriptif)</label>
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              className="w-full min-h-[120px] p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50 leading-relaxed"
+              placeholder="Décrivez ici le contexte de la mission et les fonctions du collaborateur..."
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 border-t border-border/40 pt-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Séniorité Collab.</label>
+              <input
+                type="text"
+                value={editSeniority}
+                onChange={(e) => setEditSeniority(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. Senior"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Ancienneté Collab.</label>
+              <input
+                type="text"
+                value={editCollabTenure}
+                onChange={(e) => setEditCollabTenure(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. 3 ans"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Missions Collab.</label>
+              <input
+                type="text"
+                value={editCollabMissionsCount}
+                onChange={(e) => setEditCollabMissionsCount(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. 5"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Contacts de la mission</label>
+            {data.companyContacts.length > 0 ? (
+              <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto border border-border rounded-md p-2 bg-canvas/30">
+                {data.companyContacts.map((c) => {
+                  const isChecked = editContactIds.includes(c.id)
+                  return (
+                    <label key={c.id} className="flex items-center gap-2 text-xs text-heading cursor-pointer hover:bg-canvas/50 p-1 rounded transition-colors select-none">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditContactIds([...editContactIds, c.id])
+                          } else {
+                            setEditContactIds(editContactIds.filter((id) => id !== c.id))
+                          }
+                        }}
+                        className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                      />
+                      <span className="flex-1 truncate">{c.fullName}</span>
+                      {c.role && (
+                        <span className="text-[9px] font-semibold text-muted bg-canvas px-1.5 py-0.5 rounded border border-border shrink-0">
+                          {c.role}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <span className="text-xs text-muted italic">Aucun contact disponible pour ce client.</span>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              disabled={isSavingSynthese}
+              onClick={() => setShowEditSynthese(false)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border hover:bg-canvas/50 text-heading transition-all"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={isSavingSynthese}
+              onClick={handleSaveSynthese}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white border border-primary hover:bg-primary/95 transition-all disabled:opacity-50"
+            >
+              {isSavingSynthese ? "Sauvegarde..." : "Sauvegarder"}
+            </button>
+          </div>
+        </div>
+      </AppDialog>
+
+      {/* Modale d'édition Finances */}
+      <AppDialog
+        open={showEditFinance}
+        onOpenChange={setShowEditFinance}
+        title="Modifier les Conditions Financières"
+        description="Mettez à jour les tarifs, la marge brute attendue et le calendrier."
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Tarif Client (TJM €)</label>
+              <input
+                type="number"
+                value={editTjm}
+                onChange={(e) => setEditTjm(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. 650"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Taux de Marge Brute (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={editGrossMarginPct}
+                onChange={(e) => setEditGrossMarginPct(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. 25"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Date de Début</label>
+              <input
+                type="date"
+                value={editStartDate}
+                onChange={(e) => setEditStartDate(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Date de Fin</label>
+              <input
+                type="date"
+                value={editEndDate}
+                onChange={(e) => setEditEndDate(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Conditions de Facturation</label>
+              <input
+                type="text"
+                value={editPaymentTerms}
+                onChange={(e) => setEditPaymentTerms(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. Facturation fin de mois"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Prochaine Facture</label>
+              <input
+                type="text"
+                value={editNextInvoiceDate}
+                onChange={(e) => setEditNextInvoiceDate(e.target.value)}
+                className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+                placeholder="Ex. Fin de mois en cours"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              disabled={isSavingFinance}
+              onClick={() => setShowEditFinance(false)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border hover:bg-canvas/50 text-heading transition-all"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={isSavingFinance}
+              onClick={handleSaveFinance}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white border border-primary hover:bg-primary/95 transition-all disabled:opacity-50"
+            >
+              {isSavingFinance ? "Sauvegarde..." : "Sauvegarder"}
+            </button>
+          </div>
+        </div>
+      </AppDialog>
+
+      {/* Modale d'édition Activité commerciale */}
+      <AppDialog
+        open={showEditActivite}
+        onOpenChange={setShowEditActivite}
+        title="Modifier l'Activité Commerciale de la Mission"
+        description="Mettez à jour la prochaine tâche planifiée et le motif d'attention à anticiper."
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Prochaine tâche prévue (À venir)</label>
+            <input
+              type="text"
+              value={editNextTask}
+              onChange={(e) => setEditNextTask(e.target.value)}
+              className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
+              placeholder="Ex. Échange de cadrage technique le 15/07"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Motif d'attention (À anticiper)</label>
+            <textarea
+              value={editToAnticipate}
+              onChange={(e) => setEditToAnticipate(e.target.value)}
+              rows={3}
+              className="w-full p-2.5 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50 resize-none"
+              placeholder="Ex. Risque de renouvellement / baisse de TJM demandée par le client"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border/40">
+            <button
+              type="button"
+              disabled={isSavingActivite}
+              onClick={() => setShowEditActivite(false)}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md border border-border hover:bg-canvas/50 text-heading transition-all"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              disabled={isSavingActivite}
+              onClick={handleSaveActivite}
+              className="px-3 py-1.5 text-xs font-semibold rounded-md bg-primary text-white border border-primary hover:bg-primary/95 transition-all disabled:opacity-50"
+            >
+              {isSavingActivite ? "Sauvegarde..." : "Sauvegarder"}
+            </button>
+          </div>
+        </div>
+      </AppDialog>
+
+      <ContactIdentityDrawer
+        contactId={selectedContactId}
+        open={showContactDrawer}
+        onOpenChange={setShowContactDrawer}
+      />
     </div>
   )
 }

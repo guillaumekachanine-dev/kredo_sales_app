@@ -23,6 +23,8 @@ function formatDate(dateStr: string | null): string {
 
 interface CompanyInfo {
   name: string
+  website: string | null
+  metadata: any
 }
 
 interface PersonInfo {
@@ -49,6 +51,7 @@ interface DBMissionResult {
   updated_at: string
   companies: CompanyInfo | CompanyInfo[] | null
   collaborators: CollaboratorInfo | CollaboratorInfo[] | null
+  metadata: any
 }
 
 function getCompanyName(companies: CompanyInfo | CompanyInfo[] | null): string {
@@ -84,8 +87,11 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         tjm,
         gross_margin_pct,
         updated_at,
+        metadata,
         companies (
-          name
+          name,
+          website,
+          metadata
         ),
         collaborators (
           persons (
@@ -103,7 +109,12 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
     }
 
     const mapped: MissionsListRow[] = (data as unknown as DBMissionResult[] ?? []).map((item) => {
-      const companyName = getCompanyName(item.companies)
+      const company = Array.isArray(item.companies) ? item.companies[0] : item.companies
+      const companyName = company?.name ?? "Compte non renseigné"
+      const companyWebsite = company?.website ?? null
+      const companyMetadata = company?.metadata || {}
+      const companyLogoPath = typeof companyMetadata.logo_path === "string" ? companyMetadata.logo_path : null
+
       const consultantName = getConsultantName(item.collaborators)
 
       // Subtitle: Consultant name · Role or practice
@@ -129,20 +140,29 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
       if (item.status === "closed") status = "closed"
       else if (item.status === "pending") status = "pending"
 
+      const meta = item.metadata || {}
+
       return {
         entityId: item.id,
         entityType: "mission",
         title: item.title,
         subtitle: subtitle || undefined,
         client: companyName,
+        clientWebsite: companyWebsite,
+        clientLogoPath: companyLogoPath,
         amount: item.tjm ? `${formatEuro(item.tjm)}/j` : "—",
         date: formatDate(item.start_date),
         tag,
         status,
         tjm: item.tjm,
         grossMarginPct: item.gross_margin_pct,
+        consultant: consultantName,
+        startDate: item.start_date || undefined,
+        endDate: item.end_date || undefined,
+        riskLevel: meta.risk_level || "faible",
       }
     })
+
 
     return mapped
   } catch (err) {

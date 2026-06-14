@@ -10,6 +10,7 @@ interface DashboardHeaderProps {
   syncStatus?: DashboardSyncStatus
   device: "desktop" | "mobile"
   className?: string
+  quickActions?: DashboardAction[]
 }
 
 export function DashboardHeader({
@@ -19,7 +20,8 @@ export function DashboardHeader({
   secondaryActions,
   syncStatus,
   device,
-  className
+  className,
+  quickActions
 }: DashboardHeaderProps) {
   const isMobile = device === "mobile"
 
@@ -73,33 +75,44 @@ export function DashboardHeader({
     )
   }
 
+  // Desktop view: Clean, borderless header using grid layout to align quick actions with the sidebar column
+  const finalQuickActions = quickActions || []
+
   return (
-    <header className={cn("flex items-start justify-between border-b border-border pb-5 mb-6 bg-canvas gap-4", className)}>
-      <div className="min-w-0">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold font-heading tracking-tight text-heading">
-            {title}
-          </h1>
-          {description && (
-            <>
-              <span className="text-2xl font-bold text-muted/40 select-none leading-none">/</span>
-              <p className="text-xs text-body leading-none">
-                {description}
-              </p>
-            </>
-          )}
-        </div>
-        {syncStatus?.lastSyncLabel && (
-          <p className="text-[10px] text-muted mt-0.5">
-            {syncStatus.lastSyncLabel}
-          </p>
-        )}
+    <header className={cn("grid grid-cols-12 gap-5 items-center mb-4 bg-canvas", className)}>
+      <div className="col-span-8">
+        <h1 className="text-2xl font-bold font-heading tracking-tight text-heading">
+          {title}
+        </h1>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {secondaryActions?.map(renderAction)}
-        {primaryAction && renderAction(primaryAction)}
-      </div>
+
+      {finalQuickActions.length > 0 && (
+        <div className="col-span-4 grid grid-cols-2 gap-2">
+          {finalQuickActions.map((action) => {
+            const baseActionClasses = "inline-flex items-center justify-center w-full min-h-[36px] px-3 py-1.5 text-xs font-semibold rounded border border-border bg-surface text-brand-blue hover:bg-surface-hover transition-all duration-150 active:scale-98 truncate"
+            
+            if (action.href) {
+              return (
+                <Link key={action.id} href={action.href} className={baseActionClasses}>
+                  {action.label}
+                </Link>
+              )
+            }
+
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={action.onClick}
+                className={baseActionClasses}
+              >
+                {action.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </header>
   )
 }

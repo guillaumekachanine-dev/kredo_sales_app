@@ -340,6 +340,13 @@ export const mockProposalDashboardData: SectionDashboardData = {
       description: "Valeur par proposition",
       trend: { label: "-5.3% vs Q1", direction: "down" },
       status: "warning"
+    },
+    {
+      id: "p4",
+      label: "Temps Moyen Rédaction",
+      value: "1.2j",
+      description: "Génération par IA",
+      status: "success"
     }
   ],
   alerts: [
@@ -420,6 +427,13 @@ export const mockProspectionDashboardData: SectionDashboardData = {
       description: "Intérêt manifesté ou call planifié",
       trend: { label: "+5 calls planifiés", direction: "up" },
       status: "success"
+    },
+    {
+      id: "pr4",
+      label: "Réunions Planifiées",
+      value: "5",
+      description: "Objectif hebdomadaire: 6",
+      status: "warning"
     }
   ],
   alerts: [
@@ -488,6 +502,13 @@ export const mockKnowledgeDashboardData: SectionDashboardData = {
       label: "Taux de Précision RAG",
       value: "94.8 %",
       description: "Évalué par feedback utilisateur",
+      status: "success"
+    },
+    {
+      id: "k4",
+      label: "Temps Réponse RAG",
+      value: "480ms",
+      description: "Performance vectorielle",
       status: "success"
     }
   ],
@@ -560,6 +581,13 @@ export const mockAutomationsDashboardData: SectionDashboardData = {
       description: "Moyenne sur 7 jours",
       trend: { label: "-0.4%", direction: "down" },
       status: "warning"
+    },
+    {
+      id: "au4",
+      label: "Temps Gagné Estimé",
+      value: "128h",
+      description: "Ce mois-ci par les automates",
+      status: "success"
     }
   ],
   alerts: [
@@ -784,6 +812,13 @@ export const mockStaffingDashboardData: SectionDashboardData = {
       description: "Recherche de mission",
       trend: { label: "-3 cette semaine", direction: "up" },
       status: "warning"
+    },
+    {
+      id: "st4",
+      label: "Missions Prochaines",
+      value: "5",
+      description: "Démarrages sous 14 jours",
+      status: "neutral"
     }
   ],
   alerts: [
@@ -885,6 +920,13 @@ export const mockConsultantsDashboardData: SectionDashboardData = {
       value: "Senior",
       description: "Moyenne d'expérience 6.2 ans",
       status: "neutral"
+    },
+    {
+      id: "co4",
+      label: "Taux de Rotation",
+      value: "4.2 %",
+      description: "Sur 12 mois glissants",
+      status: "success"
     }
   ],
   alerts: [],
@@ -979,6 +1021,13 @@ export const mockRecruitmentDashboardData: SectionDashboardData = {
       value: "25j",
       description: "Du sourcing à l'offre",
       status: "success"
+    },
+    {
+      id: "re4",
+      label: "Offres d'embauche",
+      value: "3",
+      description: "En attente de signature",
+      status: "pending"
     }
   ],
   alerts: [
@@ -1079,6 +1128,13 @@ export const mockSettingsDashboardData: SectionDashboardData = {
       label: "Dernière sauvegarde",
       value: "Sauvegardé",
       description: "Aujourd'hui, 04h00",
+      status: "success"
+    },
+    {
+      id: "se4",
+      label: "Niveau de Sécurité",
+      value: "Élevé",
+      description: "MFA & RLS activés",
       status: "success"
     }
   ],

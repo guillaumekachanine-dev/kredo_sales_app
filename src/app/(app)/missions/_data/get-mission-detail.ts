@@ -30,9 +30,19 @@ export type MissionDetailResult =
           name: string
           description: string | null
           sector: string | null
+          segment: string | null
+          website: string | null
+          employee_count: number | null
+          revenue: string | null
+          priority: string | null
+          metadata: Json
         } | null
         collaborator: {
           id: string
+          practice: string | null
+          seniority: string | null
+          entry_date: string | null
+          metadata: Json
           person: {
             id: string
             full_name: string | null
@@ -65,6 +75,11 @@ export type MissionDetailResult =
           occurred_at: string
           next_action: string | null
         }>
+        companyContacts: Array<{
+          id: string
+          fullName: string
+          role: string | null
+        }>
       }
       error?: never
     }
@@ -85,6 +100,10 @@ interface DBPerson {
 interface DBCollaborator {
   id: string
   person_id: string
+  practice: string | null
+  seniority: string | null
+  entry_date: string | null
+  metadata: Json
   persons: DBPerson | DBPerson[] | null
 }
 
@@ -145,11 +164,22 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
     // opportunité → entreprise pour contacts et interactions) est préservée.
 
     // 2. Compte lié
-    const fetchCompany = async (): Promise<{ id: string; name: string; description: string | null; sector: string | null } | null> => {
+    const fetchCompany = async (): Promise<{
+      id: string
+      name: string
+      description: string | null
+      sector: string | null
+      segment: string | null
+      website: string | null
+      employee_count: number | null
+      revenue: string | null
+      priority: string | null
+      metadata: Json
+    } | null> => {
       if (!mission.company_id) return null
       const { data: companyData, error: companyError } = await supabase
         .from("companies")
-        .select("id, name, description, sector")
+        .select("id, name, description, sector, segment, website, employee_count, revenue, priority, metadata")
         .eq("id", mission.company_id)
         .maybeSingle()
 
@@ -161,13 +191,24 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
     }
 
     // 3. Collaborateur
-    const fetchCollaborator = async (): Promise<{ id: string; person: DBPerson | null } | null> => {
+    const fetchCollaborator = async (): Promise<{
+      id: string
+      practice: string | null
+      seniority: string | null
+      entry_date: string | null
+      metadata: Json
+      person: DBPerson | null
+    } | null> => {
       if (!mission.collaborator_id) return null
       const { data: collab, error: collabError } = await supabase
         .from("collaborators")
         .select(`
           id,
           person_id,
+          practice,
+          seniority,
+          entry_date,
+          metadata,
           persons (
             id,
             full_name,
@@ -189,6 +230,10 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       const personObj = Array.isArray(rawCollab.persons) ? rawCollab.persons[0] : rawCollab.persons
       return {
         id: rawCollab.id,
+        practice: rawCollab.practice,
+        seniority: rawCollab.seniority,
+        entry_date: rawCollab.entry_date,
+        metadata: rawCollab.metadata || {},
         person: personObj ? {
           id: personObj.id,
           full_name: personObj.full_name,
@@ -200,9 +245,49 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       }
     }
 
-    // 4. Contacts (opportunité, fallback entreprise)
+    // 4. Contacts (contact_ids spécifiques, sinon opportunité, fallback entreprise)
     const fetchContacts = async (): Promise<Array<{ id: string; fullName: string; role: string | null; email: string | null; phone: string | null }>> => {
       const contacts: Array<{ id: string; fullName: string; role: string | null; email: string | null; phone: string | null }> = []
+
+      const metadata = (mission.metadata || {}) as Record<string, unknown>
+      const contactIds = metadata.contact_ids as string[] | undefined
+
+      if (contactIds && contactIds.length > 0) {
+        const { data: specContacts, error: specError } = await supabase
+          .from("contacts")
+          .select(`
+            id,
+            relationship_role,
+            persons (
+              id,
+              full_name,
+              first_name,
+              last_name,
+              primary_email,
+              phone
+            )
+          `)
+          .in("id", contactIds)
+
+        if (specError) {
+          console.error("Erreur lors de la récupération des contacts spécifiques de la mission:", specError)
+        } else if (specContacts) {
+          const rawSpecContacts = specContacts as unknown as DBContact[]
+          rawSpecContacts.forEach((cc) => {
+            const personObj = Array.isArray(cc.persons) ? cc.persons[0] : cc.persons
+            if (personObj) {
+              contacts.push({
+                id: cc.id,
+                fullName: personObj.full_name || `${personObj.first_name || ""} ${personObj.last_name || ""}`.trim(),
+                role: cc.relationship_role || "Contact mission",
+                email: personObj.primary_email,
+                phone: personObj.phone,
+              })
+            }
+          })
+          return contacts
+        }
+      }
 
       if (mission.opportunity_id) {
         const { data: opportunityContacts, error: oppContactsError } = await supabase
@@ -355,12 +440,44 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       return []
     }
 
-    const [company, collaboratorData, contacts, activityReports, interactions] = await Promise.all([
+    const fetchCompanyContacts = async (): Promise<Array<{ id: string; fullName: string; role: string | null }>> => {
+      if (!mission.company_id) return []
+      const { data: companyContacts, error: compContactsError } = await supabase
+        .from("contacts")
+        .select(`
+          id,
+          relationship_role,
+          persons (
+            id,
+            full_name,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("company_id", mission.company_id)
+
+      if (compContactsError) {
+        console.error("Erreur lors de la récupération de tous les contacts de la compagnie:", compContactsError)
+        return []
+      }
+
+      return (companyContacts || []).map((cc) => {
+        const personObj = Array.isArray(cc.persons) ? cc.persons[0] : cc.persons
+        return {
+          id: cc.id,
+          fullName: personObj ? (personObj.full_name || `${personObj.first_name || ""} ${personObj.last_name || ""}`.trim()) : "Contact sans nom",
+          role: cc.relationship_role
+        }
+      })
+    }
+
+    const [company, collaboratorData, contacts, activityReports, interactions, companyContacts] = await Promise.all([
       fetchCompany(),
       fetchCollaborator(),
       fetchContacts(),
       fetchActivityReports(),
       fetchInteractions(),
+      fetchCompanyContacts(),
     ])
 
     return {
@@ -371,6 +488,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         contacts,
         activityReports,
         interactions,
+        companyContacts,
       },
     }
   } catch (err) {

@@ -1,5 +1,5 @@
 import { DashboardMetric } from "@/lib/dashboard/dashboard-types"
-import { MetricCard } from "../widgets/MetricCard"
+import { MetricCard, DesktopMetricCard } from "../widgets/MetricCard"
 import { cn } from "@/lib/utils"
 
 interface DashboardKpiGridProps {
@@ -42,11 +42,26 @@ export function DashboardKpiGrid({ metrics, device, className }: DashboardKpiGri
     )
   }
 
+  // Desktop layout: Pad or trim the metrics to always render exactly 3 KPI cards
+  const displayedMetrics = [...metrics]
+  while (displayedMetrics.length < 3) {
+    displayedMetrics.push({
+      id: `pad-${displayedMetrics.length}`,
+      label: "En attente",
+      value: "-",
+      status: "neutral"
+    })
+  }
+  const finalMetrics = displayedMetrics.slice(0, 3)
+
   return (
-    <div className={cn("grid gap-4 grid-cols-3", className)}>
-      {metrics.map((metric) => (
-        <MetricCard key={metric.id} metric={metric} />
+    <div className={cn("w-full max-w-3xl grid grid-cols-3 divide-x divide-gray-200/80 dark:divide-border/60 bg-transparent py-2", className)}>
+      {finalMetrics.map((metric, index) => (
+        <div key={metric.id} className="px-4 first:pl-0 last:pr-0">
+          <DesktopMetricCard metric={metric} index={index} />
+        </div>
       ))}
     </div>
   )
 }
+
