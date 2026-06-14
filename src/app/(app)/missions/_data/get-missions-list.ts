@@ -160,6 +160,7 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         startDate: item.start_date || undefined,
         endDate: item.end_date || undefined,
         riskLevel: meta.risk_level || "faible",
+        practice: item.practice || undefined,
       }
     })
 

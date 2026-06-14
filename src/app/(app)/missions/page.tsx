@@ -3,6 +3,7 @@ import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
 import { MissionsDesktopDashboard } from "@/components/missions/dashboard/MissionsDesktopDashboard"
 import { MissionsMobileDashboard } from "@/components/missions/dashboard/MissionsMobileDashboard"
+import { createClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +27,7 @@ export default async function MissionsPage() {
     acv: (o as any).acv,
     priority: o.priority || "normale",
     targetDailyRate: (o as any).targetDailyRate || null,
+    status: o.status,
   }))
 
   // Calculate Avg TJM
@@ -51,12 +53,38 @@ export default async function MissionsPage() {
 
   const totalPipe = formatEuro(totalAcv)
 
+  // Fetch dynamic average TACI and Bench Rate from Supabase
+  const supabase = await createClient()
+  
+  // 1. Average TACI
+  const { data: compensations } = await supabase
+    .from("collaborator_compensation")
+    .select("taci")
+  
+  const taciValues = compensations?.map((c) => Number(c.taci)).filter((t) => !isNaN(t)) || []
+  const avgTaci = taciValues.length > 0
+    ? Math.round((taciValues.reduce((sum, val) => sum + val, 0) / taciValues.length) * 100)
+    : 93 // Fallback default (93%)
+
+  // 2. Bench Rate
+  const { data: collaborators } = await supabase
+    .from("collaborators")
+    .select("status")
+  
+  const totalCollaborators = collaborators?.length || 0
+  const benchCount = collaborators?.filter((c) => c.status === "intercontrat" || c.status === "available").length || 0
+  const benchRate = totalCollaborators > 0
+    ? Math.round((benchCount / totalCollaborators) * 1000) / 10
+    : 8.2 // Fallback default (8.2%)
+
   if (device === "mobile") {
     return (
       <MissionsMobileDashboard
         activeMissions={activeMissions}
         opportunities={opportunities}
         totalPipe={totalPipe}
+        avgTaci={avgTaci}
+        benchRate={benchRate}
       />
     )
   }
@@ -67,6 +95,8 @@ export default async function MissionsPage() {
       opportunities={opportunities}
       avgTjm={avgTjm}
       totalPipe={totalPipe}
+      avgTaci={avgTaci}
+      benchRate={benchRate}
     />
   )
 }

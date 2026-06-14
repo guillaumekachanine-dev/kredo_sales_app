@@ -34,6 +34,7 @@ export type MissionsListRow = {
   riskLevel?: "faible" | "modere" | "critique"
   priority?: string
   targetDailyRate?: number | null
+  practice?: string
 }
 
 interface MissionsListViewProps {

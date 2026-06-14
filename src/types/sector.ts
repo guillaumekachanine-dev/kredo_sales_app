@@ -80,4 +80,10 @@ export interface SectorWithRelations extends SectorIntelligence {
   regulatory_items: SectorRegulatoryItem[]
   events: SectorEvent[]
   companies: SectorCompany[]
+  errors?: {
+    pain_points?: boolean
+    regulatory_items?: boolean
+    events?: boolean
+    companies?: boolean
+  }
 }

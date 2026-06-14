@@ -95,7 +95,7 @@ export const mainMenuItems: MainMenuItem[] = [
         icon: "sales",
         primary: true,
         tabs: [
-          { label: "Vue d'ensemble",   shortLabel: "Synthèse", href: "/missions" },
+          { label: "Synthèse",         shortLabel: "Synthèse", href: "/missions" },
           { label: "Missions actives", shortLabel: "Actives",  href: "/missions/actives" },
           { label: "Opportunités",     shortLabel: "Opps",     href: "/missions/opps" },
           { label: "Planning",                                 href: "/missions/planning" },
@@ -117,7 +117,7 @@ export const mainMenuItems: MainMenuItem[] = [
         tabs: [
           { label: "Synthèse",           shortLabel: "Synthèse", href: "/prospection" },
           { label: "Comptes & contacts", shortLabel: "Comptes",  href: "/prospection/accounts" },
-          { label: "Analyses sectorielles", shortLabel: "Études",   href: "/prospection/sector-studies" },
+          { label: "Approche sectorielle", shortLabel: "Secteurs",   href: "/prospection/approche-sectorielle" },
           { label: "Suivi des actions",     shortLabel: "Suivi",    href: "/prospection/suivi" },
           { label: "Réglages",           shortLabel: "Réglages", href: "/prospection/settings" },
         ],

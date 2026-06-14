@@ -12,7 +12,7 @@ import { MissionsEntityPanel } from "./MissionsEntityPanel"
 function useHomeLabelForPath(pathname: string): string {
   const tabs = getSectionTabsForPath(pathname)
   const match = tabs.find((t) => t.href === pathname)
-  return match?.label ?? "Vue d'ensemble"
+  return match?.label ?? "Synthèse"
 }
 
 interface MissionsTabbedShellProps {

@@ -13,29 +13,62 @@ interface OpportunityRow {
   stage: string
   conviction: number
   acv?: number | null
+  status: string
 }
 
 interface MissionsMobileDashboardProps {
   activeMissions: MissionsListRow[]
   opportunities: OpportunityRow[]
   totalPipe: string
+  avgTaci: number
+  benchRate: number
 }
 
 export function MissionsMobileDashboard({
   activeMissions,
   opportunities,
   totalPipe,
+  avgTaci,
+  benchRate,
 }: MissionsMobileDashboardProps) {
   const router = useRouter()
   const { openTab } = useMissionsTabStore()
   const [carouselIndex, setCarouselIndex] = useState(0)
 
+  const activeMissionsCount = activeMissions.length > 0 ? activeMissions.length : 16
+  const activeClientsCount = new Set(activeMissions.map((m) => m.client).filter(Boolean)).size || 10
+
+  const activeMissionsWithTjm = activeMissions.filter((m) => m.tjm !== undefined && m.tjm > 0)
+  const avgTjm = activeMissionsWithTjm.length > 0
+    ? Math.round(activeMissionsWithTjm.reduce((sum, m) => sum + (m.tjm || 0), 0) / activeMissionsWithTjm.length)
+    : 680
+
+  const activeMissionsWithMargin = activeMissions.filter((m) => m.grossMarginPct !== null && m.grossMarginPct !== undefined)
+  const avgMargin = activeMissionsWithMargin.length > 0
+    ? Math.round(activeMissionsWithMargin.reduce((sum, m) => sum + (m.grossMarginPct || 0), 0) / activeMissionsWithMargin.length)
+    : 36
+
+  const openOpps = opportunities.filter((o) => o.status === "active" || o.status === "pending")
+  const openOppyCount = openOpps.length > 0 ? openOpps.length : 9
+
   // Carousel items representing KPIs
   const kpis = [
-    { label: "Missions", value: activeMissions.length > 0 ? activeMissions.length : 125 },
-    { label: "Pipe", value: totalPipe !== "0 €" ? totalPipe : "€1.4M" },
-    { label: "TJM Moyen", value: "€680" },
-    { label: "Bench Rate", value: "8.2%" },
+    {
+      left: { label: "Missions en cours", value: activeMissionsCount },
+      right: { label: "Clients actifs", value: activeClientsCount }
+    },
+    {
+      left: { label: "TJ Moyen", value: `${avgTjm} €` },
+      right: { label: "Marge moyenne", value: `${avgMargin}%` }
+    },
+    {
+      left: { label: "Oppy ouvertes", value: openOppyCount },
+      right: { label: "Pipe Oppy", value: totalPipe }
+    },
+    {
+      left: { label: "TACI moyen", value: `${avgTaci}%` },
+      right: { label: "Bench", value: `${benchRate}%` }
+    }
   ]
 
   const nextKpi = () => {
@@ -141,23 +174,43 @@ export function MissionsMobileDashboard({
         {/* KPI Carousel Track */}
         <div className="flex-1 flex gap-3 overflow-hidden">
           {/* Active Card */}
-          <div className="flex-1 bg-surface border border-border/70 rounded-xl p-4 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              {kpis[carouselIndex].label}
-            </span>
-            <span className="text-2xl font-bold text-heading mt-1">
-              {kpis[carouselIndex].value}
-            </span>
+          <div className="flex-1 bg-surface border border-border/70 rounded-xl p-4 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none">
+            <div className="pr-3 flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
+                {kpis[carouselIndex].left.label}
+              </span>
+              <span className="text-xl font-bold text-heading mt-auto truncate">
+                {kpis[carouselIndex].left.value}
+              </span>
+            </div>
+            <div className="pl-3 flex flex-col justify-between">
+              <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
+                {kpis[carouselIndex].right.label}
+              </span>
+              <span className="text-xl font-bold text-heading mt-auto truncate">
+                {kpis[carouselIndex].right.value}
+              </span>
+            </div>
           </div>
 
           {/* Next Card (Partial View) */}
-          <div className="w-1/3 bg-surface border border-border/70 rounded-xl p-4 shadow-sm opacity-50 flex flex-col justify-between truncate">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {kpis[(carouselIndex + 1) % kpis.length].label}
-            </span>
-            <span className="text-lg font-bold text-heading mt-1 truncate">
-              {kpis[(carouselIndex + 1) % kpis.length].value}
-            </span>
+          <div className="w-1/3 bg-surface border border-border/70 rounded-xl p-3 shadow-sm opacity-40 grid grid-cols-2 divide-x divide-border/30 select-none overflow-hidden truncate">
+            <div className="pr-1.5 flex flex-col justify-between min-w-0">
+              <span className="text-[8px] font-bold text-muted uppercase tracking-wider block truncate">
+                {kpis[(carouselIndex + 1) % kpis.length].left.label}
+              </span>
+              <span className="text-sm font-bold text-heading mt-auto truncate">
+                {kpis[(carouselIndex + 1) % kpis.length].left.value}
+              </span>
+            </div>
+            <div className="pl-1.5 flex flex-col justify-between min-w-0">
+              <span className="text-[8px] font-bold text-muted uppercase tracking-wider block truncate">
+                {kpis[(carouselIndex + 1) % kpis.length].right.label}
+              </span>
+              <span className="text-sm font-bold text-heading mt-auto truncate">
+                {kpis[(carouselIndex + 1) % kpis.length].right.value}
+              </span>
+            </div>
           </div>
         </div>
 
