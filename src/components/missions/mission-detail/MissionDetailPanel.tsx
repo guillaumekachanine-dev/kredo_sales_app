@@ -26,6 +26,8 @@ interface MissionDetailData {
     tjm: number
     cjm: number
     gross_margin_pct: number | null
+    billing_condition: string | null
+    description: string | null
     metadata: Json
     opportunity_id: string | null
     collaborator_id: string
@@ -612,7 +614,16 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
     ? collaborator.person.full_name || `${collaborator.person.first_name || ""} ${collaborator.person.last_name || ""}`.trim()
     : "Consultant non renseigné"
 
-  const billingTerms = (metadata.payment_terms || "Facturation mensuelle à terme échu") as string
+  const BILLING_LABELS: Record<string, string> = {
+    paiement_a_reception: "Paiement à réception",
+    "30j_net": "30 jours net",
+    "45j_net": "45 jours net",
+    "30j_fin_de_mois": "30 jours fin de mois",
+    "45j_fin_de_mois": "45 jours fin de mois",
+  }
+  const billingTerms = mission.billing_condition
+    ? (BILLING_LABELS[mission.billing_condition] ?? mission.billing_condition)
+    : ((metadata.payment_terms as string) || "Facturation mensuelle à terme échu")
   const nextInvoice = (metadata.next_invoice_date || "Fin de mois en cours") as string
 
   const nextTaskText = (metadata.next_task as string) || ""
@@ -742,53 +753,76 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
                 <div className="flex flex-col gap-1.5">
                   <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Poste & Fonctions</h5>
                   <p className="text-xs text-body leading-relaxed">
-                    {(metadata.description as string | undefined) || (mission.role_title ? `Mission en tant que ${mission.role_title}.` : "Descriptif des fonctions du collaborateur non spécifié.")}
+                    {mission.description || (metadata.description as string | undefined) || (mission.role_title ? `Mission en tant que ${mission.role_title}.` : "Descriptif des fonctions du collaborateur non spécifié.")}
                   </p>
                 </div>
 
                 {/* Présentation client (abréger en Client) */}
                 <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
                   <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Client</h5>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1 text-xs text-body font-medium select-none">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-2 select-none">
                     {company?.sector && (
-                      <div className="flex items-center gap-1" title="Secteur d'activité">
-                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <span>{company.sector}</span>
+                      <div className="flex flex-col gap-0.5 min-w-0" title="Secteur d'activité">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          <span>Secteur</span>
+                        </div>
+                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                          {company.sector}
+                        </span>
                       </div>
                     )}
                     {company?.segment && (
-                      <div className="flex items-center gap-1" title="Segment métier">
-                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>{company.segment}</span>
+                      <div className="flex flex-col gap-0.5 min-w-0" title="Segment métier">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>Segment</span>
+                        </div>
+                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                          {company.segment}
+                        </span>
                       </div>
                     )}
                     {company?.revenue && (
-                      <div className="flex items-center gap-1" title="Chiffre d'affaires">
-                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{company.revenue}</span>
+                      <div className="flex flex-col gap-0.5 min-w-0" title="Chiffre d'affaires">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>CA</span>
+                        </div>
+                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                          {company.revenue}
+                        </span>
                       </div>
                     )}
                     {company?.employee_count && (
-                      <div className="flex items-center gap-1" title="Nombre d'employés">
-                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>{company.employee_count} {company.employee_count > 1 ? "employés" : "employé"}</span>
+                      <div className="flex flex-col gap-0.5 min-w-0" title="Nombre d'employés">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>Employés</span>
+                        </div>
+                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                          {company.employee_count} {company.employee_count > 1 ? "employés" : "employé"}
+                        </span>
                       </div>
                     )}
                     {company?.priority && (
-                      <div className="flex items-center gap-1" title="Priorité du compte">
-                        <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                        </svg>
-                        <span className="text-muted">
-                          {company.priority === "haute" ? "Priorité Haute" : company.priority === "basse" ? "Priorité Basse" : "Priorité Normale"}
+                      <div className="flex flex-col gap-0.5 min-w-0" title="Priorité du compte">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                          </svg>
+                          <span>Priorité</span>
+                        </div>
+                        <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                          {company.priority === "haute" ? "Haute" : company.priority === "basse" ? "Basse" : "Normale"}
                         </span>
                       </div>
                     )}
@@ -798,31 +832,51 @@ export function MissionDetailPanel({ tab }: MissionDetailPanelProps) {
                 {/* Collaborateur (KPIs avec icônes) */}
                 <div className="flex flex-col gap-1 pt-3 border-t border-border/40">
                   <h5 className="text-[10px] font-bold uppercase tracking-wider text-muted">Collaborateur</h5>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1 text-xs text-body font-medium select-none">
-                    <div className="flex items-center gap-1" title="Practice de rattachement">
-                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      <span>Practice : {mission.practice || collaborator?.practice || "Non spécifiée"}</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2 select-none">
+                    <div className="flex flex-col gap-0.5 min-w-0" title="Practice de rattachement">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                        <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>Practice</span>
+                      </div>
+                      <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                        {mission.practice || collaborator?.practice || "Non spécifiée"}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1" title="Séniorité du consultant">
-                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                      </svg>
-                      <span>Séniorité : {mission.seniority || collaborator?.seniority || "Non spécifiée"}</span>
+                    <div className="flex flex-col gap-0.5 min-w-0" title="Séniorité du consultant">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                        <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                        </svg>
+                        <span>Séniorité</span>
+                      </div>
+                      <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                        {mission.seniority || collaborator?.seniority || "Non spécifiée"}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1" title="Ancienneté dans l'entreprise">
-                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>Ancienneté : {metadata.collab_tenure as string || getYearsSince(collaborator?.entry_date || null) || "Non renseignée"}</span>
+                    <div className="flex flex-col gap-0.5 min-w-0" title="Ancienneté dans l'entreprise">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                        <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Ancienneté</span>
+                      </div>
+                      <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                        {metadata.collab_tenure as string || getYearsSince(collaborator?.entry_date || null) || "Non renseignée"}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1" title="Missions réalisées">
-                      <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                      </svg>
-                      <span>Missions : {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}</span>
+                    <div className="flex flex-col gap-0.5 min-w-0" title="Missions réalisées">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
+                        <svg className="w-3.5 h-3.5 text-muted/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <span>Missions</span>
+                      </div>
+                      <span className="text-xs font-bold text-heading truncate block mt-0.5">
+                        {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}
+                      </span>
                     </div>
                   </div>
                 </div>

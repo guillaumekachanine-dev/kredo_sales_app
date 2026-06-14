@@ -15,6 +15,8 @@ export interface MissionDetail {
   tjm: number
   cjm: number
   gross_margin_pct: number | null
+  billing_condition: string | null
+  description: string | null
   metadata: Json
   opportunity_id: string | null
   collaborator_id: string
@@ -142,6 +144,8 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         tjm,
         cjm,
         gross_margin_pct,
+        billing_condition,
+        description,
         metadata,
         opportunity_id,
         collaborator_id,

@@ -1040,7 +1040,9 @@ export type Database = {
       }
       mission_activity_reports: {
         Row: {
+          activity_rate_percent: number | null
           billable_days: number
+          business_days: number
           cjm_snapshot: number
           collaborator_id: string
           created_at: string
@@ -1050,13 +1052,17 @@ export type Database = {
           non_billable_days: number
           period_end: string
           period_start: string
+          pto_days: number
+          sick_days: number
           status: string
           tjm_snapshot: number
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          activity_rate_percent?: number | null
           billable_days: number
+          business_days?: number
           cjm_snapshot: number
           collaborator_id: string
           created_at?: string
@@ -1066,13 +1072,17 @@ export type Database = {
           non_billable_days?: number
           period_end: string
           period_start: string
+          pto_days?: number
+          sick_days?: number
           status?: string
           tjm_snapshot: number
           updated_at?: string
           workspace_id?: string
         }
         Update: {
+          activity_rate_percent?: number | null
           billable_days?: number
+          business_days?: number
           cjm_snapshot?: number
           collaborator_id?: string
           created_at?: string
@@ -1082,6 +1092,8 @@ export type Database = {
           non_billable_days?: number
           period_end?: string
           period_start?: string
+          pto_days?: number
+          sick_days?: number
           status?: string
           tjm_snapshot?: number
           updated_at?: string
@@ -1127,10 +1139,12 @@ export type Database = {
       }
       missions: {
         Row: {
+          billing_condition: string | null
           cjm: number
           collaborator_id: string
           company_id: string
           created_at: string
+          description: string | null
           end_date: string | null
           external_ref: string | null
           gross_margin_pct: number | null
@@ -1150,10 +1164,12 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          billing_condition?: string | null
           cjm: number
           collaborator_id: string
           company_id: string
           created_at?: string
+          description?: string | null
           end_date?: string | null
           external_ref?: string | null
           gross_margin_pct?: number | null
@@ -1173,10 +1189,12 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          billing_condition?: string | null
           cjm?: number
           collaborator_id?: string
           company_id?: string
           created_at?: string
+          description?: string | null
           end_date?: string | null
           external_ref?: string | null
           gross_margin_pct?: number | null
@@ -2596,6 +2614,7 @@ export const Constants = {
         "succeeded",
         "failed",
         "cancelled",
+        "draft",
       ],
       ai_run_status: ["queued", "running", "succeeded", "failed", "cancelled"],
     },
@@ -2654,4 +2673,3 @@ export type SalesOutcome = "gagnee" | "perdue" | "abandonnee"
 export type SalesPriority = "haute" | "moyenne" | "basse"
 export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
 export type SkillImportance = "indispensable" | "souhaitee" | "bonus"
-
