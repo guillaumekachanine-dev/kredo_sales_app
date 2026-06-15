@@ -1,160 +1,374 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Suivi de prospection — couche données (action-first)
+//  Suivi des Actions — couche données (action-first · "Impulsion Globale")
 //
-//  Suivi est le cockpit d'ACTION de la prospection : organisation des campagnes,
-//  échéances, interactions, recommandations IA, et synchro inter-modules. L'analyse
-//  « décisionnelle » reste à la charge de la Synthèse.
+//  Cette couche est le cockpit d'ACTION de la prospection Intelligence :
+//  gestion de l'impulsion commerciale, actions critiques en retard,
+//  relances recommandées par l'IA, flux d'actions personnel.
 //
 //  ⚠️ Données mockées pour le shell (Lot 1). Chaque bloc porte un repère // SEAM:
 //  qui indique la source Supabase à brancher. `getSuiviData()` est le SEUL point
 //  d'accès — quand le réel arrive, on remplace l'intérieur sans toucher les vues.
 //
 //  Modèle cible (à brancher, RLS workspace_id = current_workspace_id()) :
-//   - campagnes      → table `sequences` (à créer, lot Suivi) ou `opportunities`
-//   - échéances      → `tasks` (entity_type/entity_id polymorphe, déjà en base)
-//   - interactions   → `interactions` (déjà en base, occurred_at, type, sentiment)
-//   - roadmap        → résultats moteur 0007 phase 4 (`ai_intelligence_results`,
-//                      phase = 4) projetés en items actionnables par compte
-//   Index utiles côté DB : (workspace_id, due_at), (workspace_id, occurred_at desc).
+//   - actions critiques   → table `tasks` WHERE status != 'done' AND due_at < now()
+//   - relances IA         → moteur n8n next-best-action (table `ai_recommendations`)
+//   - flux d'actions      → `tasks` JOIN `interactions` ORDER BY priority
+//   - KPIs impulsion      → agrégats `tasks` + `sequences` + `interactions`
+//   - objectif journalier → table `user_daily_goals` (à créer, lot Suivi)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type SuiviStatus = "danger" | "warning" | "success" | "neutral"
 
-/** Une échéance actionnable — « ce que je fais aujourd'hui / cette semaine ». */
-export type SuiviDeadline = {
+/** Canal d'action standardisé */
+export type SuiviChannel = "email" | "linkedin" | "call" | "meeting" | "task"
+
+// ── KPI "Impulsion Globale" ──────────────────────────────────────────────────
+
+export type SuiviImpulsionKpi = {
   id: string
-  title: string
-  company: string
-  /** Compte lié → deep-link vers le hub Client Intelligence. */
-  companyId?: string
-  channel: "email" | "linkedin" | "call" | "meeting" | "task"
-  dueLabel: string
-  /** true = en retard / aujourd'hui (remonte en tête). */
-  overdue?: boolean
+  /** Label court affiché sous la valeur */
+  label: string
+  /** Valeur principale (ex: "7", "45/60 actions", "68%", "12h / 18h") */
+  value: string
+  /** Sous-texte ou valeur secondaire optionnelle */
+  subLabel?: string
+  /** Variante de KPI — pilote le rendu (gauge | progress | big | workload) */
+  variant: "gauge" | "progress" | "big" | "workload"
+  /** Statut sémantique pour la couleur */
   status: SuiviStatus
+  /** Valeur numérique 0-100 pour la jauge/barre de progression */
+  numericValue?: number
+  /** Pour variant=gauge : valeur max */
+  gaugeMax?: number
 }
 
-/** Une campagne / séquence d'engagement multicanale. */
-export type SuiviCampaign = {
-  id: string
-  name: string
-  status: "active" | "paused" | "draft" | "done"
-  channel: string
-  targets: number
-  /** Progression 0-100 pour la jauge pure HTML. */
-  progress: number
-  replyRate: number
-  nextStepLabel: string
-}
+// ── Action Critique / Retard ─────────────────────────────────────────────────
 
-/**
- * Item de roadmap commerciale issu de la phase 4 du Client Intelligence,
- * synchronisé ici pour devenir une action concrète. C'est le pont inter-modules.
- */
-export type SuiviRoadmapItem = {
+export type SuiviActionCritique = {
   id: string
-  company: string
-  companyId: string
-  /** Recommandation stratégique (issue phase 4). */
-  move: string
-  /** Horizon proposé par le moteur. */
-  horizon: "court_terme" | "moyen_terme" | "long_terme"
-  /** Déjà converti en tâche/campagne ? pilote le CTA « Planifier ». */
-  scheduled: boolean
-}
-
-/** Recommandation IA d'action suivante (next-best-action). */
-export type SuiviRecommendation = {
-  id: string
-  title: string
-  rationale: string
+  /** Nom du consultant ou collaborateur responsable */
+  consultantName: string
+  /** Initiales pour l'avatar */
+  avatarInitials: string
+  /** Practice ou pôle */
+  practice?: string
+  /** Type d'action */
+  channel: SuiviChannel
+  /** Titre court de l'action */
+  actionTitle: string
+  /** Description courte de l'action à mener */
+  description: string
+  /** Label du retard (ex: "3 jours") */
+  overdueLabel: string
+  /** Statut sémantique global */
+  status: SuiviStatus
+  /** Score de prédiction de succès IA (0.0-1.0) */
+  aiSuccessPrediction: number
+  /** Prochaine étape recommandée par l'IA */
+  aiRecommendedStep: string
+  /** Entreprise ciblée */
   company?: string
   companyId?: string
 }
 
-/** Interaction passée — fil d'activité récent. */
-export type SuiviInteraction = {
+// ── Relance Recommandée IA ──────────────────────────────────────────────────
+
+export type SuiviRelanceIA = {
   id: string
+  /** Nom de l'entreprise cible */
   company: string
   companyId?: string
-  type: string
-  summary: string
-  dateLabel: string
-  sentiment?: "positive" | "neutral" | "negative"
+  /** Initiales pour l'avatar de l'entreprise */
+  avatarInitials: string
+  /** Type d'action recommandée */
+  channel: SuiviChannel
+  /** Titre de la relance recommandée */
+  title: string
+  /** Justification IA courte */
+  description: string
+  /** Secteur d'activité de l'entreprise */
+  sector: string
+  /** Score de prédiction de succès IA (0.0-1.0) */
+  aiSuccessPrediction: number
+  /** Prochaine étape recommandée */
+  aiRecommendedStep: string
 }
 
-export type SuiviKpi = {
+// ── Flux d'Actions Personnel (Mobile) ───────────────────────────────────────
+
+export type SuiviFluxAction = {
   id: string
-  label: string
-  value: string
+  /** Type d'action — pilote l'icône */
+  channel: SuiviChannel
+  /** Label du canal affiché */
+  channelLabel: string
+  /** Date ou délai (ex: "3 jours 2021") */
+  dateLabel: string
+  /** Entreprise cible */
+  company?: string
+  /** Progression de la tâche 0-100 */
+  progress: number
+  /** Statut sémantique */
   status: SuiviStatus
 }
 
-export type SuiviData = {
-  kpis: SuiviKpi[]
-  deadlines: SuiviDeadline[]
-  roadmap: SuiviRoadmapItem[]
-  campaigns: SuiviCampaign[]
-  recommendations: SuiviRecommendation[]
-  interactions: SuiviInteraction[]
+// ── Dashboard Personnel (Mobile) ─────────────────────────────────────────────
+
+export type SuiviDashboardPersonnel = {
+  actionsUrgentesCount: number
+  actionsUrgentesTotal: number
+  objectifJournalierPct: number
 }
 
-// ── Mock (shell Lot 1) ───────────────────────────────────────────────────────
+// ── Prospects à Relancer en Urgence (Mobile) ─────────────────────────────────
+
+export type SuiviProspectUrgent = {
+  id: string
+  company: string
+  companyId?: string
+  raison: string
+  sector: string
+}
+
+// ── Type global ──────────────────────────────────────────────────────────────
+
+export type SuiviData = {
+  /** KPIs de la bannière "Impulsion Globale" */
+  impulsionKpis: SuiviImpulsionKpi[]
+  /** Actions critiques / en retard (panel gauche desktop) */
+  actionsCritiques: SuiviActionCritique[]
+  /** Relances recommandées par l'IA (panel droit desktop) */
+  relancesIA: SuiviRelanceIA[]
+  /** Flux d'actions personnel (mobile) */
+  fluxActions: SuiviFluxAction[]
+  /** Dashboard personnel (mobile) */
+  dashboardPersonnel: SuiviDashboardPersonnel
+  /** Prospects à relancer en urgence (mobile) */
+  prospectsUrgents: SuiviProspectUrgent[]
+
+  // ── Rétrocompatibilité avec les vues legacy (non utilisées dans le nouveau design) ──
+  kpis?: SuiviKpi[]
+  deadlines?: SuiviDeadline[]
+  roadmap?: SuiviRoadmapItem[]
+  campaigns?: SuiviCampaign[]
+  recommendations?: SuiviRecommendation[]
+  interactions?: SuiviInteraction[]
+}
+
+// ── Types legacy (conservés pour ne pas casser les imports existants) ─────────
+
+export type SuiviKpi = { id: string; label: string; value: string; status: SuiviStatus }
+export type SuiviDeadline = {
+  id: string; title: string; company: string; companyId?: string
+  channel: SuiviChannel; dueLabel: string; overdue?: boolean; status: SuiviStatus
+}
+export type SuiviRoadmapItem = {
+  id: string; company: string; companyId: string; move: string
+  horizon: "court_terme" | "moyen_terme" | "long_terme"; scheduled: boolean
+}
+export type SuiviCampaign = {
+  id: string; name: string; status: "active" | "paused" | "draft" | "done"
+  channel: string; targets: number; progress: number; replyRate: number; nextStepLabel: string
+}
+export type SuiviRecommendation = {
+  id: string; title: string; rationale: string; company?: string; companyId?: string
+}
+export type SuiviInteraction = {
+  id: string; company: string; companyId?: string; type: string
+  summary: string; dateLabel: string; sentiment?: "positive" | "neutral" | "negative"
+}
+
+// ── Mock (shell Lot 1) ────────────────────────────────────────────────────────
 
 const MOCK: SuiviData = {
-  // SEAM: agrégats dérivés de `tasks` + `sequences` + `interactions`.
+  // SEAM: agrégats `tasks` + `sequences` + `interactions` + user_daily_goals
+  impulsionKpis: [
+    {
+      id: "ik1",
+      label: "Actions Urgentes / Retard",
+      value: "7",
+      variant: "gauge",
+      status: "danger",
+      numericValue: 7,
+      gaugeMax: 20,
+    },
+    {
+      id: "ik2",
+      label: "Total Actions Semaine",
+      value: "45/60 actions",
+      subLabel: "45/60",
+      variant: "progress",
+      status: "neutral",
+      numericValue: 75,
+    },
+    {
+      id: "ik3",
+      label: "Conversion d'Actions (Succès %)",
+      value: "68%",
+      variant: "big",
+      status: "success",
+      numericValue: 68,
+    },
+    {
+      id: "ik4",
+      label: "Charge de Travail (H)",
+      value: "12h / 18h",
+      variant: "workload",
+      status: "warning",
+      numericValue: 67,
+    },
+  ],
+
+  // SEAM: `tasks` WHERE status != 'done' AND due_at < now() + filter collaborateur
+  actionsCritiques: [
+    {
+      id: "ac1",
+      consultantName: "Consultant Name A",
+      avatarInitials: "CA",
+      practice: "Digital",
+      channel: "call",
+      actionTitle: "Appel",
+      description: "Description commencez l'appel à clientts…",
+      overdueLabel: "3 jours",
+      status: "danger",
+      aiSuccessPrediction: 0.72,
+      aiRecommendedStep: "Relance par email + LinkedIn",
+      company: "BNP Paribas",
+      companyId: "bnp",
+    },
+    {
+      id: "ac2",
+      consultantName: "Consultant Practice B",
+      avatarInitials: "PB",
+      practice: "Cloud",
+      channel: "meeting",
+      actionTitle: "Réunion de Cadrage",
+      description: "Description sic urins en re·m name de nis…",
+      overdueLabel: "3 jours",
+      status: "danger",
+      aiSuccessPrediction: 0.58,
+      aiRecommendedStep: "Proposer un créneau Teams",
+      company: "AXA Group",
+      companyId: "axa",
+    },
+    {
+      id: "ac3",
+      consultantName: "Consultant Senior C",
+      avatarInitials: "SC",
+      practice: "Data",
+      channel: "email",
+      actionTitle: "Envoi Étude Sectorielle",
+      description: "Préparer et envoyer l'étude Assurance / IA au DSI…",
+      overdueLabel: "5 jours",
+      status: "danger",
+      aiSuccessPrediction: 0.84,
+      aiRecommendedStep: "Envoyer étude puis appeler J+2",
+      company: "Generali",
+      companyId: "generali",
+    },
+  ],
+
+  // SEAM: moteur IA n8n → table `ai_recommendations` filtrée par secteur
+  relancesIA: [
+    {
+      id: "ri1",
+      company: "Expressions Parfumées",
+      companyId: "expr-parf",
+      avatarInitials: "EP",
+      channel: "call",
+      title: "Appel",
+      description: "Description commerciale réunion de Cadrage…",
+      sector: "Luxe & Cosmétique",
+      aiSuccessPrediction: 0.79,
+      aiRecommendedStep: "Planifier l'action",
+    },
+    {
+      id: "ri2",
+      company: "Expressions Parf.",
+      companyId: "expr-parf-2",
+      avatarInitials: "EP",
+      channel: "email",
+      title: "Email",
+      description: "Description connects sivrequls réunion de Cadrage…",
+      sector: "Luxe & Cosmétique",
+      aiSuccessPrediction: 0.61,
+      aiRecommendedStep: "Planifier l'action",
+    },
+    {
+      id: "ri3",
+      company: "Société Générale",
+      companyId: "socgen",
+      avatarInitials: "SG",
+      channel: "linkedin",
+      title: "LinkedIn",
+      description: "Nouveau CTO détecté — fenêtre d'introduction optimale dans les 48h…",
+      sector: "Finance & Banque",
+      aiSuccessPrediction: 0.91,
+      aiRecommendedStep: "Contacter le nouveau CTO",
+    },
+  ],
+
+  // SEAM: `tasks` JOIN `interactions` ORDER BY priority — vue mobile flux
+  fluxActions: [
+    {
+      id: "fa1",
+      channel: "call",
+      channelLabel: "Appeler",
+      dateLabel: "3 jours 2021",
+      company: "BNP Paribas",
+      progress: 65,
+      status: "danger",
+    },
+    {
+      id: "fa2",
+      channel: "meeting",
+      channelLabel: "Planifier RDV",
+      dateLabel: "3 jours 2021",
+      company: "AXA Group",
+      progress: 40,
+      status: "warning",
+    },
+    {
+      id: "fa3",
+      channel: "task",
+      channelLabel: "Consigner",
+      dateLabel: "3 jours 2021",
+      company: "L'Oréal",
+      progress: 20,
+      status: "neutral",
+    },
+  ],
+
+  // SEAM: user_daily_goals + tasks urgentes du jour
+  dashboardPersonnel: {
+    actionsUrgentesCount: 3,
+    actionsUrgentesTotal: 10,
+    objectifJournalierPct: 60,
+  },
+
+  // SEAM: `ai_recommendations` WHERE urgency = 'high' ORDER BY score DESC
+  prospectsUrgents: [
+    { id: "pu1", company: "Generali", companyId: "generali", raison: "Score remonté après plan IT 2026", sector: "Assurance" },
+    { id: "pu2", company: "L'Oréal", companyId: "loreal", raison: "Nouveau CTO — fenêtre d'intro", sector: "Luxe & Cosmétique" },
+  ],
+
+  // ── Legacy mock (rétrocompatibilité) ────────────────────────────────────────
   kpis: [
     { id: "k1", label: "Relances dues aujourd'hui", value: "5", status: "danger" },
     { id: "k2", label: "Réponses à traiter", value: "3", status: "warning" },
     { id: "k3", label: "Campagnes actives", value: "4", status: "success" },
     { id: "k4", label: "Comptes sans contact (30j)", value: "12", status: "warning" },
   ],
-
-  // SEAM: `tasks` WHERE status != 'done' ORDER BY due_at — entity_type in (company, opportunity, contact).
-  deadlines: [
-    { id: "d1", title: "Relancer le DSI — 4 contacts en attente", company: "BNP Paribas", companyId: "bnp", channel: "email", dueLabel: "Aujourd'hui", overdue: true, status: "danger" },
-    { id: "d2", title: "Appel de qualification besoin Cloud", company: "AXA Group", companyId: "axa", channel: "call", dueLabel: "Aujourd'hui", overdue: true, status: "danger" },
-    { id: "d3", title: "Message LinkedIn au nouveau CTO", company: "L'Oréal", companyId: "loreal", channel: "linkedin", dueLabel: "Demain", status: "warning" },
-    { id: "d4", title: "Préparer le RDV de cadrage", company: "Société Générale", companyId: "socgen", channel: "meeting", dueLabel: "Jeu. 14h", status: "neutral" },
-    { id: "d5", title: "Envoyer l'étude sectorielle Assurance", company: "Generali", companyId: "generali", channel: "email", dueLabel: "Ven.", status: "neutral" },
-  ],
-
-  // SEAM: `ai_intelligence_results` WHERE phase = 4 — projeté en items actionnables par compte.
-  roadmap: [
-    { id: "r1", company: "AXA Group", companyId: "axa", move: "Positionner une offre d'audit d'architecture avant leur refonte Q3", horizon: "court_terme", scheduled: false },
-    { id: "r2", company: "BNP Paribas", companyId: "bnp", move: "Capitaliser sur la levée digitale 50M€ : proposer un centre de service React", horizon: "court_terme", scheduled: true },
-    { id: "r3", company: "L'Oréal", companyId: "loreal", move: "Créer le lien avec le nouveau CTO via une note de cadrage data", horizon: "moyen_terme", scheduled: false },
-  ],
-
-  // SEAM: table `sequences` (à créer) — stats agrégées par campagne.
-  campaigns: [
-    { id: "c1", name: "ESN — Pôle Cloud & Architecture", status: "active", channel: "Email → LinkedIn", targets: 84, progress: 68, replyRate: 14.2, nextStepLabel: "Relance #2 prévue mer." },
-    { id: "c2", name: "Sourcing IA — React / Next.js", status: "active", channel: "LinkedIn", targets: 64, progress: 41, replyRate: 23.4, nextStepLabel: "12 messages à valider" },
-    { id: "c3", name: "Assurance — DSI & Direction métier", status: "paused", channel: "Email", targets: 38, progress: 12, replyRate: 0, nextStepLabel: "En pause — clé API à renouveler" },
-    { id: "c4", name: "Renouvellement comptes dormants", status: "draft", channel: "Email", targets: 21, progress: 0, replyRate: 0, nextStepLabel: "Brouillon — à lancer" },
-  ],
-
-  // SEAM: moteur IA (n8n) — next-best-actions calculées sur signaux + scoring + roadmap.
-  recommendations: [
-    { id: "n1", title: "Lancer une séquence Assurance maintenant", rationale: "+15% d'offres React/Next.js détectées dans le secteur cette semaine.", company: "Secteur Assurance" },
-    { id: "n2", title: "Contacter le nouveau DSI de L'Oréal sous 48h", rationale: "Nomination détectée — fenêtre d'introduction optimale.", company: "L'Oréal", companyId: "loreal" },
-    { id: "n3", title: "Réactiver Generali (dormant)", rationale: "Score remonté à 7/10 après publication de leur plan IT 2026.", company: "Generali", companyId: "generali" },
-  ],
-
-  // SEAM: `interactions` ORDER BY occurred_at DESC LIMIT 8.
-  interactions: [
-    { id: "i1", company: "BNP Paribas", companyId: "bnp", type: "Email", summary: "Réponse positive du responsable achats — demande un créneau.", dateLabel: "Il y a 2h", sentiment: "positive" },
-    { id: "i2", company: "AXA Group", companyId: "axa", type: "LinkedIn", summary: "Connexion acceptée par le DSI adjoint.", dateLabel: "Il y a 5h", sentiment: "positive" },
-    { id: "i3", company: "Capgemini", type: "Call", summary: "Pas de besoin immédiat, recontacter en septembre.", dateLabel: "Hier", sentiment: "neutral" },
-    { id: "i4", company: "Generali", companyId: "generali", type: "Email", summary: "Email ouvert 3 fois, pas de réponse.", dateLabel: "Hier", sentiment: "neutral" },
-  ],
+  deadlines: [],
+  roadmap: [],
+  campaigns: [],
+  recommendations: [],
+  interactions: [],
 }
 
 /**
- * Point d'accès unique des données Suivi (server-side).
- * Aujourd'hui : mock. Demain : requêtes Supabase parallélisées (Promise.all)
- * sur tasks / sequences / interactions / ai_intelligence_results(phase 4),
- * toutes filtrées par le RLS workspace.
+ * Point d'accès unique des données Suivi des Actions (server-side).
+ * Aujourd'hui : mock. Demain : requêtes Supabase parallélisées (Promise.all).
  */
 export async function getSuiviData(): Promise<SuiviData> {
   return MOCK

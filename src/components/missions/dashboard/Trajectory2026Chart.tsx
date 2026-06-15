@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import type {
   Trajectory2026Data,
   TrajectoryGroupId,
@@ -213,6 +211,7 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
     marginActual: true,
     marginTarget: true,
   })
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
 
   const width = 920
   const height = 390
@@ -282,102 +281,15 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
   }
 
   return (
-    <SurfaceCard accent="primary" className="overflow-hidden rounded-xl border-border/80 shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-border/50 px-5 py-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-heading font-heading">
-                Trajectoire 2026
-              </h2>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                3 echelles superposees
-              </span>
-            </div>
-            <p className="max-w-3xl text-xs leading-relaxed text-body">
-              Suivi mensuel du CA, de la marge et de la capacite cible dans la meme lecture. Les objectifs restent traces en ligne pointillee, le proxy orange conserve son statut d&apos;approximation operationnelle.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-border/70 bg-canvas/70 px-3 py-2 text-[11px] text-muted">
-            Janvier a decembre 2026
-          </div>
-        </div>
-
-        <div className="flex items-center justify-around divide-x divide-border/60 rounded-xl border border-border/70 bg-canvas/55 py-2">
-          <HeaderKpiCard
-            label="CA Jan-Mai"
-            value={formatCompactEuro(data.summary.ytdRevenueActual)}
-            className="flex-1"
-            valueClassName="text-heading"
-          />
-          <HeaderKpiCard
-            label="Ecart cible"
-            value={formatSignedCompactEuro(data.summary.ytdRevenueDelta)}
-            className="flex-1"
-            valueClassName={data.summary.ytdRevenueDelta >= 0 ? "text-success" : "text-warning"}
-          />
-          <HeaderKpiCard
-            label="Marge YTD"
-            value={data.summary.ytdMarginActual !== null ? `${data.summary.ytdMarginActual.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %` : "--"}
-            className="flex-1"
-            valueClassName="text-heading"
-          />
-          <HeaderKpiCard
-            label="Capacite cible"
-            value={data.summary.ytdCapacityTarget.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-            className="flex-1"
-            valueClassName="text-heading"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {(["revenue", "capacity", "margin"] as TrajectoryGroupId[]).map((groupId) => (
-              <button
-                key={groupId}
-                type="button"
-                onClick={() => toggleGroup(groupId)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-colors",
-                  groupEnabled(groupId)
-                    ? `${GROUP_META[groupId].soft} ${GROUP_META[groupId].border} ${GROUP_META[groupId].accent}`
-                    : "border-border bg-canvas text-muted"
-                )}
-              >
-                <span className={cn("h-2 w-2 rounded-full", GROUP_META[groupId].dotClassName)} />
-                {GROUP_META[groupId].label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {SERIES.map((series) => (
-              <button
-                key={series.id}
-                type="button"
-                onClick={() => toggleSeries(series.id)}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-                  seriesVisibility[series.id]
-                    ? `${series.softClassName} text-body`
-                    : "border-border/60 bg-transparent text-muted opacity-70"
-                )}
-              >
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-full border border-surface"
-                  style={{ backgroundColor: series.strokeVar, opacity: series.dashArray ? 0.5 : 1 }}
-                />
-                {series.label}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="bg-surface rounded-xl border border-border/80 shadow-sm overflow-hidden">
+      <div className="border-b border-border/40 px-5 py-4">
+        <h2 className="text-sm font-bold text-heading font-heading uppercase tracking-wider">
+          Trajectoire 2026
+        </h2>
       </div>
 
-      <div className="space-y-4 px-3 py-4 sm:px-5">
-        <div className="overflow-x-auto rounded-xl border border-border/70 bg-canvas/75 p-3 sm:p-4">
+      <div className="px-5 py-4">
+        <div className="overflow-x-auto rounded-lg border border-border/60 bg-canvas/50 p-4">
           <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[760px] w-full">
             <defs>
               <linearGradient id="trajectoryRevenueGlow" x1="0" x2="0" y1="0" y2="1">
@@ -555,18 +467,29 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                   {data.points.map((point, index) => {
                     const value = series.getValue(point)
                     if (value === null) return null
+                    const cx = getX(index)
+                    const cy = scale(value)
+                    const isSelected = selectedPointIndex === index
                     return (
-                      <circle
+                      <g
                         key={`${series.id}-${point.monthKey}`}
-                        cx={getX(index)}
-                        cy={scale(value)}
-                        r={series.filled ? 3.4 : 3.1}
-                        fill={series.filled ? series.strokeVar : "var(--color-surface)"}
-                        fillOpacity={series.dashArray ? 0.55 : 1}
-                        stroke={series.strokeVar}
-                        strokeOpacity={series.dashArray ? 0.6 : 1}
-                        strokeWidth={series.filled ? 1.6 : 2}
-                      />
+                        onClick={() => setSelectedPointIndex(isSelected ? null : index)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {/* Zone de clic élargie invisible */}
+                        <circle cx={cx} cy={cy} r={10} fill="transparent" />
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={isSelected ? 5.5 : series.filled ? 3.4 : 3.1}
+                          fill={series.filled ? series.strokeVar : "var(--color-surface)"}
+                          fillOpacity={series.dashArray ? 0.55 : 1}
+                          stroke={series.strokeVar}
+                          strokeOpacity={series.dashArray ? 0.6 : 1}
+                          strokeWidth={isSelected ? 2.5 : series.filled ? 1.6 : 2}
+                          style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
+                        />
+                      </g>
                     )
                   })}
                 </g>
@@ -588,19 +511,129 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                 {GROUP_META.margin.unit}
               </text>
             ) : null}
+
+            {/* ── TOOLTIP ─────────────────────────────────────────────────────── */}
+            {selectedPointIndex !== null && (() => {
+              const point = data.points[selectedPointIndex]
+              const px = getX(selectedPointIndex)
+              const TW = 218
+              const TH = point.revenueActual !== null ? 138 : 118
+              const GAP = 14
+              const tooltipX = px + GAP + TW > width - marginRight
+                ? px - GAP - TW
+                : px + GAP
+              const tooltipY = marginTop + 8
+
+              const caActual = point.revenueActual !== null ? Math.round(point.revenueActual / 1000) : null
+              const caTarget = Math.round(point.revenueTarget / 1000)
+              const delta = point.revenueActual !== null ? point.revenueActual - point.revenueTarget : null
+
+              return (
+                <g>
+                  {/* Backdrop dismiss */}
+                  <rect
+                    x={0} y={0} width={width} height={height}
+                    fill="transparent"
+                    onClick={() => setSelectedPointIndex(null)}
+                    style={{ cursor: "default" }}
+                  />
+
+                  {/* Ligne verticale de guidage */}
+                  <line
+                    x1={px} x2={px}
+                    y1={marginTop} y2={height - marginBottom}
+                    stroke="var(--color-border)"
+                    strokeWidth={1}
+                    strokeDasharray="3 5"
+                    strokeOpacity={0.7}
+                  />
+
+                  {/* Bulle */}
+                  <rect
+                    x={tooltipX} y={tooltipY}
+                    width={TW} height={TH}
+                    rx={9}
+                    fill="var(--color-surface)"
+                    stroke="var(--color-border)"
+                    strokeWidth={1.2}
+                    style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.10))" }}
+                  />
+
+                  {/* Titre mois */}
+                  <text
+                    x={tooltipX + 12} y={tooltipY + 20}
+                    fill="var(--color-heading)"
+                    fontSize={11} fontWeight={700}
+                    fontFamily="inherit"
+                  >
+                    {point.monthLabel}
+                  </text>
+                  {point.annotation && (
+                    <text
+                      x={tooltipX + TW - 10} y={tooltipY + 20}
+                      textAnchor="end"
+                      fill="var(--color-warning)"
+                      fontSize={9} fontWeight={700}
+                      fontFamily="inherit"
+                    >
+                      {point.annotation}
+                    </text>
+                  )}
+
+                  {/* Séparateur */}
+                  <line
+                    x1={tooltipX + 8} x2={tooltipX + TW - 8}
+                    y1={tooltipY + 27} y2={tooltipY + 27}
+                    stroke="var(--color-border)" strokeOpacity={0.5}
+                  />
+
+                  {/* CA */}
+                  <text x={tooltipX + 12} y={tooltipY + 45} fill="var(--color-primary)" fontSize={10} fontWeight={600} fontFamily="inherit">
+                    CA réel
+                  </text>
+                  <text x={tooltipX + TW - 10} y={tooltipY + 45} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
+                    {caActual !== null ? `${caActual}k€` : "—"} / obj. {caTarget}k€
+                  </text>
+
+                  {/* Capacité */}
+                  <text x={tooltipX + 12} y={tooltipY + 65} fill="var(--color-warning)" fontSize={10} fontWeight={600} fontFamily="inherit">
+                    Missions
+                  </text>
+                  <text x={tooltipX + TW - 10} y={tooltipY + 65} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
+                    {point.capacityActual !== null ? point.capacityActual.toFixed(1) : "—"} / cible {point.capacityTarget.toFixed(1)}
+                  </text>
+
+                  {/* Marge */}
+                  <text x={tooltipX + 12} y={tooltipY + 85} fill="var(--color-success)" fontSize={10} fontWeight={600} fontFamily="inherit">
+                    Marge
+                  </text>
+                  <text x={tooltipX + TW - 10} y={tooltipY + 85} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
+                    {point.marginActual !== null ? `${point.marginActual.toFixed(1)}%` : "—"} / obj. {point.marginTarget.toFixed(1)}%
+                  </text>
+
+                  {/* Écart CA — uniquement si réel disponible */}
+                  {delta !== null && (
+                    <>
+                      <line
+                        x1={tooltipX + 8} x2={tooltipX + TW - 8}
+                        y1={tooltipY + 96} y2={tooltipY + 96}
+                        stroke="var(--color-border)" strokeOpacity={0.4}
+                      />
+                      <text
+                        x={tooltipX + 12} y={tooltipY + 113}
+                        fill={delta >= 0 ? "var(--color-success)" : "var(--color-warning)"}
+                        fontSize={9} fontWeight={700} fontFamily="inherit"
+                      >
+                        {`Écart CA : ${formatSignedCompactEuro(delta)}`}
+                      </text>
+                    </>
+                  )}
+                </g>
+              )
+            })()}
           </svg>
         </div>
-
-        <div className="grid gap-2 text-[11px] text-muted lg:grid-cols-[1fr_auto] lg:items-center">
-          <p className="leading-relaxed">
-            Base de productivite: {data.assumptions.productivityPerActiveMonth.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} EUR par consultant actif et par mois, convertie en cible constante de {data.assumptions.capacityTarget.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} equivalents-missions. La serie orange reelle reste un proxy calcule via les missions planifiees.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-full border border-border bg-canvas px-2.5 py-1">Aout: saisonnalite basse</span>
-            <span className="rounded-full border border-border bg-canvas px-2.5 py-1">Decembre: cloture et ralentissement</span>
-          </div>
-        </div>
       </div>
-    </SurfaceCard>
+    </div>
   )
 }

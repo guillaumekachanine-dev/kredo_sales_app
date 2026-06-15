@@ -48,9 +48,6 @@ export function SectorCardDesktop({ sector }: SectorCardProps) {
     .sort((a, b) => b.value - a.value)
   const top2 = sortedPractices.slice(0, 2)
 
-  // Is this card clickable? (Only if it's the active one matching Parfumerie, aromas, cosmetics slug)
-  const isClickable = sector.slug === 'parfumerie-aromes'
-  
   const CardContent = (
     <div className="relative w-full h-[320px] rounded-xl overflow-hidden border border-border/20 flex flex-col justify-between transition-all duration-300 group shadow-sm">
       {/* Background Image */}
@@ -133,18 +130,10 @@ export function SectorCardDesktop({ sector }: SectorCardProps) {
     </div>
   )
 
-  if (isClickable) {
-    return (
-      <Link href={`/prospection/approche-sectorielle/${sector.slug}`} className="block outline-none">
-        {CardContent}
-      </Link>
-    )
-  }
-
   return (
-    <div className="cursor-not-allowed opacity-90">
+    <Link href={`/prospection/approche-sectorielle/${sector.slug}`} className="block outline-none">
       {CardContent}
-    </div>
+    </Link>
   )
 }
 
@@ -161,8 +150,6 @@ export function SectorCardMobile({ sector }: SectorCardProps) {
     .map(([key, value]) => ({ key: key as PracticeKey, value }))
     .sort((a, b) => b.value - a.value)
   const top2 = sortedPractices.slice(0, 2)
-
-  const isClickable = sector.slug === 'parfumerie-aromes'
 
   const CardContent = (
     <div className="relative w-full min-h-[160px] rounded-lg overflow-hidden border border-border/10 flex flex-col justify-between transition-all duration-300 p-4 shadow-sm">
@@ -226,17 +213,9 @@ export function SectorCardMobile({ sector }: SectorCardProps) {
     </div>
   )
 
-  if (isClickable) {
-    return (
-      <Link href={`/prospection/approche-sectorielle/${sector.slug}`} className="block outline-none min-h-[44px]">
-        {CardContent}
-      </Link>
-    )
-  }
-
   return (
-    <div className="cursor-not-allowed opacity-90 min-h-[44px]">
+    <Link href={`/prospection/approche-sectorielle/${sector.slug}`} className="block outline-none min-h-[44px]">
       {CardContent}
-    </div>
+    </Link>
   )
 }

@@ -306,17 +306,18 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - [ ] Page /collaborators
 - [ ] Page /missions
 - [x] Page /prospection/approche-sectorielle (Liste & Détail [slug] avec Skeletons, gestion d'erreurs, playbook mobile drawer et adaptive design)
+- [x] Page /ressources/playbook/[slug] (Server Component → PlaybookPage client, PlaybookPanel full-width, liens retour ↔ fiche sectorielle)
 
 ### Dernière session
-**Date :** 2026-06-14 (session 4)
-**Travail effectué — Approche Sectorielle :**
-- **Refonte Page Index** : Refonte de `/prospection/approche-sectorielle` en grille 2x2 immersive axée sur l'image (desktop) et stack vertical tactile (mobile) via détection `getDashboardDevice()`.
-- **Jauge Circulaire (Donut)** : Création de `CircularGauge.tsx` en SVG pur/Tailwind, animée, sans librairie tierce, avec affichage score sans-serif (zéro `font-mono`).
-- **Cartes Sectorielles** : Création de `SectorCardDesktop` et `SectorCardMobile` dans `SectorCard.tsx` avec images premium générées par IA (5 images dans `/public/images/sectors/`), overlays bleus profonds et footer en verre dépoli (glassmorphism).
-- **Fusion DB / Stratégie** : Mappage dynamique des 5 secteurs cibles stratégiques de Kredo, liant le secteur dynamique `Luxe, Chimie & Cosmétiques` au record de la base `parfumerie-aromes`.
-- **Validation** : Build Next.js et typage TypeScript validés à 100% avec 0 erreur.
+**Date :** 2026-06-15 (session 5)
+**Travail effectué — Playbook & Câblage :**
+- **Route Playbook** : Création de `app/(app)/ressources/playbook/[slug]/page.tsx` — Server Component qui fetch `getSectorBySlug`, redirect si not found, génère metadata "Playbook · {name} · Kredo".
+- **PlaybookPage** : `components/sector/PlaybookPage.tsx` — layout pleine page instanciant `PlaybookPanel` existant, header avec nom/statut/lien retour, bouton retour bas de page vers `/prospection/approche-sectorielle/{slug}`.
+- **Câblage boutons SectorDetailView** : `handleAction` nettoyé (retiré `console.log` + `alert`), cas "Pitch" route vers `/ressources/playbook/${sector.slug}`. Bouton conditionnel "Pitch Conformité GAFI" ajouté pour le slug `banque-finance-assurance` uniquement.
+- **Chantier 1 (Finance)** : Card "Banque, Finance & Assurance" déjà présente dans `STRATEGIC_SECTORS_CONFIG` avec image `/public/images/sectors/banque_finance_assurance.png` — aucune modification nécessaire sur le listing.
+- **Validation** : `npx tsc --noEmit` → 0 erreur.
 
-**Prochain focus :** Lot 3 — Scoring + Atelier IA dans le hub, moteur de rédaction en **service bi-grain** (hub 1 compte / Suivi N comptes), retrait des routes orphelines (signals/ai-workshop/scoring). Brancher les `// SEAM:` (Suivi : table `sequences` + projection `ai_intelligence_results` phase 4 ; Synthèse : flux veille → table `signals`). **Bug pré-existant à corriger** : `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`.
+**Prochain focus :** Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Lot 3 — Scoring + Atelier IA dans le hub, moteur de rédaction bi-grain, retrait routes orphelines.
 
 ---
 

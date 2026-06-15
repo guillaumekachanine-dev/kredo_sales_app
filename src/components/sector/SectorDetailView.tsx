@@ -156,10 +156,6 @@ export default function SectorDetailView({ sector }: Props) {
 
   // C. Boutons d'action (choice bar)
   const handleAction = (label: string, route: string) => {
-    console.log(`Action: ${label} -> Target route: ${route}`)
-    // TODO: route
-
-    // Routing fallback to working paths
     if (label.includes("Plan d'approche")) {
       router.push('/prospection/accounts/544f9112-893c-4e1f-92f0-658aa308f458')
     } else if (label.includes('Email')) {
@@ -169,7 +165,7 @@ export default function SectorDetailView({ sector }: Props) {
     } else if (label.includes('Nouveau compte')) {
       router.push(`/prospection/accounts?newSector=${sector.slug}`)
     } else {
-      alert(`Action "${label}" enregistrée dans la console. (Route cible : ${route})`)
+      router.push(route)
     }
   }
 
@@ -409,13 +405,21 @@ export default function SectorDetailView({ sector }: Props) {
           onClick={() =>
             handleAction(
               'Pitch DSI 15 min',
-              '/ressources/playbook/parfumerie-aromes'
+              `/ressources/playbook/${sector.slug}`
             )
           }
           className="text-xs font-bold px-4 py-2.5 rounded-xl bg-surface border border-border text-heading hover:bg-surface-hover transition-all active:scale-98 cursor-pointer outline-none"
         >
           Pitch DSI 15 min
         </button>
+        {sector.slug === 'banque-finance-assurance' && (
+          <button
+            onClick={() => router.push(`/ressources/playbook/${sector.slug}`)}
+            className="text-xs font-bold px-4 py-2.5 rounded-xl bg-surface border border-border text-heading hover:bg-surface-hover transition-all active:scale-98 cursor-pointer outline-none"
+          >
+            Pitch Conformité GAFI
+          </button>
+        )}
         <button
           onClick={() =>
             handleAction(
