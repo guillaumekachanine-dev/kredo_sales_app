@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import { practiceBadgeStyle, getPracticeByName } from '@/lib/config/practices'
+import { cn } from '@/lib/utils'
+import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
 
 // ─── Type exporté — utilisé par page.tsx ─────────────────────────────────────
 
@@ -84,41 +87,105 @@ function getDaysInfo(endDate: string | null): {
   return               { label: '3 mois +',  pct: 85,  barColor: 'bg-emerald-500' }
 }
 
-// ─── KPI cards ───────────────────────────────────────────────────────────────
+// ─── KPI instruments ─────────────────────────────────────────────────────────
+
+type KpiTone = 'primary' | 'success' | 'warning' | 'accent'
+
+const KPI_TONES: Record<KpiTone, {
+  rail: string
+  text: string
+  dot: string
+  glow: string
+}> = {
+  primary: {
+    rail: 'bg-primary',
+    text: 'text-primary',
+    dot: 'bg-primary',
+    glow: 'from-primary/12',
+  },
+  success: {
+    rail: 'bg-success',
+    text: 'text-success',
+    dot: 'bg-success',
+    glow: 'from-success/12',
+  },
+  warning: {
+    rail: 'bg-warning',
+    text: 'text-warning',
+    dot: 'bg-warning',
+    glow: 'from-warning/14',
+  },
+  accent: {
+    rail: 'bg-accent',
+    text: 'text-accent',
+    dot: 'bg-accent',
+    glow: 'from-accent/12',
+  },
+}
+
+function clampPct(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(100, Math.max(0, value))
+}
 
 function KpiCard({
   label,
   value,
   sub,
-  accent,
+  progress,
+  tone = 'primary',
+  stamp,
 }: {
   label: string
   value: string
   sub?: string
-  accent?: boolean
+  progress: number
+  tone?: KpiTone
+  stamp: string
 }) {
+  const toneClasses = KPI_TONES[tone]
+  const safeProgress = clampPct(progress)
+
   return (
     <div
-      className="border rounded-xl p-5"
-      style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-    >
-      <p
-        className="text-xs uppercase tracking-wide mb-2 font-medium"
-        style={{ color: 'var(--color-muted)' }}
-      >
-        {label}
-      </p>
-      <p
-        className="text-2xl font-bold tabular-nums"
-        style={{ color: accent ? 'var(--color-accent)' : 'var(--color-heading)' }}
-      >
-        {value}
-      </p>
-      {sub && (
-        <p className="mt-1 text-xs" style={{ color: 'var(--color-muted)' }}>
-          {sub}
-        </p>
+      className={cn(
+        'group relative min-h-[100px] overflow-hidden rounded-xl border border-border bg-surface px-4 py-3',
+        'shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md'
       )}
+    >
+      <div className={cn('absolute inset-y-0 left-0 w-24 bg-gradient-to-r to-transparent', toneClasses.glow)} />
+      <div className={cn('absolute inset-x-0 top-0 h-0.5', toneClasses.rail)} />
+
+      <div className="relative flex h-full flex-col justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+              {label}
+            </p>
+            {sub && (
+              <p className="mt-0.5 truncate text-[11px] font-medium text-body">
+                {sub}
+              </p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-canvas px-2 py-0.5 text-[10px] font-semibold text-muted">
+            <span className={cn('h-1.5 w-1.5 rounded-full', toneClasses.dot)} />
+            {stamp}
+          </div>
+        </div>
+
+        <div className="flex items-end justify-between gap-4">
+          <p className={cn('font-heading text-[28px] font-black leading-none tracking-tight tabular-nums', toneClasses.text)}>
+            {value}
+          </p>
+          <div className="mb-1 h-1.5 w-24 overflow-hidden rounded-full bg-border">
+            <div
+              className={cn('h-full rounded-full transition-[width] duration-500 ease-out', toneClasses.rail)}
+              style={{ width: `${safeProgress}%` }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -165,8 +232,15 @@ function FilterSelect({
 interface Props { data: CollaborateurRow[] }
 
 export function ConsultantsSyntheseDesktop({ data }: Props) {
-  const [statusFilter, setStatusFilter]   = useState('all')
+  const [statusFilter, setStatusFilter]     = useState('all')
   const [practiceFilter, setPracticeFilter] = useState('all')
+  const [drawerOpen, setDrawerOpen]         = useState(false)
+  const [selectedId, setSelectedId]         = useState<string | null>(null)
+
+  function openDrawer(id: string) {
+    setSelectedId(id)
+    setDrawerOpen(true)
+  }
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const activeMissions = data.flatMap((c) => c.missions.filter((m) => m.status === 'active'))
@@ -178,19 +252,14 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
   const tauxOccup     = data.length ? Math.round((enMission / data.length) * 100) : 0
 
   // ── Filtrage ──────────────────────────────────────────────────────────────
-  const practices = useMemo(
-    () => Array.from(new Set(data.map((c) => c.practice).filter(Boolean))).sort() as string[],
-    [data]
-  )
+  const practices = Array.from(new Set(data.map((c) => c.practice).filter(Boolean))).sort() as string[]
 
-  const filtered = useMemo(() => {
-    return data.filter((c) => {
-      if (practiceFilter !== 'all' && c.practice !== practiceFilter) return false
-      if (statusFilter === 'en_mission'   && !isEnMission(c))  return false
-      if (statusFilter === 'inter_contrat' && isEnMission(c))  return false
-      return true
-    })
-  }, [data, statusFilter, practiceFilter])
+  const filtered = data.filter((c) => {
+    if (practiceFilter !== 'all' && c.practice !== practiceFilter) return false
+    if (statusFilter === 'en_mission' && !isEnMission(c)) return false
+    if (statusFilter === 'inter_contrat' && isEnMission(c)) return false
+    return true
+  })
 
   return (
     <div className="p-6 space-y-5 max-w-7xl mx-auto">
@@ -201,18 +270,24 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
           label="TJM moyen agence"
           value={avgTjm ? fmtEur(avgTjm) : '—'}
           sub={`sur ${activeMissions.length} mission${activeMissions.length > 1 ? 's' : ''} active${activeMissions.length > 1 ? 's' : ''}`}
+          progress={avgTjm ? (avgTjm / 1200) * 100 : 0}
+          stamp="TJM"
         />
         <KpiCard
           label="Taux d'occupation"
           value={`${tauxOccup} %`}
           sub={`${enMission} / ${data.length} consultants en mission`}
-          accent={tauxOccup < 80}
+          progress={tauxOccup}
+          tone={tauxOccup < 80 ? 'warning' : 'success'}
+          stamp={tauxOccup < 80 ? 'à suivre' : 'OK'}
         />
         <KpiCard
           label="Inter-contrat"
           value={String(interContrat)}
           sub={interContrat === 0 ? 'Aucun consultant disponible' : `consultant${interContrat > 1 ? 's' : ''} disponible${interContrat > 1 ? 's' : ''}`}
-          accent={interContrat > 0}
+          progress={data.length ? (interContrat / data.length) * 100 : 0}
+          tone={interContrat > 0 ? 'accent' : 'success'}
+          stamp={interContrat > 0 ? 'pool' : 'plein'}
         />
       </div>
 
@@ -226,14 +301,9 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
           className="flex flex-col gap-3 border-b pb-4 lg:flex-row lg:items-center lg:justify-between"
           style={{ borderColor: 'var(--color-border)' }}
         >
-          <div className="space-y-0.5">
-            <h2 className="text-sm font-bold" style={{ color: 'var(--color-heading)' }}>
-              Synthèse Consultants ({data.length})
-            </h2>
-            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-              Vue opérationnelle — mission courante, TJM et marge par collaborateur.
-            </p>
-          </div>
+          <h2 className="text-sm font-bold" style={{ color: 'var(--color-heading)' }}>
+            Synthèse Consultants ({data.length})
+          </h2>
 
           <div className="flex flex-wrap items-center gap-2">
             <FilterSelect value={statusFilter} onChange={setStatusFilter}>
@@ -267,7 +337,7 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
                   className="border-b"
                   style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
                 >
-                  {['Consultant', 'Rôle / Practice', 'Mission en cours', 'Client', 'Fin de mission', 'TJM', 'Marge', 'Statut'].map((h) => (
+                  {['Consultant', 'Profil / Séniorité', 'Practice', 'Client actuel', 'Fin de mission', 'TJM', 'CJM', 'Marge', 'Statut'].map((h) => (
                     <th key={h} className="py-2.5 pb-3 pr-4 font-semibold last:pr-0">
                       {h}
                     </th>
@@ -289,17 +359,15 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
                   return (
                     <tr
                       key={collab.id}
-                      className="transition-colors duration-100"
+                      className="cursor-pointer transition-colors duration-100"
                       style={{ borderColor: 'var(--color-border)' }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-canvas)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                      onClick={() => openDrawer(collab.id)}
                     >
                       {/* Consultant */}
                       <td className="py-3 pr-4">
-                        <Link
-                          href={`/consultants/${collab.id}`}
-                          className="flex items-center gap-2.5 group"
-                        >
+                        <div className="flex items-center gap-2.5 group">
                           <div
                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
                             style={{ background: color }}
@@ -307,58 +375,64 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
                             {initials}
                           </div>
                           <span
-                            className="font-semibold group-hover:underline"
+                            className="font-semibold"
                             style={{ color: 'var(--color-heading)' }}
                           >
                             {name}
                           </span>
-                        </Link>
+                          <Link
+                            href={`/consultants/${collab.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ml-0.5"
+                            title="Ouvrir le profil complet"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ color: 'var(--color-muted)' }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </Link>
+                        </div>
                       </td>
 
-                      {/* Rôle / Practice */}
+                      {/* Profil / Séniorité */}
                       <td className="py-3 pr-4">
                         <div className="flex flex-col gap-0.5">
                           {collab.current_title && (
                             <span style={{ color: 'var(--color-body)' }}>{collab.current_title}</span>
                           )}
-                          {collab.practice && (
+                          {collab.seniority && (
                             <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
-                              {collab.practice}
+                              {collab.seniority}
                             </span>
                           )}
-                          {!collab.current_title && !collab.practice && (
+                          {!collab.current_title && !collab.seniority && (
                             <span style={{ color: 'var(--color-muted)' }}>—</span>
                           )}
                         </div>
                       </td>
 
-                      {/* Mission */}
-                      <td className="py-3 pr-4 max-w-[200px]">
-                        {mission ? (
-                          <span
-                            className="truncate block font-medium"
-                            style={{ color: 'var(--color-body)' }}
-                            title={mission.title}
-                          >
-                            {mission.title}
-                          </span>
+                      {/* Practice */}
+                      <td className="py-3 pr-4">
+                        {collab.practice ? (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ background: getPracticeByName(collab.practice)?.color || 'var(--color-muted)' }}
+                            />
+                            <span style={{ color: 'var(--color-body)' }}>
+                              {collab.practice}
+                            </span>
+                          </div>
                         ) : (
                           <span style={{ color: 'var(--color-muted)' }}>—</span>
                         )}
                       </td>
 
-                      {/* Client */}
-                      <td className="py-3 pr-4">
+                      {/* Client actuel */}
+                      <td className="py-3 pr-2">
                         {mission?.company ? (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white"
-                              style={{ background: avatarColor(mission.company.name) }}
-                            >
-                              {mission.company.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span style={{ color: 'var(--color-body)' }}>{mission.company.name}</span>
-                          </div>
+                          <span className="font-medium" style={{ color: 'var(--color-body)' }}>
+                            {mission.company.name}
+                          </span>
                         ) : (
                           <span style={{ color: 'var(--color-muted)' }}>—</span>
                         )}
@@ -391,6 +465,11 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
                         {mission ? fmtEur(mission.tjm) : '—'}
                       </td>
 
+                      {/* CJM */}
+                      <td className="py-3 pr-4 tabular-nums" style={{ color: 'var(--color-body)' }}>
+                        {mission ? fmtEur(mission.cjm) : '—'}
+                      </td>
+
                       {/* Marge */}
                       <td className="py-3 pr-4 tabular-nums font-medium" style={{ color: 'var(--color-accent)' }}>
                         {mission?.gross_margin_pct != null
@@ -419,6 +498,13 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
           </div>
         )}
       </section>
+
+      {/* ── Drawer profil consultant ──────────────────────────────────── */}
+      <ConsultantDrawer
+        collaboratorId={selectedId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
     </div>
   )
 }

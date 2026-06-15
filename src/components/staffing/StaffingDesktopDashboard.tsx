@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { practiceBadgeStyle } from "@/lib/config/practices"
 import type { StaffingDashboardData, UpcomingConsultant } from "@/lib/staffing/staffing-data"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
@@ -328,7 +329,16 @@ export function StaffingDesktopDashboard({ data }: { data: StaffingDashboardData
                           </div>
                           <span>{c.name}</span>
                         </td>
-                        <td className="py-2.5 text-body">{c.practice}</td>
+                        <td className="py-2.5">
+                          {c.practice ? (
+                            <span
+                              className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                              style={practiceBadgeStyle(c.practice)}
+                            >
+                              {c.practice}
+                            </span>
+                          ) : '—'}
+                        </td>
                         <td className="py-2.5 text-muted font-medium">{c.finMission}</td>
                         <td className="py-2.5 text-right font-semibold text-heading font-mono">
                           {c.currentTo}
@@ -407,7 +417,16 @@ export function StaffingDesktopDashboard({ data }: { data: StaffingDashboardData
                         <span>{need.clientName}</span>
                       </td>
                       <td className="py-2.5 text-body">{need.role}</td>
-                      <td className="py-2.5 text-muted font-medium">{need.practice}</td>
+                      <td className="py-2.5">
+                        {need.practice ? (
+                          <span
+                            className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                            style={practiceBadgeStyle(need.practice)}
+                          >
+                            {need.practice}
+                          </span>
+                        ) : '—'}
+                      </td>
                       <td className="py-2.5">
                         <span className="bg-[#FFE0B2] text-[#E65100] px-2 py-0.5 rounded text-[9px] font-bold">
                           {need.urgency}

@@ -68,6 +68,7 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | 022 | 022_seed_mission_activity_reports_fixed (correctif post-seed, no-op local) |
 | 023 | 023_missions_billing_description (billing_condition + description sur missions) |
 | 024 | 024_pnl_monthly (P&L mensuel consolidé + seed 12 mois) |
+| 025 | 025_activity_absences_profitability (absences datées, fermetures client, compensation C17-C19, 3 vues analytiques) |
 
 ### Architecture multi-tenant (ACTIF)
 
@@ -163,9 +164,11 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 #### Domaine Delivery / Finance
 | Table | Rows | Description |
 |---|---|---|
-| `missions` | 16 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
-| `mission_activity_reports` | 80 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
-| `collaborator_compensation` | 16 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
+| `missions` | 19 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
+| `mission_activity_reports` | 89 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
+| `collaborator_compensation` | 19 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
+| `collaborator_absences` | 56 | Absences datées (type enum, start/end, duration_days) — source du planning congés |
+| `client_closures` | 6 | Fermetures de sites clients (company_id, dates, is_recurring) |
 | `pnl_monthly` | 12 | P&L mensuel consolidé — inputs stockés, dérivés GENERATED ; `source` ∈ `import/cra_derived/budget/forecast` |
 
 **`pnl_monthly`** — colonnes GENERATED : `gross_margin_value`, `gross_margin_percent`, `operating_profit_value`, `operating_profit_percent`. Ne jamais recalculer côté front. Seed fictif couvre 2025-06 → 2026-05. UNIQUE(workspace_id, period_month).
@@ -186,11 +189,20 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 `mission_activity_reports.status` : `draft` · `submitted` · `validated` · `rejected`
 
+**`collaborator_absences`** : type enum `absence_type` = `conge_paye` · `rtt` · `maladie` · `sans_solde` · `contrainte_perso` · `formation` · `fermeture_client` · `autre`. Champs : `start_date`, `end_date`, `duration_days` (numeric 4,1). CHECK `end_date >= start_date` et `duration_days > 0`. RLS workspace standard.
+
+**`client_closures`** : fermetures de sites clients rattachées à `companies.id`. Champs : `start_date`, `end_date`, `label`, `is_recurring`. RLS workspace standard.
+
+**Vues analytiques (migration 025, `security_invoker`) :**
+- **`v_collaborator_activity_summary`** — 1 ligne par collaborateur × mois. Inclut activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), et marge théorique pour comparaison.
+- **`v_collaborator_ytd_activity`** — taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD (revenue, employer_cost, real_margin).
+- **`v_profitability_alerts`** — flags booléens : `alert_low_activity` (<70%), `alert_low_margin` (<15%), `alert_negative_margin`, `alert_high_sick_days` (>=5j), `alert_cra_not_validated`.
+
 ### Triggers actifs
 | Trigger | Tables |
 |---|---|
-| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports, collaborator_compensation, **pnl_monthly** |
-| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, collaborator_compensation, **pnl_monthly** |
+| `set_updated_at` | workspaces, profiles, tasks, companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, missions, mission_activity_reports, collaborator_compensation, **pnl_monthly**, **collaborator_absences**, **client_closures** |
+| `log_audit` | companies, persons, contacts, collaborators, candidates, opportunities, opportunity_candidates, collaborator_compensation, **pnl_monthly**, **collaborator_absences**, **client_closures** |
 
 > ⚠️ `missions` et `mission_activity_reports` n'ont **pas** de trigger `log_audit` actuellement.
 

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { getPracticeByName } from "@/lib/config/practices"
 import { MissionsListRow } from "../MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { cn } from "@/lib/utils"
@@ -175,22 +176,9 @@ export function MissionsDesktopDashboard({
 
   const rawActiveSegments = repartitionMode === "etp" ? practiceEtpSegments : practiceCaSegments
   
-  const staticColors: Record<string, string> = {
-    "Digital": "#3b82f6",
-    "Cloud": "#10b981",
-    "Data": "#f59e0b",
-    "Design": "#8b5cf6",
-    "Product Management": "#ec4899",
-    "Project Management": "#14b8a6",
-    "Cybersecurity": "#f43f5e",
-    "Mobile": "#06b6d4",
-    "QA": "#6366f1",
-    "Autre": "#94a3b8",
-  }
-
   const activeSegments = rawActiveSegments.map((seg, index) => ({
     ...seg,
-    color: staticColors[seg.name] || COLORS[index % COLORS.length],
+    color: getPracticeByName(seg.name)?.color ?? COLORS[index % COLORS.length],
   }))
 
   // Calculate start angles for SVG donut sections
