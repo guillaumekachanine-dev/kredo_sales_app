@@ -2,535 +2,391 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import type {
-  Trajectory2026Data,
-  TrajectoryGroupId,
-  TrajectorySeriesId,
-} from "./trajectory-2026-types"
+import type { Trajectory2026Data } from "./trajectory-2026-types"
 
 interface Trajectory2026ChartProps {
   data: Trajectory2026Data
 }
 
-type SeriesConfig = {
-  id: TrajectorySeriesId
-  label: string
-  group: TrajectoryGroupId
-  axis: "left" | "innerLeft" | "right"
-  strokeVar: string
-  textClassName: string
-  softClassName: string
-  strokeWidth: number
-  dashArray?: string
-  filled: boolean
-  getValue: (point: Trajectory2026Data["points"][number]) => number | null
-}
+type DisplayMode = "etp" | "ca"
 
-const GROUP_META: Record<
-  TrajectoryGroupId,
-  { label: string; accent: string; soft: string; border: string; dotClassName: string; unit: string }
-> = {
-  revenue: {
-    label: "CA (kEUR)",
-    accent: "text-primary",
-    soft: "bg-primary/6",
-    border: "border-primary/15",
-    dotClassName: "bg-primary",
-    unit: "kEUR",
-  },
-  capacity: {
-    label: "Capacite (eq.)",
-    accent: "text-warning",
-    soft: "bg-warning/8",
-    border: "border-warning/15",
-    dotClassName: "bg-warning",
-    unit: "eq.",
-  },
-  margin: {
-    label: "Marge (%)",
-    accent: "text-success",
-    soft: "bg-success/8",
-    border: "border-success/15",
-    dotClassName: "bg-success",
-    unit: "%",
-  },
-}
-
-const SERIES: SeriesConfig[] = [
-  {
-    id: "revenueActual",
-    label: "CA reel",
-    group: "revenue",
-    axis: "left",
-    strokeVar: "var(--color-primary)",
-    textClassName: "text-primary",
-    softClassName: "bg-primary/6 border-primary/15",
-    strokeWidth: 2.7,
-    filled: true,
-    getValue: (point) => point.revenueActual !== null ? point.revenueActual / 1000 : null,
-  },
-  {
-    id: "revenueTarget",
-    label: "Objectif CA",
-    group: "revenue",
-    axis: "left",
-    strokeVar: "var(--color-primary)",
-    textClassName: "text-primary",
-    softClassName: "bg-primary/6 border-primary/15",
-    strokeWidth: 2.2,
-    dashArray: "8 6",
-    filled: false,
-    getValue: (point) => point.revenueTarget / 1000,
-  },
-  {
-    id: "capacityActual",
-    label: "Proxy missions",
-    group: "capacity",
-    axis: "innerLeft",
-    strokeVar: "var(--color-warning)",
-    textClassName: "text-warning",
-    softClassName: "bg-warning/8 border-warning/15",
-    strokeWidth: 2.6,
-    filled: true,
-    getValue: (point) => point.capacityActual,
-  },
-  {
-    id: "capacityTarget",
-    label: "Capacite cible",
-    group: "capacity",
-    axis: "innerLeft",
-    strokeVar: "var(--color-warning)",
-    textClassName: "text-warning",
-    softClassName: "bg-warning/8 border-warning/15",
-    strokeWidth: 2.1,
-    dashArray: "8 6",
-    filled: false,
-    getValue: (point) => point.capacityTarget,
-  },
-  {
-    id: "marginActual",
-    label: "Marge reelle",
-    group: "margin",
-    axis: "right",
+const DOMAINS = {
+  etp: {
+    min: 0,
+    max: 25,
+    ticks: [0, 5, 10, 15, 20, 25] as number[],
+    unit: "ETP",
     strokeVar: "var(--color-success)",
-    textClassName: "text-success",
-    softClassName: "bg-success/8 border-success/15",
-    strokeWidth: 2.6,
-    filled: true,
-    getValue: (point) => point.marginActual,
   },
-  {
-    id: "marginTarget",
-    label: "Objectif marge",
-    group: "margin",
-    axis: "right",
-    strokeVar: "var(--color-success)",
-    textClassName: "text-success",
-    softClassName: "bg-success/8 border-success/15",
-    strokeWidth: 2.1,
-    dashArray: "8 6",
-    filled: false,
-    getValue: (point) => point.marginTarget,
+  ca: {
+    min: 0,
+    max: 230,
+    ticks: [0, 50, 100, 150, 200, 230] as number[],
+    unit: "k€",
+    strokeVar: "var(--color-primary)",
   },
-]
-
-const GROUP_SERIES: Record<TrajectoryGroupId, TrajectorySeriesId[]> = {
-  revenue: ["revenueActual", "revenueTarget"],
-  capacity: ["capacityActual", "capacityTarget"],
-  margin: ["marginActual", "marginTarget"],
-}
-
-function formatCompactEuro(value: number) {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-    notation: value >= 1000 ? "compact" : "standard",
-  }).format(value)
-}
-
-function formatSignedCompactEuro(value: number) {
-  const rounded = Math.round(value)
-  const abs = Math.abs(rounded)
-  const base = abs >= 1000
-    ? `${Math.round(abs / 1000)}kEUR`
-    : `${abs.toLocaleString("fr-FR")} EUR`
-
-  if (rounded === 0) return "0 EUR"
-  return `${rounded > 0 ? "+" : "-"}${base}`
-}
-
-function buildDomain(values: number[], step: number, minPadding = 0.08, maxPadding = 0.1) {
-  if (values.length === 0) return [0, step * 4]
-
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
-
-  if (minValue === maxValue) {
-    const paddedMin = Math.floor((minValue - step * 2) / step) * step
-    const paddedMax = Math.ceil((maxValue + step * 2) / step) * step
-    return [paddedMin, paddedMax]
-  }
-
-  const range = maxValue - minValue
-  const paddedMin = Math.floor((minValue - range * minPadding) / step) * step
-  const paddedMax = Math.ceil((maxValue + range * maxPadding) / step) * step
-
-  return [paddedMin, paddedMax]
-}
-
-function buildTicks([min, max]: [number, number], count: number) {
-  if (count <= 1) return [min, max]
-  const step = (max - min) / (count - 1)
-  return Array.from({ length: count }, (_, index) => min + step * index)
-}
+} as const
 
 function buildLinePath(
   points: Trajectory2026Data["points"],
   getX: (index: number) => number,
   getY: (value: number) => number,
-  getValue: SeriesConfig["getValue"]
-) {
+  getValue: (point: Trajectory2026Data["points"][number]) => number | null
+): string {
   let path = ""
-
   points.forEach((point, index) => {
     const value = getValue(point)
     if (value === null) return
     path += `${path ? " L" : "M"} ${getX(index)} ${getY(value)}`
   })
-
   return path
 }
 
-export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
-  const [seriesVisibility, setSeriesVisibility] = useState<Record<TrajectorySeriesId, boolean>>({
-    revenueActual: true,
-    revenueTarget: true,
-    capacityActual: true,
-    capacityTarget: true,
-    marginActual: true,
-    marginTarget: true,
+function buildAreaPath(
+  points: Trajectory2026Data["points"],
+  getX: (index: number) => number,
+  getY: (value: number) => number,
+  getValue: (point: Trajectory2026Data["points"][number]) => number | null,
+  baseline: number
+): string {
+  let firstIdx = -1
+  let lastIdx = -1
+  let linePath = ""
+
+  points.forEach((point, index) => {
+    const value = getValue(point)
+    if (value === null) return
+    if (firstIdx === -1) firstIdx = index
+    lastIdx = index
+    linePath += `${linePath ? " L" : "M"} ${getX(index)} ${getY(value)}`
   })
+
+  if (!linePath || firstIdx === -1) return ""
+  return `${linePath} L ${getX(lastIdx)} ${baseline} L ${getX(firstIdx)} ${baseline} Z`
+}
+
+export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("etp")
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
 
   const width = 920
   const height = 390
-  const marginTop = 28
-  const marginRight = 76
+  const marginTop = 36
+  const marginRight = 40
   const marginBottom = 54
-  const marginLeft = 76
-  const innerLeftOffset = 32
+  const marginLeft = 60
   const plotWidth = width - marginLeft - marginRight
   const plotHeight = height - marginTop - marginBottom
 
-  const revenueValues = data.points.flatMap((point) => {
-    const values = [point.revenueTarget / 1000]
-    if (point.revenueActual !== null) values.push(point.revenueActual / 1000)
-    return values
-  })
-  const capacityValues = data.points.flatMap((point) => {
-    const values = [point.capacityTarget]
-    if (point.capacityActual !== null) values.push(point.capacityActual)
-    return values
-  })
-  const marginValues = data.points.flatMap((point) => {
-    const values = [point.marginTarget]
-    if (point.marginActual !== null) values.push(point.marginActual)
-    return values
-  })
-
-  const revenueDomain = buildDomain(revenueValues, 10)
-  const capacityDomain = buildDomain(capacityValues, 1)
-  const marginDomain = buildDomain(marginValues, 1, 0.18, 0.18)
-
-  const revenueTicks = buildTicks(revenueDomain as [number, number], 5)
-  const capacityTicks = buildTicks(capacityDomain as [number, number], 5)
-  const marginTicks = buildTicks(marginDomain as [number, number], 5)
+  const domain = DOMAINS[displayMode]
 
   const getX = (index: number) => {
     if (data.points.length === 1) return marginLeft + plotWidth / 2
     return marginLeft + (index / (data.points.length - 1)) * plotWidth
   }
 
-  const createScale = ([min, max]: [number, number]) => (value: number) =>
-    marginTop + ((max - value) / (max - min || 1)) * plotHeight
-
-  const revenueScale = createScale(revenueDomain as [number, number])
-  const capacityScale = createScale(capacityDomain as [number, number])
-  const marginScale = createScale(marginDomain as [number, number])
-
-  const groupEnabled = (group: TrajectoryGroupId) =>
-    GROUP_SERIES[group].some((seriesId) => seriesVisibility[seriesId])
-
-  const toggleSeries = (seriesId: TrajectorySeriesId) => {
-    setSeriesVisibility((current) => ({
-      ...current,
-      [seriesId]: !current[seriesId],
-    }))
+  const getY = (value: number) => {
+    const { min, max } = domain
+    return marginTop + ((max - value) / (max - min)) * plotHeight
   }
 
-  const toggleGroup = (group: TrajectoryGroupId) => {
-    const shouldEnable = !groupEnabled(group)
-    setSeriesVisibility((current) => {
-      const next = { ...current }
-      GROUP_SERIES[group].forEach((seriesId) => {
-        next[seriesId] = shouldEnable
-      })
-      return next
-    })
+  const getActualValue = (point: Trajectory2026Data["points"][number]): number | null => {
+    if (displayMode === "etp") return point.capacityActual
+    return point.revenueActual !== null ? point.revenueActual / 1000 : null
+  }
+
+  const getTargetValue = (point: Trajectory2026Data["points"][number]): number => {
+    if (displayMode === "etp") return point.capacityTarget
+    return point.revenueTarget / 1000
+  }
+
+  const stroke = domain.strokeVar
+  const baseline = height - marginBottom
+  const gradientId = displayMode === "etp" ? "trajEtpGlow" : "trajCaGlow"
+
+  const actualPath = buildLinePath(data.points, getX, getY, getActualValue)
+  const targetPath = buildLinePath(data.points, getX, getY, getTargetValue)
+  const areaPath = buildAreaPath(data.points, getX, getY, getActualValue, baseline)
+
+  const formatVal = (v: number | null) => {
+    if (v === null) return "—"
+    if (displayMode === "ca") return `${Math.round(v)}k€`
+    return v.toFixed(1)
+  }
+
+  const formatDelta = (d: number | null) => {
+    if (d === null) return "—"
+    const sign = d > 0 ? "+" : ""
+    if (displayMode === "ca") return `${sign}${Math.round(d)}k€`
+    return `${sign}${d.toFixed(1)}`
   }
 
   return (
     <div className="bg-surface rounded-xl border border-border/80 shadow-sm overflow-hidden">
-      <div className="border-b border-border/40 px-5 py-4">
-        <h2 className="text-sm font-bold text-heading font-heading uppercase tracking-wider">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="border-b border-border/40 px-5 py-3 flex items-center justify-between">
+        <h2 className="text-sm font-bold text-heading font-heading">
           Trajectoire 2026
         </h2>
+
+        {/* Toggle ETP / CA — même pattern que "Répartition par practice" */}
+        <div className="flex items-center bg-canvas p-0.5 rounded-lg border border-border/80">
+          <button
+            type="button"
+            onClick={() => { setDisplayMode("etp"); setSelectedPointIndex(null) }}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+              displayMode === "etp"
+                ? "bg-surface text-primary shadow-sm"
+                : "text-muted hover:text-body"
+            )}
+          >
+            ETP
+          </button>
+          <button
+            type="button"
+            onClick={() => { setDisplayMode("ca"); setSelectedPointIndex(null) }}
+            className={cn(
+              "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
+              displayMode === "ca"
+                ? "bg-surface text-primary shadow-sm"
+                : "text-muted hover:text-body"
+            )}
+          >
+            CA
+          </button>
+        </div>
       </div>
 
+      {/* ── Chart ─────────────────────────────────────────── */}
       <div className="px-5 py-4">
         <div className="overflow-x-auto rounded-lg border border-border/60 bg-canvas/50 p-4">
           <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[760px] w-full">
             <defs>
-              <linearGradient id="trajectoryRevenueGlow" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
+              <linearGradient id="trajCaGlow" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.14" />
                 <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="trajEtpGlow" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-warning)" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="var(--color-warning)" stopOpacity="0" />
               </linearGradient>
             </defs>
 
-            {revenueTicks.map((tick) => (
+            {/* ── Grille horizontale + labels axe Y ────── */}
+            {domain.ticks.map((tick) => (
               <g key={`grid-${tick}`}>
                 <line
-                  x1={marginLeft}
-                  x2={width - marginRight}
-                  y1={revenueScale(tick)}
-                  y2={revenueScale(tick)}
+                  x1={marginLeft} x2={width - marginRight}
+                  y1={getY(tick)} y2={getY(tick)}
                   stroke="var(--color-border)"
                   strokeOpacity="0.55"
                   strokeDasharray="4 6"
                 />
-                {groupEnabled("revenue") ? (
-                  <text
-                    x={marginLeft - 14}
-                    y={revenueScale(tick) + 4}
-                    textAnchor="end"
-                    fill="var(--color-primary)"
-                    className="text-[10px] font-bold"
-                  >
-                    {`${Math.round(tick)}k`}
-                  </text>
-                ) : null}
+                <text
+                  x={marginLeft - 10}
+                  y={getY(tick) + 4}
+                  textAnchor="end"
+                  fill={stroke}
+                  fontSize={10}
+                  fontWeight={700}
+                  fontFamily="inherit"
+                >
+                  {displayMode === "ca" ? `${tick}k` : tick}
+                </text>
               </g>
             ))}
 
-            {groupEnabled("capacity")
-              ? capacityTicks.map((tick) => (
-                  <text
-                    key={`capacity-${tick}`}
-                    x={marginLeft + innerLeftOffset}
-                    y={capacityScale(tick) + 4}
-                    textAnchor="start"
-                    fill="var(--color-warning)"
-                    className="text-[10px] font-semibold"
-                  >
-                    {tick.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}
-                  </text>
-                ))
-              : null}
+            {/* Unité axe Y */}
+            <text
+              x={marginLeft - 10}
+              y={marginTop - 14}
+              textAnchor="end"
+              fill={stroke}
+              fontSize={11}
+              fontWeight={700}
+              fontFamily="inherit"
+            >
+              {domain.unit}
+            </text>
 
-            {groupEnabled("margin")
-              ? marginTicks.map((tick) => (
-                  <text
-                    key={`margin-${tick}`}
-                    x={width - marginRight + 14}
-                    y={marginScale(tick) + 4}
-                    textAnchor="start"
-                    fill="var(--color-success)"
-                    className="text-[10px] font-semibold"
-                  >
-                    {`${tick.toLocaleString("fr-FR", { maximumFractionDigits: 0 })}%`}
-                  </text>
-                ))
-              : null}
+            {/* ── Légende inline ─────────────────────────── */}
+            <g>
+              <line
+                x1={marginLeft + 8} x2={marginLeft + 26}
+                y1={marginTop - 14} y2={marginTop - 14}
+                stroke={stroke} strokeWidth={2.5} strokeLinecap="round"
+              />
+              <circle cx={marginLeft + 17} cy={marginTop - 14} r={3} fill={stroke} />
+              <text
+                x={marginLeft + 32} y={marginTop - 10}
+                fill="var(--color-body)"
+                fontSize={9} fontWeight={600} fontFamily="inherit"
+              >
+                {displayMode === "etp" ? "ETP réels" : "CA réel"}
+              </text>
+              <line
+                x1={marginLeft + 90} x2={marginLeft + 108}
+                y1={marginTop - 14} y2={marginTop - 14}
+                stroke={stroke} strokeOpacity={0.5}
+                strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round"
+              />
+              <circle
+                cx={marginLeft + 99} cy={marginTop - 14} r={2.5}
+                fill="var(--color-canvas)"
+                stroke={stroke} strokeOpacity={0.55} strokeWidth={1.5}
+              />
+              <text
+                x={marginLeft + 114} y={marginTop - 10}
+                fill="var(--color-body)"
+                fontSize={9} fontWeight={600} fontFamily="inherit"
+              >
+                {displayMode === "etp" ? "Objectif ETP" : "Objectif CA"}
+              </text>
+            </g>
 
+            {/* ── Axes ───────────────────────────────────── */}
             <line
-              x1={marginLeft}
-              x2={marginLeft}
-              y1={marginTop}
-              y2={height - marginBottom}
-              stroke="var(--color-border)"
-              strokeOpacity="0.9"
+              x1={marginLeft} x2={marginLeft}
+              y1={marginTop} y2={baseline}
+              stroke="var(--color-border)" strokeOpacity="0.9"
             />
             <line
-              x1={marginLeft}
-              x2={width - marginRight}
-              y1={height - marginBottom}
-              y2={height - marginBottom}
-              stroke="var(--color-border)"
-              strokeOpacity="0.9"
+              x1={marginLeft} x2={width - marginRight}
+              y1={baseline} y2={baseline}
+              stroke="var(--color-border)" strokeOpacity="0.9"
             />
 
+            {/* ── Labels axe X ───────────────────────────── */}
             {data.points.map((point, index) => {
               const x = getX(index)
               return (
                 <g key={point.monthKey}>
                   <line
-                    x1={x}
-                    x2={x}
-                    y1={height - marginBottom}
-                    y2={height - marginBottom + 6}
-                    stroke="var(--color-border)"
-                    strokeOpacity="0.9"
+                    x1={x} x2={x}
+                    y1={baseline} y2={baseline + 6}
+                    stroke="var(--color-border)" strokeOpacity="0.9"
                   />
                   <text
-                    x={x}
-                    y={height - marginBottom + 22}
+                    x={x} y={baseline + 22}
                     textAnchor="middle"
                     fill="var(--color-body)"
-                    className="text-[10px] font-semibold"
+                    fontSize={10} fontWeight={600} fontFamily="inherit"
                   >
                     {point.monthLabel}
                   </text>
-
-                  {point.annotation ? (
-                    <>
-                      <line
-                        x1={x}
-                        x2={x}
-                        y1={marginTop + 8}
-                        y2={height - marginBottom - 8}
-                        stroke="var(--color-warning)"
-                        strokeOpacity="0.28"
-                        strokeDasharray="3 6"
-                      />
-                      <rect
-                        x={x - 38}
-                        y={marginTop - 2}
-                        width="76"
-                        height="18"
-                        rx="9"
-                        fill="var(--color-canvas)"
-                        stroke="var(--color-warning)"
-                        strokeOpacity="0.35"
-                      />
-                      <text
-                        x={x}
-                        y={marginTop + 10}
-                        textAnchor="middle"
-                        fill="var(--color-warning)"
-                        className="text-[9px] font-bold"
-                      >
-                        {point.annotation}
-                      </text>
-                    </>
-                  ) : null}
                 </g>
               )
             })}
 
-            {seriesVisibility.revenueActual ? (
-              <path
-                d={`${buildLinePath(
-                  data.points,
-                  getX,
-                  revenueScale,
-                  (point) => point.revenueActual !== null ? point.revenueActual / 1000 : null
-                )} L ${getX(data.points.length - 1)} ${height - marginBottom} L ${getX(0)} ${height - marginBottom} Z`}
-                fill="url(#trajectoryRevenueGlow)"
-              />
-            ) : null}
+            {/* ── Aire sous la courbe réelle ──────────────── */}
+            {areaPath && (
+              <path d={areaPath} fill={`url(#${gradientId})`} />
+            )}
 
-            {SERIES.filter((series) => seriesVisibility[series.id]).map((series) => {
-              const scale =
-                series.axis === "left"
-                  ? revenueScale
-                  : series.axis === "innerLeft"
-                    ? capacityScale
-                    : marginScale
-              const path = buildLinePath(data.points, getX, scale, series.getValue)
+            {/* ── Courbe théorique (pointillée) ───────────── */}
+            {targetPath && (
+              <>
+                <path
+                  d={targetPath}
+                  fill="none"
+                  stroke={stroke}
+                  strokeOpacity={0.45}
+                  strokeWidth={2.2}
+                  strokeDasharray="8 6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {data.points.map((point, index) => {
+                  const value = getTargetValue(point)
+                  const cx = getX(index)
+                  const cy = getY(value)
+                  const isSelected = selectedPointIndex === index
+                  return (
+                    <g
+                      key={`target-${point.monthKey}`}
+                      onClick={() => setSelectedPointIndex(isSelected ? null : index)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <circle cx={cx} cy={cy} r={10} fill="transparent" />
+                      <circle
+                        cx={cx} cy={cy}
+                        r={isSelected ? 4.5 : 3}
+                        fill="var(--color-surface)"
+                        stroke={stroke}
+                        strokeOpacity={0.55}
+                        strokeWidth={isSelected ? 2.5 : 1.8}
+                        style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
+                      />
+                    </g>
+                  )
+                })}
+              </>
+            )}
 
-              if (!path) return null
+            {/* ── Courbe réelle (trait plein) ─────────────── */}
+            {actualPath && (
+              <>
+                <path
+                  d={actualPath}
+                  fill="none"
+                  stroke={stroke}
+                  strokeOpacity={1}
+                  strokeWidth={2.7}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {data.points.map((point, index) => {
+                  const value = getActualValue(point)
+                  if (value === null) return null
+                  const cx = getX(index)
+                  const cy = getY(value)
+                  const isSelected = selectedPointIndex === index
+                  return (
+                    <g
+                      key={`actual-${point.monthKey}`}
+                      onClick={() => setSelectedPointIndex(isSelected ? null : index)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <circle cx={cx} cy={cy} r={10} fill="transparent" />
+                      <circle
+                        cx={cx} cy={cy}
+                        r={isSelected ? 5.5 : 3.5}
+                        fill={stroke}
+                        stroke={stroke}
+                        strokeWidth={isSelected ? 2.5 : 1.6}
+                        style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
+                      />
+                    </g>
+                  )
+                })}
+              </>
+            )}
 
-              return (
-                <g key={series.id}>
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke={series.strokeVar}
-                    strokeOpacity={series.dashArray ? 0.48 : 1}
-                    strokeWidth={series.strokeWidth}
-                    strokeDasharray={series.dashArray}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {data.points.map((point, index) => {
-                    const value = series.getValue(point)
-                    if (value === null) return null
-                    const cx = getX(index)
-                    const cy = scale(value)
-                    const isSelected = selectedPointIndex === index
-                    return (
-                      <g
-                        key={`${series.id}-${point.monthKey}`}
-                        onClick={() => setSelectedPointIndex(isSelected ? null : index)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {/* Zone de clic élargie invisible */}
-                        <circle cx={cx} cy={cy} r={10} fill="transparent" />
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={isSelected ? 5.5 : series.filled ? 3.4 : 3.1}
-                          fill={series.filled ? series.strokeVar : "var(--color-surface)"}
-                          fillOpacity={series.dashArray ? 0.55 : 1}
-                          stroke={series.strokeVar}
-                          strokeOpacity={series.dashArray ? 0.6 : 1}
-                          strokeWidth={isSelected ? 2.5 : series.filled ? 1.6 : 2}
-                          style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
-                        />
-                      </g>
-                    )
-                  })}
-                </g>
-              )
-            })}
-
-            {groupEnabled("revenue") ? (
-              <text x={22} y={22} fill="var(--color-primary)" className="text-[11px] font-bold">
-                {GROUP_META.revenue.unit}
-              </text>
-            ) : null}
-            {groupEnabled("capacity") ? (
-              <text x={118} y={22} fill="var(--color-warning)" className="text-[11px] font-bold">
-                {GROUP_META.capacity.unit}
-              </text>
-            ) : null}
-            {groupEnabled("margin") ? (
-              <text x={width - 28} y={22} textAnchor="end" fill="var(--color-success)" className="text-[11px] font-bold">
-                {GROUP_META.margin.unit}
-              </text>
-            ) : null}
-
-            {/* ── TOOLTIP ─────────────────────────────────────────────────────── */}
+            {/* ── Tooltip ─────────────────────────────────── */}
             {selectedPointIndex !== null && (() => {
               const point = data.points[selectedPointIndex]
               const px = getX(selectedPointIndex)
-              const TW = 218
-              const TH = point.revenueActual !== null ? 138 : 118
+              const TW = 188
+              const TH = 112
               const GAP = 14
-              const tooltipX = px + GAP + TW > width - marginRight
-                ? px - GAP - TW
-                : px + GAP
+              const tooltipX =
+                px + GAP + TW > width - marginRight ? px - GAP - TW : px + GAP
               const tooltipY = marginTop + 8
 
-              const caActual = point.revenueActual !== null ? Math.round(point.revenueActual / 1000) : null
-              const caTarget = Math.round(point.revenueTarget / 1000)
-              const delta = point.revenueActual !== null ? point.revenueActual - point.revenueTarget : null
+              const actualVal = getActualValue(point)
+              const targetVal = getTargetValue(point)
+              const delta = actualVal !== null ? actualVal - targetVal : null
+              const deltaColor =
+                delta === null
+                  ? "var(--color-muted)"
+                  : delta >= 0
+                    ? "var(--color-success)"
+                    : "var(--color-danger)"
 
               return (
                 <g>
-                  {/* Backdrop dismiss */}
+                  {/* Dismiss backdrop */}
                   <rect
                     x={0} y={0} width={width} height={height}
                     fill="transparent"
@@ -538,14 +394,12 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                     style={{ cursor: "default" }}
                   />
 
-                  {/* Ligne verticale de guidage */}
+                  {/* Ligne de guidage verticale */}
                   <line
                     x1={px} x2={px}
-                    y1={marginTop} y2={height - marginBottom}
+                    y1={marginTop} y2={baseline}
                     stroke="var(--color-border)"
-                    strokeWidth={1}
-                    strokeDasharray="3 5"
-                    strokeOpacity={0.7}
+                    strokeWidth={1} strokeDasharray="3 5" strokeOpacity={0.7}
                   />
 
                   {/* Bulle */}
@@ -563,8 +417,7 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                   <text
                     x={tooltipX + 12} y={tooltipY + 20}
                     fill="var(--color-heading)"
-                    fontSize={11} fontWeight={700}
-                    fontFamily="inherit"
+                    fontSize={11} fontWeight={700} fontFamily="inherit"
                   >
                     {point.monthLabel}
                   </text>
@@ -573,8 +426,7 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                       x={tooltipX + TW - 10} y={tooltipY + 20}
                       textAnchor="end"
                       fill="var(--color-warning)"
-                      fontSize={9} fontWeight={700}
-                      fontFamily="inherit"
+                      fontSize={9} fontWeight={700} fontFamily="inherit"
                     >
                       {point.annotation}
                     </text>
@@ -587,47 +439,56 @@ export function Trajectory2026Chart({ data }: Trajectory2026ChartProps) {
                     stroke="var(--color-border)" strokeOpacity={0.5}
                   />
 
-                  {/* CA */}
-                  <text x={tooltipX + 12} y={tooltipY + 45} fill="var(--color-primary)" fontSize={10} fontWeight={600} fontFamily="inherit">
-                    CA réel
+                  {/* Ligne 1 : Réel */}
+                  <text
+                    x={tooltipX + 12} y={tooltipY + 47}
+                    fill={stroke}
+                    fontSize={10} fontWeight={600} fontFamily="inherit"
+                  >
+                    {displayMode === "etp" ? "ETP réels" : "CA réel"}
                   </text>
-                  <text x={tooltipX + TW - 10} y={tooltipY + 45} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
-                    {caActual !== null ? `${caActual}k€` : "—"} / obj. {caTarget}k€
-                  </text>
-
-                  {/* Capacité */}
-                  <text x={tooltipX + 12} y={tooltipY + 65} fill="var(--color-warning)" fontSize={10} fontWeight={600} fontFamily="inherit">
-                    Missions
-                  </text>
-                  <text x={tooltipX + TW - 10} y={tooltipY + 65} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
-                    {point.capacityActual !== null ? point.capacityActual.toFixed(1) : "—"} / cible {point.capacityTarget.toFixed(1)}
-                  </text>
-
-                  {/* Marge */}
-                  <text x={tooltipX + 12} y={tooltipY + 85} fill="var(--color-success)" fontSize={10} fontWeight={600} fontFamily="inherit">
-                    Marge
-                  </text>
-                  <text x={tooltipX + TW - 10} y={tooltipY + 85} textAnchor="end" fill="var(--color-heading)" fontSize={10} fontWeight={700} fontFamily="inherit">
-                    {point.marginActual !== null ? `${point.marginActual.toFixed(1)}%` : "—"} / obj. {point.marginTarget.toFixed(1)}%
+                  <text
+                    x={tooltipX + TW - 10} y={tooltipY + 47}
+                    textAnchor="end"
+                    fill="var(--color-heading)"
+                    fontSize={10} fontWeight={700} fontFamily="inherit"
+                  >
+                    {formatVal(actualVal)}
                   </text>
 
-                  {/* Écart CA — uniquement si réel disponible */}
-                  {delta !== null && (
-                    <>
-                      <line
-                        x1={tooltipX + 8} x2={tooltipX + TW - 8}
-                        y1={tooltipY + 96} y2={tooltipY + 96}
-                        stroke="var(--color-border)" strokeOpacity={0.4}
-                      />
-                      <text
-                        x={tooltipX + 12} y={tooltipY + 113}
-                        fill={delta >= 0 ? "var(--color-success)" : "var(--color-warning)"}
-                        fontSize={9} fontWeight={700} fontFamily="inherit"
-                      >
-                        {`Écart CA : ${formatSignedCompactEuro(delta)}`}
-                      </text>
-                    </>
-                  )}
+                  {/* Ligne 2 : Objectif */}
+                  <text
+                    x={tooltipX + 12} y={tooltipY + 67}
+                    fill="var(--color-muted)"
+                    fontSize={10} fontWeight={600} fontFamily="inherit"
+                  >
+                    Objectif
+                  </text>
+                  <text
+                    x={tooltipX + TW - 10} y={tooltipY + 67}
+                    textAnchor="end"
+                    fill="var(--color-heading)"
+                    fontSize={10} fontWeight={700} fontFamily="inherit"
+                  >
+                    {formatVal(targetVal)}
+                  </text>
+
+                  {/* Ligne 3 : Écart */}
+                  <text
+                    x={tooltipX + 12} y={tooltipY + 87}
+                    fill={deltaColor}
+                    fontSize={10} fontWeight={700} fontFamily="inherit"
+                  >
+                    Écart
+                  </text>
+                  <text
+                    x={tooltipX + TW - 10} y={tooltipY + 87}
+                    textAnchor="end"
+                    fill={deltaColor}
+                    fontSize={10} fontWeight={700} fontFamily="inherit"
+                  >
+                    {formatDelta(delta)}
+                  </text>
                 </g>
               )
             })()}

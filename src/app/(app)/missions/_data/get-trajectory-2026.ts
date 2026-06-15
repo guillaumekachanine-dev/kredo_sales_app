@@ -140,12 +140,7 @@ export async function getTrajectory2026(): Promise<Trajectory2026Data> {
       capacityTarget: Number(CAPACITY_TARGET.toFixed(1)),
       marginActual: pnlRow?.gross_margin_percent ?? null,
       marginTarget: ASSUMPTIONS.marginTarget,
-      annotation:
-        key === "2026-08"
-          ? "Aout - saisonnalite"
-          : key === "2026-12"
-            ? "Decembre - cloture"
-            : null,
+      annotation: null,
     }
   })
 
