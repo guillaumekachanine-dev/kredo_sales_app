@@ -1,6 +1,7 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
+import { getTrajectory2026 } from "@/app/(app)/missions/_data/get-trajectory-2026"
 import { MissionsDesktopDashboard } from "@/components/missions/dashboard/MissionsDesktopDashboard"
 import { MissionsMobileDashboard } from "@/components/missions/dashboard/MissionsMobileDashboard"
 import { createClient } from "@/lib/supabase/server"
@@ -15,6 +16,7 @@ export default async function MissionsPage() {
   const activeMissions = allMissions.filter((m) => m.status === "active")
   
   const opportunitiesData = await getOpportunitiesList()
+  const trajectory = await getTrajectory2026()
   
   // Map opportunities for display
   const opportunities = opportunitiesData.map((o) => ({
@@ -22,11 +24,11 @@ export default async function MissionsPage() {
     title: o.title,
     client: o.client || "Compte non renseigné",
     amount: o.amount || "—",
-    stage: (o as any).stage || "qualification",
-    conviction: (o as any).conviction || 50,
-    acv: (o as any).acv,
+    stage: o.stage || "qualification",
+    conviction: o.conviction || 50,
+    acv: o.acv,
     priority: o.priority || "normale",
-    targetDailyRate: (o as any).targetDailyRate || null,
+    targetDailyRate: o.targetDailyRate || null,
     status: o.status,
   }))
 
@@ -37,7 +39,7 @@ export default async function MissionsPage() {
     : 0
 
   // Calculate Total pipeline value from active opportunities (ACV)
-  const totalAcv = opportunitiesData.reduce((sum, o) => sum + ((o as any).acv || (o as any).estimatedGain || 0), 0)
+  const totalAcv = opportunitiesData.reduce((sum, o) => sum + (o.acv || o.estimatedGain || 0), 0)
   
   const formatEuro = (amount: number): string => {
     if (amount === 0) return "0 €"
@@ -85,6 +87,7 @@ export default async function MissionsPage() {
         totalPipe={totalPipe}
         avgTaci={avgTaci}
         benchRate={benchRate}
+        trajectory={trajectory}
       />
     )
   }
@@ -97,7 +100,7 @@ export default async function MissionsPage() {
       totalPipe={totalPipe}
       avgTaci={avgTaci}
       benchRate={benchRate}
+      trajectory={trajectory}
     />
   )
 }
-

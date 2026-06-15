@@ -1,5 +1,6 @@
 import { MissionsListView } from "@/components/missions/MissionsListView"
 import { NewMissionButton } from "@/components/missions/NewMissionButton"
+import { ActiveMissionsOverviewSection } from "@/components/missions/ActiveMissionsOverviewSection"
 import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 
@@ -52,6 +53,13 @@ export default async function MissionsActivesPage() {
           <NewMissionButton />
         </div>
       </div>
+
+      <ActiveMissionsOverviewSection
+        rows={activeMissions}
+        linkHref="/missions/planning"
+        linkLabel="Planning"
+        maxRows={8}
+      />
 
       <MissionsListView rows={activeMissions} emptyMessage="Aucune mission active." />
     </div>

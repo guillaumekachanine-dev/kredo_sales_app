@@ -4,6 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { MissionsListRow } from "../MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { Trajectory2026Chart } from "./Trajectory2026Chart"
+import type { Trajectory2026Data } from "./trajectory-2026-types"
 
 interface OpportunityRow {
   entityId: string
@@ -22,6 +24,7 @@ interface MissionsMobileDashboardProps {
   totalPipe: string
   avgTaci: number
   benchRate: number
+  trajectory: Trajectory2026Data
 }
 
 export function MissionsMobileDashboard({
@@ -30,6 +33,7 @@ export function MissionsMobileDashboard({
   totalPipe,
   avgTaci,
   benchRate,
+  trajectory,
 }: MissionsMobileDashboardProps) {
   const router = useRouter()
   const { openTab } = useMissionsTabStore()
@@ -75,51 +79,6 @@ export function MissionsMobileDashboard({
     setCarouselIndex((prev) => (prev + 1) % kpis.length)
   }
 
-  // Get active missions formatted for mobile cards
-  const getMockedMissions = () => {
-    const defaultMissions = [
-      {
-        id: "m-1",
-        consultantName: "Consultant A",
-        clientName: "Client",
-        clientLogoLetter: "C",
-        clientLogoBg: "bg-black text-white",
-        daysRemaining: "15 jours",
-        pctRemaining: 80,
-        desc: "Zero Library",
-      },
-      {
-        id: "m-2",
-        consultantName: "Consultant B",
-        clientName: "Opportunity Y",
-        clientLogoLetter: "Y",
-        clientLogoBg: "bg-orange-500 text-white",
-        daysRemaining: "15 jours",
-        pctRemaining: 35,
-        desc: "Zero Library",
-      },
-    ]
-
-    if (activeMissions.length === 0) return defaultMissions
-
-    return activeMissions.slice(0, 5).map((m, idx) => {
-      // Logic for dates
-      const days = idx % 2 === 0 ? "15 jours" : "45 jours"
-      const pct = idx % 2 === 0 ? 80 : 45
-      const clientName = m.client || "Compte non renseigné"
-      return {
-        id: m.entityId,
-        consultantName: m.consultant || `Consultant ${String.fromCharCode(65 + idx)}`,
-        clientName: clientName,
-        clientLogoLetter: clientName.charAt(0),
-        clientLogoBg: idx % 2 === 0 ? "bg-primary text-white" : "bg-[#D97020] text-white",
-        daysRemaining: days,
-        pctRemaining: pct,
-        desc: m.tag || "Zero Library",
-      }
-    })
-  }
-
   const getMockedOpportunities = () => {
     const defaultOpps = [
       {
@@ -157,7 +116,6 @@ export function MissionsMobileDashboard({
     })
   }
 
-  const displayMissions = getMockedMissions()
   const displayOpps = getMockedOpportunities()
 
   return (
@@ -226,75 +184,12 @@ export function MissionsMobileDashboard({
         </button>
       </div>
 
-      {/* Missions Actives Section */}
+      {/* Trajectoire 2026 */}
       <div className="flex flex-col gap-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted select-none">
-          Missions Actives
+          Trajectoire 2026
         </h2>
-
-        <div className="flex flex-col gap-3">
-          {displayMissions.map((mission) => (
-            <div
-              key={mission.id}
-              onClick={() =>
-                openTab({
-                  entityType: "mission",
-                  entityId: mission.id,
-                  title: mission.consultantName,
-                  subtitle: `Mission · ${mission.clientName}`,
-                })
-              }
-              className="bg-surface border border-border/70 rounded-xl p-4 shadow-sm flex flex-col gap-3 cursor-pointer hover:bg-surface-hover/30 active:scale-[0.99] transition-all"
-            >
-              {/* Consultant Avatar + Client Logo */}
-              <div className="flex items-center gap-2">
-                {/* Consultant Avatar */}
-                <div className="w-7 h-7 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-[10px] text-heading">
-                  {mission.consultantName.split(" ").map((n) => n[0]).join("")}
-                </div>
-                
-                <span className="text-muted text-xs font-bold">+</span>
-
-                {/* Client Logo */}
-                <div className={`w-7 h-7 rounded flex items-center justify-center font-bold text-[10px] ${mission.clientLogoBg}`}>
-                  {mission.clientLogoLetter}
-                </div>
-
-                <div className="ml-1 min-w-0">
-                  <h3 className="text-xs font-bold text-heading truncate">{mission.consultantName}</h3>
-                  <p className="text-[10px] text-body truncate">chez {mission.clientName}</p>
-                </div>
-              </div>
-
-              {/* Fin de mission & Progress Bar */}
-              <div className="flex flex-col gap-1 w-full">
-                <div className="text-[11px] text-body">
-                  Fin de Mission: <span className="font-semibold text-heading">{mission.daysRemaining}</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${mission.pctRemaining}%` }} />
-                </div>
-              </div>
-
-              {/* Tag/Description */}
-              <div className="text-[10px] text-muted font-medium select-none">
-                {mission.desc}
-              </div>
-
-              {/* Touch Target CTA (Min 44px height) */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.location.href = `mailto:consultants@kredo.dev?subject=Contact concernant la mission chez ${encodeURIComponent(mission.clientName)}`
-                }}
-                className="w-full h-11 min-h-[44px] rounded-lg border border-border bg-surface text-body hover:bg-surface-hover hover:text-primary hover:border-primary/50 text-xs font-bold flex items-center justify-center transition-all select-none active:scale-95 cursor-pointer"
-              >
-                Contacter
-              </button>
-            </div>
-          ))}
-        </div>
+        <Trajectory2026Chart data={trajectory} />
       </div>
 
       {/* Opportunités Section */}

@@ -7,6 +7,8 @@ import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { cn } from "@/lib/utils"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
+import { Trajectory2026Chart } from "./Trajectory2026Chart"
+import type { Trajectory2026Data } from "./trajectory-2026-types"
 
 interface OpportunityRow {
   entityId: string
@@ -28,19 +30,19 @@ interface MissionsDesktopDashboardProps {
   totalPipe: string
   avgTaci: number
   benchRate: number
+  trajectory: Trajectory2026Data
 }
 
 export function MissionsDesktopDashboard({
   activeMissions,
   opportunities,
-  avgTjm: initialAvgTjm,
+  avgTjm,
   totalPipe: initialTotalPipe,
   avgTaci,
   benchRate,
+  trajectory,
 }: MissionsDesktopDashboardProps) {
   const { openTab } = useMissionsTabStore()
-  const [filterMissionsCriticite, setFilterMissionsCriticite] = useState("all")
-  const [filterMissionsPractice, setFilterMissionsPractice] = useState("all")
   const [filterOppsCriticite, setFilterOppsCriticite] = useState("all")
   const [filterTjm, setFilterTjm] = useState("all")
   const [repartitionMode, setRepartitionMode] = useState<"etp" | "ca">("etp")
@@ -84,42 +86,6 @@ export function MissionsDesktopDashboard({
     },
   ]
 
-  // Calculate days remaining for a mission
-  const getDaysRemaining = (endDateStr?: string) => {
-    if (!endDateStr) return { label: "Indéterminé", pct: 100, color: "bg-success" }
-    const end = new Date(endDateStr)
-    const now = new Date()
-    const diffTime = end.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays <= 0) return { label: "Terminée", pct: 100, color: "bg-slate-300" }
-    if (diffDays <= 15) return { label: "15 jours", pct: 20, color: "bg-amber-500" }
-    if (diffDays <= 30) return { label: "30 jours", pct: 40, color: "bg-amber-500" }
-    if (diffDays <= 60) return { label: "2 mois", pct: 60, color: "bg-primary" }
-    return { label: "3 mois +", pct: 85, color: "bg-success" }
-  }
-
-  // --- Dynamic Filtering Logic ---
-  const filteredMissions = activeMissions.filter((m) => {
-    // Risk Level / Priority filter
-    if (filterMissionsCriticite !== "all") {
-      const isHigh = m.riskLevel === "critique" || m.riskLevel === "modere"
-      if (filterMissionsCriticite === "high" && !isHigh) return false
-      if (filterMissionsCriticite === "normal" && isHigh) return false
-    }
-    // Practice filter
-    if (filterMissionsPractice !== "all") {
-      if (m.practice !== filterMissionsPractice) return false
-    }
-    // TJM filter
-    if (filterTjm !== "all") {
-      const tjmVal = m.tjm || 0
-      if (filterTjm === "500" && tjmVal <= 500) return false
-      if (filterTjm === "700" && tjmVal <= 700) return false
-    }
-    return true
-  })
-
   const filteredOpps = opportunities.filter((opp) => {
     // Priority filter
     if (filterOppsCriticite !== "all") {
@@ -136,18 +102,12 @@ export function MissionsDesktopDashboard({
     return true
   })
 
-  // Recalculate KPI numbers based on filters
-  const activeMissionsCount = filteredMissions.length > 0 ? filteredMissions.length : (filterMissionsCriticite === "all" && filterMissionsPractice === "all" && filterTjm === "all" ? 16 : filteredMissions.length)
-  
-  const activeMissionsWithTjm = filteredMissions.filter((m) => m.tjm !== undefined && m.tjm > 0)
-  const currentAvgTjm = activeMissionsWithTjm.length > 0
-    ? Math.round(activeMissionsWithTjm.reduce((sum, m) => sum + (m.tjm || 0), 0) / activeMissionsWithTjm.length)
-    : (filterMissionsCriticite === "all" && filterMissionsPractice === "all" && filterTjm === "all" ? 680 : 0)
-
-  const activeMissionsWithMargin = filteredMissions.filter((m) => m.grossMarginPct !== null && m.grossMarginPct !== undefined)
+  const activeMissionsWithMargin = activeMissions.filter((m) => m.grossMarginPct !== null && m.grossMarginPct !== undefined)
   const currentAvgMargin = activeMissionsWithMargin.length > 0
     ? Math.round(activeMissionsWithMargin.reduce((sum, m) => sum + (m.grossMarginPct || 0), 0) / activeMissionsWithMargin.length)
-    : (filterMissionsCriticite === "all" && filterMissionsPractice === "all" && filterTjm === "all" ? 36 : 0)
+    : 0
+
+  const activeClientsCount = new Set(activeMissions.map((mission) => mission.client).filter(Boolean)).size
 
   const formatEuro = (amount: number): string => {
     if (amount === 0) return "0 €"
@@ -162,7 +122,7 @@ export function MissionsDesktopDashboard({
   }
 
   const openOpps = filteredOpps.filter((o) => o.status === "active" || o.status === "pending")
-  const openOppyCount = openOpps.length > 0 ? openOpps.length : (filterOppsCriticite === "all" && filterTjm === "all" ? 9 : 0)
+  const openOppyCount = openOpps.length
 
   const openPipeVal = openOpps.reduce((sum, o) => sum + (o.acv || 0), 0)
   const currentPipe = openPipeVal > 0 ? formatEuro(openPipeVal) : (filterOppsCriticite === "all" && filterTjm === "all" ? initialTotalPipe : "0 €")
@@ -182,12 +142,12 @@ export function MissionsDesktopDashboard({
 
   // Calculate practice ETP distribution (number of missions)
   const practiceCounts: Record<string, number> = {}
-  filteredMissions.forEach((m) => {
+  activeMissions.forEach((m) => {
     const practice = m.practice || "Autre"
     practiceCounts[practice] = (practiceCounts[practice] || 0) + 1
   })
 
-  const totalMissionsCount = filteredMissions.length || 1
+  const totalMissionsCount = activeMissions.length || 1
   const practiceEtpSegments = Object.entries(practiceCounts)
     .map(([name, count]) => ({
       name,
@@ -198,7 +158,7 @@ export function MissionsDesktopDashboard({
 
   // Calculate practice CA distribution (turnover)
   const practiceCACounts: Record<string, number> = {}
-  filteredMissions.forEach((m) => {
+  activeMissions.forEach((m) => {
     const practice = m.practice || "Autre"
     const ca = (m.tjm || 680) * 20
     practiceCACounts[practice] = (practiceCACounts[practice] || 0) + ca
@@ -234,106 +194,21 @@ export function MissionsDesktopDashboard({
   }))
 
   // Calculate start angles for SVG donut sections
-  let accumulatedAngle = -90
-  const segmentsWithAngles = activeSegments.map((seg) => {
-    const startAngle = accumulatedAngle
-    accumulatedAngle += seg.percentage * 3.6
-    return {
-      ...seg,
-      startAngle,
-    }
-  })
+  const segmentsWithAngles = activeSegments.reduce<Array<(typeof activeSegments)[number] & { startAngle: number }>>(
+    (segments, seg) => {
+      const previous = segments[segments.length - 1]
+      const startAngle = previous ? previous.startAngle + previous.percentage * 3.6 : -90
+      segments.push({
+        ...seg,
+        startAngle,
+      })
+      return segments
+    },
+    []
+  )
 
   const donutRadius = 38
   const donutCircumference = 2 * Math.PI * donutRadius // ~238.76
-
-  // Fallback active missions list matching mockup naming if db is small or filters applied
-  const getMockedMissions = () => {
-    const defaultMissions = [
-      {
-        id: "m-1",
-        consultant: "Consultant A",
-        client: "Client",
-        logoLetter: "C",
-        logoColor: "bg-black text-white",
-        remaining: "15 jours",
-        progress: 80,
-        color: "bg-amber-500",
-        tjm: "€1.4M",
-        status: "Badges",
-        statusColor: "bg-[#FFE0B2] text-[#E65100]",
-        isHighRisk: true,
-        tjmNumber: 1400,
-      },
-      {
-        id: "m-2",
-        consultant: "Consultant B",
-        client: "Opportunity Y",
-        logoLetter: "Y",
-        logoColor: "bg-amber-500 text-white",
-        remaining: "15 jours",
-        progress: 35,
-        color: "bg-success",
-        tjm: "€680",
-        status: "Competivite",
-        statusColor: "bg-[#E8F5E9] text-[#2E7D32]",
-        isHighRisk: false,
-        tjmNumber: 680,
-      },
-      {
-        id: "m-3",
-        consultant: "Consultant C",
-        client: "Opportunity Z",
-        logoLetter: "Z",
-        logoColor: "bg-rose-500 text-white",
-        remaining: "15 jours",
-        progress: 35,
-        color: "bg-success",
-        tjm: "€680",
-        status: "Competivite",
-        statusColor: "bg-[#E8F5E9] text-[#2E7D32]",
-        isHighRisk: false,
-        tjmNumber: 680,
-      },
-    ]
-
-    // If activeMissions has data, display real ones filtered.
-    if (activeMissions.length > 0) {
-      return filteredMissions.slice(0, 5).map((m, idx) => {
-        const remainingInfo = getDaysRemaining(m.endDate)
-        const clientName = m.client || "Compte non renseigné"
-        const hasRisk = m.riskLevel === "critique" || m.riskLevel === "modere"
-        return {
-          id: m.entityId,
-          consultant: m.consultant || `Consultant ${String.fromCharCode(65 + idx)}`,
-          client: clientName,
-          logoLetter: clientName.charAt(0),
-          logoColor: idx % 2 === 0 ? "bg-primary text-white" : "bg-accent text-white",
-          remaining: remainingInfo.label,
-          progress: remainingInfo.pct,
-          color: remainingInfo.color,
-          tjm: m.tjm ? `€${m.tjm}` : "€680",
-          status: hasRisk ? "Risque élevé" : "Competivite",
-          statusColor: hasRisk ? "bg-[#FFEBEE] text-[#C62828]" : "bg-[#E8F5E9] text-[#2E7D32]",
-        }
-      })
-    }
-
-    // Apply filters to mockup data if database is empty
-    return defaultMissions.filter((m) => {
-      if (filterMissionsCriticite !== "all") {
-        if (filterMissionsCriticite === "high" && !m.isHighRisk) return false
-        if (filterMissionsCriticite === "normal" && m.isHighRisk) return false
-      }
-      if (filterTjm !== "all") {
-        if (filterTjm === "500" && m.tjmNumber <= 500) return false
-        if (filterTjm === "700" && m.tjmNumber <= 700) return false
-      }
-      return true
-    })
-  }
-
-  const displayMissions = getMockedMissions()
 
   // --- Pipeline Chart Rendering Helpers ---
   const getStageCategory = (stageStr: string): "Qualif" | "Proposition" | "Nego" | "Gagne" => {
@@ -475,7 +350,7 @@ export function MissionsDesktopDashboard({
               Missions en cours
             </span>
             <span className="text-2xl font-bold text-heading mt-auto">
-              {filteredMissions.length > 0 ? filteredMissions.length : (filterMissionsCriticite === "all" && filterMissionsPractice === "all" && filterTjm === "all" ? 16 : 0)}
+              {activeMissions.length}
             </span>
           </div>
           <div className="pl-4 flex flex-col justify-between">
@@ -483,7 +358,7 @@ export function MissionsDesktopDashboard({
               Clients actifs
             </span>
             <span className="text-2xl font-bold text-heading mt-auto">
-              {new Set(filteredMissions.map((m) => m.client).filter(Boolean)).size || (filterMissionsCriticite === "all" && filterMissionsPractice === "all" && filterTjm === "all" ? 10 : 0)}
+              {activeClientsCount}
             </span>
           </div>
         </div>
@@ -495,7 +370,7 @@ export function MissionsDesktopDashboard({
               TJ Moyen
             </span>
             <span className="text-2xl font-bold text-heading mt-auto">
-              {currentAvgTjm > 0 ? `${currentAvgTjm} €` : "—"}
+              {avgTjm > 0 ? `${avgTjm} €` : "—"}
             </span>
           </div>
           <div className="pl-4 flex flex-col justify-between">
@@ -557,143 +432,8 @@ export function MissionsDesktopDashboard({
 
       {/* Main Grid: Suivi des Missions (Left) & Alertes Staffing (Right) */}
       <div className="grid grid-cols-12 gap-5 items-stretch">
-        
-        {/* Suivi des Missions Actives Table */}
-        <div className="col-span-8 bg-surface rounded-xl border border-border/80 shadow-sm p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4 pb-2 border-b border-border/40 select-none">
-            <h2 className="text-sm font-bold text-heading font-heading">
-              Suivi des Missions Actives
-            </h2>
-            <div className="flex items-center gap-2">
-              {/* Practice Filter */}
-              <div className="relative">
-                <select
-                  value={filterMissionsPractice}
-                  onChange={(e) => setFilterMissionsPractice(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                >
-                  <option value="all">Filtrer par practice</option>
-                  <option value="Digital">Digital</option>
-                  <option value="Cloud">Cloud</option>
-                  <option value="Data">Data</option>
-                  <option value="Design">Design</option>
-                  <option value="Product Management">Product Management</option>
-                  <option value="Project Management">Project Management</option>
-                  <option value="Cybersecurity">Cybersecurity</option>
-                  <option value="Mobile">Mobile</option>
-                  <option value="QA">QA</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Criticité Filter */}
-              <div className="relative">
-                <select
-                  value={filterMissionsCriticite}
-                  onChange={(e) => setFilterMissionsCriticite(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                >
-                  <option value="all">Filtrer par criticité</option>
-                  <option value="high">Priorité Haute</option>
-                  <option value="normal">Priorité Normale</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-
-              <Link
-                href="/missions/actives"
-                className="text-xs font-semibold text-primary hover:underline bg-canvas hover:bg-surface-hover border border-border/80 px-3 py-1 rounded-lg transition-colors"
-              >
-                Liste
-              </Link>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto flex-1">
-            {displayMissions.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-muted py-8 select-none">
-                Aucune mission ne correspond aux critères de recherche.
-              </div>
-            ) : (
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="text-muted font-bold border-b border-border/40 select-none">
-                    <th className="py-2.5 pb-3">Consultant</th>
-                    <th className="py-2.5 pb-3">Client</th>
-                    <th className="py-2.5 pb-3">Fin de Mission</th>
-                    <th className="py-2.5 pb-3">TJM</th>
-                    <th className="py-2.5 pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/20">
-                  {displayMissions.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() =>
-                        openTab({
-                          entityType: "mission",
-                          entityId: row.id,
-                          title: row.consultant,
-                          subtitle: `Mission · ${row.client}`,
-                        })
-                      }
-                      className="hover:bg-canvas/30 transition-all cursor-pointer transform hover:translate-x-0.5 duration-150"
-                    >
-                      {/* Consultant with Initials/Avatar */}
-                      <td className="py-3 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-[10px] text-heading">
-                          {row.consultant.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </div>
-                        <span className="font-semibold text-heading">{row.consultant}</span>
-                      </td>
-                      
-                      {/* Client with Logo block */}
-                      <td className="py-3">
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-[9px] ${row.logoColor} shrink-0 select-none`}>
-                            {row.logoLetter}
-                          </div>
-                          <span className="text-body font-medium">{row.client}</span>
-                        </div>
-                      </td>
-
-                      {/* Progress Bar for Fin de mission */}
-                      <td className="py-3">
-                        <div className="flex flex-col gap-1 w-36">
-                          <div className="flex justify-between items-center text-[10px] text-body">
-                            <span>{row.remaining}</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div className={`h-full ${row.color}`} style={{ width: `${row.progress}%` }} />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* TJM */}
-                      <td className="py-3 font-semibold text-heading">
-                        {row.tjm}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.statusColor}`}>
-                          {row.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+        <div className="col-span-8">
+          <Trajectory2026Chart data={trajectory} />
         </div>
 
         {/* New Répartition Section */}
@@ -765,7 +505,7 @@ export function MissionsDesktopDashboard({
                 </span>
                 <span className="text-xl font-black text-heading mt-1.5 leading-none">
                   {repartitionMode === "etp"
-                    ? `${filteredMissions.length}`
+                    ? `${activeMissions.length}`
                     : `${Math.round(totalPracticeCAVal / 1000)}k€`}
                 </span>
               </div>
