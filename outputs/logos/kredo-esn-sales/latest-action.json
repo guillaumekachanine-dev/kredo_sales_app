@@ -1,0 +1,14 @@
+{
+  "id": "review-renderer-materialized",
+  "action": "write_moodboard_widget_payload",
+  "label": "Materialized Creative Production image review",
+  "createdAt": "2026-06-15T15:00:47.643094Z",
+  "timestamp": "2026-06-15T15:00:47.643094Z",
+  "title": "KREDO logo exploration",
+  "summary": "Huit directions de logo pour un SaaS commercial ESN, \u00e0 comparer sur fond blanc.",
+  "itemCount": 8,
+  "runDirectory": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales",
+  "streamPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/data/stream.json",
+  "runStatePath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/run-state.json",
+  "latestActionPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/latest-action.json"
+}

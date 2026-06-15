@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
 import { linkHorizontal } from "d3-shape"
 import { useMemo, useState, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
@@ -111,6 +110,14 @@ const toneClasses: Record<
     svgFill: "fill-accent/10",
     svgStroke: "stroke-accent/35",
   },
+}
+
+const practiceImages: Record<string, string> = {
+  "data-ia":       "/images/practices/data-ia.jpg",
+  "digital-cloud": "/images/practices/digital-cloud.jpg",
+  "agile-pm":      "/images/practices/agile-pm.jpg",
+  "cybersecurity": "/images/practices/cybersecurity.jpg",
+  "qa-testing":    "/images/practices/qa-testing.jpg",
 }
 
 const practiceMatchers: Record<string, string[]> = {
@@ -468,23 +475,60 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
         .sort((a, b) => getCollaboratorName(a).localeCompare(getCollaboratorName(b))),
     [collaborators, selectedPractice]
   )
+  const activeCategories = skillGroups.length
+  const activeCoverage = skills.length > 0
+    ? Math.round((totalSkills / skills.length) * 100)
+    : 0
+  const kpis = [
+    {
+      label: "Practices",
+      value: practices.length,
+      detail: "territoires actifs",
+      progress: 100,
+    },
+    {
+      label: "Referentiel",
+      value: skills.length,
+      detail: "competences suivies",
+      progress: 100,
+    },
+    {
+      label: "Practice active",
+      value: totalSkills,
+      detail: `${activeCategories} familles, ${activeCoverage}% du pool`,
+      progress: activeCoverage,
+    },
+    {
+      label: "Rattachement",
+      value: attachedCollaborators.length,
+      detail: "consultants identifies",
+      progress: collaborators.length > 0
+        ? Math.round((attachedCollaborators.length / collaborators.length) * 100)
+        : 0,
+    },
+  ]
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 px-6 py-6">
-      <header className="flex items-end justify-between gap-5 border-b border-border pb-4">
+      <header className="grid gap-4 border-b border-border pb-5 lg:grid-cols-[minmax(220px,0.42fr)_minmax(0,1fr)] lg:items-end">
         <div>
           <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
             Pool de competences
           </h1>
-          <p className="mt-1 text-sm text-body">
-            Carte des practices et arbre des competences associees.
-          </p>
         </div>
 
-        <div className="flex items-center divide-x divide-border rounded-lg border border-border bg-surface">
-          <Metric label="Practices" value={practices.length} />
-          <Metric label="Competences" value={skills.length} />
-          <Metric label="Selection" value={totalSkills} />
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {kpis.map((kpi, index) => (
+            <Metric
+              key={kpi.label}
+              label={kpi.label}
+              value={kpi.value}
+              detail={kpi.detail}
+              progress={kpi.progress}
+              featured={index === 2}
+              tone={selectedTone}
+            />
+          ))}
         </div>
       </header>
 
@@ -564,14 +608,24 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
                 onClick={() => setSelectedSlug(practice.slug)}
                 aria-pressed={active}
                 className={cn(
-                  "absolute z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-start justify-center rounded-[28px] border px-4 py-3 text-left shadow-sm transition duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  "absolute z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-start justify-center overflow-hidden rounded-[28px] border px-4 py-3 text-left shadow-sm transition duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40",
                   active
                     ? cn("bg-surface text-heading shadow-md ring-1", tone.border)
                     : "border-border bg-surface/90 text-heading hover:bg-surface-hover"
                 )}
                 style={territoryStyles.get(practice.slug)}
               >
-                <span className="flex w-full items-start gap-2">
+                {practiceImages[practice.slug] && (
+                  <span
+                    className="pointer-events-none absolute inset-0 rounded-[28px] bg-cover bg-center transition-opacity duration-300"
+                    style={{
+                      backgroundImage: `url(${practiceImages[practice.slug]})`,
+                      opacity: active ? 0.14 : 0.09,
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative flex w-full items-start gap-2">
                   <span className={cn("mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full", tone.fill)} />
                   <span className="min-w-0">
                     <span className="block max-h-10 overflow-hidden text-sm font-bold leading-tight">
@@ -593,26 +647,38 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
         </section>
 
         <aside className="overflow-hidden rounded-lg border border-border bg-surface">
-          <div className={cn("border-b border-border px-5 py-4", selectedTone.soft)}>
-            <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", selectedTone.text)}>
-              Practice active
-            </p>
-            <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
-              {selectedPractice.name}
-            </h2>
-            <p className="mt-2 text-sm leading-5 text-body">
-              {selectedPractice.perimeter}
-            </p>
+          <div className={cn("relative overflow-hidden border-b border-border px-5 py-4", selectedTone.soft)}>
+            {practiceImages[selectedPractice.slug] && (
+              <div
+                className="pointer-events-none absolute inset-0 bg-cover bg-center transition-all duration-500"
+                style={{
+                  backgroundImage: `url(${practiceImages[selectedPractice.slug]})`,
+                  opacity: 0.12,
+                }}
+                aria-hidden="true"
+              />
+            )}
+            <div className="relative">
+              <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", selectedTone.text)}>
+                Practice active
+              </p>
+              <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
+                {selectedPractice.name}
+              </h2>
+              <p className="mt-2 text-sm leading-5 text-body">
+                {selectedPractice.perimeter}
+              </p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {selectedPractice.stackTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-body"
-                >
-                  {tag}
-                </span>
-              ))}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedPractice.stackTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-body"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -693,13 +759,52 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
   )
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({
+  label,
+  value,
+  detail,
+  progress,
+  featured,
+  tone,
+}: {
+  label: string
+  value: number
+  detail: string
+  progress: number
+  featured?: boolean
+  tone: (typeof toneClasses)[PracticeTone]
+}) {
   return (
-    <div className="min-w-24 px-4 py-2 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
-        {label}
+    <div
+      className={cn(
+        "group relative min-h-28 overflow-hidden rounded-lg border bg-surface px-4 py-3.5 transition duration-200 hover:-translate-y-0.5 hover:bg-surface-hover",
+        featured ? cn("border-primary/35 shadow-sm", tone.soft) : "border-border"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+          {label}
+        </p>
+        <span
+          className={cn(
+            "mt-0.5 h-2 w-2 shrink-0 rounded-full transition-transform duration-200 group-hover:scale-125",
+            featured ? tone.fill : "bg-border"
+          )}
+          aria-hidden="true"
+        />
+      </div>
+      <p className="mt-3 font-heading text-3xl font-bold leading-none tracking-tight text-heading tabular-nums">
+        {value}
       </p>
-      <p className="mt-0.5 text-lg font-bold tabular-nums text-heading">{value}</p>
+      <p className="mt-2 min-h-8 text-xs leading-4 text-body">
+        {detail}
+      </p>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/70">
+        <div
+          className={cn("h-full rounded-full transition-all duration-500", featured ? tone.fill : "bg-heading/55")}
+          style={{ width: `${Math.max(8, Math.min(100, progress))}%` }}
+        />
+      </div>
     </div>
   )
 }

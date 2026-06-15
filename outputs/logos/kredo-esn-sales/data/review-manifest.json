@@ -1,0 +1,162 @@
+[
+  {
+    "id": "kr-monogram-signal",
+    "index": 1,
+    "title": "KR Monogram Signal",
+    "label": "KR Monogram Signal",
+    "familyTitle": "monogram",
+    "routeName": "KR Monogram Signal",
+    "category": "monogram",
+    "prompt": "Create a clean logo exploration tile on a pure white inspection background for KREDO, a SaaS for ESN sales teams. Show one centered logo concept only: a sharp KR monogram with a subtle signal or momentum gesture, paired with a restrained uppercase KREDO wordmark if typography appears. Style should feel enterprise, precise, and high-trust rather than playful. Use dark graphite with a muted teal accent. No tagline, no mockup scene, no paper texture, no handshake icon, no rocket, no busy gradient, no extra readable text.",
+    "bestFor": "Produit, favicon et avatars où la compacité prime.",
+    "decisionAdvice": "Choisir cette voie si KREDO doit être reconnu d'abord comme un outil logiciel avec une signature visuelle courte et mémorisable.",
+    "watchOut": "Le ligature KR peut vite devenir générique si la construction n'apporte pas un geste propriétaire.",
+    "nextStep": "Vectoriser le monogramme puis le tester à 16 px, 24 px et 32 px avant de verrouiller la typographie.",
+    "usageContexts": [
+      "app icon",
+      "favicon",
+      "product sidebar"
+    ],
+    "output": "01-kr-monogram-signal.png"
+  },
+  {
+    "id": "k-modular-grid",
+    "index": 2,
+    "title": "K Modular Grid",
+    "label": "K Modular Grid",
+    "familyTitle": "monogram",
+    "routeName": "K Modular Grid",
+    "category": "monogram",
+    "prompt": "Create a logo exploration tile on a white background for KREDO. Show a single centered logo concept built around a modular K monogram inspired by cards, blocks, or pipeline stages, with an optional understated KREDO wordmark. The identity should feel structured, scalable, and system-oriented for an enterprise SaaS used by ESN sales teams. Minimal geometry, strong spacing, black and slate with a subtle green accent. No arrows as the main symbol, no mockup stationery, no badge overload, no extra readable text.",
+    "bestFor": "Design system, icones produit et univers visuel modulaire.",
+    "decisionAdvice": "Bonne option si la marque doit exprimer méthode, pipeline et rigueur plus que vitesse brute.",
+    "watchOut": "Une approche trop géométrique peut devenir froide ou trop proche d'une marque data/infrastructure.",
+    "nextStep": "Décliner la grille sur un set de pictos produit pour vérifier que le langage tient au-delà du logo.",
+    "usageContexts": [
+      "dashboard icon",
+      "sales enablement assets",
+      "social avatar"
+    ],
+    "output": "02-k-modular-grid.png"
+  },
+  {
+    "id": "wordmark-velocity-cut",
+    "index": 3,
+    "title": "Wordmark Velocity Cut",
+    "label": "Wordmark Velocity Cut",
+    "familyTitle": "wordmark",
+    "routeName": "Wordmark Velocity Cut",
+    "category": "wordmark",
+    "prompt": "Create a centered wordmark-led logo exploration tile on a pure white background for KREDO, a B2B SaaS for ESN sales teams. Focus on a custom uppercase KREDO wordmark with crisp cut terminals and slight forward energy, possibly with a tiny supporting mark but no dominant icon. Make it feel assertive, modern, and enterprise-ready. Palette should stay mostly black or deep ink with one restrained emerald or cyan accent if needed. No slogans, no extra copy, no startup gradient, no 3D chrome, no generic arrow motifs.",
+    "bestFor": "Site web, campagnes de contenu et prises de parole où le nom doit rester central.",
+    "decisionAdvice": "À retenir si KREDO veut projeter une marque plus mature et institutionnelle, facile à déployer sur le marketing.",
+    "watchOut": "Sans détail signature fort, la piste peut manquer d'impact en petite taille ou hors contexte.",
+    "nextStep": "Tester plusieurs dessins de lettres pour le K, le R et le O afin d'identifier un point mémorable réellement propriétaire.",
+    "usageContexts": [
+      "website header",
+      "hero section",
+      "sales deck title slide"
+    ],
+    "output": "03-wordmark-velocity-cut.png"
+  },
+  {
+    "id": "wordmark-humanist-trust",
+    "index": 4,
+    "title": "Wordmark Humanist Trust",
+    "label": "Wordmark Humanist Trust",
+    "familyTitle": "wordmark",
+    "routeName": "Wordmark Humanist Trust",
+    "category": "wordmark",
+    "prompt": "Create a refined logo exploration tile on a white inspection background for KREDO. Show a single centered custom wordmark direction for the exact brand name KREDO, with slightly humanist proportions, balanced spacing, and a calmer enterprise tone suited to ESN commercial teams. If a mark appears, keep it tiny and secondary. Use deep navy or charcoal with a restrained sage accent. No tagline, no badge, no crest, no script lettering, no soft startup blob, no mockup context.",
+    "bestFor": "Documents commerciaux, brand moments institutionnels et cycles de vente plus longs.",
+    "decisionAdvice": "Utile si la priorité est la crédibilité relationnelle et la lisibilité du nom dans des contextes formels.",
+    "watchOut": "Cette piste peut manquer de nerf produit si elle n'intègre aucun détail de tension ou de cadence.",
+    "nextStep": "Comparer cette voie face à une version plus nerveuse pour mesurer le bon équilibre entre confiance et énergie.",
+    "usageContexts": [
+      "proposal cover",
+      "partner-facing docs",
+      "LinkedIn header"
+    ],
+    "output": "04-wordmark-humanist-trust.png"
+  },
+  {
+    "id": "symbol-northstar-node",
+    "index": 5,
+    "title": "Northstar Node",
+    "label": "Northstar Node",
+    "familyTitle": "symbol",
+    "routeName": "Northstar Node",
+    "category": "symbol",
+    "prompt": "Create a clean logo exploration tile on a white background for KREDO. Show one centered logo concept featuring an abstract north-star or compass-node symbol that subtly suggests guidance, qualification, and sales direction without becoming a literal compass. Pair it with a secondary KREDO wordmark if appropriate. Enterprise SaaS tone, precise and premium, with dark graphite and muted electric green or cyan. No literal starburst clichés, no fake fintech glow, no badges, no extra text, no paper mockup.",
+    "bestFor": "Narratif de marque, événements et moments où le symbole doit porter un sens stratégique clair.",
+    "decisionAdvice": "Fort candidat si la marque veut un signe autonome capable de raconter direction, cap et discernement commercial.",
+    "watchOut": "Le territoire du compas et de l'étoile est vite surutilisé; la géométrie doit rester très spécifique.",
+    "nextStep": "Durcir la géométrie et tester une intégration de contreforme en K pour éviter le symbole trop abstrait.",
+    "usageContexts": [
+      "platform launch visual",
+      "app splash",
+      "conference booth"
+    ],
+    "output": "05-symbol-northstar-node.png"
+  },
+  {
+    "id": "symbol-pipeline-pulse",
+    "index": 6,
+    "title": "Pipeline Pulse",
+    "label": "Pipeline Pulse",
+    "familyTitle": "symbol",
+    "routeName": "Pipeline Pulse",
+    "category": "symbol",
+    "prompt": "Create a white-background logo exploration tile for KREDO with one centered symbol-led logo concept. The symbol should abstract the idea of pipeline flow, qualification, and deal momentum using disciplined geometry, almost like a pulse moving through stages, with an optional restrained KREDO wordmark beside it. The mark must feel software-native, B2B, and operationally smart. Use charcoal and slate with a precise green accent. No literal funnel icon, no giant arrow, no lightning bolt, no mockup, no extra readable text.",
+    "bestFor": "Messages orientés performance commerciale et démonstrations produit.",
+    "decisionAdvice": "À privilégier si KREDO veut ancrer sa marque sur la mécanique commerciale elle-même plutôt que sur la seule posture institutionnelle.",
+    "watchOut": "Le symbole peut devenir trop fonctionnel et perdre en singularité de marque s'il ressemble à une simple pipeline chart.",
+    "nextStep": "Explorer trois niveaux d'abstraction pour éviter la lecture trop dashboard ou trop analytics.",
+    "usageContexts": [
+      "product marketing",
+      "feature badges",
+      "demo opening slide"
+    ],
+    "output": "06-symbol-pipeline-pulse.png"
+  },
+  {
+    "id": "kr-badge-command",
+    "index": 7,
+    "title": "KR Badge Command",
+    "label": "KR Badge Command",
+    "familyTitle": "monogram",
+    "routeName": "KR Badge Command",
+    "category": "monogram",
+    "prompt": "Create a centered logo exploration tile for KREDO on a clean white inspection surface. Show a compact KR badge or seal-like monogram reinterpreted in a modern SaaS way, crisp and minimal rather than heritage. The effect should suggest command, discipline, and team alignment without feeling old-fashioned. Use mostly monochrome dark ink with a restrained accent. No crest details, no laurels, no ribbon, no fake institution cues, no extra readable text, no mockup scene.",
+    "bestFor": "Usages compacts, culture interne et déclinaisons avatar/sticker.",
+    "decisionAdvice": "Intéressant si la marque doit aussi vivre comme signe d'appartenance pour les équipes qui utilisent KREDO au quotidien.",
+    "watchOut": "Le registre badge peut glisser vers du consulting traditionnel ou du club, donc il faut rester extrêmement sobre.",
+    "nextStep": "Écarter rapidement la piste si le rendu bascule vers l'institutionnel ou perd sa lecture numérique.",
+    "usageContexts": [
+      "workspace avatar",
+      "browser tab",
+      "sales team swag"
+    ],
+    "output": "07-kr-badge-command.png"
+  },
+  {
+    "id": "adaptive-lockup-orbit",
+    "index": 8,
+    "title": "Adaptive Lockup Orbit",
+    "label": "Adaptive Lockup Orbit",
+    "familyTitle": "adaptive",
+    "routeName": "Adaptive Lockup Orbit",
+    "category": "adaptive",
+    "prompt": "Create a logo exploration tile on a white background for KREDO. Show one centered adaptive lockup concept combining a simple abstract symbol and a robust KREDO wordmark, designed so the symbol can stand alone at small sizes and pair cleanly with the name in larger contexts. The visual tone should feel premium, intentional, and product-oriented for a SaaS serving ESN sales teams. Deep ink, warm gray, and a disciplined green accent. No orbital cliché, no excessive gradient, no extra copy, no paper or signage mockup.",
+    "bestFor": "Déploiement multicanal quand la marque doit performer autant en icône qu'en signature complète.",
+    "decisionAdvice": "Piste solide si KREDO cherche un système identitaire flexible plutôt qu'un simple logo isolé.",
+    "watchOut": "L'ensemble peut sembler prudent si le symbole et le mot-signe ne créent pas un contraste assez distinctif.",
+    "nextStep": "Tester la cohérence entre l'icône seule, le lockup horizontal et une version compacte pour deck commercial.",
+    "usageContexts": [
+      "website nav",
+      "event signage",
+      "sales deck system"
+    ],
+    "output": "08-adaptive-lockup-orbit.png"
+  }
+]

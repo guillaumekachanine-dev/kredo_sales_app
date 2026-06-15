@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "runDirectory": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales",
+  "streamPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/data/stream.json",
+  "runStatePath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/run-state.json",
+  "latestActionPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/latest-action.json",
+  "paths": {
+    "streamPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/data/stream.json",
+    "runStatePath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/run-state.json",
+    "latestActionPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/latest-action.json"
+  },
+  "itemCount": 8,
+  "items": [
+    {
+      "id": "kr-monogram-signal",
+      "title": "KR Monogram Signal",
+      "caption": "KR Monogram Signal / monogram / monogram",
+      "tone": "monogram",
+      "prompt": "Create a clean logo exploration tile on a pure white inspection background for KREDO, a SaaS for ESN sales teams. Show one centered logo concept only: a sharp KR monogram with a subtle signal or momentum gesture, paired with a restrained uppercase KREDO wordmark if typography appears. Style should feel enterprise, precise, and high-trust rather than playful. Use dark graphite with a muted teal accent. No tagline, no mockup scene, no paper texture, no handshake icon, no rocket, no busy gradient, no extra readable text.",
+      "imageUrl": "/generated/mcp-thumbs/kr-monogram-signal.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/kr-monogram-signal.jpg",
+      "sourceImageUrl": "/generated/kr-monogram-signal.png"
+    },
+    {
+      "id": "k-modular-grid",
+      "title": "K Modular Grid",
+      "caption": "K Modular Grid / monogram / monogram",
+      "tone": "monogram",
+      "prompt": "Create a logo exploration tile on a white background for KREDO. Show a single centered logo concept built around a modular K monogram inspired by cards, blocks, or pipeline stages, with an optional understated KREDO wordmark. The identity should feel structured, scalable, and system-oriented for an enterprise SaaS used by ESN sales teams. Minimal geometry, strong spacing, black and slate with a subtle green accent. No arrows as the main symbol, no mockup stationery, no badge overload, no extra readable text.",
+      "imageUrl": "/generated/mcp-thumbs/k-modular-grid.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/k-modular-grid.jpg",
+      "sourceImageUrl": "/generated/k-modular-grid.png"
+    },
+    {
+      "id": "wordmark-velocity-cut",
+      "title": "Wordmark Velocity Cut",
+      "caption": "Wordmark Velocity Cut / wordmark / wordmark",
+      "tone": "wordmark",
+      "prompt": "Create a centered wordmark-led logo exploration tile on a pure white background for KREDO, a B2B SaaS for ESN sales teams. Focus on a custom uppercase KREDO wordmark with crisp cut terminals and slight forward energy, possibly with a tiny supporting mark but no dominant icon. Make it feel assertive, modern, and enterprise-ready. Palette should stay mostly black or deep ink with one restrained emerald or cyan accent if needed. No slogans, no extra copy, no startup gradient, no 3D chrome, no generic arrow motifs.",
+      "imageUrl": "/generated/mcp-thumbs/wordmark-velocity-cut.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/wordmark-velocity-cut.jpg",
+      "sourceImageUrl": "/generated/wordmark-velocity-cut.png"
+    },
+    {
+      "id": "wordmark-humanist-trust",
+      "title": "Wordmark Humanist Trust",
+      "caption": "Wordmark Humanist Trust / wordmark / wordmark",
+      "tone": "wordmark",
+      "prompt": "Create a refined logo exploration tile on a white inspection background for KREDO. Show a single centered custom wordmark direction for the exact brand name KREDO, with slightly humanist proportions, balanced spacing, and a calmer enterprise tone suited to ESN commercial teams. If a mark appears, keep it tiny and secondary. Use deep navy or charcoal with a restrained sage accent. No tagline, no badge, no crest, no script lettering, no soft startup blob, no mockup context.",
+      "imageUrl": "/generated/mcp-thumbs/wordmark-humanist-trust.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/wordmark-humanist-trust.jpg",
+      "sourceImageUrl": "/generated/wordmark-humanist-trust.png"
+    },
+    {
+      "id": "symbol-northstar-node",
+      "title": "Northstar Node",
+      "caption": "Northstar Node / symbol / symbol",
+      "tone": "symbol",
+      "prompt": "Create a clean logo exploration tile on a white background for KREDO. Show one centered logo concept featuring an abstract north-star or compass-node symbol that subtly suggests guidance, qualification, and sales direction without becoming a literal compass. Pair it with a secondary KREDO wordmark if appropriate. Enterprise SaaS tone, precise and premium, with dark graphite and muted electric green or cyan. No literal starburst clich\u00e9s, no fake fintech glow, no badges, no extra text, no paper mockup.",
+      "imageUrl": "/generated/mcp-thumbs/symbol-northstar-node.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/symbol-northstar-node.jpg",
+      "sourceImageUrl": "/generated/symbol-northstar-node.png"
+    },
+    {
+      "id": "symbol-pipeline-pulse",
+      "title": "Pipeline Pulse",
+      "caption": "Pipeline Pulse / symbol / symbol",
+      "tone": "symbol",
+      "prompt": "Create a white-background logo exploration tile for KREDO with one centered symbol-led logo concept. The symbol should abstract the idea of pipeline flow, qualification, and deal momentum using disciplined geometry, almost like a pulse moving through stages, with an optional restrained KREDO wordmark beside it. The mark must feel software-native, B2B, and operationally smart. Use charcoal and slate with a precise green accent. No literal funnel icon, no giant arrow, no lightning bolt, no mockup, no extra readable text.",
+      "imageUrl": "/generated/mcp-thumbs/symbol-pipeline-pulse.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/symbol-pipeline-pulse.jpg",
+      "sourceImageUrl": "/generated/symbol-pipeline-pulse.png"
+    },
+    {
+      "id": "kr-badge-command",
+      "title": "KR Badge Command",
+      "caption": "KR Badge Command / monogram / monogram",
+      "tone": "monogram",
+      "prompt": "Create a centered logo exploration tile for KREDO on a clean white inspection surface. Show a compact KR badge or seal-like monogram reinterpreted in a modern SaaS way, crisp and minimal rather than heritage. The effect should suggest command, discipline, and team alignment without feeling old-fashioned. Use mostly monochrome dark ink with a restrained accent. No crest details, no laurels, no ribbon, no fake institution cues, no extra readable text, no mockup scene.",
+      "imageUrl": "/generated/mcp-thumbs/kr-badge-command.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/kr-badge-command.jpg",
+      "sourceImageUrl": "/generated/kr-badge-command.png"
+    },
+    {
+      "id": "adaptive-lockup-orbit",
+      "title": "Adaptive Lockup Orbit",
+      "caption": "Adaptive Lockup Orbit / adaptive / adaptive",
+      "tone": "adaptive",
+      "prompt": "Create a logo exploration tile on a white background for KREDO. Show one centered adaptive lockup concept combining a simple abstract symbol and a robust KREDO wordmark, designed so the symbol can stand alone at small sizes and pair cleanly with the name in larger contexts. The visual tone should feel premium, intentional, and product-oriented for a SaaS serving ESN sales teams. Deep ink, warm gray, and a disciplined green accent. No orbital clich\u00e9, no excessive gradient, no extra copy, no paper or signage mockup.",
+      "imageUrl": "/generated/mcp-thumbs/adaptive-lockup-orbit.jpg",
+      "previewImageUrl": "/generated/mcp-thumbs/adaptive-lockup-orbit.jpg",
+      "sourceImageUrl": "/generated/adaptive-lockup-orbit.png"
+    }
+  ],
+  "visibleItemIds": [
+    "kr-monogram-signal",
+    "k-modular-grid",
+    "wordmark-velocity-cut",
+    "wordmark-humanist-trust",
+    "symbol-northstar-node",
+    "symbol-pipeline-pulse",
+    "kr-badge-command",
+    "adaptive-lockup-orbit"
+  ],
+  "hiddenImageIds": [],
+  "selectedImageIds": [],
+  "currentImageId": "kr-monogram-signal",
+  "updatedAt": "2026-06-15T15:00:47.643094Z"
+}

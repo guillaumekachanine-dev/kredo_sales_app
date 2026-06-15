@@ -1,369 +1,201 @@
-"use client"
-
-import { useState, useRef } from "react"
-import Link from "next/link"
+import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
+import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
-import type { StaffingDashboardData, UpcomingConsultant } from "@/lib/staffing/staffing-data"
-import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
+import type { StaffingDashboardData, StaffingStatus, WeeklyStaffingDeadline } from "@/lib/staffing/staffing-data"
+
+function toneClasses(status: StaffingStatus) {
+  return {
+    success: "border-success/20 bg-success/10 text-success",
+    warning: "border-warning/25 bg-warning/10 text-warning",
+    danger: "border-danger/25 bg-danger/10 text-danger",
+    neutral: "border-border bg-canvas text-muted",
+  }[status]
+}
+
+function barClasses(status: StaffingStatus) {
+  return {
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-danger",
+    neutral: "bg-primary",
+  }[status]
+}
+
+function groupDeadlinesByDay(deadlines: WeeklyStaffingDeadline[]) {
+  return deadlines.reduce<Record<string, WeeklyStaffingDeadline[]>>((acc, deadline) => {
+    const key = deadline.shortDateLabel
+    acc[key] = [...(acc[key] ?? []), deadline]
+    return acc
+  }, {})
+}
 
 export function StaffingMobileDashboard({ data }: { data: StaffingDashboardData }) {
-  const { kpis, upcomingConsultants, staffingNeeds } = data
-
-  const carouselRef = useRef<HTMLDivElement>(null)
-
-  // Active bottom sheet drawer state
-  const [activeSheet, setActiveSheet] = useState<{
-    type: "matching" | "action"
-    title: string
-    description: string
-    primaryBtn: string
-    targetId: string
-  } | null>(null)
-
-  // Priority action alert state
-  const [priorityAlert, setPriorityAlert] = useState<{
-    id: string
-    name: string
-    details: string
-    delay: string
-  } | null>({
-    id: "crit-1",
-    name: "Consultant B",
-    details: "Client/Mission",
-    delay: "Fin Mission dans 10 jours",
-  })
-
-  // Mock suggestion list
-  const [suggestions, setSuggestions] = useState([
-    { id: "sug-1", name: "Sophie Martin", score: "97%", practice: "AI / Next.js" },
-    { id: "sug-2", name: "Jean Dupont", score: "92%", practice: "Cloud / DevOps" },
-    { id: "sug-3", name: "Marc Colin", score: "88%", practice: "Project Manager" },
-  ])
-
-  // Custom euro Millions formatting
-  const formatEuroM = (value: number) => {
-    if (value >= 1000000) {
-      return `€${(value / 1000000).toFixed(1)}M`
-    }
-    return `€${value}`
-  }
-
-  // Handle Swipe/Scroll right
-  const scrollRight = () => {
-    if (carouselRef.current) {
-      carouselRef.current.scrollBy({ left: 150, behavior: "smooth" })
-    }
-  }
-
-  // Handle CTA buttons
-  const handleMatchingClick = () => {
-    if (priorityAlert) {
-      setActiveSheet({
-        type: "matching",
-        title: `Lancer le Matching : ${priorityAlert.name}`,
-        description: `Lancer le moteur de recommandation sémantique pgvector pour trouver le meilleur positionnement pour ${priorityAlert.name} avant sa fin de mission (${priorityAlert.delay}).`,
-        primaryBtn: "Exécuter Matching",
-        targetId: priorityAlert.id,
-      })
-    }
-  }
-
-  const handleSuggestionClick = (id: string, name: string) => {
-    setActiveSheet({
-      type: "action",
-      title: `Affecter : ${name}`,
-      description: `Voulez-vous générer la proposition d'affectation pour ${name} et notifier le manager de compte ?`,
-      primaryBtn: "Confirmer Affectation",
-      targetId: id,
-    })
-  }
-
-  // Confirm and close sheet
-  const confirmSheetAction = (type: string, id: string) => {
-    if (type === "matching") {
-      setPriorityAlert(null) // remove alert once matched
-    } else {
-      setSuggestions((prev) => prev.filter((s) => s.id !== id))
-    }
-    setActiveSheet(null)
-  }
+  const deadlinesByDay = groupDeadlinesByDay(data.weeklyDeadlines)
 
   return (
-    <div className="flex flex-col gap-6 bg-canvas px-4 py-5 pb-24 select-none relative min-h-screen">
-      {/* Mobile Navigation Header */}
-      <header className="flex items-center justify-between border-b border-border/60 pb-3">
-        <div className="flex items-center gap-3">
-          {/* Hamburger menu trigger */}
-          <button type="button" className="text-body p-1" title="Menu">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+    <div className="flex min-h-screen flex-col gap-5 bg-canvas px-4 py-5 pb-24">
+      <header className="flex items-center justify-between border-b border-border/70 pb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Staffing</p>
+          <h1 className="truncate font-heading text-lg font-bold text-heading">Synthèse</h1>
         </div>
 
         <div className="flex items-center gap-3">
-<HeaderCalendar />
-
-<HeaderAlerts />
-
-          {/* User GK initials avatar */}
-          <div className="w-7 h-7 rounded-full bg-primary border border-border flex items-center justify-center font-extrabold text-[10px] text-white">
+          <HeaderCalendar />
+          <HeaderAlerts />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-primary text-[10px] font-bold text-white">
             GK
           </div>
         </div>
       </header>
 
-      {/* KPI Carousel Slider */}
-      <div className="relative">
-        <div
-          ref={carouselRef}
-          className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory"
-        >
-          {kpis.map((kpi) => (
-            <div
-              key={kpi.id}
-              className="w-36 shrink-0 bg-surface border border-border/80 shadow-sm rounded-xl p-3.5 snap-start relative overflow-hidden"
-            >
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">
-                {kpi.label}
-              </span>
-              <span className="text-xl font-bold text-heading mt-2 block leading-none">
-                {kpi.value}
-              </span>
-              
-              {/* Green indicator tag if matching */}
-              {kpi.trend && kpi.status === "success" && (
-                <span className="inline-flex items-center text-[8px] font-bold text-[#2C7D5C] bg-[#E8F5E9] px-1 py-0.2 rounded mt-1.5">
-                  &uarr; {kpi.trend.label.split(" ")[0]}
-                </span>
-              )}
+      <section>
+        <p className="mb-2 text-[11px] font-medium text-body">
+          Données au {data.asOfLabel} · {data.sourceNote}
+        </p>
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {data.kpis.map((kpi) => (
+            <SurfaceCard key={kpi.id} className="min-h-36 w-44 shrink-0 p-3.5">
+              <div className="flex h-full flex-col justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{kpi.label}</p>
+                  <p className="mt-3 font-heading text-2xl font-bold text-heading">{kpi.value}</p>
+                </div>
+                <div>
+                  <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold", toneClasses(kpi.status))}>
+                    {kpi.detail}
+                  </span>
+                  <p className="mt-2 text-[11px] leading-snug text-body">{kpi.description}</p>
+                </div>
+              </div>
+            </SurfaceCard>
+          ))}
+        </div>
+      </section>
+
+      <SurfaceCard className="p-4">
+        <div className="mb-4">
+          <h2 className="text-sm font-bold text-heading">Étapes à date</h2>
+          <p className="mt-1 text-[11px] text-muted">Positionnements sur besoins ouverts.</p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {data.stageDistribution.length === 0 ? (
+            <p className="rounded-lg border border-border bg-canvas px-3 py-6 text-center text-xs text-muted">
+              Aucun positionnement actif.
+            </p>
+          ) : (
+            data.stageDistribution.map((stage) => (
+              <div key={stage.key}>
+                <div className="mb-1 flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold text-heading">{stage.label}</p>
+                  <p className="font-mono text-xs font-bold text-heading">{stage.count}</p>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-canvas">
+                  <div className={cn("h-full rounded-full", barClasses(stage.status))} style={{ width: `${Math.max(stage.share, 4)}%` }} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="p-4">
+        <div className="mb-4">
+          <h2 className="text-sm font-bold text-heading">Origines</h2>
+          <p className="mt-1 text-[11px] text-muted">Candidats poussés sur les besoins.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {data.originDistribution.length === 0 ? (
+            <p className="col-span-2 rounded-lg border border-border bg-canvas px-3 py-6 text-center text-xs text-muted">
+              Aucune origine disponible.
+            </p>
+          ) : (
+            data.originDistribution.map((origin) => (
+              <div key={origin.key} className="rounded-lg border border-border/70 bg-canvas/35 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-semibold leading-snug text-heading">{origin.label}</p>
+                  <span className={cn("rounded-full border px-1.5 py-0.5 text-[10px] font-bold", toneClasses(origin.status))}>
+                    {origin.count}
+                  </span>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
+                  <div className={cn("h-full rounded-full", barClasses(origin.status))} style={{ width: `${Math.max(origin.share, 4)}%` }} />
+                </div>
+                <p className="mt-1 text-right text-[10px] font-semibold text-muted">{origin.share}%</p>
+              </div>
+            ))
+          )}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="p-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-heading">Planning semaine</h2>
+            <p className="mt-1 text-[11px] text-muted">{data.weeklyDeadlines.length} échéance(s) staffing.</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {data.weekDays.map((day) => {
+            const dayDeadlines = deadlinesByDay[day.shortDateLabel] ?? []
+            return (
+              <div key={day.date} className="min-h-44 w-36 shrink-0 rounded-lg border border-border/70 bg-canvas/35 p-2.5">
+                <div className="mb-3">
+                  <p className="text-[11px] font-bold uppercase text-heading">{day.dayLabel}</p>
+                  <p className="text-[10px] font-semibold text-muted">{day.shortDateLabel}</p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {dayDeadlines.length === 0 ? (
+                    <span className="rounded border border-border/60 bg-surface px-2 py-2 text-[10px] text-muted">Libre</span>
+                  ) : (
+                    dayDeadlines.map((deadline) => (
+                      <div key={deadline.id} className={cn("rounded-md border p-2", toneClasses(deadline.status))}>
+                        <p className="text-[10px] font-bold uppercase">{deadline.type}</p>
+                        <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-heading">{deadline.title}</p>
+                        <p className="mt-1 truncate text-[10px] text-body">{deadline.company}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard className="p-4">
+        <div className="mb-2">
+          <h2 className="text-sm font-bold text-heading">3 priorités du moment</h2>
+        </div>
+
+        <div className="flex flex-col divide-y divide-border/70">
+          {data.priorities.map((priority) => (
+            <div key={priority.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+              <div className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs font-bold", toneClasses(priority.status))}>
+                {priority.rank}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-heading">{priority.title}</p>
+                    <p className="mt-0.5 truncate text-[11px] text-muted">{priority.company}</p>
+                  </div>
+                  <span className="shrink-0 rounded border border-border bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">
+                    {priority.dueLabel}
+                  </span>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-body">{priority.reason}</p>
+                <p className="mt-2 text-[11px] font-bold text-primary">{priority.action}</p>
+              </div>
             </div>
           ))}
         </div>
-
-        {/* Swipe right arrow button */}
-        <button
-          onClick={scrollRight}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 w-7 h-7 bg-surface/90 border border-border rounded-full flex items-center justify-center shadow-md text-body focus:outline-none"
-          title="Faire défiler"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Disponibilité des Ressources vs Demande Widget */}
-      <SurfaceCard className="p-4 flex flex-col gap-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted select-none">
-          Disponibilité des Ressources vs Demande
-        </h2>
-
-        {/* Compact Mobile Area Graph */}
-        <div className="relative w-full h-[140px]">
-          {/* Y Axis Legend labels */}
-          <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[8px] font-bold text-muted select-none w-5">
-            <span>1200</span>
-            <span>1000</span>
-            <span>400</span>
-            <span>200</span>
-            <span>0</span>
-          </div>
-
-          <svg className="w-full h-[115px] pl-6" viewBox="0 0 320 120" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="m-avail-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#10B981" stopOpacity="0.01" />
-              </linearGradient>
-              <linearGradient id="m-demand-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#475569" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#475569" stopOpacity="0.01" />
-              </linearGradient>
-            </defs>
-
-            {/* Grid line guidelines */}
-            <line x1="10" y1="20" x2="310" y2="20" stroke="#F1F5F9" strokeWidth="1" />
-            <line x1="10" y1="50" x2="310" y2="50" stroke="#F1F5F9" strokeWidth="1" />
-            <line x1="10" y1="80" x2="310" y2="80" stroke="#F1F5F9" strokeWidth="1" />
-            <line x1="10" y1="110" x2="310" y2="110" stroke="#CBD5E1" strokeWidth="1.5" />
-
-            {/* Mobile Availability Graph Area */}
-            <path
-              d="M 10,80 L 50,75 L 90,60 L 130,70 L 170,55 L 210,35 L 250,45 L 290,40 L 310,30 L 310,110 L 10,110 Z"
-              fill="url(#m-avail-grad)"
-            />
-            <path
-              d="M 10,80 L 50,75 L 90,60 L 130,70 L 170,55 L 210,35 L 250,45 L 290,40 L 310,30"
-              fill="none"
-              stroke="#10B981"
-              strokeWidth="2.5"
-            />
-
-            {/* Mobile Demand Graph Area */}
-            <path
-              d="M 10,95 L 50,90 L 90,80 L 130,85 L 170,75 L 210,50 L 250,65 L 290,68 L 310,58 L 310,110 L 10,110 Z"
-              fill="url(#m-demand-grad)"
-            />
-            <path
-              d="M 10,95 L 50,90 L 90,80 L 130,85 L 170,75 L 210,50 L 250,65 L 290,68 L 310,58"
-              fill="none"
-              stroke="#475569"
-              strokeWidth="2"
-            />
-
-            {/* Today indicator vertical line */}
-            <line x1="90" y1="10" x2="90" y2="110" stroke="#0F172A" strokeWidth="1.5" />
-            <text x="90" y="5" fill="#0F172A" fontSize="7" fontWeight="bold" textAnchor="middle">
-              TODAY
-            </text>
-          </svg>
-
-          {/* Availability & Demand Legend labels */}
-          <div className="absolute left-6 inset-x-0 bottom-0 flex items-center gap-3 text-[8px] font-bold text-body justify-center select-none">
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-              <span>Availability</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#475569]" />
-              <span>Market Demand</span>
-            </div>
-          </div>
-        </div>
       </SurfaceCard>
-
-      {/* Affectation Critique (n8n) Widget */}
-      {priorityAlert && (
-        <SurfaceCard className="p-4 flex flex-col justify-between border border-border/70 select-none">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">
-            Affectation Critique (n8n)
-          </h2>
-
-          <div className="flex items-start gap-3 mb-4">
-            {/* Consultant Avatar initials */}
-            <div className="w-9 h-9 rounded-full bg-slate-200 border border-border flex items-center justify-center font-bold text-xs text-heading shrink-0">
-              CB
-            </div>
-
-            <div className="min-w-0 flex-1 leading-tight">
-              <h4 className="text-xs font-bold text-heading truncate">{priorityAlert.name}</h4>
-              <p className="text-[10px] text-body mt-0.5">{priorityAlert.details}</p>
-              <p className="text-[10px] text-[#BE3E3E] font-extrabold mt-1">
-                {priorityAlert.delay}
-              </p>
-            </div>
-          </div>
-
-          {/* Touch Target Action Button (Height >= 44px for accessibility/mockup rules) */}
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 select-none bg-canvas">
-              &gt; 44px
-            </span>
-            <button
-              type="button"
-              onClick={handleMatchingClick}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
-            >
-              Lancer Matching
-            </button>
-          </div>
-        </SurfaceCard>
-      )}
-
-      {/* Mes Suggestions IA (n8n Matching) Card */}
-      <SurfaceCard className="p-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-3 select-none">
-          Mes Suggestions IA (n8n Matching)
-        </h2>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="text-muted font-bold border-b border-border/20 select-none">
-                <th className="py-2">Avatar</th>
-                <th className="py-2">Name</th>
-                <th className="py-2 text-center">Score</th>
-                <th className="py-2 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20">
-              {suggestions.map((sug) => {
-                const initials = sug.name.split(" ").map((n) => n[0]).join("");
-                return (
-                  <tr key={sug.id} className="hover:bg-canvas/30 transition-colors">
-                    <td className="py-2">
-                      <div className="w-6 h-6 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-[8px] text-body select-none">
-                        {initials}
-                      </div>
-                    </td>
-                    <td className="py-2 font-bold text-heading">
-                      <div>{sug.name}</div>
-                      <span className="text-[9px] text-muted font-normal block mt-0.5">{sug.practice}</span>
-                    </td>
-                    <td className="py-2 text-center font-bold text-[#2E7D32]">
-                      {sug.score}
-                    </td>
-                    <td className="py-2 text-right">
-                      {/* Touch target height >= 44px (using standard padding or h-11 button) */}
-                      <button
-                        onClick={() => handleSuggestionClick(sug.id, sug.name)}
-                        className="h-11 px-3 bg-[#E8F5E9] hover:bg-[#C8E6C9] border border-[#C8E6C9] rounded-lg text-[#2E7D32] font-bold text-[10px] transition-colors"
-                        title="Affecter"
-                      >
-                        Affecter (&gt; 44px)
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-              {suggestions.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-xs text-muted select-none">
-                    Toutes les suggestions ont été traitées !
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </SurfaceCard>
-
-      {/* Bottom Sheet Drawer for Mobile Interactions */}
-      {activeSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-surface border-t border-border rounded-t-2xl shadow-2xl w-full p-6 pb-8 max-w-md animate-in slide-in-from-bottom duration-200">
-            {/* Grab handle */}
-            <div className="w-12 h-1 bg-border rounded-full mx-auto mb-5" />
-
-            <h3 className="text-sm font-bold text-heading mb-2 leading-tight">
-              {activeSheet.title}
-            </h3>
-            <p className="text-xs text-body leading-relaxed mb-6">
-              {activeSheet.description}
-            </p>
-
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => confirmSheetAction(activeSheet.type, activeSheet.targetId)}
-                className="w-full h-11 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
-              >
-                {activeSheet.primaryBtn}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSheet(null)}
-                className="w-full h-11 bg-canvas hover:bg-surface-hover border border-border text-body font-semibold text-xs rounded-lg transition-colors flex items-center justify-center"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
