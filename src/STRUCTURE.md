@@ -1,6 +1,6 @@
 # Arborescence réelle de l'application
 
-> Réalité du code au **9 juin 2026**. Mise à jour à chaque ajout de dossier structurant.
+> Réalité du code au **15 juin 2026**. Mise à jour à chaque ajout de dossier structurant.
 > Pour les décisions d'architecture, voir `docs/ARCHITECTURE.md` et `docs/adr/`.
 
 ```
@@ -18,6 +18,14 @@ src/
 │   │   │       ├── actives/            Missions actives
 │   │   │       ├── opps/               Opportunités
 │   │   │       └── planning/           Planning
+│   │   ├── consultants/            Module Consultants & Compétences
+│   │   │   ├── layout.tsx            Layout module (SectionNavBarSlot)
+│   │   │   ├── page.tsx              Onglet Synthèse (accueil par défaut)
+│   │   │   └── (tabbed)/             Onglets secondaires
+│   │   │       ├── layout.tsx          Shell onglets (neutre, extensible)
+│   │   │       ├── pool-competences/   Cartographie compétences & passerelles
+│   │   │       ├── activite-conges/    CRA & absences planifiées
+│   │   │       └── suivi-manager/      Formulaires & échanges managériaux
 │   │   ├── prospection/            Module Prospection Intelligence
 │   │   ├── proposals/              Module Proposal Intelligence
 │   │   ├── finance/                Module Finance
