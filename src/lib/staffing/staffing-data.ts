@@ -27,6 +27,19 @@ export type StaffingOriginBucket = {
   status: StaffingStatus
 }
 
+export type StaffingPositioningDetail = {
+  id: string
+  stageKey: string
+  stageLabel: string
+  status: StaffingStatus
+  candidateName: string
+  clientName: string
+  needTitle: string
+  startDateLabel: string
+  tjmLabel: string
+  nextAction: string
+}
+
 export type WeeklyStaffingDeadline = {
   id: string
   date: string
@@ -66,6 +79,11 @@ export type StaffingNeedSnapshot = {
   priority: string
   candidateCount: number
   startDateLabel: string
+  practice: string
+  seniority: string
+  targetDailyRateLabel: string
+  actionLabel: string
+  coverageLabel: string
 }
 
 export type StaffingDashboardData = {
@@ -73,6 +91,7 @@ export type StaffingDashboardData = {
   sourceNote: string
   kpis: StaffingKpi[]
   stageDistribution: StaffingStageBucket[]
+  positioningDetails: StaffingPositioningDetail[]
   originDistribution: StaffingOriginBucket[]
   weekDays: WeeklyStaffingDay[]
   weeklyDeadlines: WeeklyStaffingDeadline[]
@@ -92,6 +111,7 @@ type OpportunityRow = {
   start_date: string | null
   practice: string | null
   seniority: string | null
+  target_daily_rate: number | null
   companies: CompanyRelation
 }
 
@@ -112,6 +132,16 @@ type CandidateRow = {
   source: string | null
   status: string | null
   internal_score: number | null
+  expected_daily_rate: number | null
+  person: {
+    first_name: string | null
+    last_name: string | null
+    full_name: string | null
+  } | {
+    first_name: string | null
+    last_name: string | null
+    full_name: string | null
+  }[] | null
 }
 
 const CLOSED_OPPORTUNITY_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee", "win", "lost"])
@@ -187,6 +217,12 @@ function normalizeKey(value: string | null | undefined) {
 
 function getCompanyName(opportunity: OpportunityRow) {
   return pickOne(opportunity.companies)?.name?.trim() || "Compte non renseigné"
+}
+
+function getCandidateName(candidate: CandidateRow | undefined) {
+  const person = pickOne(candidate?.person)
+  const composed = `${person?.first_name ?? ""} ${person?.last_name ?? ""}`.trim()
+  return person?.full_name?.trim() || composed || "Candidat non renseigné"
 }
 
 function getStageLabel(stage: string | null | undefined) {
@@ -270,6 +306,11 @@ function formatDays(value: number | null) {
 function formatDateShort(date: Date | null) {
   if (!date) return "—"
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(date)
+}
+
+function formatCurrency(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
+  return `${Math.round(value).toLocaleString("fr-FR")} €`
 }
 
 function formatDayLabel(date: Date) {
@@ -369,7 +410,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
   const [opportunitiesResult, staffingResult] = await Promise.all([
     supabase
       .from("opportunities")
-      .select("id,title,stage,priority,created_at,updated_at,start_date,practice,seniority,companies(name)")
+      .select("id,title,stage,priority,created_at,updated_at,start_date,practice,seniority,target_daily_rate,companies(name)")
       .order("created_at", { ascending: false }),
     supabase
       .from("opportunity_candidates")
@@ -392,7 +433,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
   if (candidateIds.length > 0) {
     const { data, error } = await supabase
       .from("candidates")
-      .select("id,source,status,internal_score")
+      .select("id,source,status,internal_score,expected_daily_rate,person:persons(first_name,last_name,full_name)")
       .in("id", candidateIds)
 
     if (error) {
@@ -489,6 +530,28 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
     })
 
   const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]))
+  const opportunityById = new Map(openNeeds.map((opportunity) => [opportunity.id, opportunity]))
+  const positioningDetails: StaffingPositioningDetail[] = linksOnOpenNeeds
+    .map((link) => {
+      const opportunity = opportunityById.get(link.opportunity_id)
+      const candidate = candidateById.get(link.candidate_id)
+      const stageKey = normalizeKey(link.status) || "non_renseigne"
+      const dailyRate = candidate?.expected_daily_rate ?? opportunity?.target_daily_rate ?? null
+
+      return {
+        id: link.id,
+        stageKey,
+        stageLabel: STAFFING_STATUS_LABELS[stageKey] || getStageLabel(stageKey),
+        status: statusToneForStaffingStep(stageKey),
+        candidateName: getCandidateName(candidate),
+        clientName: opportunity ? getCompanyName(opportunity) : "Compte non renseigné",
+        needTitle: opportunity?.title || "Besoin non renseigné",
+        startDateLabel: formatDateShort(toDate(opportunity?.start_date)),
+        tjmLabel: formatCurrency(dailyRate),
+        nextAction: link.next_action || getDeadlineType(link),
+      }
+    })
+    .sort((a, b) => a.candidateName.localeCompare(b.candidateName))
   const originCounts = new Map<string, number>()
   for (const link of linksOnOpenNeeds) {
     const candidate = candidateById.get(link.candidate_id)
@@ -505,7 +568,6 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
     }))
     .sort((a, b) => b.count - a.count)
 
-  const opportunityById = new Map(openNeeds.map((opportunity) => [opportunity.id, opportunity]))
   const weeklyDeadlines: WeeklyStaffingDeadline[] = []
   for (const link of linksOnOpenNeeds) {
     const date = toDate(link.proposed_at) ?? toDate(link.created_at)
@@ -572,6 +634,13 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
       priority: getPriorityLabel(need.priority),
       candidateCount: linksByOpportunity.get(need.id)?.length ?? 0,
       startDateLabel: formatDateShort(toDate(need.start_date)),
+      practice: need.practice || "Practice non renseignée",
+      seniority: need.seniority || "Séniorité non renseignée",
+      targetDailyRateLabel: formatCurrency(need.target_daily_rate),
+      actionLabel: getPriorityAction(need, linksByOpportunity.get(need.id) ?? []),
+      coverageLabel: (linksByOpportunity.get(need.id)?.length ?? 0) > 0
+        ? `${linksByOpportunity.get(need.id)?.length ?? 0} profil(s)`
+        : "Aucun profil",
     }))
     .sort((a, b) => b.candidateCount - a.candidateCount)
 
@@ -585,6 +654,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
     sourceNote: `${opportunities.length} besoin(s), ${staffingLinks.length} positionnement(s), ${candidates.length} candidat(s) liés`,
     kpis,
     stageDistribution,
+    positioningDetails,
     originDistribution,
     weekDays,
     weeklyDeadlines,
