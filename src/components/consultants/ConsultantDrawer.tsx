@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
+import { StatusPill } from '@/components/ui/StatusPill'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   computeMetrics,
+  type DrawerAbsence,
   type DrawerConsultantData,
   type DrawerSkill,
 } from '@/types/consultant-drawer'
@@ -37,6 +39,17 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
 }
 
+function fmtDateShort(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
+}
+
+function fmtDateRange(start: string, end: string): string {
+  const s = new Date(start).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const e = new Date(end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  return `${s} – ${e}`
+}
+
 function monthAbbr(ym: string) {
   const [y, mo] = ym.split('-')
   return new Date(Number(y), Number(mo) - 1, 1)
@@ -48,6 +61,32 @@ function resolveFullName(data: DrawerConsultantData): string {
   const fn = data.person?.first_name ?? ''
   const ln = data.person?.last_name ?? ''
   return `${fn} ${ln}`.trim() || 'Consultant'
+}
+
+const ABSENCE_LABELS: Record<string, string> = {
+  conge_paye:      'Congé payé',
+  rtt:             'RTT',
+  maladie:         'Maladie',
+  sans_solde:      'Sans solde',
+  contrainte_perso:'Contrainte perso',
+  formation:       'Formation',
+  fermeture_client:'Fermeture client',
+  autre:           'Autre',
+}
+
+function missionStatusVariant(status: string): 'success' | 'neutral' | 'warning' | 'danger' {
+  if (status === 'active')    return 'success'
+  if (status === 'paused')    return 'warning'
+  if (status === 'cancelled') return 'danger'
+  return 'neutral'
+}
+
+function missionStatusLabel(status: string): string {
+  if (status === 'active')    return 'Active'
+  if (status === 'ended')     return 'Terminée'
+  if (status === 'paused')    return 'En pause'
+  if (status === 'cancelled') return 'Annulée'
+  return status
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -84,23 +123,21 @@ function KpiCard({
   label,
   value,
   accent,
-  span2,
 }: {
   label: string
   value: string
   accent?: boolean
-  span2?: boolean
 }) {
   return (
     <div
-      className={cn('border rounded-xl p-3 flex flex-col gap-0.5', span2 && 'col-span-2')}
+      className="border rounded-xl p-3 flex flex-col gap-0.5"
       style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
     >
       <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
         {label}
       </p>
       <p
-        className="text-[15px] font-bold tabular-nums leading-snug"
+        className="text-[14px] font-bold tabular-nums leading-snug"
         style={{ color: accent ? 'var(--color-accent)' : 'var(--color-heading)' }}
       >
         {value}
@@ -155,7 +192,6 @@ function AreaChart({ points }: { points: ChartPoint[] }) {
   ].join(' ')
 
   const labelStep = n <= 6 ? 1 : n <= 12 ? 2 : 3
-  // Chaque zone de capture couvre un "segment" centré sur le point
   const halfSeg = n <= 1 ? cPlotW / 2 : (cPlotW / (n - 1)) / 2
 
   const hov = hovIdx !== null ? points[hovIdx] : null
@@ -253,14 +289,12 @@ function AreaChart({ points }: { points: ChartPoint[] }) {
         const ty = Math.max(CPT + 2, hovPt.y - 40)
         return (
           <g style={{ pointerEvents: 'none' }}>
-            {/* Ligne verticale */}
             <line
               x1={hovPt.x} y1={CPT}
               x2={hovPt.x} y2={bottom}
               stroke="var(--color-primary)"
               strokeWidth={0.75} strokeDasharray="3 3"
             />
-            {/* Bulle */}
             <rect
               x={tx - 28} y={ty} width={56} height={30} rx={4}
               fill="var(--color-heading)"
@@ -294,14 +328,14 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
 
   return (
     <div className="space-y-3">
-      {/* Intitulé de poste */}
+      {/* Profil métier */}
       {data.current_title && (
         <div
           className="rounded-xl border px-3 py-2.5"
           style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
         >
           <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
-            Intitulé du poste
+            Profil métier
           </p>
           <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--color-heading)' }}>
             {data.current_title}
@@ -311,7 +345,7 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
 
       {/* Ligne 1 : identité */}
       <div className="grid grid-cols-3 gap-2">
-        <KpiCard label="Entrée" value={fmtDate(data.entry_date)} />
+        <KpiCard label="Intégration" value={fmtDate(data.entry_date)} />
         <KpiCard label="Séniorité" value={data.seniority ?? '—'} />
         <KpiCard
           label="Salaire brut"
@@ -319,51 +353,66 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
         />
       </div>
 
-      {/* Ligne 2 : financier (CA sur 2 cols + TJM) */}
+      {/* Ligne 2 : financier — TJM | Rentabilité YTD | CA généré YTD */}
       <div className="grid grid-cols-3 gap-2">
-        <KpiCard
-          label="CA généré"
-          value={metrics.caGenere > 0 ? fmtEur(metrics.caGenere) : '—'}
-          accent
-          span2
-        />
         <KpiCard
           label="TJM moyen"
           value={metrics.tjmMoyenFacture !== null ? fmtEur(metrics.tjmMoyenFacture) : '—'}
+        />
+        <KpiCard
+          label="Rentabilité YTD"
+          value={metrics.realMarginPct !== null ? `${metrics.realMarginPct} %` : '—'}
+          accent
+        />
+        <KpiCard
+          label="CA généré YTD"
+          value={metrics.caGenere > 0 ? fmtEur(metrics.caGenere) : '—'}
         />
       </div>
 
       {/* Missions */}
       {data.missions.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+        <div className="space-y-0">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
             Missions ({data.missions.length})
           </p>
           {data.missions.map((m) => (
-            <div
-              key={m.id}
-              className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
-              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-            >
-              <p className="truncate text-xs font-medium" style={{ color: 'var(--color-body)' }}>
-                {m.title}
-              </p>
+            <div key={m.id} className="flex items-start gap-2 py-1.5">
+              {/* Puce triangulaire */}
+              <span
+                className="mt-[3px] shrink-0 text-[8px] leading-none"
+                style={{ color: 'var(--color-heading)' }}
+                aria-hidden="true"
+              >
+                ▸
+              </span>
+
+              {/* Client + dates */}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="text-xs font-bold" style={{ color: 'var(--color-heading)' }}>
+                    {m.company?.name ?? 'Client inconnu'}
+                  </span>
+                  {(m.start_date || m.end_date) && (
+                    <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-muted)' }}>
+                      {fmtDateShort(m.start_date)} → {m.end_date ? fmtDateShort(m.end_date) : 'en cours'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Marge + statut */}
               <div className="flex shrink-0 items-center gap-2">
                 {m.gross_margin_pct !== null && (
                   <span className="tabular-nums text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>
                     {m.gross_margin_pct} %
                   </span>
                 )}
-                <span
-                  className="rounded-full px-2 py-0.5 text-[9px] font-bold"
-                  style={
-                    m.status === 'active'
-                      ? { background: '#d1fae5', color: '#065f46' }
-                      : { background: 'var(--color-canvas)', color: 'var(--color-muted)' }
-                  }
-                >
-                  {m.status === 'active' ? 'Active' : m.status === 'ended' ? 'Terminée' : m.status}
-                </span>
+                <StatusPill
+                  label={missionStatusLabel(m.status)}
+                  variant={missionStatusVariant(m.status)}
+                  dot={false}
+                />
               </div>
             </div>
           ))}
@@ -374,6 +423,44 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
 }
 
 // ─── Onglet Activité ──────────────────────────────────────────────────────────
+
+function AbsencesList({ absences }: { absences: DrawerAbsence[] }) {
+  const sorted = useMemo(
+    () => [...absences].sort((a, b) => b.start_date.localeCompare(a.start_date)),
+    [absences],
+  )
+
+  if (sorted.length === 0) {
+    return (
+      <p className="text-[11px] py-2" style={{ color: 'var(--color-muted)' }}>
+        Aucune absence ou congé enregistré.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-0 divide-y" style={{ '--tw-divide-color': 'var(--color-border)' } as React.CSSProperties}>
+      {sorted.map((ab) => (
+        <div key={ab.id} className="flex items-center justify-between gap-2 py-2">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold" style={{ color: 'var(--color-body)' }}>
+              {ABSENCE_LABELS[ab.absence_type] ?? ab.absence_type}
+            </p>
+            <p className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
+              {fmtDateRange(ab.start_date, ab.end_date)}
+            </p>
+          </div>
+          <span
+            className="shrink-0 tabular-nums text-[10px] font-medium"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            {ab.duration_days} j
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function TabActivite({ data }: { data: DrawerConsultantData }) {
   const reports = useMemo(
@@ -389,7 +476,6 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
     [reports, data.compensation],
   )
 
-  // Consolidation par mois (chevauchements multi-missions)
   const chartPoints = useMemo<ChartPoint[]>(() => {
     const byMonth = new Map<string, { billable: number; business: number }>()
     for (const r of reports) {
@@ -412,7 +498,7 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <KpiCard
-          label="Taux moyen"
+          label="Productivité YTD"
           value={
             metrics.avgActivityRate !== null
               ? `${metrics.avgActivityRate.toFixed(0)} %`
@@ -433,6 +519,15 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
         </p>
         <AreaChart points={chartPoints} />
       </div>
+
+      {/* Absences & congés */}
+      <div>
+        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
+          Absences &amp; congés
+          {data.absences.length > 0 && ` (${data.absences.length})`}
+        </p>
+        <AbsencesList absences={data.absences} />
+      </div>
     </div>
   )
 }
@@ -443,7 +538,13 @@ const LEVEL_LABELS: Record<number, string> = {
   1: 'Notions', 2: 'Débutant', 3: 'Intermédiaire', 4: 'Avancé', 5: 'Expert',
 }
 
-function TabCompetences({ skills }: { skills: DrawerSkill[] }) {
+function TabCompetences({
+  skills,
+  practice,
+}: {
+  skills: DrawerSkill[]
+  practice: string | null
+}) {
   const sorted = useMemo(() =>
     [...skills].sort((a, b) => {
       const aMain = (a.level ?? 0) >= 4 ? 0 : 1
@@ -455,77 +556,84 @@ function TabCompetences({ skills }: { skills: DrawerSkill[] }) {
     }),
   [skills])
 
-  if (sorted.length === 0) {
-    return (
-      <div
-        className="flex h-32 items-center justify-center rounded-xl border"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
-      >
-        <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
-          Aucune compétence renseignée
-        </p>
-      </div>
-    )
-  }
-
   return (
-    <div className="space-y-1.5">
-      {sorted.map((ps) => (
+    <div className="space-y-3">
+      {/* Practice de rattachement */}
+      {practice && (
         <div
-          key={ps.id}
-          className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
-          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+          className="rounded-xl border px-3 py-2.5"
+          style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
         >
-          {/* Nom + badge Principal */}
-          <div className="min-w-0 flex-1">
-            <span className="text-xs font-semibold" style={{ color: 'var(--color-heading)' }}>
-              {ps.skill.name}
-            </span>
-            {(ps.level ?? 0) >= 4 && (
-              <span
-                className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded"
-                style={{ background: 'var(--color-primary-deep)', color: 'var(--color-primary)' }}
-              >
-                Principal
-              </span>
-            )}
-            {ps.skill.category && (
-              <p className="mt-0.5 text-[10px] capitalize" style={{ color: 'var(--color-muted)' }}>
-                {ps.skill.category}
-              </p>
-            )}
-          </div>
-
-          {/* Dots niveau */}
-          <span
-            className="flex shrink-0 items-center gap-0.5"
-            title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
-          >
-            {[1, 2, 3, 4, 5].map((dot) => (
-              <span
-                key={dot}
-                className="inline-block h-1.5 w-1.5 rounded-full"
-                style={{
-                  background:
-                    ps.level !== null && dot <= ps.level
-                      ? 'var(--color-primary)'
-                      : 'var(--color-border)',
-                }}
-              />
-            ))}
-          </span>
-
-          {/* Expérience */}
-          {ps.years !== null && (
-            <span
-              className="shrink-0 tabular-nums text-[10px] font-medium"
-              style={{ color: 'var(--color-muted)' }}
-            >
-              {ps.years} an{ps.years > 1 ? 's' : ''}
-            </span>
-          )}
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
+            Practice de rattachement
+          </p>
+          <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--color-heading)' }}>
+            {practice}
+          </p>
         </div>
-      ))}
+      )}
+
+      {sorted.length === 0 ? (
+        <div
+          className="flex h-32 items-center justify-center rounded-xl border"
+          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+        >
+          <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+            Aucune compétence renseignée
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {sorted.map((ps) => (
+            <div
+              key={ps.id}
+              className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+            >
+              {/* Nom + catégorie sur la même ligne */}
+              <div className="min-w-0 flex-1 flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-heading)' }}>
+                  {ps.skill.name}
+                </span>
+                {ps.skill.category && (
+                  <span className="text-[10px] capitalize" style={{ color: 'var(--color-muted)' }}>
+                    {ps.skill.category}
+                  </span>
+                )}
+              </div>
+
+              {/* Dots niveau */}
+              <span
+                className="flex shrink-0 items-center gap-0.5"
+                title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
+              >
+                {[1, 2, 3, 4, 5].map((dot) => (
+                  <span
+                    key={dot}
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{
+                      background:
+                        ps.level !== null && dot <= ps.level
+                          ? 'var(--color-primary)'
+                          : 'var(--color-border)',
+                    }}
+                  />
+                ))}
+              </span>
+
+              {/* Expérience */}
+              {ps.years !== null && (
+                <span
+                  className="shrink-0 tabular-nums text-[10px] font-medium"
+                  style={{ color: 'var(--color-muted)' }}
+                >
+                  {ps.years} an{ps.years > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -538,7 +646,6 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState<Tab>('synthese')
 
-  // Fetch dès que le drawer s'ouvre ou que l'ID change (async-parallel rule : une seule requête)
   useEffect(() => {
     if (!open || !collaboratorId) return
 
@@ -552,7 +659,7 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
     supabase
       .from('collaborators')
       .select(`
-        id, entry_date, exit_date, status, current_title, seniority,
+        id, entry_date, exit_date, status, current_title, seniority, practice,
         person:persons (
           full_name, first_name, last_name,
           person_skills (
@@ -563,10 +670,13 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
         compensation:collaborator_compensation ( gross_annual, effective_to ),
         missions (
           id, title, status, start_date, end_date, tjm, cjm, gross_margin_pct,
+          company:companies ( name ),
           activity_reports:mission_activity_reports (
-            period_start, billable_days, business_days, tjm_snapshot, activity_rate_percent
+            period_start, billable_days, business_days, tjm_snapshot, cjm_snapshot,
+            activity_rate_percent
           )
-        )
+        ),
+        absences:collaborator_absences ( id, start_date, end_date, duration_days, absence_type )
       `)
       .eq('id', collaboratorId)
       .single()
@@ -649,7 +759,10 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
           {activeTab === 'synthese'    && <TabSynthese    data={drawerData} />}
           {activeTab === 'activite'    && <TabActivite    data={drawerData} />}
           {activeTab === 'competences' && (
-            <TabCompetences skills={drawerData.person?.person_skills ?? []} />
+            <TabCompetences
+              skills={drawerData.person?.person_skills ?? []}
+              practice={drawerData.practice}
+            />
           )}
         </div>
       )}

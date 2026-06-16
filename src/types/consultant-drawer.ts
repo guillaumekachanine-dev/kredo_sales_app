@@ -32,7 +32,16 @@ export interface DrawerActivityReport {
   billable_days: number
   business_days: number
   tjm_snapshot: number
+  cjm_snapshot: number | null
   activity_rate_percent: number | null
+}
+
+export interface DrawerAbsence {
+  id: string
+  start_date: string
+  end_date: string
+  duration_days: number
+  absence_type: string
 }
 
 export interface DrawerMission {
@@ -44,6 +53,7 @@ export interface DrawerMission {
   tjm: number
   cjm: number
   gross_margin_pct: number | null
+  company: { name: string } | null
   activity_reports: DrawerActivityReport[]
 }
 
@@ -54,9 +64,11 @@ export interface DrawerConsultantData {
   status: string
   current_title: string | null
   seniority: string | null
+  practice: string | null
   person: DrawerPerson | null
   compensation: DrawerCompensation[]
   missions: DrawerMission[]
+  absences: DrawerAbsence[]
 }
 
 // ─── Métriques calculées ──────────────────────────────────────────────────────
@@ -71,6 +83,8 @@ export interface ConsultantMetrics {
   avgActivityRate: number | null
   /** Salaire brut annuel de la ligne active (effective_to IS NULL) */
   activeGrossAnnual: number | null
+  /** (CA - coût employeur) / CA × 100 — null si CA = 0 */
+  realMarginPct: number | null
 }
 
 export function computeMetrics(
@@ -89,11 +103,16 @@ export function computeMetrics(
 
   const activeComp = compensation.find((c) => c.effective_to === null) ?? null
 
+  const employerCost = reports.reduce((s, r) => s + r.billable_days * (r.cjm_snapshot ?? 0), 0)
+  const realMarginPct =
+    caGenere > 0 ? Math.round(((caGenere - employerCost) / caGenere) * 100) : null
+
   return {
     caGenere,
     tjmMoyenFacture,
     totalBillableDays: totalBillable,
     avgActivityRate,
     activeGrossAnnual: activeComp?.gross_annual ?? null,
+    realMarginPct,
   }
 }
