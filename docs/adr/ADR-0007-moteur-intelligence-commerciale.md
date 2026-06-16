@@ -106,5 +106,5 @@ KREDO possède tables, routes, statuts, **prompts et schémas Zod** (dans le rep
 1. [ ] Lot 0 : rotation des secrets compromis + variables d'environnement KREDO.
 2. [ ] Lot 0.5 : script de backfill ETL (jointure `source_prospect_id → missions → resultats_phases`).
 3. [ ] Lot 1 : migration `supabase/migrations/005_ai_intelligence.sql` (3 tables, 2 enums, RLS, index, vue `security_invoker`).
-4. [ ] Régénérer `src/types/database.ts` (`npm run db:types`).
+4. [ ] Régénérer `src/types/database.generated.ts` (`npm run db:types`) puis conserver `src/types/database.ts` comme façade stable et `src/types/domain/*` pour les types métier.
 5. [ ] Mettre à jour la section « État de la base » de `CLAUDE.md` après migration.

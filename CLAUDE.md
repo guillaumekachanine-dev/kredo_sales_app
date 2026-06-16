@@ -321,15 +321,15 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - [x] Page /ressources/playbook/[slug] (Server Component → PlaybookPage client, PlaybookPanel full-width, liens retour ↔ fiche sectorielle)
 
 ### Dernière session
-**Date :** 2026-06-15 (session 5)
-**Travail effectué — Playbook & Câblage :**
-- **Route Playbook** : Création de `app/(app)/ressources/playbook/[slug]/page.tsx` — Server Component qui fetch `getSectorBySlug`, redirect si not found, génère metadata "Playbook · {name} · Kredo".
-- **PlaybookPage** : `components/sector/PlaybookPage.tsx` — layout pleine page instanciant `PlaybookPanel` existant, header avec nom/statut/lien retour, bouton retour bas de page vers `/prospection/approche-sectorielle/{slug}`.
-- **Câblage boutons SectorDetailView** : `handleAction` nettoyé (retiré `console.log` + `alert`), cas "Pitch" route vers `/ressources/playbook/${sector.slug}`. Bouton conditionnel "Pitch Conformité GAFI" ajouté pour le slug `banque-finance-assurance` uniquement.
-- **Chantier 1 (Finance)** : Card "Banque, Finance & Assurance" déjà présente dans `STRATEGIC_SECTORS_CONFIG` avec image `/public/images/sectors/banque_finance_assurance.png` — aucune modification nécessaire sur le listing.
-- **Validation** : `npx tsc --noEmit` → 0 erreur.
+**Date :** 2026-06-16 (session 6)
+**Travail effectué — Migration Cockpit vers le Design System :**
+- **CockpitDesktopDashboard** : Migré vers `DesktopAnalyticalPage` — 4 `KpiCard`, zone principale 2-col (alertes staffing + goulots d'étranglement), rail `InsightCard` + `AlertBlock`, lowerContent table propositions avec `StatusPill`. `AppDialog` remplace le modal custom.
+- **CockpitMobileDashboard** : Migré vers `MobileActionPage` + `MobilePageHeader` + `MobileHeroInsight` (pipeline pondéré Supabase réel) + 3 `MobileActionCard` avec `StatusPill`. `AppDialog` remplace le drawer custom. Labels debug `> 44px` et éléments de shell supprimés.
+- **Tokens dataviz** : `bg-dataviz-1/2/3/4` utilisés pour le graphique goulots (cobalt, brass, bleu, vert) — aucun HEX.
+- **Suppressions** : mini-SVG décoratifs, `shadow-*`, gradient `from-primary to-accent`, classes HEX et Tailwind couleur brute, hamburger/avatar shell dans la page Mobile.
+- **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0 · `db:types` idempotent · 0 HEX · 0 shadow · 0 gradient · 0 DataTable Mobile.
 
-**Prochain focus :** Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Lot 3 — Scoring + Atelier IA dans le hub, moteur de rédaction bi-grain, retrait routes orphelines.
+**Prochain focus :** Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Migration des autres écrans sur le pattern Cockpit. Lot 3 — Scoring + Atelier IA, moteur de rédaction bi-grain, retrait routes orphelines.
 
 ---
 

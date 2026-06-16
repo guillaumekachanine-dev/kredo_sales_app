@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:types": "supabase gen types typescript --project-id jvzgmhvwirsbdkjpmvla > src/types/database.ts",
+    "db:types": "node scripts/generate-db-types.mjs",
     "logos:attach": "node --env-file=.env.local scripts/attach-company-logos.mjs"
   },
   "dependencies": {

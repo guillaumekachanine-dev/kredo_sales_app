@@ -1,283 +1,253 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { cn } from "@/lib/utils"
+import { MobileActionPage } from "@/components/templates/MobileActionPage"
+import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
+import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
+import { MobileActionCard } from "@/components/ui/mobile/MobileActionCard"
+import { Button } from "@/components/ui/Button"
+import { StatusPill } from "@/components/ui/StatusPill"
+import { AppDialog } from "@/components/ui/AppDialog"
 import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
-import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 
-export function CockpitMobileDashboard({ data }: { data: CockpitDashboardData }) {
-  // Active bottom sheet drawer state
-  const [activeSheet, setActiveSheet] = useState<{
-    type: "intervenir" | "revoir" | "details"
-    title: string
-    description: string
-    primaryBtn: string
-    targetId: string
-  } | null>(null)
+type SheetType = "intervenir" | "revoir" | "details"
 
-  // Interactive local states for mobile alerts
-  const [staffingAlert, setStaffingAlert] = useState<boolean>(true)
-  const [proposalAlert, setProposalAlert] = useState<boolean>(true)
-  const [signAlert, setSignAlert] = useState<boolean>(true)
+type SheetContent = {
+  type: SheetType
+  title: string
+  description: string
+  primaryBtn: string
+  targetId: string
+}
 
-  // Handle CTA buttons
-  const handleAlertClick = (type: "intervenir" | "revoir" | "details") => {
-    if (type === "intervenir") {
-      setActiveSheet({
-        type: "intervenir",
-        title: "Intervenir (Staffing Mismatch)",
-        description: "Lancer le rapprochement sémantique pgvector pour résoudre les incohérences de planification sur la practice Cloud/DevOps.",
-        primaryBtn: "Lancer Matching IA",
-        targetId: "st-1",
-      })
-    } else if (type === "revoir") {
-      setActiveSheet({
-        type: "revoir",
-        title: "Revoir Proposal (Score Rouge)",
-        description: "Ouvrir l'assistant d'audit qualité IA pour optimiser la proposition commerciale de Consultant B chez Client A.",
-        primaryBtn: "Corriger avec l'IA",
-        targetId: "pr-1",
-      })
-    } else {
-      setActiveSheet({
-        type: "details",
-        title: "Prochain Signataire Potentiel",
-        description: "Visualiser les détails de l'opportunité AXA Group (Taux de conversion IA: 88%) et planifier l'appel client final.",
-        primaryBtn: "Consulter Opportunité",
-        targetId: "sig-1",
-      })
-    }
+type ActiveSheet = SheetContent | null
+
+const SHEETS: Record<SheetType, SheetContent> = {
+  intervenir: {
+    type: "intervenir",
+    title: "Intervenir — Staffing Mismatch",
+    description:
+      "Lancer le rapprochement sémantique pgvector pour résoudre les incohérences de planification sur la practice Cloud/DevOps.",
+    primaryBtn: "Lancer Matching IA",
+    targetId: "st-1",
+  },
+  revoir: {
+    type: "revoir",
+    title: "Revoir Proposition — Score Rouge",
+    description:
+      "Ouvrir l'assistant d'audit qualité IA pour optimiser la proposition commerciale de Consultant B chez Client A.",
+    primaryBtn: "Corriger avec l'IA",
+    targetId: "pr-1",
+  },
+  details: {
+    type: "details",
+    title: "Prochain Signataire Potentiel",
+    description:
+      "Visualiser les détails de l'opportunité AXA Group (Taux de conversion IA : 88%) et planifier l'appel client final.",
+    primaryBtn: "Consulter l'opportunité",
+    targetId: "sig-1",
+  },
+}
+
+const IconWarning = () => (
+  <svg
+    className="size-full"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+    />
+  </svg>
+)
+
+const IconDoc = () => (
+  <svg
+    className="size-full"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+    />
+  </svg>
+)
+
+const IconTarget = () => (
+  <svg
+    className="size-full"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+    />
+  </svg>
+)
+
+export function CockpitMobileDashboard({
+  data,
+}: {
+  data: CockpitDashboardData
+}) {
+  const { kpis } = data
+  const pipeKpi = kpis.find((k) => k.id === "c-weighted-pipe")
+
+  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null)
+  const [staffingAlert, setStaffingAlert] = useState(true)
+  const [proposalAlert, setProposalAlert] = useState(true)
+  const [signAlert, setSignAlert] = useState(true)
+
+  const openSheet = (type: SheetType) => {
+    setActiveSheet(SHEETS[type])
   }
 
-  // Confirm sheet action
-  const confirmSheetAction = (type: "intervenir" | "revoir" | "details") => {
-    if (type === "intervenir") {
-      setStaffingAlert(false)
-    } else if (type === "revoir") {
-      setProposalAlert(false)
-    } else {
-      setSignAlert(false)
-    }
+  const confirmSheetAction = (type: SheetType) => {
+    if (type === "intervenir") setStaffingAlert(false)
+    else if (type === "revoir") setProposalAlert(false)
+    else setSignAlert(false)
     setActiveSheet(null)
   }
 
+  const noAlerts = !staffingAlert && !proposalAlert && !signAlert
+
   return (
-    <div className="flex flex-col gap-6 bg-canvas px-4 py-5 pb-24 select-none relative min-h-screen">
-      {/* Mobile Navigation Header */}
-      <header className="flex items-center justify-between border-b border-border/60 pb-3">
-        <div className="flex items-center gap-3">
-          {/* Hamburger Menu trigger */}
-          <button type="button" className="text-body p-1" title="Menu">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-<HeaderCalendar />
-
-<HeaderAlerts />
-
-          {/* User GK initials avatar */}
-          <div className="w-7 h-7 rounded-full bg-primary border border-border flex items-center justify-center font-extrabold text-[10px] text-white">
-            GK
-          </div>
-        </div>
-      </header>
-
-      {/* Page Title */}
-      <h1 className="text-lg font-extrabold font-heading text-heading tracking-tight">
-        KREDO Cockpit
-      </h1>
-
-      {/* Pipeline Santé Card (Gauge + line chart) */}
-      <SurfaceCard className="p-4 flex flex-col gap-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted select-none">
-          Pipeline Santé
-        </h2>
-
-        <div className="flex items-center justify-between py-2 gap-4">
-          {/* Left Side: Jauge */}
-          <div className="flex flex-col items-center gap-1 shrink-0 select-none">
-            <svg className="w-20 h-14" viewBox="0 0 60 40">
-              <path d="M 10 32 A 20 20 0 0 1 50 32" fill="none" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
-              <path
-                d="M 10 32 A 20 20 0 0 1 50 32"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray="62.8"
-                strokeDashoffset="12.5" // Approx 80% full
-              />
-            </svg>
-            <span className="text-[10px] font-extrabold text-heading">Jauge</span>
-          </div>
-
-          {/* Right Side: small area chart */}
-          <div className="flex-1 h-14 relative select-none">
-            <svg className="w-full h-full" viewBox="0 0 180 50" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="m-health-grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.01" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 10,40 L 45,35 L 80,25 L 115,20 L 150,15 L 170,18 L 170,50 L 10,50 Z"
-                fill="url(#m-health-grad)"
-              />
-              <path
-                d="M 10,40 L 45,35 L 80,25 L 115,20 L 150,15 L 170,18"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="2"
-              />
-            </svg>
-            {/* simplified X Axis labels */}
-            <div className="flex justify-between text-[7px] font-bold text-muted px-1.5 mt-1 select-none">
-              <span>Jan</span>
-              <span>Fev</span>
-              <span>Mar</span>
-              <span>Oct</span>
-              <span>Dec</span>
-            </div>
-          </div>
-        </div>
-      </SurfaceCard>
-
-      {/* Attention: Staffing Mismatch alert Card */}
-      {staffingAlert && (
-        <SurfaceCard className="p-4 flex flex-col justify-between border border-border/70 select-none">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 text-[#BE3E3E] flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-
-            <div className="min-w-0 flex-1 leading-tight">
-              <h4 className="text-xs font-bold text-heading">Attention: Staffing Mismatch</h4>
-              <p className="text-[10px] text-[#BE3E3E] font-extrabold mt-0.5">(n8n Alert)</p>
-            </div>
-          </div>
-
-          {/* Touch target height >= 44px button */}
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
-              &gt; 44px
-            </span>
-            <button
-              type="button"
-              onClick={() => handleAlertClick("intervenir")}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
-            >
-              Intervenir (Contact &gt; 44px)
-            </button>
-          </div>
-        </SurfaceCard>
-      )}
-
-      {/* Proposition IA Score Rouge alert Card */}
-      {proposalAlert && (
-        <SurfaceCard className="p-4 flex flex-col justify-between border border-border/70 select-none">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-[#BE3E3E] flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-
-            <div className="min-w-0 flex-1 leading-tight">
-              <h4 className="text-xs font-bold text-heading">Proposition IA Score Rouge</h4>
-              <p className="text-[10px] text-muted mt-0.5">La proposition commerciale Consultant B présente des incohérences.</p>
-            </div>
-          </div>
-
-          {/* Touch target height >= 44px button */}
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
-              &gt; 44px
-            </span>
-            <button
-              type="button"
-              onClick={() => handleAlertClick("revoir")}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
-            >
-              Revoir Proposal
-            </button>
-          </div>
-        </SurfaceCard>
-      )}
-
-      {/* Prochain Signataire Potentiel alert Card */}
-      {signAlert && (
-        <SurfaceCard className="p-4 flex flex-col justify-between border border-border/70 select-none">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-[#10B981] flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-
-            <div className="min-w-0 flex-1 leading-tight">
-              <h4 className="text-xs font-bold text-heading">Prochain Signataire Potentiel</h4>
-              <p className="text-[10px] text-muted mt-0.5">AXA Group - Taux de signature imminent.</p>
-            </div>
-          </div>
-
-          {/* Touch target height >= 44px button */}
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
-              &gt; 44px
-            </span>
-            <button
-              type="button"
-              onClick={() => handleAlertClick("details")}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
-            >
-              Voir Detail
-            </button>
-          </div>
-        </SurfaceCard>
-      )}
-
-      {/* Bottom Sheet Drawer for Mobile Interactions */}
-      {activeSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-surface border-t border-border rounded-t-2xl shadow-2xl w-full p-6 pb-8 max-w-md animate-in slide-in-from-bottom duration-200">
-            <div className="w-12 h-1 bg-border rounded-full mx-auto mb-5" />
-
-            <h3 className="text-sm font-bold text-heading mb-2 leading-tight">
-              {activeSheet.title}
-            </h3>
-            <p className="text-xs text-body leading-relaxed mb-6">
-              {activeSheet.description}
+    <>
+      <MobileActionPage
+        header={
+          <MobilePageHeader
+            eyebrow="Centre de profit"
+            title="Cockpit"
+          />
+        }
+        hero={
+          pipeKpi ? (
+            <MobileHeroInsight
+              eyebrow="Pipeline pondéré"
+              title="Activité commerciale"
+              value={pipeKpi.value}
+              summary="Pipe consolidé du centre de profit."
+              confidence={pipeKpi.trendBadge}
+              tone="brand"
+              sourceLabel="Supabase"
+            />
+          ) : undefined
+        }
+      >
+        {noAlerts ? (
+          <div className="flex flex-col items-center justify-center rounded-[var(--radius-xl)] border border-border bg-surface py-10 text-center">
+            <p className="text-sm font-semibold text-heading">
+              Aucune action requise
             </p>
+            <p className="mt-1 text-xs text-body">
+              Toutes les alertes ont été traitées.
+            </p>
+          </div>
+        ) : null}
 
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => confirmSheetAction(activeSheet.type)}
-                className="w-full h-11 bg-primary hover:bg-primary-hover text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
+        {staffingAlert && (
+          <MobileActionCard
+            title="Staffing Mismatch"
+            description="Anomalie de planification détectée sur la practice Cloud/DevOps."
+            icon={<IconWarning />}
+            status={<StatusPill label="Critique" variant="danger" />}
+            primaryAction={
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
+                onClick={() => openSheet("intervenir")}
               >
-                {activeSheet.primaryBtn}
-              </button>
-              <button
-                type="button"
+                Intervenir
+              </Button>
+            }
+          />
+        )}
+
+        {proposalAlert && (
+          <MobileActionCard
+            title="Proposition — Score Rouge"
+            description="La proposition Consultant B présente des incohérences détectées par l'IA."
+            icon={<IconDoc />}
+            status={<StatusPill label="À revoir" variant="warning" />}
+            primaryAction={
+              <Button
+                variant="secondary"
+                size="md"
+                fullWidth
+                onClick={() => openSheet("revoir")}
+              >
+                Revoir la proposition
+              </Button>
+            }
+          />
+        )}
+
+        {signAlert && (
+          <MobileActionCard
+            title="Prochain Signataire Potentiel"
+            description="AXA Group — Taux de conversion IA : 88%."
+            icon={<IconTarget />}
+            status={<StatusPill label="Opportunité" variant="success" />}
+            primaryAction={
+              <Button
+                variant="ghost"
+                size="md"
+                fullWidth
+                onClick={() => openSheet("details")}
+              >
+                Voir le détail
+              </Button>
+            }
+          />
+        )}
+      </MobileActionPage>
+
+      {/* Dialogue d'action mobile */}
+      <AppDialog
+        open={Boolean(activeSheet)}
+        onOpenChange={(open) => {
+          if (!open) setActiveSheet(null)
+        }}
+        title={activeSheet?.title ?? ""}
+        footer={
+          activeSheet ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setActiveSheet(null)}
-                className="w-full h-11 bg-canvas hover:bg-surface-hover border border-border text-body font-semibold text-xs rounded-lg transition-colors flex items-center justify-center"
               >
                 Annuler
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => confirmSheetAction(activeSheet.type)}
+              >
+                {activeSheet.primaryBtn}
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        <p className="leading-relaxed">{activeSheet?.description ?? ""}</p>
+      </AppDialog>
+    </>
   )
 }

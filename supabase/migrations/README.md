@@ -35,8 +35,9 @@ Le repository fait désormais foi via :
 2. Si l'historique `schema_migrations` dérive du référentiel canonique,
    **réparer l'historique avant le push** plutôt que modifier rétroactivement
    les fichiers déjà appliqués.
-3. Après chaque migration : **régénérer les types** → `src/types/database.ts`
-   (`supabase gen types typescript --project-id jvzgmhvwirsbdkjpmvla`).
-4. Les alias métier non générés doivent vivre hors du fichier généré, par
-   exemple dans `src/types/database-domain.ts`.
+3. Après chaque migration : **régénérer les types** → `npm run db:types`
+   (écrit uniquement dans `src/types/database.generated.ts`).
+4. `src/types/database.ts` est une **façade stable** de compatibilité.
+   Les alias métier non générés doivent vivre hors du fichier généré,
+   par exemple dans `src/types/domain/opportunities.ts`.
 5. `pgvector` sera ajouté en Phase 3 (recrutement) via une migration dédiée.

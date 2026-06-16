@@ -87,9 +87,9 @@ La réalité : `(app)`, `components/{dashboard,missions,layout,…}`.
 
 ---
 
-### 8. `src/types/database.ts` — 🟠 VÉRIFIER LA GÉNÉRATION
+### 8. Types Supabase / métier — 🟢 STABILISÉ
 
-Doit être généré (`supabase gen types typescript`) et non écrit à la main. Sinon drift garanti dès la prochaine migration.
+`src/types/database.generated.ts` est le fichier généré via `npm run db:types`. `src/types/database.ts` est une façade stable de compatibilité, et les types métier vivent dans `src/types/domain/*`.
 
 ---
 
@@ -150,7 +150,7 @@ Copilot (header global)
 - [ ] Centraliser `getDashboardDevice()` (un seul contexte)
 - [ ] Ajouter `Vary: User-Agent` si UA serveur maintenu
 - [ ] Généraliser `missions-tab-store` en factory avant 2e usage
-- [ ] Vérifier / régénérer `src/types/database.ts`
+- [x] Stabiliser la séparation `database.generated.ts` / `database.ts` / `types/domain/*`
 
 ### 🟡 Au fil des phases (Phase 1–4)
 

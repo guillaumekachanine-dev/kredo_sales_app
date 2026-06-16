@@ -1,530 +1,522 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
+import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { cn } from "@/lib/utils"
-import type { CockpitDashboardData, CriticalStaffingAlert, LowScoreProposal } from "@/lib/cockpit/cockpit-data"
-import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
+import { InsightCard } from "@/components/ui/InsightCard"
+import { AlertBlock } from "@/components/ui/AlertBlock"
+import { Button } from "@/components/ui/Button"
+import { StatusPill } from "@/components/ui/StatusPill"
+import { AppDialog } from "@/components/ui/AppDialog"
+import type {
+  CockpitDashboardData,
+  CriticalStaffingAlert,
+  LowScoreProposal,
+} from "@/lib/cockpit/cockpit-data"
 
-export function CockpitDesktopDashboard({ data }: { data: CockpitDashboardData }) {
-  const { kpis, timeline, bottlenecks, staffingAlerts, lowScoreProposals } = data
+type ActiveModal = {
+  type: "match" | "review" | "sync"
+  title: string
+  content: string
+  targetId?: string
+} | null
 
-  // Active interactive modal state
-  const [activeModal, setActiveModal] = useState<{
-    type: "match" | "review" | "sync" | "info"
-    title: string
-    content: string
-    targetName?: string
-    targetScore?: number
-  } | null>(null)
+function scoreVariant(
+  score: number,
+): "danger" | "warning" | "success" | "inProgress" {
+  if (score < 80) return "danger"
+  if (score < 90) return "warning"
+  return "success"
+}
 
-  // Interactive local states for updates
+const IconWarning = () => (
+  <svg
+    className="size-full"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+    />
+  </svg>
+)
+
+const IconCheck = () => (
+  <svg
+    className="size-full"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+)
+
+export function CockpitDesktopDashboard({
+  data,
+}: {
+  data: CockpitDashboardData
+}) {
+  const { kpis, bottlenecks, staffingAlerts, lowScoreProposals } = data
+
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null)
   const [alerts, setAlerts] = useState<CriticalStaffingAlert[]>(staffingAlerts)
-  const [proposals, setProposals] = useState<LowScoreProposal[]>(lowScoreProposals)
+  const [proposals, setProposals] =
+    useState<LowScoreProposal[]>(lowScoreProposals)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Handle Action Click
   const handleAlertMatchClick = (alert: CriticalStaffingAlert) => {
     setActiveModal({
       type: "match",
-      title: `Matching de Profils IA (n8n) : ${alert.anomaly}`,
-      content: `Lancement du rapprochement sémantique pgvector pour résoudre l'anomalie de staffing : "${alert.statusText}".
-      Le workflow n8n a identifié 2 profils internes disponibles avec un taux de compatibilité supérieur à 90% : Sophie Martin (Practice A) & Marc Colin (Practice 2).`,
-      targetName: alert.id,
+      title: `Matching de Profils IA — ${alert.anomaly}`,
+      content: `Lancement du rapprochement sémantique pgvector pour résoudre l'anomalie : "${alert.statusText}". Le workflow n8n a identifié 2 profils internes compatibles à plus de 90% : Sophie Martin (Practice A) et Marc Colin (Practice 2).`,
+      targetId: alert.id,
     })
   }
 
   const handleProposalReviewClick = (prop: LowScoreProposal) => {
     setActiveModal({
       type: "review",
-      title: `Révision de Proposition IA : ${prop.consultantName}`,
-      content: `La proposition commerciale pour ${prop.consultantName} chez ${prop.practiceName} (Valeur: ${prop.valueAmount}) présente un score de qualité IA rouge de ${prop.iaScore}%.
-      Principaux points de friction détectés :
-      - Manque de spécifications techniques sur le module Next.js / FastAPI (Rapprochement sémantique faible)
-      - Profils anonymisés manquants.
-      Souhaitez-vous déclencher la correction automatique IA de la proposition via n8n ?`,
-      targetName: prop.id,
-      targetScore: prop.iaScore,
+      title: `Révision de Proposition — ${prop.consultantName}`,
+      content: `La proposition pour ${prop.consultantName} chez ${prop.practiceName} (valeur : ${prop.valueAmount}) présente un score qualité IA de ${prop.iaScore}%. Points de friction détectés : manque de spécifications techniques, profils anonymisés manquants. Déclencher la correction automatique IA via n8n ?`,
+      targetId: prop.id,
     })
   }
 
-  // Confirm and resolve action
-  const confirmAction = (modalType: string, targetId?: string) => {
+  const confirmAction = () => {
+    if (!activeModal || activeModal.type === "sync") return
     setIsProcessing(true)
     setTimeout(() => {
       setIsProcessing(false)
-      if (modalType === "match") {
+      const { targetId } = activeModal
+      if (activeModal.type === "match") {
         setAlerts((prev) => prev.filter((a) => a.id !== targetId))
-      } else if (modalType === "review") {
+      } else if (activeModal.type === "review") {
         setProposals((prev) => prev.filter((p) => p.id !== targetId))
       }
       setActiveModal({
         type: "sync",
-        title: "Action Réussie",
-        content: "L'incohérence a été résolue et les données de pilotage ont été mises à jour avec succès.",
+        title: "Action réussie",
+        content:
+          "L'incohérence a été résolue. Les données de pilotage sont à jour.",
       })
     }, 1000)
   }
 
+  const deltaTone = (
+    status: string,
+  ): "positive" | "negative" | "neutral" => {
+    if (status === "success") return "positive"
+    if (status === "danger") return "negative"
+    return "neutral"
+  }
+
+  const BOTTLENECK_COLORS = [
+    { key: "qualif" as const, label: "Qualification", cls: "bg-dataviz-1" },
+    { key: "prop" as const, label: "Proposition", cls: "bg-dataviz-2" },
+    { key: "nego" as const, label: "Négociation", cls: "bg-dataviz-3" },
+    { key: "gagne" as const, label: "Gagné", cls: "bg-dataviz-4" },
+  ] as const
+
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 bg-canvas px-6 py-6 select-none relative">
-      {/* Premium Header */}
-      <header className="flex items-center justify-between border-b border-border/60 pb-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold font-heading text-heading tracking-tight">
-            KREDO Cockpit - Vue à 360° du Centre de Profit
-          </h1>
-          {/* Top warning badge next to title */}
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-amber-200 bg-[#FFF8E1] text-[#E65100] text-[10px] font-bold shadow-sm">
-            <svg className="w-3.5 h-3.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <span>Alerte n8n: Analyse Prédictive Active</span>
-          </span>
-        </div>
-
-        {/* Right Header Actions */}
-        <div className="flex items-center gap-4">
-<HeaderCalendar />
-
-<HeaderAlerts />
-
-          {/* User GK initials avatar */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary border border-border flex items-center justify-center font-bold text-xs text-white">
-              GK
-            </div>
-            <svg className="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </header>
-
-      {/* KPI Cards Strip */}
-      <div className="grid grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div
-            key={kpi.id}
-            className="bg-surface rounded-xl p-5 border border-border/80 shadow-sm flex flex-col justify-between relative overflow-hidden"
-          >
-            <div>
-              <span className="text-[11px] font-bold text-muted uppercase tracking-wider block">
-                {kpi.label}
-              </span>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-2xl font-bold text-heading">{kpi.value}</span>
-                {kpi.trendBadge && (
-                  <span className="inline-flex items-center text-[10px] font-bold text-[#2C7D5C] bg-[#E8F5E9] px-1.5 py-0.5 rounded shadow-sm">
-                    {kpi.trendBadge}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Custom SVG Mini charts inside KPI cards */}
-            {kpi.id === "c-weighted-pipe" && (
-              <div className="absolute bottom-2 right-4 w-16 h-10">
-                <svg className="w-full h-full" viewBox="0 0 100 40">
-                  <path d="M0,35 Q15,30 30,32 T60,20 T80,15 T100,5" fill="none" stroke="#2C7D5C" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </div>
-            )}
-
-            {/* Average Project Margin mini bar chart */}
-            {kpi.id === "c-project-margin" && (
-              <div className="absolute bottom-2 right-4 w-14 h-8 flex items-end justify-between px-1">
-                <span className="w-1.5 h-4 rounded bg-[#10B981]" />
-                <span className="w-1.5 h-6 rounded bg-[#10B981]" />
-                <span className="w-1.5 h-5 rounded bg-[#10B981]" />
-                <span className="w-1.5 h-7 rounded bg-[#10B981]" />
-                <span className="w-1.5 h-8 rounded bg-[#10B981]" />
-              </div>
-            )}
-
-            {/* Global Bench Rate two progress bars */}
-            {kpi.id === "c-bench-rate" && (
-              <div className="absolute bottom-2 right-4 w-16 h-8 flex flex-col justify-center gap-1.5 select-none">
-                <div className="w-full h-1 rounded bg-slate-100 overflow-hidden border border-border/50">
-                  <div className="w-[60%] h-full bg-[#10B981]" />
-                </div>
-                <div className="w-full h-1 rounded bg-slate-100 overflow-hidden border border-border/50">
-                  <div className="w-[45%] h-full bg-[#10B981]" />
-                </div>
-              </div>
-            )}
-
-            {/* Competence Match circular gauge */}
-            {kpi.id === "c-match-accuracy" && (
-              <div className="absolute bottom-1 right-2 w-14 h-10 select-none">
-                <svg className="w-full h-full" viewBox="0 0 60 40">
-                  <path d="M 10 32 A 20 20 0 0 1 50 32" fill="none" stroke="#E2E8F0" strokeWidth="4" strokeLinecap="round" />
-                  <path
-                    d="M 10 32 A 20 20 0 0 1 50 32"
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeDasharray="62.8"
-                    strokeDashoffset="6.28" // Approx 91% matching
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Middle Section: Combo Chart (8) & Bottlenecks chart (4) */}
-      <div className="grid grid-cols-12 gap-5 items-stretch">
-        
-        {/* Combo Chart Card (col-span-8) */}
-        <SurfaceCard className="col-span-8 p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted">
-              Pipeline Commercial vs. Ressourcement (Prédictif)
-            </h2>
-
-            <div className="relative">
-              <select
-                className="text-[10px] border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
-              >
-                <option>Filteres tilts</option>
-              </select>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* SVG Combo Chart */}
-          <div className="relative w-full h-[240px]">
-            {/* Legend indicator */}
-            <div className="flex items-center gap-5 mb-3 text-[10px] font-bold text-body">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-[#10B981]" />
-                <span>Pipeline stages</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded bg-[#EA580C]" />
-                <span>Predictive availability</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2 rounded-full border-2 border-[#334155] bg-white" />
-                <span>Availability for consultants</span>
-              </div>
-            </div>
-
-            <svg className="w-full h-[190px]" viewBox="0 0 800 200" preserveAspectRatio="none">
-              {/* Guidelines */}
-              <line x1="30" y1="20" x2="780" y2="20" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="30" y1="60" x2="780" y2="60" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="30" y1="100" x2="780" y2="100" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="30" y1="140" x2="780" y2="140" stroke="#F1F5F9" strokeWidth="1" />
-              <line x1="30" y1="180" x2="780" y2="180" stroke="#CBD5E1" strokeWidth="1.5" />
-
-              {/* Stacked columns: green bottom + orange top */}
-              {/* Jan (center X=70) */}
-              <rect x="58" y="148" width="24" height="32" fill="#10B981" rx="2" />
-              <rect x="58" y="105.3" width="24" height="42.7" fill="#EA580C" rx="2" />
-
-              {/* Fev (center X=160) */}
-              <rect x="148" y="140" width="24" height="40" fill="#10B981" rx="2" />
-              <rect x="148" y="92" width="24" height="48" fill="#EA580C" rx="2" />
-
-              {/* Mar (center X=250) TODAY */}
-              <rect x="238" y="121.3" width="24" height="58.7" fill="#10B981" rx="2" />
-              <rect x="238" y="65.3" width="24" height="56" fill="#EA580C" rx="2" />
-
-              {/* Abr (center X=340) */}
-              <rect x="328" y="129.3" width="24" height="50.7" fill="#10B981" rx="2" />
-              <rect x="328" y="70.6" width="24" height="58.7" fill="#EA580C" rx="2" />
-
-              {/* Jun (center X=430) */}
-              <rect x="418" y="116" width="24" height="64" fill="#10B981" rx="2" />
-              <rect x="418" y="36" width="24" height="80" fill="#EA580C" rx="2" />
-
-              {/* Oct (center X=520) */}
-              <rect x="508" y="110.7" width="24" height="69.3" fill="#10B981" rx="2" />
-              <rect x="508" y="22.7" width="24" height="88" fill="#EA580C" rx="2" />
-
-              {/* Nov (center X=610) */}
-              <rect x="598" y="118.7" width="24" height="61.3" fill="#10B981" rx="2" />
-              <rect x="598" y="33.4" width="24" height="85.3" fill="#EA580C" rx="2" />
-
-              {/* Dec (center X=700) */}
-              <rect x="688" y="113.3" width="24" height="66.7" fill="#10B981" rx="2" />
-              <rect x="688" y="22.6" width="24" height="90.7" fill="#EA580C" rx="2" />
-
-              {/* Line: Availability for consultants */}
-              <path
-                d="M 70,62.7 L 160,68 L 250,60 L 340,100 L 430,46.7 L 520,46.7 L 610,62.7 L 700,52"
-                fill="none"
-                stroke="#334155"
-                strokeWidth="2.5"
-                strokeLinecap="round"
+    <>
+      <DesktopAnalyticalPage
+        eyebrow="Centre de profit"
+        title="Cockpit"
+        description="Vue à 360° — Pipeline pondéré, staffing et qualité des propositions."
+        maxWidth="wide"
+        actions={
+          <>
+            <Button variant="ghost" size="sm">
+              Mettre à jour
+            </Button>
+            <Button variant="ghost" size="sm">
+              Créer une campagne
+            </Button>
+            <Button variant="ghost" size="sm">
+              Construire un pitch
+            </Button>
+            <Button variant="primary" size="sm">
+              Générer une synthèse
+            </Button>
+          </>
+        }
+        kpis={
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {kpis.map((kpi) => (
+              <KpiCard
+                key={kpi.id}
+                label={kpi.label}
+                value={kpi.value}
+                delta={kpi.trendBadge}
+                deltaTone={deltaTone(kpi.status)}
               />
-
-              {/* Line Dots */}
-              <circle cx="70" cy="62.7" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="160" cy="68" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="250" cy="60" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="340" cy="100" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="430" cy="46.7" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="520" cy="46.7" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="610" cy="62.7" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-              <circle cx="700" cy="52" r="4" fill="white" stroke="#334155" strokeWidth="2" />
-
-              {/* TODAY Indicator at March (X=250) */}
-              <line x1="250" y1="10" x2="250" y2="180" stroke="#0F172A" strokeWidth="2" />
-              <text x="250" y="5" fill="#0F172A" fontSize="9" fontWeight="bold" textAnchor="middle">
-                TODAY
-              </text>
-            </svg>
-
-            {/* X Axis labels */}
-            <div className="absolute inset-x-0 bottom-0 flex justify-between text-[10px] font-bold text-muted pl-14 pr-24 select-none">
-              <span>Jan</span>
-              <span>Fev</span>
-              <span>Mar</span>
-              <span>Abr</span>
-              <span>Jun</span>
-              <span>Oct</span>
-              <span>Nov</span>
-              <span>Dec</span>
-            </div>
+            ))}
           </div>
-        </SurfaceCard>
-
-        {/* Right Column: Analyse des Goulots (col-span-4) */}
-        <SurfaceCard className="col-span-4 p-5 flex flex-col justify-between border border-border/80 shadow-sm">
-          <div>
-            <div className="pb-2 border-b border-border/40 mb-3 select-none">
-              <h2 className="text-xs font-bold text-heading uppercase tracking-wider">
-                Analyse des Goulots d&apos;Étranglement
-              </h2>
-              <span className="text-[10px] text-muted">Average days in sales stages</span>
-            </div>
-
-            {/* Horizontal Stacked Bars */}
-            <div className="flex flex-col gap-4 mt-2">
-              {bottlenecks.map((b) => {
-                const qualifPct = (b.qualifDays / 60) * 100;
-                const propPct = (b.propDays / 60) * 100;
-                const negoPct = (b.negoDays / 60) * 100;
-                const gagnePct = (b.gagneDays / 60) * 100;
-
-                return (
-                  <div key={b.stageName} className="flex items-center select-none">
-                    <span className="w-16 text-[10px] font-bold text-body shrink-0">{b.stageName}</span>
-                    <div className="flex-1 h-5 rounded overflow-hidden flex bg-canvas shadow-inner border border-border/40">
-                      {b.qualifDays > 0 && <div className="bg-[#1E3A8A]" style={{ width: `${qualifPct}%` }} />}
-                      {b.propDays > 0 && <div className="bg-[#EA580C]" style={{ width: `${propPct}%` }} />}
-                      {b.negoDays > 0 && <div className="bg-[#64748B]" style={{ width: `${negoPct}%` }} />}
-                      {b.gagneDays > 0 && <div className="bg-[#16A34A]" style={{ width: `${gagnePct}%` }} />}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+        }
+        rail={
+          <div className="flex flex-col gap-4">
+            <InsightCard
+              eyebrow="Analyse IA"
+              title="Situation du centre de profit"
+              summary="Le pipeline pondéré est en hausse. Des anomalies de staffing et propositions nécessitent une attention avant la fin de semaine."
+              recommendation="Résoudre les anomalies de staffing en priorité avant de valider les propositions commerciales."
+              sourceLabel="n8n · Analyse prédictive"
+            />
+            {alerts.length > 0 ? (
+              alerts.map((alert) => (
+                <AlertBlock
+                  key={alert.id}
+                  variant="danger"
+                  title={alert.anomaly}
+                  description={alert.statusText}
+                  icon={<IconWarning />}
+                  action={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleAlertMatchClick(alert)}
+                    >
+                      AI Match
+                    </Button>
+                  }
+                />
+              ))
+            ) : (
+              <AlertBlock
+                variant="success"
+                title="Aucune anomalie active"
+                description="Toutes les anomalies critiques de staffing ont été résolues."
+                icon={<IconCheck />}
+              />
+            )}
           </div>
-
-          <div className="flex items-center pt-2 border-t border-border/20">
-            <span className="w-16 shrink-0" />
-            <div className="flex-1 flex justify-between text-[8px] font-bold text-muted px-1">
-              <span>0</span>
-              <span>20</span>
-              <span>40</span>
-              <span>60</span>
-            </div>
-          </div>
-        </SurfaceCard>
-      </div>
-
-      {/* Bottom Grid: Staffing alerts & proposals */}
-      <div className="grid grid-cols-12 gap-5 items-stretch">
-        
-        {/* Left Bottom Card: Alertes Critiques de Staffing (col-span-6) */}
-        <SurfaceCard className="col-span-6 p-5 flex flex-col justify-between border border-border/80 shadow-sm">
-          <div>
-            <div className="pb-2 border-b border-border/40 mb-3 select-none">
-              <h2 className="text-xs font-bold text-heading uppercase tracking-wider">
-                Alertes Critiques de Staffing (via n8n)
-              </h2>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="text-muted font-bold border-b border-border/20 select-none">
-                    <th className="py-2">Anomaliés</th>
-                    <th className="py-2">Status</th>
-                    <th className="py-2 text-right">Suggestions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/20">
-                  {alerts.map((item) => (
-                    <tr key={item.id} className="hover:bg-canvas/30 transition-colors">
-                      <td className="py-2.5 font-bold text-heading flex items-center gap-1.5">
-                        <svg className="w-4 h-4 text-[#BE3E3E] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span>{item.anomaly}</span>
-                      </td>
-                      <td className="py-2.5 text-body truncate max-w-[120px]" title={item.statusText}>
-                        {item.statusText}
-                      </td>
-                      <td className="py-2.5 text-right select-none">
-                        <button
-                          onClick={() => handleAlertMatchClick(item)}
-                          className="bg-[#334155] text-white hover:bg-[#1E293B] font-bold px-3 py-1 rounded transition-colors text-[9px] flex items-center gap-1 ml-auto border border-[#1E293B]"
-                        >
-                          <svg className="w-3 h-3 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                          </svg>
-                          <span>AI Match</span>
-                        </button>
-                      </td>
+        }
+        lowerContent={
+          proposals.length > 0 ? (
+            <SurfaceCard>
+              <div className="flex flex-col gap-0 p-5">
+                <header className="flex items-center justify-between border-b border-border pb-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
+                    Propositions à haute valeur
+                  </h2>
+                  <span className="text-xs text-muted">
+                    {proposals.length} à traiter
+                  </span>
+                </header>
+                <table
+                  className="w-full text-left text-sm"
+                  aria-label="Propositions à haute valeur à traiter"
+                >
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th
+                        scope="col"
+                        className="py-3 pr-4 text-xs font-medium text-muted"
+                      >
+                        Consultant
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3 pr-4 text-xs font-medium text-muted"
+                      >
+                        Client
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3 pr-4 text-xs font-medium text-muted"
+                      >
+                        Fin mission
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3 pr-4 text-right text-xs font-medium text-muted"
+                      >
+                        Valeur
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3 pr-4 text-right text-xs font-medium text-muted"
+                      >
+                        Score IA
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3 text-right text-xs font-medium text-muted"
+                      >
+                        Action
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-border/20 text-[10px] text-muted select-none">
-            Anomalies repérées et matching recommandés mis à jour en continu.
-          </div>
-        </SurfaceCard>
-
-        {/* Right Bottom Card: Proposals low IA score (col-span-6) */}
-        <SurfaceCard className="col-span-6 p-5 flex flex-col justify-between border border-border/80 shadow-sm">
-          <div>
-            <div className="pb-2 border-b border-border/40 mb-3 select-none">
-              <h2 className="text-xs font-bold text-heading uppercase tracking-wider">
-                Propositions à Haute Valeur & Bas Score IA
-              </h2>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="text-muted font-bold border-b border-border/20 select-none">
-                    <th className="py-2">Opportunités</th>
-                    <th className="py-2">Client</th>
-                    <th className="py-2">Fin Mission</th>
-                    <th className="py-2">Value</th>
-                    <th className="py-2 text-right">Score IA</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/20">
-                  {proposals.map((item) => {
-                    const initials = item.consultantName.split(" ").map((n) => n[0]).join("");
-                    return (
+                  </thead>
+                  <tbody>
+                    {proposals.map((item) => (
                       <tr
                         key={item.id}
-                        onClick={() => handleProposalReviewClick(item)}
-                        className="hover:bg-canvas/30 transition-colors cursor-pointer group"
+                        className="border-b border-border/40 last:border-0"
                       >
-                        <td className="py-2.5 font-bold text-heading flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-[9px] text-body select-none">
-                            {initials}
-                          </div>
-                          <span className="group-hover:text-primary transition-colors">{item.consultantName}</span>
+                        <td className="py-3 pr-4 font-medium text-heading">
+                          {item.consultantName}
                         </td>
-                        <td className="py-2.5 text-body">{item.practiceName}</td>
-                        <td className="py-2.5 text-muted font-medium">{item.finMission}</td>
-                        <td className="py-2.5 font-semibold text-heading font-mono">{item.valueAmount}</td>
-                        <td className="py-2.5 text-right select-none">
-                          <span className="bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full text-[9px] font-extrabold shadow-sm">
-                            {item.iaScore}%
-                          </span>
+                        <td className="py-3 pr-4 text-body">
+                          {item.practiceName}
+                        </td>
+                        <td className="py-3 pr-4 text-body">
+                          {item.finMission}
+                        </td>
+                        <td className="py-3 pr-4 text-right font-mono font-medium text-heading">
+                          {item.valueAmount}
+                        </td>
+                        <td className="py-3 pr-4 text-right">
+                          <StatusPill
+                            label={`${item.iaScore}%`}
+                            variant={scoreVariant(item.iaScore)}
+                          />
+                        </td>
+                        <td className="py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleProposalReviewClick(item)}
+                            aria-label={`Réviser la proposition de ${item.consultantName}`}
+                          >
+                            Réviser
+                          </Button>
                         </td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </SurfaceCard>
+          ) : (
+            <AlertBlock
+              variant="success"
+              title="Toutes les propositions sont traitées"
+              description="Aucune proposition à haute valeur ne nécessite d'attention."
+              icon={<IconCheck />}
+            />
+          )
+        }
+      >
+        {/* Zone principale — deux panneaux analytiques côte à côte */}
+        <div className="grid grid-cols-2 gap-5">
+          {/* Panneau 1 : Alertes Critiques de Staffing */}
+          <SurfaceCard>
+            <div className="flex flex-col gap-4 p-5">
+              <header className="border-b border-border pb-3">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
+                  Alertes Critiques — Staffing
+                </h2>
+                <p className="mt-1 text-xs text-body">
+                  Anomalies détectées et matching recommandé (n8n)
+                </p>
+              </header>
+              {alerts.length > 0 ? (
+                <ul
+                  className="flex flex-col divide-y divide-border/40"
+                  aria-label="Alertes de staffing actives"
+                >
+                  {alerts.map((alert) => (
+                    <li
+                      key={alert.id}
+                      className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-heading">
+                          {alert.anomaly}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-body">
+                          {alert.statusText}
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleAlertMatchClick(alert)}
+                        aria-label={`Lancer le matching IA pour ${alert.anomaly}`}
+                      >
+                        AI Match
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <p className="text-sm font-semibold text-heading">
+                    Aucune anomalie active
+                  </p>
+                  <p className="mt-1 text-xs text-body">
+                    Toutes les anomalies critiques ont été résolues.
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
+          </SurfaceCard>
 
-          <div className="pt-3 border-t border-border/20 text-[10px] text-muted select-none">
-            Analyse sémantique effectuée sur les chiffrages de propositions.
-          </div>
-        </SurfaceCard>
-      </div>
+          {/* Panneau 2 : Analyse des Goulots d'Étranglement */}
+          <SurfaceCard>
+            <div className="flex flex-col gap-4 p-5">
+              <header className="border-b border-border pb-3">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
+                  Analyse des Goulots d&apos;Étranglement
+                </h2>
+                <p className="mt-1 text-xs text-body">
+                  Durée moyenne par étape du cycle de vente (jours)
+                </p>
+              </header>
 
-      {/* Interactive Modal Sheet Overlay */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-surface/95 border border-border rounded-xl shadow-2xl max-w-md w-full p-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-primary to-accent" />
+              <div className="flex flex-col gap-5">
+                {bottlenecks.map((b) => {
+                  const total =
+                    b.qualifDays +
+                    b.propDays +
+                    b.negoDays +
+                    b.gagneDays || 1
+                  return (
+                    <div key={b.stageName}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-body">
+                          {b.stageName}
+                        </span>
+                        <span className="font-mono text-xs text-muted">
+                          {total}j
+                        </span>
+                      </div>
+                      <div
+                        className="flex h-3 w-full overflow-hidden rounded-sm bg-canvas"
+                        role="img"
+                        aria-label={`${b.stageName} : ${total} jours au total`}
+                      >
+                        {b.qualifDays > 0 && (
+                          <div
+                            className="bg-dataviz-1"
+                            style={{
+                              width: `${(b.qualifDays / 60) * 100}%`,
+                            }}
+                          />
+                        )}
+                        {b.propDays > 0 && (
+                          <div
+                            className="bg-dataviz-2"
+                            style={{
+                              width: `${(b.propDays / 60) * 100}%`,
+                            }}
+                          />
+                        )}
+                        {b.negoDays > 0 && (
+                          <div
+                            className="bg-dataviz-3"
+                            style={{
+                              width: `${(b.negoDays / 60) * 100}%`,
+                            }}
+                          />
+                        )}
+                        {b.gagneDays > 0 && (
+                          <div
+                            className="bg-dataviz-4"
+                            style={{
+                              width: `${(b.gagneDays / 60) * 100}%`,
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
 
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <h3 className="text-sm font-bold text-heading font-heading">
-                {activeModal.title}
-              </h3>
-              <button
-                onClick={() => setActiveModal(null)}
-                className="text-muted hover:text-body transition-colors"
-                title="Fermer"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
+                {BOTTLENECK_COLORS.map(({ label, cls }) => (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1.5 text-xs text-muted"
+                  >
+                    <span
+                      className={`size-2 shrink-0 rounded-sm ${cls}`}
+                      aria-hidden="true"
+                    />
+                    {label}
+                  </span>
+                ))}
+              </footer>
             </div>
+          </SurfaceCard>
+        </div>
+      </DesktopAnalyticalPage>
 
-            <div className="space-y-4">
-              <p className="text-xs text-body leading-relaxed whitespace-pre-line">{activeModal.content}</p>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3 border-t border-border/30 pt-4">
-              <button
-                type="button"
-                onClick={() => setActiveModal(null)}
-                className="text-xs font-semibold px-4 py-2 bg-canvas hover:bg-surface-hover border border-border rounded-lg text-body transition-colors"
+      {/* Dialogue d'interaction — Matching et Révision */}
+      <AppDialog
+        open={Boolean(activeModal)}
+        onOpenChange={(open) => {
+          if (!open) setActiveModal(null)
+        }}
+        title={activeModal?.title ?? ""}
+        footer={
+          activeModal?.type === "sync" ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setActiveModal(null)}
+            >
+              Fermer
+            </Button>
+          ) : activeModal?.type === "match" ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
                 disabled={isProcessing}
+                onClick={() => setActiveModal(null)}
               >
                 Annuler
-              </button>
-              {activeModal.type === "match" && (
-                <button
-                  type="button"
-                  onClick={() => confirmAction("match", activeModal.targetName)}
-                  className="text-xs font-bold px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg text-white shadow transition-colors flex items-center gap-1.5"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? "Rapprochement..." : "Affecter Consultant"}
-                </button>
-              )}
-              {activeModal.type === "review" && (
-                <button
-                  type="button"
-                  onClick={() => confirmAction("review", activeModal.targetName)}
-                  className="text-xs font-bold px-4 py-2 bg-rose-600 hover:bg-rose-700 rounded-lg text-white shadow transition-colors"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? "Optimisation..." : "Corriger avec l'IA"}
-                </button>
-              )}
-              {activeModal.type === "sync" && (
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="text-xs font-bold px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg text-white shadow transition-colors"
-                >
-                  Fermer
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={isProcessing}
+                loadingLabel="Rapprochement…"
+                onClick={confirmAction}
+              >
+                Affecter un consultant
+              </Button>
+            </>
+          ) : activeModal?.type === "review" ? (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isProcessing}
+                onClick={() => setActiveModal(null)}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                loading={isProcessing}
+                loadingLabel="Optimisation…"
+                onClick={confirmAction}
+              >
+                Corriger avec l&apos;IA
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        <p className="whitespace-pre-line">{activeModal?.content ?? ""}</p>
+      </AppDialog>
+    </>
   )
 }
