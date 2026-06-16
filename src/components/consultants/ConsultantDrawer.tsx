@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   computeMetrics,
   type DrawerConsultantData,
+  type DrawerSkill,
 } from '@/types/consultant-drawer'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -134,7 +135,7 @@ function AreaChart({ points }: { points: ChartPoint[] }) {
         className="flex h-28 items-center justify-center text-[11px] rounded-xl border border-dashed"
         style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
       >
-        Aucune donnée d'activité.
+        Aucune donnée d&apos;activité.
       </div>
     )
   }
@@ -428,7 +429,7 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       >
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-          Taux d'activité mensuel
+          Taux d&apos;activité mensuel
         </p>
         <AreaChart points={chartPoints} />
       </div>
@@ -438,54 +439,91 @@ function TabActivite({ data }: { data: DrawerConsultantData }) {
 
 // ─── Onglet Compétences ───────────────────────────────────────────────────────
 
-function TabCompetences() {
-  const groups = [
-    { category: 'Frameworks & Langages', items: ['Next.js', 'React', 'TypeScript', 'Python'] },
-    { category: 'Cloud & Infra',         items: ['AWS', 'Azure', 'Docker', 'Terraform'] },
-    { category: 'Méthodes',              items: ['Agile', 'Scrum', 'SAFe'] },
-  ]
+const LEVEL_LABELS: Record<number, string> = {
+  1: 'Notions', 2: 'Débutant', 3: 'Intermédiaire', 4: 'Avancé', 5: 'Expert',
+}
 
-  return (
-    <div className="space-y-4">
+function TabCompetences({ skills }: { skills: DrawerSkill[] }) {
+  const sorted = useMemo(() =>
+    [...skills].sort((a, b) => {
+      const aMain = (a.level ?? 0) >= 4 ? 0 : 1
+      const bMain = (b.level ?? 0) >= 4 ? 0 : 1
+      if (aMain !== bMain) return aMain - bMain
+      const diff = (b.level ?? -1) - (a.level ?? -1)
+      if (diff !== 0) return diff
+      return a.skill.name.localeCompare(b.skill.name, 'fr')
+    }),
+  [skills])
+
+  if (sorted.length === 0) {
+    return (
       <div
-        className="flex items-start gap-2 rounded-xl border px-3 py-2.5"
-        style={{ borderColor: 'var(--color-border)', background: 'var(--color-canvas)' }}
+        className="flex h-32 items-center justify-center rounded-xl border"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
       >
-        <svg
-          className="mt-px h-3.5 w-3.5 shrink-0"
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          style={{ color: 'var(--color-muted)' }}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round"
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-muted)' }}>
-          Données réelles disponibles après ajout de{' '}
-          <code className="font-mono text-[10px]">person_skills</code> dans la requête Supabase.
-          Les badges ci-dessous sont des placeholders structurés.
+        <p className="text-[11px]" style={{ color: 'var(--color-muted)' }}>
+          Aucune compétence renseignée
         </p>
       </div>
+    )
+  }
 
-      {groups.map(({ category, items }) => (
-        <div key={category} className="space-y-1.5">
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-muted)' }}>
-            {category}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {items.map((item) => (
+  return (
+    <div className="space-y-1.5">
+      {sorted.map((ps) => (
+        <div
+          key={ps.id}
+          className="flex items-center gap-3 rounded-xl border px-3 py-2.5"
+          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
+          {/* Nom + badge Principal */}
+          <div className="min-w-0 flex-1">
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-heading)' }}>
+              {ps.skill.name}
+            </span>
+            {(ps.level ?? 0) >= 4 && (
               <span
-                key={item}
-                className="rounded-lg border px-2.5 py-1 text-[11px] font-medium opacity-40"
-                style={{
-                  background: 'var(--color-canvas)',
-                  borderColor: 'var(--color-border)',
-                  color: 'var(--color-body)',
-                }}
+                className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded"
+                style={{ background: 'var(--color-primary-deep)', color: 'var(--color-primary)' }}
               >
-                {item}
+                Principal
               </span>
-            ))}
+            )}
+            {ps.skill.category && (
+              <p className="mt-0.5 text-[10px] capitalize" style={{ color: 'var(--color-muted)' }}>
+                {ps.skill.category}
+              </p>
+            )}
           </div>
+
+          {/* Dots niveau */}
+          <span
+            className="flex shrink-0 items-center gap-0.5"
+            title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
+          >
+            {[1, 2, 3, 4, 5].map((dot) => (
+              <span
+                key={dot}
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{
+                  background:
+                    ps.level !== null && dot <= ps.level
+                      ? 'var(--color-primary)'
+                      : 'var(--color-border)',
+                }}
+              />
+            ))}
+          </span>
+
+          {/* Expérience */}
+          {ps.years !== null && (
+            <span
+              className="shrink-0 tabular-nums text-[10px] font-medium"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              {ps.years} an{ps.years > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -515,7 +553,13 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
       .from('collaborators')
       .select(`
         id, entry_date, exit_date, status, current_title, seniority,
-        person:persons ( full_name, first_name, last_name ),
+        person:persons (
+          full_name, first_name, last_name,
+          person_skills (
+            id, level, years, confidence, source,
+            skill:skills ( id, name, category )
+          )
+        ),
         compensation:collaborator_compensation ( gross_annual, effective_to ),
         missions (
           id, title, status, start_date, end_date, tjm, cjm, gross_margin_pct,
@@ -604,7 +648,9 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
         <div role="tabpanel">
           {activeTab === 'synthese'    && <TabSynthese    data={drawerData} />}
           {activeTab === 'activite'    && <TabActivite    data={drawerData} />}
-          {activeTab === 'competences' && <TabCompetences />}
+          {activeTab === 'competences' && (
+            <TabCompetences skills={drawerData.person?.person_skills ?? []} />
+          )}
         </div>
       )}
     </AppDrawer>

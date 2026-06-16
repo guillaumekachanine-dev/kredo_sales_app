@@ -1,9 +1,25 @@
 // ─── Types et utilitaires pour ConsultantDrawer ───────────────────────────────
 
+export interface DrawerSkillRef {
+  id: string
+  name: string
+  category: string | null
+}
+
+export interface DrawerSkill {
+  id: string
+  level: number | null
+  years: number | null
+  confidence: number | null
+  source: string | null
+  skill: DrawerSkillRef
+}
+
 export interface DrawerPerson {
   full_name: string | null
   first_name: string | null
   last_name: string | null
+  person_skills: DrawerSkill[]
 }
 
 export interface DrawerCompensation {

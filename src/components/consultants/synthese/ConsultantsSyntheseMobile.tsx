@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 import { StatusPill } from '@/components/ui/StatusPill'
 import {
   MobileDataList,
@@ -8,6 +10,7 @@ import {
   MobileHeroInsight,
   MobilePageHeader,
 } from '@/components/ui/mobile'
+import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
 import type { CollaborateurRow } from './ConsultantsSyntheseDesktop'
 
 function getFullName(row: CollaborateurRow): string {
@@ -43,6 +46,13 @@ function isEnMission(row: CollaborateurRow): boolean {
 interface Props { data: CollaborateurRow[] }
 
 export function ConsultantsSyntheseMobile({ data }: Props) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  function openDrawer(id: string) {
+    setSelectedId(id)
+    setDrawerOpen(true)
+  }
   const enMission    = data.filter(isEnMission).length
   const interContrat = data.length - enMission
   const hasInterContrat = interContrat > 0
@@ -96,7 +106,6 @@ export function ConsultantsSyntheseMobile({ data }: Props) {
 
           return (
             <MobileEntitySummary
-              href={`/consultants/${collab.id}`}
               visual={(
                 <span className={`inline-flex size-10 items-center justify-center rounded-[var(--radius-round)] text-sm font-semibold ${tone}`}>
                   {initials}
@@ -126,9 +135,19 @@ export function ConsultantsSyntheseMobile({ data }: Props) {
                   value: collab.seniority ?? 'Non renseignée',
                 },
               ]}
+              primaryAction={(
+                <Button variant="secondary" size="sm" fullWidth onClick={() => openDrawer(collab.id)}>
+                  Voir le profil
+                </Button>
+              )}
             />
           )
         }}
+      />
+      <ConsultantDrawer
+        collaboratorId={selectedId}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
       />
     </div>
   )
