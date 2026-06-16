@@ -3,6 +3,7 @@
 import React from "react"
 import { AppDialog } from "./AppDialog"
 import { AsyncActionButton } from "./AsyncActionButton"
+import { Button } from "./Button"
 
 export interface ConfirmDialogProps {
   open: boolean
@@ -31,25 +32,24 @@ export function ConfirmDialog({
 
   const footer = (
     <>
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="sm"
         onClick={() => onOpenChange(false)}
         disabled={isLoading}
-        className="px-3 py-1.5 text-xs font-semibold rounded bg-surface border border-border text-heading hover:bg-surface-hover transition-colors disabled:opacity-50"
       >
         {cancelLabel}
-      </button>
+      </Button>
       <AsyncActionButton
+        variant={isDanger ? "destructive" : "primary"}
+        size="sm"
         onClick={async () => {
           await onConfirm()
           onOpenChange(false)
         }}
         isLoading={isLoading}
-        className={
-          isDanger
-            ? "bg-danger text-primary-fg hover:bg-danger/95 px-3 py-1.5 text-xs font-semibold rounded transition-all active:scale-95"
-            : "bg-primary text-primary-fg hover:bg-primary/95 px-3 py-1.5 text-xs font-semibold rounded transition-all active:scale-95"
-        }
+        loadingLabel={confirmLabel}
       >
         {confirmLabel}
       </AsyncActionButton>

@@ -1,15 +1,12 @@
 "use client"
 
 import React, { useState } from "react"
-import { cn } from "@/lib/utils"
+import { Button, ButtonProps } from "./Button"
 
-export interface AsyncActionButtonProps {
+export interface AsyncActionButtonProps extends Omit<ButtonProps, "loading" | "onClick"> {
   children: React.ReactNode
-  onClick?: () => void | Promise<void>
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>
   isLoading?: boolean
-  disabled?: boolean
-  className?: string
-  type?: "button" | "submit" | "reset"
 }
 
 export function AsyncActionButton({
@@ -18,16 +15,17 @@ export function AsyncActionButton({
   isLoading: externalIsLoading,
   disabled,
   className,
-  type = "button"
+  type = "button",
+  ...props
 }: AsyncActionButtonProps) {
   const [internalIsLoading, setInternalIsLoading] = useState(false)
   const isLoading = externalIsLoading ?? internalIsLoading
 
-  const handleClick = async () => {
+  const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || isLoading || !onClick) return
 
     try {
-      const result = onClick()
+      const result = onClick(event)
       if (result instanceof Promise) {
         setInternalIsLoading(true)
         await result
@@ -38,22 +36,15 @@ export function AsyncActionButton({
   }
 
   return (
-    <button
-      type={type}
+    <Button
       onClick={handleClick}
-      disabled={disabled || isLoading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none active:scale-98",
-        className
-      )}
+      loading={isLoading}
+      disabled={disabled}
+      className={className}
+      type={type}
+      {...props}
     >
-      {isLoading && (
-        <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      )}
       {children}
-    </button>
+    </Button>
   )
 }

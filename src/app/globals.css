@@ -9,22 +9,44 @@
 
 @theme {
 
-  /* ── Brand ─────────────────────────────────────────────── */
+  /* ── Brand · legacy operational tokens kept intact ─────── */
   --color-primary:      #2554B8;  /* bg-primary  text-primary  */
   --color-brand-blue:   #2554B8;  /* bg-brand-blue text-brand-blue */
   --color-primary-deep: #1E4596;  /* bg-primary-deep — cobalt recessed (surfaces secondaires sous la nav) */
   --color-primary-fg:   #F2F5FB;  /* bg-primary-fg  text-primary-fg */
+
+  /* ── Brand · semantic source-of-truth aliases ──────────── */
+  --color-brand-primary:      #2554B8;
+  --color-brand-primary-deep: #1E4596;
+  --color-brand-brass:        #C89A2B;
+  --color-brand-ember:        #D97020;
+  --color-brand-ink:          #1A2540;
 
   /* ── Structure ──────────────────────────────────────────── */
   --color-canvas:        #F4F2ED; /* bg-canvas   — fond de l'app   */
   --color-surface:       #FDFCFA; /* bg-surface  — cartes, panneaux */
   --color-surface-hover: #EDF0F7; /* hover:bg-surface-hover          */
   --color-border:        #DBE0EB; /* border-border                   */
+  --color-surface-raised:#F8F6F0; /* alt surface — mobile groups / neutral raised */
+
+  /* ── Structure · semantic aliases for future primitives ── */
+  --color-bg-canvas:        var(--color-canvas);
+  --color-bg-surface:       var(--color-surface);
+  --color-bg-surface-hover: var(--color-surface-hover);
+  --color-bg-surface-raised:var(--color-surface-raised);
+  --color-bg-sidebar:       var(--color-brand-primary);
+  --color-bg-mobile-nav:    var(--color-brand-primary);
+  --color-border-default:   var(--color-border);
+  --color-border-strong:    #C6CFDF;
 
   /* ── Typographie ────────────────────────────────────────── */
   --color-heading:   #1A2540;     /* text-heading   — titres, chiffres clés */
   --color-body:      #526074;     /* text-body      — texte courant         */
   --color-muted:     #93A0B0;     /* text-muted     — labels, métadonnées   */
+  --color-text-primary:   var(--color-heading);
+  --color-text-secondary: var(--color-body);
+  --color-text-muted:     var(--color-muted);
+  --color-text-inverse:   var(--color-primary-fg);
 
   /* ── Polices ────────────────────────────────────────────── */
   --font-sans:       var(--font-sans), sans-serif;
@@ -36,6 +58,11 @@
   --color-warning:     #C08A20;   /* bg-warning  text-warning  */
   --color-danger:      #BE3E3E;   /* bg-danger   text-danger   */
   --color-accent:      #D97020;   /* bg-accent   text-accent   */
+  --color-status-success: #2C7D5C;
+  --color-status-warning: #C08A20;
+  --color-status-danger:  #BE3E3E;
+  --color-status-info:    #2E7D8C;
+  --color-status-neutral: #6E7A8A;
 
   /* ── Secondary — Sunshine Gold ──────────────────────────────
      Couleur de personnalité. Brille sur fond cobalt (cockpit),
@@ -84,6 +111,14 @@
      le token de texte (surcharge). Séparé pour permettre l'inversion
      cockpit sans casser le rail. */
   --color-rail:         #1A2540;  /* bg-rail — navy */
+
+  /* ── Data visualization ─────────────────────────────────── */
+  --color-dataviz-1: var(--color-brand-primary);
+  --color-dataviz-2: var(--color-brand-brass);
+  --color-dataviz-3: #63A6E8;
+  --color-dataviz-4: #719A5A;
+  --color-dataviz-5: #7B6BB2;
+  --color-dataviz-6: #D4B26A;
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -233,7 +268,114 @@ body {
 }
 
 :root {
+  /* ── Neutral & compatibility aliases ────────────────────── */
   --neutral-0: #ffffff;
+  --border: var(--color-border);
+
+  /* ── Typography governance ──────────────────────────────── */
+  --font-family-body: var(--font-sans);
+  --font-family-heading: var(--font-heading);
+  --font-family-mono: var(--font-mono);
+
+  --font-size-title-desktop-lg: 2rem;
+  --line-height-title-desktop-lg: 2.5rem;
+  --font-size-title-desktop-md: 1.75rem;
+  --line-height-title-desktop-md: 2.125rem;
+  --font-size-title-mobile-lg: 2rem;   /* 32 / 38 */
+  --line-height-title-mobile-lg: 2.375rem;
+  --font-size-title-mobile-md: 1.75rem; /* 28 / 34 */
+  --line-height-title-mobile-md: 2.125rem;
+  --font-size-body-md: 0.9375rem;
+  --line-height-body-md: 1.5rem;
+  --font-size-label-sm: 0.75rem;
+  --line-height-label-sm: 1rem;
+  --font-size-kpi-lg: 2.25rem;
+  --line-height-kpi-lg: 2.5rem;
+  --font-size-mono-md: 0.875rem;
+  --line-height-mono-md: 1.25rem;
+
+  /* ── Spacing governance ─────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* ── Radius governance ──────────────────────────────────── */
+  --radius-small: 0.5rem;
+  --radius-medium: 0.75rem;
+  --radius-large: 1rem;
+  --radius-xlarge: 1.25rem;
+  --radius-round: 9999px;
+
+  /* ── Borders ────────────────────────────────────────────── */
+  --border-width-default: 1px;
+  --border-width-strong: 2px;
+  --border-width-divider: 1px;
+
+  /* ── Shadows target state ───────────────────────────────── */
+  --shadow-surface: none;
+  --shadow-card: none;
+  --shadow-kpi: none;
+  --shadow-table: none;
+  --shadow-button: none;
+  --shadow-input: none;
+  --shadow-overlay-sm: 0 12px 28px -16px rgba(26, 37, 64, 0.18);
+  --shadow-overlay-md: 0 20px 44px -24px rgba(26, 37, 64, 0.24);
+  --shadow-overlay-lg: 0 28px 64px -28px rgba(26, 37, 64, 0.3);
+
+  /* ── Focus / disabled / skeleton / backdrop ─────────────── */
+  --focus-ring-color: rgba(37, 84, 184, 0.32);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  --color-disabled-bg: var(--color-surface-hover);
+  --color-disabled-border: var(--color-border);
+  --color-disabled-text: var(--color-muted);
+  --opacity-disabled: 0.45;
+
+  --color-skeleton-base: var(--color-border);
+  --color-skeleton-highlight: rgba(255, 255, 255, 0.65);
+  --color-backdrop: rgba(12, 21, 43, 0.3);
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  --motion-duration-fast: 150ms;
+  --motion-duration-base: 220ms;
+  --motion-duration-slow: 320ms;
+  --motion-duration-overlay-in: 400ms;
+  --motion-duration-overlay-out: 260ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ── Z-index ────────────────────────────────────────────── */
+  --z-base: 0;
+  --z-header: 20;
+  --z-sidebar: 30;
+  --z-bottom-nav: 40;
+  --z-dropdown: 50;
+  --z-drawer: 60;
+  --z-modal: 70;
+  --z-toast: 80;
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  --layout-sidebar-width-collapsed: 4rem;
+  --layout-sidebar-width-expanded: 16rem;
+  --layout-header-height: 3.5rem;
+  --layout-bottom-nav-height: 5rem;
+  --layout-drawer-width: 28rem;
+  --layout-mobile-tap-target: 2.75rem;
+
+  /* ── Safe area ──────────────────────────────────────────── */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --layout-mobile-content-bottom-offset: calc(var(--layout-bottom-nav-height) + var(--safe-area-bottom));
 }
 
 @keyframes kredo-ready-gradient-flow {
@@ -619,5 +761,4 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-
 

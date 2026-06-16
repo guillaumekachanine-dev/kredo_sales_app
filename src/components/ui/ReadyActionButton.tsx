@@ -2,6 +2,11 @@
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Legacy CTA spécialisé.
+ * Ne pas utiliser comme primitive générique : il conserve temporairement
+ * son rendu animé historique tant que ses usages métier n'ont pas été migrés.
+ */
 export type ReadyActionButtonProps = {
   onClick: () => void
   ariaLabel?: string
