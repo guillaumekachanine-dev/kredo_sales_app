@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { DesktopSidebar } from "./DesktopSidebar"
 import { AppHeader } from "./AppHeader"
 import { MobileNav } from "./MobileNav"
@@ -8,7 +9,7 @@ interface AppShellProps {
   children: React.ReactNode
 }
 
-export function AppShell({ device, children }: AppShellProps) {
+export async function AppShell({ device, children }: AppShellProps) {
   const isMobile = device === "mobile"
 
   if (isMobile) {
@@ -25,9 +26,12 @@ export function AppShell({ device, children }: AppShellProps) {
     )
   }
 
+  const cookieStore = await cookies()
+  const defaultCollapsed = cookieStore.get("kredo_sidebar_collapsed")?.value === "true"
+
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-canvas">
-      <DesktopSidebar />
+      <DesktopSidebar defaultCollapsed={defaultCollapsed} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AppHeader />

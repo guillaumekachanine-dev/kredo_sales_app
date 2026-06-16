@@ -36,6 +36,16 @@ export type MissionsListRow = {
   priority?: string
   targetDailyRate?: number | null
   practice?: string
+  targetCloseDate?: string | null
+  nextActionAt?: string | null
+  updatedAt?: string
+  source?: string | null
+  seniority?: string | null
+  location?: string | null
+  remotePolicy?: string | null
+  openedAt?: string | null
+  requiredHeadcount?: number
+  requiresStaffing?: boolean
 }
 
 interface MissionsListViewProps {

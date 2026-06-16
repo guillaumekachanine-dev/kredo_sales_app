@@ -8,6 +8,7 @@ export type SurfaceCardAccent =
   | "success"
   | "warning"
   | "danger"
+  | "brass"
 
 export type SurfaceCardPadding = "none" | "compact" | "default" | "spacious"
 export type SurfaceCardRadius = "sm" | "md" | "lg" | "xl"
@@ -44,6 +45,7 @@ const accentClasses: Record<SurfaceCardAccent, string> = {
   success: "border-success/25 bg-success/[0.04]",
   warning: "border-warning/25 bg-warning/[0.05]",
   danger: "border-danger/20 bg-danger/[0.03]",
+  brass: "border-brand-brass/30 bg-brand-brass/[0.04]",
 }
 
 export function SurfaceCard({

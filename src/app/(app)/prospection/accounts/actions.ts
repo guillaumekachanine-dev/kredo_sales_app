@@ -234,11 +234,17 @@ export async function getCompanyIdentity(companyId: string) {
         stage,
         priority,
         conviction,
+        source,
+        seniority,
+        location,
+        remote_policy,
         target_daily_rate,
         duration_days,
         estimated_gain,
         target_close_date,
-        acv
+        acv,
+        required_headcount,
+        requires_staffing
       `)
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
@@ -395,11 +401,17 @@ export async function getContactIdentity(contactId: string) {
           stage,
           priority,
           conviction,
+          source,
+          seniority,
+          location,
+          remote_policy,
           target_daily_rate,
           duration_days,
           estimated_gain,
           target_close_date,
-          acv
+          acv,
+          required_headcount,
+          requires_staffing
         )
       `)
       .eq("contact_id", contactId)
@@ -465,17 +477,24 @@ export async function getContactIdentity(contactId: string) {
 
       if (siblings) {
         const managerContactId = contact.manager_contact_id
+        type SiblingPerson = {
+          full_name: string | null
+          first_name: string | null
+          last_name: string | null
+          primary_email: string | null
+          phone: string | null
+        }
 
         if (managerContactId) {
           const m = siblings.find(s => s.id === managerContactId)
           if (m) {
-            const mPersonObj = Array.isArray(m.persons) ? m.persons[0] : m.persons
+            const mPersonObj = (Array.isArray(m.persons) ? m.persons[0] : m.persons) as SiblingPerson | null
             manager = {
               id: m.id,
-              fullName: (mPersonObj as any)?.full_name || `${(mPersonObj as any)?.first_name || ""} ${(mPersonObj as any)?.last_name || ""}`.trim(),
+              fullName: mPersonObj?.full_name || `${mPersonObj?.first_name || ""} ${mPersonObj?.last_name || ""}`.trim(),
               job_title: m.job_title,
-              email: (mPersonObj as any)?.primary_email || null,
-              phone: (mPersonObj as any)?.phone || null,
+              email: mPersonObj?.primary_email || null,
+              phone: mPersonObj?.phone || null,
             }
           }
         }
@@ -483,10 +502,10 @@ export async function getContactIdentity(contactId: string) {
         reports = siblings
           .filter(s => s.manager_contact_id === contactId)
           .map(s => {
-            const sPersonObj = Array.isArray(s.persons) ? s.persons[0] : s.persons
+            const sPersonObj = (Array.isArray(s.persons) ? s.persons[0] : s.persons) as SiblingPerson | null
             return {
               id: s.id,
-              fullName: (sPersonObj as any)?.full_name || `${(sPersonObj as any)?.first_name || ""} ${(sPersonObj as any)?.last_name || ""}`.trim(),
+              fullName: sPersonObj?.full_name || `${sPersonObj?.first_name || ""} ${sPersonObj?.last_name || ""}`.trim(),
               job_title: s.job_title
             }
           })

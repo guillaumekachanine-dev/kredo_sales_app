@@ -65,11 +65,17 @@ type IdentityData = {
     stage: string
     priority: string
     conviction: number
+    source: string | null
+    seniority: string | null
+    location: string | null
+    remote_policy: string | null
     target_daily_rate: number | null
     duration_days: number | null
     estimated_gain: number | null
     target_close_date: string | null
     acv: number | null
+    required_headcount: number
+    requires_staffing: boolean
   }>
   missions: Array<{
     id: string
@@ -232,6 +238,15 @@ function formatDate(dateStr: string | null) {
     month: "short",
     year: "numeric",
   })
+}
+
+function formatOpportunityMeta(opportunity: IdentityData["opportunities"][number]) {
+  return [
+    opportunity.seniority,
+    opportunity.location,
+    opportunity.remote_policy ? opportunity.remote_policy.replaceAll("_", " ") : null,
+    opportunity.source ? opportunity.source.replaceAll("_", " ") : null,
+  ].filter(Boolean).join(" · ")
 }
 
 function formatManagerName(name: string): string {
@@ -974,6 +989,14 @@ export function CompanyIdentityDrawer({
                                 <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
                                 {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                               </div>
+                              {formatOpportunityMeta(opp) ? (
+                                <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
+                              ) : null}
+                              {opp.requires_staffing ? (
+                                <div className="text-[10px] font-medium text-primary">
+                                  Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
@@ -1124,6 +1147,14 @@ export function CompanyIdentityDrawer({
                                 <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
                                 {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                               </div>
+                              {formatOpportunityMeta(opp) ? (
+                                <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
+                              ) : null}
+                              {opp.requires_staffing ? (
+                                <div className="text-[10px] font-medium text-primary">
+                                  Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
@@ -1225,6 +1256,14 @@ export function CompanyIdentityDrawer({
                               <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
                               {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                             </div>
+                            {formatOpportunityMeta(opp) ? (
+                              <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
+                            ) : null}
+                            {opp.requires_staffing ? (
+                              <div className="text-[10px] font-medium text-primary">
+                                Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>

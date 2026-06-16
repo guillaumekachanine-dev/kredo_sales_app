@@ -3,7 +3,7 @@
 import React from "react"
 import { cn } from "@/lib/utils"
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive"
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "brass"
 export type ButtonSize = "sm" | "md" | "lg"
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -45,6 +45,11 @@ const buttonVariantClasses: Record<ButtonVariant, string> = {
   destructive: cn(
     "border-transparent bg-danger text-primary-fg",
     "hover:bg-danger/90 active:bg-danger/95",
+    "disabled:border-[var(--color-disabled-border)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled-text)]",
+  ),
+  brass: cn(
+    "border-transparent bg-brand-brass text-secondary-fg",
+    "hover:bg-brand-brass-hover active:bg-brand-brass-hover/95",
     "disabled:border-[var(--color-disabled-border)] disabled:bg-[var(--color-disabled-bg)] disabled:text-[var(--color-disabled-text)]",
   ),
 }

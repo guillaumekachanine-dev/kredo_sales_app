@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { Badge, type BadgeVariant } from "@/components/ui/Badge"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type {
   Contact,
@@ -73,21 +74,26 @@ const COMMERCIAL_ACTION_TYPES = [
 
 type CommercialActionType = (typeof COMMERCIAL_ACTION_TYPES)[number]
 
-const OPPORTUNITY_LOCATION_OPTIONS = [
-  { value: "site client", label: "Site client" },
-  { value: "agence", label: "Agence" },
-  { value: "hybride", label: "Hybride" },
-] as const
-
 const OPPORTUNITY_REMOTE_OPTIONS = [
-  { value: "oui", label: "Oui" },
-  { value: "non", label: "Non" },
+  { value: "sur_site", label: "Sur site" },
   { value: "hybride", label: "Hybride" },
+  { value: "full_remote", label: "Full remote" },
 ] as const
 
 interface OpportunityEditFormProps {
   data: OpportunityDetailData
   onSuccess: () => void
+}
+
+const STAGE_BADGE_VARIANTS: Record<SalesStage, BadgeVariant> = {
+  qualification: "brand",
+  recherche_profil: "info",
+  cv_envoyes: "info",
+  entretien_client: "warning",
+  gagne: "success",
+  perdu: "danger",
+  abandonne: "warning",
+  non_traitee: "neutral",
 }
 
 // Pencil icon helper
@@ -170,8 +176,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     start_date: opportunity.start_date || "",
     next_action_label: opportunity.next_action_label || "",
     next_action_at: opportunity.next_action_at ? opportunity.next_action_at.slice(0, 16) : "",
+    seniority: opportunity.seniority || "",
     location: opportunity.location || "",
     remote_policy: opportunity.remote_policy || "",
+    opened_at: opportunity.opened_at ? opportunity.opened_at.slice(0, 10) : "",
+    required_headcount: opportunity.required_headcount ?? 1,
+    requires_staffing: opportunity.requires_staffing ?? false,
     win_reason: opportunity.win_reason || "",
     loss_reason: opportunity.loss_reason || "",
   })
@@ -205,8 +215,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       start_date: opportunity.start_date || "",
       next_action_label: opportunity.next_action_label || "",
       next_action_at: opportunity.next_action_at ? opportunity.next_action_at.slice(0, 16) : "",
+      seniority: opportunity.seniority || "",
       location: opportunity.location || "",
       remote_policy: opportunity.remote_policy || "",
+      opened_at: opportunity.opened_at ? opportunity.opened_at.slice(0, 10) : "",
+      required_headcount: opportunity.required_headcount ?? 1,
+      requires_staffing: opportunity.requires_staffing ?? false,
       win_reason: opportunity.win_reason || "",
       loss_reason: opportunity.loss_reason || "",
     })
@@ -852,8 +866,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           ...payload,
           need_summary: form.need_summary || null,
           client_context: form.client_context || null,
+          seniority: form.seniority || null,
           location: form.location || null,
           remote_policy: form.remote_policy || null,
+          opened_at: form.opened_at || null,
           start_date: form.start_date || null,
           target_close_date: form.target_close_date || null,
         }
@@ -864,7 +880,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       } else if (section === "economie") {
         payload = { ...payload, opportunity_type: form.opportunity_type || null, target_daily_rate: form.target_daily_rate === "" ? null : Number(form.target_daily_rate), duration: form.duration === "" ? null : Number(form.duration), estimated_gain: form.estimated_gain === "" ? null : Number(form.estimated_gain) }
       } else if (section === "staffing") {
-        payload = { ...payload, practice: form.practice || null }
+        payload = {
+          ...payload,
+          practice: form.practice || null,
+          required_headcount: Number(form.required_headcount) || 1,
+          requires_staffing: form.requires_staffing,
+        }
       }
 
       const result = await updateOpportunity(payload)
@@ -1024,23 +1045,32 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
 
             <div>
+              <label className={labelClass}>Séniorité visée</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="text"
+                  value={form.seniority}
+                  onChange={(e) => setForm({ ...form, seniority: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.seniority || "—"}</p>
+              )}
+            </div>
+
+            <div>
               <label className={labelClass}>Lieu de la mission</label>
               {editingSection === "synthese-opportunite" ? (
-                <select
+                <input
+                  type="text"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className={inputClass}
                   disabled={isPending}
-                >
-                  <option value="">— Sélectionner —</option>
-                  {OPPORTUNITY_LOCATION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                />
               ) : (
-                <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.location || "—"}</p>
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.location || "—"}</p>
               )}
             </div>
 
@@ -1061,7 +1091,24 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   ))}
                 </select>
               ) : (
-                <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.remote_policy || "—"}</p>
+                <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.remote_policy?.replaceAll("_", " ") || "—"}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Date d&apos;ouverture</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="date"
+                  value={form.opened_at}
+                  onChange={(e) => setForm({ ...form, opened_at: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.opened_at ? formatDate(opportunity.opened_at) : "—"}
+                </p>
               )}
             </div>
           </div>
@@ -1120,6 +1167,63 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             embedded
           />
         </section>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
+          <div className="flex items-start justify-between gap-3">
+            <h4 className="text-sm font-bold text-heading">Staffing</h4>
+            {editingSection === "staffing" ? (
+              renderSectionEditControls("staffing")
+            ) : (
+              editingSection === null && (
+                <button
+                  type="button"
+                  onClick={() => setEditingSection("staffing")}
+                  className="p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
+                  title="Modifier cette section"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+              )
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Pilotage staffing</label>
+              {editingSection === "staffing" ? (
+                <label className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-heading">
+                  <input
+                    type="checkbox"
+                    checked={form.requires_staffing}
+                    onChange={(e) => setForm({ ...form, requires_staffing: e.target.checked })}
+                    disabled={isPending}
+                  />
+                  Besoin à staffer
+                </label>
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.requires_staffing ? "Oui" : "Non"}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Profils requis</label>
+              {editingSection === "staffing" ? (
+                <input
+                  type="number"
+                  min={1}
+                  value={form.required_headcount}
+                  onChange={(e) => setForm({ ...form, required_headcount: Number(e.target.value) || 1 })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.required_headcount || 1}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div />
       </div>
     </div>
   )
@@ -1618,10 +1722,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           ) : (
             <>
               <h1 className="text-lg font-bold text-heading leading-snug">{opportunity.title}</h1>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted">
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted">
                 <span>{getStageLabel(opportunity.stage)}</span>
                 <span>•</span>
                 <span>{getPriorityLabel(opportunity.priority)}</span>
+                {opportunity.seniority ? (
+                  <>
+                    <span>•</span>
+                    <span>{opportunity.seniority}</span>
+                  </>
+                ) : null}
               </div>
             </>
           )}
@@ -1736,6 +1846,20 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </span>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={STAGE_BADGE_VARIANTS[form.stage]} size="md">{getStageLabel(form.stage)}</Badge>
+        <Badge variant={opportunity.priority === "haute" ? "warning" : "neutral"} size="md">{getPriorityLabel(opportunity.priority)}</Badge>
+        {opportunity.opportunity_type ? <Badge variant="brand" size="md">{opportunity.opportunity_type.replaceAll("_", " ")}</Badge> : null}
+        {opportunity.seniority ? <Badge variant="neutral" size="md">{opportunity.seniority}</Badge> : null}
+        {opportunity.location ? <Badge variant="neutral" size="md">{opportunity.location}</Badge> : null}
+        {opportunity.remote_policy ? <Badge variant="neutral" size="md">{opportunity.remote_policy.replaceAll("_", " ")}</Badge> : null}
+        {opportunity.requires_staffing ? (
+          <Badge variant="info" size="md">
+            {`${opportunity.required_headcount || 1} profil${(opportunity.required_headcount || 1) > 1 ? "s" : ""}`}
+          </Badge>
+        ) : null}
       </div>
 
       {/* Timeline Progression */}

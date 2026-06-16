@@ -45,6 +45,13 @@ interface DBQueryResult {
   practice: string | null
   opportunity_type: string | null
   next_action_at: string | null
+  source: string | null
+  seniority: string | null
+  location: string | null
+  remote_policy: string | null
+  opened_at: string | null
+  required_headcount: number
+  requires_staffing: boolean
   companies: CompanyInfo | CompanyInfo[] | null
 }
 
@@ -96,6 +103,13 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         practice,
         opportunity_type,
         next_action_at,
+        source,
+        seniority,
+        location,
+        remote_policy,
+        opened_at,
+        required_headcount,
+        requires_staffing,
         companies (
           name
         )
@@ -144,6 +158,15 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         stage: item.stage,
         priority: item.priority,
         targetDailyRate: item.target_daily_rate,
+        targetCloseDate: item.target_close_date,
+        nextActionAt: item.next_action_at,
+        source: item.source,
+        seniority: item.seniority,
+        location: item.location,
+        remotePolicy: item.remote_policy,
+        openedAt: item.opened_at,
+        requiredHeadcount: item.required_headcount,
+        requiresStaffing: item.requires_staffing,
       }
     })
 
@@ -171,8 +194,18 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       acv: row.acv,
       estimatedGain: row.estimatedGain,
       stage: row.stage,
-      priority: (row as any).priority,
-      targetDailyRate: (row as any).targetDailyRate,
+      priority: row.priority,
+      targetDailyRate: row.targetDailyRate,
+      targetCloseDate: row.targetCloseDate,
+      nextActionAt: row.nextActionAt,
+      updatedAt: row.updatedAt,
+      source: row.source,
+      seniority: row.seniority,
+      location: row.location,
+      remotePolicy: row.remotePolicy,
+      openedAt: row.openedAt,
+      requiredHeadcount: row.requiredHeadcount,
+      requiresStaffing: row.requiresStaffing,
     }))
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)

@@ -28,6 +28,9 @@ export interface UpdateOpportunityInput {
   location?: string | null
   remote_policy?: string | null
   seniority?: string | null
+  opened_at?: string | null
+  required_headcount?: number
+  requires_staffing?: boolean
   next_action_label?: string | null
   next_action_at?: string | null
   win_reason?: string | null
@@ -190,6 +193,14 @@ export async function updateOpportunity(
   if (input.location !== undefined) updatePayload.location = normalizeText(input.location)
   if (input.remote_policy !== undefined) updatePayload.remote_policy = normalizeText(input.remote_policy)
   if (input.seniority !== undefined) updatePayload.seniority = normalizeText(input.seniority)
+  if (input.opened_at !== undefined) updatePayload.opened_at = normalizeText(input.opened_at)
+  if (input.required_headcount !== undefined) {
+    if (!Number.isInteger(input.required_headcount) || input.required_headcount <= 0) {
+      return { error: "Le nombre de profils requis doit être un entier supérieur à 0." }
+    }
+    updatePayload.required_headcount = input.required_headcount
+  }
+  if (input.requires_staffing !== undefined) updatePayload.requires_staffing = input.requires_staffing
   if (input.next_action_label !== undefined) updatePayload.next_action_label = normalizeText(input.next_action_label)
   if (input.next_action_at !== undefined) updatePayload.next_action_at = normalizeText(input.next_action_at)
   if (input.win_reason !== undefined) updatePayload.win_reason = normalizeText(input.win_reason)

@@ -56,7 +56,7 @@ type ContactIdentityData = {
       size_band: string | null
       health: string | null
       ai_score: number | string | null
-      metadata?: any
+      metadata?: Record<string, unknown>
     } | null
   }
   interactions: Array<{
@@ -65,7 +65,7 @@ type ContactIdentityData = {
     occurred_at: string
     summary: string | null
     sentiment: string | null
-    details: any
+    details: Record<string, unknown> | null
     next_action: string | null
   }>
   opportunities: Array<{
@@ -75,11 +75,17 @@ type ContactIdentityData = {
     stage: string
     priority: string
     conviction: number
+    source: string | null
+    seniority: string | null
+    location: string | null
+    remote_policy: string | null
     target_daily_rate: number | null
     duration_days: number | null
     estimated_gain: number | null
     target_close_date: string | null
     acv: number | null
+    required_headcount: number
+    requires_staffing: boolean
     contact_role: string | null
   }>
   tasks: Array<{
@@ -120,6 +126,15 @@ function formatDate(dateStr: string | null) {
     month: "short",
     year: "numeric",
   })
+}
+
+function formatOpportunityMeta(opportunity: ContactIdentityData["opportunities"][number]) {
+  return [
+    opportunity.seniority,
+    opportunity.location,
+    opportunity.remote_policy ? opportunity.remote_policy.replaceAll("_", " ") : null,
+    opportunity.source ? opportunity.source.replaceAll("_", " ") : null,
+  ].filter(Boolean).join(" · ")
 }
 
 function getInitials(firstName?: string | null, lastName?: string | null, fullName?: string | null) {
@@ -187,7 +202,7 @@ function CompanyMiniModal({
               <span className="font-bold text-heading truncate" title={company.segment || "—"}>{company.segment || "—"}</span>
             </div>
             <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
-              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Chiffre d'affaires</span>
+              <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Chiffre d&apos;affaires</span>
               <span className="font-bold text-heading truncate" title={company.revenue || "—"}>{company.revenue || "—"}</span>
             </div>
             <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
@@ -913,6 +928,14 @@ export function ContactIdentityDrawer({
                             <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
                             {opp.acv && <span>ACV : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                           </div>
+                          {formatOpportunityMeta(opp) ? (
+                            <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
+                          ) : null}
+                          {opp.requires_staffing ? (
+                            <div className="text-[10px] font-medium text-primary">
+                              Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>

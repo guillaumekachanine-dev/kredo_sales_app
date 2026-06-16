@@ -18,9 +18,13 @@
   /* ── Brand · semantic source-of-truth aliases ──────────── */
   --color-brand-primary:      #2554B8;
   --color-brand-primary-deep: #1E4596;
-  --color-brand-brass:        #C89A2B;
+  --color-brand-brass:        #C89A2B;  /* bg-brand-brass — jaune-or de marque */
+  --color-brand-brass-hover:  #A67A1E;  /* bg-brand-brass-hover — pressed / hover du brass */
   --color-brand-ember:        #D97020;
   --color-brand-ink:          #1A2540;
+
+  /* ── Navigation · navy sidebar ─────────────────────────── */
+  --color-sidebar-bg:   #162650;  /* fond sidebar Desktop — navy profond, distinct du cobalt CTA */
 
   /* ── Structure ──────────────────────────────────────────── */
   --color-canvas:        #F4F2ED; /* bg-canvas   — fond de l'app   */
@@ -34,7 +38,7 @@
   --color-bg-surface:       var(--color-surface);
   --color-bg-surface-hover: var(--color-surface-hover);
   --color-bg-surface-raised:var(--color-surface-raised);
-  --color-bg-sidebar:       var(--color-brand-primary);
+  --color-bg-sidebar:       var(--color-sidebar-bg);
   --color-bg-mobile-nav:    var(--color-brand-primary);
   --color-border-default:   var(--color-border);
   --color-border-strong:    #C6CFDF;
@@ -365,7 +369,7 @@ body {
 
   /* ── Layout ─────────────────────────────────────────────── */
   --layout-sidebar-width-collapsed: 4rem;
-  --layout-sidebar-width-expanded: 16rem;
+  --layout-sidebar-width-expanded: 14rem;   /* "Prospection Intelligence" = label le plus long → 224px */
   --layout-header-height: 3.5rem;
   --layout-bottom-nav-height: 5rem;
   --layout-drawer-width: 28rem;
