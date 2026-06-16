@@ -1,11 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Cockpit Intelligence — couche de données (DECISIONNEL GLOBAL)
-//
-//  Agrège les indicateurs clés du centre de profit à 360° : pipeline pondéré,
-//  taux de marge, bench global, précision du matching IA et anomalies critiques.
-// ─────────────────────────────────────────────────────────────────────────────
+import { getFinanceDashboardData } from "@/lib/finance/finance-data"
+import { getStaffingDashboardData } from "@/lib/staffing/staffing-data"
+import { getSyntheseData } from "@/lib/prospection/synthese-data"
+import { getTrajectory2026 } from "@/app/(app)/missions/_data/get-trajectory-2026"
+import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 
 export type CockpitStatus = "success" | "warning" | "danger" | "neutral"
 
@@ -13,6 +10,7 @@ export type CockpitKpi = {
   id: string
   label: string
   value: string
+  detail?: string
   trendBadge?: string
   trendDirection?: "up" | "down"
   status: CockpitStatus
@@ -49,140 +47,441 @@ export type LowScoreProposal = {
   iaScore: number
 }
 
+export type CockpitHealthAxis = {
+  id: string
+  label: string
+  score: number
+  detail: string
+  status: CockpitStatus
+}
+
+export type CockpitFlowNode = {
+  id: string
+  label: string
+  value: string
+  detail: string
+  status: CockpitStatus
+}
+
+export type CockpitTrendPoint = {
+  monthLabel: string
+  revenueActual: number | null
+  revenueTarget: number
+  marginActual: number | null
+  capacityActual: number | null
+}
+
+export type CockpitAttentionItem = {
+  id: string
+  title: string
+  subtitle: string
+  detail: string
+  actionLabel: string
+  href: string
+  status: CockpitStatus
+}
+
+export type CockpitRenewalItem = {
+  id: string
+  company: string
+  title: string
+  dueLabel: string
+  marginLabel: string
+  revenueLabel: string
+  status: CockpitStatus
+}
+
+export type CockpitAccountItem = {
+  id: string
+  name: string
+  sector: string
+  scoreLabel: string
+  lifecycleLabel: string
+}
+
+export type CockpitFinanceWatchItem = {
+  id: string
+  clientName: string
+  detail: string
+  valueLabel: string
+  status: CockpitStatus
+}
+
 export type CockpitDashboardData = {
   kpis: CockpitKpi[]
   timeline: CockpitTimelineMonth[]
   bottlenecks: BottleneckStage[]
   staffingAlerts: CriticalStaffingAlert[]
   lowScoreProposals: LowScoreProposal[]
+  healthAxes: CockpitHealthAxis[]
+  flow: CockpitFlowNode[]
+  trajectory: {
+    points: CockpitTrendPoint[]
+    ytdRevenueActual: number
+    ytdRevenueTarget: number
+    ytdMarginActual: number | null
+    ytdMarginTarget: number
+  }
+  headline: string
+  recommendation: string
+  attentionItems: CockpitAttentionItem[]
+  renewals: CockpitRenewalItem[]
+  accounts: CockpitAccountItem[]
+  financeWatch: CockpitFinanceWatchItem[]
 }
 
-type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
-type LooseTable = { select<T>(columns: string): LooseQuery<T> }
-type LooseClient = { from(table: string): LooseTable }
-
-type DBOpportunityRow = {
-  weighted_gain: number | null
+function clampScore(value: number) {
+  if (Number.isNaN(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-const DEFAULT_TIMELINE: CockpitTimelineMonth[] = [
-  { month: "Jan", pipelineStages: 600, predictiveAvailability: 800, consultantAvailability: 2200 },
-  { month: "Fev", pipelineStages: 750, predictiveAvailability: 900, consultantAvailability: 2100 },
-  { month: "Mar", pipelineStages: 1100, predictiveAvailability: 1050, consultantAvailability: 2250 }, // TODAY vertical indicator
-  { month: "Abr", pipelineStages: 950, predictiveAvailability: 1100, consultantAvailability: 1500 },
-  { month: "Jun", pipelineStages: 1200, predictiveAvailability: 1500, consultantAvailability: 2500 },
-  { month: "Oct", pipelineStages: 1300, predictiveAvailability: 1650, consultantAvailability: 2500 },
-  { month: "Nov", pipelineStages: 1150, predictiveAvailability: 1600, consultantAvailability: 2200 },
-  { month: "Dec", pipelineStages: 1250, predictiveAvailability: 1700, consultantAvailability: 2400 },
-]
+function statusFromScore(score: number): CockpitStatus {
+  if (score >= 78) return "success"
+  if (score >= 55) return "warning"
+  return "danger"
+}
 
-const DEFAULT_BOTTLENECKS: BottleneckStage[] = [
-  { stageName: "Qualif", qualifDays: 12, propDays: 20, negoDays: 10, gagneDays: 8 },
-  { stageName: "Proposition", qualifDays: 15, propDays: 18, negoDays: 15, gagneDays: 12 },
-  { stageName: "Nego", qualifDays: 8, propDays: 0, negoDays: 20, gagneDays: 10 },
-  { stageName: "Gagne", qualifDays: 6, propDays: 0, negoDays: 0, gagneDays: 36 },
-]
+function formatEuroCompact(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
+  if (abs >= 1_000) return `${Math.round(value / 1_000)} k€`
+  return `${Math.round(value)} €`
+}
+
+function formatPct(value: number | null | undefined, digits = 1) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
+  return `${value.toFixed(digits)}%`
+}
+
+function formatDeltaPoints(actual: number | null, target: number) {
+  if (actual === null || !Number.isFinite(actual)) return undefined
+  const delta = actual - target
+  const sign = delta > 0 ? "+" : ""
+  return `${sign}${delta.toFixed(1)} pts`
+}
+
+function daysUntil(dateString: string | null | undefined, now: Date) {
+  if (!dateString) return null
+  const date = new Date(`${dateString}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  const diff = date.getTime() - now.getTime()
+  return Math.ceil(diff / 86_400_000)
+}
+
+function formatDueLabel(dateString: string | null | undefined, now: Date) {
+  if (!dateString) return "Date à confirmer"
+  const days = daysUntil(dateString, now)
+  if (days === null) return "Date à confirmer"
+  const label = new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(`${dateString}T00:00:00`))
+
+  if (days < 0) return `${label} · dépassé`
+  if (days === 0) return `${label} · aujourd'hui`
+  if (days <= 7) return `${label} · ${days} j`
+  return label
+}
+
+function getRenewalStatus(days: number | null): CockpitStatus {
+  if (days === null) return "neutral"
+  if (days <= 21) return "danger"
+  if (days <= 45) return "warning"
+  return "success"
+}
 
 export async function getCockpitDashboardData(): Promise<CockpitDashboardData> {
-  const supabase = (await createClient()) as unknown as LooseClient
+  const [finance, staffing, synthese, trajectory, activeMissions] =
+    await Promise.all([
+      getFinanceDashboardData(),
+      getStaffingDashboardData(),
+      getSyntheseData(),
+      getTrajectory2026(),
+      getActiveMissionsPlanning(),
+    ])
 
-  let opportunities: DBOpportunityRow[] = []
+  const now = new Date()
+  const weightedPipe = synthese.pipeline.totalWeighted || finance.pipeTotal
+  const openNeeds = staffing.openNeeds.length
+  const coveredNeeds = staffing.openNeeds.filter((need) => need.candidateCount > 0).length
+  const coverageRate = openNeeds > 0 ? Math.round((coveredNeeds / openNeeds) * 100) : 100
+  const renewals = activeMissions
+    .map((mission) => {
+      const dueDate = mission.renewalDate || mission.endDate
+      const days = daysUntil(dueDate, now)
 
-  try {
-    const { data } = await supabase.from("opportunities").select<DBOpportunityRow>("weighted_gain")
-    opportunities = data ?? []
-  } catch (err) {
-    console.error("[cockpit-data] Error querying Supabase:", err)
-  }
+      return {
+        id: mission.id,
+        company: mission.company.name,
+        title: mission.title,
+        dueLabel: formatDueLabel(dueDate, now),
+        marginLabel: formatPct(mission.grossMarginPct, 0),
+        revenueLabel: formatEuroCompact(mission.lastQuarterRevenue?.revenue),
+        status: getRenewalStatus(days),
+        days,
+      }
+    })
+    .filter((item) => item.days === null || item.days <= 75)
+    .sort((a, b) => (a.days ?? 999) - (b.days ?? 999))
+    .slice(0, 6)
 
-  // ─── 1. KPIs Calculation ──────────────────────────────────────────────────
-  const pipeTotal = opportunities.reduce((sum, o) => sum + (o.weighted_gain ?? 0), 0)
-  const pipeFormatted = pipeTotal > 0 ? `€${(pipeTotal / 1000000).toFixed(1)}M` : "€2.4M"
+  const renewals30Count = renewals.filter((item) => item.days !== null && item.days <= 30).length
+  const ytdRevenuePace = trajectory.summary.ytdRevenueTarget > 0
+    ? (trajectory.summary.ytdRevenueActual / trajectory.summary.ytdRevenueTarget) * 100
+    : 0
+  const marginPerformance = trajectory.summary.ytdMarginActual !== null
+    ? (trajectory.summary.ytdMarginActual / trajectory.summary.ytdMarginTarget) * 100
+    : 0
+  const activationLoad = synthese.accountsToActivate.length
+
+  const healthAxes: CockpitHealthAxis[] = [
+    {
+      id: "revenue-pace",
+      label: "Pacing revenu",
+      score: clampScore(ytdRevenuePace),
+      detail: `${formatEuroCompact(trajectory.summary.ytdRevenueActual)} vs ${formatEuroCompact(trajectory.summary.ytdRevenueTarget)}`,
+      status: statusFromScore(ytdRevenuePace),
+    },
+    {
+      id: "margin-discipline",
+      label: "Discipline marge",
+      score: clampScore(marginPerformance),
+      detail: `${formatPct(trajectory.summary.ytdMarginActual)} vs cible ${formatPct(trajectory.summary.ytdMarginTarget)}`,
+      status: statusFromScore(marginPerformance),
+    },
+    {
+      id: "staffing-readiness",
+      label: "Readiness staffing",
+      score: clampScore(coverageRate),
+      detail: `${coveredNeeds}/${openNeeds || 0} besoins couverts`,
+      status: statusFromScore(coverageRate),
+    },
+    {
+      id: "continuity",
+      label: "Continuité delivery",
+      score: clampScore(100 - renewals30Count * 18),
+      detail: `${renewals30Count} renouvellement(s) à cadrer sous 30 j`,
+      status: statusFromScore(100 - renewals30Count * 18),
+    },
+    {
+      id: "portfolio-activation",
+      label: "Activation portefeuille",
+      score: clampScore(100 - activationLoad * 12),
+      detail: `${activationLoad} comptes chauds à activer`,
+      status: statusFromScore(100 - activationLoad * 12),
+    },
+  ]
+
+  const headline =
+    coverageRate < 60
+      ? "Le cockpit est tiré par le pipe, mais la couverture staffing reste le point de friction principal."
+      : renewals30Count > 0
+        ? "Le centre de profit reste solide, avec un risque concentré sur les renouvellements à arbitrer rapidement."
+        : "Le centre de profit est globalement en ligne, avec une traction commerciale et une exécution relativement équilibrées."
+
+  const recommendation =
+    coverageRate < 60
+      ? "Prioriser les besoins ouverts sans profils avant d'augmenter le volume de prospection."
+      : renewals30Count > 0
+        ? "Sécuriser les renouvellements critiques puis réallouer la capacité vers les comptes à activer."
+        : "Conserver le rythme commercial et concentrer l'animation sur les comptes à plus fort score."
 
   const kpis: CockpitKpi[] = [
     {
       id: "c-weighted-pipe",
-      label: "Total Weighted Pipe",
-      value: pipeFormatted,
-      trendBadge: "YoY +10%",
-      trendDirection: "up",
-      status: "success",
+      label: "Pipe pondéré",
+      value: formatEuroCompact(weightedPipe),
+      detail: `${synthese.pipeline.openCount} opp. ouvertes`,
+      trendBadge: `${Math.round(ytdRevenuePace)}% du pacing`,
+      trendDirection: ytdRevenuePace >= 100 ? "up" : "down",
+      status: statusFromScore(ytdRevenuePace),
     },
     {
       id: "c-project-margin",
-      label: "Average Project Margin",
-      value: "28.5%",
-      status: "success",
+      label: "Marge YTD",
+      value: formatPct(trajectory.summary.ytdMarginActual),
+      detail: `cible ${formatPct(trajectory.summary.ytdMarginTarget)}`,
+      trendBadge: formatDeltaPoints(
+        trajectory.summary.ytdMarginActual,
+        trajectory.summary.ytdMarginTarget,
+      ),
+      trendDirection:
+        trajectory.summary.ytdMarginActual !== null &&
+        trajectory.summary.ytdMarginActual >= trajectory.summary.ytdMarginTarget
+          ? "up"
+          : "down",
+      status: statusFromScore(marginPerformance),
     },
     {
       id: "c-bench-rate",
-      label: "Global Bench Rate",
-      value: "7.8%",
-      status: "success",
+      label: "Couverture staffing",
+      value: `${coveredNeeds}/${openNeeds || 0}`,
+      detail: `${coverageRate}% des besoins couverts`,
+      trendBadge: openNeeds > 0 ? `${openNeeds - coveredNeeds} à sécuriser` : "RAS",
+      trendDirection: coverageRate >= 75 ? "up" : "down",
+      status: statusFromScore(coverageRate),
     },
     {
       id: "c-match-accuracy",
-      label: "Competence Match Accuracy (AI)",
-      value: "91.2%",
-      status: "success",
+      label: "Renouvellements 30 j",
+      value: String(renewals30Count),
+      detail: `${activeMissions.length} missions actives`,
+      trendBadge: renewals30Count === 0 ? "horizon dégagé" : "à cadrer",
+      trendDirection: renewals30Count === 0 ? "up" : "down",
+      status: renewals30Count === 0 ? "success" : renewals30Count <= 2 ? "warning" : "danger",
     },
   ]
 
-  // ─── 2. Critical Staffing Alerts (via n8n) ──────────────────────────────────
-  const staffingAlerts: CriticalStaffingAlert[] = [
+  const flow: CockpitFlowNode[] = [
     {
-      id: "csa-1",
-      anomaly: "Anomalie 1",
-      statusText: "Practice pipe onasslop...",
-      actionLabel: "AI Match",
+      id: "accounts",
+      label: "Comptes chauds",
+      value: String(synthese.accountsToActivate.length),
+      detail: "à activer",
+      status: synthese.accountsToActivate.length > 4 ? "warning" : "success",
     },
     {
-      id: "csa-2",
-      anomaly: "Anomalie 2",
-      statusText: "Practice pipe onasslop...",
-      actionLabel: "AI Match",
+      id: "opportunities",
+      label: "Opps ouvertes",
+      value: String(synthese.pipeline.openCount),
+      detail: formatEuroCompact(weightedPipe),
+      status: synthese.pipeline.openCount > 0 ? "success" : "warning",
     },
     {
-      id: "csa-3",
-      anomaly: "Anomalie 3",
-      statusText: "Practice pipe suggesti...",
-      actionLabel: "AI Match",
+      id: "staffing",
+      label: "Besoins couverts",
+      value: `${coveredNeeds}/${openNeeds || 0}`,
+      detail: `${coverageRate}%`,
+      status: statusFromScore(coverageRate),
+    },
+    {
+      id: "missions",
+      label: "Missions actives",
+      value: String(activeMissions.length),
+      detail: `${renewals30Count} à revoir`,
+      status: renewals30Count > 2 ? "warning" : "success",
+    },
+    {
+      id: "cash",
+      label: "CA YTD",
+      value: formatEuroCompact(trajectory.summary.ytdRevenueActual),
+      detail: `${Math.round(ytdRevenuePace)}% du plan`,
+      status: statusFromScore(ytdRevenuePace),
     },
   ]
 
-  // ─── 3. Low Score Proposals (Propositions à Haute Valeur & Bas Score IA) ────
-  const lowScoreProposals: LowScoreProposal[] = [
+  const attentionItems: CockpitAttentionItem[] = [
+    ...staffing.priorities.slice(0, 3).map((item) => ({
+      id: `staff-${item.id}`,
+      title: item.title,
+      subtitle: item.company,
+      detail: item.reason,
+      actionLabel: item.action,
+      href: "/staffing",
+      status: item.status as CockpitStatus,
+    })),
+    ...finance.lateBillings.slice(0, 2).map((item) => ({
+      id: `billing-${item.id}`,
+      title: item.clientName,
+      subtitle: `${item.delayDays} jours de retard`,
+      detail: `${item.bcNumber} · ${item.valueAmount}`,
+      actionLabel: item.actionLabel,
+      href: "/finance",
+      status: (item.delayDays >= 90 ? "danger" : "warning") as CockpitStatus,
+    })),
+  ].slice(0, 5)
+
+  const financeWatch: CockpitFinanceWatchItem[] = finance.lateBillings
+    .slice(0, 3)
+    .map((item) => ({
+      id: item.id,
+      clientName: item.clientName,
+      detail: `${item.delayDays} jours · ${item.bcNumber}`,
+      valueLabel: item.valueAmount,
+      status: item.delayDays >= 90 ? "danger" : "warning",
+    }))
+
+  const trajectoryPoints: CockpitTrendPoint[] = trajectory.points.map((point) => ({
+    monthLabel: point.monthLabel,
+    revenueActual: point.revenueActual,
+    revenueTarget: point.revenueTarget,
+    marginActual: point.marginActual,
+    capacityActual: point.capacityActual,
+  }))
+
+  const timeline: CockpitTimelineMonth[] = trajectory.points.map((point) => ({
+    month: point.monthLabel,
+    pipelineStages: point.revenueActual ?? 0,
+    predictiveAvailability: point.revenueTarget,
+    consultantAvailability: (point.capacityActual ?? 0) * 100_000,
+  }))
+
+  const stageByKey = new Map(
+    staffing.stageDistribution.map((stage) => [stage.key, stage.count]),
+  )
+  const bottlenecks: BottleneckStage[] = [
     {
-      id: "lsp-1",
-      consultantName: "Consultant A",
-      practiceName: "Practice A",
-      finMission: "15 jours",
-      valueAmount: "€1.4M",
-      iaScore: 92,
+      stageName: "Qualification",
+      qualifDays: stageByKey.get("identifie") ?? 0,
+      propDays: stageByKey.get("preselectionne") ?? 0,
+      negoDays: stageByKey.get("propose_interne") ?? 0,
+      gagneDays: stageByKey.get("retenu") ?? 0,
     },
     {
-      id: "lsp-2",
-      consultantName: "Consultant B",
-      practiceName: "Practice 2",
-      finMission: "15 jours",
-      valueAmount: "€1480",
-      iaScore: 85,
-    },
-    {
-      id: "lsp-3",
-      consultantName: "Consultant C",
-      practiceName: "Practice 3",
-      finMission: "15 jours",
-      valueAmount: "€1680",
-      iaScore: 70,
+      stageName: "Conversion",
+      qualifDays: stageByKey.get("envoye_client") ?? 0,
+      propDays: stageByKey.get("entretien_planifie") ?? 0,
+      negoDays: stageByKey.get("entretien_realise") ?? 0,
+      gagneDays: stageByKey.get("retenu") ?? 0,
     },
   ]
+
+  const staffingAlerts: CriticalStaffingAlert[] = staffing.priorities.slice(0, 3).map((item) => ({
+    id: item.id,
+    anomaly: item.title,
+    statusText: item.reason,
+    actionLabel: item.action,
+  }))
+
+  const lowScoreProposals: LowScoreProposal[] = finance.anomalies.slice(0, 3).map((item, index) => ({
+    id: item.id,
+    consultantName: item.consultantName,
+    practiceName: item.anomalyText,
+    finMission: index === 0 ? "Immédiat" : "Cette semaine",
+    valueAmount: item.tjm,
+    iaScore: item.badgeText ? 78 : 86,
+  }))
 
   return {
     kpis,
-    timeline: DEFAULT_TIMELINE,
-    bottlenecks: DEFAULT_BOTTLENECKS,
+    timeline,
+    bottlenecks,
     staffingAlerts,
     lowScoreProposals,
+    healthAxes,
+    flow,
+    trajectory: {
+      points: trajectoryPoints,
+      ytdRevenueActual: trajectory.summary.ytdRevenueActual,
+      ytdRevenueTarget: trajectory.summary.ytdRevenueTarget,
+      ytdMarginActual: trajectory.summary.ytdMarginActual,
+      ytdMarginTarget: trajectory.summary.ytdMarginTarget,
+    },
+    headline,
+    recommendation,
+    attentionItems,
+    renewals: renewals.map(({ days, ...item }) => {
+      void days
+      return item
+    }),
+    accounts: synthese.accountsToActivate.slice(0, 5).map((item) => ({
+      id: item.id,
+      name: item.name,
+      sector: item.sector,
+      scoreLabel: item.score !== null ? `${item.score}/5` : "—",
+      lifecycleLabel: item.lifecycleLabel,
+    })),
+    financeWatch,
   }
 }

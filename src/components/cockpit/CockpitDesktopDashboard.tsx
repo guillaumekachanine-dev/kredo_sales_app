@@ -1,522 +1,575 @@
-"use client"
-
-import { useState } from "react"
+import Link from "next/link"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { InsightCard } from "@/components/ui/InsightCard"
 import { AlertBlock } from "@/components/ui/AlertBlock"
-import { Button } from "@/components/ui/Button"
-import { StatusPill } from "@/components/ui/StatusPill"
-import { AppDialog } from "@/components/ui/AppDialog"
+import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
+import { CockpitFlowCanvas } from "@/components/cockpit/CockpitFlowCanvas"
 import type {
+  CockpitAttentionItem,
   CockpitDashboardData,
-  CriticalStaffingAlert,
-  LowScoreProposal,
+  CockpitHealthAxis,
+  CockpitRenewalItem,
+  CockpitStatus,
 } from "@/lib/cockpit/cockpit-data"
 
-type ActiveModal = {
-  type: "match" | "review" | "sync"
-  title: string
-  content: string
-  targetId?: string
-} | null
-
-function scoreVariant(
-  score: number,
-): "danger" | "warning" | "success" | "inProgress" {
-  if (score < 80) return "danger"
-  if (score < 90) return "warning"
-  return "success"
+function deltaTone(status: CockpitStatus): "positive" | "negative" | "neutral" {
+  if (status === "success") return "positive"
+  if (status === "danger") return "negative"
+  return "neutral"
 }
 
-const IconWarning = () => (
-  <svg
-    className="size-full"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-    />
-  </svg>
-)
+function pillVariant(status: CockpitStatus): StatusPillVariant {
+  if (status === "success") return "success"
+  if (status === "warning") return "warning"
+  if (status === "danger") return "danger"
+  return "neutral"
+}
 
-const IconCheck = () => (
-  <svg
-    className="size-full"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-)
+function euroTick(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
+  return `${Math.round(value / 1_000)} k€`
+}
+
+function HeaderActionLink({
+  href,
+  label,
+  tone = "default",
+}: {
+  href: string
+  label: string
+  tone?: "default" | "primary"
+}) {
+  return (
+    <Link
+      href={href}
+      className={[
+        "inline-flex h-10 items-center rounded-[var(--radius-medium)] border px-4 text-sm font-semibold transition-colors",
+        tone === "primary"
+          ? "border-transparent bg-primary text-primary-fg hover:bg-primary-deep"
+          : "border-border bg-surface text-heading hover:bg-surface-hover",
+      ].join(" ")}
+    >
+      {label}
+    </Link>
+  )
+}
+
+function HealthConstellation({ axes }: { axes: CockpitHealthAxis[] }) {
+  const center = 170
+  const outerRadius = 108
+  const labelRadius = 145
+  const ringLevels = [0.25, 0.5, 0.75, 1]
+  const polygon = axes
+    .map((axis, index) => {
+      const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
+      const radius = outerRadius * (axis.score / 100)
+      const x = center + Math.cos(angle) * radius
+      const y = center + Math.sin(angle) * radius
+      return `${x},${y}`
+    })
+    .join(" ")
+
+  return (
+    <SurfaceCard className="h-full">
+      <div className="flex h-full flex-col gap-6 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+              Lecture Multi-Axes
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-heading">
+              Situation du centre de profit
+            </h2>
+          </div>
+          <StatusPill
+            label={`${Math.round(axes.reduce((sum, axis) => sum + axis.score, 0) / axes.length)}/100`}
+            variant="inProgress"
+          />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
+          <div className="grid gap-3">
+            {axes.map((axis) => (
+              <div
+                key={axis.id}
+                className="rounded-[var(--radius-large)] border border-border bg-canvas/60 p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-heading">{axis.label}</p>
+                  <StatusPill
+                    label={`${axis.score}`}
+                    variant={pillVariant(axis.status)}
+                  />
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
+                  <div
+                    className={[
+                      "h-full rounded-full",
+                      axis.status === "success"
+                        ? "bg-success"
+                        : axis.status === "danger"
+                          ? "bg-danger"
+                          : "bg-warning",
+                    ].join(" ")}
+                    style={{ width: `${axis.score}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-body">{axis.detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-[radial-gradient(circle_at_top,#f4f0e6,transparent_55%),linear-gradient(180deg,rgba(37,84,184,0.02),rgba(37,84,184,0.08))] p-4">
+            <svg viewBox="0 0 340 340" className="mx-auto aspect-square w-full max-w-[28rem]">
+              {ringLevels.map((level) => (
+                <circle
+                  key={level}
+                  cx={center}
+                  cy={center}
+                  r={outerRadius * level}
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-border"
+                  strokeDasharray="3 7"
+                />
+              ))}
+
+              {axes.map((axis, index) => {
+                const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
+                const x2 = center + Math.cos(angle) * outerRadius
+                const y2 = center + Math.sin(angle) * outerRadius
+                const lx = center + Math.cos(angle) * labelRadius
+                const ly = center + Math.sin(angle) * labelRadius
+
+                return (
+                  <g key={axis.id}>
+                    <line
+                      x1={center}
+                      y1={center}
+                      x2={x2}
+                      y2={y2}
+                      stroke="currentColor"
+                      className="text-border"
+                    />
+                    <text
+                      x={lx}
+                      y={ly}
+                      textAnchor="middle"
+                      className="fill-[var(--color-text-secondary)] text-[11px] font-semibold"
+                    >
+                      {axis.label}
+                    </text>
+                  </g>
+                )
+              })}
+
+              <polygon
+                points={polygon}
+                fill="rgba(37,84,184,0.18)"
+                stroke="rgba(37,84,184,0.75)"
+                strokeWidth="2"
+              />
+
+              {axes.map((axis, index) => {
+                const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
+                const radius = outerRadius * (axis.score / 100)
+                const x = center + Math.cos(angle) * radius
+                const y = center + Math.sin(angle) * radius
+
+                return (
+                  <circle
+                    key={axis.id}
+                    cx={x}
+                    cy={y}
+                    r="5"
+                    fill="currentColor"
+                    className={
+                      axis.status === "success"
+                        ? "text-success"
+                        : axis.status === "danger"
+                          ? "text-danger"
+                          : "text-warning"
+                    }
+                  />
+                )
+              })}
+
+              <circle
+                cx={center}
+                cy={center}
+                r="30"
+                fill="white"
+                stroke="currentColor"
+                className="text-border"
+              />
+              <text
+                x={center}
+                y={center - 4}
+                textAnchor="middle"
+                className="fill-[var(--color-text-primary)] text-[12px] font-semibold"
+              >
+                Santé
+              </text>
+              <text
+                x={center}
+                y={center + 15}
+                textAnchor="middle"
+                className="fill-[var(--color-brand-primary)] text-[18px] font-bold"
+              >
+                {Math.round(axes.reduce((sum, axis) => sum + axis.score, 0) / axes.length)}
+              </text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
+function RevenueTrajectory({
+  points,
+  ytdRevenueActual,
+  ytdRevenueTarget,
+  ytdMarginActual,
+  ytdMarginTarget,
+}: CockpitDashboardData["trajectory"]) {
+  const width = 640
+  const height = 260
+  const paddingX = 28
+  const paddingTop = 20
+  const paddingBottom = 30
+  const maxRevenue = Math.max(
+    ...points.map((point) => Math.max(point.revenueActual ?? 0, point.revenueTarget)),
+    1,
+  )
+
+  const xFor = (index: number) =>
+    paddingX + (index * (width - paddingX * 2)) / Math.max(1, points.length - 1)
+  const yFor = (value: number) =>
+    paddingTop + (1 - value / maxRevenue) * (height - paddingTop - paddingBottom)
+
+  const actualPath = points
+    .map((point, index) => {
+      const prefix = index === 0 ? "M" : "L"
+      return `${prefix} ${xFor(index)} ${yFor(point.revenueActual ?? 0)}`
+    })
+    .join(" ")
+  const areaPath = `${actualPath} L ${xFor(points.length - 1)} ${height - paddingBottom} L ${xFor(0)} ${height - paddingBottom} Z`
+  const targetPath = points
+    .map((point, index) => {
+      const prefix = index === 0 ? "M" : "L"
+      return `${prefix} ${xFor(index)} ${yFor(point.revenueTarget)}`
+    })
+    .join(" ")
+
+  const delta = ytdRevenueActual - ytdRevenueTarget
+  const deltaLabel = `${delta >= 0 ? "+" : ""}${euroTick(delta)}`
+
+  return (
+    <SurfaceCard className="h-full">
+      <div className="flex h-full flex-col gap-5 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+              Trajectoire
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-heading">
+              Revenu réel vs plan 2026
+            </h2>
+          </div>
+          <StatusPill
+            label={deltaLabel}
+            variant={delta >= 0 ? "success" : "warning"}
+          />
+        </div>
+
+        <div className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-canvas/50 p-4">
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
+            {[0.25, 0.5, 0.75, 1].map((step) => {
+              const y = yFor(maxRevenue * step)
+              return (
+                <line
+                  key={step}
+                  x1={paddingX}
+                  y1={y}
+                  x2={width - paddingX}
+                  y2={y}
+                  stroke="currentColor"
+                  className="text-border"
+                  strokeDasharray="4 6"
+                />
+              )
+            })}
+
+            <path d={areaPath} fill="rgba(37,84,184,0.10)" />
+            <path
+              d={targetPath}
+              fill="none"
+              stroke="rgba(200,154,43,0.95)"
+              strokeWidth="2.5"
+              strokeDasharray="8 8"
+            />
+            <path
+              d={actualPath}
+              fill="none"
+              stroke="rgba(37,84,184,0.95)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {points.map((point, index) => (
+              <g key={point.monthLabel}>
+                <circle
+                  cx={xFor(index)}
+                  cy={yFor(point.revenueActual ?? 0)}
+                  r="4"
+                  fill="white"
+                  stroke="rgba(37,84,184,0.95)"
+                  strokeWidth="2"
+                />
+                <text
+                  x={xFor(index)}
+                  y={height - 8}
+                  textAnchor="middle"
+                  className="fill-[var(--color-text-secondary)] text-[11px] font-medium"
+                >
+                  {point.monthLabel}
+                </text>
+              </g>
+            ))}
+          </svg>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              YTD réel
+            </p>
+            <p className="mt-2 text-2xl font-bold text-heading">
+              {euroTick(ytdRevenueActual)}
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              YTD cible
+            </p>
+            <p className="mt-2 text-2xl font-bold text-heading">
+              {euroTick(ytdRevenueTarget)}
+            </p>
+          </div>
+          <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+              Marge YTD
+            </p>
+            <p className="mt-2 text-2xl font-bold text-heading">
+              {ytdMarginActual !== null ? `${ytdMarginActual.toFixed(1)}%` : "—"}
+            </p>
+            <p className="mt-1 text-sm text-body">cible {ytdMarginTarget}%</p>
+          </div>
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
+function AttentionStack({ items }: { items: CockpitAttentionItem[] }) {
+  return (
+    <SurfaceCard className="h-full">
+      <div className="flex h-full flex-col gap-4 p-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+            Arbitrages
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-heading">
+            Points de tension
+          </h2>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {items.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-heading">{item.title}</p>
+                  <p className="mt-1 text-sm text-body">{item.subtitle}</p>
+                </div>
+                <StatusPill label={item.actionLabel} variant={pillVariant(item.status)} />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-body">{item.detail}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
+function RenewalWatch({ renewals }: { renewals: CockpitRenewalItem[] }) {
+  return (
+    <SurfaceCard className="h-full">
+      <div className="flex h-full flex-col gap-4 p-6">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+            Continuité Delivery
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-heading">
+            Renouvellements et sorties à surveiller
+          </h2>
+        </div>
+
+        <div className="grid gap-3">
+          {renewals.map((item) => (
+            <div
+              key={item.id}
+              className="grid items-center gap-3 rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto]"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-heading">{item.company}</p>
+                <p className="mt-1 truncate text-sm text-body">{item.title}</p>
+              </div>
+              <StatusPill label={item.dueLabel} variant={pillVariant(item.status)} />
+              <div className="text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Marge</p>
+                <p className="mt-1 text-sm font-semibold text-heading">{item.marginLabel}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">CA trim.</p>
+                <p className="mt-1 text-sm font-semibold text-heading">{item.revenueLabel}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SurfaceCard>
+  )
+}
+
+function RailSummary({
+  headline,
+  recommendation,
+  accounts,
+  financeWatch,
+}: Pick<CockpitDashboardData, "headline" | "recommendation" | "accounts" | "financeWatch">) {
+  return (
+    <div className="flex flex-col gap-4">
+      <InsightCard
+        eyebrow="Lecture IA"
+        title="Ce qui compte maintenant"
+        summary={headline}
+        recommendation={recommendation}
+        sourceLabel="finance · staffing · prospection · missions"
+      />
+
+      <SurfaceCard>
+        <div className="flex flex-col gap-4 p-5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+              Comptes à animer
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-heading">
+              Activation ciblée
+            </h3>
+          </div>
+          <div className="flex flex-col gap-3">
+            {accounts.map((item) => (
+              <Link
+                key={item.id}
+                href={`/prospection/accounts/${item.id}`}
+                className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-heading">{item.name}</p>
+                    <p className="mt-1 text-sm text-body">{item.sector}</p>
+                  </div>
+                  <StatusPill label={item.scoreLabel} variant="info" />
+                </div>
+                <p className="mt-3 text-sm text-body">{item.lifecycleLabel}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </SurfaceCard>
+
+      {financeWatch.length > 0 ? (
+        <AlertBlock
+          variant="warning"
+          title="Facturation à surveiller"
+          description={`${financeWatch[0].clientName} · ${financeWatch[0].detail} · ${financeWatch[0].valueLabel}`}
+          href="/finance"
+        />
+      ) : null}
+    </div>
+  )
+}
 
 export function CockpitDesktopDashboard({
   data,
 }: {
   data: CockpitDashboardData
 }) {
-  const { kpis, bottlenecks, staffingAlerts, lowScoreProposals } = data
-
-  const [activeModal, setActiveModal] = useState<ActiveModal>(null)
-  const [alerts, setAlerts] = useState<CriticalStaffingAlert[]>(staffingAlerts)
-  const [proposals, setProposals] =
-    useState<LowScoreProposal[]>(lowScoreProposals)
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  const handleAlertMatchClick = (alert: CriticalStaffingAlert) => {
-    setActiveModal({
-      type: "match",
-      title: `Matching de Profils IA — ${alert.anomaly}`,
-      content: `Lancement du rapprochement sémantique pgvector pour résoudre l'anomalie : "${alert.statusText}". Le workflow n8n a identifié 2 profils internes compatibles à plus de 90% : Sophie Martin (Practice A) et Marc Colin (Practice 2).`,
-      targetId: alert.id,
-    })
-  }
-
-  const handleProposalReviewClick = (prop: LowScoreProposal) => {
-    setActiveModal({
-      type: "review",
-      title: `Révision de Proposition — ${prop.consultantName}`,
-      content: `La proposition pour ${prop.consultantName} chez ${prop.practiceName} (valeur : ${prop.valueAmount}) présente un score qualité IA de ${prop.iaScore}%. Points de friction détectés : manque de spécifications techniques, profils anonymisés manquants. Déclencher la correction automatique IA via n8n ?`,
-      targetId: prop.id,
-    })
-  }
-
-  const confirmAction = () => {
-    if (!activeModal || activeModal.type === "sync") return
-    setIsProcessing(true)
-    setTimeout(() => {
-      setIsProcessing(false)
-      const { targetId } = activeModal
-      if (activeModal.type === "match") {
-        setAlerts((prev) => prev.filter((a) => a.id !== targetId))
-      } else if (activeModal.type === "review") {
-        setProposals((prev) => prev.filter((p) => p.id !== targetId))
-      }
-      setActiveModal({
-        type: "sync",
-        title: "Action réussie",
-        content:
-          "L'incohérence a été résolue. Les données de pilotage sont à jour.",
-      })
-    }, 1000)
-  }
-
-  const deltaTone = (
-    status: string,
-  ): "positive" | "negative" | "neutral" => {
-    if (status === "success") return "positive"
-    if (status === "danger") return "negative"
-    return "neutral"
-  }
-
-  const BOTTLENECK_COLORS = [
-    { key: "qualif" as const, label: "Qualification", cls: "bg-dataviz-1" },
-    { key: "prop" as const, label: "Proposition", cls: "bg-dataviz-2" },
-    { key: "nego" as const, label: "Négociation", cls: "bg-dataviz-3" },
-    { key: "gagne" as const, label: "Gagné", cls: "bg-dataviz-4" },
-  ] as const
-
   return (
-    <>
-      <DesktopAnalyticalPage
-        eyebrow="Centre de profit"
-        title="Cockpit"
-        description="Vue à 360° — Pipeline pondéré, staffing et qualité des propositions."
-        maxWidth="wide"
-        actions={
-          <>
-            <Button variant="ghost" size="sm">
-              Mettre à jour
-            </Button>
-            <Button variant="ghost" size="sm">
-              Créer une campagne
-            </Button>
-            <Button variant="ghost" size="sm">
-              Construire un pitch
-            </Button>
-            <Button variant="primary" size="sm">
-              Générer une synthèse
-            </Button>
-          </>
-        }
-        kpis={
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {kpis.map((kpi) => (
-              <KpiCard
-                key={kpi.id}
-                label={kpi.label}
-                value={kpi.value}
-                delta={kpi.trendBadge}
-                deltaTone={deltaTone(kpi.status)}
-              />
-            ))}
-          </div>
-        }
-        rail={
-          <div className="flex flex-col gap-4">
-            <InsightCard
-              eyebrow="Analyse IA"
-              title="Situation du centre de profit"
-              summary="Le pipeline pondéré est en hausse. Des anomalies de staffing et propositions nécessitent une attention avant la fin de semaine."
-              recommendation="Résoudre les anomalies de staffing en priorité avant de valider les propositions commerciales."
-              sourceLabel="n8n · Analyse prédictive"
+    <DesktopAnalyticalPage
+      eyebrow="Centre de profit"
+      title="Cockpit"
+      maxWidth="full"
+      railWidth="wide"
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <HeaderActionLink href="/missions" label="Voir les missions" />
+          <HeaderActionLink href="/staffing" label="Arbitrer le staffing" />
+          <HeaderActionLink href="/prospection" label="Animer le pipe" />
+          <HeaderActionLink href="/finance" label="Ouvrir la finance" tone="primary" />
+        </div>
+      }
+      kpis={
+        <div className="grid gap-4 xl:grid-cols-4">
+          {data.kpis.map((kpi) => (
+            <KpiCard
+              key={kpi.id}
+              label={kpi.label}
+              value={kpi.value}
+              context={kpi.detail}
+              delta={kpi.trendBadge}
+              deltaTone={deltaTone(kpi.status)}
             />
-            {alerts.length > 0 ? (
-              alerts.map((alert) => (
-                <AlertBlock
-                  key={alert.id}
-                  variant="danger"
-                  title={alert.anomaly}
-                  description={alert.statusText}
-                  icon={<IconWarning />}
-                  action={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleAlertMatchClick(alert)}
-                    >
-                      AI Match
-                    </Button>
-                  }
-                />
-              ))
-            ) : (
-              <AlertBlock
-                variant="success"
-                title="Aucune anomalie active"
-                description="Toutes les anomalies critiques de staffing ont été résolues."
-                icon={<IconCheck />}
-              />
-            )}
-          </div>
-        }
-        lowerContent={
-          proposals.length > 0 ? (
-            <SurfaceCard>
-              <div className="flex flex-col gap-0 p-5">
-                <header className="flex items-center justify-between border-b border-border pb-3">
-                  <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
-                    Propositions à haute valeur
-                  </h2>
-                  <span className="text-xs text-muted">
-                    {proposals.length} à traiter
-                  </span>
-                </header>
-                <table
-                  className="w-full text-left text-sm"
-                  aria-label="Propositions à haute valeur à traiter"
-                >
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th
-                        scope="col"
-                        className="py-3 pr-4 text-xs font-medium text-muted"
-                      >
-                        Consultant
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3 pr-4 text-xs font-medium text-muted"
-                      >
-                        Client
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3 pr-4 text-xs font-medium text-muted"
-                      >
-                        Fin mission
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3 pr-4 text-right text-xs font-medium text-muted"
-                      >
-                        Valeur
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3 pr-4 text-right text-xs font-medium text-muted"
-                      >
-                        Score IA
-                      </th>
-                      <th
-                        scope="col"
-                        className="py-3 text-right text-xs font-medium text-muted"
-                      >
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {proposals.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="border-b border-border/40 last:border-0"
-                      >
-                        <td className="py-3 pr-4 font-medium text-heading">
-                          {item.consultantName}
-                        </td>
-                        <td className="py-3 pr-4 text-body">
-                          {item.practiceName}
-                        </td>
-                        <td className="py-3 pr-4 text-body">
-                          {item.finMission}
-                        </td>
-                        <td className="py-3 pr-4 text-right font-mono font-medium text-heading">
-                          {item.valueAmount}
-                        </td>
-                        <td className="py-3 pr-4 text-right">
-                          <StatusPill
-                            label={`${item.iaScore}%`}
-                            variant={scoreVariant(item.iaScore)}
-                          />
-                        </td>
-                        <td className="py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleProposalReviewClick(item)}
-                            aria-label={`Réviser la proposition de ${item.consultantName}`}
-                          >
-                            Réviser
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SurfaceCard>
-          ) : (
-            <AlertBlock
-              variant="success"
-              title="Toutes les propositions sont traitées"
-              description="Aucune proposition à haute valeur ne nécessite d'attention."
-              icon={<IconCheck />}
-            />
-          )
-        }
-      >
-        {/* Zone principale — deux panneaux analytiques côte à côte */}
-        <div className="grid grid-cols-2 gap-5">
-          {/* Panneau 1 : Alertes Critiques de Staffing */}
-          <SurfaceCard>
-            <div className="flex flex-col gap-4 p-5">
-              <header className="border-b border-border pb-3">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  Alertes Critiques — Staffing
-                </h2>
-                <p className="mt-1 text-xs text-body">
-                  Anomalies détectées et matching recommandé (n8n)
-                </p>
-              </header>
-              {alerts.length > 0 ? (
-                <ul
-                  className="flex flex-col divide-y divide-border/40"
-                  aria-label="Alertes de staffing actives"
-                >
-                  {alerts.map((alert) => (
-                    <li
-                      key={alert.id}
-                      className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-heading">
-                          {alert.anomaly}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-body">
-                          {alert.statusText}
-                        </p>
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleAlertMatchClick(alert)}
-                        aria-label={`Lancer le matching IA pour ${alert.anomaly}`}
-                      >
-                        AI Match
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-sm font-semibold text-heading">
-                    Aucune anomalie active
-                  </p>
-                  <p className="mt-1 text-xs text-body">
-                    Toutes les anomalies critiques ont été résolues.
-                  </p>
-                </div>
-              )}
-            </div>
-          </SurfaceCard>
+          ))}
+        </div>
+      }
+      rail={
+        <RailSummary
+          headline={data.headline}
+          recommendation={data.recommendation}
+          accounts={data.accounts}
+          financeWatch={data.financeWatch}
+        />
+      }
+      lowerContent={
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <RenewalWatch renewals={data.renewals} />
+          <AttentionStack items={data.attentionItems} />
+        </div>
+      }
+    >
+      <div className="grid gap-6">
+        <HealthConstellation axes={data.healthAxes} />
 
-          {/* Panneau 2 : Analyse des Goulots d'Étranglement */}
-          <SurfaceCard>
-            <div className="flex flex-col gap-4 p-5">
-              <header className="border-b border-border pb-3">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">
-                  Analyse des Goulots d&apos;Étranglement
-                </h2>
-                <p className="mt-1 text-xs text-body">
-                  Durée moyenne par étape du cycle de vente (jours)
-                </p>
-              </header>
-
-              <div className="flex flex-col gap-5">
-                {bottlenecks.map((b) => {
-                  const total =
-                    b.qualifDays +
-                    b.propDays +
-                    b.negoDays +
-                    b.gagneDays || 1
-                  return (
-                    <div key={b.stageName}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium text-body">
-                          {b.stageName}
-                        </span>
-                        <span className="font-mono text-xs text-muted">
-                          {total}j
-                        </span>
-                      </div>
-                      <div
-                        className="flex h-3 w-full overflow-hidden rounded-sm bg-canvas"
-                        role="img"
-                        aria-label={`${b.stageName} : ${total} jours au total`}
-                      >
-                        {b.qualifDays > 0 && (
-                          <div
-                            className="bg-dataviz-1"
-                            style={{
-                              width: `${(b.qualifDays / 60) * 100}%`,
-                            }}
-                          />
-                        )}
-                        {b.propDays > 0 && (
-                          <div
-                            className="bg-dataviz-2"
-                            style={{
-                              width: `${(b.propDays / 60) * 100}%`,
-                            }}
-                          />
-                        )}
-                        {b.negoDays > 0 && (
-                          <div
-                            className="bg-dataviz-3"
-                            style={{
-                              width: `${(b.negoDays / 60) * 100}%`,
-                            }}
-                          />
-                        )}
-                        {b.gagneDays > 0 && (
-                          <div
-                            className="bg-dataviz-4"
-                            style={{
-                              width: `${(b.gagneDays / 60) * 100}%`,
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
-                {BOTTLENECK_COLORS.map(({ label, cls }) => (
-                  <span
-                    key={label}
-                    className="flex items-center gap-1.5 text-xs text-muted"
-                  >
-                    <span
-                      className={`size-2 shrink-0 rounded-sm ${cls}`}
-                      aria-hidden="true"
-                    />
-                    {label}
-                  </span>
-                ))}
-              </footer>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <RevenueTrajectory {...data.trajectory} />
+          <SurfaceCard className="h-full">
+            <div className="p-6">
+              <CockpitFlowCanvas flow={data.flow} />
             </div>
           </SurfaceCard>
         </div>
-      </DesktopAnalyticalPage>
-
-      {/* Dialogue d'interaction — Matching et Révision */}
-      <AppDialog
-        open={Boolean(activeModal)}
-        onOpenChange={(open) => {
-          if (!open) setActiveModal(null)
-        }}
-        title={activeModal?.title ?? ""}
-        footer={
-          activeModal?.type === "sync" ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setActiveModal(null)}
-            >
-              Fermer
-            </Button>
-          ) : activeModal?.type === "match" ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isProcessing}
-                onClick={() => setActiveModal(null)}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                loading={isProcessing}
-                loadingLabel="Rapprochement…"
-                onClick={confirmAction}
-              >
-                Affecter un consultant
-              </Button>
-            </>
-          ) : activeModal?.type === "review" ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isProcessing}
-                onClick={() => setActiveModal(null)}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                loading={isProcessing}
-                loadingLabel="Optimisation…"
-                onClick={confirmAction}
-              >
-                Corriger avec l&apos;IA
-              </Button>
-            </>
-          ) : null
-        }
-      >
-        <p className="whitespace-pre-line">{activeModal?.content ?? ""}</p>
-      </AppDialog>
-    </>
+      </div>
+    </DesktopAnalyticalPage>
   )
 }
