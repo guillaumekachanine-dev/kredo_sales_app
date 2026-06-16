@@ -131,7 +131,6 @@ export function CockpitMobileDashboard({
       <MobileActionPage
         header={
           <MobilePageHeader
-            eyebrow="Centre de profit"
             title="Cockpit"
           />
         }

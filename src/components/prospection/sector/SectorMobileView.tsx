@@ -87,7 +87,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
         </div>
         {sector.attractiveness_score !== null && (
           <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-3 py-2">
-            <span className="text-xl font-bold text-heading font-mono">{sector.attractiveness_score}/10</span>
+            <span className="text-xl font-bold text-heading">{sector.attractiveness_score}/10</span>
             <span className="text-[9px] font-bold text-muted uppercase tracking-wide">Attractivité</span>
           </div>
         )}
@@ -229,7 +229,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
                       &quot;{pp.verbatim}&quot;
                     </p>
                   )}
-                  <span className="text-[10px] font-mono font-bold text-muted shrink-0">×{pp.frequency_count}</span>
+                  <span className="text-[10px] font-bold text-muted shrink-0">×{pp.frequency_count}</span>
                 </div>
               </div>
             ))}
@@ -306,7 +306,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
                     {LIFECYCLE_LABEL[company.lifecycle_status] ?? company.lifecycle_status}
                   </span>
                   {company.ai_score !== null && (
-                    <span className="text-[10px] font-mono font-bold text-heading">{company.ai_score}/5</span>
+                    <span className="text-[10px] font-bold text-heading">{company.ai_score}/5</span>
                   )}
                 </div>
               </Link>

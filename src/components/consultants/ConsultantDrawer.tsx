@@ -137,7 +137,7 @@ function KpiCard({
         {label}
       </p>
       <p
-        className="text-[14px] font-bold tabular-nums leading-snug"
+        className="text-[14px] font-bold leading-snug"
         style={{ color: accent ? 'var(--color-accent)' : 'var(--color-heading)' }}
       >
         {value}
@@ -394,7 +394,7 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
                     {m.company?.name ?? 'Client inconnu'}
                   </span>
                   {(m.start_date || m.end_date) && (
-                    <span className="text-[10px] tabular-nums" style={{ color: 'var(--color-muted)' }}>
+                    <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
                       {fmtDateShort(m.start_date)} → {m.end_date ? fmtDateShort(m.end_date) : 'en cours'}
                     </span>
                   )}
@@ -404,7 +404,7 @@ function TabSynthese({ data }: { data: DrawerConsultantData }) {
               {/* Marge + statut */}
               <div className="flex shrink-0 items-center gap-2">
                 {m.gross_margin_pct !== null && (
-                  <span className="tabular-nums text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--color-accent)' }}>
                     {m.gross_margin_pct} %
                   </span>
                 )}
@@ -451,7 +451,7 @@ function AbsencesList({ absences }: { absences: DrawerAbsence[] }) {
             </p>
           </div>
           <span
-            className="shrink-0 tabular-nums text-[10px] font-medium"
+            className="shrink-0 text-[10px] font-medium"
             style={{ color: 'var(--color-muted)' }}
           >
             {ab.duration_days} j
@@ -624,7 +624,7 @@ function TabCompetences({
               {/* Expérience */}
               {ps.years !== null && (
                 <span
-                  className="shrink-0 tabular-nums text-[10px] font-medium"
+                  className="shrink-0 text-[10px] font-medium"
                   style={{ color: 'var(--color-muted)' }}
                 >
                   {ps.years} an{ps.years > 1 ? 's' : ''}

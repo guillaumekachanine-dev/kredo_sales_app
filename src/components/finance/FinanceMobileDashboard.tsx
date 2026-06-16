@@ -103,7 +103,6 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
       <MobileActionPage
         header={
           <MobilePageHeader
-            eyebrow="Centre de profit"
             title="Finance"
           />
         }
@@ -189,7 +188,7 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
                 <p className="text-xs font-medium uppercase tracking-widest text-muted">
                   Résultat opérationnel
                 </p>
-                <p className="mt-2 font-mono text-2xl font-semibold tracking-tight text-heading">
+                <p className="mt-2 text-2xl font-semibold tracking-tight text-heading">
                   {opKpi.value}
                 </p>
                 {opKpi.context && (

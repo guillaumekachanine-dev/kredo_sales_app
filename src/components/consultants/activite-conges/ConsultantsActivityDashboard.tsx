@@ -332,7 +332,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
 
   return (
     <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 px-6 py-6">
-      <header className="relative overflow-hidden rounded-2xl border border-border bg-heading px-6 py-5 text-primary-fg">
+      <header className="relative overflow-hidden rounded-[var(--radius-large)] border border-border bg-heading px-6 py-5 text-primary-fg">
         <div
           className="absolute inset-0 opacity-30"
           style={{
@@ -353,7 +353,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
               Productivite CRA, absences, rentabilite reelle et fermetures client sur une seule surface de pilotage.
             </p>
           </div>
-          <div className="grid min-w-[420px] grid-cols-3 overflow-hidden rounded-xl border border-primary-fg/15 bg-primary-fg/8">
+          <div className="grid min-w-[420px] grid-cols-3 overflow-hidden rounded-[var(--radius-medium)] border border-primary-fg/15 bg-primary-fg/8">
             <HeroStat label="Activite globale" value={`${numberFr(globalActivityRate)} %`} />
             <HeroStat label="Marge reelle" value={`${numberFr(realMarginPct)} %`} />
             <HeroStat label="Alertes" value={String(activeAlerts.length)} />
@@ -362,7 +362,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
       </header>
 
       {data.sourceIssues.length > 0 && (
-        <section className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-heading">
+        <section className="rounded-[var(--radius-medium)] border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-heading">
           <strong>Sources partielles.</strong> {data.sourceIssues.join(" ")}
         </section>
       )}
@@ -396,7 +396,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
 
       <main className="grid grid-cols-[minmax(0,1.35fr)_minmax(420px,0.65fr)] gap-5">
         <div className="flex flex-col gap-5">
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="CRA mensuels"
               title="Productivite globale des collaborateurs en mission"
@@ -405,10 +405,10 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             <div className="mt-5 grid grid-cols-12 gap-2">
               {monthly.map((month) => (
                 <div key={month.month} className="flex min-h-56 flex-col justify-end gap-2">
-                  <div className="relative flex h-44 items-end rounded-xl border border-border bg-canvas px-1.5 pb-1.5">
+                  <div className="relative flex h-44 items-end rounded-[var(--radius-medium)] border border-border bg-canvas px-1.5 pb-1.5">
                     <div
                       className={cn(
-                        "w-full rounded-lg transition-all",
+                        "w-full rounded-[var(--radius-medium)] transition-all",
                         month.activityRate >= 85
                           ? "bg-success"
                           : month.activityRate >= 70
@@ -433,13 +433,13 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="Planning"
               title="Conges et absences sur l'annee"
               note="Chaque ligne reprend les absences datees issues de collaborator_absences."
             />
-            <div className="mt-5 rounded-xl border border-border">
+            <div className="mt-5 rounded-[var(--radius-medium)] border border-border">
               <div className="grid grid-cols-[190px_minmax(0,1fr)] border-b border-border bg-canvas/70">
                 <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
                   Collaborateur
@@ -468,7 +468,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                         </div>
                         <span
                           className={cn(
-                            "absolute top-1/2 h-6 -translate-y-1/2 rounded-full px-2 py-1 text-[10px] font-bold leading-4 shadow-sm",
+                            "absolute top-1/2 h-6 -translate-y-1/2 rounded-full px-2 py-1 text-[10px] font-bold leading-4",
                             ABSENCE_TONES[absence.absence_type]
                           )}
                           style={{ left: `${position.left}%`, width: `${position.width}%` }}
@@ -484,13 +484,13 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="Finance"
               title="Rentabilite theorique vs activite reelle"
               note="Salaire et CJM proviennent de collaborator_compensation quand l'acces RLS le permet."
             />
-            <div className="mt-4 overflow-hidden rounded-xl border border-border">
+            <div className="mt-4 overflow-hidden rounded-[var(--radius-medium)] border border-border">
               <table className="w-full border-collapse text-left text-xs">
                 <thead className="bg-canvas text-muted">
                   <tr>
@@ -501,19 +501,19 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                 </thead>
                 <tbody className="divide-y divide-border">
                   {financialRows.map((row) => (
-                    <tr key={row.collaborator_id} className="hover:bg-canvas/60">
+                    <tr key={row.collaborator_id} className="kredo-hover-reference">
                       <td className="px-3 py-3">
                         <p className="font-bold text-heading">{row.full_name ?? "Consultant inconnu"}</p>
                         <p className="text-[11px] text-muted">{row.months_covered} mois couverts</p>
                       </td>
-                      <td className="px-3 py-3 font-semibold tabular-nums text-body">
+                      <td className="px-3 py-3 font-semibold text-body">
                         {row.grossAnnual ? eur(row.grossAnnual) : "Acces admin requis"}
                       </td>
-                      <td className="px-3 py-3 font-semibold tabular-nums text-heading">{eur(row.avgTjm)}/j</td>
-                      <td className="px-3 py-3 tabular-nums text-body">
+                      <td className="px-3 py-3 font-semibold text-heading">{eur(row.avgTjm)}/j</td>
+                      <td className="px-3 py-3 text-body">
                         {row.theoreticalMargin === null ? "-" : `${numberFr(row.theoreticalMargin)} %`}
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-body">{numberFr(row.ytd_activity_rate)} %</td>
+                      <td className="px-3 py-3 text-body">{numberFr(row.ytd_activity_rate)} %</td>
                       <td className="px-3 py-3">
                         <ProfitBadge value={row.realProfitability} />
                       </td>
@@ -526,7 +526,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
         </div>
 
         <aside className="flex flex-col gap-5">
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="YTD"
               title="Activite moyenne par collaborateur"
@@ -540,7 +540,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                   <div key={row.collaborator_id}>
                     <div className="flex items-center justify-between gap-3 text-xs">
                       <span className="truncate font-bold text-heading">{row.full_name ?? "Consultant inconnu"}</span>
-                      <span className="font-bold tabular-nums text-body">{numberFr(row.ytd_activity_rate)} %</span>
+                      <span className="font-bold text-body">{numberFr(row.ytd_activity_rate)} %</span>
                     </div>
                     <div className="mt-1 h-2 overflow-hidden rounded-full bg-border">
                       <div
@@ -560,7 +560,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             </div>
           </section>
 
-          <section className="rounded-2xl border border-danger/25 bg-danger/5 p-5">
+          <section className="rounded-[var(--radius-large)] border border-danger/25 bg-danger/5 p-5">
             <SectionHeader
               eyebrow="Absences non prevues"
               title="Impact rentabilite"
@@ -571,7 +571,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                 <EmptyState label="Aucune absence non prevue sur la periode." />
               ) : (
                 absenceImpacts.map((impact) => (
-                  <div key={impact.absence.id} className="rounded-xl border border-border bg-surface px-3 py-3">
+                  <div key={impact.absence.id} className="rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-heading">{collaboratorName(impact.absence)}</p>
@@ -593,7 +593,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="Alertes"
               title="Rentabilites les plus faibles"
@@ -604,7 +604,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                 <EmptyState label="Aucune alerte active." />
               ) : (
                 activeAlerts.slice(0, 10).map((alert) => (
-                  <div key={`${alert.collaborator_id}-${alert.period_start}`} className="rounded-xl border border-border bg-canvas/45 px-3 py-3">
+                  <div key={`${alert.collaborator_id}-${alert.period_start}`} className="rounded-[var(--radius-medium)] border border-border bg-canvas/45 px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-heading">{alert.full_name ?? "Consultant inconnu"}</p>
@@ -625,7 +625,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
             </div>
           </section>
 
-          <section className="rounded-2xl border border-border bg-surface p-5">
+          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
             <SectionHeader
               eyebrow="Sites client"
               title="Fermetures annuelles"
@@ -636,7 +636,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
                 const position = durationPosition(closure.start_date, closure.end_date, data.year)
 
                 return (
-                  <div key={closure.id} className="rounded-xl border border-border bg-canvas/45 px-3 py-3">
+                  <div key={closure.id} className="rounded-[var(--radius-medium)] border border-border bg-canvas/45 px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-bold text-heading">{closure.company?.name ?? "Client inconnu"}</p>
@@ -664,7 +664,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
         </aside>
       </main>
 
-      <section className="rounded-2xl border border-border bg-surface p-5">
+      <section className="rounded-[var(--radius-large)] border border-border bg-surface p-5">
         <SectionHeader
           eyebrow="Registre"
           title="Liste exhaustive des absences et conges"
@@ -672,7 +672,7 @@ export function ConsultantsActivityDashboard({ data }: { data: ActivityDashboard
         />
         <div className="mt-4 grid grid-cols-2 gap-2">
           {plannedAbsences.map((absence) => (
-            <div key={absence.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-canvas/45 px-3 py-2.5">
+            <div key={absence.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-medium)] border border-border bg-canvas/45 px-3 py-2.5">
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-heading">{collaboratorName(absence)}</p>
                 <p className="truncate text-[11px] text-muted">
@@ -719,7 +719,7 @@ function MetricCard({
   }[tone]
 
   return (
-    <div className={cn("rounded-2xl border bg-surface px-4 py-4", toneClass)}>
+    <div className={cn("rounded-[var(--radius-large)] border bg-surface px-4 py-4", toneClass)}>
       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{label}</p>
       <p className="mt-2 font-heading text-2xl font-black tracking-tight text-heading">{value}</p>
       <p className="mt-1 text-xs font-medium text-body">{helper}</p>
@@ -741,9 +741,9 @@ function SectionHeader({ eyebrow, title, note }: { eyebrow: string; title: strin
 
 function InlineSummary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-2">
+    <div className="rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2">
       <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p className="mt-1 text-sm font-bold tabular-nums text-heading">{value}</p>
+      <p className="mt-1 text-sm font-bold text-heading">{value}</p>
     </div>
   )
 }
@@ -758,7 +758,7 @@ function ProfitBadge({ value }: { value: number | null | undefined }) {
         : "bg-success text-primary-fg"
 
   return (
-    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-black tabular-nums", tone)}>
+    <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-black", tone)}>
       {value === null || value === undefined ? "-" : `${numberFr(value)} %`}
     </span>
   )
@@ -766,7 +766,7 @@ function ProfitBadge({ value }: { value: number | null | undefined }) {
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-canvas/45 px-4 py-6 text-center text-sm text-muted">
+    <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-6 text-center text-sm text-muted">
       {label}
     </div>
   )

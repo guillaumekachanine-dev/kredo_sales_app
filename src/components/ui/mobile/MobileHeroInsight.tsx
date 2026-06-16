@@ -88,7 +88,7 @@ export function MobileHeroInsight({
               </h2>
 
               {value ? (
-                <div className="font-mono text-[length:var(--font-size-kpi-lg)] font-semibold leading-[var(--line-height-kpi-lg)] text-heading">
+                <div className="text-[length:var(--font-size-kpi-lg)] font-semibold leading-[var(--line-height-kpi-lg)] text-heading">
                   {value}
                 </div>
               ) : null}

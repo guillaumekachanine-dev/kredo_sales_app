@@ -277,7 +277,7 @@ export function ImpulsionKpiCard({ kpi }: { kpi: SuiviImpulsionKpi }) {
     return (
       <div className="flex flex-col gap-2">
         <span className="text-[10px] font-bold text-muted uppercase tracking-wider leading-tight">{kpi.label}</span>
-        <span className="text-2xl font-extrabold text-heading leading-none tabular-nums">{kpi.value}</span>
+        <span className="text-2xl font-extrabold text-heading leading-none">{kpi.value}</span>
         <ProgressBar value={kpi.numericValue ?? 0} status="neutral" />
         <span className="text-[10px] text-muted text-right">{kpi.subLabel}</span>
       </div>
@@ -288,7 +288,7 @@ export function ImpulsionKpiCard({ kpi }: { kpi: SuiviImpulsionKpi }) {
     return (
       <div className="flex flex-col gap-1">
         <span className="text-[10px] font-bold text-muted uppercase tracking-wider leading-tight">{kpi.label}</span>
-        <span className={cn("text-4xl font-extrabold leading-none tabular-nums mt-2", STATUS_TEXT[kpi.status])}>
+        <span className={cn("text-4xl font-extrabold leading-none mt-2", STATUS_TEXT[kpi.status])}>
           {kpi.value}
         </span>
         {kpi.numericValue !== undefined && (
@@ -304,7 +304,7 @@ export function ImpulsionKpiCard({ kpi }: { kpi: SuiviImpulsionKpi }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-[10px] font-bold text-muted uppercase tracking-wider leading-tight">{kpi.label}</span>
-      <span className={cn("text-2xl font-extrabold leading-none tabular-nums mt-1", STATUS_TEXT[kpi.status])}>
+      <span className={cn("text-2xl font-extrabold leading-none mt-1", STATUS_TEXT[kpi.status])}>
         {kpi.value}
       </span>
       {kpi.numericValue !== undefined && (
@@ -376,11 +376,11 @@ export function ActionCritiqueCard({
       {/* Row 4 : AI prediction + step */}
       <div className="flex items-center gap-3 pt-1 border-t border-border/50">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] font-mono text-muted whitespace-nowrap">ai_success_prediction</span>
+          <span className="text-[9px] text-muted whitespace-nowrap">ai_success_prediction</span>
           <AiSparkBars value={action.aiSuccessPrediction} color="bg-primary" />
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] font-mono text-muted whitespace-nowrap">ai_recommended_next_step</span>
+          <span className="text-[9px] text-muted whitespace-nowrap">ai_recommended_next_step</span>
           <AiSparkBars value={action.aiSuccessPrediction * 0.85} color="bg-success" />
         </div>
       </div>
@@ -430,11 +430,11 @@ export function RelanceIACard({
       {/* Row 4 : AI strips */}
       <div className="flex items-center gap-3 pt-1 border-t border-border/50">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] font-mono text-muted whitespace-nowrap">ai_success_prediction</span>
+          <span className="text-[9px] text-muted whitespace-nowrap">ai_success_prediction</span>
           <AiSparkBars value={relance.aiSuccessPrediction} color="bg-primary" />
         </div>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] font-mono text-muted whitespace-nowrap">ai_recommended_next_step</span>
+          <span className="text-[9px] text-muted whitespace-nowrap">ai_recommended_next_step</span>
           <AiSparkBars value={relance.aiSuccessPrediction * 0.8} color="bg-success" />
         </div>
       </div>

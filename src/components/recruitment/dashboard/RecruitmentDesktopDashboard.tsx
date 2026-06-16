@@ -385,7 +385,7 @@ export function RecruitmentDesktopDashboard({
                       <p className="text-[10px] text-body mt-0.5">
                         for {alert.role}
                       </p>
-                      <p className="text-[9px] text-muted font-mono mt-1">
+                      <p className="text-[9px] text-muted mt-1">
                         {alert.details}
                       </p>
                     </div>

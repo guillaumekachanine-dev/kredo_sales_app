@@ -35,7 +35,7 @@ const radiusClasses: Record<SurfaceCardRadius, string> = {
   sm: "rounded-[var(--radius-small)]",
   md: "rounded-[var(--radius-medium)]",
   lg: "rounded-[var(--radius-large)]",
-  xl: "rounded-[var(--radius-xl)]",
+  xl: "rounded-[var(--radius-xlarge)]",
 }
 
 const accentClasses: Record<SurfaceCardAccent, string> = {

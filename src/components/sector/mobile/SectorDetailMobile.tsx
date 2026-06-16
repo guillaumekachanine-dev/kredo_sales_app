@@ -59,7 +59,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
         <div className="border-t border-border/30 pt-3 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted font-medium">Attractivité</span>
-            <span className="font-mono font-bold text-primary">
+            <span className="font-bold text-primary">
               {sector.attractiveness_score !== null ? `${sector.attractiveness_score.toFixed(1)}/5.0` : '—'}
             </span>
           </div>
@@ -72,11 +72,11 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
         {/* Market Size & Growth */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
           <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Marché</span>
-          <span className="font-bold text-heading font-mono">
+          <span className="font-bold text-heading">
             {sector.market_size_eur_bn !== null ? `${sector.market_size_eur_bn.toFixed(1)} Md€` : '—'}
           </span>
           {sector.market_growth_pct !== null && (
-            <span className="text-[10px] text-success font-semibold font-mono">
+            <span className="text-[10px] text-success font-semibold">
               +{sector.market_growth_pct.toFixed(1)}% / an
             </span>
           )}
@@ -85,7 +85,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
         {/* TJM */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
           <span className="text-[9px] font-bold text-muted uppercase tracking-wider">TJM Moyen</span>
-          <span className="font-bold text-heading font-mono">
+          <span className="font-bold text-heading">
             {sector.avg_tjm_min !== null && sector.avg_tjm_max !== null
               ? `${sector.avg_tjm_min} - ${sector.avg_tjm_max} €`
               : sector.avg_tjm_min !== null
@@ -105,7 +105,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
         {/* Practices Fit */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
           <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Comptes liés</span>
-          <span className="font-bold text-heading font-mono">
+          <span className="font-bold text-heading">
             {sector.companies.length} {sector.companies.length > 1 ? 'comptes' : 'compte'}
           </span>
           <span className="text-[10px] text-muted font-medium">Au portefeuille</span>

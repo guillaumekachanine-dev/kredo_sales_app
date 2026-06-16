@@ -100,7 +100,7 @@ function StandingProfileList({
               {getStatusLabel(profile.opportunity_status)}
             </span>
             {profile.expected_daily_rate !== null && (
-              <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted tabular-nums">
+              <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
                 {formatEuro(profile.expected_daily_rate)}
               </span>
             )}
@@ -205,7 +205,7 @@ export function OpportunityStandingPanel({
             <h3 className="text-sm font-bold text-heading">
               Profils pressentis
             </h3>
-            <span className="text-[10px] font-semibold text-muted tabular-nums">{selectedProfiles.length}</span>
+            <span className="text-[10px] font-semibold text-muted">{selectedProfiles.length}</span>
           </div>
           <StandingProfileList
             profiles={selectedProfiles}
@@ -218,7 +218,7 @@ export function OpportunityStandingPanel({
             <h3 className="text-sm font-bold text-heading">
               Propositions IA
             </h3>
-            <span className="text-[10px] font-semibold text-muted tabular-nums">{aiProfiles.length}</span>
+            <span className="text-[10px] font-semibold text-muted">{aiProfiles.length}</span>
           </div>
           <StandingProfileList
             profiles={aiProfiles}

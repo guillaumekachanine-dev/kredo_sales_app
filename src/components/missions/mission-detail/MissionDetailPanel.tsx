@@ -852,11 +852,11 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
                     </div>
                     <div className="flex flex-col text-[9px] text-muted">
                       {c.email && (
-                        <span className="font-mono truncate" title={c.email}>
+                        <span className="truncate" title={c.email}>
                           {c.email}
                         </span>
                       )}
-                      {c.phone && <span className="font-mono">{c.phone}</span>}
+                      {c.phone && <span>{c.phone}</span>}
                     </div>
                   </div>
                 ))}
@@ -1001,7 +1001,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
               <span className="font-bold text-heading uppercase bg-border/50 px-1.5 py-0.2 rounded shrink-0">
                 {interactions[0].type}
               </span>
-              <span className="text-muted font-mono">{formatDateFr(interactions[0].occurred_at)}</span>
+              <span className="text-muted">{formatDateFr(interactions[0].occurred_at)}</span>
             </div>
             <p className="text-xs text-body line-clamp-2 italic leading-relaxed mt-1">
               &ldquo;{interactions[0].summary || "Aucune description écrite"}&rdquo;

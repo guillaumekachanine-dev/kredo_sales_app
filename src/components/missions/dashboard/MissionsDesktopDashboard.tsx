@@ -230,7 +230,7 @@ export function MissionsDesktopDashboard({
             style={{ width: `${pct}%` }}
           >
             {/* Tooltip on hover */}
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-50 select-none">
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded whitespace-nowrap z-50 select-none">
               {opp.client} : {opp.title} ({opp.amount})
             </span>
           </button>
@@ -293,7 +293,7 @@ export function MissionsDesktopDashboard({
           className={`${item.color} h-full hover:opacity-90 transition-all cursor-pointer border-r border-surface/25 last:border-0 relative group`}
           style={{ width: `${item.pct}%` }}
         >
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded shadow-lg whitespace-nowrap z-50 select-none">
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block bg-slate-800 text-white text-[10px] py-1 px-2.5 rounded whitespace-nowrap z-50 select-none">
             {item.client} : {item.title} ({item.pct}%)
           </span>
         </button>
@@ -332,7 +332,7 @@ export function MissionsDesktopDashboard({
       {/* KPI Cards Row */}
       <div className="grid grid-cols-4 gap-4">
         {/* KPI 1: Missions en cours / Clients actifs */}
-        <div className="bg-surface rounded-xl p-4 border border-border/80 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none">
+        <div className="bg-surface rounded-[var(--radius-medium)] p-4 border border-border/80 grid grid-cols-2 divide-x divide-border/40 select-none">
           <div className="pr-4 flex flex-col justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
               Missions en cours
@@ -352,7 +352,7 @@ export function MissionsDesktopDashboard({
         </div>
 
         {/* KPI 2: TJM Moyen / Marge moyenne */}
-        <div className="bg-surface rounded-xl p-4 border border-border/80 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none">
+        <div className="bg-surface rounded-[var(--radius-medium)] p-4 border border-border/80 grid grid-cols-2 divide-x divide-border/40 select-none">
           <div className="pr-4 flex flex-col justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
               TJ Moyen
@@ -372,7 +372,7 @@ export function MissionsDesktopDashboard({
         </div>
 
         {/* KPI 3: Opps ouvertes / Pipe Oppy */}
-        <div className="bg-surface rounded-xl p-4 border border-border/80 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none">
+        <div className="bg-surface rounded-[var(--radius-medium)] p-4 border border-border/80 grid grid-cols-2 divide-x divide-border/40 select-none">
           <div className="pr-4 flex flex-col justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
               Oppy ouvertes
@@ -392,7 +392,7 @@ export function MissionsDesktopDashboard({
         </div>
 
         {/* KPI 4: TACI moyen / Bench */}
-        <div className="bg-surface rounded-xl p-4 border border-border/80 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none relative overflow-hidden">
+        <div className="bg-surface rounded-[var(--radius-medium)] p-4 border border-border/80 grid grid-cols-2 divide-x divide-border/40 select-none relative overflow-hidden">
           <div className="pr-4 flex flex-col justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
               TACI moyen
@@ -425,19 +425,19 @@ export function MissionsDesktopDashboard({
         </div>
 
         {/* New Répartition Section */}
-        <div className="col-span-4 bg-surface rounded-xl border border-border/80 shadow-sm p-5 flex flex-col justify-between select-none">
+        <div className="col-span-4 bg-surface rounded-[var(--radius-medium)] border border-border/80 p-5 flex flex-col justify-between select-none">
           <div className="flex items-center justify-between pb-3 border-b border-border/40 mb-4">
             <h2 className="text-sm font-bold text-heading font-heading">
               Répartition par practice
             </h2>
-            <div className="flex items-center bg-canvas p-0.5 rounded-lg border border-border/80">
+            <div className="flex items-center bg-canvas p-0.5 rounded-[var(--radius-medium)] border border-border/80">
               <button
                 type="button"
                 onClick={() => setRepartitionMode("etp")}
                 className={cn(
                   "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
                   repartitionMode === "etp"
-                    ? "bg-surface text-primary shadow-sm"
+                    ? "bg-surface text-primary"
                     : "text-muted hover:text-body"
                 )}
               >
@@ -449,7 +449,7 @@ export function MissionsDesktopDashboard({
                 className={cn(
                   "px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer",
                   repartitionMode === "ca"
-                    ? "bg-surface text-primary shadow-sm"
+                    ? "bg-surface text-primary"
                     : "text-muted hover:text-body"
                 )}
               >
@@ -529,7 +529,7 @@ export function MissionsDesktopDashboard({
       <div className="grid grid-cols-12 gap-5 items-stretch">
         
         {/* Shortened Pipeline Commercial des Opportunités (col-span-8) */}
-        <div className="col-span-8 bg-surface rounded-xl border border-border/80 shadow-sm p-5 flex flex-col">
+        <div className="col-span-8 bg-surface rounded-[var(--radius-medium)] border border-border/80 p-5 flex flex-col">
           <div className="flex items-center justify-between mb-6 pb-2 border-b border-border/40 select-none">
             <h2 className="text-sm font-bold text-heading font-heading">
               Pipeline Commercial des Opportunités
@@ -541,7 +541,7 @@ export function MissionsDesktopDashboard({
                 <select
                   value={filterOppsCriticite}
                   onChange={(e) => setFilterOppsCriticite(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
+                  className="text-xs border border-border bg-surface text-body rounded-[var(--radius-medium)] py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
                 >
                   <option value="all">Filtrer par criticité</option>
                   <option value="high">Priorité Haute</option>
@@ -558,7 +558,7 @@ export function MissionsDesktopDashboard({
                 <select
                   value={filterTjm}
                   onChange={(e) => setFilterTjm(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
+                  className="text-xs border border-border bg-surface text-body rounded-[var(--radius-medium)] py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
                 >
                   <option value="all">Filtrer par TJM</option>
                   <option value="500">&gt; 500 €</option>
@@ -611,7 +611,7 @@ export function MissionsDesktopDashboard({
               <Link href="/missions/opps" className="w-20 text-xs font-semibold text-heading hover:text-primary transition-colors text-right select-none">
                 Qualif
               </Link>
-              <div className="flex-1 h-6 bg-slate-100/50 rounded-lg overflow-hidden flex shadow-inner">
+              <div className="flex-1 h-6 bg-slate-100/50 rounded-[var(--radius-medium)] overflow-hidden flex">
                 {renderStageBar("Qualif", ["bg-success", "bg-emerald-600", "bg-green-700"])}
               </div>
             </div>
@@ -621,7 +621,7 @@ export function MissionsDesktopDashboard({
               <Link href="/missions/opps" className="w-20 text-xs font-semibold text-heading hover:text-primary transition-colors text-right select-none">
                 Proposition
               </Link>
-              <div className="flex-1 h-6 bg-slate-100/50 rounded-lg overflow-hidden flex shadow-inner">
+              <div className="flex-1 h-6 bg-slate-100/50 rounded-[var(--radius-medium)] overflow-hidden flex">
                 {renderStageBar("Proposition", ["bg-[#FF9800]", "bg-orange-600", "bg-amber-500"])}
               </div>
             </div>
@@ -631,7 +631,7 @@ export function MissionsDesktopDashboard({
               <Link href="/missions/opps" className="w-20 text-xs font-semibold text-heading hover:text-primary transition-colors text-right select-none">
                 Nego
               </Link>
-              <div className="flex-1 h-6 bg-slate-100/50 rounded-lg overflow-hidden flex shadow-inner">
+              <div className="flex-1 h-6 bg-slate-100/50 rounded-[var(--radius-medium)] overflow-hidden flex">
                 {renderStageBar("Nego", ["bg-amber-600", "bg-[#D97020]", "bg-amber-800"])}
               </div>
             </div>
@@ -641,7 +641,7 @@ export function MissionsDesktopDashboard({
               <Link href="/missions/opps" className="w-20 text-xs font-semibold text-heading hover:text-primary transition-colors text-right select-none">
                 Gagne
               </Link>
-              <div className="flex-1 h-6 bg-slate-100/50 rounded-lg overflow-hidden flex shadow-inner">
+              <div className="flex-1 h-6 bg-slate-100/50 rounded-[var(--radius-medium)] overflow-hidden flex">
                 {renderStageBar("Gagne", ["bg-teal-600", "bg-emerald-700", "bg-teal-800"])}
               </div>
             </div>
@@ -652,7 +652,7 @@ export function MissionsDesktopDashboard({
         </div>
 
         {/* Alertes Staffing AI Sidebar (Moved down here, col-span-4) */}
-        <div className="col-span-4 bg-surface rounded-xl border border-border/80 shadow-sm p-5 flex flex-col justify-between">
+        <div className="col-span-4 bg-surface rounded-[var(--radius-medium)] border border-border/80 p-5 flex flex-col justify-between">
           <div>
             <div className="pb-2 border-b border-border/40 mb-3 select-none">
               <h2 className="text-sm font-bold text-heading font-heading">
@@ -681,7 +681,7 @@ export function MissionsDesktopDashboard({
                         })
                       }
                     }}
-                    className="p-3 bg-canvas/40 border border-border/60 hover:border-primary/50 hover:bg-canvas/60 rounded-xl flex items-start justify-between gap-3 group transition-all cursor-pointer transform hover:translate-y-[-1px]"
+                    className="p-3 bg-canvas/40 border border-border/60 hover:border-primary/50 hover:bg-canvas/60 rounded-[var(--radius-medium)] flex items-start justify-between gap-3 group transition-all cursor-pointer transform hover:translate-y-[-1px]"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-heading truncate group-hover:text-primary transition-colors">
@@ -690,12 +690,12 @@ export function MissionsDesktopDashboard({
                       <p className="text-[10px] text-body mt-0.5">
                         for {alert.opportunity}
                       </p>
-                      <p className="text-[9px] text-muted font-mono mt-1">
+                      <p className="text-[9px] text-muted mt-1">
                         {alert.details}
                       </p>
                     </div>
                     {/* Robot head SVG icon */}
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 text-[#2554B8] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-[var(--radius-medium)] bg-blue-50 border border-blue-100 text-[#2554B8] flex items-center justify-center shrink-0">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2z" />
                       </svg>

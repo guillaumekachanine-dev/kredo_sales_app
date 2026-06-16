@@ -220,7 +220,7 @@ function ContactCompanyCombobox({
         autoComplete="off"
       />
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface">
           {filteredAccounts.length > 0 ? (
             filteredAccounts.map((account) => (
               <button
@@ -290,7 +290,7 @@ function CompanyFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
+      <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden border border-border animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
           {initial || !createKind || !onCreateKindChange ? (
             <h2 className="text-base font-bold text-heading font-heading">
@@ -440,7 +440,7 @@ function ContactFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden shadow-2xl border border-border animate-in zoom-in-95 duration-200">
+      <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden border border-border animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
           {initial || !createKind || !onCreateKindChange ? (
             <h2 className="text-base font-bold text-heading font-heading">
@@ -670,7 +670,7 @@ function DeleteConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <SurfaceCard className="w-full max-w-sm p-6 shadow-2xl border border-border animate-in zoom-in-95 duration-200 flex flex-col gap-4">
+      <SurfaceCard className="w-full max-w-sm p-6 border border-border animate-in zoom-in-95 duration-200 flex flex-col gap-4">
         <h2 className="text-base font-bold text-heading font-heading">Confirmer la suppression</h2>
         <p className="text-sm text-body">
           Supprimer <span className="font-semibold text-heading">{label}</span> ? Cette action est irréversible.
@@ -728,7 +728,7 @@ function AccountsDesktop({
             {accounts.map((account) => {
               const hasStudy = studies.some((s) => s.id === account.id)
               return (
-                <tr key={account.id} id={`account-row-${account.id}`} className="transition-colors hover:bg-canvas/40">
+                <tr key={account.id} id={`account-row-${account.id}`} className="kredo-hover-reference">
                   <td className="px-5 py-3 truncate">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
@@ -748,16 +748,16 @@ function AccountsDesktop({
                   </td>
                   <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
                   <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
-                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{displayRevenue(account.revenue)}</td>
-                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
-                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{account.contactCount}</td>
-                  <td className="px-3 py-3 text-center font-semibold tabular-nums text-heading">{formatScore(account.score)}</td>
+                  <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
+                  <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
+                  <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
+                  <td className="px-3 py-3 text-center font-semibold text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center">
                     {hasStudy ? (
                       <Link
                         href={`/prospection/accounts/${account.id}`}
-                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95 whitespace-nowrap"
+                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap"
                       >
                         <span>Cockpit client</span>
                         <span
@@ -845,7 +845,7 @@ function AccountsMobile({
               {hasStudy && (
                 <Link
                   href={`/prospection/accounts/${account.id}`}
-                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95 whitespace-nowrap"
+                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap"
                 >
                   <span>Cockpit client</span>
                   <span
@@ -900,7 +900,7 @@ function ContactsDesktop({
           </thead>
           <tbody className="divide-y divide-border/50">
             {contacts.map((contact) => (
-              <tr key={contact.id} className="transition-colors hover:bg-canvas/40">
+              <tr key={contact.id} className="kredo-hover-reference">
                 <td className="px-5 py-3 font-semibold text-heading">
                   <span
                     onClick={() => onOpenIdentity(contact.id)}
@@ -1047,7 +1047,7 @@ function NewEntityTitle({
             onClick={() => onKindChange(option.value)}
             className={cn(
               "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
-              kind === option.value ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
+              kind === option.value ? "bg-primary text-primary-fg" : "text-muted hover:text-heading hover:bg-canvas/50"
             )}
             aria-pressed={kind === option.value}
           >
@@ -1234,7 +1234,7 @@ export function ProspectionAccountsView({
           onClick={() => setParam("tab", "accounts")}
           className={cn(
             "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
-            subTab === "accounts" ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
+            subTab === "accounts" ? "bg-primary text-primary-fg" : "text-muted hover:text-heading hover:bg-canvas/50"
           )}
         >
           Comptes ({filteredAccounts.length})
@@ -1243,7 +1243,7 @@ export function ProspectionAccountsView({
           onClick={() => setParam("tab", "contacts")}
           className={cn(
             "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
-            subTab === "contacts" ? "bg-primary text-primary-fg shadow-sm" : "text-muted hover:text-heading hover:bg-canvas/50"
+            subTab === "contacts" ? "bg-primary text-primary-fg" : "text-muted hover:text-heading hover:bg-canvas/50"
           )}
         >
           Contacts ({filteredContacts.length})

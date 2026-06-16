@@ -103,7 +103,7 @@ export function SectorDetailDesktop({ sector }: SectorDetailDesktopProps) {
             <div className="border-t border-border/40 pt-4 space-y-3.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted font-medium">Taille du marché</span>
-                <span className="font-bold text-heading font-mono">
+                <span className="font-bold text-heading">
                   {sector.market_size_eur_bn !== null ? `${sector.market_size_eur_bn.toFixed(1)} Md€` : '—'}
                   {sector.market_growth_pct !== null ? ` (+${sector.market_growth_pct.toFixed(1)}%)` : ''}
                 </span>
@@ -116,7 +116,7 @@ export function SectorDetailDesktop({ sector }: SectorDetailDesktopProps) {
 
               <div className="flex items-center justify-between">
                 <span className="text-muted font-medium">TJM Moyen (min / max)</span>
-                <span className="font-bold text-heading font-mono">
+                <span className="font-bold text-heading">
                   {sector.avg_tjm_min !== null && sector.avg_tjm_max !== null
                     ? `${sector.avg_tjm_min} € - ${sector.avg_tjm_max} €`
                     : sector.avg_tjm_min !== null

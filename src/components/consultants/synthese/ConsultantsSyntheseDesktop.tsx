@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { practiceBadgeStyle, getPracticeByName } from '@/lib/config/practices'
+import { getPracticeByName } from '@/lib/config/practices'
 import { cn } from '@/lib/utils'
 import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
+import { StructuredList, type StructuredListColumn } from '@/components/ui/StructuredList'
+import { StatusPill } from '@/components/ui/StatusPill'
 
 // ─── Type exporté — utilisé par page.tsx ─────────────────────────────────────
 
@@ -34,14 +36,20 @@ export interface CollaborateurRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const AVATAR_PALETTE = [
-  '#2554B8', '#2C7D5C', '#D97020', '#C08A20',
-  '#BE3E3E', '#526074', '#7B5EA7', '#1B7FA0',
+const AVATAR_CSS_VARS = [
+  'var(--color-primary)',
+  'var(--color-success)',
+  'var(--color-warning)',
+  'var(--color-dataviz-2)',
+  'var(--color-danger)',
+  'var(--color-dataviz-3)',
+  'var(--color-accent)',
+  'var(--color-info)',
 ]
 
 function avatarColor(name: string): string {
   const code = name.charCodeAt(0) + (name.charCodeAt(1) || 0)
-  return AVATAR_PALETTE[code % AVATAR_PALETTE.length]
+  return AVATAR_CSS_VARS[code % AVATAR_CSS_VARS.length]
 }
 
 function getInitials(row: CollaborateurRow): string {
@@ -148,8 +156,8 @@ function KpiCard({
   return (
     <div
       className={cn(
-        'group relative min-h-[100px] overflow-hidden rounded-xl border border-border bg-surface px-4 py-3',
-        'shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md'
+        'group relative min-h-[100px] overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface px-4 py-3',
+        'shadow-sm transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-primary/35'
       )}
     >
       <div className={cn('absolute inset-y-0 left-0 w-24 bg-gradient-to-r to-transparent', toneClasses.glow)} />
@@ -174,7 +182,7 @@ function KpiCard({
         </div>
 
         <div className="flex items-end justify-between gap-4">
-          <p className={cn('font-heading text-[28px] font-black leading-none tracking-tight tabular-nums', toneClasses.text)}>
+          <p className={cn('font-heading text-[28px] font-black leading-none tracking-tight', toneClasses.text)}>
             {value}
           </p>
           <div className="mb-1 h-1.5 w-24 overflow-hidden rounded-full bg-border">
@@ -205,7 +213,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none rounded-lg border px-3 py-1.5 pr-8 text-xs font-medium focus:outline-none"
+        className="appearance-none rounded-[var(--radius-medium)] border px-3 py-1.5 pr-8 text-xs font-medium focus:outline-none"
         style={{
           borderColor: 'var(--color-border)',
           background: 'var(--color-surface)',
@@ -292,7 +300,7 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
 
       {/* ── Liste collaborateurs ─────────────────────────────────────── */}
       <section
-        className="border rounded-xl flex flex-col gap-4 p-5"
+        className="border rounded-[var(--radius-medium)] flex flex-col gap-4 p-5"
         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       >
         {/* Header + filtres */}
@@ -321,171 +329,151 @@ export function ConsultantsSyntheseDesktop({ data }: Props) {
         </div>
 
         {/* Table */}
-        {filtered.length === 0 ? (
-          <div
-            className="flex min-h-40 items-center justify-center rounded-xl border border-dashed text-xs"
-            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-          >
-            Aucun collaborateur ne correspond aux filtres sélectionnés.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
-              <thead>
-                <tr
-                  className="border-b"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
-                >
-                  {['Consultant', 'Profil / Séniorité', 'Practice', 'Client actuel', 'Fin de mission', 'TJM', 'CJM', 'Marge', 'Statut'].map((h) => (
-                    <th key={h} className="py-2.5 pb-3 pr-4 font-semibold last:pr-0">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody
-                className="divide-y"
-                style={{ '--tw-divide-opacity': 1 } as React.CSSProperties}
-              >
-                {filtered.map((collab) => {
-                  const name      = getFullName(collab)
-                  const initials  = getInitials(collab)
-                  const color     = avatarColor(name)
-                  const mission   = getActiveMission(collab)
-                  const daysInfo  = mission ? getDaysInfo(mission.end_date) : null
-                  const enMission = Boolean(mission)
-
-                  return (
-                    <tr
-                      key={collab.id}
-                      className="cursor-pointer transition-colors duration-100"
-                      style={{ borderColor: 'var(--color-border)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-canvas)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                      onClick={() => openDrawer(collab.id)}
+        <StructuredList
+          density="default"
+          items={filtered}
+          getItemId={(c) => c.id}
+          onItemClick={(c) => openDrawer(c.id)}
+          ariaLabel="Synthèse consultants"
+          emptyState="Aucun collaborateur ne correspond aux filtres sélectionnés."
+          columns={[
+            {
+              id: 'consultant',
+              header: 'Consultant',
+              render: (collab) => {
+                const name     = getFullName(collab)
+                const initials = getInitials(collab)
+                const color    = avatarColor(name)
+                return (
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                      style={{ background: color }}
                     >
-                      {/* Consultant */}
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-2.5 group">
-                          <div
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                            style={{ background: color }}
-                          >
-                            {initials}
-                          </div>
-                          <span
-                            className="font-semibold"
-                            style={{ color: 'var(--color-heading)' }}
-                          >
-                            {name}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Profil / Séniorité */}
-                      <td className="py-3 pr-4">
-                        <div className="flex flex-col gap-0.5">
-                          {collab.current_title && (
-                            <span style={{ color: 'var(--color-body)' }}>{collab.current_title}</span>
-                          )}
-                          {collab.seniority && (
-                            <span className="text-[10px]" style={{ color: 'var(--color-muted)' }}>
-                              {collab.seniority}
-                            </span>
-                          )}
-                          {!collab.current_title && !collab.seniority && (
-                            <span style={{ color: 'var(--color-muted)' }}>—</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Practice */}
-                      <td className="py-3 pr-4">
-                        {collab.practice ? (
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{ background: getPracticeByName(collab.practice)?.color || 'var(--color-muted)' }}
-                            />
-                            <span style={{ color: 'var(--color-body)' }}>
-                              {collab.practice}
-                            </span>
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--color-muted)' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* Client actuel */}
-                      <td className="py-3 pr-2">
-                        {mission?.company ? (
-                          <span className="font-medium" style={{ color: 'var(--color-body)' }}>
-                            {mission.company.name}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--color-muted)' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* Fin de mission */}
-                      <td className="py-3 pr-4">
-                        {daysInfo ? (
-                          <div className="flex w-32 flex-col gap-1">
-                            <span className="text-[10px]" style={{ color: 'var(--color-body)' }}>
-                              {daysInfo.label}
-                            </span>
-                            <div
-                              className="h-1.5 w-full overflow-hidden rounded-full"
-                              style={{ background: 'var(--color-border)' }}
-                            >
-                              <div
-                                className={`h-full ${daysInfo.barColor}`}
-                                style={{ width: `${daysInfo.pct}%` }}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--color-muted)' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* TJM */}
-                      <td className="py-3 pr-4 font-semibold tabular-nums" style={{ color: 'var(--color-heading)' }}>
-                        {mission ? fmtEur(mission.tjm) : '—'}
-                      </td>
-
-                      {/* CJM */}
-                      <td className="py-3 pr-4 tabular-nums" style={{ color: 'var(--color-body)' }}>
-                        {mission ? fmtEur(mission.cjm) : '—'}
-                      </td>
-
-                      {/* Marge */}
-                      <td className="py-3 pr-4 tabular-nums font-medium" style={{ color: 'var(--color-accent)' }}>
-                        {mission?.gross_margin_pct != null
-                          ? `${mission.gross_margin_pct} %`
-                          : '—'}
-                      </td>
-
-                      {/* Statut */}
-                      <td className="py-3">
-                        <span
-                          className="rounded-full px-2.5 py-0.5 text-[10px] font-bold"
-                          style={
-                            enMission
-                              ? { background: '#d1fae5', color: '#065f46' }
-                              : { background: '#fef3c7', color: '#92400e' }
-                          }
-                        >
-                          {enMission ? 'En mission' : 'Inter-contrat'}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      {initials}
+                    </div>
+                    <span className="font-semibold text-heading">{name}</span>
+                  </div>
+                )
+              },
+            },
+            {
+              id: 'profil',
+              header: 'Profil / Séniorité',
+              render: (collab) => (
+                <div className="flex flex-col gap-0.5">
+                  {collab.current_title && (
+                    <span className="text-body">{collab.current_title}</span>
+                  )}
+                  {collab.seniority && (
+                    <span className="text-[10px] text-muted">{collab.seniority}</span>
+                  )}
+                  {!collab.current_title && !collab.seniority && (
+                    <span className="text-muted">—</span>
+                  )}
+                </div>
+              ),
+            },
+            {
+              id: 'practice',
+              header: 'Practice',
+              render: (collab) =>
+                collab.practice ? (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: getPracticeByName(collab.practice)?.color || 'var(--color-muted)' }}
+                    />
+                    <span className="text-body">{collab.practice}</span>
+                  </div>
+                ) : (
+                  <span className="text-muted">—</span>
+                ),
+            },
+            {
+              id: 'client',
+              header: 'Client actuel',
+              render: (collab) => {
+                const mission = getActiveMission(collab)
+                return mission?.company ? (
+                  <span className="font-medium text-body">{mission.company.name}</span>
+                ) : (
+                  <span className="text-muted">—</span>
+                )
+              },
+            },
+            {
+              id: 'fin-mission',
+              header: 'Fin de mission',
+              width: '9rem',
+              render: (collab) => {
+                const mission  = getActiveMission(collab)
+                const daysInfo = mission ? getDaysInfo(mission.end_date) : null
+                if (!daysInfo) return <span className="text-muted">—</span>
+                return (
+                  <div className="flex w-32 flex-col gap-1">
+                    <span className="text-[10px] text-body">{daysInfo.label}</span>
+                    <div
+                      className="h-1.5 w-full overflow-hidden rounded-full"
+                      style={{ background: 'var(--color-border)' }}
+                    >
+                      <div className={`h-full ${daysInfo.barColor}`} style={{ width: `${daysInfo.pct}%` }} />
+                    </div>
+                  </div>
+                )
+              },
+            },
+            {
+              id: 'tjm',
+              header: 'TJM',
+              align: 'right',
+              width: '5rem',
+              render: (collab) => {
+                const mission = getActiveMission(collab)
+                return <span className="font-semibold text-heading">{mission ? fmtEur(mission.tjm) : '—'}</span>
+              },
+            },
+            {
+              id: 'cjm',
+              header: 'CJM',
+              align: 'right',
+              width: '5rem',
+              render: (collab) => {
+                const mission = getActiveMission(collab)
+                return <span className="text-body">{mission ? fmtEur(mission.cjm) : '—'}</span>
+              },
+            },
+            {
+              id: 'marge',
+              header: 'Marge',
+              align: 'right',
+              width: '4.5rem',
+              render: (collab) => {
+                const mission = getActiveMission(collab)
+                return (
+                  <span className="font-medium text-accent">
+                    {mission?.gross_margin_pct != null ? `${mission.gross_margin_pct} %` : '—'}
+                  </span>
+                )
+              },
+            },
+            {
+              id: 'statut',
+              header: 'Statut',
+              align: 'center',
+              width: '7.5rem',
+              render: (collab) => {
+                const enMission = Boolean(getActiveMission(collab))
+                return (
+                  <StatusPill
+                    label={enMission ? 'En mission' : 'Inter-contrat'}
+                    variant={enMission ? 'success' : 'warning'}
+                  />
+                )
+              },
+            },
+          ] satisfies StructuredListColumn<CollaborateurRow>[]}
+        />
       </section>
 
       {/* ── Drawer profil consultant ──────────────────────────────────── */}

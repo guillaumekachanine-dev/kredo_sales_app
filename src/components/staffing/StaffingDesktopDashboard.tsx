@@ -182,7 +182,7 @@ export function StaffingDesktopDashboard({ data }: { data: StaffingDashboardData
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-lg font-bold text-heading tabular-nums">{data.weeklyDeadlines.length}</p>
+                <p className="text-lg font-bold text-heading">{data.weeklyDeadlines.length}</p>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
                   échéances
                 </p>
@@ -252,7 +252,7 @@ function PremiumKpiCard({ kpi, index }: { kpi: StaffingKpi; index: number }) {
             </p>
             <span className={cn("mt-1 h-2.5 w-2.5 rounded-full transition-transform duration-300 group-hover:scale-150", tone.fill)} />
           </div>
-          <p className="mt-4 font-heading text-4xl font-bold leading-none tracking-tight text-heading tabular-nums">
+          <p className="mt-4 font-heading text-4xl font-bold leading-none tracking-tight text-heading">
             {kpi.value}
           </p>
           <div className="mt-3 flex items-center gap-2">
@@ -320,7 +320,7 @@ function StageFlow({
                 <span className={cn("flex h-8 w-8 items-center justify-center rounded-full border bg-surface text-[11px] font-black", tone.border, tone.text)}>
                   {index + 1}
                 </span>
-                <span className="text-right font-mono text-xs font-bold text-heading">{stage.share}%</span>
+                <span className="text-right text-xs font-bold text-heading">{stage.share}%</span>
               </div>
               <div className="flex min-h-28 items-end gap-3">
                 <div className="flex-1">
@@ -356,7 +356,7 @@ function PositioningDetailPanel({
           <p className={cn("text-[10px] font-bold uppercase tracking-[0.16em]", tone.text)}>Détails positionnement</p>
           <h3 className="mt-1 text-sm font-bold text-heading">{stage.label}</h3>
         </div>
-        <span className="font-heading text-2xl font-bold text-heading tabular-nums">{details.length}</span>
+        <span className="font-heading text-2xl font-bold text-heading">{details.length}</span>
       </div>
 
       {details.length === 0 ? (
@@ -374,7 +374,7 @@ function PositioningDetailPanel({
               <p className="truncate text-xs font-semibold text-body">{detail.clientName}</p>
               <p className="truncate text-xs text-body">{detail.needTitle}</p>
               <p className="text-right text-xs font-semibold text-heading">{detail.startDateLabel}</p>
-              <p className="text-right font-mono text-xs font-bold text-heading">{detail.tjmLabel}</p>
+              <p className="text-right text-xs font-bold text-heading">{detail.tjmLabel}</p>
             </div>
           ))}
         </div>
@@ -403,7 +403,7 @@ function NeedCoveragePanel({
             <h2 className="mt-1 text-lg font-bold text-heading">Besoins ouverts</h2>
             <p className="mt-1 text-xs text-body">Cliquez une ligne pour ouvrir le dossier besoin.</p>
           </div>
-          <span className="rounded-lg bg-heading px-3 py-2 font-heading text-3xl font-bold text-primary-fg tabular-nums">
+          <span className="rounded-lg bg-heading px-3 py-2 font-heading text-3xl font-bold text-primary-fg">
             {data.openNeeds.length}
           </span>
         </div>
@@ -482,7 +482,7 @@ function SourceConstellation({ origins, maxCount }: { origins: StaffingOriginBuc
               <p className="mt-1 text-[11px] text-muted">{origin.share}% du flux</p>
             </div>
             <div className="relative flex items-end justify-between">
-              <p className="font-heading text-3xl font-bold text-heading tabular-nums">{origin.count}</p>
+              <p className="font-heading text-3xl font-bold text-heading">{origin.count}</p>
               <span className={cn("rounded-full px-2 py-1 text-[10px] font-bold", tone.soft, tone.text)}>
                 #{index + 1}
               </span>

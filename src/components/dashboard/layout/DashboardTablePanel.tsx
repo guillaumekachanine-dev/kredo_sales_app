@@ -33,7 +33,7 @@ export function DashboardTablePanel({ table, className }: DashboardTablePanelPro
               className={cn(
                 "block truncate",
                 isEmphasized ? "font-semibold text-heading" : "font-medium text-body",
-                column.align === "right" && "font-mono text-heading",
+                column.align === "right" && "text-heading",
               )}
             >
               {cellValue}

@@ -68,15 +68,15 @@ export function MissionTimelineTooltip(props: MissionTimelineTooltipProps) {
       <div className="mt-3 space-y-2 text-[10px] text-primary-fg/88">
         <div className="flex items-center justify-between gap-3">
           <span className="truncate text-primary-fg/58">{getMissionSubtitle(row)}</span>
-          <span className="shrink-0 tabular-nums">
+          <span className="shrink-0">
             {formatDateFr(row.startDate)} - {row.endDate ? formatDateFr(row.endDate) : "Ouverte"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-4 border-t border-primary-fg/10 pt-2">
-          <span className="tabular-nums">TJM {formatEuro(row.tjm)}</span>
-          <span className="tabular-nums">Marge {formatPercent(row.grossMarginPct)}</span>
-          <span className="tabular-nums">
+          <span>TJM {formatEuro(row.tjm)}</span>
+          <span>Marge {formatPercent(row.grossMarginPct)}</span>
+          <span>
             CA {quarterRevenue ? formatEuro(quarterRevenue) : "n/a"}
           </span>
         </div>

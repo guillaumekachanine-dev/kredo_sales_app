@@ -7,7 +7,6 @@ export type DesktopAnalyticalPageMaxWidth = "default" | "wide" | "full"
 export interface DesktopAnalyticalPageProps {
   eyebrow?: React.ReactNode
   title: React.ReactNode
-  description?: React.ReactNode
   actions?: React.ReactNode
   toolbar?: React.ReactNode
   kpis?: React.ReactNode
@@ -33,7 +32,6 @@ const railLayoutClasses: Record<DesktopAnalyticalPageRailWidth, string> = {
 export function DesktopAnalyticalPage({
   eyebrow,
   title,
-  description,
   actions,
   toolbar,
   kpis,
@@ -53,41 +51,34 @@ export function DesktopAnalyticalPage({
     >
       <div
         className={cn(
-          "mx-auto flex w-full flex-col gap-6 px-6 py-6",
+          "mx-auto flex w-full flex-col gap-5 px-6 py-4",
           maxWidthClasses[maxWidth],
         )}
       >
-        <header className="flex flex-col gap-4 border-b border-border/70 pb-5">
-          <div className="flex items-start justify-between gap-6">
-            <div className="min-w-0 flex-1">
+        <header className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-border/70 pb-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               {eyebrow ? (
-                <div className="mb-2 text-[length:var(--font-size-label-sm)] font-medium uppercase tracking-[0.08em] text-muted">
+                <div className="shrink-0 text-[length:var(--font-size-label-sm)] font-medium uppercase leading-[var(--line-height-label-sm)] tracking-[0.08em] text-muted">
                   {eyebrow}
                 </div>
               ) : null}
-
               <h1
                 id={headingId}
-                className="font-heading text-[length:var(--font-size-title-desktop-lg)] leading-[var(--line-height-title-desktop-lg)] text-heading"
+                className="min-w-0 truncate font-heading text-[length:var(--font-size-title-desktop-md)] font-bold leading-[var(--line-height-title-desktop-md)] tracking-tight text-heading"
               >
                 {title}
               </h1>
-
-              {description ? (
-                <p className="mt-2 max-w-3xl text-[length:var(--font-size-body-md)] leading-[var(--line-height-body-md)] text-body">
-                  {description}
-                </p>
-              ) : null}
             </div>
 
             {actions ? (
-              <div className="flex shrink-0 items-start gap-2">
+              <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
                 {actions}
               </div>
             ) : null}
           </div>
 
-          {toolbar ? <div>{toolbar}</div> : null}
+          {toolbar ? <div className="pt-1">{toolbar}</div> : null}
         </header>
 
         {kpis ? <section>{kpis}</section> : null}

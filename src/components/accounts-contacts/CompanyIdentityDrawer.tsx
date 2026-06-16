@@ -358,7 +358,7 @@ export function CompanyIdentityDrawer({
         <div className="flex flex-col gap-6 p-2">
           {/* Header Skeleton */}
           <div className="flex items-center gap-4 animate-pulse">
-            <div className="w-14 h-14 bg-border/40 rounded-lg shrink-0" />
+            <div className="w-14 h-14 bg-border/40 rounded-[var(--radius-medium)] shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-4 w-1/3 bg-border/40 rounded" />
               <div className="h-3 w-1/2 bg-border/40 rounded" />
@@ -369,12 +369,12 @@ export function CompanyIdentityDrawer({
 
           {/* Body Skeleton */}
           <div className="space-y-4 animate-pulse">
-            <div className="h-24 bg-border/20 rounded-lg" />
+            <div className="h-24 bg-border/20 rounded-[var(--radius-medium)]" />
             <div className="grid grid-cols-2 gap-4">
-              <div className="h-16 bg-border/20 rounded-lg" />
-              <div className="h-16 bg-border/20 rounded-lg" />
+              <div className="h-16 bg-border/20 rounded-[var(--radius-medium)]" />
+              <div className="h-16 bg-border/20 rounded-[var(--radius-medium)]" />
             </div>
-            <div className="h-36 bg-border/20 rounded-lg" />
+            <div className="h-36 bg-border/20 rounded-[var(--radius-medium)]" />
           </div>
         </div>
       ) : error ? (
@@ -390,7 +390,7 @@ export function CompanyIdentityDrawer({
       ) : data ? (
         <div className="flex flex-col h-full gap-5">
           {/* Company identity card summary */}
-          <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
+          <div className="flex flex-col gap-4 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {/* Mobile back arrow button */}
@@ -442,7 +442,7 @@ export function CompanyIdentityDrawer({
 
               {/* AI Score Badge */}
               <div className="flex shrink-0">
-                <span className="inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded shadow-sm">
+                <span className="inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded">
                   {formatScore(data.company.ai_score)}
                 </span>
               </div>
@@ -453,7 +453,7 @@ export function CompanyIdentityDrawer({
               <div className="pt-2 border-t border-border/40">
                 <Link
                   href={`/prospection/accounts/${companyId}`}
-                  className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-lg bg-primary w-full py-2 text-xs font-bold text-primary-fg shadow-sm transition-colors hover:bg-primary/95"
+                  className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-[var(--radius-medium)] bg-primary w-full py-2 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95"
                 >
                   <span>Ouvrir le cockpit Intelligence</span>
                   <span
@@ -605,7 +605,7 @@ export function CompanyIdentityDrawer({
             {activeTab === "intelligence" && (
               <div className="space-y-4">
                 {/* Consultant Synthesis moved here from Aperçu */}
-                <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm flex flex-col gap-2">
+                <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-[var(--radius-medium)] p-4 font-normal flex flex-col gap-2">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
                     Synthèse de l&apos;Intelligence Commerciale
                   </h4>
@@ -814,11 +814,11 @@ export function CompanyIdentityDrawer({
                   )}
 
                   {sortedContacts.length === 0 ? (
-                    <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                    <div className="text-center py-10 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                       Aucun contact lié à cette entreprise.
                     </div>
                   ) : filteredContacts.length === 0 ? (
-                    <div className="text-center py-10 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                    <div className="text-center py-10 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                       Aucun contact ne correspond à ce filtre.
                     </div>
                   ) : (
@@ -924,7 +924,7 @@ export function CompanyIdentityDrawer({
                               ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
                               : "Non assigné"
                             return (
-                              <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                              <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
                                 <div className="flex justify-between items-start gap-3">
                                   <div>
                                     <span className="text-xs font-bold text-heading block">{mission.title}</span>
@@ -936,7 +936,7 @@ export function CompanyIdentityDrawer({
                                     En cours
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-mono">
+                                <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2">
                                   <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
                                   <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
                                   {mission.gross_margin_pct !== null && (
@@ -962,7 +962,7 @@ export function CompanyIdentityDrawer({
                       ) : (
                         <div className="flex flex-col gap-2.5">
                           {openOpps.map((opp) => (
-                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
                               <div className="flex justify-between items-start gap-3">
                                 <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                                 <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
@@ -971,8 +971,8 @@ export function CompanyIdentityDrawer({
                               </div>
                               <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
                                 <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                                <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
-                                {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                                <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
+                                {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                               </div>
                             </div>
                           ))}
@@ -988,7 +988,7 @@ export function CompanyIdentityDrawer({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* Dernière Action */}
                         {data.lastInteraction || data.company.last_contact_at ? (
-                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px]">
                             <div>
                               <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
                               {data.lastInteraction ? (
@@ -1021,7 +1021,7 @@ export function CompanyIdentityDrawer({
 
                         {/* Prochaine Action */}
                         {data.company.next_action_label ? (
-                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px]">
                             <div>
                               <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
                               <div className="text-xs">
@@ -1029,7 +1029,7 @@ export function CompanyIdentityDrawer({
                                   À faire : {data.company.next_action_label}
                                 </span>
                                 {data.company.next_action_at && (
-                                  <span className="text-[10px] text-muted mt-1 block font-mono">
+                                  <span className="text-[10px] text-muted mt-1 block">
                                     Échéance : {formatDate(data.company.next_action_at)}
                                   </span>
                                 )}
@@ -1061,14 +1061,14 @@ export function CompanyIdentityDrawer({
                           Aucun contact prioritaire lié pour établir la stratégie d&apos;adressage.
                         </p>
                       ) : (
-                        <div className="bg-canvas/20 rounded-lg border border-border/40 p-4 space-y-4 shadow-xs">
+                        <div className="bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 p-4 space-y-4">
                           <div className="flex flex-col gap-2.5">
                             {priorityContacts.map((contact) => {
                               const person = contact.persons
                               if (!person) return null
                               const name = person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()
                               return (
-                                <div key={contact.id} className="flex justify-between items-center bg-surface border border-border/40 rounded-lg p-2.5 shadow-xs">
+                                <div key={contact.id} className="flex justify-between items-center bg-surface border border-border/40 rounded-[var(--radius-medium)] p-2.5">
                                   <div>
                                     <span
                                       onClick={() => onOpenContactIdentity?.(contact.id)}
@@ -1112,7 +1112,7 @@ export function CompanyIdentityDrawer({
                       ) : (
                         <div className="flex flex-col gap-2.5">
                           {openOpps.map((opp) => (
-                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
                               <div className="flex justify-between items-start gap-3">
                                 <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                                 <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
@@ -1121,8 +1121,8 @@ export function CompanyIdentityDrawer({
                               </div>
                               <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
                                 <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                                <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
-                                {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                                <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
+                                {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                               </div>
                             </div>
                           ))}
@@ -1138,7 +1138,7 @@ export function CompanyIdentityDrawer({
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* Dernière Action */}
                         {data.lastInteraction || data.company.last_contact_at ? (
-                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px]">
                             <div>
                               <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Dernière action réalisée</span>
                               {data.lastInteraction ? (
@@ -1171,7 +1171,7 @@ export function CompanyIdentityDrawer({
 
                         {/* Prochaine Action */}
                         {data.company.next_action_label ? (
-                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px] shadow-xs">
+                          <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1.5 justify-between min-h-[100px]">
                             <div>
                               <span className="text-[9px] text-muted font-bold uppercase tracking-wider block mb-1">Prochaine action programmée</span>
                               <div className="text-xs">
@@ -1179,7 +1179,7 @@ export function CompanyIdentityDrawer({
                                   À faire : {data.company.next_action_label}
                                 </span>
                                 {data.company.next_action_at && (
-                                  <span className="text-[10px] text-muted mt-1 block font-mono">
+                                  <span className="text-[10px] text-muted mt-1 block">
                                     Échéance : {formatDate(data.company.next_action_at)}
                                   </span>
                                 )}
@@ -1213,7 +1213,7 @@ export function CompanyIdentityDrawer({
                     ) : (
                       <div className="flex flex-col gap-2.5">
                         {data.opportunities.map((opp) => (
-                          <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2 shadow-xs">
+                          <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
                             <div className="flex justify-between items-start gap-3">
                               <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                               <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
@@ -1222,8 +1222,8 @@ export function CompanyIdentityDrawer({
                             </div>
                             <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
                               <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                              <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
-                              {opp.acv && <span>Valeur : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                              <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
+                              {opp.acv && <span>Valeur : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                             </div>
                           </div>
                         ))}
@@ -1248,7 +1248,7 @@ export function CompanyIdentityDrawer({
                             ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
                             : "Non assigné"
                           return (
-                            <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2.5 shadow-xs">
+                            <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2.5">
                               <div className="flex justify-between items-start gap-3">
                                 <div>
                                   <span className="text-xs font-bold text-heading block">{mission.title}</span>
@@ -1266,7 +1266,7 @@ export function CompanyIdentityDrawer({
                                 </span>
                               </div>
 
-                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-mono">
+                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2">
                                 <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
                                 <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
                                 {mission.gross_margin_pct !== null && (
@@ -1291,7 +1291,7 @@ export function CompanyIdentityDrawer({
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                       Actualité récente
                     </h4>
-                    <ul className="space-y-2 bg-canvas/30 rounded-lg border border-border/50 p-4">
+                    <ul className="space-y-2 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
                       {signaux.actualites_recentes.map((item: string, idx: number) => (
                         <li key={idx} className="flex gap-2 items-start text-xs text-heading leading-relaxed">
                           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
@@ -1301,7 +1301,7 @@ export function CompanyIdentityDrawer({
                     </ul>
                   </div>
                 ) : (
-                  <div className="text-center py-6 bg-canvas/20 rounded-lg border border-border/40 text-xs text-muted italic">
+                  <div className="text-center py-6 bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 text-xs text-muted italic">
                     Aucune actualité ou signal faible disponible.
                   </div>
                 )}

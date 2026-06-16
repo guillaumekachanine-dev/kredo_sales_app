@@ -95,7 +95,7 @@ export default function ProspectionSettingsPage() {
           {scoringFacets.map((f) => (
             <li key={f.label} className="flex items-center justify-between rounded-md bg-canvas px-3 py-2">
               <span className="text-sm text-body">{f.label}</span>
-              <span className="text-sm font-medium tabular-nums text-heading">{f.weight}</span>
+              <span className="text-sm font-medium text-heading">{f.weight}</span>
             </li>
           ))}
         </ul>

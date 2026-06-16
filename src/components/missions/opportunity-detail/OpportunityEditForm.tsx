@@ -1306,7 +1306,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               disabled={isPending}
             />
           ) : (
-            <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.target_daily_rate)}</span>
+            <span className="text-xs font-semibold text-heading">{formatEuro(opportunity.target_daily_rate)}</span>
           )}
         </div>
 
@@ -1336,18 +1336,18 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               disabled={isPending}
             />
           ) : (
-            <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.estimated_gain)}</span>
+            <span className="text-xs font-semibold text-heading">{formatEuro(opportunity.estimated_gain)}</span>
           )}
         </div>
 
         <div className="flex justify-between py-1 border-b border-border/30">
           <span className="text-xs text-muted">ACV (calculé)</span>
-          <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.acv)}</span>
+          <span className="text-xs font-semibold text-heading">{formatEuro(opportunity.acv)}</span>
         </div>
 
         <div className="flex justify-between py-1">
           <span className="text-xs text-muted">Gain pondéré</span>
-          <span className="text-xs font-semibold text-heading tabular-nums">{formatEuro(opportunity.weighted_gain)}</span>
+          <span className="text-xs font-semibold text-heading">{formatEuro(opportunity.weighted_gain)}</span>
         </div>
       </div>
     </div>
@@ -1731,7 +1731,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
           <div className="flex flex-col items-end border-l border-border pl-4">
             <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">ACV Estimé</span>
-            <span className="text-lg font-bold text-heading tabular-nums">
+            <span className="text-lg font-bold text-heading">
               {formatEuro(opportunity.acv ?? opportunity.estimated_gain)}
             </span>
           </div>

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Lato, Manrope, JetBrains_Mono } from "next/font/google";
+import { Lato, Manrope } from "next/font/google";
 import "./globals.css";
 
 // Graisses limitées à celles réellement utilisées dans le code (audit perf) :
@@ -14,15 +14,6 @@ const lato = Lato({
 const manrope = Manrope({
   variable: "--font-heading",
   weight: ["500", "600", "700"],
-  subsets: ["latin"],
-});
-
-// Fix : la variable était "--" (jamais reliée à --font-mono dans globals.css),
-// donc JetBrains_Mono était téléchargée mais jamais appliquée (font-mono tombait
-// sur le mono système). On rétablit le mapping prévu par le design system.
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  weight: ["400", "500"],
   subsets: ["latin"],
 });
 
@@ -61,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${lato.variable} ${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${lato.variable} ${manrope.variable} h-full antialiased`}
     >
       <head>
         <link

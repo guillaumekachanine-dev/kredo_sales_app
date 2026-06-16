@@ -354,7 +354,7 @@ export default function SectorDetailView({ sector }: Props) {
         <div className="shrink-0 flex items-center gap-3">
           {sector.attractiveness_score !== null && (
             <div className="flex flex-col items-center bg-surface border border-border rounded-xl px-4 py-2.5 min-w-[80px]">
-              {/* Removed font-mono */}
+              {/* Removed */}
               <span className="text-2xl font-black text-primary leading-none">
                 {sector.attractiveness_score.toFixed(1)}
               </span>
@@ -365,7 +365,7 @@ export default function SectorDetailView({ sector }: Props) {
           )}
           {sector.market_size_eur_bn !== null && (
             <div className="flex flex-col items-center bg-surface border border-border rounded-xl px-4 py-2.5 min-w-[80px]">
-              {/* Removed font-mono */}
+              {/* Removed */}
               <span className="text-2xl font-black text-heading leading-none">
                 {sector.market_size_eur_bn.toFixed(1)}
               </span>
@@ -474,7 +474,7 @@ export default function SectorDetailView({ sector }: Props) {
                           <span className="text-xs font-bold text-heading">
                             {PRACTICE_LABEL[key]}
                           </span>
-                          {/* Removed font-mono */}
+                          {/* Removed */}
                           <span className="text-xs font-bold text-primary">
                             {score.toFixed(1)}/5
                           </span>
@@ -502,7 +502,7 @@ export default function SectorDetailView({ sector }: Props) {
               {sector.market_size_eur_bn !== null && (
                 <div className="flex items-center justify-between py-2.5 first:pt-0">
                   <span className="text-muted font-medium">Marché</span>
-                  {/* Removed font-mono */}
+                  {/* Removed */}
                   <span className="font-bold text-heading">
                     {sector.market_size_eur_bn.toFixed(1)} Md€
                     {sector.market_growth_pct !== null && (
@@ -519,7 +519,7 @@ export default function SectorDetailView({ sector }: Props) {
               </div>
               <div className="flex items-center justify-between py-2.5">
                 <span className="text-muted font-medium">TJM moyen</span>
-                {/* Removed font-mono */}
+                {/* Removed */}
                 <span className="font-bold text-heading">
                   {sector.avg_tjm_min !== null && sector.avg_tjm_max !== null
                     ? `${sector.avg_tjm_min} - ${sector.avg_tjm_max} €`
@@ -530,7 +530,7 @@ export default function SectorDetailView({ sector }: Props) {
               </div>
               <div className="flex items-center justify-between py-2.5 last:pb-0">
                 <span className="text-muted font-medium">Comptes liés</span>
-                {/* Removed font-mono */}
+                {/* Removed */}
                 <span className="font-bold text-heading">
                   {sector.companies.length}
                 </span>
@@ -586,7 +586,7 @@ export default function SectorDetailView({ sector }: Props) {
                                 {practiceLabel}
                               </span>
                             )}
-                            {/* Removed font-mono */}
+                            {/* Removed */}
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15">
                               Fréquence : {pp.frequency_count}/7
                             </span>
@@ -696,7 +696,7 @@ export default function SectorDetailView({ sector }: Props) {
                           </span>
                         </div>
                         {reg.deadline_date && (
-                          /* Removed font-mono */
+                          /* Removed */
                           <p className="text-xs font-bold text-heading">
                             Échéance : {formatDate(reg.deadline_date)}
                           </p>
@@ -773,7 +773,7 @@ export default function SectorDetailView({ sector }: Props) {
                             </span>
                           </div>
                           {ev.event_date && (
-                            /* Removed font-mono */
+                            /* Removed */
                             <p className="text-[10px] text-muted">
                               Date : {formatDate(ev.event_date)}
                             </p>
@@ -857,7 +857,7 @@ export default function SectorDetailView({ sector }: Props) {
                           {LIFECYCLE_LABEL[c.lifecycle_status] ?? c.lifecycle_status}
                         </span>
                         {c.ai_score !== null && (
-                          /* Removed font-mono */
+                          /* Removed */
                           <span className="text-xs font-black text-heading">
                             {c.ai_score.toFixed(1)}/5
                           </span>

@@ -31,12 +31,13 @@ function fmtEuro(v: number): string {
 
 interface PnlBarChartProps {
   rows: PnlMonthRow[]
+  window?: number
 }
 
-export function PnlBarChart({ rows }: PnlBarChartProps) {
+export function PnlBarChart({ rows, window = 6 }: PnlBarChartProps) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
 
-  const displayRows = rows.slice(-6)
+  const displayRows = rows.slice(-window)
 
   if (displayRows.length === 0) {
     return (

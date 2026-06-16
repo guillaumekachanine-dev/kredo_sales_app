@@ -330,7 +330,7 @@ export function ProposalDesktopDashboard({ data }: { data: ProposalDashboardData
                       </td>
                       <td className="py-2.5 text-body">{item.practiceName}</td>
                       <td className="py-2.5 text-muted font-medium">{item.finMission}</td>
-                      <td className="py-2.5 font-semibold text-heading font-mono">{item.valueAmount}</td>
+                      <td className="py-2.5 font-semibold text-heading">{item.valueAmount}</td>
                       <td className="py-2.5">
                         <span className="bg-[#E8F5E9] text-[#2E7D32] px-2 py-0.5 rounded text-[9px] font-bold select-none border border-[#C8E6C9]">
                           {item.tags[0]}

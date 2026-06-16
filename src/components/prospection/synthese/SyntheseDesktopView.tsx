@@ -375,7 +375,7 @@ export function SyntheseDesktopView({ data }: { data: SyntheseData }) {
                     <p className="text-[10px] text-body mt-0.5 leading-tight">
                       for {alert.role}
                     </p>
-                    <p className="text-[9px] text-muted font-mono mt-1 flex items-center gap-1.5 flex-wrap">
+                    <p className="text-[9px] text-muted mt-1 flex items-center gap-1.5 flex-wrap">
                       <span>{alert.details}</span>
                       {alert.hasBadge && (
                         <span className="bg-[#E8F5E9] text-[#2E7D32] px-1 py-0.2 rounded font-bold text-[8px]">
@@ -538,7 +538,7 @@ export function SyntheseDesktopView({ data }: { data: SyntheseData }) {
                         <td className="py-2.5 text-body truncate max-w-[75px]" title={prospect.sector}>
                           {prospect.sector}
                         </td>
-                        <td className="py-2.5 text-center font-bold text-heading font-mono">
+                        <td className="py-2.5 text-center font-bold text-heading">
                           {semanticScore}%
                         </td>
                         <td className="py-2.5">
@@ -624,7 +624,7 @@ export function SyntheseDesktopView({ data }: { data: SyntheseData }) {
               </p>
 
               {activeModal.type === "details" && (
-                <div className="bg-canvas/50 border border-border/60 rounded-lg p-3 text-[10px] text-muted space-y-1 font-mono">
+                <div className="bg-canvas/50 border border-border/60 rounded-lg p-3 text-[10px] text-muted space-y-1">
                   <div>• DB Node: public.ai_intelligence_results</div>
                   <div>• Match Model: pgvector (cosine similarity)</div>
                   <div>• Input Token count: ~1.2k</div>

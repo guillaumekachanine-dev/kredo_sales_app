@@ -77,7 +77,7 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
                 <StatusDot status="danger" />
                 Mes Actions Urgentes
               </span>
-              <span className="text-[10px] font-bold text-danger tabular-nums">
+              <span className="text-[10px] font-bold text-danger">
                 {dashboardPersonnel.actionsUrgentesCount}/{dashboardPersonnel.actionsUrgentesTotal}
               </span>
             </div>
@@ -96,7 +96,7 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
                 <StatusDot status="success" />
                 Mon Objectif Journalier
               </span>
-              <span className="text-[10px] font-bold text-success tabular-nums">
+              <span className="text-[10px] font-bold text-success">
                 {dashboardPersonnel.objectifJournalierPct}%
               </span>
             </div>
@@ -181,11 +181,11 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
                 {/* AI strip */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-muted">ai_success_prediction</span>
+                    <span className="text-[9px] text-muted">ai_success_prediction</span>
                     <AiSparkBars value={a.aiSuccessPrediction} color="bg-primary" />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-muted">ai_recommended_next_step</span>
+                    <span className="text-[9px] text-muted">ai_recommended_next_step</span>
                     <AiSparkBars value={a.aiSuccessPrediction * 0.85} color="bg-success" />
                   </div>
                 </div>

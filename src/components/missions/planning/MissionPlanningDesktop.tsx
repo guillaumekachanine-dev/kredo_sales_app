@@ -401,7 +401,7 @@ export function MissionPlanningDesktop({ rows }: MissionPlanningDesktopProps) {
                         aria-hidden="true"
                       />
 
-                      <span className="relative flex h-full items-center justify-center px-3 text-[9px] font-bold tabular-nums">
+                      <span className="relative flex h-full items-center justify-center px-3 text-[9px] font-bold">
                         {daysRemaining === null
                           ? `${progress}%`
                           : daysRemaining < 0

@@ -51,7 +51,7 @@
   /* ── Polices ────────────────────────────────────────────── */
   --font-sans:       var(--font-sans), sans-serif;
   --font-heading:    var(--font-heading), sans-serif;
-  --font-mono:       var(--font-mono), monospace;
+  --font-mono:       var(--font-sans), sans-serif;
 
   /* ── États fonctionnels ─────────────────────────────────── */
   --color-success:     #2C7D5C;   /* bg-success  text-success  */
@@ -306,10 +306,11 @@ body {
   --space-12: 3rem;
 
   /* ── Radius governance ──────────────────────────────────── */
-  --radius-small: 0.5rem;
-  --radius-medium: 0.75rem;
-  --radius-large: 1rem;
-  --radius-xlarge: 1.25rem;
+  --radius-small: 0.25rem;
+  --radius-medium: 0.375rem;
+  --radius-large: 0rem;
+  --radius-xlarge: 0rem;
+  --radius-xl: 0rem;
   --radius-round: 9999px;
 
   /* ── Borders ────────────────────────────────────────────── */
@@ -762,3 +763,63 @@ body {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+.kredo-hover-reference {
+  cursor: pointer;
+  transform: translate3d(0, 0, 0);
+  transition-property: all;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+.kredo-hover-reference:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible, :focus-within) {
+  background-color: color-mix(in srgb, var(--color-surface-hover) 30%, transparent);
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  transform: translate3d(0.125rem, 0, 0);
+}
+
+.kredo-hover-reference:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 var(--focus-ring-width) var(--focus-ring-color),
+    0 2px 8px -2px rgba(0, 0, 0, 0.04);
+}
+
+.kredo-quick-action-button {
+  transform: translate3d(0, 0, 0) scale(1);
+  transition-property: transform, background-color, border-color, color, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: var(--motion-ease-emphasized);
+}
+
+.kredo-quick-action-icon {
+  transition-property: transform;
+  transition-duration: 180ms;
+  transition-timing-function: var(--motion-ease-emphasized);
+}
+
+.kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) {
+  transform: translate3d(0, -1px, 0) scale(1.02);
+}
+
+.kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) .kredo-quick-action-icon {
+  transform: translate3d(0, -1px, 0);
+}
+
+.kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):active {
+  transform: translate3d(0, 0, 0) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-hover-reference,
+  .kredo-quick-action-button,
+  .kredo-quick-action-icon {
+    transition-duration: 0ms;
+  }
+
+  .kredo-hover-reference:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible, :focus-within),
+  .kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible),
+  .kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):active,
+  .kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) .kredo-quick-action-icon {
+    transform: none;
+  }
+}

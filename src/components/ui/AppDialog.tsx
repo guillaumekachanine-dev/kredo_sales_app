@@ -65,7 +65,7 @@ export function AppDialog({
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 m-auto bg-surface border border-border rounded-lg shadow-xl max-w-lg w-full p-6 text-heading",
+        "fixed inset-0 m-auto max-w-lg w-full border border-border bg-surface p-6 text-heading rounded-[var(--radius-medium)]",
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
         className

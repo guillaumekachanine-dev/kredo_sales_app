@@ -143,19 +143,19 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
         <div className="flex items-center gap-3 shrink-0">
           {sector.attractiveness_score !== null && (
             <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-4 py-2.5 min-w-[80px]">
-              <span className="text-2xl font-bold text-heading font-mono">{sector.attractiveness_score}/10</span>
+              <span className="text-2xl font-bold text-heading">{sector.attractiveness_score}/10</span>
               <span className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">Attractivité</span>
             </div>
           )}
           {sector.market_size_eur_bn !== null && (
             <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-4 py-2.5 min-w-[80px]">
-              <span className="text-2xl font-bold text-heading font-mono">{sector.market_size_eur_bn} Md€</span>
+              <span className="text-2xl font-bold text-heading">{sector.market_size_eur_bn} Md€</span>
               <span className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">Marché</span>
             </div>
           )}
           {(sector.avg_tjm_min !== null || sector.avg_tjm_max !== null) && (
             <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-4 py-2.5 min-w-[80px]">
-              <span className="text-lg font-bold text-heading font-mono">
+              <span className="text-lg font-bold text-heading">
                 {sector.avg_tjm_min ?? "—"}–{sector.avg_tjm_max ?? "—"} €
               </span>
               <span className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">TJM moyen</span>
@@ -163,7 +163,7 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
           )}
           {sector.market_growth_pct !== null && (
             <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-4 py-2.5 min-w-[72px]">
-              <span className="text-2xl font-bold text-success font-mono">+{sector.market_growth_pct}%</span>
+              <span className="text-2xl font-bold text-success">+{sector.market_growth_pct}%</span>
               <span className="text-[9px] font-bold text-muted uppercase tracking-wider mt-0.5">Croissance</span>
             </div>
           )}
@@ -188,7 +188,7 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
                   <div key={key} className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-body">{PRACTICE_LABEL[key]}</span>
-                      <span className="text-xs font-bold text-heading font-mono">{score ?? "—"}/10</span>
+                      <span className="text-xs font-bold text-heading">{score ?? "—"}/10</span>
                     </div>
                     <ScoreBar value={score} max={10} />
                   </div>
@@ -354,7 +354,7 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
                           <span className="text-muted">—</span>
                         )}
                       </td>
-                      <td className="py-2.5 text-right font-mono font-bold text-heading">
+                      <td className="py-2.5 text-right font-bold text-heading">
                         {pp.frequency_count}
                       </td>
                     </tr>
@@ -510,7 +510,7 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
                         {LIFECYCLE_LABEL[company.lifecycle_status] ?? company.lifecycle_status}
                       </span>
                       {company.ai_score !== null && (
-                        <span className="text-[10px] font-mono font-bold text-heading">
+                        <span className="text-[10px] font-bold text-heading">
                           {company.ai_score}/5
                         </span>
                       )}

@@ -161,7 +161,7 @@ function CompanyMiniModal({
     >
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[340px]">
         <SurfaceCard
-          className="w-full p-5 shadow-2xl border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
+          className="w-full p-5 border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
         >
           <button
             onClick={onClose}
@@ -245,7 +245,7 @@ function ManagerMiniModal({
     >
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[320px]">
         <SurfaceCard
-          className="w-full p-5 shadow-2xl border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
+          className="w-full p-5 border border-border/80 animate-in zoom-in-95 duration-200 flex flex-col gap-3.5 relative bg-surface"
         >
           <button
             onClick={onClose}
@@ -400,12 +400,12 @@ export function ContactIdentityDrawer({
 
           {/* Body Skeleton */}
           <div className="space-y-4 animate-pulse">
-            <div className="h-24 bg-border/20 rounded-lg" />
+            <div className="h-24 bg-border/20 rounded-[var(--radius-medium)]" />
             <div className="grid grid-cols-2 gap-4">
-              <div className="h-16 bg-border/20 rounded-lg" />
-              <div className="h-16 bg-border/20 rounded-lg" />
+              <div className="h-16 bg-border/20 rounded-[var(--radius-medium)]" />
+              <div className="h-16 bg-border/20 rounded-[var(--radius-medium)]" />
             </div>
-            <div className="h-36 bg-border/20 rounded-lg" />
+            <div className="h-36 bg-border/20 rounded-[var(--radius-medium)]" />
           </div>
         </div>
       ) : error ? (
@@ -439,7 +439,7 @@ export function ContactIdentityDrawer({
           )}
 
           {/* Identity Summary Card */}
-          <div className="flex flex-col gap-4 bg-canvas/30 rounded-xl border border-border/50 p-4">
+          <div className="flex flex-col gap-4 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Mobile back arrow button */}
@@ -465,12 +465,12 @@ export function ContactIdentityDrawer({
                       logoPath={(company.metadata?.logo_path as string) || null}
                       website={company.website}
                       size="xl"
-                      className="rounded-full w-14 h-14 border-border/80 shadow-sm"
+                      className="rounded-full w-14 h-14 border-border/80"
                     />
                   </div>
                 ) : (
                   <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-heading font-extrabold text-lg shadow-inner shrink-0"
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-white font-heading font-extrabold text-lg shrink-0"
                     style={{ backgroundColor: avatarBg }}
                   >
                     {initials}
@@ -695,7 +695,7 @@ export function ContactIdentityDrawer({
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                       Notes & Observations
                     </h4>
-                    <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-lg p-4 font-normal shadow-sm whitespace-pre-wrap">
+                    <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-[var(--radius-medium)] p-4 font-normal whitespace-pre-wrap">
                       {person.notes}
                     </div>
                   </div>
@@ -709,7 +709,7 @@ export function ContactIdentityDrawer({
                     </h4>
                     <div 
                       onClick={() => onOpenCompanyIdentity?.(company.id)}
-                      className="group bg-canvas/30 rounded-xl border border-border/50 p-3.5 cursor-pointer hover:border-primary/50 hover:bg-canvas/50 transition-all shadow-sm"
+                      className="kredo-hover-reference group rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3.5 hover:border-primary/50"
                       title="Consulter la fiche complète de l'entreprise"
                     >
                       <div className="flex items-center justify-between gap-4">
@@ -777,7 +777,7 @@ export function ContactIdentityDrawer({
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
                     {device === "mobile" ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
                   </h4>
-                  <div className="bg-canvas/30 rounded-xl border border-border/50 p-4 flex flex-col items-center">
+                  <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 flex flex-col items-center">
                     {/* N+1 Manager */}
                     {data.manager ? (
                       <div className="flex flex-col items-center w-full max-w-xs animate-in fade-in slide-in-from-top-1 duration-200">
@@ -790,8 +790,8 @@ export function ContactIdentityDrawer({
                             }
                           }}
                           className={cn(
-                            "bg-canvas/50 border border-border/60 rounded-lg p-2.5 w-full text-center transition-all shadow-sm group",
-                            device === "mobile" || onOpenContactIdentity ? "cursor-pointer hover:border-primary/50 hover:bg-canvas/80" : ""
+                            "rounded-[var(--radius-medium)] border border-border/60 bg-canvas/50 p-2.5 w-full text-center group",
+                            device === "mobile" || onOpenContactIdentity ? "kredo-hover-reference hover:border-primary/50" : ""
                           )}
                           title={device === "mobile" ? "Voir les coordonnées du manager" : (onOpenContactIdentity ? "Consulter la fiche du manager" : undefined)}
                         >
@@ -817,7 +817,7 @@ export function ContactIdentityDrawer({
                     )}
 
                     {/* Current Contact */}
-                    <div className="bg-primary/5 border border-primary/30 rounded-lg p-3 w-full max-w-xs text-center shadow-sm relative">
+                    <div className="bg-primary/5 border border-primary/30 rounded-[var(--radius-medium)] p-3 w-full max-w-xs text-center relative">
                       <span className="text-[9px] text-primary font-bold uppercase tracking-tight block truncate">
                         {contact.department ? departmentLabel(contact.department) : "Aucun département renseigné"}
                       </span>
@@ -858,8 +858,8 @@ export function ContactIdentityDrawer({
                                   }
                                 }}
                                 className={cn(
-                                  "bg-canvas/40 border border-border/50 rounded-lg p-2 w-full text-center transition-all shadow-sm group",
-                                  onOpenContactIdentity ? "cursor-pointer hover:border-primary/50 hover:bg-canvas/75" : ""
+                                  "rounded-[var(--radius-medium)] border border-border/50 bg-canvas/40 p-2 w-full text-center group",
+                                  onOpenContactIdentity ? "kredo-hover-reference hover:border-primary/50" : ""
                                 )}
                                 title={onOpenContactIdentity ? "Consulter la fiche du collaborateur" : undefined}
                               >
@@ -910,8 +910,8 @@ export function ContactIdentityDrawer({
                           </div>
                           <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
                             <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                            <span>Conviction : <strong className="text-body font-mono">{opp.conviction}%</strong></span>
-                            {opp.acv && <span>ACV : <strong className="text-heading font-mono">{formatCurrency(opp.acv)}</strong></span>}
+                            <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
+                            {opp.acv && <span>ACV : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
                           </div>
                         </div>
                       ))}
@@ -936,23 +936,23 @@ export function ContactIdentityDrawer({
                           <div key={it.id} className="relative">
                             {/* Dot timeline pin */}
                             <span className={cn(
-                              "absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-surface shadow-sm",
+                              "absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-surface",
                               dotColor
                             )} />
 
-                            <div className="bg-canvas/30 border border-border/50 rounded-lg p-3">
+                            <div className="bg-canvas/30 border border-border/50 rounded-[var(--radius-medium)] p-3">
                               <div className="flex justify-between items-start gap-2.5">
                                 <div className="min-w-0">
                                   <span className="text-xs font-bold text-heading capitalize">
                                     {it.type.replace("_", " ")}
                                   </span>
-                                  <span className="text-[10px] text-muted font-normal block mt-0.5 font-mono">
+                                  <span className="text-[10px] text-muted font-normal block mt-0.5">
                                     Le {formatDate(it.occurred_at)}
                                   </span>
                                 </div>
                                 {it.sentiment && (
                                   <span className={cn(
-                                    "text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize font-mono shrink-0",
+                                    "text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize shrink-0",
                                     it.sentiment === "positif" && "bg-success/5 text-success",
                                     it.sentiment === "negatif" && "bg-danger/5 text-danger",
                                     it.sentiment === "neutre" && "bg-warning/5 text-warning"
@@ -1019,7 +1019,7 @@ export function ContactIdentityDrawer({
                           </div>
 
                           <span className={cn(
-                            "rounded px-1.5 py-0.5 text-[9px] font-bold border capitalize shrink-0 font-mono",
+                            "rounded px-1.5 py-0.5 text-[9px] font-bold border capitalize shrink-0",
                             task.priority === "haute" && "bg-danger/10 border-danger/20 text-danger",
                             task.priority === "normale" && "bg-canvas border-border text-muted",
                             task.priority === "basse" && "bg-success/5 border-success/15 text-muted"
@@ -1029,7 +1029,7 @@ export function ContactIdentityDrawer({
                         </div>
 
                         {/* Task metadata footer */}
-                        <div className="flex items-center justify-between text-[9px] text-muted/80 font-mono border-t border-border/30 pt-2 mt-0.5">
+                        <div className="flex items-center justify-between text-[9px] text-muted/80 border-t border-border/30 pt-2 mt-0.5">
                           {task.due_date ? (
                             <span className="flex items-center gap-1">
                               <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1061,7 +1061,7 @@ export function ContactIdentityDrawer({
                     onClick={() => {
                       alert("Fonctionnalité d'ajout de tâche bientôt disponible !");
                     }}
-                    className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 text-xs font-bold transition-all shadow-sm active:scale-95 hover:shadow"
+                    className="flex items-center gap-1.5 rounded-[var(--radius-medium)] bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 text-xs font-bold transition-all active:scale-95 hover:shadow"
                     title="Ajouter une nouvelle tâche"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -201,7 +201,7 @@ export function SyntheseMobileView({ data }: { data: SyntheseData }) {
           </div>
 
           {/* Right Metrics Column */}
-          <div className="flex flex-col justify-between h-28 text-[10px] font-bold text-heading text-right font-mono select-none">
+          <div className="flex flex-col justify-between h-28 text-[10px] font-bold text-heading text-right select-none">
             <span className="leading-none py-1">{formatEuroM(pipeline.totalWeighted)}</span>
             <span className="leading-none py-1">{formatEuroM(pipeline.totalWeighted)}</span>
             <span className="leading-none py-1 text-muted text-[9px] font-medium leading-tight">1 jours<br />14ps</span>

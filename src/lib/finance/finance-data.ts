@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 //  Sources réelles :
 //  - pnl_monthly (12 mois, colonnes GENERATED côté DB) → KPIs + graphique P&L
 //  - opportunities.weighted_gain → pipe commercial pondéré
+//  - v_mission_quarterly_revenue (year courant) → breakdown par practice
 //
 //  Fallbacks (pas de table source encore) :
 //  - anomalies : structure anticipée des sorties n8n audit sémantique
@@ -51,12 +52,22 @@ export type LateBilling = {
   actionLabel: string
 }
 
+export type PracticeMetric = {
+  practice: string
+  revenue: number
+  grossMargin: number
+  grossMarginPct: number
+  billableDays: number
+  consultantCount: number
+}
+
 export type FinanceDashboardData = {
   kpis: FinanceKpi[]
   pnlRows: PnlMonthRow[]
   anomalies: BillingAnomaly[]
   lateBillings: LateBilling[]
   pipeTotal: number
+  practiceMetrics: PracticeMetric[]
 }
 
 function formatEuro(v: number): string {
@@ -90,9 +101,12 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
 
   let pnlRows: PnlMonthRow[] = []
   let pipeTotal = 0
+  let practiceMetrics: PracticeMetric[] = []
+
+  const currentYear = new Date().getFullYear()
 
   try {
-    const [pnlRes, oppRes] = await Promise.all([
+    const [pnlRes, oppRes, practiceRes] = await Promise.all([
       supabase
         .from("pnl_monthly")
         .select(
@@ -101,6 +115,11 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
         .order("period_month", { ascending: true })
         .limit(12),
       supabase.from("opportunities").select("weighted_gain"),
+      supabase
+        .from("v_mission_quarterly_revenue")
+        .select("practice, revenue, gross_margin, gross_margin_pct, billable_days, collaborator_id")
+        .gte("quarter_start", `${currentYear}-01-01`)
+        .lt("quarter_start", `${currentYear + 1}-01-01`),
     ])
 
     pnlRows = (pnlRes.data ?? []) as PnlMonthRow[]
@@ -108,6 +127,38 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
       (sum, o) => sum + (o.weighted_gain ?? 0),
       0,
     )
+
+    // Agrégation par practice côté JS (PostgREST ne supporte pas GROUP BY)
+    type QRow = {
+      practice: string | null
+      revenue: number | null
+      gross_margin: number | null
+      billable_days: number | null
+      collaborator_id: string | null
+    }
+    const qRows = (practiceRes.data ?? []) as QRow[]
+    const practiceMap = new Map<string, { revenue: number; grossMargin: number; billableDays: number; colIds: Set<string> }>()
+
+    for (const row of qRows) {
+      const key = row.practice ?? "Non définie"
+      const existing = practiceMap.get(key) ?? { revenue: 0, grossMargin: 0, billableDays: 0, colIds: new Set() }
+      existing.revenue += row.revenue ?? 0
+      existing.grossMargin += row.gross_margin ?? 0
+      existing.billableDays += row.billable_days ?? 0
+      if (row.collaborator_id) existing.colIds.add(row.collaborator_id)
+      practiceMap.set(key, existing)
+    }
+
+    practiceMetrics = Array.from(practiceMap.entries())
+      .map(([practice, agg]) => ({
+        practice,
+        revenue: agg.revenue,
+        grossMargin: agg.grossMargin,
+        grossMarginPct: agg.revenue > 0 ? (agg.grossMargin / agg.revenue) * 100 : 0,
+        billableDays: agg.billableDays,
+        consultantCount: agg.colIds.size,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
   } catch (err) {
     console.error("[finance-data] Supabase error:", err)
   }
@@ -239,5 +290,5 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
     },
   ]
 
-  return { kpis, pnlRows, anomalies, lateBillings, pipeTotal }
+  return { kpis, pnlRows, anomalies, lateBillings, pipeTotal, practiceMetrics }
 }

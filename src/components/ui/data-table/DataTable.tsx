@@ -321,7 +321,7 @@ export function DataTable<T>({
                       key={rowId}
                       className={cn(
                         "h-[52px] border-transparent transition-[background-color,border-color] duration-[var(--motion-duration-fast)]",
-                        isInteractive && "cursor-pointer hover:bg-surface-hover focus-within:bg-surface-hover",
+                        isInteractive && "kredo-hover-reference",
                         tone === "attention" && "bg-warning/[0.06]",
                         isSelected && "bg-primary/[0.05] ring-1 ring-inset ring-primary/25",
                         computedRowClassName,
@@ -337,7 +337,6 @@ export function DataTable<T>({
                           className={cn(
                             "px-4 py-3 align-middle text-body first:pl-5 last:pr-5",
                             getAlignClass(column.align),
-                            column.align === "right" && "tabular-nums",
                             column.className,
                           )}
                           style={{

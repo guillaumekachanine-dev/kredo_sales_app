@@ -167,19 +167,19 @@ export function MissionPlanningMobile({ rows }: MissionPlanningMobileProps) {
                 <div className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
                   <span className="rounded border border-border bg-canvas px-2 py-2">
                     <span className="block text-muted">TJM</span>
-                    <span className="mt-0.5 block truncate font-bold tabular-nums text-heading">
+                    <span className="mt-0.5 block truncate font-bold text-heading">
                       {formatEuro(row.tjm)}
                     </span>
                   </span>
                   <span className="rounded border border-border bg-canvas px-2 py-2">
                     <span className="block text-muted">Marge</span>
-                    <span className="mt-0.5 block truncate font-bold tabular-nums text-heading">
+                    <span className="mt-0.5 block truncate font-bold text-heading">
                       {formatPercent(row.grossMarginPct)}
                     </span>
                   </span>
                   <span className="rounded border border-border bg-canvas px-2 py-2">
                     <span className="block text-muted">Échéance</span>
-                    <span className="mt-0.5 block truncate font-bold tabular-nums text-heading">
+                    <span className="mt-0.5 block truncate font-bold text-heading">
                       {getDeadlineLabel(daysRemaining)}
                     </span>
                   </span>

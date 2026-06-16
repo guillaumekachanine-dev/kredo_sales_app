@@ -245,7 +245,7 @@ export function NewOpportunityDrawer({
               <label className="text-xs font-medium text-heading">
                 Niveau de confiance
               </label>
-              <span className="text-xs font-semibold text-primary tabular-nums">
+              <span className="text-xs font-semibold text-primary">
                 {form.conviction}&nbsp;%
               </span>
             </div>
@@ -321,7 +321,7 @@ export function NewOpportunityDrawer({
                 ACV estimé
               </label>
               <div className={cn(
-                "relative w-full rounded-md border py-2 pl-3 pr-8 text-xs transition-all select-none tabular-nums",
+                "relative w-full rounded-md border py-2 pl-3 pr-8 text-xs transition-all select-none",
                 acvComputed
                   ? "border-primary/30 bg-primary/5 font-semibold text-primary"
                   : "border-border bg-canvas text-muted/30"

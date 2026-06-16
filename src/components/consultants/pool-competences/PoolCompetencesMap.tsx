@@ -280,7 +280,7 @@ function CompetenceTree({
     : null
 
   return (
-    <section className="rounded-xl border border-border bg-canvas/45 p-4">
+    <section className="rounded-[var(--radius-medium)] border border-border bg-canvas/45 p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", tone.text)}>
@@ -299,7 +299,7 @@ function CompetenceTree({
         </button>
       </div>
 
-      <div className="relative mt-4 overflow-hidden rounded-xl border border-border bg-surface px-4 py-4">
+      <div className="relative mt-4 overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface px-4 py-4">
         <div
           className="absolute inset-0 opacity-60"
           style={{
@@ -352,7 +352,7 @@ function CompetenceTree({
 
         <div className="relative grid grid-cols-[96px_minmax(0,1fr)] gap-4">
           <div className="flex min-h-[360px] items-center justify-center">
-            <div className={cn("flex h-16 w-16 items-center justify-center rounded-full border text-xs font-black tracking-[0.16em] shadow-sm", tone.border, tone.soft, tone.text)}>
+            <div className={cn("flex h-16 w-16 items-center justify-center rounded-full border text-xs font-black tracking-[0.16em]", tone.border, tone.soft, tone.text)}>
               {practice.slug.slice(0, 2).toUpperCase()}
             </div>
           </div>
@@ -377,9 +377,9 @@ function CompetenceTree({
                   onFocus={() => setHoveredCategory(group.category)}
                   onBlur={() => setHoveredCategory(null)}
                   className={cn(
-                    "w-full rounded-xl border px-3 py-3 text-left transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/35",
+                    "w-full rounded-[var(--radius-medium)] border px-3 py-3 text-left transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/35",
                     focused
-                      ? cn("border-primary/25 bg-surface shadow-sm", pinned && tone.border)
+                      ? cn("border-primary/25 bg-surface", pinned && tone.border)
                       : "border-border bg-surface/60 opacity-45"
                   )}
                 >
@@ -533,7 +533,7 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
       </header>
 
       <main className="grid min-h-[690px] grid-cols-[minmax(0,1.12fr)_minmax(380px,0.88fr)] gap-5">
-        <section className="relative overflow-hidden rounded-lg border border-border bg-surface">
+        <section className="relative overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
           <div
             className="absolute inset-0 opacity-35"
             style={{
@@ -545,7 +545,7 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
           />
 
           <div
-            className="absolute inset-8 rounded-lg border border-border/50 bg-canvas/25"
+            className="absolute inset-8 rounded-[var(--radius-medium)] border border-border/50 bg-canvas/25"
             aria-hidden="true"
           />
 
@@ -586,7 +586,7 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
             })}
           </svg>
 
-          <div className="absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-heading/10 bg-heading shadow-sm">
+          <div className="absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-heading/10 bg-heading">
             <Image
               src="/logo_app.png"
               alt="Kredo"
@@ -608,9 +608,9 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
                 onClick={() => setSelectedSlug(practice.slug)}
                 aria-pressed={active}
                 className={cn(
-                  "absolute z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-start justify-center overflow-hidden rounded-[28px] border px-4 py-3 text-left shadow-sm transition duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40",
+                  "absolute z-20 flex -translate-x-1/2 -translate-y-1/2 flex-col items-start justify-center overflow-hidden rounded-[28px] border px-4 py-3 text-left transition duration-300 focus:outline-none focus:ring-2 focus:ring-primary/40",
                   active
-                    ? cn("bg-surface text-heading shadow-md ring-1", tone.border)
+                    ? cn("bg-surface text-heading ring-1", tone.border)
                     : "border-border bg-surface/90 text-heading hover:bg-surface-hover"
                 )}
                 style={territoryStyles.get(practice.slug)}
@@ -646,7 +646,7 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
           })}
         </section>
 
-        <aside className="overflow-hidden rounded-lg border border-border bg-surface">
+        <aside className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
           <div className={cn("relative overflow-hidden border-b border-border px-5 py-4", selectedTone.soft)}>
             {practiceImages[selectedPractice.slug] && (
               <div
@@ -699,13 +699,13 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
                     {attachedCollaborators.length} rattaches a cette practice
                   </p>
                 </div>
-                <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold tabular-nums", selectedTone.fill)}>
+                <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", selectedTone.fill)}>
                   {attachedCollaborators.length}
                 </span>
               </div>
 
               {attachedCollaborators.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
+                <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
                   Aucun collaborateur rattache dans les donnees actuelles.
                 </div>
               ) : (
@@ -719,7 +719,7 @@ export function PoolCompetencesMap({ practices, skills, collaborators }: PoolCom
                         key={collaborator.id}
                         type="button"
                         onClick={() => openDrawer(collaborator.id)}
-                        className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-primary/35"
+                        className="kredo-hover-reference flex w-full items-center gap-3 rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/35"
                       >
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", selectedTone.fill)}>
                           {getInitials(name)}
@@ -777,8 +777,8 @@ function Metric({
   return (
     <div
       className={cn(
-        "group relative min-h-28 overflow-hidden rounded-lg border bg-surface px-4 py-3.5 transition duration-200 hover:-translate-y-0.5 hover:bg-surface-hover",
-        featured ? cn("border-primary/35 shadow-sm", tone.soft) : "border-border"
+        "kredo-hover-reference group relative min-h-28 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-4 py-3.5",
+        featured ? cn("border-primary/35", tone.soft) : "border-border"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -793,7 +793,7 @@ function Metric({
           aria-hidden="true"
         />
       </div>
-      <p className="mt-3 font-heading text-3xl font-bold leading-none tracking-tight text-heading tabular-nums">
+      <p className="mt-3 font-heading text-3xl font-bold leading-none tracking-tight text-heading">
         {value}
       </p>
       <p className="mt-2 min-h-8 text-xs leading-4 text-body">

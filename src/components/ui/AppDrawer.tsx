@@ -115,7 +115,7 @@ export function AppDrawer({
 
   const panelWidthClassName = useMemo(() => {
     if (!isRight) {
-      return "w-full max-h-[85vh] rounded-t-[var(--radius-xl)] border-t"
+      return "w-full max-h-[85vh] rounded-t-[var(--radius-medium)] border-t"
     }
 
     if (width === "wide") {
@@ -232,7 +232,7 @@ export function AppDrawer({
               <div className="flex items-start gap-3">
                 {icon ? (
                   <span
-                    className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-medium)] bg-canvas text-primary"
+                    className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-small)] bg-canvas text-primary"
                     aria-hidden="true"
                   >
                     {icon}
@@ -241,7 +241,7 @@ export function AppDrawer({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 id={titleId} className="text-base font-semibold leading-7 text-heading">
+                    <h2 id={titleId} className="font-heading text-base font-bold leading-7 text-heading tracking-tight">
                       {title}
                     </h2>
                     {dirty ? (

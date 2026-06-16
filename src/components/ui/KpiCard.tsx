@@ -85,7 +85,7 @@ export function KpiCard({
             <div className="mt-2 flex items-end gap-2">
               <p
                 className={cn(
-                  "font-mono font-semibold tracking-[-0.02em] text-heading",
+                  "font-heading font-bold tracking-[-0.02em] text-heading",
                   currentSize.value,
                   loading && "text-transparent",
                 )}

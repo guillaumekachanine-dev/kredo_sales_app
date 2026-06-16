@@ -6,6 +6,7 @@ import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { SectionTab } from "@/lib/tabs/tab-types"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
 import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
@@ -155,144 +156,132 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
     )
   }
 
+  const missionColumns: StructuredListColumn<MissionsListRow>[] = [
+    {
+      id: "client",
+      header: "Client",
+      render: (row) => (
+        <div className="flex items-center gap-2.5">
+          <CompanyLogo
+            name={row.client || "Client"}
+            logoPath={row.clientLogoPath}
+            website={row.clientWebsite}
+            size="sm"
+          />
+          <span className="font-bold text-heading">{row.client ?? "—"}</span>
+        </div>
+      ),
+    },
+    {
+      id: "intitule",
+      header: "Intitulé",
+      render: (row) => (
+        <span className="font-semibold text-body group-hover:text-primary transition-colors duration-150">
+          {row.title}
+        </span>
+      ),
+    },
+    {
+      id: "consultant",
+      header: "Consultant",
+      render: (row) => <span className="text-body">{row.consultant ?? "—"}</span>,
+    },
+    {
+      id: "tarif",
+      header: "Tarif",
+      align: "right",
+      render: (row) => (
+        <span className="font-medium text-heading">
+          {row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}
+        </span>
+      ),
+    },
+    {
+      id: "marge",
+      header: "Marge",
+      align: "right",
+      render: (row) => (
+        <span className="font-medium text-heading">
+          {row.grossMarginPct !== null && row.grossMarginPct !== undefined
+            ? `${row.grossMarginPct} %`
+            : "—"}
+        </span>
+      ),
+    },
+    {
+      id: "date-debut",
+      header: "Date début",
+      align: "center",
+      render: (row) => <span className="text-body">{formatDateShort(row.startDate)}</span>,
+    },
+    {
+      id: "date-fin",
+      header: "Date fin",
+      align: "center",
+      render: (row) => <span className="text-body">{formatDateShort(row.endDate)}</span>,
+    },
+    {
+      id: "statut",
+      header: "Statut",
+      align: "center",
+      render: (row) => {
+        const style = getPastilleStyles(row.riskLevel)
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
+              style.bg,
+            )}
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
+            {style.label}
+          </span>
+        )
+      },
+    },
+    {
+      id: "action",
+      header: "",
+      align: "center",
+      width: "3rem",
+      render: (row) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleEditClick(row)
+          }}
+          className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 active:scale-90"
+          title="Modifier la mission"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </button>
+      ),
+    },
+  ]
+
   return (
     <>
-      {/* Desktop view (table) */}
+      {/* Desktop view */}
       <div className="hidden md:block">
-        <SurfaceCard className="overflow-hidden border-0 shadow-sm rounded-xl">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border bg-canvas/30">
-                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Client
-                </th>
-                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Intitulé
-                </th>
-                <th className="text-left px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Consultant
-                </th>
-                <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Tarif
-                </th>
-                <th className="text-right px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Marge
-                </th>
-                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Date début
-                </th>
-                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Date fin
-                </th>
-                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px]">
-                  Statut
-                </th>
-                <th className="text-center px-4 py-3 text-muted font-semibold uppercase tracking-wider text-[10px] w-12">
-                  {/* Edit Action Column */}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const style = getPastilleStyles(row.riskLevel)
-                return (
-                  <tr
-                    key={row.entityId}
-                    onClick={() =>
-                      openTab({
-                        entityType: row.entityType,
-                        entityId: row.entityId,
-                        title: row.title,
-                        subtitle: row.subtitle,
-                      })
-                    }
-                    className={cn(
-                      "border-b border-border/40 last:border-0",
-                      "hover:bg-surface-hover/30 hover:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04)] hover:translate-x-0.5",
-                      "transform transition-all duration-200 cursor-pointer group"
-                    )}
-                  >
-                    {/* Client */}
-                    <td className="px-4 py-3.5 text-heading font-bold">
-                      <div className="flex items-center gap-2.5">
-                        <CompanyLogo
-                          name={row.client || "Client"}
-                          logoPath={row.clientLogoPath}
-                          website={row.clientWebsite}
-                          size="sm"
-                        />
-                        <span>{row.client ?? "—"}</span>
-                      </div>
-                    </td>
-
-                    {/* Intitulé */}
-                    <td className="px-4 py-3.5">
-                      <span className="font-semibold text-body group-hover:text-primary transition-colors duration-150">
-                        {row.title}
-                      </span>
-                    </td>
-
-                    {/* Consultant */}
-                    <td className="px-4 py-3.5 text-body">
-                      {row.consultant ?? "—"}
-                    </td>
-
-                    {/* Tarif */}
-                    <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
-                      {row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}
-                    </td>
-
-                    {/* Marge */}
-                    <td className="px-4 py-3.5 text-right font-medium text-heading tabular-nums">
-                      {row.grossMarginPct !== null && row.grossMarginPct !== undefined
-                        ? `${row.grossMarginPct} %`
-                        : "—"}
-                    </td>
-
-                    {/* Date début */}
-                    <td className="px-4 py-3.5 text-center text-body tabular-nums">
-                      {formatDateShort(row.startDate)}
-                    </td>
-
-                    {/* Date fin */}
-                    <td className="px-4 py-3.5 text-center text-body tabular-nums">
-                      {formatDateShort(row.endDate)}
-                    </td>
-
-                    {/* Statut pastille */}
-                    <td className="px-4 py-3.5 text-center">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
-                          style.bg
-                        )}
-                      >
-                        <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
-                        {style.label}
-                      </span>
-                    </td>
-
-                    {/* Crayon button */}
-                    <td className="px-4 py-3.5 text-center">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleEditClick(row)
-                        }}
-                        className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 active:scale-90"
-                        title="Modifier la mission"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
+          <StructuredList
+            density="compact"
+            items={rows}
+            columns={missionColumns}
+            getItemId={(row) => row.entityId}
+            onItemClick={(row) =>
+              openTab({
+                entityType: row.entityType,
+                entityId: row.entityId,
+                title: row.title,
+                subtitle: row.subtitle,
+              })
+            }
+            ariaLabel="Liste des missions"
+          />
         </SurfaceCard>
       </div>
 
@@ -312,7 +301,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
                 })
               }
               className={cn(
-                "bg-surface border border-border/50 rounded-xl p-4 shadow-sm flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all"
+                "bg-surface border border-border/50 rounded-[var(--radius-medium)] p-4 flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all"
               )}
             >
               {/* Row 1: Client logo + name, and risk level */}
@@ -365,7 +354,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
               </div>
 
               {/* Row 3: Grid KPIs (TJM, Marge, Dates) */}
-              <div className="flex flex-col gap-2 bg-canvas/30 p-2.5 rounded-lg border border-border/40 text-[10px] text-body">
+              <div className="flex flex-col gap-2 bg-canvas/30 p-2.5 rounded-[var(--radius-medium)] border border-border/40 text-[10px] text-body">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col">
                     <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">TJM</span>
@@ -521,7 +510,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
                     <button
                       key={risk.value}
                       type="button"
-                      onClick={() => setFormRiskLevel(risk.value as any)}
+                      onClick={() => setFormRiskLevel(risk.value as "faible" | "modere" | "critique")}
                       className={cn(
                         "py-2 text-center text-xs font-bold rounded border uppercase tracking-wider transition-all duration-150",
                         isActive ? risk.activeColor : risk.color

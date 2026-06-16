@@ -260,7 +260,7 @@ function MobileKpiCard({ kpi }: { kpi: StaffingKpi }) {
             <p className="max-w-36 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{kpi.label}</p>
             <span className={cn("mt-1 h-2.5 w-2.5 rounded-full transition-transform duration-300 group-hover:scale-150", tone.fill)} />
           </div>
-          <p className="mt-4 font-heading text-3xl font-bold leading-none tracking-tight text-heading tabular-nums">
+          <p className="mt-4 font-heading text-3xl font-bold leading-none tracking-tight text-heading">
             {kpi.value}
           </p>
         </div>
@@ -322,7 +322,7 @@ function MobileStageFlow({
               <span className={cn("flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black", tone.soft, tone.text)}>
                 {index + 1}
               </span>
-              <span className="font-mono text-[11px] font-bold text-heading">{stage.share}%</span>
+              <span className="text-[11px] font-bold text-heading">{stage.share}%</span>
             </div>
             <div className="mt-3 flex flex-1 items-end justify-between gap-3">
               <div>
@@ -367,7 +367,7 @@ function MobilePositioningDetailPanel({
                   <p className="truncate text-xs font-bold text-heading">{detail.candidateName}</p>
                   <p className="mt-0.5 truncate text-[11px] text-muted">{detail.clientName}</p>
                 </div>
-                <p className="font-mono text-xs font-bold text-heading">{detail.tjmLabel}</p>
+                <p className="text-xs font-bold text-heading">{detail.tjmLabel}</p>
               </div>
               <p className="mt-2 line-clamp-2 text-[11px] text-body">{detail.needTitle}</p>
               <p className="mt-1 text-[10px] font-semibold text-muted">Démarrage {detail.startDateLabel}</p>
@@ -397,7 +397,7 @@ function MobileNeedCoveragePanel({
             <h2 className="mt-1 text-base font-bold text-heading">Besoins ouverts</h2>
             <p className="mt-1 text-[11px] text-body">Touchez une ligne pour ouvrir le drawer.</p>
           </div>
-          <span className="rounded-lg bg-heading px-2.5 py-1.5 font-heading text-2xl font-bold text-primary-fg tabular-nums">
+          <span className="rounded-lg bg-heading px-2.5 py-1.5 font-heading text-2xl font-bold text-primary-fg">
             {data.openNeeds.length}
           </span>
         </div>
@@ -449,7 +449,7 @@ function MobileSourceConstellation({ origins, maxCount }: { origins: StaffingOri
             <div className={cn("absolute -right-5 -top-5 rounded-full opacity-15", tone.fill)} style={{ height: size, width: size }} aria-hidden="true" />
             <p className="relative text-[11px] font-bold leading-snug text-heading">{origin.label}</p>
             <div className="relative mt-7 flex items-end justify-between">
-              <p className="font-heading text-2xl font-bold text-heading tabular-nums">{origin.count}</p>
+              <p className="font-heading text-2xl font-bold text-heading">{origin.count}</p>
               <p className="text-[10px] font-semibold text-muted">{origin.share}%</p>
             </div>
           </div>
