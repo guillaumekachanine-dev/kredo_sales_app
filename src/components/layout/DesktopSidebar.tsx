@@ -153,10 +153,8 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
           : "w-[var(--layout-sidebar-width-expanded)]",
       )}
     >
-      {/* Inner container — toujours à la largeur développée pour que la CSS
-          transition de l'aside clip proprement le contenu */}
       <div
-        className="flex h-full w-[var(--layout-sidebar-width-expanded)] flex-col justify-between overflow-x-hidden border-r border-white/12 bg-[var(--color-bg-sidebar)] text-primary-fg"
+        className="flex h-full w-full flex-col justify-between border-r border-white/12 bg-[var(--color-bg-sidebar)] text-primary-fg"
       >
         {/* ── Scrollable area ──────────────────────────────────── */}
         <div className="flex flex-col flex-1 overflow-y-auto py-4">
