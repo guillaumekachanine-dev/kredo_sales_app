@@ -48,7 +48,7 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
     <div
       ref={railRef}
       role="tablist"
-      className="kredo-rail-in fixed bottom-[calc(4rem+1px)] left-0 right-0 z-40 bg-primary-deep border-t border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+      className="kredo-rail-in fixed left-0 right-0 z-[calc(var(--z-bottom-nav)-1)] border-t border-white/10 bg-primary-deep bottom-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom))]"
     >
       <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-none px-3 h-11">
         {tabs.map((tab) => {
@@ -60,7 +60,8 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
               onClick={onSelect}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group relative flex items-center justify-center shrink-0 px-3.5 text-xs whitespace-nowrap transition-colors duration-150 active:scale-95",
+                "group relative flex shrink-0 items-center justify-center px-3.5 text-xs whitespace-nowrap transition-[color,opacity] duration-[var(--motion-duration-fast)] active:scale-95",
+                "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
                 isActive
                   ? "text-primary-fg font-medium"
                   : "text-primary-fg/55 hover:text-primary-fg/85"

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { SectionTab } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
+import { sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styles"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SectionNavBar — barre d'onglets de routing intra-module
@@ -31,25 +32,27 @@ export function SectionNavBar({ tabs }: SectionNavBarProps) {
   if (tabs.length === 0) return null
 
   return (
-    <div className="bg-canvas border-b border-border flex items-stretch shrink-0 overflow-x-auto scrollbar-none select-none px-6">
+    <nav
+      aria-label="Navigation de section"
+      className={sectionTabListClasses("bg-canvas border-b border-border shrink-0 px-6")}
+    >
       {tabs.map((tab) => {
         const isActive = pathname === tab.href
         const isClickable = !tab.disabled && !tab.comingSoon
 
         const baseClasses = cn(
-          "flex items-center gap-2 px-1 h-10 text-xs font-medium whitespace-nowrap transition-all duration-150 relative shrink-0",
-          "border-b-2 -mb-px mr-5 last:mr-0",
-          isActive
-            ? "text-primary border-primary font-semibold"
-            : "text-muted border-transparent hover:text-heading hover:border-border",
-          !isClickable && "opacity-40 cursor-not-allowed pointer-events-none"
+          sectionTabItemClasses({
+            active: isActive,
+            disabled: !isClickable,
+          }),
+          "-mb-px mr-5 last:mr-0",
         )
 
         const content = (
           <>
             <span>{tab.label}</span>
             {tab.comingSoon && (
-              <span className="text-[8px] font-bold text-muted/80 bg-border/60 px-1 py-0.5 rounded uppercase tracking-wider">
+              <span className="rounded-full border border-border bg-canvas px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
                 Bientôt
               </span>
             )}
@@ -70,11 +73,11 @@ export function SectionNavBar({ tabs }: SectionNavBarProps) {
         }
 
         return (
-          <div key={tab.href} className={baseClasses}>
+          <div key={tab.href} className={baseClasses} aria-disabled="true" title={tab.label}>
             {content}
           </div>
         )
       })}
-    </div>
+    </nav>
   )
 }

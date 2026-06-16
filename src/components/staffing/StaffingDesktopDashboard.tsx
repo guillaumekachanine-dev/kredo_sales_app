@@ -4,6 +4,8 @@ import { useMemo, useState } from "react"
 import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { DrawerSection } from "@/components/ui/DrawerSection"
+import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import type {
@@ -635,52 +637,54 @@ function NeedDetailDrawer({
       open={Boolean(need)}
       onOpenChange={onOpenChange}
       title={need?.title ?? "Besoin"}
-      subtitle={need ? `${need.company} - ${need.practice}` : undefined}
+      eyebrow="Besoin staffing"
+      description={need ? `${need.company} - ${need.practice}` : undefined}
+      width="default"
       footer={
         need ? (
           <>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-bold text-body transition hover:bg-surface-hover"
-            >
+            <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
               Fermer
-            </button>
-            <button
-              type="button"
-              onClick={() => onCreateStaffing(need)}
-              className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-fg transition hover:bg-primary/90"
-            >
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => onCreateStaffing(need)}>
               + créer un staffing
-            </button>
+            </Button>
           </>
         ) : null
       }
     >
       {need && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-border bg-canvas/40 p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Statut besoin</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <DrawerMetric label="Etape" value={need.stage} />
-              <DrawerMetric label="Priorité" value={need.priority} />
-              <DrawerMetric label="Démarrage" value={need.startDateLabel} />
-              <DrawerMetric label="TJM cible" value={need.targetDailyRateLabel} />
+        <div className="space-y-5">
+          <DrawerSection title="Statut besoin">
+            <div className="rounded-[var(--radius-large)] border border-border bg-canvas/40 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <DrawerMetric label="Étape" value={need.stage} />
+                <DrawerMetric label="Priorité" value={need.priority} />
+                <DrawerMetric label="Démarrage" value={need.startDateLabel} />
+                <DrawerMetric label="TJM cible" value={need.targetDailyRateLabel} />
+              </div>
             </div>
-          </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <h3 className="text-sm font-bold text-heading">Couverture</h3>
-            <p className="mt-2 text-xs text-body">{need.coverageLabel} positionné(s) sur ce besoin.</p>
-            <p className="mt-3 text-xs font-bold text-primary">{need.actionLabel}</p>
-          </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <h3 className="text-sm font-bold text-heading">Cadrage</h3>
-            <dl className="mt-3 space-y-2">
-              <DrawerRow label="Client" value={need.company} />
-              <DrawerRow label="Practice" value={need.practice} />
-              <DrawerRow label="Seniorite" value={need.seniority} />
-            </dl>
-          </div>
+          </DrawerSection>
+
+          <DrawerSection
+            title="Couverture"
+            description={`${need.coverageLabel} positionné(s) sur ce besoin.`}
+            divided
+          >
+            <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+              <p className="text-xs font-semibold text-primary">{need.actionLabel}</p>
+            </div>
+          </DrawerSection>
+
+          <DrawerSection title="Cadrage" divided>
+            <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+              <dl className="space-y-2">
+                <DrawerRow label="Client" value={need.company} />
+                <DrawerRow label="Practice" value={need.practice} />
+                <DrawerRow label="Séniorité" value={need.seniority} />
+              </dl>
+            </div>
+          </DrawerSection>
         </div>
       )}
     </AppDrawer>

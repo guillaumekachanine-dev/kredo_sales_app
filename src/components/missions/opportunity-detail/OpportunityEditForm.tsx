@@ -4,7 +4,16 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
-import type { Opportunity, OpportunitySkill, Contact, OpportunityEvent, OpportunityStandingProfile, SalesStage, SalesOutcome, SalesPriority } from "@/types/database"
+import type {
+  Contact,
+  Opportunity,
+  OpportunityEvent,
+  OpportunitySkill,
+  OpportunityStandingProfile,
+  SalesOutcome,
+  SalesPriority,
+  SalesStage,
+} from "@/types/database-domain"
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
 import { OpportunityStandingPanel } from "./OpportunityStandingPanel"

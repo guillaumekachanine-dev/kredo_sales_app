@@ -1,4 +1,4 @@
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { InsightCard } from "@/components/ui/InsightCard"
 import { DashboardInsight } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 
@@ -7,57 +7,30 @@ interface AiSummaryCardProps {
   className?: string
 }
 
+// Legacy wrapper: keeps the dashboard insight payload while reusing the shared insight primitive.
 export function AiSummaryCard({ insight, className }: AiSummaryCardProps) {
-  const { title, summary, recommendations } = insight
+  const recommendationContent =
+    insight.recommendations && insight.recommendations.length > 0 ? (
+      <ul className="space-y-2">
+        {insight.recommendations.map((recommendation, index) => (
+          <li key={`${recommendation}-${index}`} className="flex gap-2">
+            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+            <span>{recommendation}</span>
+          </li>
+        ))}
+      </ul>
+    ) : undefined
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
-      <div className="flex flex-col mb-3 select-none">
-        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-          Analyse IA
-        </h3>
-        <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
-      </div>
-
-      <div className="bg-surface bg-gradient-to-r from-primary/[0.03] to-transparent border-0 rounded-xl p-5 shadow-sm flex-1 flex flex-col">
-        <div className="flex items-center gap-2 mb-3">
-          {/* Sparkles SVG */}
-          <svg className="w-5 h-5 text-primary shrink-0 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.096L15 15l-5.188.904z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.071 4.929l-.707 2.122-2.122.707 2.122.707.707 2.122.707-2.122 2.122-.707-2.122-.707-.707-2.122z" />
-          </svg>
-          <h3 className="text-sm font-semibold text-heading tracking-tight">
-            {title}
-          </h3>
-          <span className="ml-auto text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded uppercase tracking-wider">
-            Copilot IA
-          </span>
-        </div>
-
-        <p className="text-xs text-body leading-relaxed">
-          {summary}
-        </p>
-
-        {recommendations && recommendations.length > 0 && (
-          <div className="mt-4 border-t border-border/40 pt-4">
-            <h4 className="text-[11px] font-bold text-muted uppercase tracking-wider mb-2">
-              Recommandations clés
-            </h4>
-            <ul className="space-y-2">
-              {recommendations.map((rec, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-xs text-heading">
-                  {/* Micro bullet check */}
-                  <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75" />
-                  </svg>
-                  <span className="leading-snug">{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+    <div className={cn("flex h-full flex-col", className)}>
+      <InsightCard
+        eyebrow="Analyse"
+        sourceLabel="Synthèse KREDO"
+        title={insight.title}
+        summary={insight.summary}
+        recommendation={recommendationContent}
+        className="flex-1"
+      />
     </div>
   )
 }
-

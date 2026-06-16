@@ -1,6 +1,13 @@
 'use client'
 
-import Link from 'next/link'
+import { Badge } from '@/components/ui/Badge'
+import { StatusPill } from '@/components/ui/StatusPill'
+import {
+  MobileDataList,
+  MobileEntitySummary,
+  MobileHeroInsight,
+  MobilePageHeader,
+} from '@/components/ui/mobile'
 import type { CollaborateurRow } from './ConsultantsSyntheseDesktop'
 
 function getFullName(row: CollaborateurRow): string {
@@ -17,13 +24,16 @@ function getInitials(row: CollaborateurRow): string {
   return `${fn.charAt(0)}${ln.charAt(0)}`.toUpperCase() || '?'
 }
 
-const AVATAR_PALETTE = [
-  '#2554B8', '#2C7D5C', '#D97020', '#C08A20',
-  '#BE3E3E', '#526074', '#7B5EA7', '#1B7FA0',
+const AVATAR_TONES = [
+  'bg-primary/[0.12] text-primary',
+  'bg-success/[0.12] text-success',
+  'bg-warning/[0.14] text-[var(--color-status-warning-ink)]',
+  'bg-info/[0.12] text-info',
 ]
-function avatarColor(name: string): string {
+
+function avatarTone(name: string): string {
   const code = name.charCodeAt(0) + (name.charCodeAt(1) || 0)
-  return AVATAR_PALETTE[code % AVATAR_PALETTE.length]
+  return AVATAR_TONES[code % AVATAR_TONES.length]
 }
 
 function isEnMission(row: CollaborateurRow): boolean {
@@ -35,101 +45,91 @@ interface Props { data: CollaborateurRow[] }
 export function ConsultantsSyntheseMobile({ data }: Props) {
   const enMission    = data.filter(isEnMission).length
   const interContrat = data.length - enMission
+  const hasInterContrat = interContrat > 0
 
   return (
-    <div className="flex flex-col gap-3 p-4 pb-24">
+    <div className="flex flex-col gap-4 p-4 pb-24">
+      <MobilePageHeader
+        eyebrow="Consultants"
+        title="Synthèse d’équipe"
+        description="Vision rapide des disponibilités et des missions actives."
+      />
 
-      {/* KPIs compacts */}
-      <div className="grid grid-cols-2 gap-3">
-        <div
-          className="border rounded-xl p-3"
-          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-        >
-          <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted)' }}>
-            En mission
-          </p>
-          <p className="text-2xl font-bold" style={{ color: 'var(--color-heading)' }}>
-            {enMission}
-          </p>
-        </div>
-        <div
-          className="border rounded-xl p-3"
-          style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-        >
-          <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--color-muted)' }}>
-            Inter-contrat
-          </p>
-          <p
-            className="text-2xl font-bold"
-            style={{ color: interContrat > 0 ? 'var(--color-accent)' : 'var(--color-heading)' }}
-          >
-            {interContrat}
-          </p>
-        </div>
-      </div>
+      <MobileHeroInsight
+        eyebrow="Décision prioritaire"
+        title={
+          hasInterContrat
+            ? `${interContrat} consultant${interContrat > 1 ? 's' : ''} à repositionner`
+            : 'Capacité sécurisée'
+        }
+        value={`${interContrat}/${data.length}`}
+        summary={
+          hasInterContrat
+            ? 'Arbitrez les profils disponibles avant la prochaine vague de staffing.'
+            : 'Tous les profils suivis sont engagés sur une mission active.'
+        }
+        tone={hasInterContrat ? 'warning' : 'success'}
+        confidence={`${enMission} en mission`}
+        sourceLabel="Vue consultants"
+      />
 
-      {/* Liste */}
-      <h2 className="text-xs font-semibold uppercase tracking-wide px-1" style={{ color: 'var(--color-muted)' }}>
-        Collaborateurs ({data.length})
-      </h2>
-
-      <div className="flex flex-col gap-2">
-        {data.map((collab) => {
-          const name     = getFullName(collab)
+      <MobileDataList
+        ariaLabel="Liste mobile des consultants"
+        items={data}
+        getItemId={(collab) => collab.id}
+        header={(
+          <div className="flex items-center justify-between gap-3 px-1">
+            <h2 className="text-[length:var(--font-size-label-sm)] font-semibold uppercase tracking-[0.08em] text-muted">
+              Collaborateurs
+            </h2>
+            <Badge variant="neutral" size="md">
+              {data.length}
+            </Badge>
+          </div>
+        )}
+        renderItem={(collab) => {
+          const name = getFullName(collab)
           const initials = getInitials(collab)
-          const color    = avatarColor(name)
-          const mission  = collab.missions.find((m) => m.status === 'active') ?? null
+          const tone = avatarTone(name)
+          const mission = collab.missions.find((m) => m.status === 'active') ?? null
           const inMission = Boolean(mission)
 
           return (
-            <Link
-              key={collab.id}
+            <MobileEntitySummary
               href={`/consultants/${collab.id}`}
-              className="flex items-center gap-3 border rounded-xl p-3 transition-colors active:opacity-70"
-              style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
-            >
-              {/* Avatar */}
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                style={{ background: color }}
-              >
-                {initials}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate" style={{ color: 'var(--color-heading)' }}>
-                  {name}
-                </p>
-                <p className="text-xs truncate" style={{ color: 'var(--color-muted)' }}>
-                  {mission
-                    ? `${mission.title}${mission.company ? ` · ${mission.company.name}` : ''}`
-                    : collab.current_title ?? 'Aucune mission active'}
-                </p>
-              </div>
-
-              {/* TJM + statut */}
-              <div className="shrink-0 flex flex-col items-end gap-1">
-                {mission && (
-                  <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--color-heading)' }}>
-                    {mission.tjm.toLocaleString('fr-FR')} €
-                  </span>
-                )}
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  style={
-                    inMission
-                      ? { background: '#d1fae5', color: '#065f46' }
-                      : { background: '#fef3c7', color: '#92400e' }
-                  }
-                >
-                  {inMission ? 'Mission' : 'Dispo'}
+              visual={(
+                <span className={`inline-flex size-10 items-center justify-center rounded-[var(--radius-round)] text-sm font-semibold ${tone}`}>
+                  {initials}
                 </span>
-              </div>
-            </Link>
+              )}
+              title={name}
+              subtitle={
+                mission
+                  ? `${mission.title}${mission.company ? ` · ${mission.company.name}` : ''}`
+                  : collab.current_title ?? 'Aucune mission active'
+              }
+              status={(
+                <StatusPill
+                  label={inMission ? 'En mission' : 'Disponible'}
+                  variant={inMission ? 'success' : 'warning'}
+                />
+              )}
+              facts={[
+                { label: 'Statut', value: inMission ? 'Actif' : 'À affecter' },
+                { label: 'Practice', value: collab.practice ?? 'Non renseignée' },
+                {
+                  label: 'TJM',
+                  value: mission ? `${mission.tjm.toLocaleString('fr-FR')} €` : 'N/A',
+                },
+                {
+                  label: 'Séniorité',
+                  value: collab.seniority ?? 'Non renseignée',
+                },
+              ]}
+            />
           )
-        })}
-      </div>
+        }}
+      />
     </div>
   )
 }

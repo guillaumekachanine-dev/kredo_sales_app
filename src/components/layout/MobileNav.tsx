@@ -31,7 +31,13 @@ export function MobileNav() {
   // ET le retour navigateur. La fermeture immédiate sur sélection est aussi
   // gérée par onSelect (ceinture + bretelles, pour le ressenti).
   useEffect(() => {
-    setRailOpen(false)
+    const timeout = window.setTimeout(() => {
+      setRailOpen(false)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeout)
+    }
   }, [pathname])
 
   return (

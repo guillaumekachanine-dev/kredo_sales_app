@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { formatDate, formatEuro } from "./opportunity-detail-utils"
-import type { OpportunityStandingProfile } from "@/types/database"
+import type { OpportunityStandingProfile } from "@/types/database-domain"
 
 interface OpportunityStandingPanelProps {
   profiles: OpportunityStandingProfile[]

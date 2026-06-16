@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { Json, SalesStage, SalesOutcome, SalesPriority, OpportunityUpdate } from "@/types/database"
+import type { Json } from "@/types/database"
+import type { OpportunityUpdate, SalesOutcome, SalesPriority, SalesStage } from "@/types/database-domain"
 
 export interface UpdateOpportunityInput {
   id: string

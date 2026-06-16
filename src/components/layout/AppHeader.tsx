@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Breadcrumb } from "./Breadcrumb"
+import { Badge } from "@/components/ui/Badge"
 
 interface AppHeaderProps {
   className?: string
@@ -7,17 +8,18 @@ interface AppHeaderProps {
 
 export function AppHeader({ className }: AppHeaderProps) {
   return (
-    <header className={cn("bg-surface border-b border-border px-8 h-14 flex items-center justify-between gap-4 shrink-0 select-none", className)}>
-      {/* Left side: fil d'Ariane de localisation (Finder-style) */}
+    <header
+      className={cn(
+        "flex h-[var(--layout-header-height)] shrink-0 select-none items-center justify-between gap-4 border-b border-border bg-surface px-6",
+        className,
+      )}
+    >
       <Breadcrumb />
 
-      {/* Right side: Connection status or search */}
       <div className="flex items-center gap-4 shrink-0">
-        {/* Simple live notification dot */}
-        <div className="flex items-center gap-2 text-[10px] text-muted">
-          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-          <span>Réseau Opérationnel</span>
-        </div>
+        <Badge variant="success" size="sm" dot>
+          Réseau opérationnel
+        </Badge>
       </div>
     </header>
   )

@@ -1,7 +1,16 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
-import type { Json, Opportunity, OpportunitySkill, Contact, OpportunityEvent, OpportunityStandingProfile, SalesOutcome, SkillImportance } from "@/types/database"
+import type { Json } from "@/types/database"
+import type {
+  Contact,
+  Opportunity,
+  OpportunityEvent,
+  OpportunitySkill,
+  OpportunityStandingProfile,
+  SalesOutcome,
+  SkillImportance,
+} from "@/types/database-domain"
 
 export type OpportunityDetailResult =
   | {

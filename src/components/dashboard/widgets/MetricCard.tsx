@@ -1,7 +1,7 @@
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import Link from "next/link"
+import { KpiCard } from "@/components/ui/KpiCard"
 import { DashboardMetric } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 
 interface MetricCardProps {
   metric: DashboardMetric
@@ -14,89 +14,74 @@ interface DesktopMetricCardProps {
   className?: string
 }
 
-// Function to render custom SVG icons with 45-degree flat long shadows projecting down-left
+// Legacy desktop visual kept temporarily to avoid broad dashboard regressions.
 export function renderKpiIconWithShadow(label: string, index: number) {
-  const normalized = label.toLowerCase();
-  
-  // Exact background colors matched from the user image
-  const bgColors = [
-    "#b08df7", // Purple (Card 1)
-    "#5bc2f7", // Light Blue (Card 2)
-    "#7686f5", // Indigo/Blue (Card 3)
-    "#10b981"  // Emerald Green (Card 4)
-  ];
-  
-  const bg = bgColors[index % 4];
-  const clipId = `clip-kpi-${index}`;
+  const normalized = label.toLowerCase()
+  const bgColors = ["#b08df7", "#5bc2f7", "#7686f5", "#10b981"]
+  const bg = bgColors[index % 4]
+  const clipId = `clip-kpi-${index}`
 
-  // Smart matching of the icon type, falling back to the image defaults by index
-  let iconType = "hierarchy";
+  let iconType = "hierarchy"
   if (
-    normalized.includes("affaires") || 
-    normalized.includes("ca") || 
-    normalized.includes("marge") || 
-    normalized.includes("panier") || 
-    normalized.includes("trésorerie") || 
+    normalized.includes("affaires") ||
+    normalized.includes("ca") ||
+    normalized.includes("marge") ||
+    normalized.includes("panier") ||
+    normalized.includes("trésorerie") ||
     normalized.includes("tva")
   ) {
-    iconType = "finance";
+    iconType = "finance"
   } else if (
-    normalized.includes("personne") || 
-    normalized.includes("consultant") || 
-    normalized.includes("recrutement") || 
-    normalized.includes("membre") || 
-    normalized.includes("candidat") || 
-    normalized.includes("user") || 
+    normalized.includes("personne") ||
+    normalized.includes("consultant") ||
+    normalized.includes("recrutement") ||
+    normalized.includes("membre") ||
+    normalized.includes("candidat") ||
+    normalized.includes("user") ||
     normalized.includes("utilisateur")
   ) {
-    iconType = "user";
+    iconType = "user"
   } else if (
-    normalized.includes("groupe") || 
-    normalized.includes("equipe") || 
-    normalized.includes("conversion") || 
-    normalized.includes("opportunité") || 
-    normalized.includes("proposition") || 
-    normalized.includes("contact") || 
-    normalized.includes("lead") || 
+    normalized.includes("groupe") ||
+    normalized.includes("equipe") ||
+    normalized.includes("conversion") ||
+    normalized.includes("opportunité") ||
+    normalized.includes("proposition") ||
+    normalized.includes("contact") ||
+    normalized.includes("lead") ||
     normalized.includes("client")
   ) {
-    iconType = "group";
+    iconType = "group"
   } else if (
-    normalized.includes("document") || 
-    normalized.includes("fichier") || 
-    normalized.includes("sauvegarde") || 
-    normalized.includes("dossier") || 
-    normalized.includes("rex") || 
+    normalized.includes("document") ||
+    normalized.includes("fichier") ||
+    normalized.includes("sauvegarde") ||
+    normalized.includes("dossier") ||
+    normalized.includes("rex") ||
     normalized.includes("base")
   ) {
-    iconType = "folder";
+    iconType = "folder"
   } else if (
-    normalized.includes("workflow") || 
-    normalized.includes("automation") || 
-    normalized.includes("exéc") || 
+    normalized.includes("workflow") ||
+    normalized.includes("automation") ||
+    normalized.includes("exéc") ||
     normalized.includes("n8n")
   ) {
-    iconType = "zap";
+    iconType = "zap"
   } else {
-    // Default sequence matching the user image
-    const defaults = ["hierarchy", "user", "group", "folder"];
-    iconType = defaults[index % 4];
+    const defaults = ["hierarchy", "user", "group", "folder"]
+    iconType = defaults[index % 4]
   }
 
   return (
-    <svg viewBox="0 0 48 48" className="w-11 h-11 shrink-0 filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+    <svg viewBox="0 0 48 48" className="h-11 w-11 shrink-0 filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
       <defs>
         <clipPath id={clipId}>
           <circle cx="24" cy="24" r="22" />
         </clipPath>
       </defs>
-      
-      {/* Solid background circle */}
       <circle cx="24" cy="24" r="22" fill={bg} />
-      
-      {/* Clipped area to keep the long shadow inside the circle */}
       <g clipPath={`url(#${clipId})`}>
-        {/* Flat long shadow paths (projecting at 225° / down-left) */}
         {iconType === "hierarchy" && (
           <path d="M20,14 L28,14 L-4,46 L-12,46 Z M11,26 L19,26 L-13,58 L-21,58 Z M29,26 L37,26 L5,58 L-3,58 Z" fill="#000000" opacity="0.14" />
         )}
@@ -115,8 +100,6 @@ export function renderKpiIconWithShadow(label: string, index: number) {
         {iconType === "zap" && (
           <path d="M27,12 L31,23 L12,42 L8,42 Z M15,25 L21,25 L2,44 L-4,44 Z" fill="#000000" opacity="0.14" />
         )}
-
-        {/* Crisp white vector icons */}
         {iconType === "hierarchy" && (
           <>
             <rect x="20" y="14" width="8" height="6" rx="1" fill="#ffffff" />
@@ -156,148 +139,67 @@ export function renderKpiIconWithShadow(label: string, index: number) {
         )}
       </g>
     </svg>
-  );
+  )
 }
 
-// Faithful borderless KPI Card reproduction (left circle with flat long shadow, label and bold value)
 export function DesktopMetricCard({ metric, index, className }: DesktopMetricCardProps) {
-  const { label, value, href } = metric;
-  const icon = renderKpiIconWithShadow(label, index);
+  const { label, value, href } = metric
+  const icon = renderKpiIconWithShadow(label, index)
 
   const content = (
-    <div className="flex items-center gap-3.5 px-4 py-3 w-full h-full">
-      {/* Vertically centered icon circle */}
-      <div className="shrink-0 flex items-center justify-center">
-        {icon}
-      </div>
-      {/* Stacked label and value */}
-      <div className="flex flex-col min-w-0">
-        <span className="text-[#9ca3af] text-[13px] font-normal leading-tight break-words whitespace-normal">
+    <div className="flex h-full w-full items-center gap-3.5 px-4 py-3">
+      <div className="flex shrink-0 items-center justify-center">{icon}</div>
+      <div className="flex min-w-0 flex-col">
+        <span className="whitespace-normal break-words text-[13px] font-normal leading-tight text-[#9ca3af]">
           {label}
         </span>
-        <span className="text-[#1f2937] dark:text-slate-100 text-[15px] font-bold leading-tight mt-0.5 truncate">
+        <span className="mt-0.5 truncate text-[15px] font-bold leading-tight text-[#1f2937] dark:text-slate-100">
           {value}
         </span>
       </div>
     </div>
-  );
+  )
 
   if (href) {
     return (
       <Link
         href={href}
         className={cn(
-          "block hover:bg-black/[0.015] dark:hover:bg-white/[0.015] rounded-xl transition-colors duration-150 w-full h-full",
-          className
+          "block h-full w-full rounded-xl transition-colors duration-150 hover:bg-black/[0.015] dark:hover:bg-white/[0.015]",
+          className,
         )}
       >
         {content}
       </Link>
-    );
-  }
-
-  return (
-    <div className={cn("w-full h-full", className)}>
-      {content}
-    </div>
-  );
-}
-
-// Classic MetricCard (primarily used for mobile device layouts)
-export function MetricCard({ metric, className }: MetricCardProps) {
-  const { label, value, description, trend, status, href } = metric
-
-  // Determine status-specific colors
-  const statusColors = {
-    success: "text-success",
-    warning: "text-warning",
-    danger: "text-danger",
-    neutral: "text-body",
-    pending: "text-accent"
-  }
-
-  const statusToAccent: Record<string, "none" | "primary" | "success" | "warning" | "danger"> = {
-    success: "success",
-    warning: "warning",
-    danger: "danger",
-    neutral: "none",
-    pending: "primary"
-  }
-  const accent = status ? (statusToAccent[status] || "none") : "none"
-
-  const trendIcon = trend && {
-    up: (
-      <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-      </svg>
-    ),
-    down: (
-      <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
-      </svg>
-    ),
-    stable: (
-      <svg className="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-      </svg>
     )
-  }[trend.direction]
+  }
 
-  const trendColor = trend && {
-    up: "text-success bg-success/5 border-success/10",
-    down: "text-danger bg-danger/5 border-danger/10",
-    stable: "text-muted bg-canvas border-border"
-  }[trend.direction]
-
-  const cardContent = (
-    <>
-      <div className="flex justify-between items-start gap-4">
-        <span className="text-xs font-medium text-muted uppercase tracking-wider line-clamp-1">
-          {label}
-        </span>
-        {status && status !== "neutral" && (
-          <span className={cn("inline-flex w-2 h-2 rounded-full", {
-            "bg-success": status === "success",
-            "bg-warning": status === "warning",
-            "bg-danger": status === "danger",
-            "bg-accent": status === "pending"
-          })} />
-        )}
-      </div>
-
-      <div className="mt-2.5 flex items-baseline gap-2">
-        <span className={cn("text-2xl font-bold tracking-tight text-heading tabular-nums", status && statusColors[status])}>
-          {value}
-        </span>
-      </div>
-
-      {(description || trend) && (
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/40 pt-2.5 text-xs">
-          <span className="text-muted truncate">{description}</span>
-          {trend && (
-            <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-medium", trendColor)}>
-              {trendIcon}
-              {trend.label}
-            </span>
-          )}
-        </div>
-      )}
-    </>
-  )
-
-  return (
-    <SurfaceCard
-      accent={accent}
-      href={href}
-      className={cn(
-        "p-5 flex flex-col justify-between transition-all duration-200",
-        href ? "hover:border-primary/30 hover:shadow-[0_2px_8px_-3px_rgba(37,84,184,0.08)] hover:-translate-y-0.5" : "",
-        className
-      )}
-    >
-      {cardContent}
-    </SurfaceCard>
-  )
+  return <div className={cn("h-full w-full", className)}>{content}</div>
 }
 
+function mapTrendDirectionToTone(direction?: "up" | "down" | "stable") {
+  if (direction === "up") {
+    return "positive" as const
+  }
 
+  if (direction === "down") {
+    return "negative" as const
+  }
+
+  return "neutral" as const
+}
+
+// Legacy wrapper: keep dashboard metric data shape while delegating the visual foundation to KpiCard.
+export function MetricCard({ metric, className }: MetricCardProps) {
+  return (
+    <KpiCard
+      label={metric.label}
+      value={metric.value}
+      context={metric.description}
+      delta={metric.trend?.label}
+      deltaTone={mapTrendDirectionToTone(metric.trend?.direction)}
+      href={metric.href}
+      className={className}
+    />
+  )
+}

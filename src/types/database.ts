@@ -14,6 +14,253 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_facts: {
+        Row: {
+          cardinality: string
+          confidence_score: number
+          created_at: string
+          effective_at: string | null
+          expires_at: string | null
+          fact_subtype: string | null
+          fact_type: string
+          id: string
+          is_current: boolean
+          normalized_value: string
+          normalized_value_hash: string
+          origin: string
+          primary_source_id: string | null
+          source_proposal_id: string | null
+          target_id: string
+          target_type: string
+          updated_at: string
+          value_json: Json | null
+          value_text: string | null
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          cardinality: string
+          confidence_score?: number
+          created_at?: string
+          effective_at?: string | null
+          expires_at?: string | null
+          fact_subtype?: string | null
+          fact_type: string
+          id?: string
+          is_current?: boolean
+          normalized_value: string
+          normalized_value_hash: string
+          origin: string
+          primary_source_id?: string | null
+          source_proposal_id?: string | null
+          target_id: string
+          target_type: string
+          updated_at?: string
+          value_json?: Json | null
+          value_text?: string | null
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Update: {
+          cardinality?: string
+          confidence_score?: number
+          created_at?: string
+          effective_at?: string | null
+          expires_at?: string | null
+          fact_subtype?: string | null
+          fact_type?: string
+          id?: string
+          is_current?: boolean
+          normalized_value?: string
+          normalized_value_hash?: string
+          origin?: string
+          primary_source_id?: string | null
+          source_proposal_id?: string | null
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          value_json?: Json | null
+          value_text?: string | null
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_facts_primary_source_id_fkey"
+            columns: ["primary_source_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_facts_source_proposal_id_fkey"
+            columns: ["source_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "enrichment_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_facts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_signals: {
+        Row: {
+          company_id: string
+          confidence_score: number
+          created_at: string
+          dedupe_key: string
+          detected_at: string
+          event_at: string | null
+          expires_at: string | null
+          global_score: number
+          id: string
+          last_evidence_at: string
+          potential_value_score: number
+          primary_source_id: string | null
+          recommended_action: string | null
+          recommended_practice_id: string | null
+          relevance_score: number
+          run_id: string | null
+          score_details: Json
+          score_justification: string | null
+          scoring_rules_version: string
+          signal_category: string
+          signal_type: string
+          status: string
+          suggested_contact_id: string | null
+          summary: string | null
+          taxonomy_version: string
+          title: string
+          updated_at: string
+          urgency_score: number
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          confidence_score?: number
+          created_at?: string
+          dedupe_key: string
+          detected_at?: string
+          event_at?: string | null
+          expires_at?: string | null
+          global_score?: number
+          id?: string
+          last_evidence_at?: string
+          potential_value_score?: number
+          primary_source_id?: string | null
+          recommended_action?: string | null
+          recommended_practice_id?: string | null
+          relevance_score?: number
+          run_id?: string | null
+          score_details?: Json
+          score_justification?: string | null
+          scoring_rules_version?: string
+          signal_category: string
+          signal_type: string
+          status?: string
+          suggested_contact_id?: string | null
+          summary?: string | null
+          taxonomy_version?: string
+          title: string
+          updated_at?: string
+          urgency_score?: number
+          workspace_id?: string
+        }
+        Update: {
+          company_id?: string
+          confidence_score?: number
+          created_at?: string
+          dedupe_key?: string
+          detected_at?: string
+          event_at?: string | null
+          expires_at?: string | null
+          global_score?: number
+          id?: string
+          last_evidence_at?: string
+          potential_value_score?: number
+          primary_source_id?: string | null
+          recommended_action?: string | null
+          recommended_practice_id?: string | null
+          relevance_score?: number
+          run_id?: string | null
+          score_details?: Json
+          score_justification?: string | null
+          scoring_rules_version?: string
+          signal_category?: string
+          signal_type?: string
+          status?: string
+          suggested_contact_id?: string | null
+          summary?: string | null
+          taxonomy_version?: string
+          title?: string
+          updated_at?: string
+          urgency_score?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_signals_primary_source_id_fkey"
+            columns: ["primary_source_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_recommended_practice_id_fkey"
+            columns: ["recommended_practice_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_suggested_contact_id_fkey"
+            columns: ["suggested_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_intelligence_logs: {
         Row: {
           action: string
@@ -434,6 +681,145 @@ export type Database = {
           },
         ]
       }
+      client_closures: {
+        Row: {
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          is_recurring: boolean
+          label: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          is_recurring?: boolean
+          label: string
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_recurring?: boolean
+          label?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_closures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_closures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "client_closures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "client_closures_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaborator_absences: {
+        Row: {
+          absence_type: Database["public"]["Enums"]["absence_type"]
+          collaborator_id: string
+          created_at: string
+          duration_days: number
+          end_date: string
+          id: string
+          metadata: Json
+          notes: string | null
+          start_date: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          absence_type: Database["public"]["Enums"]["absence_type"]
+          collaborator_id: string
+          created_at?: string
+          duration_days: number
+          end_date: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          absence_type?: Database["public"]["Enums"]["absence_type"]
+          collaborator_id?: string
+          created_at?: string
+          duration_days?: number
+          end_date?: string
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_absences_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_absences_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "collaborator_absences_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "collaborator_absences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborator_compensation: {
         Row: {
           charges_rate: number
@@ -490,6 +876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "collaborators"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborator_compensation_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
           },
           {
             foreignKeyName: "collaborator_compensation_collaborator_id_fkey"
@@ -577,6 +970,13 @@ export type Database = {
             foreignKeyName: "collaborators_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "collaborators_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["collaborator_id"]
           },
@@ -612,6 +1012,7 @@ export type Database = {
           health: string | null
           hq_location: string | null
           id: string
+          knowledge_state: string
           last_contact_at: string | null
           legal_name: string | null
           lifecycle_status: string
@@ -639,6 +1040,7 @@ export type Database = {
           health?: string | null
           hq_location?: string | null
           id?: string
+          knowledge_state?: string
           last_contact_at?: string | null
           legal_name?: string | null
           lifecycle_status?: string
@@ -666,6 +1068,7 @@ export type Database = {
           health?: string | null
           hq_location?: string | null
           id?: string
+          knowledge_state?: string
           last_contact_at?: string | null
           legal_name?: string | null
           lifecycle_status?: string
@@ -882,6 +1285,239 @@ export type Database = {
           },
         ]
       }
+      enrichment_proposals: {
+        Row: {
+          applied_at: string | null
+          attribute_name: string
+          attribute_subkey: string | null
+          confidence_score: number
+          created_at: string
+          decided_by: string | null
+          decision_at: string | null
+          decision_reason: string | null
+          id: string
+          initial_snapshot: Json
+          justification: string | null
+          normalized_value: Json
+          normalized_value_hash: string
+          old_value: Json | null
+          origin: string
+          primary_source_id: string | null
+          proposal_key: string
+          proposed_value: Json
+          requested_by: string | null
+          run_id: string | null
+          status: string
+          target_id: string
+          target_type: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          attribute_name: string
+          attribute_subkey?: string | null
+          confidence_score?: number
+          created_at?: string
+          decided_by?: string | null
+          decision_at?: string | null
+          decision_reason?: string | null
+          id?: string
+          initial_snapshot?: Json
+          justification?: string | null
+          normalized_value?: Json
+          normalized_value_hash: string
+          old_value?: Json | null
+          origin: string
+          primary_source_id?: string | null
+          proposal_key: string
+          proposed_value: Json
+          requested_by?: string | null
+          run_id?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          applied_at?: string | null
+          attribute_name?: string
+          attribute_subkey?: string | null
+          confidence_score?: number
+          created_at?: string
+          decided_by?: string | null
+          decision_at?: string | null
+          decision_reason?: string | null
+          id?: string
+          initial_snapshot?: Json
+          justification?: string | null
+          normalized_value?: Json
+          normalized_value_hash?: string
+          old_value?: Json | null
+          origin?: string
+          primary_source_id?: string | null
+          proposal_key?: string
+          proposed_value?: Json
+          requested_by?: string | null
+          run_id?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_proposals_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrichment_proposals_primary_source_id_fkey"
+            columns: ["primary_source_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrichment_proposals_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrichment_proposals_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrichment_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_source_links: {
+        Row: {
+          created_at: string
+          id: string
+          link_role: string
+          object_id: string
+          object_type: string
+          source_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_role: string
+          object_id: string
+          object_type: string
+          source_id: string
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_role?: string
+          object_id?: string
+          object_type?: string
+          source_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_source_links_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_source_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_sources: {
+        Row: {
+          canonical_url: string | null
+          collected_at: string
+          collection_method: string
+          content_hash: string | null
+          created_at: string
+          evidence_excerpt: string | null
+          external_reference: string | null
+          id: string
+          published_at: string | null
+          reliability_score: number
+          source_key: string
+          source_name: string
+          source_type: string
+          source_url: string | null
+          technical_metadata: Json
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          collected_at?: string
+          collection_method: string
+          content_hash?: string | null
+          created_at?: string
+          evidence_excerpt?: string | null
+          external_reference?: string | null
+          id?: string
+          published_at?: string | null
+          reliability_score?: number
+          source_key: string
+          source_name: string
+          source_type: string
+          source_url?: string | null
+          technical_metadata?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          canonical_url?: string | null
+          collected_at?: string
+          collection_method?: string
+          content_hash?: string | null
+          created_at?: string
+          evidence_excerpt?: string | null
+          external_reference?: string | null
+          id?: string
+          published_at?: string | null
+          reliability_score?: number
+          source_key?: string
+          source_name?: string
+          source_type?: string
+          source_url?: string | null
+          technical_metadata?: Json
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_sources_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interactions: {
         Row: {
           author_id: string | null
@@ -966,6 +1602,75 @@ export type Database = {
           },
           {
             foreignKeyName: "interactions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_profiles: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          id: string
+          is_active: boolean
+          kpis: string[]
+          main_mission: string
+          metadata: Json
+          practice_id: string
+          responsibilities: string[]
+          source: string
+          tech_stack: string[]
+          title: string
+          updated_at: string
+          version: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          is_active?: boolean
+          kpis?: string[]
+          main_mission: string
+          metadata?: Json
+          practice_id: string
+          responsibilities?: string[]
+          source?: string
+          tech_stack?: string[]
+          title: string
+          updated_at?: string
+          version?: string
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          is_active?: boolean
+          kpis?: string[]
+          main_mission?: string
+          metadata?: Json
+          practice_id?: string
+          responsibilities?: string[]
+          source?: string
+          tech_stack?: string[]
+          title?: string
+          updated_at?: string
+          version?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profiles_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_profiles_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1111,6 +1816,13 @@ export type Database = {
             foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
             columns: ["collaborator_id"]
             isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["collaborator_id"]
           },
@@ -1220,6 +1932,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "collaborators"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
           },
           {
             foreignKeyName: "missions_collaborator_id_fkey"
@@ -1358,6 +2077,8 @@ export type Database = {
           currency: string
           engagement_type_id: string | null
           id: string
+          job_profile_id: string | null
+          location: string | null
           notes: string | null
           offer_id: string | null
           practice_id: string | null
@@ -1365,6 +2086,7 @@ export type Database = {
           seniority_level: string
           tjm_max: number | null
           tjm_min: number | null
+          tjm_recommended: number | null
           updated_at: string
           valid_from: string | null
           valid_to: string | null
@@ -1375,6 +2097,8 @@ export type Database = {
           currency?: string
           engagement_type_id?: string | null
           id?: string
+          job_profile_id?: string | null
+          location?: string | null
           notes?: string | null
           offer_id?: string | null
           practice_id?: string | null
@@ -1382,6 +2106,7 @@ export type Database = {
           seniority_level: string
           tjm_max?: number | null
           tjm_min?: number | null
+          tjm_recommended?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
@@ -1392,6 +2117,8 @@ export type Database = {
           currency?: string
           engagement_type_id?: string | null
           id?: string
+          job_profile_id?: string | null
+          location?: string | null
           notes?: string | null
           offer_id?: string | null
           practice_id?: string | null
@@ -1399,6 +2126,7 @@ export type Database = {
           seniority_level?: string
           tjm_max?: number | null
           tjm_min?: number | null
+          tjm_recommended?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
@@ -1410,6 +2138,13 @@ export type Database = {
             columns: ["engagement_type_id"]
             isOneToOne: false
             referencedRelation: "offer_engagement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_pricing_grids_job_profile_id_fkey"
+            columns: ["job_profile_id"]
+            isOneToOne: false
+            referencedRelation: "job_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1506,11 +2241,14 @@ export type Database = {
           need_summary: string | null
           next_action_at: string | null
           next_action_label: string | null
+          opened_at: string | null
           opportunity_type: string | null
           owner_id: string | null
           practice: string | null
           priority: string
           remote_policy: string | null
+          required_headcount: number
+          requires_staffing: boolean
           sector_id: string | null
           seniority: string | null
           source: string | null
@@ -1541,11 +2279,14 @@ export type Database = {
           need_summary?: string | null
           next_action_at?: string | null
           next_action_label?: string | null
+          opened_at?: string | null
           opportunity_type?: string | null
           owner_id?: string | null
           practice?: string | null
           priority?: string
           remote_policy?: string | null
+          required_headcount?: number
+          requires_staffing?: boolean
           sector_id?: string | null
           seniority?: string | null
           source?: string | null
@@ -1576,11 +2317,14 @@ export type Database = {
           need_summary?: string | null
           next_action_at?: string | null
           next_action_label?: string | null
+          opened_at?: string | null
           opportunity_type?: string | null
           owner_id?: string | null
           practice?: string | null
           priority?: string
           remote_policy?: string | null
+          required_headcount?: number
+          requires_staffing?: boolean
           sector_id?: string | null
           seniority?: string | null
           source?: string | null
@@ -1643,10 +2387,12 @@ export type Database = {
           id: string
           next_action: string | null
           opportunity_id: string
+          positioning_origin: string | null
           proposed_at: string | null
           recruiter_id: string | null
           sent_to_client_at: string | null
           status: string
+          status_changed_at: string | null
           updated_at: string
           workspace_id: string
         }
@@ -1658,10 +2404,12 @@ export type Database = {
           id?: string
           next_action?: string | null
           opportunity_id: string
+          positioning_origin?: string | null
           proposed_at?: string | null
           recruiter_id?: string | null
           sent_to_client_at?: string | null
           status?: string
+          status_changed_at?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -1673,10 +2421,12 @@ export type Database = {
           id?: string
           next_action?: string | null
           opportunity_id?: string
+          positioning_origin?: string | null
           proposed_at?: string | null
           recruiter_id?: string | null
           sent_to_client_at?: string | null
           status?: string
+          status_changed_at?: string | null
           updated_at?: string
           workspace_id?: string
         }
@@ -1808,6 +2558,151 @@ export type Database = {
           },
         ]
       }
+      performance_criteria: {
+        Row: {
+          code: string
+          comparison_operator: string
+          created_at: string
+          id: string
+          is_quantitative: boolean
+          label: string
+          metadata: Json
+          objective_category: string
+          plan_id: string
+          target_value: number
+          unit: string
+          updated_at: string
+          weight_pct: number
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          comparison_operator: string
+          created_at?: string
+          id?: string
+          is_quantitative?: boolean
+          label: string
+          metadata?: Json
+          objective_category: string
+          plan_id: string
+          target_value: number
+          unit: string
+          updated_at?: string
+          weight_pct: number
+          workspace_id?: string
+        }
+        Update: {
+          code?: string
+          comparison_operator?: string
+          created_at?: string
+          id?: string
+          is_quantitative?: boolean
+          label?: string
+          metadata?: Json
+          objective_category?: string
+          plan_id?: string
+          target_value?: number
+          unit?: string
+          updated_at?: string
+          weight_pct?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_criteria_plan_workspace_fkey"
+            columns: ["plan_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "performance_plans"
+            referencedColumns: ["id", "workspace_id"]
+          },
+          {
+            foreignKeyName: "performance_criteria_plan_workspace_fkey"
+            columns: ["plan_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_commercial_performance_monthly"
+            referencedColumns: ["plan_id", "workspace_id"]
+          },
+          {
+            foreignKeyName: "performance_criteria_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_plans: {
+        Row: {
+          baseline_end: string | null
+          baseline_start: string | null
+          created_at: string
+          currency: string
+          fiscal_year: number
+          fixed_salary_amount: number
+          id: string
+          owner_profile_id: string
+          period_end: string
+          period_start: string
+          role_title: string
+          source: string
+          status: string
+          target_variable_amount: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          baseline_end?: string | null
+          baseline_start?: string | null
+          created_at?: string
+          currency?: string
+          fiscal_year: number
+          fixed_salary_amount: number
+          id?: string
+          owner_profile_id: string
+          period_end: string
+          period_start: string
+          role_title: string
+          source?: string
+          status?: string
+          target_variable_amount: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          baseline_end?: string | null
+          baseline_start?: string | null
+          created_at?: string
+          currency?: string
+          fiscal_year?: number
+          fixed_salary_amount?: number
+          id?: string
+          owner_profile_id?: string
+          period_end?: string
+          period_start?: string
+          role_title?: string
+          source?: string
+          status?: string
+          target_variable_amount?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_plans_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person_skills: {
         Row: {
           comment: string | null
@@ -1928,6 +2823,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "persons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pnl_monthly: {
+        Row: {
+          created_at: string
+          direct_costs_salaries: number
+          direct_costs_subcontractors: number
+          gross_margin_percent: number | null
+          gross_margin_value: number | null
+          id: string
+          notes: string | null
+          operating_profit_percent: number | null
+          operating_profit_value: number | null
+          period_month: string
+          revenue_total: number
+          source: string
+          structural_costs_it: number
+          structural_costs_mgmt: number
+          structural_costs_rent: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          direct_costs_salaries?: number
+          direct_costs_subcontractors?: number
+          gross_margin_percent?: number | null
+          gross_margin_value?: number | null
+          id?: string
+          notes?: string | null
+          operating_profit_percent?: number | null
+          operating_profit_value?: number | null
+          period_month: string
+          revenue_total: number
+          source?: string
+          structural_costs_it?: number
+          structural_costs_mgmt?: number
+          structural_costs_rent?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          direct_costs_salaries?: number
+          direct_costs_subcontractors?: number
+          gross_margin_percent?: number | null
+          gross_margin_value?: number | null
+          id?: string
+          notes?: string | null
+          operating_profit_percent?: number | null
+          operating_profit_value?: number | null
+          period_month?: string
+          revenue_total?: number
+          source?: string
+          structural_costs_it?: number
+          structural_costs_mgmt?: number
+          structural_costs_rent?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pnl_monthly_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -2384,6 +3347,50 @@ export type Database = {
           },
         ]
       }
+      workforce_monthly_snapshots: {
+        Row: {
+          active_consultants_count: number
+          created_at: string
+          id: string
+          intercontract_rate_pct: number
+          notes: string | null
+          period_month: string
+          source: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_consultants_count: number
+          created_at?: string
+          id?: string
+          intercontract_rate_pct: number
+          notes?: string | null
+          period_month: string
+          source?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          active_consultants_count?: number
+          created_at?: string
+          id?: string
+          intercontract_rate_pct?: number
+          notes?: string | null
+          period_month?: string
+          source?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workforce_monthly_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           created_at: string
@@ -2434,6 +3441,120 @@ export type Database = {
         }
         Relationships: []
       }
+      v_collaborator_activity_summary: {
+        Row: {
+          activity_rate_percent: number | null
+          billable_days: number | null
+          business_days: number | null
+          cjm_snapshot: number | null
+          collab_status: string | null
+          collaborator_id: string | null
+          cra_status: string | null
+          daily_employer_cost: number | null
+          employer_cost: number | null
+          entry_date: string | null
+          full_name: string | null
+          gross_annual: number | null
+          non_billable_days: number | null
+          period_start: string | null
+          pto_days: number | null
+          real_margin: number | null
+          real_margin_pct: number | null
+          revenue: number | null
+          sick_days: number | null
+          theoretical_margin_pct: number | null
+          tjm_snapshot: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+        ]
+      }
+      v_collaborator_ytd_activity: {
+        Row: {
+          collaborator_id: string | null
+          entry_date: string | null
+          full_name: string | null
+          gap_vs_target: number | null
+          months_covered: number | null
+          taci_target: number | null
+          total_billable_days: number | null
+          total_business_days: number | null
+          total_non_billable_days: number | null
+          total_pto_days: number | null
+          total_sick_days: number | null
+          year: number | null
+          ytd_activity_rate: number | null
+          ytd_employer_cost: number | null
+          ytd_real_margin: number | null
+          ytd_revenue: number | null
+        }
+        Relationships: []
+      }
+      v_commercial_performance_monthly: {
+        Row: {
+          active_consultants_actual: number | null
+          active_consultants_gap: number | null
+          active_consultants_target: number | null
+          annual_revenue_target: number | null
+          fiscal_year: number | null
+          gross_margin_actual_pct: number | null
+          gross_margin_actual_value: number | null
+          gross_margin_gap_pct: number | null
+          gross_margin_target_pct: number | null
+          intercontract_rate_actual_pct: number | null
+          mission_capacity_method: string | null
+          month_number: number | null
+          net_recruitments_target: number | null
+          new_client_logos_target: number | null
+          owner_profile_id: string | null
+          period_month: string | null
+          plan_id: string | null
+          revenue_actual: number | null
+          revenue_actual_cumulative: number | null
+          revenue_gap_cumulative: number | null
+          revenue_gap_monthly: number | null
+          revenue_per_active_consultant_month: number | null
+          revenue_target_cumulative: number | null
+          revenue_target_monthly: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_plans_owner_profile_id_fkey"
+            columns: ["owner_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_plans_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_mission_quarterly_revenue: {
         Row: {
           billable_days: number | null
@@ -2468,12 +3589,100 @@ export type Database = {
           },
         ]
       }
+      v_performance_criteria_compensation: {
+        Row: {
+          allocated_variable_amount: number | null
+          code: string | null
+          comparison_operator: string | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          is_quantitative: boolean | null
+          label: string | null
+          objective_category: string | null
+          plan_id: string | null
+          target_value: number | null
+          unit: string | null
+          updated_at: string | null
+          weight_pct: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_criteria_plan_workspace_fkey"
+            columns: ["plan_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "performance_plans"
+            referencedColumns: ["id", "workspace_id"]
+          },
+          {
+            foreignKeyName: "performance_criteria_plan_workspace_fkey"
+            columns: ["plan_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_commercial_performance_monthly"
+            referencedColumns: ["plan_id", "workspace_id"]
+          },
+          {
+            foreignKeyName: "performance_criteria_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_profitability_alerts: {
+        Row: {
+          activity_rate_percent: number | null
+          alert_cra_not_validated: boolean | null
+          alert_high_sick_days: boolean | null
+          alert_low_activity: boolean | null
+          alert_low_margin: boolean | null
+          alert_negative_margin: boolean | null
+          collaborator_id: string | null
+          cra_status: string | null
+          full_name: string | null
+          period_start: string | null
+          real_margin_pct: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "mission_activity_reports_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+        ]
+      }
     }
     Functions: {
-      current_workspace_id: { Args: never; Returns: string }
-      is_workspace_admin: { Args: never; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
+      absence_type:
+        | "conge_paye"
+        | "rtt"
+        | "maladie"
+        | "sans_solde"
+        | "contrainte_perso"
+        | "formation"
+        | "fermeture_client"
+        | "autre"
       ai_result_status:
         | "queued"
         | "running"
@@ -2513,13 +3722,13 @@ export type Tables<
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-      DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-    ? R
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
     : never
-  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
@@ -2539,12 +3748,12 @@ export type TablesInsert<
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Insert: infer I
-    }
-    ? I
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
     : never
-  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
@@ -2564,12 +3773,12 @@ export type TablesUpdate<
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-      Update: infer U
-    }
-    ? U
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
     : never
-  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
@@ -2585,8 +3794,8 @@ export type Enums<
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
@@ -2602,12 +3811,22 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {
     Enums: {
+      absence_type: [
+        "conge_paye",
+        "rtt",
+        "maladie",
+        "sans_solde",
+        "contrainte_perso",
+        "formation",
+        "fermeture_client",
+        "autre",
+      ],
       ai_result_status: [
         "queued",
         "running",
@@ -2619,76 +3838,3 @@ export const Constants = {
     },
   },
 } as const
-
-type PublicSchema = Database["public"]
-
-export type Opportunity = PublicSchema["Tables"]["opportunities"]["Row"] & {
-  account_id?: string | null
-  duration?: number | null
-  need_detail?: string | null
-  client_context?: string | null
-  engagement_notes?: string | null
-  outcome?: SalesOutcome | null
-}
-export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"]
-export type OpportunityUpdate = PublicSchema["Tables"]["opportunities"]["Update"]
-
-export type Account = PublicSchema["Tables"]["companies"]["Row"]
-
-export type Mission = PublicSchema["Tables"]["missions"]["Row"]
-export type MissionInsert = PublicSchema["Tables"]["missions"]["Insert"]
-export type MissionUpdate = PublicSchema["Tables"]["missions"]["Update"]
-
-export type Contact = {
-  id: string
-  account_id: string | null
-  full_name: string
-  email: string | null
-  phone: string | null
-  job_title: string | null
-  notes: string | null
-  created_at: string
-}
-
-export type OpportunitySkill = {
-  id: string
-  opportunity_id: string
-  skill_name: string
-  importance: SkillImportance
-  min_years: number | null
-  created_at: string
-}
-
-export type OpportunityEvent = {
-  id: string
-  opportunity_id: string
-  event_type: string
-  body: string | null
-  occurred_at: string
-}
-
-export type OpportunityStandingProfile = {
-  id: string
-  candidate_id: string
-  full_name: string
-  seniority: string | null
-  availability: string | null
-  mobility: string | null
-  expected_daily_rate: number | null
-  summary: string | null
-  internal_score: number | null
-  source: string | null
-  candidate_status: string
-  opportunity_status: string
-  proposed_at: string | null
-  sent_to_client_at: string | null
-  comment: string | null
-  next_action: string | null
-  origin: "pressenti" | "ia"
-}
-
-export type SalesStage = "qualification" | "recherche_profil" | "cv_envoyes" | "entretien_client" | "gagne" | "perdu" | "abandonne" | "non_traitee"
-export type SalesOutcome = "gagnee" | "perdue" | "abandonnee" | "non_traitee"
-export type SalesPriority = "haute" | "moyenne" | "basse"
-export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
-export type SkillImportance = "indispensable" | "souhaitee" | "bonus"

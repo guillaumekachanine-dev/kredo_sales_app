@@ -1,8 +1,11 @@
 "use client"
 
+import { KeyboardEvent } from "react"
+import { IconButton } from "@/components/ui/IconButton"
 import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { SectionTab } from "@/lib/tabs/tab-types"
+import { sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styles"
 
 interface SectionTabBarProps {
   homeLabel?: string
@@ -42,35 +45,42 @@ function HomeIcon() {
 export function SectionTabBar({ homeLabel }: SectionTabBarProps) {
   const { tabs, activeTabId, setActiveTab, closeTab } = useMissionsTabStore()
 
+  const handleInteractiveKeyDown = (event: KeyboardEvent<HTMLDivElement>, tabId: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      setActiveTab(tabId)
+    }
+  }
+
   return (
-    <div className="bg-surface border-b border-border flex items-stretch shrink-0 overflow-x-auto scrollbar-none select-none">
-      {/* Home tab */}
+    <div className={sectionTabListClasses("bg-surface border-b border-border shrink-0")} role="tablist" aria-label="Fiches ouvertes">
       <button
         onClick={() => setActiveTab("home")}
+        role="tab"
+        aria-selected={activeTabId === "home"}
         className={cn(
-          "flex items-center gap-1.5 px-4 h-10 text-xs font-medium whitespace-nowrap transition-all duration-150 relative shrink-0 border-r border-border",
-          activeTabId === "home"
-            ? "text-heading bg-canvas after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
-            : "text-muted hover:text-heading hover:bg-canvas/50"
+          sectionTabItemClasses({ active: activeTabId === "home", compact: true }),
+          "border-r border-border px-4"
         )}
       >
         <HomeIcon />
         <span>{homeLabel}</span>
       </button>
 
-      {/* Record tabs */}
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId
         return (
           <div
             key={tab.id}
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={0}
             className={cn(
-              "group flex items-center gap-1.5 px-3 h-10 text-xs font-medium whitespace-nowrap transition-all duration-150 relative shrink-0 border-r border-border cursor-pointer",
-              isActive
-                ? "text-heading bg-canvas after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary"
-                : "text-muted hover:text-heading hover:bg-canvas/50"
+              sectionTabItemClasses({ active: isActive, compact: true }),
+              "border-r border-border px-3 cursor-pointer"
             )}
             onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(event) => handleInteractiveKeyDown(event, tab.id)}
           >
             <TabEntityIcon type={tab.entityType} />
             <span className="max-w-[160px] truncate">{tab.title}</span>
@@ -80,24 +90,26 @@ export function SectionTabBar({ homeLabel }: SectionTabBarProps) {
               </span>
             )}
 
-            {/* Bouton fermeture */}
-            <button
+            <IconButton
               onClick={(e) => {
                 e.stopPropagation()
                 closeTab(tab.id)
               }}
+              onKeyDown={(event) => event.stopPropagation()}
+              aria-label={`Fermer ${tab.title}`}
+              size="sm"
+              variant="ghost"
               className={cn(
-                "ml-1 rounded p-0.5 transition-all duration-100",
+                "ml-1 size-6 min-h-6 min-w-6 rounded-[var(--radius-small)] transition-[opacity,background-color,color] duration-[var(--motion-duration-fast)]",
                 "opacity-0 group-hover:opacity-100",
                 isActive && "opacity-60 hover:opacity-100",
-                "hover:bg-border/60 text-muted hover:text-heading"
+                "text-muted hover:bg-canvas hover:text-heading focus-visible:opacity-100"
               )}
-              aria-label={`Fermer ${tab.title}`}
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </IconButton>
           </div>
         )
       })}

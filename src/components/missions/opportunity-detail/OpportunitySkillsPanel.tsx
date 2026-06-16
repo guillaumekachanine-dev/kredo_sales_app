@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { OpportunitySkill, SkillImportance } from "@/types/database"
+import type { OpportunitySkill, SkillImportance } from "@/types/database-domain"
 import {
   addOpportunitySkill,
   updateOpportunitySkill,

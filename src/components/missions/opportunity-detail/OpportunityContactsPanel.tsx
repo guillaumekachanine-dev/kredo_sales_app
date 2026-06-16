@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition, useRef } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { Contact, ContactRole } from "@/types/database"
+import type { Contact, ContactRole } from "@/types/database-domain"
 import {
   linkOpportunityContact,
   updateOpportunityContactRole,

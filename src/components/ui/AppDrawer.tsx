@@ -1,19 +1,86 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useId, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { IconButton } from "@/components/ui/IconButton"
+import { AlertBlock } from "@/components/ui/AlertBlock"
+
+export type AppDrawerSide = "right" | "bottom"
+export type AppDrawerWidth = "default" | "wide"
+export type AppDrawerCloseReason = "close-button" | "mobile-back" | "backdrop" | "escape"
+
+type DrawerErrorState = {
+  title?: string
+  description?: React.ReactNode
+  action?: React.ReactNode
+}
+
+function isDrawerErrorState(
+  error: React.ReactNode | DrawerErrorState | null | undefined,
+): error is DrawerErrorState {
+  if (!error || React.isValidElement(error)) {
+    return false
+  }
+
+  return typeof error === "object" && (
+    "title" in error ||
+    "description" in error ||
+    "action" in error
+  )
+}
 
 export interface AppDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  subtitle?: string    // courte ligne de type/contexte, sous le titre, plus légère
-  description?: string // texte d'instruction plus long (optionnel)
+  subtitle?: string
+  description?: string
+  eyebrow?: React.ReactNode
+  icon?: React.ReactNode
+  headerActions?: React.ReactNode
   children: React.ReactNode
   footer?: React.ReactNode
   className?: string
-  side?: "right" | "bottom"
+  contentClassName?: string
+  side?: AppDrawerSide
+  width?: AppDrawerWidth
+  loading?: boolean
+  error?: React.ReactNode | DrawerErrorState | null
+  dirty?: boolean
+  onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
+  closeLabel?: string
   hideMobileBackBtn?: boolean
+}
+
+function DrawerLoadingState() {
+  return (
+    <div className="space-y-6" aria-hidden="true">
+      <div className="space-y-3">
+        <div className="h-4 w-32 animate-pulse rounded-[var(--radius-small)] bg-[var(--color-skeleton-base)]/70" />
+        <div className="h-16 animate-pulse rounded-[var(--radius-large)] bg-[var(--color-skeleton-base)]/40" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="h-20 animate-pulse rounded-[var(--radius-large)] bg-[var(--color-skeleton-base)]/35" />
+        <div className="h-20 animate-pulse rounded-[var(--radius-large)] bg-[var(--color-skeleton-base)]/35" />
+      </div>
+      <div className="h-32 animate-pulse rounded-[var(--radius-large)] bg-[var(--color-skeleton-base)]/30" />
+    </div>
+  )
+}
+
+function DrawerErrorContent({ error }: { error: React.ReactNode | DrawerErrorState }) {
+  if (!isDrawerErrorState(error)) {
+    return <>{error}</>
+  }
+
+  return (
+    <AlertBlock
+      variant="danger"
+      title={error.title ?? "Erreur de chargement"}
+      description={error.description}
+      action={error.action}
+    />
+  )
 }
 
 export function AppDrawer({
@@ -22,148 +89,219 @@ export function AppDrawer({
   title,
   subtitle,
   description,
+  eyebrow,
+  icon,
+  headerActions,
   children,
   footer,
   className,
+  contentClassName,
   side = "right",
+  width = "default",
+  loading = false,
+  error = null,
+  dirty = false,
+  onRequestClose,
+  closeLabel = "Fermer",
   hideMobileBackBtn = false,
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null)
   const [isClosing, setIsClosing] = useState(false)
-  const [prevOpen, setPrevOpen] = useState(open)
+  const titleId = useId()
+  const descriptionId = useId()
   const isRight = side === "right"
 
-  if (open !== prevOpen) {
-    setPrevOpen(open)
-    setIsClosing(!open)
-  }
+  const panelWidthClassName = useMemo(() => {
+    if (!isRight) {
+      return "w-full max-h-[85vh] rounded-t-[var(--radius-xl)] border-t"
+    }
 
-  // Synchronise avec la prop `open`.
-  // Ouverture : showModal() immédiatement — l'animation CSS joue via [open].kredo-drawer-*
-  // Fermeture : déclenche l'animation de sortie, puis close() après la durée.
-  //
-  // IMPORTANT : le timeout (260 ms) doit correspondre à la durée de `kredo-drawer-out-*`
-  // définie dans globals.css, sinon le dialogue se ferme avant la fin de l'animation.
+    if (width === "wide") {
+      return "h-full w-full max-w-[min(calc(var(--layout-drawer-width)*1.5),92vw)] border-l"
+    }
+
+    return "h-full w-full max-w-[var(--layout-drawer-width)] border-l"
+  }, [isRight, width])
+
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
 
     if (open) {
-      if (!dialog.open) dialog.showModal()
-    } else if (dialog.open) {
-      const timer = setTimeout(() => {
+      lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+
+      if (!dialog.open) {
+        dialog.showModal()
+      }
+
+      const timeout = window.setTimeout(() => {
+        const initialTarget =
+          dialog.querySelector<HTMLElement>("[data-autofocus='true']") ?? closeButtonRef.current
+        initialTarget?.focus()
+      }, 0)
+
+      return () => {
+        window.clearTimeout(timeout)
+      }
+    }
+
+    if (dialog.open) {
+      setIsClosing(true)
+      const timer = window.setTimeout(() => {
         dialog.close()
         setIsClosing(false)
+        lastFocusedElementRef.current?.focus?.()
       }, 260)
-      return () => clearTimeout(timer)
+
+      return () => window.clearTimeout(timer)
     }
   }, [open])
 
-  // Touche Escape : délègue à onOpenChange pour passer par l'animation de sortie.
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return
-    const handleCancel = (e: Event) => {
-      e.preventDefault()
-      onOpenChange(false)
+
+    const handleCancel = (event: Event) => {
+      event.preventDefault()
+      requestClose("escape")
     }
+
     dialog.addEventListener("cancel", handleCancel)
     return () => dialog.removeEventListener("cancel", handleCancel)
-  }, [onOpenChange])
+  })
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    if (e.target === dialogRef.current) onOpenChange(false)
+  function requestClose(reason: AppDrawerCloseReason) {
+    const shouldClose = onRequestClose?.(reason)
+
+    if (shouldClose === false) {
+      return
+    }
+
+    onOpenChange(false)
   }
+
+  const headerDescription = description ?? subtitle
+  const headerDescriptionId = headerDescription ? descriptionId : undefined
 
   return (
     <dialog
       ref={dialogRef}
-      onClick={handleBackdropClick}
+      aria-labelledby={titleId}
+      aria-describedby={headerDescriptionId}
+      aria-busy={loading || undefined}
+      aria-modal="true"
+      role="dialog"
+      onClick={(event) => {
+        if (event.target === dialogRef.current) {
+          requestClose("backdrop")
+        }
+      }}
       className={cn(
-        // Base commune
-        "fixed bg-surface border-border text-heading shadow-2xl flex flex-col outline-none",
-        "backdrop:bg-heading/25 backdrop:backdrop-blur-sm",
-        // Position + animation selon le côté
+        "fixed m-0 flex flex-col overflow-hidden border-border bg-surface text-heading outline-none",
+        "shadow-[var(--shadow-overlay-md)] backdrop:bg-[var(--color-backdrop)]",
+        "z-[var(--z-drawer)]",
         isRight
           ? cn(
-            "inset-y-0 right-0 left-auto m-0 w-full max-w-md h-full border-l",
-            "kredo-drawer-right",
-            isClosing && "kredo-drawer-closing"
-          )
+              "inset-y-0 left-auto right-0",
+              "kredo-drawer-right",
+              isClosing && "kredo-drawer-closing",
+            )
           : cn(
-            "inset-x-0 bottom-0 top-auto m-0 w-full max-h-[85vh] border-t rounded-t-xl",
-            "kredo-drawer-bottom",
-            isClosing && "kredo-drawer-closing"
-          ),
-        className
+              "inset-x-0 bottom-0 top-auto",
+              "kredo-drawer-bottom",
+              isClosing && "kredo-drawer-closing",
+            ),
+        panelWidthClassName,
+        className,
       )}
     >
-      <div className="flex flex-col h-full pt-2.5 px-4 pb-4 sm:p-6">
-        {/* Header */}
-        <div className={cn(
-          "flex flex-col pb-0 sm:pb-4 border-b border-transparent sm:border-border/40 shrink-0",
-          description ? "gap-1.5" : ""
-        )}>
-          <div className="flex items-end justify-between gap-3">
-            <div className="leading-none">
-              <h2 className="text-sm font-bold font-heading leading-snug sm:block hidden">{title}</h2>
-              {hideMobileBackBtn ? (
-                <div className="h-5 sm:hidden block" />
-              ) : (
+      <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
+        <header className="shrink-0 border-b border-border bg-surface px-4 py-4 sm:px-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {eyebrow ? (
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  {eyebrow}
+                </p>
+              ) : null}
+
+              <div className="flex items-start gap-3">
+                {icon ? (
+                  <span
+                    className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-medium)] bg-canvas text-primary"
+                    aria-hidden="true"
+                  >
+                    {icon}
+                  </span>
+                ) : null}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 id={titleId} className="text-base font-semibold leading-7 text-heading">
+                      {title}
+                    </h2>
+                    {dirty ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/[0.12] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-status-warning-ink)]">
+                        <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
+                        Modifié
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {headerDescription ? (
+                    <p id={descriptionId} className="mt-1 text-sm leading-6 text-body">
+                      {headerDescription}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-start gap-2">
+              {headerActions ? <div className="hidden items-center gap-2 sm:flex">{headerActions}</div> : null}
+
+              {hideMobileBackBtn ? null : (
                 <button
                   type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center gap-1 text-xs font-normal text-muted hover:text-heading transition-colors sm:hidden block outline-none pb-0.5"
+                  onClick={() => requestClose("mobile-back")}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-heading focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:hidden"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
+                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                   </svg>
                   <span>Retour</span>
                 </button>
               )}
-              {subtitle && (
-                <p className="text-xs text-muted mt-0.5 font-normal leading-none sm:block hidden">{subtitle}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="text-muted hover:text-heading transition-colors -mr-1 p-1 rounded shrink-0 sm:block hidden"
-              aria-label="Fermer"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+
+              <IconButton
+                ref={closeButtonRef}
+                aria-label={closeLabel}
+                variant="ghost"
+                size="sm"
+                onClick={() => requestClose("close-button")}
+                className="hidden sm:inline-flex"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </IconButton>
+            </div>
           </div>
-          {description && (
-            <p className="text-xs text-body font-normal">{description}</p>
-          )}
+        </header>
+
+        <div className={cn("min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
+          {loading ? <DrawerLoadingState /> : error ? <DrawerErrorContent error={error} /> : children}
         </div>
 
-        {/* Body scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-4 text-xs text-body leading-relaxed">
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div className="pt-4 border-t border-border/40 flex items-center justify-end gap-2 shrink-0">
-            {footer}
-          </div>
-        )}
+        {footer ? (
+          <footer className="shrink-0 border-t border-border bg-surface px-4 py-4 sm:px-6">
+            <div className="flex flex-wrap items-center justify-end gap-2">{footer}</div>
+          </footer>
+        ) : null}
       </div>
     </dialog>
   )

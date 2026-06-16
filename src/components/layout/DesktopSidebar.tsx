@@ -8,6 +8,7 @@ import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { signOut } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
+import { IconButton } from "@/components/ui/IconButton"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  DesktopSidebar — 2 niveaux : groupe → module (pas de sous-pages)
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils"
 //  La sidebar liste uniquement les modules ; chaque module = 1 item cliquable.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ModuleItem({ item, pathname, light, isCollapsed }: { item: MainMenuItem; pathname: string; light: boolean; isCollapsed: boolean }) {
+function ModuleItem({ item, pathname, isCollapsed }: { item: MainMenuItem; pathname: string; isCollapsed: boolean }) {
   const isActive = item.href
     ? pathname === item.href || pathname.startsWith(item.href + "/")
     : false
@@ -24,16 +25,14 @@ function ModuleItem({ item, pathname, light, isCollapsed }: { item: MainMenuItem
   const canNavigate = !item.disabled && !item.comingSoon && !!item.href
 
   const baseClasses = cn(
-    "flex items-center gap-2 py-2 text-xs font-medium rounded transition-all duration-150 w-full",
+    "flex w-full items-center gap-2 rounded-[var(--radius-medium)] py-2 text-xs font-medium",
+    "transition-[background-color,color,opacity] duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)]",
+    "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
     isCollapsed ? "px-0 justify-center" : "px-3",
     isActive
-      ? light
-        ? "bg-primary text-primary-fg font-semibold shadow-[0_2px_6px_-2px_rgba(0,0,0,0.12)]"
-        : "bg-white text-primary font-semibold shadow-[0_2px_6px_-2px_rgba(0,0,0,0.08)]"
-      : light
-        ? "text-body hover:bg-canvas hover:text-heading"
-        : "text-white/80 hover:bg-white/10 hover:text-white",
-    !canNavigate && "opacity-50 cursor-not-allowed pointer-events-none"
+      ? "bg-white/14 text-primary-fg font-semibold"
+      : "text-primary-fg/78 hover:bg-white/8 hover:text-primary-fg",
+    !canNavigate && "opacity-50 cursor-not-allowed pointer-events-none",
   )
 
   const content = (
@@ -48,10 +47,7 @@ function ModuleItem({ item, pathname, light, isCollapsed }: { item: MainMenuItem
         )}
       </div>
       {!isCollapsed && item.comingSoon && (
-        <span className={cn(
-          "text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border shrink-0",
-          light ? "text-muted bg-canvas border-border" : "text-white/70 bg-white/10 border-white/20"
-        )}>
+        <span className="shrink-0 rounded-full border border-white/16 bg-white/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-primary-fg/72">
           Bientôt
         </span>
       )}
@@ -63,26 +59,22 @@ function ModuleItem({ item, pathname, light, isCollapsed }: { item: MainMenuItem
       <Link
         href={item.href!}
         className={baseClasses}
+        aria-label={isCollapsed ? item.label : undefined}
         aria-current={isActive ? "page" : undefined}
+        title={isCollapsed ? item.label : undefined}
       >
         {content}
       </Link>
     )
   }
 
-  return <div className={baseClasses}>{content}</div>
+  return <div className={baseClasses} aria-label={isCollapsed ? item.label : undefined} title={isCollapsed ? item.label : undefined}>{content}</div>
 }
 
 export function DesktopSidebar() {
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   const [isCollapsed, setIsCollapsed] = useState(true)
-
-  // ── Inversion cockpit (ADR-0008) ────────────────────────────────────
-  // Sur le hub Intelligence /accounts/[companyId], le contenu passe cobalt :
-  // la sidebar bascule en clair pour éviter un cobalt-sur-cobalt qui fond
-  // le seam. Le reste de l'app garde la sidebar cobalt.
-  const light = pathname.startsWith("/prospection/accounts/")
 
   const handleMouseEnter = () => {
     setIsCollapsed(false)
@@ -92,28 +84,39 @@ export function DesktopSidebar() {
     setIsCollapsed(true)
   }
 
+  const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      setIsCollapsed(true)
+    }
+  }
+
   return (
-    <aside className="w-16 h-full shrink-0 relative select-none">
+    <aside
+      className="relative h-full shrink-0 select-none"
+      style={{ width: "var(--layout-sidebar-width-collapsed)" }}
+    >
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onFocusCapture={handleMouseEnter}
+        onBlurCapture={handleBlur}
         className={cn(
-          "absolute left-0 top-0 h-full flex flex-col justify-between border-r transition-all duration-300 ease-in-out z-30 shadow-2xl overflow-x-hidden",
-          light ? "bg-surface border-border text-heading" : "bg-primary border-white/10 text-white",
-          isCollapsed ? "w-16" : "w-64"
+          "absolute left-0 top-0 z-[var(--z-sidebar)] flex h-full flex-col justify-between overflow-x-hidden border-r border-white/12 bg-[var(--color-bg-sidebar)] text-primary-fg",
+          "transition-[width] duration-[var(--motion-duration-base)] ease-[var(--motion-ease-standard)]",
+          isCollapsed ? "w-[var(--layout-sidebar-width-collapsed)]" : "w-[var(--layout-sidebar-width-expanded)]"
         )}
       >
-
-        {/* ── Logo + Nav ────────────────────────────────────────────── */}
         <div className="flex flex-col flex-1 overflow-y-auto py-5">
-
-          {/* Logo */}
           <div className={cn(
-            "pb-6 mb-2 border-b flex items-center transition-all duration-300",
-            light ? "border-border" : "border-white/10",
+            "mb-2 flex items-center border-b border-white/12 pb-6 transition-[padding] duration-[var(--motion-duration-base)]",
             isCollapsed ? "px-4 justify-center" : "px-6"
           )}>
-            <Link href="/cockpit" className="flex items-center gap-2.5">
+            <Link
+              href="/cockpit"
+              className="flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0 rounded-[var(--radius-medium)]"
+              aria-label="Retour au cockpit"
+              title={isCollapsed ? "Cockpit" : undefined}
+            >
               <Image
                 src="/icon-512.png"
                 alt="KREDO Logo"
@@ -122,89 +125,79 @@ export function DesktopSidebar() {
                 className="w-8 h-8 object-contain shrink-0"
               />
               {!isCollapsed && (
-                <span className={cn(
-                  "text-xl font-bold tracking-tight shrink-0",
-                  light ? "text-heading" : "text-secondary"
-                )}>
+                <span className="shrink-0 text-xl font-bold tracking-tight text-primary-fg">
                   KREDO
                 </span>
               )}
             </Link>
           </div>
 
-          {/* Nav */}
           <nav className="flex-1 px-4 space-y-5">
             {mainMenuItems.map((item) => {
-              // ── Groupe : Business / Ressources / Pilotage ──────────
               if (item.items) {
                 return (
                   <div key={item.label} className="space-y-1.5">
                     {isCollapsed ? (
                       <div className="h-4 flex items-center justify-center">
-                        <div className={cn("w-full border-t", light ? "border-border" : "border-white/10")} />
+                        <div className="w-full border-t border-white/12" />
                       </div>
                     ) : (
-                      <h4 className={cn("px-3 text-[10px] font-bold uppercase tracking-wider", light ? "text-muted" : "text-white/40")}>
+                      <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-primary-fg/48">
                         {item.label}
                       </h4>
                     )}
                     <div className="space-y-1">
                       {item.items.map((module) => (
-                        <ModuleItem key={module.label} item={module} pathname={pathname} light={light} isCollapsed={isCollapsed} />
+                        <ModuleItem key={module.label} item={module} pathname={pathname} isCollapsed={isCollapsed} />
                       ))}
                     </div>
                   </div>
                 )
               }
 
-              // ── Item standalone : Cockpit, Paramètres ───────────────
               return (
                 <div key={item.label}>
-                  <ModuleItem item={item} pathname={pathname} light={light} isCollapsed={isCollapsed} />
+                  <ModuleItem item={item} pathname={pathname} isCollapsed={isCollapsed} />
                 </div>
               )
             })}
           </nav>
         </div>
 
-        {/* ── Footer : session utilisateur ─────────────────────────── */}
-        <div className={cn("p-4 border-t transition-colors duration-300", light ? "border-border bg-canvas" : "border-white/10 bg-white/5")}>
+        <div className="border-t border-white/12 bg-white/6 p-4">
           <div className={cn(
-            "flex items-center rounded-lg border transition-all duration-300",
-            light ? "border-border bg-canvas" : "border-white/10 bg-white/5",
+            "flex items-center rounded-[var(--radius-large)] border border-white/12 bg-white/6 transition-[padding] duration-[var(--motion-duration-base)]",
             isCollapsed ? "p-1 justify-center" : "gap-2 px-2 py-1.5"
           )}>
             <div className={cn(
-              "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-xs shrink-0",
-              light ? "bg-primary/10 border-primary/20 text-primary" : "bg-white/10 border-white/20 text-white"
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/12 text-xs font-bold text-primary-fg"
             )}>
               GK
             </div>
             {!isCollapsed && (
               <>
                 <div className="min-w-0 flex-1">
-                  <h5 className={cn("text-xs font-semibold truncate", light ? "text-heading" : "text-white")}>Guillaume K.</h5>
-                  <p className={cn("text-[10px] truncate", light ? "text-muted" : "text-white/60")}>guillaume@kredo.dev</p>
+                  <h5 className="truncate text-xs font-semibold text-primary-fg">Guillaume K.</h5>
+                  <p className="truncate text-[10px] text-primary-fg/64">guillaume@kredo.dev</p>
                 </div>
-                <button
-                  type="button"
+                <IconButton
                   disabled={isPending}
                   onClick={() => startTransition(() => signOut())}
-                  title="Se déconnecter"
+                  aria-label="Se déconnecter"
+                  variant="ghost"
+                  size="sm"
                   className={cn(
-                    "shrink-0 p-1.5 rounded transition-colors disabled:opacity-40",
-                    light ? "text-muted hover:text-heading hover:bg-canvas" : "text-white/40 hover:text-white/80 hover:bg-white/10"
+                    "shrink-0 border-transparent bg-transparent text-primary-fg/56 hover:bg-white/10 hover:text-primary-fg focus-visible:ring-white/40 disabled:opacity-40"
                   )}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M18 12H9m9 0l-3-3m3 3l-3 3" />
                   </svg>
-                </button>
+                </IconButton>
               </>
             )}
           </div>
         </div>
-
       </div>
     </aside>
   )

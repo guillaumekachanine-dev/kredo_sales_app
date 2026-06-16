@@ -48,7 +48,10 @@ export function MobileBottomNav({
   onActiveModulePress,
 }: MobileBottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-[calc(4rem+1px)] bg-primary border-t border-white/10 flex items-center justify-around px-2 pb-[1px] z-50">
+    <nav
+      aria-label="Navigation principale mobile"
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-bottom-nav)] flex h-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom))] items-center justify-around border-t border-white/12 bg-[var(--color-bg-mobile-nav)] px-2 pb-[var(--safe-area-bottom)]"
+    >
       {primaryNavItems.map((item) => {
         const href = item.href!
         const isActive = pathname === href || pathname.startsWith(href + "/")
@@ -58,21 +61,23 @@ export function MobileBottomNav({
           <>
             <div
               className={cn(
-                "p-1 rounded-md transition-colors",
-                isActive ? "bg-white/10 text-primary-fg" : "text-primary-fg/60"
+                "rounded-[var(--radius-medium)] p-1.5 transition-[background-color,color] duration-[var(--motion-duration-fast)]",
+                isActive ? "bg-white/14 text-primary-fg" : "text-primary-fg/72"
               )}
             >
               {item.icon && getNavigationIcon(item.icon)}
             </div>
-            <span className="text-[10px] tracking-tight truncate max-w-full">
+            <span className="max-w-full truncate text-[10px] tracking-tight">
               {item.shortLabel ?? item.label}
             </span>
           </>
         )
 
         const className = cn(
-          "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] gap-1 transition-all duration-150 active:scale-95 text-center px-1",
-          isActive ? "text-primary-fg font-semibold" : "text-primary-fg/60 hover:text-primary-fg"
+          "flex h-full min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-1 px-1 text-center",
+          "transition-[color,opacity] duration-[var(--motion-duration-fast)]",
+          "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
+          isActive ? "font-semibold text-primary-fg" : "text-primary-fg/72 hover:text-primary-fg"
         )
 
         if (togglesRail) {
@@ -81,6 +86,7 @@ export function MobileBottomNav({
               key={href}
               type="button"
               onClick={onActiveModulePress}
+              aria-label={item.label}
               aria-current="page"
               aria-expanded={isRailOpen}
               className={className}
@@ -94,6 +100,7 @@ export function MobileBottomNav({
           <Link
             key={href}
             href={href}
+            aria-label={item.label}
             aria-current={isActive ? "page" : undefined}
             className={className}
           >

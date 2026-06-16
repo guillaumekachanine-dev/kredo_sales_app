@@ -7,7 +7,7 @@ import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportun
 import { cn } from "@/lib/utils"
 import { PRACTICE_OPTIONS } from "./opportunity-detail-options"
 
-import type { Opportunity } from "@/types/database"
+import type { Opportunity } from "@/types/database-domain"
 
 interface OpportunityDetailData {
   opportunity: Opportunity

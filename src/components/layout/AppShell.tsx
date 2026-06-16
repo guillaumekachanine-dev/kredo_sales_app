@@ -14,12 +14,12 @@ export function AppShell({ device, children }: AppShellProps) {
   if (isMobile) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas">
-        {/* Main Content Area */}
-        <main className="flex-1 pt-[max(12px,env(safe-area-inset-top))] pb-[calc(5rem+1px)] overflow-y-auto">
+        <main
+          className="flex-1 overflow-y-auto pt-[max(var(--space-3),var(--safe-area-top))] pb-[var(--layout-mobile-content-bottom-offset)]"
+        >
           {children}
         </main>
 
-        {/* Mobile Navigation — bottom nav bleue + rail d'onglets contextuel */}
         <MobileNav />
       </div>
     )
@@ -27,15 +27,11 @@ export function AppShell({ device, children }: AppShellProps) {
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-canvas">
-      {/* Desktop Sidebar (Left) */}
       <DesktopSidebar />
 
-      {/* Main Container (Right) */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Desktop Header */}
         <AppHeader />
-        
-        {/* Scrollable Work Area */}
+
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
