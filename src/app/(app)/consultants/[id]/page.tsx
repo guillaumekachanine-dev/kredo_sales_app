@@ -25,7 +25,19 @@ export default async function ConsultantProfilePage({ params }: Props) {
       current_title,
       employee_ref,
       metadata,
-      person:persons ( first_name, last_name, full_name ),
+      person:persons (
+        first_name,
+        last_name,
+        full_name,
+        person_skills (
+          id,
+          level,
+          years,
+          confidence,
+          source,
+          skill:skills ( id, name, category )
+        )
+      ),
       missions (
         id,
         title,

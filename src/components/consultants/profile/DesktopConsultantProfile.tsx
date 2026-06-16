@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import type { Consultant } from '@/types/consultant'
+import type { Consultant, ConsultantSkill } from '@/types/consultant'
 
 // ─── Types internes ───────────────────────────────────────────────────────────
 
@@ -359,7 +359,7 @@ function TabActivite({ data }: { data: Consultant }) {
         style={{ background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
       >
         <p className="text-xs uppercase tracking-wide mb-4" style={{ color: 'var(--color-muted)' }}>
-          Taux d'activité — jours facturables / jours ouvrés
+          Taux d&apos;activité — jours facturables / jours ouvrés
         </p>
         <ActivityChart points={points} />
       </div>
@@ -369,18 +369,109 @@ function TabActivite({ data }: { data: Consultant }) {
 
 // ─── Onglet Compétences ───────────────────────────────────────────────────────
 
-function TabCompetences() {
+const LEVEL_LABELS: Record<number, string> = {
+  1: 'Notions', 2: 'Débutant', 3: 'Intermédiaire', 4: 'Avancé', 5: 'Expert',
+}
+
+function TabCompetences({ skills }: { skills: ConsultantSkill[] }) {
+  const sorted = useMemo(() =>
+    [...skills].sort((a, b) => {
+      // 1. Principales (level ≥ 4) en premier
+      const aMain = (a.level ?? 0) >= 4 ? 0 : 1
+      const bMain = (b.level ?? 0) >= 4 ? 0 : 1
+      if (aMain !== bMain) return aMain - bMain
+      // 2. Niveau décroissant (nulls en dernier)
+      const diff = (b.level ?? -1) - (a.level ?? -1)
+      if (diff !== 0) return diff
+      // 3. Alphabétique
+      return a.skill.name.localeCompare(b.skill.name, 'fr')
+    }),
+  [skills])
+
+  if (sorted.length === 0) {
+    return (
+      <div
+        className="flex items-center justify-center h-48 border rounded-xl"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+      >
+        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+          Aucune compétence renseignée
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
-      className="flex flex-col items-center justify-center h-48 border rounded-xl gap-2"
+      className="border rounded-xl overflow-hidden"
       style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
     >
-      <p className="text-sm font-medium" style={{ color: 'var(--color-body)' }}>
-        Référentiel de compétences
-      </p>
-      <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-        Disponible après câblage de <code>person_skills</code> dans la requête Supabase.
-      </p>
+      <table className="w-full text-sm">
+        <thead>
+          <tr
+            className="border-b text-xs uppercase tracking-wide"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted)' }}
+          >
+            <th className="px-5 py-3 text-left font-medium">Compétence</th>
+            <th className="px-4 py-3 text-left font-medium">Catégorie</th>
+            <th className="px-4 py-3 text-center font-medium">Niveau</th>
+            <th className="px-5 py-3 text-right font-medium">Expérience</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((ps) => (
+            <tr
+              key={ps.id}
+              className="border-b last:border-0 transition-colors"
+              style={{ borderColor: 'var(--color-border)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-canvas)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+            >
+              <td className="px-5 py-3">
+                <span className="font-medium" style={{ color: 'var(--color-heading)' }}>
+                  {ps.skill.name}
+                </span>
+                {(ps.level ?? 0) >= 4 && (
+                  <span
+                    className="ml-2 text-[10px] px-1.5 py-0.5 rounded"
+                    style={{
+                      background: 'var(--color-primary-deep)',
+                      color: 'var(--color-primary)',
+                    }}
+                  >
+                    Principal
+                  </span>
+                )}
+              </td>
+              <td className="px-4 py-3 text-xs capitalize" style={{ color: 'var(--color-muted)' }}>
+                {ps.skill.category ?? '—'}
+              </td>
+              <td className="px-4 py-3 text-center">
+                <span
+                  className="inline-flex items-center gap-1"
+                  title={ps.level !== null ? LEVEL_LABELS[ps.level] : undefined}
+                >
+                  {[1, 2, 3, 4, 5].map((dot) => (
+                    <span
+                      key={dot}
+                      className="inline-block w-2 h-2 rounded-full"
+                      style={{
+                        background:
+                          ps.level !== null && dot <= ps.level
+                            ? 'var(--color-primary)'
+                            : 'var(--color-border)',
+                      }}
+                    />
+                  ))}
+                </span>
+              </td>
+              <td className="px-5 py-3 text-right tabular-nums text-xs" style={{ color: 'var(--color-body)' }}>
+                {ps.years !== null ? `${ps.years} an${ps.years > 1 ? 's' : ''}` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -459,7 +550,7 @@ export function DesktopConsultantProfile({ data }: Props) {
       <div role="tabpanel">
         {active === 'synthese'    && <TabSynthese    data={data} />}
         {active === 'activite'    && <TabActivite    data={data} />}
-        {active === 'competences' && <TabCompetences />}
+        {active === 'competences' && <TabCompetences skills={data.person.person_skills} />}
       </div>
     </div>
   )

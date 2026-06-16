@@ -10,12 +10,34 @@ export type MissionActivityReportStatus = 'draft' | 'submitted' | 'validated' | 
 
 // ─── Sous-interfaces (shapes des tables jointes) ───────────────────────────
 
+/** Ligne de la table référentielle `skills` */
+export interface SkillRef {
+  id: string
+  name: string
+  category: string | null
+}
+
+/**
+ * Ligne person_skills (compétences d'une personne).
+ * level : 1–5 · confidence : 0–1 · source : inference_ia | manual | …
+ */
+export interface ConsultantSkill {
+  id: string
+  level: number | null
+  years: number | null
+  confidence: number | null
+  source: string | null
+  skill: SkillRef
+}
+
 /** Champs persons nécessaires au profil consultant (via collaborators.person_id) */
 export interface ConsultantPerson {
   first_name: string | null
   last_name: string | null
   /** Colonne GENERATED côté Postgres : TRIM(first_name || ' ' || last_name) */
   full_name: string | null
+  /** Compétences de la personne (person_skills.person_id → persons.id) */
+  person_skills: ConsultantSkill[]
 }
 
 /**
