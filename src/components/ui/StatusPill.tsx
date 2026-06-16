@@ -11,6 +11,7 @@ export type StatusPillVariant =
   | "warning"
   | "danger"
   | "info"
+  | "benchmark"
 
 export interface StatusPillProps extends React.HTMLAttributes<HTMLSpanElement> {
   label: string
@@ -27,6 +28,7 @@ const statusPillClasses: Record<StatusPillVariant, string> = {
   warning: "border-warning/20 bg-warning/[0.12] text-[var(--color-status-warning-ink)]",
   danger: "border-danger/15 bg-danger/[0.10] text-danger",
   info: "border-info/15 bg-info/[0.10] text-info",
+  benchmark: "border-brand-brass/25 bg-brand-brass/[0.08] text-brand-brass",
 }
 
 const statusPillDotClasses: Record<StatusPillVariant, string> = {
@@ -37,6 +39,7 @@ const statusPillDotClasses: Record<StatusPillVariant, string> = {
   warning: "bg-warning",
   danger: "bg-danger",
   info: "bg-info",
+  benchmark: "bg-brand-brass",
 }
 
 export const StatusPill = React.forwardRef<HTMLSpanElement, StatusPillProps>(

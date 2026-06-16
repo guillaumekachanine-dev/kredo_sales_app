@@ -10,6 +10,7 @@ export type BadgeVariant =
   | "success"
   | "warning"
   | "danger"
+  | "brass"
 
 export type BadgeSize = "sm" | "md"
 
@@ -27,6 +28,7 @@ const badgeVariantClasses: Record<BadgeVariant, string> = {
   success: "border-success/15 bg-success/[0.10] text-success",
   warning: "border-warning/20 bg-warning/[0.12] text-[var(--color-status-warning-ink)]",
   danger: "border-danger/15 bg-danger/[0.10] text-danger",
+  brass: "border-brand-brass/25 bg-brand-brass/[0.08] text-brand-brass",
 }
 
 const badgeSizeClasses: Record<BadgeSize, string> = {
@@ -41,6 +43,7 @@ const badgeDotClasses: Record<BadgeVariant, string> = {
   success: "bg-success",
   warning: "bg-warning",
   danger: "bg-danger",
+  brass: "bg-brand-brass",
 }
 
 export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(

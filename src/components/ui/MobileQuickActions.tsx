@@ -40,12 +40,15 @@ export function MobileQuickActions({
           }
         }
 
+        const iconVariant = action.variant === "brass" || action.variant === "primary" ? "primary" : action.variant === "ghost" ? "ghost" : "secondary"
+        const btnVariant = action.variant === "brass" ? "primary" : (action.variant ?? "secondary")
+
         if (!action.label.trim() && action.icon) {
           return (
             <IconButton
               key={action.id}
               aria-label={action.ariaLabel ?? action.id}
-              variant={action.variant ?? "secondary"}
+              variant={iconVariant}
               size="md"
               loading={action.loading}
               disabled={action.disabled}
@@ -60,7 +63,7 @@ export function MobileQuickActions({
         return (
           <Button
             key={action.id}
-            variant={action.variant ?? "secondary"}
+            variant={btnVariant}
             size="md"
             loading={action.loading}
             disabled={action.disabled}

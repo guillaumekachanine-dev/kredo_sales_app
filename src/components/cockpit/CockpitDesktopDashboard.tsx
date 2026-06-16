@@ -121,7 +121,7 @@ function HealthConstellation({ axes }: { axes: CockpitHealthAxis[] }) {
             ))}
           </div>
 
-          <div className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-[radial-gradient(circle_at_top,#f4f0e6,transparent_55%),linear-gradient(180deg,rgba(37,84,184,0.02),rgba(37,84,184,0.08))] p-4">
+          <div className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-primary/[0.04] p-4">
             <svg viewBox="0 0 340 340" className="mx-auto aspect-square w-full max-w-[28rem]">
               {ringLevels.map((level) => (
                 <circle
@@ -167,8 +167,10 @@ function HealthConstellation({ axes }: { axes: CockpitHealthAxis[] }) {
 
               <polygon
                 points={polygon}
-                fill="rgba(37,84,184,0.18)"
-                stroke="rgba(37,84,184,0.75)"
+                fill="var(--color-brand-primary)"
+                fillOpacity="0.18"
+                stroke="var(--color-brand-primary)"
+                strokeOpacity="0.75"
                 strokeWidth="2"
               />
 
@@ -200,7 +202,7 @@ function HealthConstellation({ axes }: { axes: CockpitHealthAxis[] }) {
                 cx={center}
                 cy={center}
                 r="30"
-                fill="white"
+                fill="var(--color-bg-surface)"
                 stroke="currentColor"
                 className="text-border"
               />
@@ -303,18 +305,20 @@ function RevenueTrajectory({
               )
             })}
 
-            <path d={areaPath} fill="rgba(37,84,184,0.10)" />
+            <path d={areaPath} fill="var(--color-brand-primary)" fillOpacity="0.10" />
             <path
               d={targetPath}
               fill="none"
-              stroke="rgba(200,154,43,0.95)"
+              stroke="var(--color-brand-brass)"
+              strokeOpacity="0.95"
               strokeWidth="2.5"
               strokeDasharray="8 8"
             />
             <path
               d={actualPath}
               fill="none"
-              stroke="rgba(37,84,184,0.95)"
+              stroke="var(--color-brand-primary)"
+              strokeOpacity="0.95"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -326,8 +330,9 @@ function RevenueTrajectory({
                   cx={xFor(index)}
                   cy={yFor(point.revenueActual ?? 0)}
                   r="4"
-                  fill="white"
-                  stroke="rgba(37,84,184,0.95)"
+                  fill="var(--color-bg-surface)"
+                  stroke="var(--color-brand-primary)"
+                  strokeOpacity="0.95"
                   strokeWidth="2"
                 />
                 <text
@@ -352,7 +357,7 @@ function RevenueTrajectory({
               {euroTick(ytdRevenueActual)}
             </p>
           </div>
-          <div className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+          <div className="rounded-[var(--radius-large)] border border-brand-brass/25 bg-brand-brass/[0.04] p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               YTD cible
             </p>
@@ -539,6 +544,7 @@ export function CockpitDesktopDashboard({
               context={kpi.detail}
               delta={kpi.trendBadge}
               deltaTone={deltaTone(kpi.status)}
+              accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
             />
           ))}
         </div>

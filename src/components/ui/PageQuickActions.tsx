@@ -113,19 +113,17 @@ export function PageQuickActions({
       <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
         {visibleActions.map((action) => {
           if (isPageQuickActionGroup(action)) {
+            const resolvedVariant = action.variant ?? "primary"
             return (
               <Button
                 key={action.id}
-                variant="primary"
+                variant={resolvedVariant}
                 size="sm"
                 disabled={action.disabled}
                 aria-label={action.ariaLabel}
                 aria-expanded={openDrawerActionId === action.id}
                 aria-haspopup="dialog"
-                className={cn(
-                  pageQuickActionButtonClassName,
-                  activeActionId === action.id && "bg-primary-deep hover:bg-primary-deep",
-                )}
+                className={pageQuickActionButtonClassName}
                 onClick={() => {
                   if (action.disabled || action.loading) return
                   setOpenDrawerActionId(action.id)
@@ -143,18 +141,16 @@ export function PageQuickActions({
             )
           }
 
+          const resolvedVariant = action.variant ?? "primary"
           return (
             <Button
               key={action.id}
-              variant="primary"
+              variant={resolvedVariant}
               size="sm"
               loading={action.loading}
               disabled={action.disabled}
               aria-label={action.ariaLabel}
-              className={cn(
-                pageQuickActionButtonClassName,
-                activeActionId === action.id && "bg-primary-deep hover:bg-primary-deep",
-              )}
+              className={pageQuickActionButtonClassName}
               onClick={() => {
                 executeAction(action.id, action)
               }}

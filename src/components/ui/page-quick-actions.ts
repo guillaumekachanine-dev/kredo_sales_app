@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 
 export const pageQuickActionButtonClassName =
-  "kredo-quick-action-button h-9 min-w-9 border-transparent bg-primary px-3 text-sm font-medium text-primary-fg shadow-none hover:bg-primary-deep active:bg-primary-deep/95 sm:h-9 sm:min-w-9 disabled:cursor-not-allowed disabled:pointer-events-none disabled:border-transparent disabled:bg-primary disabled:text-primary-fg disabled:opacity-100"
+  "kredo-quick-action-button h-9 min-w-9 px-3 text-sm font-medium shadow-none sm:h-9 sm:min-w-9"
 
 export const pageQuickActionIconClassName =
   "kredo-quick-action-icon inline-flex size-4 shrink-0 items-center justify-center"
@@ -29,7 +29,7 @@ type PageQuickActionBase = {
   id: string
   label: string
   icon?: ReactNode
-  variant?: "primary" | "secondary" | "ghost"
+  variant?: "primary" | "secondary" | "ghost" | "brass"
   loading?: boolean
   disabled?: boolean
   ariaLabel?: string

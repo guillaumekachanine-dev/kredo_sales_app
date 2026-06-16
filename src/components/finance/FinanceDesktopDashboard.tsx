@@ -313,14 +313,9 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
 
   const quickActions: PageQuickAction[] = [
     {
-      id: "simulation",
-      label: "Simulation",
-      icon: <IconSimulation />,
-      feedbackMessage: "Fonctionnalité à venir",
-    },
-    {
       id: "summary",
       label: "Synthèse",
+      variant: "brass",
       icon: <IconSummary />,
       description: "Choisissez une synthèse puis produisez-la depuis le drawer.",
       submitLabel: "Produire la synthèse",
@@ -354,6 +349,13 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           href: "/missions/opps",
         },
       ],
+    },
+    {
+      id: "simulation",
+      label: "Simulation",
+      variant: "secondary",
+      icon: <IconSimulation />,
+      feedbackMessage: "Fonctionnalité à venir",
     },
   ]
 
@@ -408,6 +410,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                 delta={kpi.delta}
                 deltaTone={toneFromKpi(kpi.deltaTone)}
                 context={kpi.context}
+                accent={kpi.id === "f-marge-brute" ? "brass" : "none"}
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 
 export type KpiCardDeltaTone = "positive" | "negative" | "neutral"
 export type KpiCardSize = "compact" | "default" | "hero"
+export type KpiCardAccent = "none" | "brass"
 
 export interface KpiCardProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
   label: string
@@ -17,6 +18,7 @@ export interface KpiCardProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
   progress?: number
   icon?: React.ReactNode
   size?: KpiCardSize
+  accent?: KpiCardAccent
   loading?: boolean
   href?: string
 }
@@ -63,6 +65,7 @@ export function KpiCard({
   progress,
   icon,
   size = "default",
+  accent = "none",
   loading = false,
   href,
   className,
@@ -75,6 +78,7 @@ export function KpiCard({
     <SurfaceCard
       href={href}
       interactive={Boolean(href)}
+      accent={accent}
       className={cn("h-full", className)}
       {...props}
     >
@@ -109,7 +113,10 @@ export function KpiCard({
           {icon ? (
             <span
               className={cn(
-                "inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-medium)] bg-canvas text-primary",
+                "inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-medium)]",
+                accent === "brass"
+                  ? "bg-brand-brass/[0.08] text-brand-brass"
+                  : "bg-canvas text-primary",
                 loading && "opacity-0",
               )}
               aria-hidden="true"
