@@ -1,30 +1,36 @@
 import { createClient } from "@/lib/supabase/server"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Finance Intelligence — couche données (DÉCISIONNEL portefeuille)
+//  Finance — couche données
 //
-//  Agrège les indicateurs financiers réels depuis la vue de chiffre d'affaires
-//  `v_mission_quarterly_revenue` et la table `opportunities` (RLS workspace).
-//  Fournit des fallbacks robustes conformes à la charte et au mockup.
+//  Sources réelles :
+//  - pnl_monthly (12 mois, colonnes GENERATED côté DB) → KPIs + graphique P&L
+//  - opportunities.weighted_gain → pipe commercial pondéré
+//
+//  Fallbacks (pas de table source encore) :
+//  - anomalies : structure anticipée des sorties n8n audit sémantique
+//  - lateBillings : structure anticipée des sorties n8n dunning
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type FinanceStatus = "success" | "warning" | "danger" | "neutral"
+export type FinanceKpiDeltaTone = "positive" | "negative" | "neutral"
 
 export type FinanceKpi = {
   id: string
   label: string
   value: string
-  trendBadge?: string
-  trendDirection?: "up" | "down"
-  hasSparkline: boolean
-  status: FinanceStatus
+  delta?: string
+  deltaTone?: FinanceKpiDeltaTone
+  context?: string
 }
 
-export type OperationMonthPL = {
-  month: string
-  caRealized: number
-  margeBrute: number
-  benchCost: number
+export type PnlMonthRow = {
+  period_month: string
+  revenue_total: number
+  gross_margin_value: number | null
+  gross_margin_percent: number | null
+  operating_profit_value: number | null
+  operating_profit_percent: number | null
+  source: string
 }
 
 export type BillingAnomaly = {
@@ -39,7 +45,6 @@ export type BillingAnomaly = {
 export type LateBilling = {
   id: string
   clientName: string
-  logoLetter: string
   bcNumber: string
   delayDays: number
   valueAmount: string
@@ -48,180 +53,191 @@ export type LateBilling = {
 
 export type FinanceDashboardData = {
   kpis: FinanceKpi[]
-  monthlyPL: OperationMonthPL[]
+  pnlRows: PnlMonthRow[]
   anomalies: BillingAnomaly[]
   lateBillings: LateBilling[]
+  pipeTotal: number
 }
 
-type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
-type LooseTable = { select<T>(columns: string): LooseQuery<T> }
-type LooseClient = { from(table: string): LooseTable }
-
-type DBRevenueRow = {
-  revenue: number | null
-  cost: number | null
-  gross_margin: number | null
-  gross_margin_pct: number | null
-  consultant_name: string | null
+function formatEuro(v: number): string {
+  const abs = Math.abs(v)
+  const sign = v < 0 ? "-" : ""
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)} M€`
+  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)} k€`
+  return `${sign}${Math.round(abs)} €`
 }
 
-type DBOpportunityRow = {
-  weighted_gain: number | null
+function formatPct(v: number | null): string {
+  if (v === null) return "—"
+  return `${v.toFixed(1)} %`
 }
 
-const DEFAULT_PL_TIMELINE: OperationMonthPL[] = [
-  { month: "Jan 2026", caRealized: 1900, margeBrute: 1000, benchCost: 250 },
-  { month: "Fev", caRealized: 1950, margeBrute: 1100, benchCost: 250 },
-  { month: "Mar", caRealized: 2050, margeBrute: 1050, benchCost: 250 },
-  { month: "Abr", caRealized: 2100, margeBrute: 1150, benchCost: 250 },
-  { month: "May", caRealized: 2200, margeBrute: 1200, benchCost: 250 },
-]
+function calcDeltaTone(current: number, previous: number): FinanceKpiDeltaTone {
+  if (current > previous) return "positive"
+  if (current < previous) return "negative"
+  return "neutral"
+}
+
+function calcDeltaLabel(current: number, previous: number): string | undefined {
+  if (previous === 0) return undefined
+  const pct = ((current - previous) / Math.abs(previous)) * 100
+  const sign = pct >= 0 ? "+" : ""
+  return `${sign}${pct.toFixed(1)} %`
+}
 
 export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
-  const supabase = (await createClient()) as unknown as LooseClient
+  const supabase = await createClient()
 
-  let revenues: DBRevenueRow[] = []
-  let opportunities: DBOpportunityRow[] = []
+  let pnlRows: PnlMonthRow[] = []
+  let pipeTotal = 0
 
   try {
-    const [revRes, oppRes] = await Promise.all([
-      supabase.from("v_mission_quarterly_revenue").select<DBRevenueRow>("revenue, cost, gross_margin, gross_margin_pct, consultant_name"),
-      supabase.from("opportunities").select<DBOpportunityRow>("weighted_gain"),
+    const [pnlRes, oppRes] = await Promise.all([
+      supabase
+        .from("pnl_monthly")
+        .select(
+          "period_month, revenue_total, gross_margin_value, gross_margin_percent, operating_profit_value, operating_profit_percent, source",
+        )
+        .order("period_month", { ascending: true })
+        .limit(12),
+      supabase.from("opportunities").select("weighted_gain"),
     ])
 
-    revenues = revRes.data ?? []
-    opportunities = oppRes.data ?? []
+    pnlRows = (pnlRes.data ?? []) as PnlMonthRow[]
+    pipeTotal = (oppRes.data ?? []).reduce(
+      (sum, o) => sum + (o.weighted_gain ?? 0),
+      0,
+    )
   } catch (err) {
-    console.error("[finance-data] Error querying Supabase:", err)
+    console.error("[finance-data] Supabase error:", err)
   }
 
-  // ─── 1. KPIs Calculation ──────────────────────────────────────────────────
-  // Calculate dynamic CA from view, fallback to mockup values if DB is empty
-  const totalRevenue = revenues.reduce((sum, r) => sum + (r.revenue ?? 0), 0)
-  const averageMarginPct = revenues.length > 0 
-    ? Math.round(revenues.reduce((sum, r) => sum + (r.gross_margin_pct ?? 0), 0) / revenues.length) 
-    : 12
+  // ─── KPIs depuis pnl_monthly ──────────────────────────────────────────────
+  const last = pnlRows[pnlRows.length - 1]
+  const prev = pnlRows[pnlRows.length - 2]
 
-  const pipeTotal = opportunities.reduce((sum, o) => sum + (o.weighted_gain ?? 0), 0)
+  const lastPeriodLabel = last?.period_month
+    ? new Date(last.period_month).toLocaleDateString("fr-FR", {
+        month: "long",
+        year: "numeric",
+      })
+    : undefined
 
-  // format Euro helper for dynamic values
-  const caFormatted = totalRevenue > 0 ? `${(totalRevenue / 1000000).toFixed(1)} M€` : "15,2 M€"
-  const pipeFormatted = pipeTotal > 0 ? `€${(pipeTotal / 1000000).toFixed(1)}M` : "€1.4M"
+  // CA dernière période
+  const caValue = last?.revenue_total ?? 0
+  const caLabel = last ? formatEuro(caValue) : "—"
+  const caDelta =
+    last && prev ? calcDeltaLabel(caValue, prev.revenue_total) : undefined
+  const caTone =
+    last && prev ? calcDeltaTone(caValue, prev.revenue_total) : "neutral"
+
+  // Marge brute %
+  const margeValue = last?.gross_margin_percent ?? null
+  const margeLabel = formatPct(margeValue)
+  const margePrev = prev?.gross_margin_percent ?? null
+  const margeDelta =
+    margeValue !== null && margePrev !== null
+      ? `${margeValue >= margePrev ? "+" : ""}${(margeValue - margePrev).toFixed(1)} pts`
+      : undefined
+  const margeTone: FinanceKpiDeltaTone =
+    margeValue !== null && margePrev !== null
+      ? calcDeltaTone(margeValue, margePrev)
+      : "neutral"
+
+  // Résultat opérationnel
+  const opValue = last?.operating_profit_value ?? null
+  const opLabel = opValue !== null ? formatEuro(opValue) : "—"
+  const opTone: FinanceKpiDeltaTone =
+    opValue !== null
+      ? opValue > 0
+        ? "positive"
+        : opValue < 0
+          ? "negative"
+          : "neutral"
+      : "neutral"
+
+  // Pipe CRM pondéré
+  const pipeLabel = pipeTotal > 0 ? formatEuro(pipeTotal) : "—"
 
   const kpis: FinanceKpi[] = [
     {
-      id: "f-ca-ytd",
-      label: "CA Réalisé (YTD)",
-      value: caFormatted,
-      trendBadge: "+22% YoY",
-      trendDirection: "up",
-      hasSparkline: false,
-      status: "success",
-    },
-    {
-      id: "f-pipe-crm",
-      label: "Qualified Pipe (CRM)",
-      value: pipeFormatted,
-      hasSparkline: true,
-      status: "neutral",
+      id: "f-ca-period",
+      label: "CA — Dernière période",
+      value: caLabel,
+      delta: caDelta,
+      deltaTone: caTone,
+      context: lastPeriodLabel,
     },
     {
       id: "f-marge-brute",
-      label: "Marge Brute Moy.",
-      value: `${averageMarginPct}%`,
-      trendDirection: "up",
-      hasSparkline: true,
-      status: averageMarginPct >= 10 ? "success" : "warning",
+      label: "Marge brute",
+      value: margeLabel,
+      delta: margeDelta,
+      deltaTone: margeTone,
+      context: "Taux période courante",
     },
     {
-      id: "f-tjm-moyen",
-      label: "TJM Moyen Agence",
-      value: "€710",
-      hasSparkline: true,
-      status: "success",
+      id: "f-resultat-op",
+      label: "Résultat opérationnel",
+      value: opLabel,
+      deltaTone: opTone,
+      context: lastPeriodLabel,
+    },
+    {
+      id: "f-pipe-crm",
+      label: "Pipe pondéré (CRM)",
+      value: pipeLabel,
+      deltaTone: "neutral",
+      context: "opportunities × conviction",
     },
   ]
 
-  // ─── 2. Billing & Bench Anomalies (n8n Sémantique) ──────────────────────────
-  const anomalies: BillingAnomaly[] = []
+  // ─── Anomalies (fallback — structure n8n anticipée) ───────────────────────
+  const anomalies: BillingAnomaly[] = [
+    {
+      id: "fa-1",
+      consultantName: "Consultant A",
+      tjm: "680 €",
+      anomalyText: "Incohérence temps déclaré vs plan de charge (n8n audit sémantique)",
+      actionLabel: "Gérer Bench",
+    },
+    {
+      id: "fa-2",
+      consultantName: "Consultant B",
+      tjm: "680 €",
+      anomalyText: "Taux d'adéquation matching sémantique insuffisant",
+      actionLabel: "Lancer Match",
+      badgeText: "<10 %",
+    },
+  ]
 
-  // Add real collaborator anomalies if billing reports show mismatches
-  if (revenues.length > 0) {
-    revenues.forEach((r, index) => {
-      if (r.revenue === 0 && r.consultant_name && index < 3) {
-        anomalies.push({
-          id: `anom-${index}`,
-          consultantName: r.consultant_name,
-          tjm: "680€",
-          anomalyText: "Audit sémantique par n8n: temps pgvector BC vs Supabase",
-          actionLabel: "Gérer Bench",
-        })
-      }
-    })
-  }
-
-  // Fallbacks matching mockup exactly
-  if (anomalies.length < 2) {
-    const mockAnoms = [
-      {
-        id: "fa-1",
-        consultantName: "Consultant X",
-        tjm: "680€",
-        anomalyText: "Audit sémantique par n8n: temps pgvector BC vs Supabase",
-        actionLabel: "Gérer Bench",
-      },
-      {
-        id: "fa-2",
-        consultantName: "Consultant X",
-        tjm: "680€",
-        anomalyText: "Semantic match et mma rmpss",
-        actionLabel: "Match Workflow",
-        badgeText: "<10%",
-      },
-    ] as BillingAnomaly[]
-
-    mockAnoms.forEach((ma) => {
-      if (!anomalies.some((a) => a.anomalyText === ma.anomalyText)) {
-        anomalies.push(ma)
-      }
-    })
-  }
-
-  // ─── 3. Late Billings (Facturation en Retard) ──────────────────────────────
+  // ─── Facturations en retard (fallback — structure n8n dunning anticipée) ──
   const lateBillings: LateBilling[] = [
     {
       id: "lb-1",
       clientName: "Client A",
-      logoLetter: "C",
-      bcNumber: "22102",
+      bcNumber: "BC-22102",
       delayDays: 134,
-      valueAmount: "43.800€",
-      actionLabel: "Relancer client",
+      valueAmount: "43 800 €",
+      actionLabel: "Relancer",
     },
     {
       id: "lb-2",
       clientName: "Client B",
-      logoLetter: "C",
-      bcNumber: "22102",
-      delayDays: 134,
-      valueAmount: "45 Jours", // Replicates value cell text in mockup screenshot
-      actionLabel: "API n8n to email/Teams",
+      bcNumber: "BC-22103",
+      delayDays: 92,
+      valueAmount: "12 500 €",
+      actionLabel: "Relancer",
     },
     {
       id: "lb-3",
       clientName: "Client C",
-      logoLetter: "C",
-      bcNumber: "22103",
-      delayDays: 92,
-      valueAmount: "12.500€",
-      actionLabel: "Relancer client",
+      bcNumber: "BC-22104",
+      delayDays: 67,
+      valueAmount: "8 200 €",
+      actionLabel: "Relancer",
     },
   ]
 
-  return {
-    kpis,
-    monthlyPL: DEFAULT_PL_TIMELINE,
-    anomalies,
-    lateBillings,
-  }
+  return { kpis, pnlRows, anomalies, lateBillings, pipeTotal }
 }
