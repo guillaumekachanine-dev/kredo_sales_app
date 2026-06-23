@@ -1,252 +1,346 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
+
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
-import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
-import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
-import { MobileActionCard } from "@/components/ui/mobile/MobileActionCard"
-import { Button } from "@/components/ui/Button"
-import { StatusPill } from "@/components/ui/StatusPill"
-import { AppDialog } from "@/components/ui/AppDialog"
+import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
+import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
+import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
+
+import { buildCockpitMobileViewModel } from "./mobile/cockpit-mobile-view-model"
+import { CockpitMobileHeader } from "./mobile/CockpitMobileHeader"
+import { CockpitAgendaStrip } from "./mobile/CockpitAgendaStrip"
+import { CockpitAgendaDetails } from "./mobile/CockpitAgendaDetails"
+import { CockpitStaffingCard } from "./mobile/CockpitStaffingCard"
+import { CockpitMeetingCard } from "./mobile/CockpitMeetingCard"
+import { CockpitProspectionCard } from "./mobile/CockpitProspectionCard"
+import { CockpitQuickActionsSheet } from "./mobile/CockpitQuickActionsSheet"
+import { CockpitContextSheet, ContextSheetKind } from "./mobile/CockpitContextSheet"
+
 import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
+import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
+import type { SyntheseData } from "@/lib/prospection/synthese-data"
 
-type SheetType = "intervenir" | "revoir" | "details"
+import "./mobile/cockpit-mobile.css"
 
-type SheetContent = {
-  type: SheetType
-  title: string
-  description: string
-  primaryBtn: string
-  targetId: string
+interface CockpitMobileDashboardProps {
+  data: CockpitDashboardData
+  staffingData: StaffingDashboardData
+  syntheseData: SyntheseData
 }
-
-type ActiveSheet = SheetContent | null
-
-const SHEETS: Record<SheetType, SheetContent> = {
-  intervenir: {
-    type: "intervenir",
-    title: "Intervenir — Staffing Mismatch",
-    description:
-      "Lancer le rapprochement sémantique pgvector pour résoudre les incohérences de planification sur la practice Cloud/DevOps.",
-    primaryBtn: "Lancer Matching IA",
-    targetId: "st-1",
-  },
-  revoir: {
-    type: "revoir",
-    title: "Revoir Proposition — Score Rouge",
-    description:
-      "Ouvrir l'assistant d'audit qualité IA pour optimiser la proposition commerciale de Consultant B chez Client A.",
-    primaryBtn: "Corriger avec l'IA",
-    targetId: "pr-1",
-  },
-  details: {
-    type: "details",
-    title: "Prochain Signataire Potentiel",
-    description:
-      "Visualiser les détails de l'opportunité AXA Group (Taux de conversion IA : 88%) et planifier l'appel client final.",
-    primaryBtn: "Consulter l'opportunité",
-    targetId: "sig-1",
-  },
-}
-
-const IconWarning = () => (
-  <svg
-    className="size-full"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-    />
-  </svg>
-)
-
-const IconDoc = () => (
-  <svg
-    className="size-full"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-    />
-  </svg>
-)
-
-const IconTarget = () => (
-  <svg
-    className="size-full"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-    />
-  </svg>
-)
 
 export function CockpitMobileDashboard({
   data,
-}: {
-  data: CockpitDashboardData
-}) {
-  const { kpis } = data
-  const pipeKpi = kpis.find((k) => k.id === "c-weighted-pipe")
+  staffingData,
+  syntheseData,
+}: CockpitMobileDashboardProps) {
+  const router = useRouter()
 
-  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null)
-  const [staffingAlert, setStaffingAlert] = useState(true)
-  const [proposalAlert, setProposalAlert] = useState(true)
-  const [signAlert, setSignAlert] = useState(true)
+  // 1. Build View Model
+  const vm = useMemo(
+    () => buildCockpitMobileViewModel(data, staffingData, syntheseData),
+    [data, staffingData, syntheseData]
+  )
 
-  const openSheet = (type: SheetType) => {
-    setActiveSheet(SHEETS[type])
+  // 2. States
+  const [selectedDayKey, setSelectedDayKey] = useState(vm.agenda.selectedDayKey)
+  const [isAgendaOpen, setAgendaOpen] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  // Modals / Drawers States
+  const [isQuickActionsOpen, setQuickActionsOpen] = useState(false)
+  const [isNewOpportunityOpen, setNewOpportunityOpen] = useState(false)
+  
+  // Contextual sheets
+  const [contextSheet, setContextSheet] = useState<{
+    kind: ContextSheetKind | null
+    label: string
+  }>({ kind: null, label: "" })
+
+  // Native drawers
+  const [activeDrawer, setActiveDrawer] = useState<{
+    kind: "company" | "contact"
+    id: string | null
+    label: string
+  } | null>(null)
+
+  // Clear toast after timeout
+  useEffect(() => {
+    if (!toastMessage) return
+    const timer = setTimeout(() => setToastMessage(null), 2200)
+    return () => clearTimeout(timer)
+  }, [toastMessage])
+
+  // Retrieve details of currently selected agenda day
+  const selectedDay = useMemo(
+    () => vm.agenda.days.find((d) => d.key === selectedDayKey) || vm.agenda.days[0],
+    [vm.agenda.days, selectedDayKey]
+  )
+
+  // Handle Day Tap
+  const handleDaySelect = (dayKey: string) => {
+    if (dayKey === selectedDayKey) {
+      setAgendaOpen((prev) => !prev)
+    } else {
+      setSelectedDayKey(dayKey)
+      setAgendaOpen(true)
+    }
   }
 
-  const confirmSheetAction = (type: SheetType) => {
-    if (type === "intervenir") setStaffingAlert(false)
-    else if (type === "revoir") setProposalAlert(false)
-    else setSignAlert(false)
-    setActiveSheet(null)
+  // Handle Toast Trigger
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg)
   }
 
-  const noAlerts = !staffingAlert && !proposalAlert && !signAlert
+  // Handle general agenda item clicks
+  const handleAgendaItemClick = (route: string, title: string) => {
+    triggerToast(`Navigation vers ${title}`)
+    router.push(route)
+  }
+
+  // Handle Staffing Primary Action click
+  const handleStaffingPrimaryClick = (actionLabel: string, needId: string) => {
+    if (actionLabel === "Envoyer au client" || actionLabel === "Relancer le suivi" || actionLabel === "Accélérer la qualification") {
+      triggerToast(`Redirection vers l'opportunité`)
+      router.push(`/missions/opps/${needId}/edit`)
+    } else if (actionLabel === "Positionner des profils") {
+      triggerToast(`Recherche de profils pour le besoin`)
+      router.push(`/missions/opps/${needId}/edit`)
+    } else {
+      triggerToast(`Action: ${actionLabel}`)
+    }
+  }
+
+  // Action Select Handlers
+  const handleQuickActionSelect = (actionLabel: string) => {
+    if (actionLabel === "Créer ou mettre à jour un besoin") {
+      setNewOpportunityOpen(true)
+    } else if (actionLabel === "Créer ou mettre à jour un contact") {
+      triggerToast("Redirection vers la création de contact")
+      router.push("/prospection/accounts")
+    } else if (actionLabel === "Enregistrer une note vocale") {
+      triggerToast("Note vocale : À RÉSOUDRE (seam d'enregistrement vocale)")
+    } else if (actionLabel === "Accéder au simulateur financier") {
+      triggerToast("Simulateur financier : À RÉSOUDRE (seam simulateur)")
+    } else {
+      triggerToast(`Commande: ${actionLabel}`)
+    }
+  }
+
+  const handleContextActionSelect = (actionLabel: string) => {
+    const cleanLabel = actionLabel.toLowerCase().trim()
+
+    // 1. Staffing context
+    if (contextSheet.kind === "staffing") {
+      const need = vm.staffing.items.find((item) => `${item.title} · ${item.client}` === contextSheet.label)
+      
+      if (cleanLabel.includes("étape")) {
+        if (need) {
+          router.push(`/missions/opps/${need.id}/edit`)
+        } else {
+          router.push("/missions/opps")
+        }
+      } else if (cleanLabel.includes("cv")) {
+        triggerToast("Consultation CV: À RÉSOUDRE (seam CV)")
+      } else if (cleanLabel.includes("tâche")) {
+        triggerToast("Création tâche: À RÉSOUDRE (seam tâches)")
+      } else if (cleanLabel.includes("contacter le client")) {
+        if (need && need.companyId) {
+          setActiveDrawer({ kind: "company", id: need.companyId, label: need.client })
+        } else {
+          triggerToast("Redirection vers comptes de prospection")
+          router.push("/prospection/accounts")
+        }
+      } else if (cleanLabel.includes("financière")) {
+        triggerToast("Simulation financière: À RÉSOUDRE (seam finance)")
+      }
+    }
+
+    // 2. Meeting context
+    if (contextSheet.kind === "meeting") {
+      const meeting = vm.meetings.items.find((item) => {
+        const fullLabel = `${item.client} · ${item.dateLabel} · ${item.timeLabel}`
+        return fullLabel === contextSheet.label
+      })
+
+      if (cleanLabel.includes("pitch")) {
+        if (meeting && meeting.companyId) {
+          router.push(`/prospection/accounts/${meeting.companyId}`)
+        } else {
+          triggerToast("Élaborer un pitch: À RÉSOUDRE")
+        }
+      } else if (cleanLabel.includes("actualité")) {
+        if (meeting && meeting.companyId) {
+          router.push(`/prospection/accounts/${meeting.companyId}`)
+        } else {
+          triggerToast("Actualités client non disponibles")
+        }
+      } else if (cleanLabel.includes("synthèse") || cleanLabel.includes("next steps")) {
+        triggerToast("Synthèse d'échanges IA: À RÉSOUDRE")
+      } else if (cleanLabel.includes("tâche")) {
+        triggerToast("Création tâche: À RÉSOUDRE (seam tâches)")
+      }
+    }
+
+    // 3. Prospect context
+    if (contextSheet.kind === "prospect") {
+      const priority = vm.prospection.priorities.find((item) => item.company === contextSheet.label)
+
+      if (cleanLabel.includes("pitch") || cleanLabel.includes("email")) {
+        if (priority && priority.companyId) {
+          router.push(`/prospection/accounts/${priority.companyId}`)
+        } else {
+          triggerToast("Pitch IA: À RÉSOUDRE")
+        }
+      } else if (cleanLabel.includes("appeler")) {
+        triggerToast("Appel prospect: À RÉSOUDRE (seam appel direct)")
+      } else if (cleanLabel.includes("analyses")) {
+        router.push("/prospection")
+      } else if (cleanLabel.includes("tâche")) {
+        triggerToast("Création tâche: À RÉSOUDRE (seam tâches)")
+      }
+    }
+  }
+
+  // Drawers trigger helpers
+  const handleCompanyDrawerOpen = (companyId: string | null, label: string) => {
+    if (companyId) {
+      setActiveDrawer({ kind: "company", id: companyId, label })
+    } else {
+      triggerToast("Fiche entreprise: Aucun ID réel associé")
+    }
+  }
+
+  const handleContactDrawerOpen = (contactId: string | null, label: string) => {
+    if (contactId) {
+      setActiveDrawer({ kind: "contact", id: contactId, label })
+    } else {
+      triggerToast("Fiche contact : Aucun ID réel associé (seam contact)")
+    }
+  }
 
   return (
     <>
       <MobileActionPage
         header={
-          <MobilePageHeader
-            title="Cockpit"
+          <CockpitMobileHeader
+            alertCount={vm.header.alertCount}
+            onQuickActionsOpen={() => setQuickActionsOpen(true)}
+            onNotificationsOpen={() => triggerToast("Notifications: SEAM temporaire de cloche")}
           />
-        }
-        hero={
-          pipeKpi ? (
-            <MobileHeroInsight
-              eyebrow="Pipeline pondéré"
-              title="Activité commerciale"
-              value={pipeKpi.value}
-              summary="Pipe consolidé du centre de profit."
-              confidence={pipeKpi.trendBadge}
-              tone="brand"
-              sourceLabel="Supabase"
-            />
-          ) : undefined
         }
       >
-        {noAlerts ? (
-          <div className="flex flex-col items-center justify-center rounded-[var(--radius-xl)] border border-border bg-surface py-10 text-center">
-            <p className="text-sm font-semibold text-heading">
-              Aucune action requise
-            </p>
-            <p className="mt-1 text-xs text-body">
-              Toutes les alertes ont été traitées.
-            </p>
-          </div>
-        ) : null}
+        <div className="screen-scroll-container">
+          {/* Section 1: Agenda */}
+          <section className="module-panel">
+            <div className="module-head">
+              <h2>Agenda</h2>
+            </div>
+            
+            <CockpitAgendaStrip
+              days={vm.agenda.days}
+              selectedDayKey={selectedDayKey}
+              onDaySelect={handleDaySelect}
+            />
 
-        {staffingAlert && (
-          <MobileActionCard
-            title="Staffing Mismatch"
-            description="Anomalie de planification détectée sur la practice Cloud/DevOps."
-            icon={<IconWarning />}
-            status={<StatusPill label="Critique" variant="danger" />}
-            primaryAction={
-              <Button
-                variant="primary"
-                size="md"
-                fullWidth
-                onClick={() => openSheet("intervenir")}
-              >
-                Intervenir
-              </Button>
+            <CockpitAgendaDetails
+              day={selectedDay}
+              isOpen={isAgendaOpen}
+              onItemClick={handleAgendaItemClick}
+            />
+          </section>
+
+          {/* Section 2: Staffings & besoins */}
+          <CockpitStaffingCard
+            items={vm.staffing.items}
+            onPrimaryClick={handleStaffingPrimaryClick}
+            onActionClick={(title, client) =>
+              setContextSheet({ kind: "staffing", label: `${title} · ${client}` })
             }
           />
-        )}
 
-        {proposalAlert && (
-          <MobileActionCard
-            title="Proposition — Score Rouge"
-            description="La proposition Consultant B présente des incohérences détectées par l'IA."
-            icon={<IconDoc />}
-            status={<StatusPill label="À revoir" variant="warning" />}
-            primaryAction={
-              <Button
-                variant="secondary"
-                size="md"
-                fullWidth
-                onClick={() => openSheet("revoir")}
-              >
-                Revoir la proposition
-              </Button>
+          {/* Section 3: Rendez-vous clients */}
+          <CockpitMeetingCard
+            items={vm.meetings.items}
+            onPrepareClick={(client) => triggerToast(`Préparation du rendez-vous: ${client}`)}
+            onActionClick={(client, dateLabel, timeLabel) =>
+              setContextSheet({ kind: "meeting", label: `${client} · ${dateLabel} · ${timeLabel}` })
+            }
+            onCompanyClick={handleCompanyDrawerOpen}
+            onContactClick={handleContactDrawerOpen}
+          />
+
+          {/* Section 4: Prospection */}
+          <CockpitProspectionCard
+            metrics={vm.prospection.metrics}
+            priorities={vm.prospection.priorities}
+            onPitchClick={(company, companyId) => {
+              if (companyId) {
+                router.push(`/prospection/accounts/${companyId}`)
+              } else {
+                triggerToast(`Génération pitch IA pour ${company}`)
+              }
+            }}
+            onActionClick={(company) =>
+              setContextSheet({ kind: "prospect", label: company })
             }
           />
-        )}
-
-        {signAlert && (
-          <MobileActionCard
-            title="Prochain Signataire Potentiel"
-            description="AXA Group — Taux de conversion IA : 88%."
-            icon={<IconTarget />}
-            status={<StatusPill label="Opportunité" variant="success" />}
-            primaryAction={
-              <Button
-                variant="ghost"
-                size="md"
-                fullWidth
-                onClick={() => openSheet("details")}
-              >
-                Voir le détail
-              </Button>
-            }
-          />
-        )}
+        </div>
       </MobileActionPage>
 
-      {/* Dialogue d'action mobile */}
-      <AppDialog
-        open={Boolean(activeSheet)}
+      {/* Toast Alert Banner */}
+      {toastMessage && (
+        <div className="toast-banner animate-fade-in" role="status">
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Sheets / Drawers */}
+      <CockpitQuickActionsSheet
+        open={isQuickActionsOpen}
+        onOpenChange={setQuickActionsOpen}
+        onActionSelect={handleQuickActionSelect}
+      />
+
+      <CockpitContextSheet
+        open={contextSheet.kind !== null}
         onOpenChange={(open) => {
-          if (!open) setActiveSheet(null)
+          if (!open) setContextSheet({ kind: null, label: "" })
         }}
-        title={activeSheet?.title ?? ""}
-        footer={
-          activeSheet ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setActiveSheet(null)}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => confirmSheetAction(activeSheet.type)}
-              >
-                {activeSheet.primaryBtn}
-              </Button>
-            </>
-          ) : null
+        kind={contextSheet.kind}
+        label={contextSheet.label}
+        onActionSelect={handleContextActionSelect}
+      />
+
+      <CompanyIdentityDrawer
+        companyId={activeDrawer?.kind === "company" ? activeDrawer.id : null}
+        open={activeDrawer?.kind === "company"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDrawer(null)
+        }}
+        onOpenContactIdentity={(contactId) =>
+          setActiveDrawer({ kind: "contact", id: contactId, label: "Fiche contact" })
         }
-      >
-        <p className="leading-relaxed">{activeSheet?.description ?? ""}</p>
-      </AppDialog>
+      />
+
+      <ContactIdentityDrawer
+        contactId={activeDrawer?.kind === "contact" ? activeDrawer.id : null}
+        open={activeDrawer?.kind === "contact"}
+        onOpenChange={(open) => {
+          if (!open) setActiveDrawer(null)
+        }}
+        onOpenCompanyIdentity={(companyId) =>
+          setActiveDrawer({ kind: "company", id: companyId, label: "Fiche entreprise" })
+        }
+        device="mobile"
+      />
+
+      {/* Create New Opportunity Drawer */}
+      <NewOpportunityDrawer
+        open={isNewOpportunityOpen}
+        onOpenChange={setNewOpportunityOpen}
+      />
     </>
   )
 }

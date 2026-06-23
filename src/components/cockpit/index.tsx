@@ -1,5 +1,7 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getCockpitDashboardData } from "@/lib/cockpit/cockpit-data"
+import { getStaffingDashboardData } from "@/lib/staffing/staffing-data"
+import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { CockpitDesktopDashboard } from "./CockpitDesktopDashboard"
 import { CockpitMobileDashboard } from "./CockpitMobileDashboard"
 
@@ -10,9 +12,21 @@ export async function SyntheseCockpitSection() {
     getCockpitDashboardData(),
   ])
 
-  return device === "desktop" ? (
-    <CockpitDesktopDashboard data={data} />
-  ) : (
-    <CockpitMobileDashboard data={data} />
+  if (device === "desktop") {
+    return <CockpitDesktopDashboard data={data} />
+  }
+
+  // Mobile layout loads extra contextual data
+  const [staffingData, syntheseData] = await Promise.all([
+    getStaffingDashboardData(),
+    getSyntheseData(),
+  ])
+
+  return (
+    <CockpitMobileDashboard
+      data={data}
+      staffingData={staffingData}
+      syntheseData={syntheseData}
+    />
   )
 }
