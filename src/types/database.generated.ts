@@ -1547,6 +1547,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           details: Json
+          ends_at: string | null
           id: string
           next_action: string | null
           occurred_at: string
@@ -1562,6 +1563,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           details?: Json
+          ends_at?: string | null
           id?: string
           next_action?: string | null
           occurred_at?: string
@@ -1577,6 +1579,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           details?: Json
+          ends_at?: string | null
           id?: string
           next_action?: string | null
           occurred_at?: string
@@ -3279,6 +3282,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          skill_description: string | null
           workspace_id: string
         }
         Insert: {
@@ -3287,6 +3291,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          skill_description?: string | null
           workspace_id?: string
         }
         Update: {
@@ -3295,6 +3300,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          skill_description?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -3703,6 +3709,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_agenda_event: {
+        Args: {
+          p_company_id: string
+          p_contact_id: string
+          p_create_task: boolean
+          p_details: Json
+          p_ends_at: string
+          p_occurred_at: string
+          p_opportunity_id: string
+          p_summary: string
+          p_task_due_date: string
+          p_task_priority: string
+          p_task_title: string
+          p_type: string
+        }
+        Returns: Json
+      }
       decide_enrichment_proposal: {
         Args: { p_decision: string; p_proposal_id: string; p_reason?: string }
         Returns: Database["public"]["CompositeTypes"]["proposal_operation_result"]
@@ -3712,6 +3735,24 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      update_agenda_event: {
+        Args: {
+          p_company_id: string
+          p_contact_id: string
+          p_create_task: boolean
+          p_details: Json
+          p_ends_at: string
+          p_interaction_id: string
+          p_occurred_at: string
+          p_opportunity_id: string
+          p_summary: string
+          p_task_due_date: string
+          p_task_priority: string
+          p_task_title: string
+          p_type: string
+        }
+        Returns: Json
       }
       validate_and_apply_enrichment_proposal: {
         Args: { p_proposal_id: string; p_reason?: string }

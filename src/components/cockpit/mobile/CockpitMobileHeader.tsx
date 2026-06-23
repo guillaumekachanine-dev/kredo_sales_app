@@ -1,5 +1,7 @@
 import React from "react"
-import { IconBell, IconBolt } from "./icons"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { IconBell, IconBolt, IconCalendar } from "./icons"
 
 interface CockpitMobileHeaderProps {
   alertCount: number
@@ -12,6 +14,9 @@ export function CockpitMobileHeader({
   onQuickActionsOpen,
   onNotificationsOpen,
 }: CockpitMobileHeaderProps) {
+  const pathname = usePathname()
+  const isAgendaActive = pathname === "/agenda" || pathname.startsWith("/agenda/")
+
   return (
     <header className="top-header" role="banner">
       <div className="brand-lockup">
@@ -22,6 +27,16 @@ export function CockpitMobileHeader({
       </div>
 
       <div className="header-controls">
+        <Link
+          href="/agenda"
+          className={`header-bell ${
+            isAgendaActive ? "!bg-primary !text-primary-fg !border-primary" : ""
+          }`}
+          aria-label="Ouvrir l'agenda"
+        >
+          <IconCalendar />
+        </Link>
+
         <button
           type="button"
           className="header-bell"
@@ -44,3 +59,4 @@ export function CockpitMobileHeader({
     </header>
   )
 }
+

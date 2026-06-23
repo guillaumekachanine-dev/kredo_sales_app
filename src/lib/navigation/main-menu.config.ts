@@ -83,6 +83,11 @@ export const mainMenuItems: MainMenuItem[] = [
     icon: "cockpit",
     primary: true,
   },
+  {
+    label: "Agenda",
+    href: "/agenda",
+    icon: "calendar",
+  },
 
   // ── Business ─────────────────────────────────────────────────────────────
   {
