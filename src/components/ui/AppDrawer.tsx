@@ -32,7 +32,7 @@ function isDrawerErrorState(
 export interface AppDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: string
+  title: React.ReactNode
   subtitle?: string
   description?: string
   eyebrow?: React.ReactNode
@@ -254,7 +254,7 @@ export function AppDrawer({
                     </div>
 
                     {headerDescription ? (
-                      <p id={descriptionId} className="mt-1 text-sm leading-6 text-body">
+                      <p id={descriptionId} className="mt-1 text-sm leading-6 text-body sm:block hidden">
                         {headerDescription}
                       </p>
                     ) : null}

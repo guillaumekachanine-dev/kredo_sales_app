@@ -276,8 +276,8 @@ dialog.kredo-drawer-bottom {
 @media (max-width: 767px) {
   dialog.kredo-drawer-right,
   dialog.kredo-drawer-bottom {
-    top: 12vh !important;
-    inset-block-start: 12vh !important;
+    top: 7vh !important;
+    inset-block-start: 7vh !important;
     bottom: var(--layout-bottom-nav-height) !important;
     inset-block-end: var(--layout-bottom-nav-height) !important;
     left: 0 !important;
@@ -292,6 +292,20 @@ dialog.kredo-drawer-bottom {
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
+  }
+
+  /* Compress header height on mobile drawers */
+  dialog.kredo-drawer-right header,
+  dialog.kredo-drawer-bottom header {
+    padding-top: 0.625rem !important; /* 10px instead of 16px */
+    padding-bottom: 0.625rem !important;
+  }
+
+  /* Raise contents by reducing top padding */
+  dialog.kredo-drawer-right div.overflow-y-auto,
+  dialog.kredo-drawer-bottom div.overflow-y-auto {
+    padding-top: 0.75rem !important; /* 12px instead of 16px */
+    padding-bottom: 0.75rem !important;
   }
 
   /* Override animation for mobile drawers to slide up from the bottom */

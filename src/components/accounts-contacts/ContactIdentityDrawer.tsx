@@ -391,7 +391,16 @@ export function ContactIdentityDrawer({
     <AppDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={fullName}
+      title={
+        <span className="flex items-baseline gap-2 flex-wrap min-w-0">
+          <span>{fullName}</span>
+          {contact?.job_title && (
+            <span className="text-xs font-normal text-muted normal-case sm:hidden inline-block truncate max-w-[160px] leading-none">
+              {contact.job_title}
+            </span>
+          )}
+        </span>
+      }
       subtitle={
         contact
           ? [contact.job_title, company?.name].filter(Boolean).join(" - ") || "Fiche contact"
