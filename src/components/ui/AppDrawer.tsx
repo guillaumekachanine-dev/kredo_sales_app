@@ -201,7 +201,7 @@ export function AppDrawer({
         }
       }}
       className={cn(
-        "fixed m-0 p-0 border-0 flex flex-col overflow-hidden border-border bg-surface text-heading outline-none",
+        "fixed m-0 p-0 border-0 block overflow-hidden border-border bg-surface text-heading outline-none",
         "shadow-[var(--shadow-overlay-md)] backdrop:bg-[var(--color-backdrop)]",
         "z-[var(--z-drawer)]",
         isRight
@@ -219,90 +219,93 @@ export function AppDrawer({
         className,
       )}
     >
-      <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
-        <header className="shrink-0 border-b border-border bg-surface px-4 py-4 sm:px-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              {eyebrow ? (
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  {eyebrow}
-                </p>
-              ) : null}
-
-              <div className="flex items-start gap-3">
-                {icon ? (
-                  <span
-                    className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-small)] bg-canvas text-primary"
-                    aria-hidden="true"
-                  >
-                    {icon}
-                  </span>
+      <div className="flex flex-col h-full w-full overflow-hidden">
+        <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
+          <header className="shrink-0 border-b border-border bg-surface px-4 py-4 sm:px-6">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                {eyebrow ? (
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                    {eyebrow}
+                  </p>
                 ) : null}
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 id={titleId} className="font-heading text-base font-bold leading-7 text-heading tracking-tight">
-                      {title}
-                    </h2>
-                    {dirty ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/[0.12] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-status-warning-ink)]">
-                        <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
-                        Modifié
-                      </span>
+                <div className="flex items-start gap-3">
+                  {icon ? (
+                    <span
+                      className="mt-0.5 inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-small)] bg-canvas text-primary"
+                      aria-hidden="true"
+                    >
+                      {icon}
+                    </span>
+                  ) : null}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 id={titleId} className="font-heading text-base font-bold leading-7 text-heading tracking-tight">
+                        {title}
+                      </h2>
+                      {dirty ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/[0.12] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-status-warning-ink)]">
+                          <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
+                          Modifié
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {headerDescription ? (
+                      <p id={descriptionId} className="mt-1 text-sm leading-6 text-body">
+                        {headerDescription}
+                      </p>
                     ) : null}
                   </div>
-
-                  {headerDescription ? (
-                    <p id={descriptionId} className="mt-1 text-sm leading-6 text-body">
-                      {headerDescription}
-                    </p>
-                  ) : null}
                 </div>
               </div>
-            </div>
 
-            <div className="flex shrink-0 items-start gap-2">
-              {headerActions ? <div className="hidden items-center gap-2 sm:flex">{headerActions}</div> : null}
+              <div className="flex shrink-0 items-start gap-2">
+                {headerActions ? <div className="hidden items-center gap-2 sm:flex">{headerActions}</div> : null}
 
-              {hideMobileBackBtn ? null : (
-                <button
-                  type="button"
-                  onClick={() => requestClose("mobile-back")}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-heading focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:hidden"
+                {hideMobileBackBtn ? null : (
+                  <button
+                    type="button"
+                    onClick={() => requestClose("mobile-back")}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-heading focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:hidden"
+                  >
+                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                    <span>Retour</span>
+                  </button>
+                )}
+
+                <IconButton
+                  ref={closeButtonRef}
+                  aria-label={closeLabel}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => requestClose("close-button")}
+                  className="hidden sm:inline-flex"
                 >
-                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  <span>Retour</span>
-                </button>
-              )}
-
-              <IconButton
-                ref={closeButtonRef}
-                aria-label={closeLabel}
-                variant="ghost"
-                size="sm"
-                onClick={() => requestClose("close-button")}
-                className="hidden sm:inline-flex"
-              >
-                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </IconButton>
+                </IconButton>
+              </div>
             </div>
+          </header>
+
+          <div className={cn("min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
+            {loading ? <DrawerLoadingState /> : error ? <DrawerErrorContent error={error} /> : children}
           </div>
-        </header>
 
-        <div className={cn("min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
-          {loading ? <DrawerLoadingState /> : error ? <DrawerErrorContent error={error} /> : children}
+          {footer ? (
+            <footer className="shrink-0 border-t border-border bg-surface px-4 py-4 sm:px-6">
+              <div className="flex flex-wrap items-center justify-end gap-2">{footer}</div>
+            </footer>
+          ) : null}
         </div>
-
-        {footer ? (
-          <footer className="shrink-0 border-t border-border bg-surface px-4 py-4 sm:px-6">
-            <div className="flex flex-wrap items-center justify-end gap-2">{footer}</div>
-          </footer>
-        ) : null}
       </div>
     </dialog>
+
   )
 }
