@@ -392,7 +392,7 @@ export function ContactIdentityDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={
-        <span className="flex items-baseline gap-2 flex-wrap min-w-0">
+        <span className="flex items-center sm:items-baseline gap-2 flex-wrap min-w-0">
           <span>{fullName}</span>
           {contact?.job_title && (
             <span className="text-xs font-normal text-muted normal-case sm:hidden inline-block truncate max-w-[160px] leading-none">
@@ -463,14 +463,23 @@ export function ContactIdentityDrawer({
           )}
 
           {/* Identity Summary Card */}
-          <div className="flex flex-col gap-4 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
+          <div className={cn(
+            "flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
+            device === "mobile"
+              ? "bg-primary text-white border-primary/20"
+              : "bg-canvas/30 text-heading border-border/50",
+            device === "mobile" && contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
+          )}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Mobile back arrow button */}
                 <button
                   type="button"
                   onClick={() => onOpenChange(false)}
-                  className="sm:hidden flex items-center justify-center text-muted hover:text-heading transition-colors cursor-pointer mr-0.5"
+                  className={cn(
+                    "sm:hidden flex items-center justify-center transition-colors cursor-pointer mr-0.5",
+                    device === "mobile" ? "text-white/80 hover:text-white" : "text-muted hover:text-heading"
+                  )}
                   aria-label="Retour"
                 >
                   <svg className="h-4 w-4 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -489,7 +498,7 @@ export function ContactIdentityDrawer({
                       logoPath={(company.metadata?.logo_path as string) || null}
                       website={company.website}
                       size="xl"
-                      className="rounded-full w-14 h-14 border-border/80"
+                      className="rounded-full w-14 h-14 border-white/20"
                     />
                   </div>
                 ) : (
@@ -504,9 +513,9 @@ export function ContactIdentityDrawer({
                 {device === "mobile" ? (
                   <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-heading leading-tight truncate">{fullName}</h3>
+                      <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
                       {contact.job_title && (
-                        <span className="text-[11px] text-muted font-medium block mt-0.5 leading-tight truncate">
+                        <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
                           {contact.job_title}
                         </span>
                       )}
@@ -514,7 +523,7 @@ export function ContactIdentityDrawer({
                     {onEditContact && (
                       <button
                         onClick={() => onEditContact(contact.id)}
-                        className="rounded-full p-2 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-primary transition-colors flex items-center justify-center shrink-0"
+                        className="rounded-full p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
                         title="Modifier les informations du contact"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -555,30 +564,47 @@ export function ContactIdentityDrawer({
             </div>
 
             {/* Quick professional attributes row - Distributed equally */}
-            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 border-t border-border/40 text-[10px] w-full text-center">
-              <span className="rounded bg-primary-fg border border-border px-2 py-1 font-semibold text-body truncate">
-                Rôle : <span className="capitalize font-bold text-primary">{relationshipRoleDisplay}</span>
+            <div className={cn(
+              "grid grid-cols-3 gap-2 items-center pt-2.5 text-[10px] w-full text-center border-t",
+              device === "mobile" ? "border-white/12" : "border-border/40"
+            )}>
+              <span className={cn(
+                "rounded border px-2 py-1 font-semibold truncate",
+                device === "mobile"
+                  ? "bg-white/10 border-white/10 text-white/90"
+                  : "bg-primary-fg border-border text-body"
+              )}>
+                Rôle : <span className={cn("capitalize font-bold", device === "mobile" ? "text-[#FFB812]" : "text-primary")}>{relationshipRoleDisplay}</span>
               </span>
-              <span className="rounded bg-primary-fg border border-border px-2 py-1 font-semibold text-body truncate">
-                Intimité : <span className="capitalize font-bold text-primary">{relationshipLevelDisplay}</span>
+              <span className={cn(
+                "rounded border px-2 py-1 font-semibold truncate",
+                device === "mobile"
+                  ? "bg-white/10 border-white/10 text-white/90"
+                  : "bg-primary-fg border-border text-body"
+              )}>
+                Intimité : <span className={cn("capitalize font-bold", device === "mobile" ? "text-white" : "text-primary")}>{relationshipLevelDisplay}</span>
               </span>
               {company?.lifecycle_status === "prospect" ? (
                 <span className={cn(
                   "rounded border px-2 py-1 font-semibold truncate",
-                  contact.is_priority 
-                    ? "bg-success/5 border-success/20 text-success" 
-                    : "bg-primary-fg border-border text-body"
+                  device === "mobile"
+                    ? "bg-white/10 border-white/10 text-white/90"
+                    : contact.is_priority 
+                      ? "bg-success/5 border-success/20 text-success" 
+                      : "bg-primary-fg border-border text-body"
                 )}>
                   Prioritaire : <span className="font-bold">{contact.is_priority ? "oui" : "non"}</span>
                 </span>
               ) : (
                 <span className={cn(
                   "rounded border px-2 py-1 font-semibold truncate",
-                  contact.status === "actif" 
-                    ? "bg-success/5 border-success/20 text-success" 
-                    : "bg-primary-fg border-border text-body"
+                  device === "mobile"
+                    ? "bg-white/10 border-white/10 text-white/90"
+                    : contact.status === "actif" 
+                      ? "bg-success/5 border-success/20 text-success" 
+                      : "bg-primary-fg border-border text-body"
                 )}>
-                  Statut : <span className={cn("capitalize font-bold", contact.status === "actif" ? "text-success" : "text-primary")}>{contact.status}</span>
+                  Statut : <span className={cn("capitalize font-bold", device === "mobile" ? "text-white" : contact.status === "actif" ? "text-success" : "text-primary")}>{contact.status}</span>
                 </span>
               )}
             </div>

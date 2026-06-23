@@ -301,6 +301,12 @@ dialog.kredo-drawer-bottom {
     padding-bottom: 0.625rem !important;
   }
 
+  /* Center header items vertically on mobile */
+  dialog.kredo-drawer-right header .flex,
+  dialog.kredo-drawer-bottom header .flex {
+    align-items: center !important;
+  }
+
   /* Raise contents by reducing top padding */
   dialog.kredo-drawer-right div.overflow-y-auto,
   dialog.kredo-drawer-bottom div.overflow-y-auto {
