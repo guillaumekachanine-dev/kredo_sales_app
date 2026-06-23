@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/Button"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type {
   QuickActionField,
@@ -41,7 +42,7 @@ function QuickActionFieldControl({
 
   if (field.type === "select") {
     return (
-      <select
+      <Select
         value={value}
         onChange={(event) => onValueChange(field.id, event.target.value)}
         className={commonClasses}
@@ -52,7 +53,7 @@ function QuickActionFieldControl({
             {option.label}
           </option>
         ))}
-      </select>
+      </Select>
     )
   }
 

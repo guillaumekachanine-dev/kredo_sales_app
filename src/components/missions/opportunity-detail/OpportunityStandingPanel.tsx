@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { formatDate, formatEuro } from "./opportunity-detail-utils"
@@ -181,7 +182,7 @@ export function OpportunityStandingPanel({
       <div className="rounded-lg border border-border/40 bg-canvas/20 p-3 flex flex-col gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Practice</span>
         {isEditing ? (
-          <select
+          <Select
             value={practice}
             onChange={(e) => onPracticeChange(e.target.value)}
             className="w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
@@ -193,7 +194,7 @@ export function OpportunityStandingPanel({
                 {option}
               </option>
             ))}
-          </select>
+          </Select>
         ) : (
           <p className="text-xs font-semibold text-heading">{practice || "—"}</p>
         )}

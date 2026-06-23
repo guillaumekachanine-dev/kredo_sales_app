@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Select } from "@/components/ui/Select"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import {
@@ -60,7 +61,7 @@ export function PitchMailDrawerContent({
       <div className="space-y-4">
         <div>
           <label className={labelCls}>Type de message</label>
-          <select
+          <Select
             value={form.messageType}
             onChange={(e) => setForm({ ...form, messageType: e.target.value as PitchMessageType })}
             className={selectCls}
@@ -68,12 +69,12 @@ export function PitchMailDrawerContent({
             <option value="email">Email</option>
             <option value="phone_pitch">Pitch téléphonique</option>
             <option value="linkedin">LinkedIn</option>
-          </select>
+          </Select>
         </div>
 
         <div>
           <label className={labelCls}>Objectif</label>
-          <select
+          <Select
             value={form.objective}
             onChange={(e) => setForm({ ...form, objective: e.target.value as PitchObjective })}
             className={selectCls}
@@ -83,12 +84,12 @@ export function PitchMailDrawerContent({
             <option value="meeting_request">Demande de rendez-vous</option>
             <option value="proposal_intro">Introduction proposition</option>
             <option value="event_invitation">Invitation événement</option>
-          </select>
+          </Select>
         </div>
 
         <div>
           <label className={labelCls}>Ton</label>
-          <select
+          <Select
             value={form.tone}
             onChange={(e) => setForm({ ...form, tone: e.target.value as PitchTone })}
             className={selectCls}
@@ -97,12 +98,12 @@ export function PitchMailDrawerContent({
             <option value="expert">Expert</option>
             <option value="pedagogical">Pédagogique</option>
             <option value="executive">Exécutif</option>
-          </select>
+          </Select>
         </div>
 
         <div>
           <label className={labelCls}>Contact cible</label>
-          <select
+          <Select
             value={form.targetContactId || ""}
             onChange={(e) => setForm({ ...form, targetContactId: e.target.value || null })}
             className={selectCls}
@@ -113,7 +114,7 @@ export function PitchMailDrawerContent({
                 {contact.fullName} {contact.jobTitle ? `(${contact.jobTitle})` : ""}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
@@ -249,7 +250,7 @@ export function SummaryDrawerContent({
       <div className="space-y-4">
         <div>
           <label className={labelCls}>Format de sortie</label>
-          <select
+          <Select
             value={form.format}
             onChange={(e) => setForm({ ...form, format: e.target.value as ClientSummaryFormat })}
             className={selectCls}
@@ -257,7 +258,7 @@ export function SummaryDrawerContent({
             <option value="executive_brief">Brief exécutif</option>
             <option value="sales_sheet">Fiche commerciale</option>
             <option value="account_memo">Mémo compte</option>
-          </select>
+          </Select>
         </div>
 
         <div>

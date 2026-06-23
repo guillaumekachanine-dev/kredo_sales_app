@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { Select } from "@/components/ui/Select"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import { cn } from "@/lib/utils"
 import { PRACTICE_OPTIONS } from "./opportunity-detail-options"
@@ -631,7 +632,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="opp-practice" className={labelClass}>Practice</label>
-                <select
+                <Select
                   id="opp-practice"
                   value={form.practice}
                   onChange={(e) => setForm({ ...form, practice: e.target.value })}
@@ -642,7 +643,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                   {PRACTICE_OPTIONS.map((o) => (
                     <option key={o} value={o}>{o}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label htmlFor="opp-start-date" className={labelClass}>Date de début prévue</label>

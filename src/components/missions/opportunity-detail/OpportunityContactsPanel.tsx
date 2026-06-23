@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition, useRef } from "react"
+import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { Contact, ContactRole } from "@/types/database-domain"
 import {
@@ -193,7 +194,7 @@ export function OpportunityContactsPanel({
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted shrink-0">Rôle :</span>
-              <select
+              <Select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value as ContactRole | "")}
                 className={cn(inputClass, "flex-1")}
@@ -203,7 +204,7 @@ export function OpportunityContactsPanel({
                 {ROLE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -278,7 +279,7 @@ export function OpportunityContactsPanel({
               {/* Rôle associé */}
               <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2">
                 <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Rôle dans l&apos;opp :</span>
-                <select
+                <Select
                   value={role || ""}
                   onChange={(e) => handleRoleChange(contact.id, e.target.value)}
                   className={cn(inputClass, "py-0.5 px-2 text-[10px]")}
@@ -288,7 +289,7 @@ export function OpportunityContactsPanel({
                   {ROLE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           ))}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
 import { AgendaQuarterHourTimeField } from "./AgendaQuarterHourTimeField"
@@ -661,7 +662,7 @@ export function AgendaMobileEventDrawer({
                           <label className="block text-xs font-bold text-heading mb-1">
                             Contact {loadingContacts && <span className="text-[10px] text-muted">(chargement…)</span>}
                           </label>
-                          <select
+                          <Select
                             value={form.contact_id}
                             onChange={(e) => setField("contact_id", e.target.value)}
                             disabled={isPending || loadingContacts}
@@ -673,13 +674,13 @@ export function AgendaMobileEventDrawer({
                                 {c.full_name} {c.job_title ? `— ${c.job_title}` : ""}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                       )}
 
                       <div>
                         <label className="block text-xs font-bold text-heading mb-1">Opportunité liée</label>
-                        <select
+                        <Select
                           value={form.opportunity_id}
                           onChange={(e) => setField("opportunity_id", e.target.value)}
                           disabled={isPending}
@@ -691,7 +692,7 @@ export function AgendaMobileEventDrawer({
                               {opp.title}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </>
                   )}
@@ -700,7 +701,7 @@ export function AgendaMobileEventDrawer({
                   {isRecrutement && (
                     <div>
                       <label className="block text-xs font-bold text-heading mb-1">Candidat lié</label>
-                      <select
+                      <Select
                         value={form.candidate_id}
                         onChange={(e) => setField("candidate_id", e.target.value)}
                         disabled={isPending}
@@ -712,7 +713,7 @@ export function AgendaMobileEventDrawer({
                             {c.full_name}{c.status ? ` (${c.status})` : ""}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   )}
 

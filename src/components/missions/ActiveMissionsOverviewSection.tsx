@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { Select } from "@/components/ui/Select"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { MissionsListRow } from "./MissionsListView"
 
@@ -91,11 +92,11 @@ export function ActiveMissionsOverviewSection({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <select
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <Select
               value={practiceFilter}
               onChange={(event) => setPracticeFilter(event.target.value)}
-              className="appearance-none rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600"
+              className="w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600 sm:min-w-[8.5rem] sm:w-auto"
             >
               <option value="all">Toutes les practices</option>
               {practiceOptions.map((practice) => (
@@ -103,46 +104,31 @@ export function ActiveMissionsOverviewSection({
                   {practice}
                 </option>
               ))}
-            </select>
-            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            </Select>
           </div>
 
-          <div className="relative">
-            <select
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <Select
               value={riskFilter}
               onChange={(event) => setRiskFilter(event.target.value)}
-              className="appearance-none rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600"
+              className="w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600 sm:min-w-[7.5rem] sm:w-auto"
             >
               <option value="all">Toutes criticites</option>
               <option value="high">Priorite haute</option>
               <option value="normal">Priorite normale</option>
-            </select>
-            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            </Select>
           </div>
 
-          <div className="relative">
-            <select
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <Select
               value={tjmFilter}
               onChange={(event) => setTjmFilter(event.target.value)}
-              className="appearance-none rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600"
+              className="w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-1.5 pr-8 text-xs font-medium text-body focus:outline-none focus:border-blue-600 sm:min-w-[7.5rem] sm:w-auto"
             >
               <option value="all">Tous les TJM</option>
               <option value="500">Sup. a 500 EUR</option>
               <option value="700">Sup. a 700 EUR</option>
-            </select>
-            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+            </Select>
           </div>
 
           {linkHref && linkLabel ? (

@@ -14,9 +14,9 @@ export async function AppShell({ device, children }: AppShellProps) {
 
   if (isMobile) {
     return (
-      <div className="min-h-screen flex flex-col bg-canvas">
+      <div className="flex min-h-[100dvh] min-w-0 max-w-full flex-col overflow-x-clip bg-canvas">
         <main
-          className="flex-1 overflow-y-auto pt-[max(var(--space-3),var(--safe-area-top))] pb-[var(--layout-mobile-content-bottom-offset)]"
+          className="flex-1 overflow-y-auto overflow-x-clip pt-[max(var(--space-3),var(--safe-area-top))] pb-[var(--layout-mobile-content-bottom-offset)] min-w-0 max-w-full"
         >
           {children}
         </main>
@@ -30,7 +30,7 @@ export async function AppShell({ device, children }: AppShellProps) {
   const defaultCollapsed = cookieStore.get("kredo_sidebar_collapsed")?.value === "true"
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-canvas">
+    <div className="flex h-screen w-screen overflow-hidden bg-canvas">
       <DesktopSidebar defaultCollapsed={defaultCollapsed} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

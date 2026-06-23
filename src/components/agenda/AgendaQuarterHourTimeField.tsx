@@ -6,6 +6,7 @@ import {
   AGENDA_MINUTE_OPTIONS,
   normalizeTimeToQuarterHour,
 } from "@/lib/agenda/agenda-time-utils"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 
 interface AgendaQuarterHourTimeFieldProps {
@@ -36,37 +37,39 @@ export function AgendaQuarterHourTimeField({
         className,
       )}
     >
-      <select
+      <Select
         value={hoursValue}
         onChange={(event) => onChange(`${event.target.value}:${minutesValue}`)}
         disabled={disabled}
         aria-label={hourAriaLabel}
-        className="w-8 appearance-none bg-transparent p-0 text-center text-xs text-heading outline-none disabled:cursor-not-allowed"
+        hideIndicator
+        className="h-auto w-8 min-w-0 border-0 bg-transparent px-0 py-0 text-center text-xs text-heading shadow-none focus-visible:ring-0"
       >
         {AGENDA_HOUR_OPTIONS.map((hour) => (
           <option key={hour} value={hour}>
             {hour}
           </option>
         ))}
-      </select>
+      </Select>
 
       <span className="shrink-0 text-xs font-semibold text-heading" aria-hidden="true">
         :
       </span>
 
-      <select
+      <Select
         value={minutesValue}
         onChange={(event) => onChange(`${hoursValue}:${event.target.value}`)}
         disabled={disabled}
         aria-label={minuteAriaLabel}
-        className="w-8 appearance-none bg-transparent p-0 text-center text-xs text-heading outline-none disabled:cursor-not-allowed"
+        hideIndicator
+        className="h-auto w-8 min-w-0 border-0 bg-transparent px-0 py-0 text-center text-xs text-heading shadow-none focus-visible:ring-0"
       >
         {AGENDA_MINUTE_OPTIONS.map((minute) => (
           <option key={minute} value={minute}>
             {minute === "00" ? "0" : minute}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   )
 }

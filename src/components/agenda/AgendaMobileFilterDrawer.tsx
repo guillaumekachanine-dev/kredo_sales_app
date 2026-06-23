@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { Select } from "@/components/ui/Select"
 import { AGENDA_EVENT_TYPE_OPTIONS } from "@/lib/agenda/agenda-config"
 
 interface ActiveFilters {
@@ -86,9 +87,9 @@ export function AgendaMobileFilterDrawer({
         {/* Filter 1: Nature */}
         <div>
           <label className="block text-xs font-bold text-heading mb-1.5">
-            Nature de l'événement
+            Nature de l&apos;événement
           </label>
-          <select
+          <Select
             value={localFilters.type}
             onChange={(e) => setField("type", e.target.value)}
             className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
@@ -99,7 +100,7 @@ export function AgendaMobileFilterDrawer({
                 {t.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Filter 2: Company */}
@@ -107,7 +108,7 @@ export function AgendaMobileFilterDrawer({
           <label className="block text-xs font-bold text-heading mb-1.5">
             Compte client
           </label>
-          <select
+          <Select
             value={localFilters.companyId}
             onChange={(e) => setField("companyId", e.target.value)}
             className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
@@ -118,7 +119,7 @@ export function AgendaMobileFilterDrawer({
                 {c.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Filter 3: Preparatory Task */}
@@ -126,7 +127,7 @@ export function AgendaMobileFilterDrawer({
           <label className="block text-xs font-bold text-heading mb-1.5">
             Tâche préparatoire
           </label>
-          <select
+          <Select
             value={localFilters.task}
             onChange={(e) => setField("task", e.target.value)}
             className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
@@ -134,7 +135,7 @@ export function AgendaMobileFilterDrawer({
             <option value="all">Tous les états</option>
             <option value="has_task">Avec tâche à faire</option>
             <option value="no_task">Sans tâche ou terminée</option>
-          </select>
+          </Select>
         </div>
       </div>
     </AppDrawer>

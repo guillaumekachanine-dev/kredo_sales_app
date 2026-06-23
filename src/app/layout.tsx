@@ -20,6 +20,7 @@ const manrope = Manrope({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  interactiveWidget: "resizes-content",
   viewportFit: "cover",
   themeColor: "#2554B8",
 };
@@ -52,7 +53,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${lato.variable} ${manrope.variable} h-full antialiased`}
+      className={`${lato.variable} ${manrope.variable} h-full w-full antialiased`}
     >
       <head>
         <link
@@ -61,7 +62,7 @@ export default function RootLayout({
           href="/apple-touch-startup-image-1170x2532.png"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full w-full flex-col">{children}</body>
     </html>
   );
 }

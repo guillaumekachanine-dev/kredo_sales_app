@@ -18,15 +18,15 @@ export const controlStateClasses = {
 }
 
 export const controlSizeClasses: Record<FormControlSize, string> = {
-  sm: "h-11 px-3 text-[length:var(--font-size-label-sm)] leading-[var(--line-height-label-sm)] sm:h-9",
-  md: "h-11 px-3 text-[length:var(--font-size-body-md)] leading-[var(--line-height-body-md)] sm:h-10",
-  lg: "h-12 px-4 text-[length:var(--font-size-body-md)] leading-[var(--line-height-body-md)] sm:h-11",
+  sm: "h-11 px-3 text-base leading-6 sm:h-9 sm:text-[length:var(--font-size-label-sm)] sm:leading-[var(--line-height-label-sm)]",
+  md: "h-11 px-3 text-base leading-6 sm:h-10 sm:text-[length:var(--font-size-body-md)] sm:leading-[var(--line-height-body-md)]",
+  lg: "h-12 px-4 text-base leading-6 sm:h-11 sm:text-[length:var(--font-size-body-md)] sm:leading-[var(--line-height-body-md)]",
 }
 
 export const controlTextareaMinHeightClasses: Record<FormControlSize, string> = {
-  sm: "min-h-24 px-3 py-2.5 text-[length:var(--font-size-label-sm)] leading-[var(--line-height-label-sm)]",
-  md: "min-h-28 px-3 py-2.5 text-[length:var(--font-size-body-md)] leading-[var(--line-height-body-md)]",
-  lg: "min-h-32 px-4 py-3 text-[length:var(--font-size-body-md)] leading-[var(--line-height-body-md)]",
+  sm: "min-h-24 px-3 py-2.5 text-base leading-6 sm:text-[length:var(--font-size-label-sm)] sm:leading-[var(--line-height-label-sm)]",
+  md: "min-h-28 px-3 py-2.5 text-base leading-6 sm:text-[length:var(--font-size-body-md)] sm:leading-[var(--line-height-body-md)]",
+  lg: "min-h-32 px-4 py-3 text-base leading-6 sm:text-[length:var(--font-size-body-md)] sm:leading-[var(--line-height-body-md)]",
 }
 
 export const controlAffixPadding = {

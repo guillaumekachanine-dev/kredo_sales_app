@@ -32,6 +32,7 @@ import {
 } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
+import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 const CompanyIdentityDrawer = dynamic(
   () => import("@/components/accounts-contacts/CompanyIdentityDrawer").then((m) => ({ default: m.CompanyIdentityDrawer })),
@@ -316,16 +317,16 @@ function CompanyFormModal({
               <input className={inputCls} value={form.hq_location} onChange={(e) => set("hq_location", e.target.value)} placeholder="Paris" />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Priorité">
-              <select className={selectCls} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
+              <Select className={selectCls} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
                 {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </Select>
             </Field>
             <Field label="Statut">
-              <select className={selectCls} value={form.lifecycle_status} onChange={(e) => set("lifecycle_status", e.target.value)}>
+              <Select className={selectCls} value={form.lifecycle_status} onChange={(e) => set("lifecycle_status", e.target.value)}>
                 {LIFECYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </Select>
             </Field>
           </div>
           <Field label="Site web">
@@ -463,7 +464,7 @@ function ContactFormModal({
         >
           {isMobileCreateContact ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Prénom">
                   <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Marie" />
                 </Field>
@@ -479,38 +480,38 @@ function ContactFormModal({
                   onChange={(value) => set("company_id", value)}
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Poste">
                   <input className={inputCls} value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="Directeur IT" />
                 </Field>
                 <Field label="Rôle relationnel">
-                  <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
+                  <Select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  </Select>
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="N+1 (Manager)">
-                  <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
+                  <Select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {companyContacts.map((c) => (
                       <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Intimité">
-                  <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
+                  <Select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  </Select>
                 </Field>
               </div>
 
               <Field label="Email">
                 <input className={inputCls} type="email" value={form.primary_email} onChange={(e) => set("primary_email", e.target.value)} placeholder="marie.dupont@entreprise.com" />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Téléphone">
                   <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
                 </Field>
@@ -521,7 +522,7 @@ function ContactFormModal({
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Prénom">
                   <input className={inputCls} value={form.first_name} onChange={(e) => set("first_name", e.target.value)} placeholder="Marie" />
                 </Field>
@@ -529,29 +530,29 @@ function ContactFormModal({
                   <input className={inputCls} value={form.last_name} onChange={(e) => set("last_name", e.target.value)} placeholder="Dupont" />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Entreprise">
-                  <select className={selectCls} value={form.company_id} onChange={(e) => set("company_id", e.target.value)}>
+                  <Select className={selectCls} value={form.company_id} onChange={(e) => set("company_id", e.target.value)}>
                     <option value="">— Aucune entreprise —</option>
                     {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Département">
-                  <select className={selectCls} value={form.department} onChange={(e) => set("department", e.target.value)}>
+                  <Select className={selectCls} value={form.department} onChange={(e) => set("department", e.target.value)}>
                     <option value="">— Sélectionner —</option>
                     {CONTACT_DEPARTMENTS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-                  </select>
+                  </Select>
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Fonction">
                   <input className={inputCls} value={form.job_title} onChange={(e) => set("job_title", e.target.value)} placeholder="Directeur IT" />
                 </Field>
                 <Field label="Rôle relationnel">
-                  <select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
+                  <Select className={selectCls} value={form.relationship_role} onChange={(e) => set("relationship_role", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  </Select>
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -567,44 +568,44 @@ function ContactFormModal({
                   <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+33 6 …" />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="N+1 (Manager)">
-                  <select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
+                  <Select className={selectCls} value={form.manager_contact_id} onChange={(e) => set("manager_contact_id", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {companyContacts.map((c) => (
                       <option key={c.id} value={c.id}>{c.fullName} ({c.jobTitle || "Sans fonction"})</option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Intimité">
-                  <select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
+                  <Select className={selectCls} value={form.relationship_level} onChange={(e) => set("relationship_level", e.target.value)}>
                     <option value="">— Aucun —</option>
                     {RELATIONSHIP_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
+                  </Select>
                 </Field>
               </div>
             </>
           )}
           {isProspect && (
-            <div className="grid grid-cols-2 gap-3 mt-2 shrink-0">
+            <div className="mt-2 grid grid-cols-1 gap-3 shrink-0 sm:grid-cols-2">
               <Field label="Prioritaire">
-                <select
+                <Select
                   className={selectCls}
                   value={form.is_priority ? "oui" : "non"}
                   onChange={(e) => set("is_priority", e.target.value === "oui")}
                 >
                   <option value="non">Non</option>
                   <option value="oui">Oui</option>
-                </select>
+                </Select>
               </Field>
               <Field label="Campagne">
-                <select
+                <Select
                   className={selectCls}
                   value={form.campaign_id ?? ""}
                   onChange={(e) => set("campaign_id", e.target.value)}
                 >
                   <option value="">— Aucune campagne —</option>
-                </select>
+                </Select>
               </Field>
             </div>
           )}

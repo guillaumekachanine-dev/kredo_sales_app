@@ -29,7 +29,7 @@ export function PageFilterSelect({
   className,
 }: PageFilterSelectProps) {
   return (
-    <div className={cn("flex min-w-[9rem] flex-col", className)}>
+    <div className={cn("flex min-w-0 w-full flex-col sm:min-w-[9rem] sm:w-auto", className)}>
       <label htmlFor={id} className="sr-only">
         {label}
       </label>

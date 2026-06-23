@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { OpportunitySkill, SkillImportance } from "@/types/database-domain"
 import {
@@ -180,7 +181,7 @@ export function OpportunitySkillsPanel({
               disabled={isPending}
             />
             <div className="grid grid-cols-2 gap-2">
-              <select
+              <Select
                 value={newSkill.importance}
                 onChange={(e) => setNewSkill({ ...newSkill, importance: e.target.value as SkillImportance })}
                 className={inputClass}
@@ -189,7 +190,7 @@ export function OpportunitySkillsPanel({
                 {IMPORTANCE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
-              </select>
+              </Select>
               <input
                 type="number"
                 placeholder="Années min."
@@ -238,7 +239,7 @@ export function OpportunitySkillsPanel({
                     disabled={isPending}
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <select
+                    <Select
                       value={editingSkill.importance}
                       onChange={(e) => setEditingSkill({ ...editingSkill, importance: e.target.value as SkillImportance })}
                       className={inputClass}
@@ -247,7 +248,7 @@ export function OpportunitySkillsPanel({
                       {IMPORTANCE_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
-                    </select>
+                    </Select>
                     <input
                       type="number"
                       placeholder="Années min."

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import {
   createOpportunity,
@@ -196,7 +197,7 @@ export function NewOpportunityDrawer({
             <label className="block text-xs font-medium text-heading mb-1.5">
               Étape
             </label>
-            <select
+            <Select
               value={form.stage}
               onChange={(event) => setField("stage", event.target.value as SalesStage)}
               className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors appearance-none cursor-pointer"
@@ -206,7 +207,7 @@ export function NewOpportunityDrawer({
                   {stage.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </section>
 

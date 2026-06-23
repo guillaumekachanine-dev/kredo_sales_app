@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Badge, type BadgeVariant } from "@/components/ui/Badge"
+import { Select } from "@/components/ui/Select"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type {
   Contact,
@@ -1077,7 +1078,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             <div>
               <label className={labelClass}>Télétravail</label>
               {editingSection === "synthese-opportunite" ? (
-                <select
+                <Select
                   value={form.remote_policy}
                   onChange={(e) => setForm({ ...form, remote_policy: e.target.value })}
                   className={inputClass}
@@ -1089,7 +1090,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               ) : (
                 <p className="text-xs font-semibold text-heading mt-1 capitalize">{opportunity.remote_policy?.replaceAll("_", " ") || "—"}</p>
               )}
@@ -1263,7 +1264,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           <div>
             <label className={labelClass}>Source de l&apos;opportunité</label>
             {editingSection === "engagement" ? (
-              <select
+              <Select
                 value={form.source}
                 onChange={(e) => setForm({ ...form, source: e.target.value })}
                 className={inputClass}
@@ -1271,7 +1272,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               >
                 <option value="">— Sélectionner —</option>
                 {SOURCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              </Select>
             ) : (
               <p className="text-xs text-body mt-1 font-medium capitalize">
                 {opportunity.source ? opportunity.source.replace("_", " ") : "—"}
@@ -1281,14 +1282,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           <div>
             <label className={labelClass}>Priorité</label>
             {editingSection === "engagement" ? (
-              <select
+              <Select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value as SalesPriority })}
                 className={inputClass}
                 disabled={isPending}
               >
                 {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              </Select>
             ) : (
               <p className="text-xs text-body mt-1 font-medium">
                 {getPriorityLabel(opportunity.priority)}
@@ -1385,7 +1386,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         <div className="flex flex-col gap-1 border-b border-border/30 pb-2">
           <span className="text-[10px] font-bold text-heading">Type d&apos;engagement</span>
           {editingSection === "economie" ? (
-            <select
+            <Select
               value={form.opportunity_type}
               onChange={(e) => setForm({ ...form, opportunity_type: e.target.value })}
               className={inputClass}
@@ -1393,7 +1394,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             >
               <option value="">— Sélectionner —</option>
               {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            </Select>
           ) : (
             <span className="text-xs font-semibold text-heading capitalize">{opportunity.opportunity_type ? opportunity.opportunity_type.replace("_", " ") : "—"}</span>
           )}
@@ -1494,7 +1495,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
           <div>
             <label className={labelClass}>Collaborateur / candidat</label>
-            <select
+            <Select
               value={staffingForm.sourceType}
               onChange={(e) => setStaffingForm({
                 sourceType: e.target.value as StaffingSourceType,
@@ -1506,7 +1507,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             >
               <option value="collaborator">Collaborateur</option>
               <option value="candidate">Candidat</option>
-            </select>
+            </Select>
           </div>
 
           <div className="relative">
@@ -1596,7 +1597,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
           <div>
             <label className={labelClass}>Type d&apos;action</label>
-            <select
+            <Select
               value={commercialActionForm.type}
               onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, type: e.target.value as CommercialActionType }))}
               className={inputClass}
@@ -1607,7 +1608,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   {actionType}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>
@@ -1634,7 +1635,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
             <div>
               <label className={labelClass}>Contact</label>
-              <select
+              <Select
                 value={commercialActionForm.contact_id}
                 onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, contact_id: e.target.value }))}
                 className={inputClass}
@@ -1646,7 +1647,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     {contact.full_name}{contact.job_title ? ` (${contact.job_title})` : ""}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { OpportunityEvent } from "@/types/database"
 import {
@@ -286,7 +287,7 @@ export function OpportunityTimelinePanel({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={labelClass}>Type</label>
-                <select
+                <Select
                   value={newEvent.event_type}
                   onChange={(e) => setNewEvent({ ...newEvent, event_type: e.target.value })}
                   className={cn(inputClass, "w-full")}
@@ -295,7 +296,7 @@ export function OpportunityTimelinePanel({
                   {EVENT_TYPES.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className={labelClass}>Date / Heure</label>
@@ -358,7 +359,7 @@ export function OpportunityTimelinePanel({
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className={labelClass}>Type</label>
-                        <select
+                        <Select
                           value={editingEvent.event_type}
                           onChange={(e) => setEditingEvent({ ...editingEvent, event_type: e.target.value })}
                           className={cn(inputClass, "w-full")}
@@ -367,7 +368,7 @@ export function OpportunityTimelinePanel({
                           {EVENT_TYPES.map((o) => (
                             <option key={o.value} value={o.value}>{o.label}</option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                       <div>
                         <label className={labelClass}>Date / Heure</label>
