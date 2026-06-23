@@ -87,11 +87,11 @@ export function AgendaWeekView({
   // Helper to place overlapping events side by side
   const positionedEventsByDay = useMemo(() => {
     return weekDays.map((day) => {
-      const dayEvents = events.filter((e) => isSameDay(new Date(e.occurred_at), day))
+      const dayEvents = events.filter((e) => isSameDay(new Date(e.starts_at), day))
       
       // Sort dayEvents by occurred_at
       const sorted = [...dayEvents].sort(
-        (a, b) => new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime()
+        (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
       )
 
       // Layout columns array to detect overlaps
@@ -102,9 +102,9 @@ export function AgendaWeekView({
         while (colIdx < cols.length) {
           const colEvents = cols[colIdx]
           const hasOverlap = colEvents.some((existing) => {
-            const estart = new Date(existing.occurred_at).getTime()
+            const estart = new Date(existing.starts_at).getTime()
             const eend = new Date(existing.ends_at).getTime()
-            const vstart = new Date(event.occurred_at).getTime()
+            const vstart = new Date(event.starts_at).getTime()
             const vend = new Date(event.ends_at).getTime()
             return vstart < eend && vend > estart
           })
@@ -128,9 +128,9 @@ export function AgendaWeekView({
         let totalColsInGroup = 0
         cols.forEach((col) => {
           const hasOverlap = col.some((existing) => {
-            const estart = new Date(existing.occurred_at).getTime()
+            const estart = new Date(existing.starts_at).getTime()
             const eend = new Date(existing.ends_at).getTime()
-            const vstart = new Date(event.occurred_at).getTime()
+            const vstart = new Date(event.starts_at).getTime()
             const vend = new Date(event.ends_at).getTime()
             return vstart < eend && vend > estart
           })
@@ -143,7 +143,7 @@ export function AgendaWeekView({
 
         const width = 100 / totalColsInGroup
         const left = colIdx * width
-        const pos = calculateEventPosition(event.occurred_at, event.ends_at)
+        const pos = calculateEventPosition(event.starts_at, event.ends_at)
 
         return {
           event,

@@ -1,6 +1,6 @@
 "use client"
 
-import { AGENDA_EVENT_TYPE_OPTIONS } from "@/lib/agenda/agenda-config"
+import { AGENDA_CATEGORIES, AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 
 interface AgendaToolbarProps {
   view: "week" | "month"
@@ -43,21 +43,23 @@ export function AgendaToolbar({
         </button>
       </div>
 
-      {/* Event type filter dropdown */}
+      {/* Event type filter — groupé par catégorie */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-muted">
-          Filtrer par nature :
-        </span>
+        <span className="text-xs font-medium text-muted">Filtrer :</span>
         <select
           value={selectedType}
           onChange={(e) => onTypeChange(e.target.value)}
           className="rounded-md border border-border bg-canvas px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors cursor-pointer"
         >
           <option value="all">Tous les types</option>
-          {AGENDA_EVENT_TYPE_OPTIONS.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.label}
-            </option>
+          {AGENDA_CATEGORIES.map((cat) => (
+            <optgroup key={cat.id} label={cat.label}>
+              {cat.types.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {AGENDA_EVENT_TYPES[t.id]?.label || t.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

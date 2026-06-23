@@ -63,16 +63,15 @@ export function AgendaEventPreview({
 
   if (!mounted || !anchorRect) return null
 
-  const config = AGENDA_EVENT_TYPES[event.type] || AGENDA_EVENT_TYPES.autre
+  const config = AGENDA_EVENT_TYPES[event.event_type] || AGENDA_EVENT_TYPES.rdv_client_suivi
 
-  const dateLabel = new Date(event.occurred_at).toLocaleDateString("fr-FR", {
+  const dateLabel = new Date(event.starts_at).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
   })
 
-  // Format details body
-  const bodyText = event.details?.body || ""
+  const bodyText = event.description || ""
 
   return createPortal(
     <div
@@ -90,7 +89,7 @@ export function AgendaEventPreview({
             </span>
           </div>
           <span className="text-[10px] font-medium text-muted">
-            {formatTime(event.occurred_at)} - {formatTime(event.ends_at)}
+            {formatTime(event.starts_at)} - {formatTime(event.ends_at)}
           </span>
         </div>
 
@@ -101,7 +100,7 @@ export function AgendaEventPreview({
 
         {/* Subject */}
         <h4 className="text-xs font-bold text-heading leading-relaxed line-clamp-2">
-          {event.summary}
+          {event.title}
         </h4>
 
         {/* Account and Contacts */}

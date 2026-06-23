@@ -23,7 +23,7 @@ export function AgendaMobileDayView({
   onCreateClick,
 }: ViewProps) {
   const dayEvents = useMemo(() => {
-    return events.filter((e) => isSameDay(new Date(e.occurred_at), referenceDate))
+    return events.filter((e) => isSameDay(new Date(e.starts_at), referenceDate))
   }, [events, referenceDate])
 
   if (dayEvents.length === 0) {
@@ -82,7 +82,7 @@ export function AgendaMobileWeekView({
     })
 
     events.forEach((event) => {
-      const dateStr = new Date(event.occurred_at).toDateString()
+      const dateStr = new Date(event.starts_at).toDateString()
       if (map.has(dateStr)) {
         map.get(dateStr)!.push(event)
       }
@@ -179,7 +179,7 @@ export function AgendaMobileMonthView({
     const map = new Map<string, { date: Date; items: AgendaEvent[] }>()
     
     events.forEach((event) => {
-      const d = new Date(event.occurred_at)
+      const d = new Date(event.starts_at)
       // Check if event is in the same month/year as the reference date
       if (d.getMonth() === referenceDate.getMonth() && d.getFullYear() === referenceDate.getFullYear()) {
         const dateStr = d.toDateString()

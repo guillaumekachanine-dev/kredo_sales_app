@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button"
 import { getAgendaEvents } from "@/lib/agenda/agenda-actions"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
 import { getStartOfWeek, getLocalIsoDateString } from "@/lib/agenda/agenda-date-utils"
-import { AGENDA_EVENT_TYPE_OPTIONS } from "@/lib/agenda/agenda-config"
+import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 
 import { AgendaMobileHeader } from "./AgendaMobileHeader"
 import { AgendaMobileDateStrip } from "./AgendaMobileDateStrip"
@@ -111,7 +111,7 @@ export function AgendaMobilePage() {
   // 6. Local filtering & company extraction
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      if (activeFilters.type !== "all" && e.type !== activeFilters.type) {
+      if (activeFilters.type !== "all" && e.event_type !== activeFilters.type) {
         return false
       }
       if (activeFilters.companyId !== "all" && e.company_id !== activeFilters.companyId) {
@@ -198,7 +198,7 @@ export function AgendaMobilePage() {
   const activeChips = useMemo(() => {
     const list = []
     if (activeFilters.type !== "all") {
-      const opt = AGENDA_EVENT_TYPE_OPTIONS.find((t) => t.id === activeFilters.type)
+      const opt = AGENDA_EVENT_TYPES[activeFilters.type]
       list.push({
         id: "type",
         label: `Nature : ${opt?.shortLabel || activeFilters.type}`,

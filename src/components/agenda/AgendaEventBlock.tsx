@@ -22,7 +22,7 @@ export function AgendaEventBlock({
   style,
 }: AgendaEventBlockProps) {
   const blockRef = useRef<HTMLButtonElement>(null)
-  const config = AGENDA_EVENT_TYPES[event.type] || AGENDA_EVENT_TYPES.autre
+  const config = AGENDA_EVENT_TYPES[event.event_type] || AGENDA_EVENT_TYPES.rdv_client_suivi
 
   const handleMouseEnter = () => {
     if (blockRef.current) {
@@ -44,7 +44,7 @@ export function AgendaEventBlock({
     onHover(null)
   }
 
-  const timeLabel = `${formatTime(event.occurred_at)} - ${formatTime(event.ends_at)}`
+  const timeLabel = `${formatTime(event.starts_at)} - ${formatTime(event.ends_at)}`
 
   if (view === "month") {
     // Compact representation for month view cell list
@@ -65,8 +65,8 @@ export function AgendaEventBlock({
           "hover:translate-x-0.5 hover:shadow-[var(--shadow-overlay-sm)] focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]"
         )}
       >
-        <span className="font-bold mr-1">{formatTime(event.occurred_at)}</span>
-        <span>{event.summary}</span>
+        <span className="font-bold mr-1">{formatTime(event.starts_at)}</span>
+        <span>{event.title}</span>
       </button>
     )
   }
@@ -99,7 +99,7 @@ export function AgendaEventBlock({
       </div>
 
       <h5 className="font-bold text-[11px] text-heading leading-snug line-clamp-2 mb-1">
-        {event.summary}
+        {event.title}
       </h5>
 
       {event.company && (

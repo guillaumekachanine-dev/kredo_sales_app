@@ -16,10 +16,10 @@ export function AgendaMobileEventCard({
   event,
   onClick,
 }: AgendaMobileEventCardProps) {
-  const typeConfig = AGENDA_EVENT_TYPES[event.type] || AGENDA_EVENT_TYPES.autre
+  const typeConfig = AGENDA_EVENT_TYPES[event.event_type] || AGENDA_EVENT_TYPES.rdv_client_suivi
 
   // Duration calculation
-  const start = new Date(event.occurred_at)
+  const start = new Date(event.starts_at)
   const end = new Date(event.ends_at)
   const diffMs = end.getTime() - start.getTime()
   const diffMins = Math.max(0, Math.round(diffMs / (60 * 1000)))
@@ -45,7 +45,7 @@ export function AgendaMobileEventCard({
         />
       )
     }
-    const isHighPriority = task.priority === "haute"
+    const isHighPriority = task.priority === "high"
     return (
       <StatusPill
         variant={isHighPriority ? "danger" : "warning"}
@@ -72,7 +72,7 @@ export function AgendaMobileEventCard({
       <div className="flex items-center justify-between gap-2 w-full text-xs font-semibold text-muted">
         <div className="flex items-center gap-1.5">
           <span className="text-heading font-bold text-sm">
-            {formatTime(event.occurred_at)}
+            {formatTime(event.starts_at)}
           </span>
           <span>&mdash;</span>
           <span className="text-heading font-medium text-sm">
@@ -94,7 +94,7 @@ export function AgendaMobileEventCard({
       {/* Main info: Summary */}
       <div className="flex flex-col gap-1 w-full">
         <h3 className="font-heading text-base font-bold text-heading leading-snug tracking-tight">
-          {event.summary}
+          {event.title}
         </h3>
         
         {/* Relations: Account and Contact */}

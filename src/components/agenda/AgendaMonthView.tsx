@@ -54,7 +54,7 @@ export function AgendaMonthView({
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
 
           // Filter events for this day
-          const dayEvents = events.filter((e) => isSameDay(new Date(e.occurred_at), day))
+          const dayEvents = events.filter((e) => isSameDay(new Date(e.starts_at), day))
           const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS)
           const remainingCount = dayEvents.length - MAX_VISIBLE_EVENTS
 

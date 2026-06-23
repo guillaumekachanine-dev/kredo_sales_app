@@ -23,7 +23,7 @@ export function AgendaMobileDateStrip({
   const daysWithEvents = useMemo(() => {
     const counts = new Map<string, number>()
     events.forEach((event) => {
-      const dateStr = new Date(event.occurred_at).toDateString()
+      const dateStr = new Date(event.starts_at).toDateString()
       counts.set(dateStr, (counts.get(dateStr) || 0) + 1)
     })
     return counts

@@ -81,7 +81,7 @@ export function AgendaDesktopPage() {
   // Local filtering in memory
   const filteredEvents = useMemo(() => {
     if (selectedType === "all") return events
-    return events.filter((e) => e.type === selectedType)
+    return events.filter((e) => e.event_type === selectedType)
   }, [events, selectedType])
 
   // Navigations
