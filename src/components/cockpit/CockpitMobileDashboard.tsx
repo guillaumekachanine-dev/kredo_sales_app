@@ -88,6 +88,7 @@ export function CockpitMobileDashboard({
 
   // Handle Day Tap
   const handleDaySelect = (dayKey: string) => {
+    setActiveModule(null) // Close any expanded card
     if (dayKey === selectedDayKey) {
       setAgendaOpen((prev) => !prev)
     } else {
@@ -102,6 +103,7 @@ export function CockpitMobileDashboard({
       triggerToast("Module Recrutement : Bientôt disponible !")
       return
     }
+    setAgendaOpen(false) // Close agenda strip expanded details
     setActiveModule((prev) => (prev === moduleName ? null : moduleName))
   }
 
@@ -274,7 +276,7 @@ export function CockpitMobileDashboard({
           >
             <div style={{ minHeight: 0 }} className="overflow-hidden">
               {/* Grid of Modules */}
-              <div className="grid grid-cols-2 gap-3 mt-3">
+              <div className={cn("grid grid-cols-2 gap-3", isAgendaOpen ? "mt-3" : "mt-1.5")}>
                 {/* Card 1: Staffing */}
                 <button
                   type="button"
