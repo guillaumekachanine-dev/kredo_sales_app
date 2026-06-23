@@ -250,7 +250,7 @@ export function CockpitMobileDashboard({
       >
         <div className="screen-scroll-container">
           {/* Section 1: Agenda */}
-          <div className="-mx-4 mb-2">
+          <div className="-mx-4 mb-0">
             <CockpitAgendaStrip
               days={vm.agenda.days}
               selectedDayKey={selectedDayKey}
