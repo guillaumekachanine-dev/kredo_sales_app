@@ -7,6 +7,7 @@ interface CockpitProspectionCardProps {
   priorities: ProspectionPriorityVm[]
   onPitchClick: (company: string, companyId: string | null) => void
   onActionClick: (company: string) => void
+  onBack?: () => void
 }
 
 export function CockpitProspectionCard({
@@ -14,6 +15,7 @@ export function CockpitProspectionCard({
   priorities,
   onPitchClick,
   onActionClick,
+  onBack,
 }: CockpitProspectionCardProps) {
   return (
     <section className="flex flex-col gap-4 py-2">
@@ -25,6 +27,15 @@ export function CockpitProspectionCard({
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-heading flex-1">
           Prospection
         </h2>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-[10px] font-bold text-violet-600 bg-violet-500/10 border border-violet-500/20 rounded-lg px-2.5 py-1 hover:bg-violet-500/20 transition-all select-none focus:outline-none"
+          >
+            Revenir
+          </button>
+        )}
       </div>
 
       {/* Metrics Row */}

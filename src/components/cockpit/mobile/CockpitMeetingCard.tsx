@@ -8,6 +8,7 @@ interface CockpitMeetingCardProps {
   onActionClick: (client: string, dateLabel: string, timeLabel: string) => void
   onCompanyClick: (companyId: string | null, label: string) => void
   onContactClick: (contactId: string | null, label: string) => void
+  onBack?: () => void
 }
 
 export function CockpitMeetingCard({
@@ -16,6 +17,7 @@ export function CockpitMeetingCard({
   onActionClick,
   onCompanyClick,
   onContactClick,
+  onBack,
 }: CockpitMeetingCardProps) {
   return (
     <section className="flex flex-col gap-4 py-2">
@@ -27,6 +29,15 @@ export function CockpitMeetingCard({
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-heading flex-1">
           Rendez-vous clients
         </h2>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-[10px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1 hover:bg-amber-500/20 transition-all select-none focus:outline-none"
+          >
+            Revenir
+          </button>
+        )}
       </div>
 
       {/* List / Cards */}

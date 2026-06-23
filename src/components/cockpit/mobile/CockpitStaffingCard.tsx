@@ -6,12 +6,14 @@ interface CockpitStaffingCardProps {
   items: StaffingNeedVm[]
   onPrimaryClick: (actionLabel: string, needId: string) => void
   onActionClick: (title: string, client: string) => void
+  onBack?: () => void
 }
 
 export function CockpitStaffingCard({
   items,
   onPrimaryClick,
   onActionClick,
+  onBack,
 }: CockpitStaffingCardProps) {
   return (
     <section className="flex flex-col gap-4 py-2">
@@ -23,6 +25,15 @@ export function CockpitStaffingCard({
         <h2 className="text-xs font-extrabold uppercase tracking-widest text-heading flex-1">
           Staffings &amp; besoins
         </h2>
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-2.5 py-1 hover:bg-emerald-500/20 transition-all select-none focus:outline-none"
+          >
+            Revenir
+          </button>
+        )}
       </div>
 
       {items.length === 0 ? (

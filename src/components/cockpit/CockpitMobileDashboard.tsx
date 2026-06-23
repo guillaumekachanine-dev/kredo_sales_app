@@ -265,108 +265,118 @@ export function CockpitMobileDashboard({
             onItemClick={handleAgendaItemClick}
           />
 
-          {/* Grid of Modules */}
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            {/* Card 1: Staffing */}
-            <button
-              type="button"
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
-                activeModule === "staffing"
-                  ? "bg-emerald-500/[0.04] border-emerald-500/30 text-emerald-600 scale-102"
-                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
-              )}
-              onClick={() => handleModuleToggle("staffing")}
-            >
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
-                activeModule === "staffing" ? "bg-emerald-500 text-white" : "bg-emerald-500/10 text-emerald-600"
-              )}>
-                <IconStage />
-              </div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
-                Staffing &amp; Opps
-              </span>
-              <span className="text-[9px] text-muted mt-0.5 font-semibold">
-                {vm.staffing.items.length} {vm.staffing.items.length === 1 ? "besoin" : "besoins"}
-              </span>
-            </button>
+          {/* Grid of Modules Wrapper */}
+          <div
+            className={cn(
+              "modules-grid-wrapper",
+              activeModule && "evaporated"
+            )}
+          >
+            <div style={{ minHeight: 0 }} className="overflow-hidden">
+              {/* Grid of Modules */}
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                {/* Card 1: Staffing */}
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                    activeModule === "staffing"
+                      ? "bg-emerald-500/[0.04] border-emerald-500/30 text-emerald-600 scale-102"
+                      : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+                  )}
+                  onClick={() => handleModuleToggle("staffing")}
+                >
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                    activeModule === "staffing" ? "bg-emerald-500 text-white" : "bg-emerald-500/10 text-emerald-600"
+                  )}>
+                    <IconStage />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                    Staffing &amp; Opps
+                  </span>
+                  <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                    {vm.staffing.items.length} {vm.staffing.items.length === 1 ? "besoin" : "besoins"}
+                  </span>
+                </button>
 
-            {/* Card 2: Rendez-vous */}
-            <button
-              type="button"
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
-                activeModule === "meetings"
-                  ? "bg-amber-500/[0.04] border-amber-500/30 text-amber-600 scale-102"
-                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
-              )}
-              onClick={() => handleModuleToggle("meetings")}
-            >
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
-                activeModule === "meetings" ? "bg-amber-500 text-white" : "bg-amber-500/10 text-amber-600"
-              )}>
-                <IconContact />
-              </div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
-                Rendez-vous client
-              </span>
-              <span className="text-[9px] text-muted mt-0.5 font-semibold">
-                {vm.meetings.items.length} {vm.meetings.items.length === 1 ? "rendez-vous" : "rendez-vous"}
-              </span>
-            </button>
+                {/* Card 2: Rendez-vous */}
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                    activeModule === "meetings"
+                      ? "bg-amber-500/[0.04] border-amber-500/30 text-amber-600 scale-102"
+                      : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+                  )}
+                  onClick={() => handleModuleToggle("meetings")}
+                >
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                    activeModule === "meetings" ? "bg-amber-500 text-white" : "bg-amber-500/10 text-amber-600"
+                  )}>
+                    <IconContact />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                    Rendez-vous client
+                  </span>
+                  <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                    {vm.meetings.items.length} {vm.meetings.items.length === 1 ? "rendez-vous" : "rendez-vous"}
+                  </span>
+                </button>
 
-            {/* Card 3: Prospection */}
-            <button
-              type="button"
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
-                activeModule === "prospection"
-                  ? "bg-violet-500/[0.04] border-violet-500/30 text-violet-600 scale-102"
-                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
-              )}
-              onClick={() => handleModuleToggle("prospection")}
-            >
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
-                activeModule === "prospection" ? "bg-violet-500 text-white" : "bg-violet-500/10 text-violet-600"
-              )}>
-                <IconRadar />
-              </div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
-                Prospection
-              </span>
-              <span className="text-[9px] text-muted mt-0.5 font-semibold">
-                {vm.prospection.priorities.length} {vm.prospection.priorities.length === 1 ? "compte" : "comptes"}
-              </span>
-            </button>
+                {/* Card 3: Prospection */}
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                    activeModule === "prospection"
+                      ? "bg-violet-500/[0.04] border-violet-500/30 text-violet-600 scale-102"
+                      : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+                  )}
+                  onClick={() => handleModuleToggle("prospection")}
+                >
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                    activeModule === "prospection" ? "bg-violet-500 text-white" : "bg-violet-500/10 text-violet-600"
+                  )}>
+                    <IconRadar />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                    Prospection
+                  </span>
+                  <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                    {vm.prospection.priorities.length} {vm.prospection.priorities.length === 1 ? "compte" : "comptes"}
+                  </span>
+                </button>
 
-            {/* Card 4: Recrutement */}
-            <button
-              type="button"
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
-                activeModule === "recrutement"
-                  ? "bg-blue-500/[0.04] border-blue-500/30 text-blue-600 scale-102"
-                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border opacity-70"
-              )}
-              onClick={() => handleModuleToggle("recrutement")}
-            >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 bg-blue-500/10 text-blue-600">
-                <IconContactCard />
+                {/* Card 4: Recrutement */}
+                <button
+                  type="button"
+                  className={cn(
+                    "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                    activeModule === "recrutement"
+                      ? "bg-blue-500/[0.04] border-blue-500/30 text-blue-600 scale-102"
+                      : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border opacity-70"
+                  )}
+                  onClick={() => handleModuleToggle("recrutement")}
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 bg-blue-500/10 text-blue-600">
+                    <IconContactCard />
+                  </div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                    Recrutement
+                  </span>
+                  <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                    Bientôt
+                  </span>
+                </button>
               </div>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
-                Recrutement
-              </span>
-              <span className="text-[9px] text-muted mt-0.5 font-semibold">
-                Bientôt
-              </span>
-            </button>
+            </div>
           </div>
 
           {/* Expanded Module Containers */}
-          <div className="mt-4 flex flex-col">
+          <div className="flex flex-col">
             {/* 1. Staffing */}
             <div className={cn("module-expand-wrapper", activeModule === "staffing" && "is-expanded")}>
               <div className="module-expand-inner">
@@ -376,6 +386,7 @@ export function CockpitMobileDashboard({
                   onActionClick={(title, client) =>
                     setContextSheet({ kind: "staffing", label: `${title} · ${client}` })
                   }
+                  onBack={() => setActiveModule(null)}
                 />
               </div>
             </div>
@@ -391,6 +402,7 @@ export function CockpitMobileDashboard({
                   }
                   onCompanyClick={handleCompanyDrawerOpen}
                   onContactClick={handleContactDrawerOpen}
+                  onBack={() => setActiveModule(null)}
                 />
               </div>
             </div>
@@ -411,6 +423,7 @@ export function CockpitMobileDashboard({
                   onActionClick={(company) =>
                     setContextSheet({ kind: "prospect", label: company })
                   }
+                  onBack={() => setActiveModule(null)}
                 />
               </div>
             </div>

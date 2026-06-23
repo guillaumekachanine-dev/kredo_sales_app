@@ -802,3 +802,22 @@
   overflow: hidden;
   min-height: 0;
 }
+
+/* Container to animate selection cards grid out (evaporation) and back in */
+.modules-grid-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: 
+    grid-template-rows 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 200ms ease,
+    transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modules-grid-wrapper.evaporated {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: scale(0.9) translateY(-12px);
+  pointer-events: none;
+}
