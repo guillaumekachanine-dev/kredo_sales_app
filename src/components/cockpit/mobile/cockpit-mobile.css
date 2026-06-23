@@ -794,7 +794,7 @@
   grid-template-rows: 1fr;
   opacity: 1;
   visibility: visible;
-  margin-top: 6px;
+  margin-top: -6px;
   margin-bottom: var(--space-3);
 }
 

@@ -276,7 +276,7 @@ export function CockpitMobileDashboard({
           >
             <div style={{ minHeight: 0 }} className="overflow-hidden">
               {/* Grid of Modules */}
-              <div className={cn("grid grid-cols-2 gap-3", isAgendaOpen ? "mt-3" : "mt-1.5")}>
+              <div className={cn("grid grid-cols-2 gap-3", isAgendaOpen ? "mt-2" : "mt-[-6px]")}>
                 {/* Card 1: Staffing */}
                 <button
                   type="button"
