@@ -777,3 +777,28 @@
 .sheet-close:focus-visible {
   background-color: var(--color-surface-hover);
 }
+
+/* Custom smooth expand transition for cockpit modules */
+.module-expand-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: 
+    grid-template-rows 350ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 250ms ease,
+    visibility 350ms ease;
+}
+
+.module-expand-wrapper.is-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.module-expand-inner {
+  overflow: hidden;
+  min-height: 0;
+}

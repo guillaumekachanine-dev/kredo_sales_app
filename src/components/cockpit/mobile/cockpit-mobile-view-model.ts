@@ -1,6 +1,7 @@
 import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
+import type { AgendaEvent } from "@/lib/agenda/agenda-types"
 
 export type AgendaItemVm = {
   id: string
@@ -37,6 +38,7 @@ export type MeetingVm = {
   client: string
   dateLabel: string
   timeLabel: string
+  dateCompact: string
   contact: string
   role: string
   subject: string
@@ -123,74 +125,63 @@ function parseFrenchDateToCompact(label: string): string {
 export function buildCockpitMobileViewModel(
   data: CockpitDashboardData,
   staffingData: StaffingDashboardData,
-  syntheseData: SyntheseData
+  syntheseData: SyntheseData,
+  calendarEvents: AgendaEvent[]
 ): CockpitMobileViewModel {
   const daysKeys = ["mon", "tue", "wed", "thu", "fri"]
   const daysLabels = ["Lun", "Mar", "Mer", "Jeu", "Ven"]
 
+  // Helper to check if two dates are on the same day
+  const isSameDay = (d1: Date, d2: Date): boolean => {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate()
+  }
+
   // 1. Build agenda days from staffingData.weekDays (Mon-Fri)
   const days: AgendaDayVm[] = []
   
-  // Attempt to find or match real companies from the database
-  const realCompanies = syntheseData.accountsToActivate || []
-  
-  // We establish seam meetings mapping to actual database companies if available
-  const seamMeetingsRaw = [
-    {
-      id: "meeting-1",
-      client: "AXA Group",
-      timeLabel: "09:00",
-      contact: "Morel Claire",
-      role: "Directrice de programme cloud",
-      subject: "Comite de cadrage programme cloud",
-      dayIndex: 1, // Tuesday
-    },
-    {
-      id: "meeting-2",
-      client: "L'Oreal",
-      timeLabel: "11:30",
-      contact: "Vernet Nicolas",
-      role: "Directeur transformation digitale",
-      subject: "Pitch IA pour la direction digitale",
-      dayIndex: 2, // Wednesday
-    },
-    {
-      id: "meeting-3",
-      client: "Societe Generale",
-      timeLabel: "15:30",
-      contact: "Caron Mathilde",
-      role: "Responsable staffing data platform",
-      subject: "Debrief CV envoyes Data Platform",
-      dayIndex: 3, // Thursday
-    },
-  ]
+  // Real meetings to show in the Meeting card
+  const meetingEventTypes = new Set([
+    "rdv_client_suivi",
+    "rdv_prospection",
+    "soutenance",
+    "atelier_client",
+    "appel_qualification",
+    "appel_prospection",
+  ])
 
-  // Map seam meeting names and IDs from actual companies database
-  const meetings: MeetingVm[] = seamMeetingsRaw.map((sm, index) => {
-    const realComp = realCompanies[index]
-    const clientName = realComp ? realComp.name : sm.client
-    const companyId = realComp ? realComp.id : null
-    
-    // We compute date based on the current week's days
-    const weekDayDate = staffingData.weekDays[sm.dayIndex]
-    const dateFormatted = weekDayDate
-      ? new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(weekDayDate.date))
-      : `mardi ${24 + index} juin` // fallback matching prototype dates
+  const meetings: MeetingVm[] = calendarEvents
+    .filter((e) => meetingEventTypes.has(e.event_type))
+    .map((e) => {
+      const start = new Date(e.starts_at)
+      
+      const timeLabel = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`
+      const dateLabel = new Intl.DateTimeFormat("fr-FR", { 
+        weekday: "long", 
+        day: "numeric", 
+        month: "long" 
+      }).format(start)
 
-    return {
-      id: sm.id,
-      client: clientName,
-      dateLabel: dateFormatted,
-      timeLabel: sm.timeLabel,
-      contact: sm.contact,
-      role: sm.role,
-      subject: sm.subject,
-      companyDrawerLabel: clientName,
-      contactDrawerLabel: `${sm.contact} · ${clientName}`,
-      companyId,
-      contactId: null, // Seam target
-    }
-  })
+      const day = String(start.getDate()).padStart(2, "0")
+      const month = String(start.getMonth() + 1).padStart(2, "0")
+      const dateCompact = `${day}/${month}`
+
+      return {
+        id: e.id,
+        client: e.company?.name || "Sans compte",
+        dateLabel,
+        timeLabel,
+        dateCompact,
+        contact: e.contact?.full_name || "Sans contact",
+        role: e.contact?.job_title || "Rôle non renseigné",
+        subject: e.title,
+        companyDrawerLabel: e.company?.name || "Détails entreprise",
+        contactDrawerLabel: e.contact ? `${e.contact.full_name} · ${e.company?.name || ""}` : "Détails contact",
+        companyId: e.company_id,
+        contactId: e.contact_id,
+      }
+    })
 
   // Populating Agenda Items per day
   for (let i = 0; i < 5; i++) {
@@ -201,82 +192,77 @@ export function buildCockpitMobileViewModel(
     
     const items: AgendaItemVm[] = []
 
-    // A. Add meeting seam if it falls on this day
-    const dayMeeting = meetings.find((m) => {
-      const seamRaw = seamMeetingsRaw.find((sr) => sr.id === m.id)
-      return seamRaw?.dayIndex === i
-    })
-    
-    if (dayMeeting) {
-      items.push({
-        id: dayMeeting.id,
-        moment: dayMeeting.timeLabel,
-        type: "RDV",
-        title: dayMeeting.subject,
-        context: `${dayMeeting.client} · atelier missions`,
-        route: "/missions/opps",
+    // A. Add actual calendar events that fall on this day
+    if (wDay) {
+      const dayEvents = calendarEvents.filter((e) => {
+        if (!e.starts_at) return false
+        return isSameDay(new Date(e.starts_at), new Date(wDay.date))
+      })
+
+      dayEvents.forEach((e) => {
+        const start = new Date(e.starts_at)
+        const moment = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`
+        
+        let type: "RDV" | "Tache" | "Priorite" | "Echeance" = "Tache"
+        if (e.event_type.includes("rdv") || e.event_type.includes("soutenance") || e.event_type.includes("atelier")) {
+          type = "RDV"
+        }
+
+        let context = ""
+        if (e.company) {
+          context += e.company.name
+        }
+        if (e.contact) {
+          context += (context ? " · " : "") + e.contact.full_name
+        }
+        if (e.opportunity) {
+          context += (context ? " · " : "") + e.opportunity.title
+        }
+        if (!context && e.description) {
+          context = e.description
+        }
+        if (!context) {
+          context = "Événement de l'agenda"
+        }
+
+        items.push({
+          id: e.id,
+          moment,
+          type,
+          title: e.title,
+          context,
+          route: `/agenda?view=week`,
+        })
       })
     }
 
     // B. Add staffing deadlines matching this day
-    const dayDeadlines = staffingData.weeklyDeadlines.filter((dl) => {
-      if (!dl.date) return false
-      try {
-        const dlDate = new Date(dl.date)
-        const wDate = new Date(wDay.date)
-        return dlDate.getDate() === wDate.getDate() && dlDate.getMonth() === wDate.getMonth()
-      } catch {
-        return false
-      }
-    })
+    if (wDay) {
+      const dayDeadlines = staffingData.weeklyDeadlines.filter((dl) => {
+        if (!dl.date) return false
+        try {
+          const dlDate = new Date(dl.date)
+          const wDate = new Date(wDay.date)
+          return dlDate.getDate() === wDate.getDate() && dlDate.getMonth() === wDate.getMonth()
+        } catch {
+          return false
+        }
+      })
 
-    dayDeadlines.forEach((dl, dlIdx) => {
-      items.push({
-        id: dl.id || `deadline-${i}-${dlIdx}`,
-        moment: dl.type === "Démarrage cible" ? "J-0" : "09:00",
-        type: dl.type === "Démarrage cible" ? "Echeance" : "Priorite",
-        title: dl.title,
-        context: `${dl.company} · staffing ${dl.priority.toLowerCase()}`,
-        route: "/staffing",
-      })
-    })
-
-    // C. Add default placeholder tasks if no items on Mon/Fri to match prototype density
-    if (i === 0) { // Monday
-      items.push({
-        id: "mon-placeholder-1",
-        moment: "09:15",
-        type: "RDV",
-        title: "Point de calage staffing",
-        context: "Generali · besoin Lead Data Engineer",
-        route: "/staffing",
-      })
-      items.push({
-        id: "mon-placeholder-2",
-        moment: "16:30",
-        type: "Tache",
-        title: "Mettre a jour le plan de relance",
-        context: "Prospection · comptes Assurance",
-        route: "/prospection/suivi",
-      })
-    } else if (i === 4) { // Friday
-      items.push({
-        id: "fri-placeholder-1",
-        moment: "10:30",
-        type: "RDV",
-        title: "Revue de portefeuille",
-        context: "Equipe commerciale · pipeline ouvert",
-        route: "/cockpit",
-      })
-      items.push({
-        id: "fri-placeholder-2",
-        moment: "17:00",
-        type: "Echeance",
-        title: "Cloturer les next steps de la semaine",
-        context: "Suivi des actions · relances IA",
-        route: "/prospection/suivi",
+      dayDeadlines.forEach((dl, dlIdx) => {
+        items.push({
+          id: dl.id || `deadline-${i}-${dlIdx}`,
+          moment: dl.type === "Démarrage cible" ? "J-0" : "09:00",
+          type: dl.type === "Démarrage cible" ? "Echeance" : "Priorite",
+          title: dl.title,
+          context: `${dl.company} · staffing ${dl.priority.toLowerCase()}`,
+          route: "/staffing",
+        })
       })
     }
+
+    // Sort items chronologically by time
+    items.sort((a, b) => a.moment.localeCompare(b.moment))
 
     days.push({
       key,
@@ -286,6 +272,12 @@ export function buildCockpitMobileViewModel(
       items,
     })
   }
+
+  // Determine current day key to select it by default (Mon-Fri)
+  const currentDayOfWeek = new Date().getDay()
+  const defaultDayKey = currentDayOfWeek >= 1 && currentDayOfWeek <= 5
+    ? daysKeys[currentDayOfWeek - 1]
+    : "mon"
 
   // 2. Map Staffing needs (top 3 needs)
   const staffingItems: StaffingNeedVm[] = staffingData.openNeeds.slice(0, 3).map((need, idx) => {
@@ -382,7 +374,7 @@ export function buildCockpitMobileViewModel(
       alertCount,
     },
     agenda: {
-      selectedDayKey: "tue", // Default as per prototype
+      selectedDayKey: defaultDayKey,
       days,
     },
     staffing: {

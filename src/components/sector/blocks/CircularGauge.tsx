@@ -6,6 +6,8 @@ export interface CircularGaugeProps {
   size?: number // size in pixels
   strokeWidth?: number
   showLabel?: boolean
+  fontSizeClass?: string
+  subfontSizeClass?: string
 }
 
 /**
@@ -19,6 +21,8 @@ export function CircularGauge({
   size = 80,
   strokeWidth = 3.5,
   showLabel = true,
+  fontSizeClass = 'text-xl',
+  subfontSizeClass = 'text-[8px]',
 }: CircularGaugeProps) {
   const clamped = Math.max(0, Math.min(5, score))
   
@@ -67,10 +71,10 @@ export function CircularGauge({
       {/* Centered Score text */}
       {showLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white font-sans">
-          <span className="text-xl font-black leading-none tracking-tight">
+          <span className={`font-black leading-none tracking-tight ${fontSizeClass}`}>
             {score.toFixed(1)}
           </span>
-          <span className="text-[8px] font-bold uppercase tracking-wider text-white/60 mt-0.5">
+          <span className={`font-bold uppercase tracking-wider text-white/60 mt-0.5 ${subfontSizeClass}`}>
             / 5.0
           </span>
         </div>

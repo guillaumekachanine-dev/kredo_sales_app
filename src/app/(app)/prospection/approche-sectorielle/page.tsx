@@ -157,13 +157,13 @@ export default async function ApprocheSectoriellePage() {
 
       {/* Responsive View Switcher */}
       {isMobile ? (
-        <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {sectors.map((sector) => (
             <SectorCardMobile key={sector.id} sector={sector} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {sectors.map((sector) => (
             <SectorCardDesktop key={sector.id} sector={sector} />
           ))}

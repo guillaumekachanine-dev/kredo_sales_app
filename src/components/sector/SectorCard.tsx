@@ -49,7 +49,7 @@ export function SectorCardDesktop({ sector }: SectorCardProps) {
   const top2 = sortedPractices.slice(0, 2)
 
   const CardContent = (
-    <div className="relative w-full h-[320px] rounded-xl overflow-hidden border border-border/20 flex flex-col justify-between transition-all duration-300 group shadow-sm">
+    <div className="relative w-full h-[290px] rounded-xl overflow-hidden border border-border/20 flex flex-col justify-between transition-all duration-300 group shadow-sm">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center select-none transition-transform duration-700 group-hover:scale-105"
@@ -60,52 +60,58 @@ export function SectorCardDesktop({ sector }: SectorCardProps) {
       <div className="absolute inset-0 bg-gradient-to-t from-[#1A2540] via-[#1A2540]/65 to-[#1A2540]/15" />
       
       {/* Card Header (Internal) */}
-      <div className="relative z-10 p-5 flex items-start justify-between gap-4">
-        <h3 className="text-base font-bold text-white leading-tight drop-shadow-md group-hover:text-secondary transition-colors">
+      <div className="relative z-10 p-4 flex items-start justify-between gap-3">
+        <h3 className="text-sm font-bold text-white leading-tight drop-shadow-md group-hover:text-secondary transition-colors line-clamp-2">
           {sector.name}
         </h3>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 backdrop-blur-sm ${statusBadge}`}>
+        <span className={`text-[9px] font-bold px-2 py-0.5 rounded shrink-0 backdrop-blur-sm ${statusBadge}`}>
           {statusLabel}
         </span>
       </div>
 
       {/* Main Visual (Donut Attractiveness Gauge) */}
-      <div className="relative z-10 flex flex-col items-center justify-center -mt-4">
-        <CircularGauge score={sector.attractiveness_score ?? 0} size={92} strokeWidth={3.8} />
-        <span className="text-[10px] font-bold text-white/55 uppercase tracking-widest mt-2">
+      <div className="relative z-10 flex flex-col items-center justify-center -mt-3">
+        <CircularGauge 
+          score={sector.attractiveness_score ?? 0} 
+          size={76} 
+          strokeWidth={3.2} 
+          fontSizeClass="text-lg"
+          subfontSizeClass="text-[7px]"
+        />
+        <span className="text-[8px] font-bold text-white/55 uppercase tracking-widest mt-1.5">
           Score d&apos;attractivité
         </span>
       </div>
 
       {/* Card Footer (Glassmorphism / Frosted Glass) */}
-      <div className="relative z-10 backdrop-blur-md bg-white/5 border-t border-white/10 p-4 flex flex-col gap-3">
+      <div className="relative z-10 backdrop-blur-md bg-white/5 border-t border-white/10 p-3.5 flex flex-col gap-2.5">
         {/* Maturity & Portfolio Stats */}
-        <div className="grid grid-cols-2 gap-4 text-xs">
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
           {/* Digital Maturity */}
           <div className="flex items-center text-white/90">
             {/* Chart/Bars Icon */}
-            <svg className="w-4 h-4 mr-2 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 mr-1.5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
             </svg>
-            <div>
-              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
+            <div className="min-w-0">
+              <span className="text-[8px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
                 Maturité
               </span>
-              <span className="font-semibold">{maturityLabel}</span>
+              <span className="font-medium truncate block">{maturityLabel}</span>
             </div>
           </div>
 
           {/* Portfolio (Accounts) */}
           <div className="flex items-center text-white/90">
             {/* Building Icon */}
-            <svg className="w-4 h-4 mr-2 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 mr-1.5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
-            <div>
-              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
+            <div className="min-w-0">
+              <span className="text-[8px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
                 Portefeuille
               </span>
-              <span className="font-semibold">
+              <span className="font-medium truncate block">
                 {sector.companies_count} {sector.companies_count > 1 ? 'comptes' : 'compte'}
               </span>
             </div>
@@ -113,13 +119,13 @@ export function SectorCardDesktop({ sector }: SectorCardProps) {
         </div>
 
         {/* Practice Fit Badges */}
-        <div className="flex flex-wrap gap-1.5 pt-1 border-t border-white/5">
+        <div className="flex flex-wrap gap-1 pt-1 border-t border-white/5">
           {top2.map(({ key, value }) => {
             const label = PRACTICE_LABELS[key] ?? key
             return (
               <span
                 key={key}
-                className="text-[9px] font-bold px-2 py-0.5 rounded bg-white/10 border border-white/10 text-white/95"
+                className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white/95"
               >
                 {label} : {value.toFixed(1)}/5
               </span>
@@ -146,13 +152,8 @@ export function SectorCardMobile({ sector }: SectorCardProps) {
   const statusLabel = STATUS_LABELS[sector.status] ?? sector.status
   const maturityLabel = sector.digital_maturity ? MATURITY_LABELS[sector.digital_maturity] : 'Non renseignée'
 
-  const sortedPractices = Object.entries(sector.practices_fit || {})
-    .map(([key, value]) => ({ key: key as PracticeKey, value }))
-    .sort((a, b) => b.value - a.value)
-  const top2 = sortedPractices.slice(0, 2)
-
   const CardContent = (
-    <div className="relative w-full min-h-[160px] rounded-lg overflow-hidden border border-border/10 flex flex-col justify-between transition-all duration-300 p-4 shadow-sm">
+    <div className="relative w-full h-[210px] rounded-xl overflow-hidden border border-border/10 flex flex-col justify-between transition-all duration-300 shadow-sm">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center select-none"
@@ -160,54 +161,53 @@ export function SectorCardMobile({ sector }: SectorCardProps) {
       />
       
       {/* Dark Cobalt/Navy Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1A2540] via-[#1A2540]/70 to-[#1A2540]/30" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#1A2540] via-[#1A2540]/70 to-[#1A2540]/25" />
 
       {/* Header Row */}
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <h3 className="text-sm font-bold text-white leading-tight drop-shadow-md">
+      <div className="relative z-10 p-3 flex items-start justify-between gap-1.5">
+        <h3 className="text-xs font-bold text-white leading-tight drop-shadow-md line-clamp-2">
           {sector.name}
         </h3>
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 backdrop-blur-sm ${statusBadge}`}>
+        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shrink-0 backdrop-blur-sm ${statusBadge}`}>
           {statusLabel}
         </span>
       </div>
 
-      {/* Middle/Footer Row: Gauge on one side, details on the other */}
-      <div className="relative z-10 flex items-end justify-between gap-4 mt-4">
-        {/* Left Side: Stats and Badges */}
-        <div className="space-y-2.5">
-          {/* Quick Metrics */}
-          <div className="flex gap-4 text-[10px] text-white/95">
-            <span className="flex items-center font-medium">
-              <svg className="w-3.5 h-3.5 mr-1 text-white/55 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-              </svg>
-              {maturityLabel}
-            </span>
-            <span className="flex items-center font-medium">
-              <svg className="w-3.5 h-3.5 mr-1 text-white/55 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
+      {/* Middle Attractiveness Gauge */}
+      <div className="relative z-10 -mt-2 flex flex-col items-center justify-center">
+        <CircularGauge 
+          score={sector.attractiveness_score ?? 0} 
+          size={52} 
+          strokeWidth={2.8} 
+          fontSizeClass="text-sm"
+          subfontSizeClass="text-[6px]"
+        />
+        <span className="text-[7px] font-bold text-white/55 uppercase tracking-widest mt-1">
+          Score d&apos;attractivité
+        </span>
+      </div>
+
+      {/* Card Footer (Glassmorphism / Frosted Glass) */}
+      <div className="relative z-10 backdrop-blur-md bg-white/5 border-t border-white/10 p-2.5 flex flex-col gap-1">
+        {/* Maturity & Portfolio Stats */}
+        <div className="grid grid-cols-2 gap-2 text-[9px]">
+          {/* Digital Maturity */}
+          <div className="flex items-center text-white/90">
+            <svg className="w-3.5 h-3.5 mr-1 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+            </svg>
+            <span className="truncate block font-medium">{maturityLabel}</span>
+          </div>
+
+          {/* Portfolio (Accounts) */}
+          <div className="flex items-center text-white/90">
+            <svg className="w-3.5 h-3.5 mr-1 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span className="truncate block font-medium">
               {sector.companies_count} {sector.companies_count > 1 ? 'comptes' : 'compte'}
             </span>
           </div>
-
-          {/* Badges */}
-          <div className="flex flex-wrap gap-1">
-            {top2.map(({ key, value }) => (
-              <span
-                key={key}
-                className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10 border border-white/5 text-white/90"
-              >
-                {PRACTICE_LABELS[key] ?? key} : {value.toFixed(1)}/5
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Right Side: Small Circular Gauge */}
-        <div className="shrink-0 flex flex-col items-center">
-          <CircularGauge score={sector.attractiveness_score ?? 0} size={54} strokeWidth={3} showLabel={true} />
         </div>
       </div>
     </div>

@@ -59,14 +59,26 @@ export function AgendaEventBlock({
         onBlur={handleBlur}
         style={style}
         className={cn(
-          "w-full text-left px-2 py-1 rounded-[var(--radius-small)] text-[10px] font-medium border truncate transition-all cursor-pointer",
+          "w-full text-left px-2 py-1 rounded-[var(--radius-small)] text-[10px] font-medium border truncate transition-all cursor-pointer relative flex items-center justify-between gap-1",
           config.colorClasses,
           config.borderClasses,
           "hover:translate-x-0.5 hover:shadow-[var(--shadow-overlay-sm)] focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]"
         )}
       >
-        <span className="font-bold mr-1">{formatTime(event.starts_at)}</span>
-        <span>{event.title}</span>
+        <span className="truncate flex-1">
+          <span className="font-bold mr-1">{formatTime(event.starts_at)}</span>
+          <span>{event.title}</span>
+        </span>
+        {event.preparatory_task && (
+          <span 
+            className="shrink-0 flex items-center justify-center w-2.5 h-2.5 rounded-full bg-amber-500 text-white" 
+            title={`Tâche préparatoire : ${event.preparatory_task.title}`}
+          >
+            <svg className="w-1.5 h-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </span>
+        )}
       </button>
     )
   }
@@ -103,9 +115,20 @@ export function AgendaEventBlock({
       </h5>
 
       {event.company && (
-        <span className="text-[10px] opacity-80 truncate mt-auto">
+        <span className={cn("text-[10px] opacity-80 truncate mt-auto", event.preparatory_task && "pr-5")}>
           🏢 {event.company.name}
         </span>
+      )}
+
+      {event.preparatory_task && (
+        <div 
+          className="absolute bottom-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white shadow-sm border border-amber-600/20 z-10"
+          title={`Tâche préparatoire : ${event.preparatory_task.title}`}
+        >
+          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
       )}
     </button>
   )

@@ -21,6 +21,9 @@ import { CockpitContextSheet, ContextSheetKind } from "./mobile/CockpitContextSh
 import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
+import type { AgendaEvent } from "@/lib/agenda/agenda-types"
+import { IconStage, IconContact, IconRadar, IconContactCard } from "./mobile/icons"
+import { cn } from "@/lib/utils"
 
 import "./mobile/cockpit-mobile.css"
 
@@ -28,19 +31,21 @@ interface CockpitMobileDashboardProps {
   data: CockpitDashboardData
   staffingData: StaffingDashboardData
   syntheseData: SyntheseData
+  calendarEvents: AgendaEvent[]
 }
 
 export function CockpitMobileDashboard({
   data,
   staffingData,
   syntheseData,
+  calendarEvents,
 }: CockpitMobileDashboardProps) {
   const router = useRouter()
 
   // 1. Build View Model
   const vm = useMemo(
-    () => buildCockpitMobileViewModel(data, staffingData, syntheseData),
-    [data, staffingData, syntheseData]
+    () => buildCockpitMobileViewModel(data, staffingData, syntheseData, calendarEvents),
+    [data, staffingData, syntheseData, calendarEvents]
   )
 
   // 2. States
@@ -51,6 +56,9 @@ export function CockpitMobileDashboard({
   // Modals / Drawers States
   const [isQuickActionsOpen, setQuickActionsOpen] = useState(false)
   const [isNewOpportunityOpen, setNewOpportunityOpen] = useState(false)
+  
+  // Custom expandable dashboard modules state
+  const [activeModule, setActiveModule] = useState<"staffing" | "meetings" | "prospection" | "recrutement" | null>(null)
   
   // Contextual sheets
   const [contextSheet, setContextSheet] = useState<{
@@ -86,6 +94,15 @@ export function CockpitMobileDashboard({
       setSelectedDayKey(dayKey)
       setAgendaOpen(true)
     }
+  }
+
+  // Handle Module Toggle
+  const handleModuleToggle = (moduleName: "staffing" | "meetings" | "prospection" | "recrutement") => {
+    if (moduleName === "recrutement") {
+      triggerToast("Module Recrutement : Bientôt disponible !")
+      return
+    }
+    setActiveModule((prev) => (prev === moduleName ? null : moduleName))
   }
 
   // Handle Toast Trigger
@@ -233,59 +250,171 @@ export function CockpitMobileDashboard({
       >
         <div className="screen-scroll-container">
           {/* Section 1: Agenda */}
-          <section className="module-panel">
-            <div className="module-head">
-              <h2>Agenda</h2>
-            </div>
-            
+          <div className="-mx-4 mb-2">
             <CockpitAgendaStrip
               days={vm.agenda.days}
               selectedDayKey={selectedDayKey}
               onDaySelect={handleDaySelect}
+              isExpanded={isAgendaOpen}
             />
+          </div>
 
-            <CockpitAgendaDetails
-              day={selectedDay}
-              isOpen={isAgendaOpen}
-              onItemClick={handleAgendaItemClick}
-            />
-          </section>
-
-          {/* Section 2: Staffings & besoins */}
-          <CockpitStaffingCard
-            items={vm.staffing.items}
-            onPrimaryClick={handleStaffingPrimaryClick}
-            onActionClick={(title, client) =>
-              setContextSheet({ kind: "staffing", label: `${title} · ${client}` })
-            }
+          <CockpitAgendaDetails
+            day={selectedDay}
+            isOpen={isAgendaOpen}
+            onItemClick={handleAgendaItemClick}
           />
 
-          {/* Section 3: Rendez-vous clients */}
-          <CockpitMeetingCard
-            items={vm.meetings.items}
-            onPrepareClick={(client) => triggerToast(`Préparation du rendez-vous: ${client}`)}
-            onActionClick={(client, dateLabel, timeLabel) =>
-              setContextSheet({ kind: "meeting", label: `${client} · ${dateLabel} · ${timeLabel}` })
-            }
-            onCompanyClick={handleCompanyDrawerOpen}
-            onContactClick={handleContactDrawerOpen}
-          />
+          {/* Grid of Modules */}
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            {/* Card 1: Staffing */}
+            <button
+              type="button"
+              className={cn(
+                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                activeModule === "staffing"
+                  ? "bg-emerald-500/[0.04] border-emerald-500/30 text-emerald-600 scale-102"
+                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+              )}
+              onClick={() => handleModuleToggle("staffing")}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                activeModule === "staffing" ? "bg-emerald-500 text-white" : "bg-emerald-500/10 text-emerald-600"
+              )}>
+                <IconStage />
+              </div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                Staffing &amp; Opps
+              </span>
+              <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                {vm.staffing.items.length} {vm.staffing.items.length === 1 ? "besoin" : "besoins"}
+              </span>
+            </button>
 
-          {/* Section 4: Prospection */}
-          <CockpitProspectionCard
-            metrics={vm.prospection.metrics}
-            priorities={vm.prospection.priorities}
-            onPitchClick={(company, companyId) => {
-              if (companyId) {
-                router.push(`/prospection/accounts/${companyId}`)
-              } else {
-                triggerToast(`Génération pitch IA pour ${company}`)
-              }
-            }}
-            onActionClick={(company) =>
-              setContextSheet({ kind: "prospect", label: company })
-            }
-          />
+            {/* Card 2: Rendez-vous */}
+            <button
+              type="button"
+              className={cn(
+                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                activeModule === "meetings"
+                  ? "bg-amber-500/[0.04] border-amber-500/30 text-amber-600 scale-102"
+                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+              )}
+              onClick={() => handleModuleToggle("meetings")}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                activeModule === "meetings" ? "bg-amber-500 text-white" : "bg-amber-500/10 text-amber-600"
+              )}>
+                <IconContact />
+              </div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                Rendez-vous client
+              </span>
+              <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                {vm.meetings.items.length} {vm.meetings.items.length === 1 ? "rendez-vous" : "rendez-vous"}
+              </span>
+            </button>
+
+            {/* Card 3: Prospection */}
+            <button
+              type="button"
+              className={cn(
+                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                activeModule === "prospection"
+                  ? "bg-violet-500/[0.04] border-violet-500/30 text-violet-600 scale-102"
+                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border"
+              )}
+              onClick={() => handleModuleToggle("prospection")}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors duration-300",
+                activeModule === "prospection" ? "bg-violet-500 text-white" : "bg-violet-500/10 text-violet-600"
+              )}>
+                <IconRadar />
+              </div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                Prospection
+              </span>
+              <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                {vm.prospection.priorities.length} {vm.prospection.priorities.length === 1 ? "compte" : "comptes"}
+              </span>
+            </button>
+
+            {/* Card 4: Recrutement */}
+            <button
+              type="button"
+              className={cn(
+                "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 select-none text-center focus:outline-none min-h-[110px]",
+                activeModule === "recrutement"
+                  ? "bg-blue-500/[0.04] border-blue-500/30 text-blue-600 scale-102"
+                  : "bg-surface border-border/50 text-body hover:bg-surface-hover hover:border-border opacity-70"
+              )}
+              onClick={() => handleModuleToggle("recrutement")}
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2 bg-blue-500/10 text-blue-600">
+                <IconContactCard />
+              </div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-heading">
+                Recrutement
+              </span>
+              <span className="text-[9px] text-muted mt-0.5 font-semibold">
+                Bientôt
+              </span>
+            </button>
+          </div>
+
+          {/* Expanded Module Containers */}
+          <div className="mt-4 flex flex-col">
+            {/* 1. Staffing */}
+            <div className={cn("module-expand-wrapper", activeModule === "staffing" && "is-expanded")}>
+              <div className="module-expand-inner">
+                <CockpitStaffingCard
+                  items={vm.staffing.items}
+                  onPrimaryClick={handleStaffingPrimaryClick}
+                  onActionClick={(title, client) =>
+                    setContextSheet({ kind: "staffing", label: `${title} · ${client}` })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* 2. Meetings */}
+            <div className={cn("module-expand-wrapper", activeModule === "meetings" && "is-expanded")}>
+              <div className="module-expand-inner">
+                <CockpitMeetingCard
+                  items={vm.meetings.items}
+                  onPrepareClick={(client) => triggerToast(`Préparation du rendez-vous: ${client}`)}
+                  onActionClick={(client, dateLabel, timeLabel) =>
+                    setContextSheet({ kind: "meeting", label: `${client} · ${dateLabel} · ${timeLabel}` })
+                  }
+                  onCompanyClick={handleCompanyDrawerOpen}
+                  onContactClick={handleContactDrawerOpen}
+                />
+              </div>
+            </div>
+
+            {/* 3. Prospection */}
+            <div className={cn("module-expand-wrapper", activeModule === "prospection" && "is-expanded")}>
+              <div className="module-expand-inner">
+                <CockpitProspectionCard
+                  metrics={vm.prospection.metrics}
+                  priorities={vm.prospection.priorities}
+                  onPitchClick={(company, companyId) => {
+                    if (companyId) {
+                      router.push(`/prospection/accounts/${companyId}`)
+                    } else {
+                      triggerToast(`Génération pitch IA pour ${company}`)
+                    }
+                  }}
+                  onActionClick={(company) =>
+                    setContextSheet({ kind: "prospect", label: company })
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </MobileActionPage>
 

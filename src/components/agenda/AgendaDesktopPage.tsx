@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect, useTransition } from "react"
+import React, { useState, useMemo, useEffect, useTransition, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
 import { Button } from "@/components/ui/Button"
@@ -38,7 +38,7 @@ export function AgendaDesktopPage() {
   const [hoveredEvent, setHoveredEvent] = useState<AgendaEvent | null>(null)
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
 
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   // Calculate start/end range to query based on view & referenceDate
   const { startRange, endRange } = useMemo(() => {
@@ -65,18 +65,21 @@ export function AgendaDesktopPage() {
   }, [referenceDate, view])
 
   // Fetch events
-  const loadData = () => {
+  const loadData = useCallback(() => {
     setLoading(true)
     startTransition(async () => {
       const data = await getAgendaEvents(startRange, endRange)
       setEvents(data)
       setLoading(false)
     })
-  }
+  }, [startRange, endRange])
 
   useEffect(() => {
-    loadData()
-  }, [startRange, endRange])
+    const handle = requestAnimationFrame(() => {
+      loadData()
+    })
+    return () => cancelAnimationFrame(handle)
+  }, [loadData])
 
   // Local filtering in memory
   const filteredEvents = useMemo(() => {
@@ -168,7 +171,7 @@ export function AgendaDesktopPage() {
                 onClick={() => handleNavigate("today")}
                 className="px-3 py-1 text-xs font-bold text-heading hover:bg-canvas/50 border-r border-border transition-colors cursor-pointer"
               >
-                Aujourd'hui
+                Aujourd&apos;hui
               </button>
               <IconButton
                 variant="ghost"
@@ -238,7 +241,6 @@ export function AgendaDesktopPage() {
         <AgendaEventPreview
           event={hoveredEvent}
           anchorRect={anchorRect}
-          onOpenDetails={() => handleEventClick(hoveredEvent)}
         />
       )}
 

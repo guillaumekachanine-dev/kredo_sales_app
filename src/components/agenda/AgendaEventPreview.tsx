@@ -9,20 +9,21 @@ import { formatTime } from "@/lib/agenda/agenda-date-utils"
 interface AgendaEventPreviewProps {
   event: AgendaEvent
   anchorRect: DOMRect | null
-  onOpenDetails: () => void
 }
 
 export function AgendaEventPreview({
   event,
   anchorRect,
-  onOpenDetails,
 }: AgendaEventPreviewProps) {
   const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0 })
   const [mounted, setMounted] = useState(false)
   const previewRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setMounted(true)
+    const handle = requestAnimationFrame(() => {
+      setMounted(true)
+    })
+    return () => cancelAnimationFrame(handle)
   }, [])
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export function AgendaEventPreview({
     }
 
     // Estimate height and adjust top if card overflows on the bottom
-    const estimatedHeight = 220
+    const estimatedHeight = 180
     if (top + estimatedHeight > window.innerHeight) {
       top = window.innerHeight - estimatedHeight - padding
     }
@@ -50,15 +51,19 @@ export function AgendaEventPreview({
     if (left < padding) left = padding
     if (top < padding) top = padding
 
-    setStyle({
-      position: "fixed",
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${previewWidth}px`,
-      opacity: 1,
-      zIndex: 9999,
-      transition: "opacity 120ms ease-out",
+    const handle = requestAnimationFrame(() => {
+      setStyle({
+        position: "fixed",
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${previewWidth}px`,
+        opacity: 1,
+        zIndex: 9999,
+        transition: "opacity 120ms ease-out",
+      })
     })
+
+    return () => cancelAnimationFrame(handle)
   }, [anchorRect])
 
   if (!mounted || !anchorRect) return null
@@ -136,15 +141,6 @@ export function AgendaEventPreview({
             </div>
           )}
         </div>
-
-        {/* Action button */}
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="mt-1 w-full rounded-[var(--radius-small)] bg-canvas hover:bg-surface-hover border border-border/80 px-2 py-1.5 text-center text-[11px] font-semibold text-primary transition-all cursor-pointer"
-        >
-          Ouvrir la fiche de l'événement
-        </button>
       </div>
     </div>,
     document.body
