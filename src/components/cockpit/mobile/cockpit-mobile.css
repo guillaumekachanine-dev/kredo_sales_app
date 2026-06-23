@@ -106,6 +106,7 @@
   gap: var(--space-3);
   padding: 0 var(--space-4) calc(var(--layout-mobile-content-bottom-offset) + var(--space-6));
   overflow-x: hidden;
+  margin-top: -20px;
 }
 
 .module-panel {
@@ -794,7 +795,7 @@
   grid-template-rows: 1fr;
   opacity: 1;
   visibility: visible;
-  margin-top: -6px;
+  margin-top: -12px;
   margin-bottom: var(--space-3);
 }
 
