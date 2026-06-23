@@ -243,6 +243,18 @@ dialog[open].kredo-drawer-right.kredo-drawer-closing {
   animation: kredo-drawer-out-right 0.26s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
+dialog.kredo-drawer-right {
+  top: 0 !important;
+  inset-block-start: 0 !important;
+  bottom: 0 !important;
+  inset-block-end: 0 !important;
+  left: auto !important;
+  inset-inline-start: auto !important;
+  right: 0 !important;
+  inset-inline-end: 0 !important;
+  margin: 0 !important;
+}
+
 /* Entrée — bas */
 dialog[open].kredo-drawer-bottom {
   animation: kredo-drawer-in-bottom 0.40s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -251,6 +263,14 @@ dialog[open].kredo-drawer-bottom {
 /* Sortie — bas */
 dialog[open].kredo-drawer-bottom.kredo-drawer-closing {
   animation: kredo-drawer-out-bottom 0.26s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+dialog.kredo-drawer-bottom {
+  top: auto !important;
+  inset-block-start: auto !important;
+  bottom: 0 !important;
+  inset-block-end: 0 !important;
+  margin: 0 auto !important;
 }
 
 /* ── MobileSectionRail — déploiement du rail d'onglets au-dessus de la nav ──── */

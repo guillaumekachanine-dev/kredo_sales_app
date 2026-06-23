@@ -693,3 +693,87 @@
   color: var(--color-heading);
   margin-bottom: var(--space-1);
 }
+
+/* Bottom Sheet layout / elements styling */
+.sheet-grabber {
+  width: 36px;
+  height: 4px;
+  background-color: var(--color-border);
+  border-radius: var(--radius-round);
+  margin: 0 auto var(--space-4);
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background-color: var(--color-surface-raised);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.sheet-action {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-heading);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.sheet-action:last-child {
+  border-bottom: 0;
+}
+
+.sheet-action:hover,
+.sheet-action:focus-visible {
+  background-color: var(--color-surface-hover);
+}
+
+.sheet-action-leading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.sheet-action-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+}
+
+.sheet-close {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.sheet-close:hover,
+.sheet-close:focus-visible {
+  background-color: var(--color-surface-hover);
+}

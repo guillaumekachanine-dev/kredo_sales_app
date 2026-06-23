@@ -201,7 +201,7 @@ export function AppDrawer({
         }
       }}
       className={cn(
-        "fixed m-0 flex flex-col overflow-hidden border-border bg-surface text-heading outline-none",
+        "fixed m-0 p-0 border-0 flex flex-col overflow-hidden border-border bg-surface text-heading outline-none",
         "shadow-[var(--shadow-overlay-md)] backdrop:bg-[var(--color-backdrop)]",
         "z-[var(--z-drawer)]",
         isRight
