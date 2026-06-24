@@ -35,7 +35,7 @@ import {
   formatDate,
   formatDateNumeric,
   formatDateTime,
-} from "./opportunity-detail-utils"
+} from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import {
   TYPE_OPTIONS,
@@ -102,12 +102,11 @@ function StageStepIcon({
     <Image
       src={icon}
       alt={label}
-      width={compact ? 28 : 36}
-      height={compact ? 28 : 36}
+      width={compact ? 32 : 52}
+      height={compact ? 32 : 52}
       className={cn(
         "object-contain transition-all duration-300",
-        compact ? "h-7 w-7" : "h-9 w-9",
-        stage === "cv_envoyes" ? "p-0.5" : "p-1 rounded-full",
+        compact ? "h-8 w-8" : "h-[52px] w-[52px]",
       )}
       style={{
         filter: active ? "none" : "grayscale(100%)",
@@ -184,26 +183,19 @@ function PencilIcon({ className }: { className?: string }) {
 
 function OpportunityHeaderMetric({
   icon,
-  label,
   value,
 }: {
   icon: React.ReactNode
-  label: string
   value: React.ReactNode
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center" aria-hidden="true">
         {icon}
       </span>
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[10px] uppercase text-muted tracking-wider font-semibold whitespace-nowrap">
-          {label}
-        </span>
-        <span className="text-sm font-semibold leading-none text-heading whitespace-nowrap">
-          {value}
-        </span>
-      </div>
+      <span className="text-[10px] uppercase text-muted tracking-wider font-semibold whitespace-nowrap">
+        {value}
+      </span>
     </div>
   )
 }
@@ -311,6 +303,11 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     requires_staffing: opportunity.requires_staffing ?? false,
     win_reason: opportunity.win_reason || "",
     loss_reason: opportunity.loss_reason || "",
+    diffusion_date: opportunity.diffusion_date || "",
+    decision_date: opportunity.decision_date || "",
+    rythme: opportunity.rythme || "",
+    budget: opportunity.budget ?? "",
+    searched_profile: opportunity.searched_profile || "",
   })
 
   // Détection layout mobile/desktop dynamique pour éviter le display:none CSS
@@ -350,6 +347,11 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       requires_staffing: opportunity.requires_staffing ?? false,
       win_reason: opportunity.win_reason || "",
       loss_reason: opportunity.loss_reason || "",
+      diffusion_date: opportunity.diffusion_date || "",
+      decision_date: opportunity.decision_date || "",
+      rythme: opportunity.rythme || "",
+      budget: opportunity.budget ?? "",
+      searched_profile: opportunity.searched_profile || "",
     })
   }
 
@@ -493,10 +495,31 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   }
 
   const renderPipelineTimeline = (isDesktopView: boolean) => {
+    const getSegmentBackground = (i: number) => {
+      if (i < SEQUENTIAL_STEPS.length - 1) {
+        const isSegmentCompleted = currentIdx > i
+        if (isSegmentCompleted) {
+          const stepColor = getOpportunityStageColor(SEQUENTIAL_STEPS[i].key)
+          const nextStepColor = getOpportunityStageColor(SEQUENTIAL_STEPS[i + 1].key)
+          return `linear-gradient(to right, ${stepColor}, ${nextStepColor})`
+        }
+        return "#E5E7EB"
+      } else {
+        const stepColor = getOpportunityStageColor(SEQUENTIAL_STEPS[SEQUENTIAL_STEPS.length - 1].key)
+        if (form.stage === "gagne") {
+          return `linear-gradient(to right, ${stepColor}, ${getOpportunityStageColor("gagne")})`
+        }
+        if (form.stage === "perdu") return getOpportunityStageColor("perdu")
+        if (form.stage === "abandonne") return getOpportunityStageColor("abandonne")
+        if (form.stage === "non_traitee") return getOpportunityStageColor("non_traitee")
+        return "#E5E7EB"
+      }
+    }
+
     // ── DESKTOP ──
     if (isDesktopView) {
       return (
-        <div className="w-full">
+        <div className="w-full relative select-none py-2">
           {isPending && loadingStage && (
             <div className="flex justify-center mb-3">
               <span className="text-[10px] font-semibold animate-pulse uppercase tracking-wider" style={{ color: "#2C7D5C" }}>
@@ -505,60 +528,65 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
           )}
 
-          {/* Nodes row */}
-          <div className="flex items-start w-full relative">
+          {/* Timeline Nodes Row Container */}
+          <div className="relative w-full h-[120px]">
+            {/* Connector lines (behind nodes) */}
+            {[0, 1, 2, 3, 4].map((i) => {
+              const bg = getSegmentBackground(i)
+              return (
+                <div
+                  key={i}
+                  className="absolute h-2 rounded-full z-0"
+                  style={{
+                    top: 42, // (date label ~16px + half circle size 26px = 42px)
+                    left: `calc(64px + ${i * 20}% - ${i * 25.6}px)`,
+                    width: `calc(20% - 25.6px)`,
+                    background: bg,
+                  }}
+                />
+              )
+            })}
+
+            {/* Shine beam */}
+            {currentIdx > 0 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: 42,
+                  height: 8,
+                  left: 64,
+                  width: `calc(${Math.min(currentIdx, 5) * 20}% - ${Math.min(currentIdx, 5) * 25.6}px)`,
+                  pointerEvents: "none",
+                  zIndex: 30,
+                  overflow: "hidden",
+                  borderRadius: 4,
+                }}
+              >
+                <div className="pipeline-shine-beam" />
+              </div>
+            )}
+
+            {/* Sequential Steps Nodes */}
             {SEQUENTIAL_STEPS.map((step, idx) => {
               const isCompleted = currentIdx > idx
               const isActive = currentIdx === idx
               const isLoading = loadingStage === step.key
               const stepColor = getOpportunityStageColor(step.key)
-              const nextStepColor = getOpportunityStageColor(
-                SEQUENTIAL_STEPS[Math.min(idx + 1, SEQUENTIAL_STEPS.length - 1)]?.key ?? step.key,
-              )
 
               return (
-                <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
-
-                  {/* Connector line to next (behind nodes) */}
-                  {idx < SEQUENTIAL_STEPS.length - 1 && (
-                    <div
-                      className="absolute z-0"
-                      style={{
-                        top: 18,
-                        left: "calc(50% + 22px)",
-                        right: "-50%",
-                        height: 8,
-                        borderRadius: 4,
-                        background: isCompleted
-                          ? `linear-gradient(to right, ${stepColor}, ${nextStepColor})`
-                          : "#E5E7EB",
-                      }}
-                    />
-                  )}
-                  {/* Connector from last sequential step → outcome area */}
-                  {idx === SEQUENTIAL_STEPS.length - 1 && (
-                    <div
-                      className="absolute z-0"
-                      style={{
-                        top: 18,
-                        left: "calc(50% + 22px)",
-                        right: "-50%",
-                        height: 8,
-                        borderRadius: 4,
-                        background:
-                          form.stage === "gagne"
-                            ? `linear-gradient(to right, ${stepColor}, ${getOpportunityStageColor("gagne")})`
-                            : form.stage === "perdu" ? getOpportunityStageColor("perdu")
-                            : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
-                            : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
-                            : "#E5E7EB",
-                      }}
-                    />
-                  )}
-
+                <div
+                  key={step.key}
+                  className="absolute flex flex-col items-center z-10"
+                  style={{
+                    left: `calc(64px + ${idx * 20}% - ${idx * 25.6}px)`,
+                    transform: "translateX(-50%)",
+                    width: 120,
+                  }}
+                >
                   {/* Date label above */}
                   <span
-                    className="text-[11px] font-bold mb-1.5 leading-none"
+                    className="text-[11px] font-bold mb-1.5 leading-none h-4 flex items-center justify-center"
                     style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}
                   >
                     {isActive ? "En cours" : isCompleted ? "✓" : "—"}
@@ -569,10 +597,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     type="button"
                     disabled={isPending}
                     onClick={() => handleStageSelect(step.key as SalesStage)}
-                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                    className="flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden shrink-0"
                     style={{
-                      width: 44,
-                      height: 44,
+                      width: 52,
+                      height: 52,
                       backgroundColor: "#FFFFFF",
                       border: isActive
                         ? `3px solid ${stepColor}`
@@ -584,7 +612,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         : isCompleted
                         ? `0 2px 8px ${stageRing(stepColor, 28)}`
                         : "none",
-                      transform: isActive ? "scale(1.12)" : "scale(1)",
+                      transform: isActive ? "scale(1.1)" : "scale(1)",
                     }}
                   >
                     {isLoading ? (
@@ -601,30 +629,36 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     )}
                   </button>
 
-                  {/* Label + sub below */}
-                  <div className="flex flex-col items-center mt-3 px-1 text-center">
+                  {/* Label below */}
+                  <div className="mt-3 text-center w-full px-1">
                     <button
                       type="button"
                       disabled={isPending}
                       onClick={() => handleStageSelect(step.key as SalesStage)}
-                      className="text-[12px] font-bold leading-tight cursor-pointer disabled:cursor-not-allowed transition-colors"
+                      className="text-[12px] font-bold leading-tight cursor-pointer disabled:cursor-not-allowed transition-colors whitespace-normal w-full"
                       style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
                     >
                       {step.label}
                     </button>
                   </div>
-
                 </div>
               )
             })}
 
-            {/* Issue column */}
-            <div className="flex-1 flex flex-col items-center relative min-w-0">
-              {/* Status indicator above — ✓ si issue sélectionnée, — sinon (même pattern que les étapes) */}
+            {/* Issue Node (Gagné/Perdu/etc., index 5) */}
+            <div
+              className="absolute flex flex-col items-center z-10"
+              style={{
+                left: "calc(100% - 64px)",
+                transform: "translateX(-50%)",
+                width: 120,
+              }}
+            >
+              {/* Status indicator above */}
               <span
-                className="text-[11px] font-bold mb-1.5 leading-none"
-                    style={{
-                      color:
+                className="text-[11px] font-bold mb-1.5 leading-none h-4 flex items-center justify-center"
+                style={{
+                  color:
                     form.stage === "gagne" ? getOpportunityStageColor("gagne")
                     : form.stage === "perdu" ? getOpportunityStageColor("perdu")
                     : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
@@ -638,70 +672,55 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </span>
 
               {/* Node circle & dropdown trigger */}
-              <div className="relative" style={{ width: 44 }}>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                    className={cn(
-                      "relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden",
-                      form.stage === "gagne" && "pipeline-gagne-node"
-                    )}
-                    style={{
-                      width: 44,
-                      height: 44,
-                      backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
-                      border:
-                        form.stage === "gagne" ? undefined
-                        : form.stage === "perdu" ? `3px solid ${getOpportunityStageColor("perdu")}`
-                        : form.stage === "abandonne" ? `3px solid ${getOpportunityStageColor("abandonne")}`
-                        : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
-                        : "2px solid #D1D5DB",
-                      boxShadow:
-                        form.stage === "gagne" ? undefined
-                        : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15), 0 2px 8px rgba(220,38,38,0.25)"
-                        : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15), 0 2px 8px rgba(245,158,11,0.25)"
-                        : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15), 0 2px 8px rgba(156,163,175,0.25)"
-                        : "none",
-                    }}
-                  >
-                    {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
-                      <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
-                          loadingStage === "gagne" ? getOpportunityStageColor("gagne")
-                          : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
-                          : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
-                          : getOpportunityStageColor("non_traitee")
-                        } strokeWidth="4" />
-                        <path className="opacity-75" fill={
-                          loadingStage === "gagne" ? getOpportunityStageColor("gagne")
-                          : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
-                          : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
-                          : getOpportunityStageColor("non_traitee")
-                        } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : form.stage === "gagne" ? (
-                      <img
-                        src="/icons_set/oppy_win_2.png"
-                        alt="Gagné"
-                        className="w-8 h-8 object-contain"
-                        style={{ position: "relative", zIndex: 1 }}
-                      />
-                    ) : null}
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                    className="p-1 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors"
-                    title="Choisir l'issue"
-                    style={{ position: "absolute", top: -6, right: -52, zIndex: 20 }}
-                  >
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                      <path d="M6 9l6 6 6-6" />
+              <div className="relative shrink-0" style={{ width: 52, height: 52 }}>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                  className={cn(
+                    "relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden w-full h-full",
+                    form.stage === "gagne" && "pipeline-gagne-node"
+                  )}
+                  style={{
+                    backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
+                    border:
+                      form.stage === "gagne" ? undefined
+                      : form.stage === "perdu" ? `3px solid ${getOpportunityStageColor("perdu")}`
+                      : form.stage === "abandonne" ? `3px solid ${getOpportunityStageColor("abandonne")}`
+                      : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
+                      : "2px solid #D1D5DB",
+                    boxShadow:
+                      form.stage === "gagne" ? undefined
+                      : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15), 0 2px 8px rgba(220,38,38,0.25)"
+                      : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15), 0 2px 8px rgba(245,158,11,0.25)"
+                      : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15), 0 2px 8px rgba(156,163,175,0.25)"
+                      : "none",
+                  }}
+                >
+                  {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
+                    <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
+                        loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                        : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                        : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                        : getOpportunityStageColor("non_traitee")
+                      } strokeWidth="4" />
+                      <path className="opacity-75" fill={
+                        loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                        : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                        : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                        : getOpportunityStageColor("non_traitee")
+                      } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                  </button>
+                  ) : form.stage === "gagne" ? (
+                    <img
+                      src="/icons_set/oppy_win_2.png"
+                      alt="Gagné"
+                      className="w-8 h-8 object-contain"
+                      style={{ position: "relative", zIndex: 1 }}
+                    />
+                  ) : null}
+                </button>
 
                 {/* Floating dropdown menu */}
                 {isIssueDropdownOpen && (
@@ -727,8 +746,8 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 )}
               </div>
 
-              {/* Label + sub description below */}
-              <div className="flex flex-col items-center mt-3 px-1 text-center">
+              {/* Label below */}
+              <div className="mt-3 text-center">
                 <span
                   className="text-[12px] font-bold leading-tight"
                   style={{
@@ -748,25 +767,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 </span>
               </div>
             </div>
-
-            {/* Shine beam — parcourt les barres de progression toutes les 7 s */}
-            {currentIdx > 0 && (
-              <div
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  top: 18,
-                  height: 8,
-                  left: 0,
-                  right: 0,
-                  pointerEvents: "none",
-                  zIndex: 30,
-                  overflow: "visible",
-                }}
-              >
-                <div className="pipeline-shine-beam" />
-              </div>
-            )}
           </div>
         </div>
       )
@@ -1024,6 +1024,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           opened_at: form.opened_at || null,
           start_date: form.start_date || null,
           target_close_date: form.target_close_date || null,
+          rythme: form.rythme || null,
+          budget: form.budget === "" ? null : Number(form.budget),
+          required_headcount: Number(form.required_headcount) || 1,
+          diffusion_date: form.diffusion_date || null,
+          decision_date: form.decision_date || null,
+          searched_profile: form.searched_profile || null,
         }
       } else if (section === "besoin") {
         payload = { ...payload, need_summary: form.need_summary || null, client_context: form.client_context || null }
@@ -1181,31 +1187,30 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   disabled={isPending}
                 />
               ) : (
-                <p className="text-xs text-body mt-1 font-medium bg-canvas/30 p-2.5 rounded border border-border/40">
+                <p className="text-xs text-body mt-1 font-medium">
                   {opportunity.need_summary || "—"}
                 </p>
               )}
             </div>
 
-            <div className="sm:col-span-2">
-              <label className={labelClass}>Contexte client</label>
+            <div>
+              <label className={labelClass}>Profil recherché</label>
               {editingSection === "synthese-opportunite" ? (
                 <input
                   type="text"
-                  value={form.client_context}
-                  onChange={(e) => setForm({ ...form, client_context: e.target.value })}
+                  placeholder="Intitulé exact du profil recherché"
+                  value={form.searched_profile}
+                  onChange={(e) => setForm({ ...form, searched_profile: e.target.value })}
                   className={inputClass}
                   disabled={isPending}
                 />
               ) : (
-                <p className="text-xs text-body mt-1 truncate" title={opportunity.client_context || ""}>
-                  {opportunity.client_context || "—"}
-                </p>
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.searched_profile || "—"}</p>
               )}
             </div>
 
             <div>
-              <label className={labelClass}>Séniorité visée</label>
+              <label className={labelClass}>Séniorité attendue</label>
               {editingSection === "synthese-opportunite" ? (
                 <input
                   type="text"
@@ -1216,6 +1221,22 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 />
               ) : (
                 <p className="text-xs font-semibold text-heading mt-1">{opportunity.seniority || "—"}</p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Nombre de ressources</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="number"
+                  min={1}
+                  value={form.required_headcount}
+                  onChange={(e) => setForm({ ...form, required_headcount: Number(e.target.value) || 1 })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">{opportunity.required_headcount || 1}</p>
               )}
             </div>
 
@@ -1256,6 +1277,49 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </div>
 
             <div>
+              <label className={labelClass}>Rythme</label>
+              {editingSection === "synthese-opportunite" ? (
+                <Select
+                  value={form.rythme}
+                  onChange={(e) => setForm({ ...form, rythme: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                >
+                  <option value="">— Sélectionner —</option>
+                  <option value="temps_plein">Temps plein</option>
+                  <option value="mi_temps">Mi-temps</option>
+                  <option value="temps_partiel">Temps partiel (à préciser)</option>
+                </Select>
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.rythme === "temps_plein" ? "Temps plein" :
+                   opportunity.rythme === "mi_temps" ? "Mi-temps" :
+                   opportunity.rythme === "temps_partiel" ? "Temps partiel (à préciser)" :
+                   opportunity.rythme || "—"}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Budget (TJM client)</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="TJ théorique (€)"
+                  value={form.budget}
+                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.budget ? `${opportunity.budget} €` : "—"}
+                </p>
+              )}
+            </div>
+
+            <div>
               <label className={labelClass}>Date d&apos;ouverture</label>
               {editingSection === "synthese-opportunite" ? (
                 <input
@@ -1292,7 +1356,39 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Date de début</label>
+              <label className={labelClass}>Diffusion</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="date"
+                  value={form.diffusion_date}
+                  onChange={(e) => setForm({ ...form, diffusion_date: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.diffusion_date ? formatDate(opportunity.diffusion_date) : "—"}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Décision</label>
+              {editingSection === "synthese-opportunite" ? (
+                <input
+                  type="date"
+                  value={form.decision_date}
+                  onChange={(e) => setForm({ ...form, decision_date: e.target.value })}
+                  className={inputClass}
+                  disabled={isPending}
+                />
+              ) : (
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.decision_date ? formatDate(opportunity.decision_date) : "—"}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Démarrage</label>
               {editingSection === "synthese-opportunite" ? (
                 <input
                   type="date"
@@ -1302,11 +1398,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   disabled={isPending}
                 />
               ) : (
-                <p className="text-xs font-semibold text-heading mt-1">{formatDate(opportunity.start_date)}</p>
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.start_date ? formatDate(opportunity.start_date) : "—"}
+                </p>
               )}
             </div>
             <div>
-              <label className={labelClass}>Clôture cible</label>
+              <label className={labelClass}>Fin</label>
               {editingSection === "synthese-opportunite" ? (
                 <input
                   type="date"
@@ -1316,7 +1414,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   disabled={isPending}
                 />
               ) : (
-                <p className="text-xs font-semibold text-heading mt-1">{formatDate(opportunity.target_close_date)}</p>
+                <p className="text-xs font-semibold text-heading mt-1">
+                  {opportunity.target_close_date ? formatDate(opportunity.target_close_date) : "—"}
+                </p>
               )}
             </div>
           </div>
@@ -1331,66 +1431,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             embedded
           />
         </section>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-        <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Image src="/icons_set/recrutement.png" alt="" width={20} height={20} className="object-contain shrink-0" />
-              <h4 className="text-sm font-bold text-heading">Staffing</h4>
-            </div>
-            {editingSection === "staffing" ? (
-              renderSectionEditControls("staffing")
-            ) : (
-              editingSection === null && (
-                <button
-                  type="button"
-                  onClick={() => setEditingSection("staffing")}
-                  className="p-1.5 text-muted hover:text-heading hover:bg-canvas rounded-md transition-all border border-transparent hover:border-border"
-                  title="Modifier cette section"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-              )
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Pilotage staffing</label>
-              {editingSection === "staffing" ? (
-                <label className="mt-1 inline-flex items-center gap-2 text-xs font-medium text-heading">
-                  <input
-                    type="checkbox"
-                    checked={form.requires_staffing}
-                    onChange={(e) => setForm({ ...form, requires_staffing: e.target.checked })}
-                    disabled={isPending}
-                  />
-                  Besoin à staffer
-                </label>
-              ) : (
-                <p className="text-xs font-semibold text-heading mt-1">{opportunity.requires_staffing ? "Oui" : "Non"}</p>
-              )}
-            </div>
-            <div>
-              <label className={labelClass}>Profils requis</label>
-              {editingSection === "staffing" ? (
-                <input
-                  type="number"
-                  min={1}
-                  value={form.required_headcount}
-                  onChange={(e) => setForm({ ...form, required_headcount: Number(e.target.value) || 1 })}
-                  className={inputClass}
-                  disabled={isPending}
-                />
-              ) : (
-                <p className="text-xs font-semibold text-heading mt-1">{opportunity.required_headcount || 1}</p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <div />
       </div>
     </div>
   )
@@ -1943,12 +1983,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </button>
           }
           practice={form.practice}
+          requiresStaffing={form.requires_staffing}
           isEditing={editingSection === "staffing"}
           isPending={isPending}
           onStartEdit={() => setEditingSection("staffing")}
           onCancel={handleCancel}
           onSave={() => handleSave("staffing")}
           onPracticeChange={(value) => setForm({ ...form, practice: value })}
+          onRequiresStaffingChange={(value) => setForm({ ...form, requires_staffing: value })}
         />
         {renderFinancialEquationSection()}
       </div>
@@ -1962,7 +2004,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   // ----------------------------------------------------------------
   return (
     <>
-    <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
+    <div className="w-full max-w-[1480px] mx-auto px-6 py-8 flex flex-col gap-6">
       {/* Header Desktop */}
       <div className="flex items-center justify-between gap-4 pb-5 border-b border-border">
         <div className="flex min-w-0 flex-1 items-center gap-4">
@@ -2028,73 +2070,68 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               )}
             </div>
 
-            <div className="flex shrink-0 items-center gap-4">
+            <div className="flex shrink-0 items-center gap-6">
               <OpportunityHeaderMetric
-                label="Practice"
                 value={practiceHeaderContent.value}
                 icon={
                   practiceHeaderContent.iconSrc ? (
                     <Image
                       src={practiceHeaderContent.iconSrc}
                       alt=""
-                      width={20}
-                      height={20}
-                      className="h-5 w-5 object-contain"
+                      width={36}
+                      height={36}
+                      className="h-9 w-9 object-contain"
                     />
                   ) : (
-                    <span className="block h-2 w-2 rounded-full bg-border" />
+                    <span className="block h-3.5 w-3.5 rounded-full bg-border" />
                   )
                 }
               />
               <OpportunityHeaderMetric
-                label="Type d'engagement"
                 value={engagementTypeValue}
                 icon={
                   <Image
                     src={HEADER_ICON_PATHS.engagementType}
                     alt=""
-                    width={20}
-                    height={20}
-                    className="h-5 w-5 object-contain"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 object-contain"
                   />
                 }
               />
               <OpportunityHeaderMetric
-                label="Date de démarrage"
                 value={formatDateNumeric(opportunity.start_date)}
                 icon={
                   <Image
                     src={HEADER_ICON_PATHS.startDate}
                     alt=""
-                    width={20}
-                    height={20}
-                    className="h-5 w-5 object-contain"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 object-contain"
                   />
                 }
               />
               <OpportunityHeaderMetric
-                label="Durée"
                 value={formatOpportunityDuration(opportunity.duration)}
                 icon={
                   <Image
                     src={HEADER_ICON_PATHS.duration}
                     alt=""
-                    width={20}
-                    height={20}
-                    className="h-5 w-5 object-contain"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 object-contain"
                   />
                 }
               />
               <OpportunityHeaderMetric
-                label="ACV estimé"
                 value={formatEuro(estimatedAcv)}
                 icon={
                   <Image
                     src={HEADER_ICON_PATHS.estimatedAcv}
                     alt=""
-                    width={20}
-                    height={20}
-                    className="h-5 w-5 object-contain"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 object-contain"
                   />
                 }
               />
@@ -2136,12 +2173,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               </button>
             }
             practice={form.practice}
+            requiresStaffing={form.requires_staffing}
             isEditing={editingSection === "staffing"}
             isPending={isPending}
             onStartEdit={() => setEditingSection("staffing")}
             onCancel={handleCancel}
             onSave={() => handleSave("staffing")}
             onPracticeChange={(value) => setForm({ ...form, practice: value })}
+            onRequiresStaffingChange={(value) => setForm({ ...form, requires_staffing: value })}
           />
           {renderFinancialEquationSection()}
         </div>

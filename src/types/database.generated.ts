@@ -2404,6 +2404,8 @@ export type Database = {
           remote_policy: string | null
           required_headcount: number
           requires_staffing: boolean
+          rythme: string | null
+          budget: number | null
           sector_id: string | null
           seniority: string | null
           source: string | null
@@ -2442,6 +2444,8 @@ export type Database = {
           remote_policy?: string | null
           required_headcount?: number
           requires_staffing?: boolean
+          rythme?: string | null
+          budget?: number | null
           sector_id?: string | null
           seniority?: string | null
           source?: string | null
@@ -2480,6 +2484,8 @@ export type Database = {
           remote_policy?: string | null
           required_headcount?: number
           requires_staffing?: boolean
+          rythme?: string | null
+          budget?: number | null
           sector_id?: string | null
           seniority?: string | null
           source?: string | null

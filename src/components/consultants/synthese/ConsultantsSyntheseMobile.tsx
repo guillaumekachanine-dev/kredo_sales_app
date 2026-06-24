@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useDrawerState } from '@/hooks/use-drawer-state'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { StatusPill } from '@/components/ui/StatusPill'
@@ -46,13 +46,7 @@ function isEnMission(row: CollaborateurRow): boolean {
 interface Props { data: CollaborateurRow[] }
 
 export function ConsultantsSyntheseMobile({ data }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-
-  function openDrawer(id: string) {
-    setSelectedId(id)
-    setDrawerOpen(true)
-  }
+  const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
   const enMission    = data.filter(isEnMission).length
   const interContrat = data.length - enMission
   const hasInterContrat = interContrat > 0

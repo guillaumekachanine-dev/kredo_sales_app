@@ -1,9 +1,13 @@
+import { Suspense } from "react"
 import { SyntheseFinanceSection } from "@/components/finance"
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 
 export const dynamic = "force-dynamic"
 
-// Onglet Finance — Synthèse financière décisionnelle (CA réalisé YTD, pipeCRM,
-// marges, P&L mensuels, anomalies facturation auditées par IA, cash flow dunning).
 export default function FinancePage() {
-  return <SyntheseFinanceSection />
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <SyntheseFinanceSection />
+    </Suspense>
+  )
 }

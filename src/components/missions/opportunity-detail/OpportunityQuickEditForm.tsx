@@ -59,9 +59,9 @@ function StageStepIcon({
     <Image
       src={icon}
       alt={label}
-      width={28}
-      height={28}
-      className="h-7 w-7 object-contain p-0.5 rounded-full transition-all duration-300"
+      width={32}
+      height={32}
+      className="h-8 w-8 object-contain transition-all duration-300"
       style={{
         filter: active ? "none" : "grayscale(100%)",
         opacity: active ? 1 : 0.4,
@@ -310,16 +310,6 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                         </svg>
                       )}
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                      className="p-0.5 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
-                    >
-                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
                   </div>
 
                   {/* Floating dropdown menu */}
@@ -469,16 +459,6 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                           <path d="M5 13l4 4L19 7" />
                         </svg>
                       )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                      className="p-0.5 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
-                    >
-                      <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
                     </button>
                   </div>
                 </div>

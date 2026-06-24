@@ -35,6 +35,11 @@ export interface UpdateOpportunityInput {
   opened_at?: string | null
   required_headcount?: number
   requires_staffing?: boolean
+  rythme?: string | null
+  budget?: number | null
+  diffusion_date?: string | null
+  decision_date?: string | null
+  searched_profile?: string | null
   next_action_label?: string | null
   next_action_at?: string | null
   win_reason?: string | null
@@ -112,6 +117,18 @@ export async function updateOpportunity(
   }
   if (input.engagement_notes !== undefined) {
     newContext.engagement_notes = normalizeText(input.engagement_notes)
+    hasContextChange = true
+  }
+  if (input.diffusion_date !== undefined) {
+    newContext.diffusion_date = normalizeText(input.diffusion_date)
+    hasContextChange = true
+  }
+  if (input.decision_date !== undefined) {
+    newContext.decision_date = normalizeText(input.decision_date)
+    hasContextChange = true
+  }
+  if (input.searched_profile !== undefined) {
+    newContext.searched_profile = normalizeText(input.searched_profile)
     hasContextChange = true
   }
 
@@ -198,6 +215,16 @@ export async function updateOpportunity(
   if (input.remote_policy !== undefined) updatePayload.remote_policy = normalizeText(input.remote_policy)
   if (input.seniority !== undefined) updatePayload.seniority = normalizeText(input.seniority)
   if (input.opened_at !== undefined) updatePayload.opened_at = normalizeText(input.opened_at)
+  if (input.rythme !== undefined) updatePayload.rythme = normalizeText(input.rythme)
+  if (input.budget !== undefined) {
+    const b = input.budget
+    if (b !== null) {
+      if (typeof b !== "number" || isNaN(b) || b < 0) {
+        return { error: "Le budget doit être supérieur ou égal à 0." }
+      }
+    }
+    updatePayload.budget = b
+  }
   if (input.required_headcount !== undefined) {
     if (!Number.isInteger(input.required_headcount) || input.required_headcount <= 0) {
       return { error: "Le nombre de profils requis doit être un entier supérieur à 0." }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useDrawerState } from '@/hooks/use-drawer-state'
+import { formatEuro } from '@/lib/formatters'
 import { getPracticeByName } from '@/lib/config/practices'
 import { cn } from '@/lib/utils'
 import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
@@ -74,9 +76,7 @@ function isEnMission(row: CollaborateurRow): boolean {
   return row.missions.some((m) => m.status === 'active')
 }
 
-function fmtEur(n: number): string {
-  return `${n.toLocaleString('fr-FR')} €`
-}
+const fmtEur = (n: number) => formatEuro(n)
 
 function getDaysInfo(endDate: string | null): {
   label: string
@@ -241,13 +241,7 @@ interface Props { data: CollaborateurRow[] }
 export function ConsultantsSyntheseDesktop({ data }: Props) {
   const [statusFilter, setStatusFilter]     = useState('all')
   const [practiceFilter, setPracticeFilter] = useState('all')
-  const [drawerOpen, setDrawerOpen]         = useState(false)
-  const [selectedId, setSelectedId]         = useState<string | null>(null)
-
-  function openDrawer(id: string) {
-    setSelectedId(id)
-    setDrawerOpen(true)
-  }
+  const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const activeMissions = data.flatMap((c) => c.missions.filter((m) => m.status === 'active'))

@@ -10,6 +10,9 @@ export type Opportunity = PublicSchema["Tables"]["opportunities"]["Row"] & {
   client_context?: string | null
   engagement_notes?: string | null
   outcome?: SalesOutcome | null
+  diffusion_date?: string | null
+  decision_date?: string | null
+  searched_profile?: string | null
 }
 
 export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"]

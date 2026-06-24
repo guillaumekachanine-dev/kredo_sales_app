@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
+import Image from "next/image"
 import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
-import { formatDate, formatEuro } from "./opportunity-detail-utils"
+import { formatDate, formatEuro } from "@/lib/formatters"
 import type { OpportunityStandingProfile } from "@/types/database-domain"
 
 interface OpportunityStandingPanelProps {
@@ -10,12 +11,14 @@ interface OpportunityStandingPanelProps {
   className?: string
   headerActions?: ReactNode
   practice: string
+  requiresStaffing: boolean
   isEditing: boolean
   isPending: boolean
   onStartEdit: () => void
   onCancel: () => void
   onSave: () => void
   onPracticeChange: (value: string) => void
+  onRequiresStaffingChange: (value: boolean) => void
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -40,13 +43,18 @@ function getStatusLabel(value: string) {
   return STATUS_LABELS[value] || normalizeLabel(value)
 }
 
-function PanelTitle({ title }: { title: string }) {
+function PanelTitle({ title, iconSrc }: { title: string; iconSrc?: string }) {
   return (
-    <div className="flex flex-col select-none mb-1">
-      <h2 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-        {title}
-      </h2>
-      <div className="w-8 h-0.5 mt-1.5 rounded-full bg-primary" />
+    <div className="flex items-center gap-2.5 mb-1 select-none">
+      {iconSrc && (
+        <Image src={iconSrc} alt="" width={28} height={28} className="object-contain shrink-0" />
+      )}
+      <div className="flex flex-col">
+        <h2 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          {title}
+        </h2>
+        <div className="w-8 h-0.5 mt-1.5 rounded-full bg-primary" />
+      </div>
     </div>
   )
 }
@@ -128,12 +136,14 @@ export function OpportunityStandingPanel({
   className,
   headerActions,
   practice,
+  requiresStaffing,
   isEditing,
   isPending,
   onStartEdit,
   onCancel,
   onSave,
   onPracticeChange,
+  onRequiresStaffingChange,
 }: OpportunityStandingPanelProps) {
   const selectedProfiles = profiles.filter((profile) => profile.origin === "pressenti")
   const aiProfiles = profiles.filter((profile) => profile.origin === "ia")
@@ -141,7 +151,7 @@ export function OpportunityStandingPanel({
   return (
     <SurfaceCard className={cn("border-y-0 border-r-0 border-l-4 border-primary p-5 md:p-6 shadow-sm flex flex-col gap-4 bg-gradient-to-r from-primary/[0.03] to-transparent", className)}>
       <div className="flex items-start justify-between gap-4">
-        <PanelTitle title="Staffing" />
+        <PanelTitle title="Staffing" iconSrc="/icons_set/recrutement.png" />
         <div className="flex items-center gap-2 shrink-0">
           {headerActions}
           {isEditing ? (
@@ -197,6 +207,23 @@ export function OpportunityStandingPanel({
           </Select>
         ) : (
           <p className="text-xs font-semibold text-heading">{practice || "—"}</p>
+        )}
+
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted mt-2">Pilotage staffing</span>
+        {isEditing ? (
+          <label className="inline-flex items-center gap-2 text-xs font-medium text-heading mt-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requiresStaffing}
+              onChange={(e) => onRequiresStaffingChange(e.target.checked)}
+              disabled={isPending}
+            />
+            Besoin à staffer
+          </label>
+        ) : (
+          <p className="text-xs font-semibold text-heading mt-1">
+            {requiresStaffing ? "Oui (besoin à staffer)" : "Non"}
+          </p>
         )}
       </div>
 

@@ -147,6 +147,9 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       client_context: getJsonString(opportunity.context, "client_context"),
       need_detail: getJsonString(opportunity.context, "need_detail"),
       engagement_notes: getJsonString(opportunity.context, "engagement_notes"),
+      diffusion_date: getJsonString(opportunity.context, "diffusion_date"),
+      decision_date: getJsonString(opportunity.context, "decision_date"),
+      searched_profile: getJsonString(opportunity.context, "searched_profile"),
       outcome,
     }
 

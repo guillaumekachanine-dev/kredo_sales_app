@@ -10,7 +10,7 @@ import {
   deleteOpportunityEvent,
 } from "@/app/(app)/missions/_actions/opportunity-events"
 import { cn } from "@/lib/utils"
-import { formatDateTime } from "./opportunity-detail-utils"
+import { formatDateTime } from "@/lib/formatters"
 
 interface OpportunityTimelinePanelProps {
   opportunityId: string

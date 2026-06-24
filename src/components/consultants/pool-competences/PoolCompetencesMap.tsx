@@ -10,6 +10,7 @@ import {
   type RefCallback,
 } from "react"
 import { ConsultantDrawer } from "@/components/consultants/ConsultantDrawer"
+import { useDrawerState } from "@/hooks/use-drawer-state"
 import type {
   PracticeTerritory,
   SkillCategory,
@@ -56,8 +57,7 @@ export function PoolCompetencesMap({
   collaborators,
 }: PoolCompetencesMapProps) {
   const [selectedSlug, setSelectedSlug] = useState(practices[0]?.slug ?? "")
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
   const [hoveredCategory, setHoveredCategory] = useState<SkillCategory | null>(null)
   const [pinnedCategory, setPinnedCategory] = useState<SkillCategory | null>(null)
   const [tooltipState, setTooltipState] = useState<SkillTooltipState>(null)
@@ -72,11 +72,6 @@ export function PoolCompetencesMap({
   const stageRef = useRef<HTMLDivElement | null>(null)
   const practiceRefs = useRef(new Map<string, HTMLButtonElement>())
   const skillCardRefs = useRef(new Map<SkillCategory, HTMLDivElement>())
-
-  function openDrawer(id: string) {
-    setSelectedId(id)
-    setDrawerOpen(true)
-  }
 
   const selectedPractice =
     practices.find((practice) => practice.slug === selectedSlug) ?? practices[0]

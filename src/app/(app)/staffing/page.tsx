@@ -1,9 +1,13 @@
+import { Suspense } from "react"
 import { SyntheseStaffingSection } from "@/components/staffing"
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 
 export const dynamic = "force-dynamic"
 
-// Onglet Staffing — Tour de contrôle et cockpit de staffing (TACE, intercontrat,
-// plan de charge vs demande, matching de profils).
 export default function StaffingPage() {
-  return <SyntheseStaffingSection />
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <SyntheseStaffingSection />
+    </Suspense>
+  )
 }
