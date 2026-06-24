@@ -62,6 +62,7 @@
   --color-warning:     #C08A20;   /* bg-warning  text-warning  */
   --color-danger:      #BE3E3E;   /* bg-danger   text-danger   */
   --color-accent:      #D97020;   /* bg-accent   text-accent   */
+  --color-info:        #2E7D8C;   /* bg-info     text-info     */
   --color-status-success: #2C7D5C;
   --color-status-warning: #C08A20;
   --color-status-danger:  #BE3E3E;
@@ -965,5 +966,142 @@ canvas {
   .kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):active,
   .kredo-quick-action-button:not(:disabled, [aria-disabled="true"]):is(:hover, :focus-visible) .kredo-quick-action-icon {
     transform: none;
+  }
+}
+
+@keyframes opportunity-skill-cloud-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(
+      var(--drift-x-amplitude, var(--cloud-drift-x, 0px)),
+      var(--drift-y-amplitude, var(--cloud-drift-y, 0px)),
+      0
+    ) scale(var(--drift-scale, var(--cloud-drift-scale, 1.01)));
+  }
+}
+
+/* Animation styles for the skills cloud */
+.skills-cloud-pill {
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), 
+              opacity 0.5s ease;
+}
+
+.skills-cloud-container:hover .skills-cloud-pill {
+  animation-duration: calc(var(--drift-duration, 10s) * 0.45) !important;
+  --drift-x-amplitude: calc(var(--cloud-drift-x, 0px) * 2.2);
+  --drift-y-amplitude: calc(var(--cloud-drift-y, 0px) * 2.2);
+  --drift-scale: calc(1 + (var(--cloud-drift-scale, 1.01) - 1) * 2.2);
+}
+
+/* Individual pill element hovers (intensifies when the user hovers over a specific pill) */
+.skills-cloud-pill button:hover,
+.skills-cloud-pill span:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 240, 0.96)) !important;
+  color: rgba(18, 28, 46, 1) !important;
+  border-color: rgba(255, 184, 18, 0.5) !important;
+  box-shadow: 0 12px 28px -8px rgba(255, 184, 18, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  transform: translateY(-2px) scale(1.06) !important;
+  z-index: 50 !important;
+}
+
+/* SVG background cloud elements animations */
+@keyframes skills-wire-drift-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-3px, 4px) scale(1.03);
+  }
+}
+
+@keyframes skills-wire-drift-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(4px, -3px) scale(0.97);
+  }
+}
+
+@keyframes skills-circle-drift-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(3px, 3px) scale(1.06);
+  }
+}
+
+@keyframes skills-circle-drift-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-4px, -2px) scale(0.94);
+  }
+}
+
+.skills-cloud-wire-1 {
+  animation: skills-wire-drift-1 14s ease-in-out infinite;
+  transform-origin: center;
+  transition: stroke 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.skills-cloud-wire-2 {
+  animation: skills-wire-drift-2 18s ease-in-out infinite;
+  transform-origin: center;
+  transition: stroke 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.skills-cloud-circle-1 {
+  animation: skills-circle-drift-1 12s ease-in-out infinite;
+  transform-origin: center;
+  transition: stroke 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+.skills-cloud-circle-2 {
+  animation: skills-circle-drift-2 16s ease-in-out infinite;
+  transform-origin: center;
+  transition: stroke 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Wires & circles intensify on hover */
+.skills-cloud-container:hover .skills-cloud-wire-1 {
+  animation-duration: 5s !important;
+  stroke: rgba(255, 184, 18, 0.42) !important;
+  transform: translate(-5px, 6px) scale(1.05);
+}
+
+.skills-cloud-container:hover .skills-cloud-wire-2 {
+  animation-duration: 6.5s !important;
+  stroke: rgba(255, 184, 18, 0.36) !important;
+  transform: translate(6px, -5px) scale(0.95);
+}
+
+.skills-cloud-container:hover .skills-cloud-circle-1 {
+  animation-duration: 4.5s !important;
+  stroke: rgba(255, 184, 18, 0.32) !important;
+  transform: translate(5px, 5px) scale(1.1);
+}
+
+.skills-cloud-container:hover .skills-cloud-circle-2 {
+  animation-duration: 5.5s !important;
+  stroke: rgba(255, 184, 18, 0.24) !important;
+  transform: translate(-6px, -3px) scale(0.9);
+}
+
+/* Accessibility: respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .skills-cloud-pill,
+  .skills-cloud-wire-1,
+  .skills-cloud-wire-2,
+  .skills-cloud-circle-1,
+  .skills-cloud-circle-2 {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

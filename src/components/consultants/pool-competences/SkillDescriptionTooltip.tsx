@@ -59,6 +59,12 @@ export function SkillDescriptionTooltip({
       <p className="mt-2 max-h-56 overflow-y-auto text-[12px] leading-5 text-primary-fg/92">
         {state.description}
       </p>
+      {state.relatedClients && state.relatedClients.length > 0 ? (
+        <p className="mt-3 border-t border-white/10 pt-3 text-[11px] leading-5 text-primary-fg/76">
+          <span className="font-bold text-primary-fg/88">Recherché par :</span>{" "}
+          {state.relatedClients.join(", ")}
+        </p>
+      ) : null}
     </div>
   )
 }

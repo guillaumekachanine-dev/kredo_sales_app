@@ -145,9 +145,12 @@ export function OpportunityContactsPanel({
   const content = (
     <>
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
-        <h3 className="text-sm font-bold text-heading">
-          Contacts liés
-        </h3>
+        <div className="flex items-center gap-2">
+          <img src="/icons_set/contacts_client.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+          <h3 className="text-sm font-bold text-heading">
+            Contacts liés
+          </h3>
+        </div>
         {!isLinking && (
           <button
             onClick={() => setIsLinking(true)}

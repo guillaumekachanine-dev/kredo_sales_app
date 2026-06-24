@@ -23,6 +23,7 @@ export type SkillTooltipState = {
   id: string
   name: string
   description: string
+  relatedClients?: string[]
   rect: DOMRect
 } | null
 

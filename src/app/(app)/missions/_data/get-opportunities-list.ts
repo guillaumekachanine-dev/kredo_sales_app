@@ -28,6 +28,8 @@ function formatDate(dateStr: string | null): string {
 
 interface CompanyInfo {
   name: string
+  website?: string | null
+  metadata?: any
 }
 
 interface DBQueryResult {
@@ -111,7 +113,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         required_headcount,
         requires_staffing,
         companies (
-          name
+          name,
+          website,
+          metadata
         )
       `)
       .order("updated_at", { ascending: false })
@@ -141,12 +145,20 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         ? [...tagParts, `${item.conviction}%`].join(" · ")
         : `${STAGE_LABELS[item.stage] || item.stage} · ${item.conviction}% · ${PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`}`
 
+      const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
+      const clientWebsite = compRecord?.website ?? null
+      const clientLogoPath = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
+        ? (compRecord.metadata as any).logo_path || null
+        : null
+
       return {
         entityId: item.id,
         entityType: "opportunite",
         title: item.title,
         subtitle: item.practice || undefined,
         client: getCompanyName(item.companies),
+        clientWebsite,
+        clientLogoPath,
         amount: formatEuro(amountVal),
         date: dateStr,
         tag,
@@ -189,6 +201,8 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       amount: row.amount,
       date: row.date,
       client: row.client,
+      clientWebsite: row.clientWebsite,
+      clientLogoPath: row.clientLogoPath,
       tag: row.tag,
       conviction: row.conviction,
       acv: row.acv,
@@ -212,3 +226,4 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
     return []
   }
 }
+

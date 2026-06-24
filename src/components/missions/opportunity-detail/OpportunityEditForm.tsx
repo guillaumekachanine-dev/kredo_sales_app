@@ -996,12 +996,17 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const inputClass = "w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
   const labelClass = "block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1"
 
-  const renderPanelTitle = (title: string, accentClass = "bg-primary") => (
-    <div className="flex flex-col select-none mb-1">
-      <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-        {title}
-      </h3>
-      <div className={cn("w-8 h-0.5 mt-1.5 rounded-full", accentClass)} />
+  const renderPanelTitle = (title: string, accentClass = "bg-primary", iconSrc?: string) => (
+    <div className="flex items-center gap-2.5 mb-1 select-none">
+      {iconSrc && (
+        <img src={iconSrc} alt="" className="w-7 h-7 object-contain shrink-0" />
+      )}
+      <div className="flex flex-col">
+        <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+          {title}
+        </h3>
+        <div className={cn("w-8 h-0.5 mt-1.5 rounded-full", accentClass)} />
+      </div>
     </div>
   )
 
@@ -1025,7 +1030,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
-          <h4 className="text-sm font-bold text-heading">Besoin client</h4>
+          <div className="flex items-center gap-2">
+            <img src="/icons_set/contexte_client.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+            <h4 className="text-sm font-bold text-heading">Besoin client</h4>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className={labelClass}>Résumé du besoin</label>
@@ -1143,7 +1151,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
-          <h4 className="text-sm font-bold text-heading">Planning de l&apos;opportunité</h4>
+          <div className="flex items-center gap-2">
+            <img src="/icons_set/date.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+            <h4 className="text-sm font-bold text-heading">Planning de l&apos;opportunité</h4>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Date de début</label>
@@ -1189,7 +1200,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
           <div className="flex items-start justify-between gap-3">
-            <h4 className="text-sm font-bold text-heading">Staffing</h4>
+            <div className="flex items-center gap-2">
+              <img src="/icons_set/recrutement.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+              <h4 className="text-sm font-bold text-heading">Staffing</h4>
+            </div>
             {editingSection === "staffing" ? (
               renderSectionEditControls("staffing")
             ) : (
@@ -1248,7 +1262,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const renderEngagementSection = () => (
     <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-success rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-5 relative bg-gradient-to-br from-cat-success/[0.02] to-transparent">
       <div className="flex items-start justify-between gap-4">
-        {renderPanelTitle("Activité commerciale", "bg-cat-success")}
+        {renderPanelTitle("Activité commerciale", "bg-cat-success", "/icons_set/activite_commerciale.png")}
         <div className="flex items-center gap-2 shrink-0">
           {editingSection === null && (
             <button
@@ -1382,7 +1396,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const renderFinancialEquationSection = () => (
     <div className="bg-surface border-y-0 border-r-0 border-l-4 border-cat-warning rounded-xl p-5 md:p-6 shadow-sm flex flex-col gap-4 relative bg-gradient-to-br from-cat-warning/[0.01] to-transparent">
       <div className="flex items-start justify-between gap-4">
-        {renderPanelTitle("Conditions financières", "bg-cat-warning")}
+        {renderPanelTitle("Conditions financières", "bg-cat-warning", "/icons_set/conditions_financieres_3.png")}
         {editingSection === "economie" ? (
           renderSectionEditControls("economie")
         ) : (

@@ -366,6 +366,25 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - **Types DB** : `database.generated.ts` régénéré (4064 lignes, `calendar_events` + `create_calendar_event` RPC inclus).
 - **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0 · `✓ Compiled successfully in 6.1s`.
 
+### Session 11 — Mise à jour des KPIs & section Compétences sur la page Opportunités (2026-06-24)
+- **`globals.css`** : Ajout de `--color-info: #2E7D8C;` dans le thème Tailwind `@theme` pour corriger les pastilles et textes utilisant la couleur d'information `info` (comme l'état « CV envoyés »).
+- **`page.tsx`** (page Opportunités `/missions/opps`) :
+  - Intégration de `createClient` pour requêter dynamiquement la table `opportunity_candidates` sur Supabase.
+  - Calcul dynamique du nombre de profils poussés pour les besoins (nombre d'opportunités en étape "CV envoyés" `cv_envoyes` et nombre de candidats/CVs associés).
+  - Alignement des KPI cards avec le design de l'app : retrait de `size="compact"` pour utiliser la taille par défaut et ajout de `accent="brass"` sur le "Pipe pondéré" pour correspondre aux autres dashboards.
+  - Création d'une disposition 3/4 - 1/4 sur grand écran : les KPIs prennent 3/4 de la largeur et une nouvelle section "Compétences" sous forme de `SurfaceCard` prend le 1/4 restant sous forme de placeholder en pointillés.
+  - Suppression de la ligne (`border-b`) sous le titre de la page.
+- **`get-opportunities-list.ts`** : Sélection et transmission des champs `website` et `metadata` des comptes (`companies`) pour alimenter les logos client dans les listes d'opportunités.
+- **`OpportunitiesDesktopView.tsx`** :
+  - Remplacement du filtre par groupes d'étapes par toutes les étapes d'opportunité individuelles précises (Qualification, Recherche profils, CV sent, Présentation client (RT), Abandonné, Gagné, Perdu).
+  - Ajout d'un sélecteur de filtre de conviction (`< 70 %` et `> 70 %`).
+  - Insertion du composant `<CompanyLogo>` devant le nom du client dans la colonne "Compte" de la table.
+  - Limitation de la largeur de la colonne "Compte" (`width: "14rem"`, `min-w-0`, `truncate`) pour décaler la colonne "Opportunité" et les suivantes vers la gauche.
+  - Alignement au centre (`align: "center"`) des en-têtes et contenus pour "Conviction" (avec `justify-center`), "TJM cible" et "Valeur (ACV)".
+  - Affichage de la date de clôture exacte au format `"JJ/MM"` par un parsing robuste.
+  - Ajout d'un sélecteur de filtre "Valeur" pour trier les opportunités par ordre de leur ACV (`Tri croissant` et `Tri décroissant`), avec le texte par défaut mis à jour à `"Valeur (ACV)"` (au lieu de `"Pas de tri"`).
+- **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0.
+
 **Prochain focus :** Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Migration des autres écrans (Staffing, Missions) sur le pattern Cockpit/Finance. Lot 3 — Scoring + Atelier IA, moteur de rédaction bi-grain, retrait routes orphelines.
 
 ---

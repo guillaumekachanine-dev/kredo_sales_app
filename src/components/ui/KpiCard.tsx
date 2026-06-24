@@ -25,19 +25,19 @@ export interface KpiCardProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
 
 const sizeClasses: Record<KpiCardSize, { wrapper: string; value: string; label: string }> = {
   compact: {
-    wrapper: "gap-3 p-4",
-    value: "text-[length:var(--font-size-kpi-sm)] leading-[var(--line-height-kpi-sm)]",
-    label: "text-[length:var(--font-size-label-sm)]",
+    wrapper: "gap-2 p-3.5",
+    value: "text-xl md:text-2xl leading-none",
+    label: "text-xs md:text-sm font-medium",
   },
   default: {
-    wrapper: "gap-4 p-5",
-    value: "text-[length:var(--font-size-kpi-md)] leading-[var(--line-height-kpi-md)]",
-    label: "text-[length:var(--font-size-label-sm)]",
+    wrapper: "gap-2.5 p-4",
+    value: "text-3xl md:text-4xl leading-none",
+    label: "text-sm md:text-base font-medium",
   },
   hero: {
-    wrapper: "gap-4 p-6",
-    value: "text-[length:var(--font-size-kpi-lg)] leading-[var(--line-height-kpi-lg)]",
-    label: "text-[length:var(--font-size-label-md)]",
+    wrapper: "gap-3 p-5",
+    value: "text-4xl md:text-5xl leading-none",
+    label: "text-base md:text-lg font-medium",
   },
 }
 
@@ -85,29 +85,7 @@ export function KpiCard({
       <div className={cn("flex h-full flex-col", currentSize.wrapper)} aria-busy={loading || undefined}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className={cn("font-medium text-muted", currentSize.label)}>{label}</p>
-            <div className="mt-2 flex items-end gap-2">
-              <p
-                className={cn(
-                  "font-heading font-bold tracking-[-0.02em] text-heading",
-                  currentSize.value,
-                  loading && "text-transparent",
-                )}
-              >
-                {value}
-              </p>
-              {delta ? (
-                <span
-                  className={cn(
-                    "pb-1 text-[length:var(--font-size-label-sm)] font-medium leading-[var(--line-height-label-sm)]",
-                    deltaToneClasses[deltaTone],
-                    loading && "text-transparent",
-                  )}
-                >
-                  {delta}
-                </span>
-              ) : null}
-            </div>
+            <p className={cn("text-muted", currentSize.label)}>{label}</p>
           </div>
 
           {icon ? (
@@ -126,14 +104,39 @@ export function KpiCard({
           ) : null}
         </div>
 
+        <div className="flex-1 flex flex-col justify-center my-3 min-h-[3.25rem]">
+          <div className="flex items-center justify-start gap-2">
+            <p
+              className={cn(
+                "font-heading font-bold tracking-[-0.02em] text-heading",
+                currentSize.value,
+                loading && "text-transparent",
+              )}
+            >
+              {value}
+            </p>
+            {delta ? (
+              <span
+                className={cn(
+                  "text-[length:var(--font-size-label-sm)] font-medium leading-[var(--line-height-label-sm)]",
+                  deltaToneClasses[deltaTone],
+                  loading && "text-transparent",
+                )}
+              >
+                {delta}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
         {context ? (
-          <p className={cn("text-sm leading-6 text-body", loading && "text-transparent")}>{context}</p>
+          <p className={cn("mt-auto text-[11px] leading-normal text-muted/80 pt-2 text-center w-full", loading && "text-transparent")}>{context}</p>
         ) : null}
 
         {target || normalizedProgress !== undefined ? (
           <div className="mt-auto space-y-2 pt-2">
             {target ? (
-              <div className={cn("text-sm text-muted", loading && "text-transparent")}>{target}</div>
+              <div className={cn("text-sm text-muted text-center w-full", loading && "text-transparent")}>{target}</div>
             ) : null}
             {normalizedProgress !== undefined ? (
               <div

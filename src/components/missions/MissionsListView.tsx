@@ -286,8 +286,8 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
               openTab({
                 entityType: row.entityType,
                 entityId: row.entityId,
-                title: row.title,
-                subtitle: row.subtitle,
+                title: row.entityType === "opportunite" ? (row.client ?? row.title) : row.title,
+                subtitle: row.entityType === "opportunite" ? row.title : row.subtitle,
               })
             }
             ariaLabel="Liste des missions"
@@ -306,8 +306,8 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
                 openTab({
                   entityType: row.entityType,
                   entityId: row.entityId,
-                  title: row.title,
-                  subtitle: row.subtitle,
+                  title: row.entityType === "opportunite" ? (row.client ?? row.title) : row.title,
+                  subtitle: row.entityType === "opportunite" ? row.title : row.subtitle,
                 })
               }
               className={cn(

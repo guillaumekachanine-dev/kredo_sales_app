@@ -11,6 +11,7 @@ import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { STAGE_LABELS, PRIORITY_LABELS } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 
 // ─── Mapping Étape → StatusPill ───────────────────────────────────────────────
 
@@ -37,21 +38,6 @@ const PRIORITY_BADGE: Record<string, BadgeVariant> = {
   basse:   "neutral",
 }
 
-// ─── Filtre par groupe d'étape ────────────────────────────────────────────────
-
-type StageGroup = "all" | "ouvertes" | "gagnees" | "perdues"
-
-const CLOSED_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee"])
-
-function matchesStageGroup(row: MissionsListRow, group: StageGroup): boolean {
-  const stage = row.stage ?? ""
-  if (group === "all")     return true
-  if (group === "ouvertes") return !CLOSED_STAGES.has(stage)
-  if (group === "gagnees")  return stage === "gagne"
-  if (group === "perdues")  return stage === "perdu" || stage === "abandonne"
-  return true
-}
-
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 interface OpportunitiesDesktopViewProps {
@@ -61,26 +47,52 @@ interface OpportunitiesDesktopViewProps {
 export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktopViewProps) {
   const { openTab } = useMissionsTabStore()
 
-  const [stageGroup, setStageGroup]       = useState<StageGroup>("all")
+  const [stageFilter, setStageFilter]       = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
+  const [convictionFilter, setConvictionFilter] = useState("all")
+  const [valueSort, setValueSort] = useState("none")
 
   const filtered = useMemo(
-    () =>
-      opportunities.filter(
+    () => {
+      let result = opportunities.filter(
         (row) =>
-          matchesStageGroup(row, stageGroup) &&
-          (priorityFilter === "all" || row.priority === priorityFilter),
-      ),
-    [opportunities, stageGroup, priorityFilter],
+          (stageFilter === "all" || row.stage === stageFilter) &&
+          (priorityFilter === "all" || row.priority === priorityFilter) &&
+          (convictionFilter === "all" ||
+            (convictionFilter === "under_70" && (row.conviction ?? 0) < 70) ||
+            (convictionFilter === "above_70" && (row.conviction ?? 0) >= 70)),
+      )
+
+      if (valueSort === "desc") {
+        result = [...result].sort((a, b) => {
+          const valA = a.acv ?? a.estimatedGain ?? 0
+          const valB = b.acv ?? b.estimatedGain ?? 0
+          return valB - valA
+        })
+      } else if (valueSort === "asc") {
+        result = [...result].sort((a, b) => {
+          const valA = a.acv ?? a.estimatedGain ?? 0
+          const valB = b.acv ?? b.estimatedGain ?? 0
+          return valA - valB
+        })
+      }
+
+      return result
+    },
+    [opportunities, stageFilter, priorityFilter, convictionFilter, valueSort],
   )
 
   const activeFilterCount =
-    (stageGroup !== "all" ? 1 : 0) +
-    (priorityFilter !== "all" ? 1 : 0)
+    (stageFilter !== "all" ? 1 : 0) +
+    (priorityFilter !== "all" ? 1 : 0) +
+    (convictionFilter !== "all" ? 1 : 0) +
+    (valueSort !== "none" ? 1 : 0)
 
   const handleReset = () => {
-    setStageGroup("all")
+    setStageFilter("all")
     setPriorityFilter("all")
+    setConvictionFilter("all")
+    setValueSort("none")
   }
 
   // ── Colonnes ────────────────────────────────────────────────────────────────
@@ -88,8 +100,17 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
     {
       id: "client",
       header: "Compte",
+      width: "14rem",
       render: (row) => (
-        <span className="font-bold text-heading">{row.client ?? "—"}</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <CompanyLogo
+            name={row.client || "Client"}
+            logoPath={row.clientLogoPath}
+            website={row.clientWebsite}
+            size="sm"
+          />
+          <span className="font-bold text-heading truncate">{row.client ?? "—"}</span>
+        </div>
       ),
     },
     {
@@ -119,12 +140,12 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
     {
       id: "conviction",
       header: "Conviction",
-      align: "right",
+      align: "center",
       width: "9rem",
       render: (row) => {
         const pct = row.conviction ?? 0
         return (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-center gap-2">
             <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border">
               <div
                 className="h-full rounded-full bg-primary/70 transition-[width] duration-300"
@@ -141,7 +162,7 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
     {
       id: "acv",
       header: "Valeur (ACV)",
-      align: "right",
+      align: "center",
       render: (row) => (
         <span className="font-medium tabular-nums text-heading">{row.amount ?? "—"}</span>
       ),
@@ -149,7 +170,7 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
     {
       id: "tjm",
       header: "TJM cible",
-      align: "right",
+      align: "center",
       width: "6rem",
       render: (row) =>
         row.targetDailyRate ? (
@@ -163,7 +184,15 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
       header: "Clôture",
       align: "center",
       width: "7.5rem",
-      render: (row) => <span className="text-body">{row.date ?? "—"}</span>,
+      render: (row) => {
+        const dateVal = row.targetCloseDate
+        if (!dateVal) return <span className="text-muted">—</span>
+        const parts = dateVal.split("-")
+        if (parts.length < 3) return <span className="text-muted">—</span>
+        const day = parts[2].slice(0, 2)
+        const month = parts[1]
+        return <span className="text-body font-medium">{`${day}/${month}`}</span>
+      },
     },
     {
       id: "priority",
@@ -200,13 +229,17 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
         <PageFilterSelect
           id="opp-stage-filter"
           label="Étape"
-          value={stageGroup}
-          onChange={(v) => setStageGroup(v as StageGroup)}
+          value={stageFilter}
+          onChange={setStageFilter}
           options={[
-            { value: "all",      label: "Toutes les étapes" },
-            { value: "ouvertes", label: "En cours" },
-            { value: "gagnees",  label: "Gagnées" },
-            { value: "perdues",  label: "Perdues / Abandonnées" },
+            { value: "all", label: "Toutes les étapes" },
+            { value: "qualification", label: "Qualification" },
+            { value: "recherche_profil", label: "Recherche profils" },
+            { value: "cv_envoyes", label: "CV sent" },
+            { value: "entretien_client", label: "Présentation client (RT)" },
+            { value: "abandonne", label: "Abandonné" },
+            { value: "gagne", label: "Gagné" },
+            { value: "perdu", label: "Perdu" },
           ]}
         />
         <PageFilterSelect
@@ -219,6 +252,28 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
             { value: "haute",   label: "Haute" },
             { value: "normale", label: "Normale" },
             { value: "basse",   label: "Basse" },
+          ]}
+        />
+        <PageFilterSelect
+          id="opp-conviction-filter"
+          label="Conviction"
+          value={convictionFilter}
+          onChange={setConvictionFilter}
+          options={[
+            { value: "all", label: "Toutes convictions" },
+            { value: "under_70", label: "< 70 %" },
+            { value: "above_70", label: "> 70 %" },
+          ]}
+        />
+        <PageFilterSelect
+          id="opp-value-sort"
+          label="Valeur"
+          value={valueSort}
+          onChange={setValueSort}
+          options={[
+            { value: "none", label: "Valeur (ACV)" },
+            { value: "desc", label: "Tri décroissant" },
+            { value: "asc", label: "Tri croissant" },
           ]}
         />
       </PageFilterBar>
