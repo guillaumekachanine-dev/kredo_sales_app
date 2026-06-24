@@ -137,6 +137,33 @@
   }
 }
 
+/* Pipeline progression bar — cold-to-warm shine sweep (7 s cycle) */
+@keyframes pipeline-shine-kf {
+  0%   { left: -38%; opacity: 0; }
+  5%   { opacity: 0.85; }
+  27%  { left: 118%; opacity: 0.85; }
+  30%  { opacity: 0; }
+  100% { left: 118%; opacity: 0; }
+}
+
+.pipeline-shine-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -38%;
+  width: 26%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.72),
+    transparent
+  );
+  border-radius: 6px;
+  animation: pipeline-shine-kf 7s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
 @keyframes pool-competences-card-in {
   0% {
     opacity: 0;
@@ -616,6 +643,44 @@ canvas {
 .kredo-ready-action-button:disabled::after {
   animation: none;
   opacity: 0;
+}
+
+/* Pipeline — nœud "Gagné" : effet dégradé animé style ReadyActionButton */
+/* Anneau dégradé animé : intérieur blanc avec image, bordure seule colorée */
+.pipeline-gagne-node {
+  background-image:
+    linear-gradient(#ffffff, #ffffff),
+    linear-gradient(
+      135deg,
+      #5b57f5, #7c4fff, #b84dff, #ff004d, #ff7a00, #ffb700,
+      #33d17a, #00c2ff, #4f6bff, #5b57f5, #b84dff, #5b57f5
+    );
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-size: auto, 400% 400%;
+  border: 3px solid transparent !important;
+  animation: kredo-ready-gradient-flow 3s linear infinite;
+  overflow: hidden;
+}
+
+/* Shine sweep sur toute la surface, mode screen pour laisser l'image visible */
+.pipeline-gagne-node::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 15%,
+    rgba(255, 255, 255, 0.72) 50%,
+    rgba(255, 255, 255, 0) 85%,
+    transparent 100%
+  );
+  animation: kredo-ready-shine 4s ease-in-out infinite;
+  animation-delay: 0.5s;
 }
 
 @media (prefers-reduced-motion: reduce) {

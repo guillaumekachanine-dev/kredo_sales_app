@@ -19,6 +19,7 @@ interface OpportunityDetailData {
     id: string
     name: string
     sector: string | null
+    website: string | null
   } | null
   skills: OpportunitySkill[]
   contacts: Array<{

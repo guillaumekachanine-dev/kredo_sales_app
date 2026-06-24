@@ -31,6 +31,47 @@ function pickOne<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? value[0] ?? null : value
 }
 
+export async function getCompanyContacts(companyId: string): Promise<SearchContactResult[]> {
+  if (!companyId) return []
+
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("contacts")
+      .select(`
+        id,
+        job_title,
+        persons (
+          full_name,
+          primary_email
+        ),
+        companies (
+          name
+        )
+      `)
+      .eq("company_id", companyId)
+      .limit(30)
+
+    if (error || !data) return []
+
+    return (data as SearchContactRow[]).map((item) => {
+      const person = pickOne(item.persons)
+      const company = pickOne(item.companies)
+      return {
+        id: item.id,
+        full_name: person?.full_name || "",
+        email: person?.primary_email || null,
+        job_title: item.job_title,
+        account_name: company?.name || null,
+      }
+    })
+  } catch (err) {
+    console.error("Erreur lors de la récupération des contacts du compte :", err)
+    return []
+  }
+}
+
 export async function searchContacts(query: string): Promise<SearchContactResult[]> {
   if (!query || query.trim().length < 1) {
     return []

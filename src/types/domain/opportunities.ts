@@ -80,5 +80,5 @@ export type SalesStage =
 
 export type SalesOutcome = "gagnee" | "perdue" | "abandonnee" | "non_traitee"
 export type SalesPriority = "haute" | "moyenne" | "basse"
-export type ContactRole = "decisionnaire" | "operationnel" | "prescripteur" | "achat"
+export type ContactRole = "sponsor" | "decideur" | "manager_operationnel" | "acheteur" | "rh" | "contact_technique" | "validateur_final"
 export type SkillImportance = "indispensable" | "souhaitee" | "bonus"

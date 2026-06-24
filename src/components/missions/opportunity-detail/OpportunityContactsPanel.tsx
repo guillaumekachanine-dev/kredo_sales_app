@@ -9,11 +9,16 @@ import {
   updateOpportunityContactRole,
   unlinkOpportunityContact,
 } from "@/app/(app)/missions/_actions/opportunity-contacts"
-import { searchContacts, type SearchContactResult } from "@/app/(app)/missions/_actions/search-contacts"
+import {
+  searchContacts,
+  getCompanyContacts,
+  type SearchContactResult,
+} from "@/app/(app)/missions/_actions/search-contacts"
 import { cn } from "@/lib/utils"
 
 interface OpportunityContactsPanelProps {
   opportunityId: string
+  companyId: string | null
   contacts: Array<{
     contact: Contact
     role: string | null
@@ -24,14 +29,18 @@ interface OpportunityContactsPanelProps {
 }
 
 const ROLE_OPTIONS: Array<{ value: ContactRole; label: string }> = [
-  { value: "decisionnaire", label: "Décisionnaire" },
-  { value: "operationnel", label: "Opérationnel" },
-  { value: "prescripteur", label: "Prescripteur" },
-  { value: "achat", label: "Achat" },
+  { value: "decideur", label: "Décisionnaire" },
+  { value: "acheteur", label: "Acheteur" },
+  { value: "sponsor", label: "Sponsor" },
+  { value: "manager_operationnel", label: "Manager opérationnel" },
+  { value: "rh", label: "RH" },
+  { value: "contact_technique", label: "Contact technique" },
+  { value: "validateur_final", label: "Validateur final" },
 ]
 
 export function OpportunityContactsPanel({
   opportunityId,
+  companyId,
   contacts,
   onRefresh,
   className,
@@ -40,17 +49,30 @@ export function OpportunityContactsPanel({
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // Recherche
   const [isLinking, setIsLinking] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchContactResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-
-  // Rôle sélectionné par défaut pour le nouveau lien
   const [selectedRole, setSelectedRole] = useState<ContactRole | "">("")
 
-  // Réf pour stocker le timeout du debounce
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Existing linked contact IDs (to filter them out from results)
+  const linkedIds = new Set(contacts.map((c) => c.contact.id))
+
+  const openLinking = () => {
+    setIsLinking(true)
+    setSearchQuery("")
+    setSearchResults([])
+    // Pre-load contacts from the company if available
+    if (companyId) {
+      setIsSearching(true)
+      getCompanyContacts(companyId).then((results) => {
+        setSearchResults(results.filter((r) => !linkedIds.has(r.id)))
+        setIsSearching(false)
+      })
+    }
+  }
 
   const handleSearchQueryChange = (val: string) => {
     setSearchQuery(val)
@@ -60,20 +82,28 @@ export function OpportunityContactsPanel({
     }
 
     if (val.trim().length < 1) {
-      setSearchResults([])
-      setIsSearching(false)
+      // Restore company contacts when query cleared
+      if (companyId) {
+        setIsSearching(true)
+        getCompanyContacts(companyId).then((results) => {
+          setSearchResults(results.filter((r) => !linkedIds.has(r.id)))
+          setIsSearching(false)
+        })
+      } else {
+        setSearchResults([])
+        setIsSearching(false)
+      }
       return
     }
 
     setIsSearching(true)
     debounceTimeoutRef.current = setTimeout(async () => {
       const results = await searchContacts(val)
-      setSearchResults(results)
+      setSearchResults(results.filter((r) => !linkedIds.has(r.id)))
       setIsSearching(false)
     }, 300)
   }
 
-  // Nettoyage du timeout au démontage du composant
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -140,20 +170,19 @@ export function OpportunityContactsPanel({
     })
   }
 
-  const inputClass = "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
+  const inputClass =
+    "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
 
   const content = (
     <>
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="flex items-center gap-2">
           <img src="/icons_set/contacts_client.png" alt="" className="w-5 h-5 object-contain shrink-0" />
-          <h3 className="text-sm font-bold text-heading">
-            Contacts liés
-          </h3>
+          <h3 className="text-sm font-bold text-heading">Contacts liés</h3>
         </div>
         {!isLinking && (
           <button
-            onClick={() => setIsLinking(true)}
+            onClick={openLinking}
             className="text-[10px] font-bold text-primary hover:underline"
             disabled={isPending}
           >
@@ -172,7 +201,9 @@ export function OpportunityContactsPanel({
       {isLinking && (
         <div className="p-3 bg-canvas/30 rounded border border-border/60 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Lier un contact existant</span>
+            <span className="text-[9px] uppercase tracking-wider text-muted font-bold">
+              {companyId ? "Contacts du compte (ou rechercher)" : "Lier un contact existant"}
+            </span>
             <button
               onClick={() => {
                 setIsLinking(false)
@@ -205,47 +236,50 @@ export function OpportunityContactsPanel({
               >
                 <option value="">Sans rôle spécifique</option>
                 {ROLE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
                 ))}
               </Select>
             </div>
           </div>
 
-          {/* Résultats de recherche */}
-          {searchQuery.trim().length > 0 && (
-            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto border-t border-border/40 pt-2">
-              {isSearching ? (
-                <span className="text-[10px] text-muted italic">Recherche en cours...</span>
-              ) : searchResults.length === 0 ? (
-                <span className="text-[10px] text-muted italic">Aucun contact trouvé.</span>
-              ) : (
-                searchResults.map((contact) => (
-                  <div
-                    key={contact.id}
-                    onClick={() => handleLink(contact.id)}
-                    className="flex items-center justify-between p-2 rounded hover:bg-canvas/60 cursor-pointer border border-transparent hover:border-border/30 transition-all text-xs"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-heading">{contact.full_name}</span>
-                      <span className="text-[10px] text-muted">
-                        {contact.job_title || "—"} {contact.account_name ? `(${contact.account_name})` : ""}
-                      </span>
-                    </div>
-                    <button
-                      className="text-[10px] font-bold text-primary hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleLink(contact.id)
-                      }}
-                      disabled={isPending}
-                    >
-                      Lier
-                    </button>
+          {/* Résultats */}
+          <div className="flex flex-col gap-1 max-h-52 overflow-y-auto border-t border-border/40 pt-2">
+            {isSearching ? (
+              <span className="text-[10px] text-muted italic">Chargement...</span>
+            ) : searchResults.length === 0 ? (
+              <span className="text-[10px] text-muted italic">
+                {searchQuery.trim().length > 0 ? "Aucun contact trouvé." : "Aucun contact disponible."}
+              </span>
+            ) : (
+              searchResults.map((contact) => (
+                <div
+                  key={contact.id}
+                  onClick={() => handleLink(contact.id)}
+                  className="flex items-center justify-between p-2 rounded hover:bg-canvas/60 cursor-pointer border border-transparent hover:border-border/30 transition-all text-xs"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-heading">{contact.full_name}</span>
+                    <span className="text-[10px] text-muted">
+                      {contact.job_title || "—"}
+                      {contact.account_name ? ` (${contact.account_name})` : ""}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-          )}
+                  <button
+                    className="text-[10px] font-bold text-primary hover:underline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleLink(contact.id)
+                    }}
+                    disabled={isPending}
+                  >
+                    Lier
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -259,7 +293,6 @@ export function OpportunityContactsPanel({
               key={contact.id}
               className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2"
             >
-              {/* Infos Contact */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-heading">{contact.full_name}</span>
@@ -279,9 +312,10 @@ export function OpportunityContactsPanel({
                 </button>
               </div>
 
-              {/* Rôle associé */}
               <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2">
-                <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Rôle dans l&apos;opp :</span>
+                <span className="text-[9px] uppercase tracking-wider text-muted font-bold">
+                  Rôle dans l&apos;opp :
+                </span>
                 <Select
                   value={role || ""}
                   onChange={(e) => handleRoleChange(contact.id, e.target.value)}
@@ -290,7 +324,9 @@ export function OpportunityContactsPanel({
                 >
                   <option value="">Aucun rôle</option>
                   {ROLE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -306,8 +342,6 @@ export function OpportunityContactsPanel({
   }
 
   return (
-    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>
-      {content}
-    </SurfaceCard>
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>{content}</SurfaceCard>
   )
 }

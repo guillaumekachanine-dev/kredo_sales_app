@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
-import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
+import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { STAGE_LABELS, PRIORITY_LABELS } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
@@ -47,6 +47,7 @@ interface OpportunitiesDesktopViewProps {
 export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktopViewProps) {
   const { openTab } = useMissionsTabStore()
 
+  const [viewMode, setViewMode] = useState<"list" | "kanban" | "planning">("list")
   const [stageFilter, setStageFilter]       = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [convictionFilter, setConvictionFilter] = useState("all")
@@ -224,7 +225,18 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
             ? `${filtered.length} / ${opportunities.length} opportunité${opportunities.length > 1 ? "s" : ""}`
             : `${opportunities.length} opportunité${opportunities.length > 1 ? "s" : ""}`
         }
-        secondaryActions={<NewOpportunityButton />}
+        viewSelector={
+          <PageViewSelector
+            items={[
+              { value: "list", label: "Liste" },
+              { value: "kanban", label: "Kanban" },
+              { value: "planning", label: "Planning" },
+            ]}
+            value={viewMode}
+            onChange={(val) => setViewMode(val as "list" | "kanban" | "planning")}
+            ariaLabel="Mode d'affichage des opportunités"
+          />
+        }
       >
         <PageFilterSelect
           id="opp-stage-filter"
@@ -278,25 +290,51 @@ export function OpportunitiesDesktopView({ opportunities }: OpportunitiesDesktop
         />
       </PageFilterBar>
 
-      {/* List */}
-      <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
-        <StructuredList
-          density="compact"
-          items={filtered}
-          columns={columns}
-          getItemId={(row) => row.entityId}
-          onItemClick={(row) =>
-            openTab({
-              entityType: row.entityType,
-              entityId: row.entityId,
-              title: row.client ?? row.title,
-              subtitle: row.title,
-            })
-          }
-          ariaLabel="Liste des opportunités"
-          emptyState="Aucune opportunité ne correspond aux filtres."
-        />
-      </SurfaceCard>
+      {/* Views */}
+      {viewMode === "list" && (
+        <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
+          <StructuredList
+            density="compact"
+            items={filtered}
+            columns={columns}
+            getItemId={(row) => row.entityId}
+            onItemClick={(row) =>
+              openTab({
+                entityType: row.entityType,
+                entityId: row.entityId,
+                title: row.client ?? row.title,
+                subtitle: row.title,
+              })
+            }
+            ariaLabel="Liste des opportunités"
+            emptyState="Aucune opportunité ne correspond aux filtres."
+          />
+        </SurfaceCard>
+      )}
+
+      {viewMode === "kanban" && (
+        <div className="flex items-center justify-center py-20 border border-dashed border-border rounded-[var(--radius-medium)] bg-surface text-muted">
+          <div className="flex flex-col items-center gap-2">
+            <svg className="w-8 h-8 opacity-40 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+            <span className="font-semibold text-body">Vue Kanban</span>
+            <span className="text-sm">Permet de visualiser et de gérer l’avancement des opportunités.</span>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "planning" && (
+        <div className="flex items-center justify-center py-20 border border-dashed border-border rounded-[var(--radius-medium)] bg-surface text-muted">
+          <div className="flex flex-col items-center gap-2">
+            <svg className="w-8 h-8 opacity-40 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            <span className="font-semibold text-body">Vue Planning</span>
+            <span className="text-sm">Permet de visualiser les échéances et le timing de l’opportunité.</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

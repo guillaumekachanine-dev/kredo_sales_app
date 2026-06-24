@@ -26,6 +26,22 @@ export type SkillActionResult =
   | { success: true; error?: never }
   | { success?: never; error: string }
 
+export interface SkillPickerItem {
+  id: string
+  name: string
+  category: string | null
+}
+
+export async function getAllSkillsForPicker(): Promise<SkillPickerItem[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("skills")
+    .select("id, name, category")
+    .order("name")
+  if (error || !data) return []
+  return data as SkillPickerItem[]
+}
+
 export async function addOpportunitySkill(
   input: AddSkillInput
 ): Promise<SkillActionResult> {

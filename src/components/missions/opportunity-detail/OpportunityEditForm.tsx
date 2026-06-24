@@ -19,11 +19,13 @@ import type {
 import { OpportunitySkillsPanel } from "./OpportunitySkillsPanel"
 import { OpportunityContactsPanel } from "./OpportunityContactsPanel"
 import { OpportunityStandingPanel } from "./OpportunityStandingPanel"
+import { OpportunityTimelinePanel } from "./OpportunityTimelinePanel"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { upsertAccountByName } from "@/app/(app)/missions/_actions/upsert-account"
 import {
   createOpportunityStaffing,
   searchOpportunityStaffingProfiles,
+  getAllCollaboratorsForStaffing,
   type StaffingSearchResult,
   type StaffingSourceType,
 } from "@/app/(app)/missions/_actions/opportunity-staffing"
@@ -33,6 +35,7 @@ import {
   formatDate,
   formatDateTime,
 } from "./opportunity-detail-utils"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import {
   TYPE_OPTIONS,
   SOURCE_OPTIONS,
@@ -47,6 +50,7 @@ interface OpportunityDetailData {
     id: string
     name: string
     sector: string | null
+    website: string | null
   } | null
   skills: OpportunitySkill[]
   contacts: Array<{
@@ -67,24 +71,47 @@ const SEQUENTIAL_STEPS = [
 const STAGE_LOGOS: Record<string, string> = {
   qualification: "/icons_set/rdv_client.png",
   recherche_profil: "/icons_set/sourcing_candidats_2.png",
-  cv_envoyes: "/icons_set/staffing.png",
+  cv_envoyes: "/icons_set/CV_envoyé.png",
   entretien_client: "/icons_set/presentation_client_rt.png",
   gagne: "/icons_set/oppy_win.png",
   perdu: "/icons_set/oppy_perdu.png",
   abandonne: "/icons_set/oppy_abandon.png",
 }
 
-
-const COMMERCIAL_ACTION_TYPES = [
-  "appel de qualification",
-  "envoi de CV",
-  "relance",
-  "présentation consultant",
-  "négociation",
-  "envoi devis",
+// Pipeline gradient 3-stop : teal vif → indigo → fuchsia (fidèle à la ref image)
+const PIPELINE_STOPS = [
+  [0,   210, 180],   // t=0   vivid teal    #00D2B4
+  [108,  88, 236],   // t=0.5 vivid indigo  #6C58EC
+  [234,  44, 162],   // t=1   vivid fuchsia #EA2CA2
 ] as const
 
-type CommercialActionType = (typeof COMMERCIAL_ACTION_TYPES)[number]
+function pipelineColorStr(t: number, alpha = 1): string {
+  const stops = PIPELINE_STOPS
+  const n = stops.length - 1
+  const scaled = Math.min(t * n, n - 0.0001)
+  const i = Math.floor(scaled)
+  const u = scaled - i
+  const a = stops[i], b = stops[i + 1]
+  const r = Math.round(a[0] + (b[0] - a[0]) * u)
+  const g = Math.round(a[1] + (b[1] - a[1]) * u)
+  const bl = Math.round(a[2] + (b[2] - a[2]) * u)
+  return alpha < 1 ? `rgba(${r},${g},${bl},${alpha})` : `rgb(${r},${g},${bl})`
+}
+
+
+const COMMERCIAL_ACTION_TYPES = [
+  { value: "appel", label: "Appel de qualification" },
+  { value: "envoi_cv", label: "Envoi de CV" },
+  { value: "relance", label: "Relance" },
+  { value: "reunion", label: "Présentation consultant" },
+  { value: "negociation", label: "Négociation" },
+  { value: "envoi_offre", label: "Envoi de devis / offre" },
+  { value: "rdv_client", label: "RDV client" },
+  { value: "note", label: "Note" },
+  { value: "autre", label: "Autre" },
+] as const
+
+type CommercialActionType = (typeof COMMERCIAL_ACTION_TYPES)[number]["value"]
 
 const OPPORTUNITY_REMOTE_OPTIONS = [
   { value: "sur_site", label: "Sur site" },
@@ -159,10 +186,11 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   })
   const [staffingSearchResults, setStaffingSearchResults] = useState<StaffingSearchResult[]>([])
   const [isSearchingStaffing, setIsSearchingStaffing] = useState(false)
+  const [allCollaborators, setAllCollaborators] = useState<StaffingSearchResult[]>([])
   const staffingSearchRequestRef = useRef(0)
   const staffingSearchTimeoutRef = useRef<number | null>(null)
   const [commercialActionForm, setCommercialActionForm] = useState({
-    type: COMMERCIAL_ACTION_TYPES[0] as CommercialActionType,
+    type: COMMERCIAL_ACTION_TYPES[0].value as CommercialActionType,
     details: "",
     occurred_at: new Date().toISOString().slice(0, 10),
     contact_id: data.contacts[0]?.contact.id || "",
@@ -251,7 +279,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
   const resetCommercialActionDialog = () => {
     setCommercialActionForm({
-      type: COMMERCIAL_ACTION_TYPES[0] as CommercialActionType,
+      type: COMMERCIAL_ACTION_TYPES[0].value as CommercialActionType,
       details: "",
       occurred_at: new Date().toISOString().slice(0, 10),
       contact_id: data.contacts[0]?.contact.id || "",
@@ -276,6 +304,19 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
   const handleStaffingDialogOpenChange = (open: boolean) => {
     setIsStaffingDialogOpen(open)
+    if (open) {
+      if (allCollaborators.length === 0) {
+        getAllCollaboratorsForStaffing().then((data) => {
+          setAllCollaborators(data)
+          // Show all collaborators immediately if still in collaborator mode
+          if (staffingForm.sourceType === "collaborator") {
+            setStaffingSearchResults(data)
+          }
+        })
+      } else if (staffingForm.sourceType === "collaborator") {
+        setStaffingSearchResults(allCollaborators)
+      }
+    }
     if (!open) {
       resetStaffingDialog()
     }
@@ -288,7 +329,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     }
   }
 
-  const handleStaffingQueryChange = (value: string) => {
+  const handleStaffingQueryChange = (value: string, sourceType: StaffingSourceType) => {
     setStaffingForm((prev) => ({
       ...prev,
       query: value,
@@ -300,17 +341,35 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     }
 
     if (value.trim().length < 1) {
-      setStaffingSearchResults([])
+      // For collaborators: show all; for candidates: clear
+      if (sourceType === "collaborator") {
+        setStaffingSearchResults(allCollaborators)
+      } else {
+        setStaffingSearchResults([])
+      }
       setIsSearchingStaffing(false)
       return
     }
 
+    // For collaborators: filter client-side
+    if (sourceType === "collaborator") {
+      const q = value.trim().toLowerCase()
+      setStaffingSearchResults(
+        allCollaborators.filter(
+          (c) => c.full_name.toLowerCase().includes(q) || (c.subtitle || "").toLowerCase().includes(q)
+        )
+      )
+      setIsSearchingStaffing(false)
+      return
+    }
+
+    // For candidates: server search
     const requestId = staffingSearchRequestRef.current + 1
     staffingSearchRequestRef.current = requestId
     setIsSearchingStaffing(true)
 
     staffingSearchTimeoutRef.current = window.setTimeout(async () => {
-      const results = await searchOpportunityStaffingProfiles(value.trim(), staffingForm.sourceType)
+      const results = await searchOpportunityStaffingProfiles(value.trim(), sourceType)
       if (staffingSearchRequestRef.current !== requestId) return
       setStaffingSearchResults(results)
       setIsSearchingStaffing(false)
@@ -363,7 +422,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )}
 
           {/* Nodes row */}
-          <div className="flex items-start w-full">
+          <div className="flex items-start w-full relative">
             {SEQUENTIAL_STEPS.map((step, idx) => {
               const isCompleted = currentIdx > idx
               const isActive = currentIdx === idx
@@ -382,8 +441,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         right: "-50%",
                         height: 8,
                         borderRadius: 4,
-                        backgroundColor: isCompleted ? "#2C7D5C" : "#E5E7EB",
-                        transition: "background-color 0.4s ease",
+                        background: isCompleted
+                          ? `linear-gradient(to right, ${pipelineColorStr(idx / 4)}, ${pipelineColorStr((idx + 1) / 4)})`
+                          : "#E5E7EB",
                       }}
                     />
                   )}
@@ -394,16 +454,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       style={{
                         top: 18,
                         left: "calc(50% + 22px)",
-                        right: "-50%", // goes to the issue node
+                        right: "-50%",
                         height: 8,
                         borderRadius: 4,
-                        backgroundColor:
-                          form.stage === "gagne" ? "#2C7D5C"
-                          : form.stage === "perdu" ? "#DC2626"
-                          : form.stage === "abandonne" ? "#F59E0B"
-                          : form.stage === "non_traitee" ? "#9CA3AF"
-                          : isCompleted ? "#2C7D5C" : "#E5E7EB",
-                        transition: "background-color 0.4s ease",
+                        background:
+                          form.stage === "gagne"
+                            ? `linear-gradient(to right, ${pipelineColorStr(0.75)}, ${pipelineColorStr(1)})`
+                            : form.stage === "perdu" ? "#DC2626"
+                            : form.stage === "abandonne" ? "#F59E0B"
+                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            : "#E5E7EB",
                       }}
                     />
                   )}
@@ -411,7 +471,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   {/* Date label above */}
                   <span
                     className="text-[11px] font-bold mb-1.5 leading-none"
-                    style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                    style={{ color: (isCompleted || isActive) ? pipelineColorStr(idx / 4) : "#9CA3AF" }}
                   >
                     {isActive ? "En cours" : isCompleted ? "✓" : "—"}
                   </span>
@@ -427,14 +487,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       height: 44,
                       backgroundColor: "#FFFFFF",
                       border: isActive
-                        ? "3px solid #2C7D5C"
+                        ? `3px solid ${pipelineColorStr(idx / 4)}`
                         : isCompleted
-                        ? "2.5px solid #2C7D5C"
+                        ? `2.5px solid ${pipelineColorStr(idx / 4)}`
                         : "2px solid #E5E7EB",
                       boxShadow: isActive
-                        ? "0 0 0 4px rgba(44,125,92,0.18)"
+                        ? `0 0 0 4px ${pipelineColorStr(idx / 4, 0.22)}`
                         : isCompleted
-                        ? "0 2px 8px rgba(44,125,92,0.22)"
+                        ? `0 2px 8px ${pipelineColorStr(idx / 4, 0.28)}`
                         : "none",
                       transform: isActive ? "scale(1.12)" : "scale(1)",
                     }}
@@ -448,7 +508,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       <img
                         src={STAGE_LOGOS[step.key]}
                         alt={step.label}
-                        className="w-full h-full object-contain p-1 rounded-full transition-all duration-300"
+                        className={cn(
+                          "object-contain transition-all duration-300",
+                          (step.key === "cv_envoyes" || step.key === "entretien_client")
+                            ? "w-8 h-8"
+                            : "w-full h-full p-1 rounded-full"
+                        )}
                         style={{
                           filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
                           opacity: (isCompleted || isActive) ? 1 : 0.4,
@@ -468,9 +533,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     >
                       {step.label}
                     </button>
-                    <span className="text-[10px] leading-snug mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
-                      {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
-                    </span>
                   </div>
 
                 </div>
@@ -479,45 +541,45 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
             {/* Issue column */}
             <div className="flex-1 flex flex-col items-center relative min-w-0">
-              {/* Date/Status label above */}
+              {/* Status indicator above — ✓ si issue sélectionnée, — sinon (même pattern que les étapes) */}
               <span
                 className="text-[11px] font-bold mb-1.5 leading-none"
                 style={{
                   color:
-                    form.stage === "gagne" ? "#2C7D5C"
+                    form.stage === "gagne" ? "#FFB812"
                     : form.stage === "perdu" ? "#DC2626"
                     : form.stage === "abandonne" ? "#F59E0B"
                     : form.stage === "non_traitee" ? "#6B7280"
                     : "#9CA3AF"
                 }}
               >
-                {form.stage === "gagne" ? "Gagné"
-                  : form.stage === "perdu" ? "Perdu"
-                  : form.stage === "abandonne" ? "Abandonné"
-                  : form.stage === "non_traitee" ? "Non traitée"
-                  : "Issue"}
+                {(form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne") ? "✓"
+                  : form.stage === "non_traitee" ? "—"
+                  : "—"}
               </span>
 
               {/* Node circle & dropdown trigger */}
-              <div className="relative">
-                <div className="flex items-center gap-1.5">
+              <div className="relative" style={{ width: 44 }}>
                   <button
                     type="button"
                     disabled={isPending}
                     onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                    className={cn(
+                      "relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden",
+                      form.stage === "gagne" && "pipeline-gagne-node"
+                    )}
                     style={{
                       width: 44,
                       height: 44,
-                      backgroundColor: "#FFFFFF",
+                      backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
                       border:
-                        form.stage === "gagne" ? "3px solid #2C7D5C"
+                        form.stage === "gagne" ? undefined
                         : form.stage === "perdu" ? "3px solid #DC2626"
                         : form.stage === "abandonne" ? "3px solid #F59E0B"
                         : form.stage === "non_traitee" ? "2px solid #9CA3AF"
                         : "2px solid #D1D5DB",
                       boxShadow:
-                        form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18), 0 2px 8px rgba(44,125,92,0.25)"
+                        form.stage === "gagne" ? undefined
                         : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15), 0 2px 8px rgba(220,38,38,0.25)"
                         : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15), 0 2px 8px rgba(245,158,11,0.25)"
                         : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15), 0 2px 8px rgba(156,163,175,0.25)"
@@ -527,48 +589,40 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
                       <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
-                          loadingStage === "gagne" ? "#2C7D5C"
+                          loadingStage === "gagne" ? "#FFB812"
                           : loadingStage === "perdu" ? "#DC2626"
                           : loadingStage === "abandonne" ? "#F59E0B"
                           : "#9CA3AF"
                         } strokeWidth="4" />
                         <path className="opacity-75" fill={
-                          loadingStage === "gagne" ? "#2C7D5C"
+                          loadingStage === "gagne" ? "#FFB812"
                           : loadingStage === "perdu" ? "#DC2626"
                           : loadingStage === "abandonne" ? "#F59E0B"
                           : "#9CA3AF"
                         } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                    ) : form.stage && STAGE_LOGOS[form.stage] ? (
+                    ) : form.stage === "gagne" ? (
                       <img
-                        src={STAGE_LOGOS[form.stage]}
-                        alt={form.stage}
-                        className="w-full h-full object-contain p-1 rounded-full"
+                        src="/icons_set/oppy_win_2.png"
+                        alt="Gagné"
+                        className="w-8 h-8 object-contain"
+                        style={{ position: "relative", zIndex: 1 }}
                       />
-                    ) : form.stage === "non_traitee" ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="8" y1="12" x2="16" y2="12" />
-                      </svg>
-                    ) : (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                    )}
+                    ) : null}
                   </button>
 
                   <button
                     type="button"
                     disabled={isPending}
                     onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                    className="p-1 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors z-20 shrink-0 self-center"
+                    className="p-1 rounded bg-canvas border border-border text-muted hover:text-heading hover:bg-muted/10 transition-colors"
                     title="Choisir l'issue"
+                    style={{ position: "absolute", top: -6, right: -52, zIndex: 20 }}
                   >
                     <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </button>
-                </div>
 
                 {/* Floating dropdown menu */}
                 {isIssueDropdownOpen && (
@@ -602,13 +656,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Label + sub description below */}
               <div className="flex flex-col items-center mt-3 px-1 text-center">
                 <span
-                  className="text-[12px] font-bold"
+                  className="text-[12px] font-bold leading-tight"
                   style={{
                     color:
-                      form.stage === "gagne" ? "#111827"
-                      : form.stage === "perdu" ? "#111827"
-                      : form.stage === "abandonne" ? "#111827"
-                      : form.stage === "non_traitee" ? "#111827"
+                      form.stage === "gagne" ? "#FFB812"
+                      : form.stage === "perdu" ? "#DC2626"
+                      : form.stage === "abandonne" ? "#F59E0B"
+                      : form.stage === "non_traitee" ? "#6B7280"
                       : "#6B7280"
                   }}
                 >
@@ -618,11 +672,27 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     : form.stage === "non_traitee" ? "Non traitée"
                     : "Issue"}
                 </span>
-                <span className="text-[10px] mt-0.5 text-muted">
-                  Processus terminé
-                </span>
               </div>
             </div>
+
+            {/* Shine beam — parcourt les barres de progression toutes les 7 s */}
+            {currentIdx > 0 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  top: 18,
+                  height: 8,
+                  left: 0,
+                  right: 0,
+                  pointerEvents: "none",
+                  zIndex: 30,
+                  overflow: "visible",
+                }}
+              >
+                <div className="pipeline-shine-beam" />
+              </div>
+            )}
           </div>
         </div>
       )
@@ -659,11 +729,15 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       height: 44,
                       backgroundColor: "#FFFFFF",
                       border: isActive
-                        ? "3px solid #2C7D5C"
+                        ? `3px solid ${pipelineColorStr(idx / 4)}`
                         : isCompleted
-                        ? "2.5px solid #2C7D5C"
+                        ? `2.5px solid ${pipelineColorStr(idx / 4)}`
                         : "2px solid #E5E7EB",
-                      boxShadow: isActive ? "0 0 0 4px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 8px rgba(44,125,92,0.2)" : "none",
+                      boxShadow: isActive
+                        ? `0 0 0 4px ${pipelineColorStr(idx / 4, 0.22)}`
+                        : isCompleted
+                        ? `0 2px 8px ${pipelineColorStr(idx / 4, 0.28)}`
+                        : "none",
                       transform: isActive ? "scale(1.08)" : "scale(1)",
                     }}
                   >
@@ -676,7 +750,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       <img
                         src={STAGE_LOGOS[step.key]}
                         alt={step.label}
-                        className="w-full h-full object-contain p-1 rounded-full transition-all duration-300"
+                        className={cn(
+                          "object-contain transition-all duration-300",
+                          (step.key === "cv_envoyes" || step.key === "entretien_client")
+                            ? "w-8 h-8"
+                            : "w-full h-full p-1 rounded-full"
+                        )}
                         style={{
                           filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
                           opacity: (isCompleted || isActive) ? 1 : 0.4,
@@ -692,23 +771,23 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       minHeight: 20,
                       marginTop: 4,
                       borderRadius: 4,
-                      backgroundColor: isCompleted
-                        ? "#2C7D5C"
+                      background: isCompleted
+                        ? `linear-gradient(to bottom, ${pipelineColorStr(idx / 4)}, ${pipelineColorStr((idx + 1) / 4)})`
                         : isLast
-                          ? form.stage === "gagne" ? "#2C7D5C"
-                          : form.stage === "perdu" ? "#DC2626"
-                          : form.stage === "abandonne" ? "#F59E0B"
-                          : form.stage === "non_traitee" ? "#9CA3AF"
-                          : "#E5E7EB"
-                        : "#E5E7EB",
-                      transition: "background-color 0.4s",
+                          ? form.stage === "gagne"
+                            ? `linear-gradient(to bottom, ${pipelineColorStr(0.75)}, ${pipelineColorStr(1)})`
+                            : form.stage === "perdu" ? "#DC2626"
+                            : form.stage === "abandonne" ? "#F59E0B"
+                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            : "#E5E7EB"
+                          : "#E5E7EB",
                     }}
                   />
                 </div>
 
                 {/* Right: date + label */}
                 <div className="flex flex-col justify-start py-1 pb-6">
-                  <span className="text-[11px] font-bold leading-none mb-1" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                  <span className="text-[11px] font-bold leading-none mb-1" style={{ color: (isCompleted || isActive) ? pipelineColorStr(idx / 4) : "#9CA3AF" }}>
                     {isActive ? "En cours" : isCompleted ? "Terminé" : "À venir"}
                   </span>
                   <button
@@ -720,9 +799,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   >
                     {step.label}
                   </button>
-                  <span className="text-[11px] mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
-                    {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
-                  </span>
                 </div>
               </div>
             )
@@ -737,19 +813,22 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   type="button"
                   disabled={isPending}
                   onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                  className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer overflow-hidden"
+                  className={cn(
+                    "flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer overflow-hidden",
+                    form.stage === "gagne" && "pipeline-gagne-node"
+                  )}
                   style={{
                     width: 44,
                     height: 44,
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
                     border:
-                      form.stage === "gagne" ? "3px solid #2C7D5C"
+                      form.stage === "gagne" ? undefined
                       : form.stage === "perdu" ? "3px solid #DC2626"
                       : form.stage === "abandonne" ? "3px solid #F59E0B"
                       : form.stage === "non_traitee" ? "2px solid #9CA3AF"
                       : "2px solid #D1D5DB",
                     boxShadow:
-                      form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18)"
+                      form.stage === "gagne" ? undefined
                       : form.stage === "perdu" ? "0 0 0 4px rgba(220,38,38,0.15)"
                       : form.stage === "abandonne" ? "0 0 0 4px rgba(245,158,11,0.15)"
                       : form.stage === "non_traitee" ? "0 0 0 4px rgba(156,163,175,0.15)"
@@ -760,34 +839,26 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
                     <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
-                        loadingStage === "gagne" ? "#2C7D5C"
+                        loadingStage === "gagne" ? "#FFB812"
                         : loadingStage === "perdu" ? "#DC2626"
                         : loadingStage === "abandonne" ? "#F59E0B"
                         : "#9CA3AF"
                       } strokeWidth="4" />
                       <path className="opacity-75" fill={
-                        loadingStage === "gagne" ? "#2C7D5C"
+                        loadingStage === "gagne" ? "#FFB812"
                         : loadingStage === "perdu" ? "#DC2626"
                         : loadingStage === "abandonne" ? "#F59E0B"
                         : "#9CA3AF"
                       } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                  ) : form.stage && STAGE_LOGOS[form.stage] ? (
+                  ) : form.stage === "gagne" ? (
                     <img
-                      src={STAGE_LOGOS[form.stage]}
-                      alt={form.stage}
-                      className="w-full h-full object-contain p-1 rounded-full"
+                      src="/icons_set/oppy_win_2.png"
+                      alt="Gagné"
+                      className="w-6 h-6 object-contain"
+                      style={{ position: "relative", zIndex: 1 }}
                     />
-                  ) : form.stage === "non_traitee" ? (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="8" y1="12" x2="16" y2="12" />
-                    </svg>
-                  ) : (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  )}
+                  ) : null}
                 </button>
 
                 <button
@@ -807,7 +878,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 className="text-[11px] font-bold leading-none mb-1"
                 style={{
                   color:
-                    form.stage === "gagne" ? "#2C7D5C"
+                    form.stage === "gagne" ? "#FFB812"
                     : form.stage === "perdu" ? "#DC2626"
                     : form.stage === "abandonne" ? "#F59E0B"
                     : form.stage === "non_traitee" ? "#6B7280"
@@ -1190,6 +1261,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
           <OpportunityContactsPanel
             opportunityId={opportunity.id}
+            companyId={account?.id ?? null}
             contacts={data.contacts}
             onRefresh={onSuccess}
             embedded
@@ -1390,6 +1462,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )}
         </div>
       </div>
+
+      <OpportunityTimelinePanel
+        opportunityId={opportunity.id}
+        events={data.events}
+        onRefresh={onSuccess}
+      />
     </div>
   )
 
@@ -1527,11 +1605,19 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             <label className={labelClass}>Collaborateur / candidat</label>
             <Select
               value={staffingForm.sourceType}
-              onChange={(e) => setStaffingForm({
-                sourceType: e.target.value as StaffingSourceType,
-                query: "",
-                selected: null,
-              })}
+              onChange={(e) => {
+                const newType = e.target.value as StaffingSourceType
+                setStaffingForm({
+                  sourceType: newType,
+                  query: "",
+                  selected: null,
+                })
+                if (newType === "collaborator") {
+                  setStaffingSearchResults(allCollaborators)
+                } else {
+                  setStaffingSearchResults([])
+                }
+              }}
               className={inputClass}
               disabled={isCreatingStaffing}
             >
@@ -1545,18 +1631,22 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             <input
               type="text"
               value={staffingForm.query}
-              onChange={(e) => handleStaffingQueryChange(e.target.value)}
-              placeholder="Commencez à taper un nom…"
+              onChange={(e) => handleStaffingQueryChange(e.target.value, staffingForm.sourceType)}
+              placeholder={staffingForm.sourceType === "collaborator" ? "Filtrer par nom…" : "Commencez à taper un nom…"}
               className={inputClass}
               disabled={isCreatingStaffing}
             />
 
-            {staffingForm.query.trim().length > 0 && (
+            {(staffingForm.query.trim().length > 0 || staffingForm.sourceType === "collaborator") && (
               <div className="mt-2 rounded-md border border-border bg-surface shadow-sm max-h-52 overflow-y-auto">
                 {isSearchingStaffing ? (
                   <div className="px-3 py-2 text-[11px] text-muted italic">Recherche en cours…</div>
                 ) : staffingSearchResults.length === 0 ? (
-                  <div className="px-3 py-2 text-[11px] text-muted italic">Aucun résultat.</div>
+                  <div className="px-3 py-2 text-[11px] text-muted italic">
+                    {staffingForm.sourceType === "collaborator" && allCollaborators.length === 0
+                      ? "Chargement…"
+                      : "Aucun résultat."}
+                  </div>
                 ) : (
                   staffingSearchResults.map((result) => (
                     <button
@@ -1569,7 +1659,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       }))}
                       className={cn(
                         "w-full text-left px-3 py-2 border-b last:border-b-0 border-border/40 hover:bg-canvas/50 transition-colors",
-                        staffingForm.selected?.id === result.id && staffingForm.selected?.source_type === result.source_type && "bg-primary/8"
+                        staffingForm.selected?.id === result.id &&
+                          staffingForm.selected?.source_type === result.source_type &&
+                          "bg-primary/8"
                       )}
                     >
                       <div className="text-xs font-semibold text-heading">{result.full_name}</div>
@@ -1629,13 +1721,15 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             <label className={labelClass}>Type d&apos;action</label>
             <Select
               value={commercialActionForm.type}
-              onChange={(e) => setCommercialActionForm((prev) => ({ ...prev, type: e.target.value as CommercialActionType }))}
+              onChange={(e) =>
+                setCommercialActionForm((prev) => ({ ...prev, type: e.target.value as CommercialActionType }))
+              }
               className={inputClass}
               disabled={isCreatingAction}
             >
               {COMMERCIAL_ACTION_TYPES.map((actionType) => (
-                <option key={actionType} value={actionType}>
-                  {actionType}
+                <option key={actionType.value} value={actionType.value}>
+                  {actionType.label}
                 </option>
               ))}
             </Select>
@@ -1807,6 +1901,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
       {/* Header Desktop */}
       <div className="flex items-start justify-between gap-4 pb-5 border-b border-border">
+        {/* Logo compte */}
+        {account && (
+          <CompanyLogo
+            name={account.name}
+            website={account.website}
+            size="xl"
+            className="shrink-0 mt-0.5"
+          />
+        )}
+
         <div className="flex flex-col gap-1.5 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-success border border-success/20 px-2 py-0.5 rounded bg-success/10">
@@ -1870,6 +1974,15 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
           {editingSection === "identite" && renderSectionEditControls("identite")}
 
+          {opportunity.target_close_date && (
+            <div className="flex flex-col items-end border-l border-border pl-4">
+              <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">Échéance</span>
+              <span className="text-lg font-bold text-heading">
+                {formatDate(opportunity.target_close_date)}
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-col items-end border-l border-border pl-4">
             <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">ACV Estimé</span>
             <span className="text-lg font-bold text-heading">
@@ -1877,20 +1990,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             </span>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={STAGE_BADGE_VARIANTS[form.stage]} size="md">{getStageLabel(form.stage)}</Badge>
-        <Badge variant={opportunity.priority === "haute" ? "warning" : "neutral"} size="md">{getPriorityLabel(opportunity.priority)}</Badge>
-        {opportunity.opportunity_type ? <Badge variant="brand" size="md">{opportunity.opportunity_type.replaceAll("_", " ")}</Badge> : null}
-        {opportunity.seniority ? <Badge variant="neutral" size="md">{opportunity.seniority}</Badge> : null}
-        {opportunity.location ? <Badge variant="neutral" size="md">{opportunity.location}</Badge> : null}
-        {opportunity.remote_policy ? <Badge variant="neutral" size="md">{opportunity.remote_policy.replaceAll("_", " ")}</Badge> : null}
-        {opportunity.requires_staffing ? (
-          <Badge variant="info" size="md">
-            {`${opportunity.required_headcount || 1} profil${(opportunity.required_headcount || 1) > 1 ? "s" : ""}`}
-          </Badge>
-        ) : null}
       </div>
 
       {/* Timeline Progression */}

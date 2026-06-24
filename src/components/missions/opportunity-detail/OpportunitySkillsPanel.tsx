@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect, useRef, useCallback } from "react"
 import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { OpportunitySkill, SkillImportance } from "@/types/database-domain"
@@ -8,6 +8,8 @@ import {
   addOpportunitySkill,
   updateOpportunitySkill,
   deleteOpportunitySkill,
+  getAllSkillsForPicker,
+  type SkillPickerItem,
 } from "@/app/(app)/missions/_actions/opportunity-skills"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +33,147 @@ const IMPORTANCE_BADGES: Record<SkillImportance, string> = {
   bonus: "bg-canvas text-muted border-border",
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  langage: "Langage",
+  framework: "Framework",
+  cloud: "Cloud",
+  data: "Data",
+  devops: "DevOps",
+  methode: "Méthode",
+  fonctionnel: "Fonctionnel",
+  secteur: "Secteur",
+  soft_skill: "Soft skill",
+  langue: "Langue",
+  certification: "Certification",
+}
+
+interface SkillPickerModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSelect: (name: string) => void
+  existingSkillNames: Set<string>
+}
+
+function SkillPickerModal({ isOpen, onClose, onSelect, existingSkillNames }: SkillPickerModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [allSkills, setAllSkills] = useState<SkillPickerItem[]>([])
+  const [query, setQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const el = dialogRef.current
+    if (!el) return
+    if (isOpen) {
+      el.showModal()
+      setQuery("")
+      if (allSkills.length === 0) {
+        setIsLoading(true)
+        getAllSkillsForPicker().then((data) => {
+          setAllSkills(data)
+          setIsLoading(false)
+        })
+      }
+    } else {
+      el.close()
+    }
+  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const el = dialogRef.current
+    if (!el) return
+    const handleClose = () => onClose()
+    el.addEventListener("close", handleClose)
+    return () => el.removeEventListener("close", handleClose)
+  }, [onClose])
+
+  const filtered = query.trim().length === 0
+    ? allSkills
+    : allSkills.filter((s) =>
+        s.name.toLowerCase().includes(query.trim().toLowerCase())
+      )
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    if (e.target === dialogRef.current) onClose()
+  }
+
+  return (
+    <dialog
+      ref={dialogRef}
+      onClick={handleBackdropClick}
+      className="rounded-xl border border-border bg-canvas shadow-xl p-0 backdrop:bg-black/40 w-full max-w-md"
+      style={{ colorScheme: "normal" }}
+    >
+      <div className="flex flex-col max-h-[70vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border/50 shrink-0">
+          <h3 className="text-sm font-bold text-heading">Ajouter une compétence</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted hover:text-heading transition-colors p-1 rounded-md hover:bg-canvas"
+          >
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="px-4 py-3 border-b border-border/40 shrink-0">
+          <input
+            type="text"
+            autoFocus
+            placeholder="Rechercher une compétence..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors"
+          />
+        </div>
+
+        {/* Skills list */}
+        <div className="overflow-y-auto flex-1 px-2 py-2">
+          {isLoading ? (
+            <div className="px-2 py-4 text-xs text-muted italic text-center">Chargement...</div>
+          ) : filtered.length === 0 ? (
+            <div className="px-2 py-4 text-xs text-muted italic text-center">
+              {query.trim().length > 0 ? `Aucune compétence pour « ${query} »` : "Aucune compétence disponible."}
+            </div>
+          ) : (
+            filtered.map((skill) => {
+              const alreadyAdded = existingSkillNames.has(skill.name.toLowerCase())
+              return (
+                <button
+                  key={skill.id}
+                  type="button"
+                  onClick={() => {
+                    if (!alreadyAdded) {
+                      onSelect(skill.name)
+                      onClose()
+                    }
+                  }}
+                  disabled={alreadyAdded}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-md flex items-center justify-between gap-2 transition-colors",
+                    alreadyAdded
+                      ? "opacity-40 cursor-not-allowed"
+                      : "hover:bg-primary/8 cursor-pointer"
+                  )}
+                >
+                  <span className="text-xs font-semibold text-heading">{skill.name}</span>
+                  <span className="text-[10px] text-muted shrink-0">
+                    {skill.category ? (CATEGORY_LABELS[skill.category] ?? skill.category) : ""}
+                    {alreadyAdded ? " · déjà ajoutée" : ""}
+                  </span>
+                </button>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </dialog>
+  )
+}
+
 export function OpportunitySkillsPanel({
   opportunityId,
   skills,
@@ -41,15 +184,10 @@ export function OpportunitySkillsPanel({
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // États pour la création
-  const [isAdding, setIsAdding] = useState(false)
-  const [newSkill, setNewSkill] = useState({
-    skill_name: "",
-    importance: "souhaitee" as SkillImportance,
-    min_years: "" as string | number,
-  })
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [pendingImportance, setPendingImportance] = useState<SkillImportance>("souhaitee")
+  const [pendingMinYears, setPendingMinYears] = useState<string>("")
 
-  // États pour l'édition d'une ligne
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingSkill, setEditingSkill] = useState({
     skill_name: "",
@@ -57,40 +195,29 @@ export function OpportunitySkillsPanel({
     min_years: "" as string | number,
   })
 
-  const resetNewForm = () => {
-    setNewSkill({
-      skill_name: "",
-      importance: "souhaitee",
-      min_years: "",
-    })
-    setIsAdding(false)
-    setErrorMsg(null)
-  }
+  const existingSkillNames = new Set(skills.map((s) => s.skill_name.toLowerCase()))
 
-  const handleAdd = () => {
-    setErrorMsg(null)
-    const name = newSkill.skill_name.trim()
-    if (!name) {
-      setErrorMsg("Le nom de la compétence est obligatoire.")
-      return
-    }
-
-    startTransition(async () => {
-      const result = await addOpportunitySkill({
-        opportunity_id: opportunityId,
-        skill_name: name,
-        importance: newSkill.importance,
-        min_years: newSkill.min_years === "" ? null : Number(newSkill.min_years),
+  const handlePickerSelect = useCallback(
+    (skillName: string) => {
+      setErrorMsg(null)
+      startTransition(async () => {
+        const result = await addOpportunitySkill({
+          opportunity_id: opportunityId,
+          skill_name: skillName,
+          importance: pendingImportance,
+          min_years: pendingMinYears === "" ? null : Number(pendingMinYears),
+        })
+        if (result.error) {
+          setErrorMsg(result.error)
+        } else {
+          setPendingImportance("souhaitee")
+          setPendingMinYears("")
+          onRefresh()
+        }
       })
-
-      if (result.error) {
-        setErrorMsg(result.error)
-      } else {
-        resetNewForm()
-        onRefresh()
-      }
-    })
-  }
+    },
+    [opportunityId, pendingImportance, pendingMinYears, onRefresh]
+  )
 
   const startEditing = (skill: OpportunitySkill) => {
     setErrorMsg(null)
@@ -142,26 +269,23 @@ export function OpportunitySkillsPanel({
     })
   }
 
-  const inputClass = "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
+  const inputClass =
+    "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
 
   const content = (
     <>
+      <SkillPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelect={handlePickerSelect}
+        existingSkillNames={existingSkillNames}
+      />
+
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="flex items-center gap-2">
           <img src="/icons_set/opportunity_skills.png" alt="" className="w-5 h-5 object-contain shrink-0" />
-          <h3 className="text-sm font-bold text-heading">
-            Compétences requises
-          </h3>
+          <h3 className="text-sm font-bold text-heading">Compétences requises</h3>
         </div>
-        {!isAdding && (
-          <button
-            onClick={() => setIsAdding(true)}
-            className="text-[10px] font-bold text-primary hover:underline"
-            disabled={isPending}
-          >
-            + Ajouter
-          </button>
-        )}
       </div>
 
       {errorMsg && (
@@ -170,62 +294,44 @@ export function OpportunitySkillsPanel({
         </div>
       )}
 
-      {/* Formulaire d'ajout */}
-      {isAdding && (
-        <div className="p-3 bg-canvas/30 rounded border border-border/60 flex flex-col gap-2.5">
-          <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Nouvelle compétence</span>
-          <div className="flex flex-col gap-2">
-            <input
-              type="text"
-              placeholder="ex: React, Python..."
-              value={newSkill.skill_name}
-              onChange={(e) => setNewSkill({ ...newSkill, skill_name: e.target.value })}
-              className={cn(inputClass, "w-full")}
-              disabled={isPending}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Select
-                value={newSkill.importance}
-                onChange={(e) => setNewSkill({ ...newSkill, importance: e.target.value as SkillImportance })}
-                className={inputClass}
-                disabled={isPending}
-              >
-                {IMPORTANCE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Select>
-              <input
-                type="number"
-                placeholder="Années min."
-                value={newSkill.min_years}
-                onChange={(e) => setNewSkill({ ...newSkill, min_years: e.target.value })}
-                className={inputClass}
-                disabled={isPending}
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-end gap-2 mt-1">
-            <button
-              onClick={resetNewForm}
-              className="px-2.5 py-1 text-[10px] font-semibold rounded bg-canvas border border-border text-muted hover:text-heading transition-colors"
-              disabled={isPending}
-            >
-              Annuler
-            </button>
-            <button
-              onClick={handleAdd}
-              className="px-2.5 py-1 text-[10px] font-semibold rounded bg-primary text-primary-fg hover:bg-primary/90 transition-colors"
-              disabled={isPending}
-            >
-              {isPending ? "Ajout..." : "Ajouter"}
-            </button>
-          </div>
+      {/* Quick options before opening picker */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <Select
+            value={pendingImportance}
+            onChange={(e) => setPendingImportance(e.target.value as SkillImportance)}
+            className={cn(inputClass, "py-1 text-[10px]")}
+            disabled={isPending}
+          >
+            {IMPORTANCE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+          <input
+            type="number"
+            placeholder="Années min."
+            value={pendingMinYears}
+            onChange={(e) => setPendingMinYears(e.target.value)}
+            className={cn(inputClass, "w-24 py-1 text-[10px]")}
+            disabled={isPending}
+          />
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setIsPickerOpen(true)}
+          disabled={isPending}
+          className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold border-2 border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5 rounded-md transition-all disabled:opacity-40"
+        >
+          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Ajouter compétence
+        </button>
+      </div>
 
       {/* Liste des compétences */}
-      {skills.length === 0 && !isAdding ? (
-        <p className="text-xs text-muted italic py-2">Aucune compétence renseignée.</p>
+      {skills.length === 0 ? (
+        <p className="text-xs text-muted italic py-1">Aucune compétence renseignée.</p>
       ) : (
         <div className="flex flex-col gap-2 mt-1">
           {skills.map((skill) => {
@@ -244,7 +350,9 @@ export function OpportunitySkillsPanel({
                   <div className="grid grid-cols-2 gap-2">
                     <Select
                       value={editingSkill.importance}
-                      onChange={(e) => setEditingSkill({ ...editingSkill, importance: e.target.value as SkillImportance })}
+                      onChange={(e) =>
+                        setEditingSkill({ ...editingSkill, importance: e.target.value as SkillImportance })
+                      }
                       className={inputClass}
                       disabled={isPending}
                     >
@@ -328,8 +436,6 @@ export function OpportunitySkillsPanel({
   }
 
   return (
-    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>
-      {content}
-    </SurfaceCard>
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>{content}</SurfaceCard>
   )
 }

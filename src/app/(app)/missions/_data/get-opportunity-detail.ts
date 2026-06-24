@@ -20,6 +20,7 @@ export type OpportunityDetailResult =
           id: string
           name: string
           sector: string | null
+          website: string | null
         } | null
         skills: OpportunitySkill[]
         contacts: Array<{
@@ -130,11 +131,11 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
     }
 
     // 2. Récupération du compte lié (si renseigné)
-    let account: { id: string; name: string; sector: string | null } | null = null
+    let account: { id: string; name: string; sector: string | null; website: string | null } | null = null
     if (opportunity.company_id) {
       const { data: accountData, error: accountError } = await supabase
         .from("companies")
-        .select("id, name, sector")
+        .select("id, name, sector, website")
         .eq("id", opportunity.company_id)
         .maybeSingle()
 

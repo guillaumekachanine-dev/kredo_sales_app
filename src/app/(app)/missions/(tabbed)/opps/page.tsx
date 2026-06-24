@@ -5,6 +5,7 @@ import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportuniti
 import { getOpportunitySkillsCloud } from "@/app/(app)/missions/_data/get-opportunity-skills-cloud"
 import { createClient } from "@/lib/supabase/server"
 import { OpportunitySkillsCloud } from "@/components/missions/OpportunitySkillsCloud"
+import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 
 export const dynamic = "force-dynamic"
 
@@ -56,10 +57,13 @@ export default async function OpportunitesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <div className="h-12 flex items-center">
+      <div className="h-12 flex items-center justify-between">
         <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
           Opportunités
         </h1>
+        <div className="hidden md:block">
+          <NewOpportunityButton />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.74fr)_minmax(21rem,1fr)]">

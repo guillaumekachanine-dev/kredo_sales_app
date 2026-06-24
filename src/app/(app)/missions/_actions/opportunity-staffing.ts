@@ -73,6 +73,34 @@ function getPersonName(person: {
   return person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()
 }
 
+export async function getAllCollaboratorsForStaffing(): Promise<StaffingSearchResult[]> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("collaborators")
+      .select("id, person_id, current_title, practice, persons(full_name, first_name, last_name)")
+      .order("created_at", { ascending: true })
+      .limit(60)
+
+    if (error || !data) return []
+
+    return ((data || []) as CollaboratorRow[]).map((item) => {
+      const person = pickOne(item.persons)
+      return {
+        id: item.id,
+        person_id: item.person_id,
+        full_name: getPersonName(person),
+        source_type: "collaborator" as const,
+        subtitle: [item.current_title, item.practice].filter(Boolean).join(" · ") || "Collaborateur",
+      }
+    })
+  } catch (err) {
+    console.error("Erreur lors du chargement des collaborateurs:", err)
+    return []
+  }
+}
+
 export async function searchOpportunityStaffingProfiles(query: string, sourceType: StaffingSourceType): Promise<StaffingSearchResult[]> {
   const sanitized = query.trim()
   if (sanitized.length < 1) return []
