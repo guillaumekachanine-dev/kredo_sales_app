@@ -27,6 +27,8 @@ export const toneClasses: Record<
     line: string
     svgFill: string
     svgStroke: string
+    iconFilter: string
+    iconFilterFocused: string
   }
 > = {
   primary: {
@@ -37,6 +39,10 @@ export const toneClasses: Record<
     line: "border-primary/30",
     svgFill: "fill-primary/10",
     svgStroke: "stroke-primary/35",
+    // cobalt #2554B8
+    iconFilter: "brightness(0) saturate(100%) invert(19%) sepia(89%) saturate(855%) hue-rotate(211deg) brightness(96%) contrast(98%)",
+    // gold #FFB812 on cobalt bg
+    iconFilterFocused: "brightness(0) saturate(100%) invert(77%) sepia(85%) saturate(806%) hue-rotate(335deg) brightness(103%) contrast(100%)",
   },
   success: {
     fill: "bg-success text-primary-fg",
@@ -46,6 +52,10 @@ export const toneClasses: Record<
     line: "border-success/30",
     svgFill: "fill-success/10",
     svgStroke: "stroke-success/35",
+    // green #2C7D5C
+    iconFilter: "brightness(0) saturate(100%) invert(36%) sepia(24%) saturate(1082%) hue-rotate(110deg) brightness(93%) contrast(93%)",
+    // white on green bg
+    iconFilterFocused: "brightness(0) invert(1)",
   },
   warning: {
     fill: "bg-secondary text-secondary-fg",
@@ -55,6 +65,10 @@ export const toneClasses: Record<
     line: "border-secondary/40",
     svgFill: "fill-secondary/15",
     svgStroke: "stroke-secondary/45",
+    // gold #FFB812
+    iconFilter: "brightness(0) saturate(100%) invert(77%) sepia(85%) saturate(806%) hue-rotate(335deg) brightness(103%) contrast(100%)",
+    // cobalt #2554B8 on gold bg (complementaire)
+    iconFilterFocused: "brightness(0) saturate(100%) invert(19%) sepia(89%) saturate(855%) hue-rotate(211deg) brightness(96%) contrast(98%)",
   },
   danger: {
     fill: "bg-danger text-primary-fg",
@@ -64,6 +78,10 @@ export const toneClasses: Record<
     line: "border-danger/30",
     svgFill: "fill-danger/10",
     svgStroke: "stroke-danger/35",
+    // red #BE3E3E
+    iconFilter: "brightness(0) saturate(100%) invert(25%) sepia(97%) saturate(596%) hue-rotate(329deg) brightness(95%) contrast(93%)",
+    // white on red bg
+    iconFilterFocused: "brightness(0) invert(1)",
   },
   accent: {
     fill: "bg-accent text-primary-fg",
@@ -73,6 +91,10 @@ export const toneClasses: Record<
     line: "border-accent/30",
     svgFill: "fill-accent/10",
     svgStroke: "stroke-accent/35",
+    // orange #D97020
+    iconFilter: "brightness(0) saturate(100%) invert(53%) sepia(96%) saturate(523%) hue-rotate(0deg) brightness(97%) contrast(100%)",
+    // white on orange bg
+    iconFilterFocused: "brightness(0) invert(1)",
   },
 }
 

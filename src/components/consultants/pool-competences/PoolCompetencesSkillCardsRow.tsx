@@ -91,8 +91,12 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
                         src={categoryIcons[group.category]}
                         alt=""
                         aria-hidden
-                        className="w-6 h-6 object-contain"
-                        style={{ filter: focused ? "brightness(0) invert(1)" : "none" }}
+                        className="w-8 h-8 object-contain"
+                        style={{
+                          filter: focused
+                            ? tone.iconFilterFocused
+                            : tone.iconFilter,
+                        }}
                       />
                     ) : (
                       categoryGlyphs[group.category]
