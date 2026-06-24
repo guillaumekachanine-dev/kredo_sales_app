@@ -3,6 +3,7 @@ import {
   getOpportunityStageLabel as getCanonicalOpportunityStageLabel,
   isTerminalOpportunityStage,
 } from "@/lib/opportunities/stages"
+import { formatPct, formatEuroCompact } from "@/lib/formatters"
 
 export type StaffingStatus = "success" | "warning" | "danger" | "neutral"
 
@@ -284,10 +285,6 @@ function round(value: number, precision = 0) {
   return Math.round(value * factor) / factor
 }
 
-function formatPercent(value: number) {
-  if (!Number.isFinite(value)) return "0%"
-  return `${Math.round(value)}%`
-}
 
 function formatDays(value: number | null) {
   if (value === null) return "—"
@@ -299,10 +296,6 @@ function formatDateShort(date: Date | null) {
   return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(date)
 }
 
-function formatCurrency(value: number | null | undefined) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
-  return `${Math.round(value).toLocaleString("fr-FR")} €`
-}
 
 function formatDayLabel(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(date).replace(".", "")
@@ -481,7 +474,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
       label: "Candidats positionnés",
       value: String(positionedCount),
       description: "Sur besoins ouverts",
-      detail: `${formatPercent(coverageRate)} de couverture`,
+      detail: `${formatPct(coverageRate)} de couverture`,
       status: coverageRate >= 80 ? "success" : coverageRate >= 50 ? "warning" : "danger",
     },
     {
@@ -495,7 +488,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
     {
       id: "transformation-rate",
       label: "Taux de transformation",
-      value: formatPercent(transformationRate),
+      value: formatPct(transformationRate),
       description: "Profil envoyé, en entretien ou retenu",
       detail: `${transformedCount}/${positionedCount || 0} positionnement(s)`,
       status: transformationRate >= 35 ? "success" : transformationRate >= 15 ? "warning" : "danger",
@@ -539,7 +532,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
         clientName: opportunity ? getCompanyName(opportunity) : "Compte non renseigné",
         needTitle: opportunity?.title || "Besoin non renseigné",
         startDateLabel: formatDateShort(toDate(opportunity?.start_date)),
-        tjmLabel: formatCurrency(dailyRate),
+        tjmLabel: formatEuroCompact(dailyRate),
         nextAction: link.next_action || getDeadlineType(link),
       }
     })
@@ -628,7 +621,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
       startDateLabel: formatDateShort(toDate(need.start_date)),
       practice: need.practice || "Practice non renseignée",
       seniority: need.seniority || "Séniorité non renseignée",
-      targetDailyRateLabel: formatCurrency(need.target_daily_rate),
+      targetDailyRateLabel: formatEuroCompact(need.target_daily_rate),
       actionLabel: getPriorityAction(need, linksByOpportunity.get(need.id) ?? []),
       coverageLabel: (linksByOpportunity.get(need.id)?.length ?? 0) > 0
         ? `${linksByOpportunity.get(need.id)?.length ?? 0} profil(s)`

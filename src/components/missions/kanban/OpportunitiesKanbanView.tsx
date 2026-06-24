@@ -9,6 +9,7 @@ import {
   getOpportunityStageColor,
   OPPORTUNITY_KANBAN_STAGES,
 } from "@/lib/opportunities/stages"
+import { formatEuroCompact, formatDate } from "@/lib/formatters"
 
 interface OpportunitiesKanbanViewProps {
   opportunities: OpportunityPlanningData[]
@@ -22,20 +23,6 @@ const COLUMNS = OPPORTUNITY_KANBAN_STAGES.map((stage) => ({
   key: stage.value,
   label: stage.label,
 }))
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} M€`
-  if (amount >= 1_000) return `${Math.round(amount / 1_000)} k€`
-  return `${Math.round(amount)} €`
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return "—"
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
-}
 
 // ─── COMPOSANT COLONNE DU KANBAN ─────────────────────────────────────────────
 
@@ -175,7 +162,7 @@ function KanbanColumn({
                 <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-border/50 pt-2.5 text-[10px]">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Valeur (ACV)</span>
-                    <span className="font-semibold text-heading mt-0.5">{formatEuro(opp.acv || opp.estimatedGain)}</span>
+                    <span className="font-semibold text-heading mt-0.5">{formatEuroCompact(opp.acv || opp.estimatedGain)}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Date cible</span>

@@ -7,6 +7,7 @@ import type { SectorWithRelations, PracticeKey, Urgency } from '@/types/sector'
 import { ScoreBar } from './blocks/ScoreBar'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { cn } from '@/lib/utils'
+import { formatDate } from '@/lib/formatters'
 
 // ─── Render configuration mappings ──────────────────────────────────────────
 
@@ -97,19 +98,6 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return '—'
-  try {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    }).format(new Date(dateStr))
-  } catch {
-    return dateStr
-  }
-}
 
 interface Props {
   sector: SectorWithRelations

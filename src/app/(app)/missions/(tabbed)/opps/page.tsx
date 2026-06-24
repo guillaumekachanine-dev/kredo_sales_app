@@ -5,14 +5,9 @@ import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton
 import { getOpportunitiesPlanning } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import { createClient } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
+import { formatEuroCompact } from "@/lib/formatters"
 
 export const dynamic = "force-dynamic"
-
-function fmtEuro(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} M€`
-  if (v >= 1_000) return `${Math.round(v / 1_000)} k€`
-  return `${Math.round(v)} €`
-}
 
 function StatChip({
   label,
@@ -80,7 +75,7 @@ export default async function OpportunitesPage() {
           <div className="flex flex-wrap items-center justify-center gap-2">
             <StatChip
               label="Pipe pondéré"
-              value={weightedPipe > 0 ? fmtEuro(weightedPipe) : "—"}
+              value={weightedPipe > 0 ? formatEuroCompact(weightedPipe) : "—"}
             />
             <StatChip
               label="Opportunités ouvertes"

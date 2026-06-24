@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import type { Json } from "@/types/database"
 
 export interface UpdateMissionInput {
   id: string
@@ -13,7 +14,7 @@ export interface UpdateMissionInput {
   risk_level?: "faible" | "modere" | "critique"
   practice?: string | null
   seniority?: string | null
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export async function updateMission(input: UpdateMissionInput) {
@@ -48,17 +49,22 @@ export async function updateMission(input: UpdateMissionInput) {
       updatedMetadata.risk_level = input.risk_level
     }
 
-    // 2. Préparation des champs de mise à jour
-    const updatePayload: any = {
-      metadata: updatedMetadata,
-    }
+    const updatePayload: {
+      metadata: Json
+      title?: string
+      tjm?: number
+      cjm?: number
+      start_date?: string | null
+      end_date?: string | null
+      practice?: string | null
+      seniority?: string | null
+    } = { metadata: updatedMetadata as Json }
 
     if (input.title !== undefined) updatePayload.title = input.title
     if (input.tjm !== undefined) updatePayload.tjm = input.tjm
-    
-    // gross_margin_pct is a GENERATED ALWAYS Stored column in PostgreSQL. We calculate and update cjm instead.
+
     if (input.gross_margin_pct !== undefined) {
-      const activeTjm = input.tjm !== undefined ? input.tjm : ((mission as any).tjm || 0)
+      const activeTjm = input.tjm !== undefined ? input.tjm : (mission.tjm || 0)
       if (input.gross_margin_pct === null) {
         updatePayload.cjm = activeTjm
       } else {
@@ -71,7 +77,6 @@ export async function updateMission(input: UpdateMissionInput) {
     if (input.practice !== undefined) updatePayload.practice = input.practice || null
     if (input.seniority !== undefined) updatePayload.seniority = input.seniority || null
 
-    // 3. Exécution de l'update
     const { error: updateError } = await supabase
       .from("missions")
       .update(updatePayload)

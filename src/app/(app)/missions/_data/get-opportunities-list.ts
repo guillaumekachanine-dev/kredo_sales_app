@@ -6,27 +6,8 @@ import {
   TYPE_OPTIONS,
 } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import { isOpenOpportunityStage, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
+import { formatEuro, formatDateShort } from "@/lib/formatters"
 import type { Json } from "@/types/database"
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (Number.isNaN(date.getTime())) return "—"
-  const formatted = date.toLocaleDateString("fr-FR", {
-    month: "short",
-    year: "numeric",
-  })
-  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`.replace(".", "")
-}
 
 interface CompanyInfo {
   name: string
@@ -130,9 +111,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
     const mapped: MappedRow[] = (data ?? []).map((item) => {
       const amountVal = item.acv ?? item.estimated_gain
       const dateVal = item.target_close_date ?? item.start_date
-      let dateStr = formatDate(dateVal)
+      let dateStr = formatDateShort(dateVal)
       if (dateStr === "—" && item.next_action_at) {
-        dateStr = `Action : ${formatDate(item.next_action_at)}`
+        dateStr = `Action : ${formatDateShort(item.next_action_at)}`
       }
 
       const tagParts: string[] = []

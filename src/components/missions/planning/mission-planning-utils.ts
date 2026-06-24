@@ -2,6 +2,11 @@ import type {
   MissionPlanningRow,
   MissionTemporalStatus,
 } from "./mission-planning-types"
+import {
+  formatEuro as sharedFormatEuro,
+  formatDate as sharedFormatDate,
+  formatPct as sharedFormatPct,
+} from "@/lib/formatters"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -206,30 +211,12 @@ export function getDaysRemaining(row: MissionPlanningRow, today: Date): number |
 }
 
 export function formatDateFr(value: string | Date | null): string {
-  const date = typeof value === "string" ? parseDateOnly(value) : value
-  if (!date) return "Non renseignée"
-
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).replace(".", "")
+  return sharedFormatDate(typeof value === "string" ? value : value?.toISOString() ?? null)
 }
 
-export function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "Non renseigné"
+export const formatEuro = sharedFormatEuro
 
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-export function formatPercent(value: number | null): string {
-  if (value === null || value === undefined) return "Non renseignée"
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)} %`
-}
+export const formatPercent = sharedFormatPct
 
 export function getPersonName(row: MissionPlanningRow): string {
   const person = row.collaborator?.person

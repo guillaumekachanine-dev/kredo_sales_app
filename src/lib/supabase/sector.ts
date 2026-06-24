@@ -79,7 +79,7 @@ export async function getSectors(): Promise<SectorListItem[]> {
 
   if (!data) return []
 
-  return data.map((item: any) => ({
+  return data.map((item) => ({
     id: item.id,
     name: item.name,
     slug: item.slug,
@@ -195,7 +195,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
       authority: item.authority,
       description: item.description,
       deadline_date: item.deadline_date,
-      urgency: item.urgency as any,
+      urgency: item.urgency as SectorRegulatoryItem["urgency"],
       kredo_practice: item.kredo_practice as PracticeKey | 'multi' | null,
       commercial_angle: item.commercial_angle,
       is_commercial_window: item.is_commercial_window,
@@ -203,11 +203,11 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
     events: (eventsResult.data ?? []).map((item) => ({
       id: item.id,
       title: item.title,
-      event_type: item.event_type as any,
+      event_type: item.event_type as SectorEvent["event_type"],
       description: item.description,
       event_date: item.event_date,
       commercial_opportunity: item.commercial_opportunity,
-      status: item.status as any,
+      status: item.status as SectorEvent["status"],
     })),
     companies: (companiesResult.data ?? []).map((item) => ({
       id: item.id,

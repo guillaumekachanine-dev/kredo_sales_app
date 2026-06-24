@@ -3,6 +3,7 @@ import { getStaffingDashboardData } from "@/lib/staffing/staffing-data"
 import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { getTrajectory2026 } from "@/app/(app)/missions/_data/get-trajectory-2026"
 import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
+import { formatEuroCompact, formatPct } from "@/lib/formatters"
 
 export type CockpitStatus = "success" | "warning" | "danger" | "neutral"
 
@@ -141,18 +142,6 @@ function statusFromScore(score: number): CockpitStatus {
   return "danger"
 }
 
-function formatEuroCompact(value: number | null | undefined) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
-  const abs = Math.abs(value)
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
-  if (abs >= 1_000) return `${Math.round(value / 1_000)} k€`
-  return `${Math.round(value)} €`
-}
-
-function formatPct(value: number | null | undefined, digits = 1) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
-  return `${value.toFixed(digits)}%`
-}
 
 function formatDeltaPoints(actual: number | null, target: number) {
   if (actual === null || !Number.isFinite(actual)) return undefined

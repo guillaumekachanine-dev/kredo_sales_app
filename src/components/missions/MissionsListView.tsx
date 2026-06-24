@@ -53,25 +53,7 @@ interface MissionsListViewProps {
   emptyMessage?: string
 }
 
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined || amount === 0) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDateShort(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (Number.isNaN(date.getTime())) return "—"
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
-}
+import { formatEuro, formatDateNumeric } from "@/lib/formatters"
 
 // Pastille styles matching: OK (green), vigilance (yellow), danger (red)
 function getPastilleStyles(riskLevel?: "faible" | "modere" | "critique") {
@@ -222,13 +204,13 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
       id: "date-debut",
       header: "Date début",
       align: "center",
-      render: (row) => <span className="text-body">{formatDateShort(row.startDate)}</span>,
+      render: (row) => <span className="text-body">{formatDateNumeric(row.startDate)}</span>,
     },
     {
       id: "date-fin",
       header: "Date fin",
       align: "center",
-      render: (row) => <span className="text-body">{formatDateShort(row.endDate)}</span>,
+      render: (row) => <span className="text-body">{formatDateNumeric(row.endDate)}</span>,
     },
     {
       id: "statut",
@@ -384,7 +366,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span>
-                    Période : <span className="font-semibold text-body">{formatDateShort(row.startDate)} au {formatDateShort(row.endDate)}</span>
+                    Période : <span className="font-semibold text-body">{formatDateNumeric(row.startDate)} au {formatDateNumeric(row.endDate)}</span>
                   </span>
                 </div>
               </div>

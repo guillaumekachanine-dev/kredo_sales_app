@@ -3,6 +3,7 @@ import {
   getOpportunityStageLabel,
   isTerminalOpportunityStage,
 } from "@/lib/opportunities/stages"
+import { formatEuroCompact } from "@/lib/formatters"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Synthèse de prospection — couche données (DÉCISIONNEL portefeuille)
@@ -133,10 +134,6 @@ function toNumber(value: number | string | null): number | null {
   return null
 }
 
-function formatEuro(value: number): string {
-  if (value >= 1000) return `${Math.round(value / 1000)} k€`
-  return `${Math.round(value)} €`
-}
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10
@@ -237,7 +234,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   const kpis: SyntheseKpi[] = [
     { id: "k-portfolio", label: "Comptes au portefeuille", value: String(companies.length), status: "neutral" },
     { id: "k-targets", label: "Cibles & prospects à activer", value: String(targets), status: targets > 0 ? "warning" : "neutral" },
-    { id: "k-pipeline", label: "Pipeline pondéré ouvert", value: formatEuro(totalWeighted), status: "success", hint: `${openCount} opp. ouvertes` },
+    { id: "k-pipeline", label: "Pipeline pondéré ouvert", value: formatEuroCompact(totalWeighted), status: "success", hint: `${openCount} opp. ouvertes` },
     { id: "k-score", label: "Score moyen portefeuille", value: avgScore !== null ? `${avgScore}/5` : "—", status: "neutral", hint: `${scored.length} comptes scorés` },
     { id: "k-clients", label: "Clients actifs", value: String(activeClients), status: "success" },
   ]

@@ -1134,7 +1134,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
   const renderPanelTitle = (title: string, accentClass = "bg-primary", iconSrc?: string) => (
     <div className="flex items-center gap-2.5 mb-1 select-none">
       {iconSrc && (
-        <img src={iconSrc} alt="" className="w-7 h-7 object-contain shrink-0" />
+        <Image src={iconSrc} alt="" width={28} height={28} className="object-contain shrink-0" />
       )}
       <div className="flex flex-col">
         <h3 className="text-[#9ca3af] dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -1166,7 +1166,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
           <div className="flex items-center gap-2">
-            <img src="/icons_set/contexte_client.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+            <Image src="/icons_set/contexte_client.png" alt="" width={20} height={20} className="object-contain shrink-0" />
             <h4 className="text-sm font-bold text-heading">Besoin client</h4>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1287,7 +1287,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
           <div className="flex items-center gap-2">
-            <img src="/icons_set/date.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+            <Image src="/icons_set/date.png" alt="" width={20} height={20} className="object-contain shrink-0" />
             <h4 className="text-sm font-bold text-heading">Planning de l&apos;opportunité</h4>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1337,7 +1337,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
         <section className="rounded-lg border border-border/40 bg-canvas/20 p-4 flex flex-col gap-4 h-full">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              <img src="/icons_set/recrutement.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+              <Image src="/icons_set/recrutement.png" alt="" width={20} height={20} className="object-contain shrink-0" />
               <h4 className="text-sm font-bold text-heading">Staffing</h4>
             </div>
             {editingSection === "staffing" ? (

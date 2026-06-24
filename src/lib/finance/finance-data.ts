@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { formatEuroCompact, formatPct } from "@/lib/formatters"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Finance — couche données
@@ -70,18 +71,6 @@ export type FinanceDashboardData = {
   practiceMetrics: PracticeMetric[]
 }
 
-function formatEuro(v: number): string {
-  const abs = Math.abs(v)
-  const sign = v < 0 ? "-" : ""
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)} M€`
-  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)} k€`
-  return `${sign}${Math.round(abs)} €`
-}
-
-function formatPct(v: number | null): string {
-  if (v === null) return "—"
-  return `${v.toFixed(1)} %`
-}
 
 function calcDeltaTone(current: number, previous: number): FinanceKpiDeltaTone {
   if (current > previous) return "positive"
@@ -176,7 +165,7 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
 
   // CA dernière période
   const caValue = last?.revenue_total ?? 0
-  const caLabel = last ? formatEuro(caValue) : "—"
+  const caLabel = last ? formatEuroCompact(caValue) : "—"
   const caDelta =
     last && prev ? calcDeltaLabel(caValue, prev.revenue_total) : undefined
   const caTone =
@@ -197,7 +186,7 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
 
   // Résultat opérationnel
   const opValue = last?.operating_profit_value ?? null
-  const opLabel = opValue !== null ? formatEuro(opValue) : "—"
+  const opLabel = opValue !== null ? formatEuroCompact(opValue) : "—"
   const opTone: FinanceKpiDeltaTone =
     opValue !== null
       ? opValue > 0
@@ -208,7 +197,7 @@ export async function getFinanceDashboardData(): Promise<FinanceDashboardData> {
       : "neutral"
 
   // Pipe CRM pondéré
-  const pipeLabel = pipeTotal > 0 ? formatEuro(pipeTotal) : "—"
+  const pipeLabel = pipeTotal > 0 ? formatEuroCompact(pipeTotal) : "—"
 
   const kpis: FinanceKpi[] = [
     {

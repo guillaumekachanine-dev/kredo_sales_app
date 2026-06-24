@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import type { PnlMonthRow } from "@/lib/finance/finance-data"
+import { formatEuroCompact } from "@/lib/formatters"
 
 const MONTHS_FR = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
@@ -21,13 +22,6 @@ function fmtK(v: number): string {
   return `${sign}${Math.round(abs)}`
 }
 
-function fmtEuro(v: number): string {
-  const abs = Math.abs(v)
-  const sign = v < 0 ? "-" : ""
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)} M€`
-  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)} k€`
-  return `${sign}${Math.round(abs)} €`
-}
 
 interface PnlBarChartProps {
   rows: PnlMonthRow[]
@@ -236,17 +230,17 @@ export function PnlBarChart({ rows, window = 6 }: PnlBarChartProps) {
 
               <text x={tooltipX + 12} y={tooltipY + 46} fill="var(--color-dataviz-1)" fontSize={9} fontWeight={600} fontFamily="inherit">CA</text>
               <text x={tooltipX + TW - 10} y={tooltipY + 46} textAnchor="end" fill="var(--color-heading)" fontSize={9} fontWeight={700} fontFamily="inherit">
-                {fmtEuro(r.revenue_total)}
+                {formatEuroCompact(r.revenue_total)}
               </text>
 
               <text x={tooltipX + 12} y={tooltipY + 64} fill="var(--color-dataviz-4)" fontSize={9} fontWeight={600} fontFamily="inherit">Marge brute</text>
               <text x={tooltipX + TW - 10} y={tooltipY + 64} textAnchor="end" fill="var(--color-heading)" fontSize={9} fontWeight={700} fontFamily="inherit">
-                {r.gross_margin_value !== null ? fmtEuro(r.gross_margin_value) : "—"}
+                {r.gross_margin_value !== null ? formatEuroCompact(r.gross_margin_value) : "—"}
               </text>
 
               <text x={tooltipX + 12} y={tooltipY + 82} fill="var(--color-dataviz-2)" fontSize={9} fontWeight={600} fontFamily="inherit">Résultat op.</text>
               <text x={tooltipX + TW - 10} y={tooltipY + 82} textAnchor="end" fill={opColor} fontSize={9} fontWeight={700} fontFamily="inherit">
-                {r.operating_profit_value !== null ? fmtEuro(r.operating_profit_value) : "—"}
+                {r.operating_profit_value !== null ? formatEuroCompact(r.operating_profit_value) : "—"}
               </text>
 
               <text x={tooltipX + 12} y={tooltipY + 100} fill="var(--color-muted)" fontSize={8} fontWeight={500} fontFamily="inherit">

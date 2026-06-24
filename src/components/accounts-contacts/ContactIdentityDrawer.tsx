@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useState, useTransition, useCallback } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
 import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { formatEuro, formatDate } from "@/lib/formatters"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
 import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
 
@@ -111,25 +113,6 @@ function formatScore(score: number | string | null) {
   return `${score}/5`
 }
 
-function formatCurrency(amount: number | null) {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return "Non renseignée"
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return dateStr
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })
-}
 
 function formatOpportunityMeta(opportunity: ContactIdentityData["opportunities"][number]) {
   return [
@@ -617,8 +600,7 @@ export function ContactIdentityDrawer({
                 {/* Contact Coordinates */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading flex items-center gap-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/icons_set/contact.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
+                    <Image src="/icons_set/contact.png" alt="" aria-hidden="true" width={28} height={28} className="object-contain opacity-60 shrink-0" />
                     Coordonnées personnelles
                   </h4>
                   <div className={cn("grid gap-3", device === "mobile" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
@@ -803,8 +785,7 @@ export function ContactIdentityDrawer({
                 {/* Organigramme / Hiérarchie */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading flex items-center gap-1.5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/icons_set/organigramme.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
+                    <Image src="/icons_set/organigramme.png" alt="" aria-hidden="true" width={28} height={28} className="object-contain opacity-60 shrink-0" />
                     {device === "mobile" ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
                   </h4>
                   <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 flex flex-col items-center">
@@ -941,7 +922,7 @@ export function ContactIdentityDrawer({
                           <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
                             <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
                             <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
-                            {opp.acv && <span>ACV : <strong className="text-heading">{formatCurrency(opp.acv)}</strong></span>}
+                            {opp.acv && <span>ACV : <strong className="text-heading">{formatEuro(opp.acv)}</strong></span>}
                           </div>
                           {formatOpportunityMeta(opp) ? (
                             <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
@@ -1034,8 +1015,7 @@ export function ContactIdentityDrawer({
                 )}
 
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2 flex items-center gap-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/icons_set/date.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
+                  <Image src="/icons_set/date.png" alt="" aria-hidden="true" width={28} height={28} className="object-contain opacity-60 shrink-0" />
                   Tâches et Relances ({data.tasks.length})
                 </h4>
 

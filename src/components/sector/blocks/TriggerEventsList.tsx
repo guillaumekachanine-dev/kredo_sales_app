@@ -1,5 +1,6 @@
 import React from 'react'
 import type { SectorEvent, EventType } from '@/types/sector'
+import { formatDate } from '@/lib/formatters'
 
 export interface TriggerEventsListProps {
   items: SectorEvent[]
@@ -26,20 +27,6 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
   other: 'Autre',
 }
 
-function formatDateFr(dateStr: string | null): string {
-  if (!dateStr) return ''
-  try {
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  } catch {
-    return dateStr
-  }
-}
 
 /**
  * TriggerEventsList - Renders a list of sector trigger events in a responsive grid.
@@ -62,7 +49,7 @@ export function TriggerEventsList({ items, hasError }: TriggerEventsListProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {items.map((item) => {
         const badgeClass = EVENT_TYPE_BADGES[item.event_type] ?? 'bg-muted/10 text-muted'
-        const dateLabel = formatDateFr(item.event_date)
+        const dateLabel = formatDate(item.event_date)
 
         return (
           <div key={item.id} className="bg-surface border border-border p-3.5 flex flex-col gap-2 rounded">

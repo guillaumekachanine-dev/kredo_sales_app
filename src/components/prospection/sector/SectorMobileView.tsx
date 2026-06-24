@@ -5,6 +5,7 @@ import Link from "next/link"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import type { SectorWithRelations, PracticeKey, Urgency } from "@/types/sector"
+import { formatDate } from "@/lib/formatters"
 
 // ─── Référentiels ─────────────────────────────────────────────────────────────
 
@@ -31,12 +32,6 @@ const LIFECYCLE_LABEL: Record<string, string> = {
 
 const MATURITY_LABEL: Record<string, string> = { low: "Faible", medium: "Moyenne", high: "Élevée" }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  try {
-    return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(dateStr))
-  } catch { return dateStr }
-}
 
 // ─── Composant ───────────────────────────────────────────────────────────────
 

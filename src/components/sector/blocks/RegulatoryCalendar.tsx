@@ -1,5 +1,6 @@
 import React from 'react'
 import type { SectorRegulatoryItem, Urgency } from '@/types/sector'
+import { formatDate } from '@/lib/formatters'
 
 export interface RegulatoryCalendarProps {
   items: SectorRegulatoryItem[]
@@ -27,20 +28,6 @@ const URGENCY_LABELS: Record<Urgency, string> = {
   low: 'Faible',
 }
 
-function formatDateFr(dateStr: string | null): string {
-  if (!dateStr) return 'Permanent'
-  try {
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  } catch {
-    return dateStr
-  }
-}
 
 /**
  * RegulatoryCalendar - Renders regulatory items with colored border-left based on urgency,
@@ -64,7 +51,7 @@ export function RegulatoryCalendar({ items, hasError }: RegulatoryCalendarProps)
       {items.map((item) => {
         const borderClass = URGENCY_BORDER_COLORS[item.urgency] ?? 'border-l-border'
         const badgeClass = URGENCY_BADGE_COLORS[item.urgency] ?? 'bg-muted/10 text-muted'
-        const dateLabel = formatDateFr(item.deadline_date)
+        const dateLabel = formatDate(item.deadline_date)
 
         return (
           <div
