@@ -60,7 +60,7 @@ export function SyntheseMobileView({ data }: { data: SyntheseData }) {
   // Handle action click
   const handleActionClick = (actionId: string, title: string, company: string, btnText: string) => {
     let description = ""
-    let primaryBtn = btnText
+    const primaryBtn = btnText
 
     if (btnText === "Contacter/Qualifier") {
       description = `Lancer la séquence de contact téléphonique ou d'emailing automatisée n8n pour positionner ${company}.`

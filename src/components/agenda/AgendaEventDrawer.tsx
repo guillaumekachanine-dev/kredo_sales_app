@@ -1,13 +1,19 @@
 "use client"
 
-import React, { useState, useEffect, useTransition } from "react"
+import React, { useEffect, useEffectEvent, useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
 import { AgendaQuarterHourTimeField } from "./AgendaQuarterHourTimeField"
 import { AGENDA_EVENT_TYPES, COMMERCE_TYPES, MANAGEMENT_TYPES, RECRUTEMENT_TYPES } from "@/lib/agenda/agenda-config"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
-import type { AgendaEvent, AgendaEventFormInput } from "@/lib/agenda/agenda-types"
+import type {
+  AgendaEvent,
+  AgendaEventFormInput,
+  AgendaSelectCandidate,
+  AgendaSelectContact,
+  AgendaSelectOpportunity,
+} from "@/lib/agenda/agenda-types"
 import {
   createAgendaEvent,
   updateAgendaEvent,
@@ -76,17 +82,15 @@ export function AgendaEventDrawer({
   const [mode, setMode] = useState<"create" | "view" | "edit">("create")
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [contacts, setContacts] = useState<any[]>([])
-  const [opportunities, setOpportunities] = useState<any[]>([])
-  const [candidates, setCandidates] = useState<any[]>([])
+  const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
+  const [opportunities, setOpportunities] = useState<AgendaSelectOpportunity[]>([])
+  const [candidates, setCandidates] = useState<AgendaSelectCandidate[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    if (!open) return
-
+  const syncDrawerState = useEffectEvent(() => {
     setErrors({})
     setServerError(null)
 
@@ -144,6 +148,11 @@ export function AgendaEventDrawer({
       const todayStr = `${y}-${m}-${d}`
       setForm({ ...INITIAL_FORM, date: todayStr, task_date: todayStr })
     }
+  })
+
+  useEffect(() => {
+    if (!open) return
+    queueMicrotask(syncDrawerState)
   }, [open, event])
 
   useEffect(() => {
@@ -152,21 +161,27 @@ export function AgendaEventDrawer({
   }, [])
 
   const companyId = form.company?.id
-  useEffect(() => {
-    if (companyId) {
+  const syncContacts = useEffectEvent(async (nextCompanyId?: string | null) => {
+    if (nextCompanyId) {
       setLoadingContacts(true)
-      getContactsByCompany(companyId).then((data) => {
-        setContacts(data)
-        setLoadingContacts(false)
-        if (form.contact_id && !data.some((c) => c.id === form.contact_id)) {
-          setForm((prev) => ({ ...prev, contact_id: "" }))
-        }
-      })
+      const data = await getContactsByCompany(nextCompanyId)
+      setContacts(data)
+      setLoadingContacts(false)
+      setForm((prev) =>
+        prev.contact_id && !data.some((contact) => contact.id === prev.contact_id)
+          ? { ...prev, contact_id: "" }
+          : prev
+      )
     } else {
       setContacts([])
-      setForm((prev) => ({ ...prev, contact_id: "" }))
+      setForm((prev) => (prev.contact_id ? { ...prev, contact_id: "" } : prev))
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void syncContacts(companyId)
+    })
   }, [companyId])
 
   function handleStartTimeChange(value: string) {

@@ -123,7 +123,7 @@ export function PlaybookPanel({ playbook }: PlaybookPanelProps) {
         {activeTab === 'entry_points' && (
           <div className="space-y-2">
             {entryPoints.length === 0 ? (
-              <p className="text-xs text-muted">Aucun point d'entrée renseigné.</p>
+              <p className="text-xs text-muted">Aucun point d&apos;entrée renseigné.</p>
             ) : (
               entryPoints.map((ep, idx) => {
                 let badgeLabel = 'Réseau'

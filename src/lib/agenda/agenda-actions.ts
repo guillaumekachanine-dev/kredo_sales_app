@@ -2,7 +2,71 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
-import type { AgendaEvent, AgendaEventFormInput } from "./agenda-types"
+import type {
+  AgendaEvent,
+  AgendaEventFormInput,
+  AgendaSelectCandidate,
+  AgendaSelectContact,
+  AgendaSelectOpportunity,
+} from "./agenda-types"
+
+type AgendaPersonRow = {
+  id: string
+  full_name: string | null
+  primary_email?: string | null
+}
+
+type AgendaContactRelationRow = {
+  id: string
+  job_title: string | null
+  persons: AgendaPersonRow | AgendaPersonRow[] | null
+}
+
+type AgendaCandidateRelationRow = {
+  id: string
+  persons: AgendaPersonRow | AgendaPersonRow[] | null
+}
+
+type AgendaOpportunityRelationRow = {
+  id: string
+  title: string
+}
+
+type AgendaCompanyRelationRow = {
+  id: string
+  name: string
+}
+
+type AgendaEventRow = {
+  id: string
+  title: string
+  event_type: string
+  status: string
+  starts_at: string
+  ends_at: string
+  description: string | null
+  organizer_id: string | null
+  company_id: string | null
+  contact_id: string | null
+  opportunity_id: string | null
+  candidate_id: string | null
+  companies: AgendaCompanyRelationRow | null
+  contacts: AgendaContactRelationRow | null
+  opportunities: AgendaOpportunityRelationRow | null
+  candidates: AgendaCandidateRelationRow | null
+}
+
+type ContactSelectRow = {
+  id: string
+  job_title: string | null
+  persons: AgendaPersonRow | AgendaPersonRow[] | null
+}
+
+type CandidateSelectRow = {
+  id: string
+  status: string
+  persons: AgendaPersonRow | AgendaPersonRow[] | null
+}
 
 /**
  * Charge les événements agenda sur une plage ISO.
@@ -63,7 +127,7 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
     if (t.calendar_event_id) tasksMap.set(t.calendar_event_id, t)
   })
 
-  return events.map((e: any) => {
+  return (events as AgendaEventRow[]).map((e) => {
     const contactPerson = e.contacts?.persons
       ? Array.isArray(e.contacts.persons)
         ? e.contacts.persons[0]
@@ -120,13 +184,13 @@ export async function createAgendaEvent(input: AgendaEventFormInput) {
     p_ends_at:        input.ends_at,
     p_description:    input.description || undefined,
     p_all_day:        false,
-    p_company_id:     (input.company_id || undefined) as any,
-    p_contact_id:     (input.contact_id || undefined) as any,
-    p_opportunity_id: (input.opportunity_id || undefined) as any,
-    p_candidate_id:   (input.candidate_id || undefined) as any,
+    p_company_id:     input.company_id || undefined,
+    p_contact_id:     input.contact_id || undefined,
+    p_opportunity_id: input.opportunity_id || undefined,
+    p_candidate_id:   input.candidate_id || undefined,
     p_create_task:    input.create_task,
     p_task_title:     input.task_title || undefined,
-    p_task_due_date:  (input.task_due_date || null) as any,
+    p_task_due_date:  input.task_due_date || undefined,
     p_task_priority:  input.task_priority || "normal",
   })
 
@@ -250,7 +314,7 @@ export async function getContactsByCompany(companyId: string) {
     return []
   }
 
-  return (data || []).map((c: any) => {
+  return ((data || []) as ContactSelectRow[]).map<AgendaSelectContact>((c) => {
     const person = Array.isArray(c.persons) ? c.persons[0] : c.persons
     return {
       id: c.id,
@@ -272,7 +336,7 @@ export async function getOpportunitiesForSelect() {
     console.error("getOpportunitiesForSelect error:", error)
     return []
   }
-  return data || []
+  return (data || []) as AgendaSelectOpportunity[]
 }
 
 export async function getCandidatesForSelect() {
@@ -287,8 +351,8 @@ export async function getCandidatesForSelect() {
     return []
   }
 
-  return (data || [])
-    .map((c: any) => {
+  return ((data || []) as CandidateSelectRow[])
+    .map<AgendaSelectCandidate>((c) => {
       const person = Array.isArray(c.persons) ? c.persons[0] : c.persons
       return {
         id: c.id,

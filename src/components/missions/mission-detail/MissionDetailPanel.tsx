@@ -97,6 +97,8 @@ interface MissionDetailData {
   } | null
 }
 
+type JsonRecord = Record<string, unknown>
+
 interface MissionDetailPanelProps {
   tab: SectionTab
   isMobile?: boolean
@@ -109,6 +111,11 @@ function parseDateOnly(value: string | null): Date | null {
   if (!year || !month || !day) return null
   const date = new Date(year, month - 1, day)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+function asRecord(value: Json | null | undefined): JsonRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as JsonRecord
 }
 
 // Helper: Calculate years since a date
@@ -243,7 +250,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
     setEditCollabTenure((meta.collab_tenure || calculatedTenure) as string)
 
     // Missions count
-    const defaultMissionsCount = String((data.collaborator?.metadata as any)?.missions_count || "0")
+    const defaultMissionsCount = String(asRecord(data.collaborator?.metadata).missions_count || "0")
     setEditCollabMissionsCount((meta.collab_missions_count || defaultMissionsCount) as string)
 
     const linkedContactIds = data.contacts.map((c) => c.id)
@@ -388,7 +395,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
   }, [tab.entityId])
 
   // Compute stats and indicators
-  const stats = useMemo(() => {
+  const stats = (() => {
     if (!data) return null
     const { start_date, end_date, tjm, cjm, gross_margin_pct } = data.mission
 
@@ -418,7 +425,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
       acv,
       avgActivityRate,
     }
-  }, [data])
+  })()
 
   // Default end date (defaulting to December 31st of current year if null)
   const defaultEndDate = useMemo(() => {
@@ -446,7 +453,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
   const estimatedSalary = useMemo(() => {
     if (!data?.mission) return 0
     if (data.compensation?.gross_annual != null) return Math.round(data.compensation.gross_annual / 12)
-    const collabMeta = data.collaborator?.metadata as any
+    const collabMeta = asRecord(data.collaborator?.metadata)
     if (collabMeta?.salary) return Number(collabMeta.salary)
     if (collabMeta?.salaire) return Number(collabMeta.salaire)
 
@@ -464,10 +471,10 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
   }, [workingDays, data?.mission?.tjm])
 
   // YTD billable days from CRA reports
-  const ytdBillableDays = useMemo(() => {
+  const ytdBillableDays = (() => {
     if (!data?.activityReports) return 0
     return data.activityReports.reduce((acc, curr) => acc + (curr.billable_days || 0), 0)
-  }, [data?.activityReports])
+  })()
 
   // Produit YTD (Revenue generated to date, taking into account leaves and absences)
   const ytdRevenue = useMemo(() => {
@@ -655,7 +662,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
         {company ? (
           <CompanyLogo
             name={company.name}
-            logoPath={(company.metadata as any)?.logo_path || null}
+            logoPath={typeof asRecord(company.metadata).logo_path === "string" ? (asRecord(company.metadata).logo_path as string) : null}
             website={company.website}
             size="lg"
             className="w-12 h-12 rounded-full border border-border shrink-0 select-none"
@@ -804,7 +811,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Missions</span>
                   <span className="text-xs font-bold text-heading truncate block mt-0.5">
-                    {metadata.collab_missions_count as string || (collaborator?.metadata as any)?.missions_count || "0"}
+                    {String(metadata.collab_missions_count || asRecord(collaborator?.metadata).missions_count || "0")}
                   </span>
                 </div>
               </div>
@@ -1273,7 +1280,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
         <div className="flex flex-col gap-3 mt-2 max-h-[350px] overflow-y-auto pr-1">
           {(!data?.activityReports || data.activityReports.length === 0) ? (
             <p className="text-xs text-muted italic text-center py-4">
-              Aucun compte rendu d'activité enregistré pour cette mission.
+              Aucun compte rendu d&apos;activité enregistré pour cette mission.
             </p>
           ) : (
             data.activityReports.map((report) => {
@@ -1705,7 +1712,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Motif d'attention (À anticiper)</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Motif d&apos;attention (À anticiper)</label>
             <textarea
               value={editToAnticipate}
               onChange={(e) => setEditToAnticipate(e.target.value)}

@@ -490,7 +490,7 @@ export function SyntheseDesktopView({ data }: { data: SyntheseData }) {
               <div className="relative">
                 <select
                   value={selectedSort}
-                  onChange={(e) => setSelectedSort(e.target.value as any)}
+                  onChange={(e) => setSelectedSort(e.target.value as "score" | "action" | "sector")}
                   className="text-[10px] border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
                 >
                   <option value="score">Score Sémantique</option>

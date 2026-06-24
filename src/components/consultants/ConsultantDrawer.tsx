@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { createClient } from '@/lib/supabase/client'
@@ -646,9 +646,7 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState<Tab>('synthese')
 
-  useEffect(() => {
-    if (!open || !collaboratorId) return
-
+  const loadDrawerData = useEffectEvent(async (nextCollaboratorId: string) => {
     setLoading(true)
     setFetchError(null)
     setActiveTab('synthese')
@@ -656,7 +654,7 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
 
     const supabase = createClient()
 
-    supabase
+    const { data, error } = await supabase
       .from('collaborators')
       .select(`
         id, entry_date, exit_date, status, current_title, seniority, practice,
@@ -678,16 +676,22 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
         ),
         absences:collaborator_absences ( id, start_date, end_date, duration_days, absence_type )
       `)
-      .eq('id', collaboratorId)
+      .eq('id', nextCollaboratorId)
       .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setFetchError('Impossible de charger le profil consultant.')
-        } else {
-          setDrawerData(data as unknown as DrawerConsultantData)
-        }
-        setLoading(false)
-      })
+
+    if (error || !data) {
+      setFetchError('Impossible de charger le profil consultant.')
+    } else {
+      setDrawerData(data as unknown as DrawerConsultantData)
+    }
+    setLoading(false)
+  })
+
+  useEffect(() => {
+    if (!open || !collaboratorId) return
+    queueMicrotask(() => {
+      void loadDrawerData(collaboratorId)
+    })
   }, [open, collaboratorId])
 
   const name     = drawerData ? resolveFullName(drawerData) : '…'

@@ -67,7 +67,7 @@ export function AgendaMobileHeader({
               onClick={() => onNavigate("today")}
               className="px-2.5 py-1.5 text-xs font-bold text-primary bg-primary/8 hover:bg-primary/12 active:bg-primary/16 rounded-md transition-colors cursor-pointer"
             >
-              Aujourd'hui
+              Aujourd&apos;hui
             </button>
           )}
 

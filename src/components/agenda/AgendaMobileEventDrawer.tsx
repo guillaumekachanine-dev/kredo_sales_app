@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useTransition } from "react"
+import React, { useEffect, useEffectEvent, useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
@@ -12,7 +12,13 @@ import {
   RECRUTEMENT_TYPES,
 } from "@/lib/agenda/agenda-config"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
-import type { AgendaEvent, AgendaEventFormInput } from "@/lib/agenda/agenda-types"
+import type {
+  AgendaEvent,
+  AgendaEventFormInput,
+  AgendaSelectCandidate,
+  AgendaSelectContact,
+  AgendaSelectOpportunity,
+} from "@/lib/agenda/agenda-types"
 import {
   createAgendaEvent,
   updateAgendaEvent,
@@ -82,18 +88,16 @@ export function AgendaMobileEventDrawer({
   const [step, setStep] = useState<1 | 2>(1)
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [contacts, setContacts] = useState<any[]>([])
-  const [opportunities, setOpportunities] = useState<any[]>([])
-  const [candidates, setCandidates] = useState<any[]>([])
+  const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
+  const [opportunities, setOpportunities] = useState<AgendaSelectOpportunity[]>([])
+  const [candidates, setCandidates] = useState<AgendaSelectCandidate[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const initialFormRef = useRef<FormState>(INITIAL_FORM)
+  const [initialFormSnapshot, setInitialFormSnapshot] = useState<FormState>(INITIAL_FORM)
 
-  useEffect(() => {
-    if (!open) return
-
+  const syncDrawerState = useEffectEvent(() => {
     setErrors({})
     setServerError(null)
     setStep(1)
@@ -145,7 +149,7 @@ export function AgendaMobileEventDrawer({
       }
 
       setForm(loaded)
-      initialFormRef.current = loaded
+      setInitialFormSnapshot(loaded)
     } else {
       setMode("create")
       const today = new Date()
@@ -155,8 +159,13 @@ export function AgendaMobileEventDrawer({
       const todayStr = `${y}-${m}-${d}`
       const empty: FormState = { ...INITIAL_FORM, date: todayStr, task_date: todayStr }
       setForm(empty)
-      initialFormRef.current = empty
+      setInitialFormSnapshot(empty)
     }
+  })
+
+  useEffect(() => {
+    if (!open) return
+    queueMicrotask(syncDrawerState)
   }, [open, event])
 
   useEffect(() => {
@@ -165,21 +174,27 @@ export function AgendaMobileEventDrawer({
   }, [])
 
   const companyId = form.company?.id
-  useEffect(() => {
-    if (companyId) {
+  const syncContacts = useEffectEvent(async (nextCompanyId?: string | null) => {
+    if (nextCompanyId) {
       setLoadingContacts(true)
-      getContactsByCompany(companyId).then((data) => {
-        setContacts(data)
-        setLoadingContacts(false)
-        if (form.contact_id && !data.some((c) => c.id === form.contact_id)) {
-          setForm((prev) => ({ ...prev, contact_id: "" }))
-        }
-      })
+      const data = await getContactsByCompany(nextCompanyId)
+      setContacts(data)
+      setLoadingContacts(false)
+      setForm((prev) =>
+        prev.contact_id && !data.some((contact) => contact.id === prev.contact_id)
+          ? { ...prev, contact_id: "" }
+          : prev
+      )
     } else {
       setContacts([])
-      setForm((prev) => ({ ...prev, contact_id: "" }))
+      setForm((prev) => (prev.contact_id ? { ...prev, contact_id: "" } : prev))
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void syncContacts(companyId)
+    })
   }, [companyId])
 
   const handleStartTimeChange = (value: string) => {
@@ -309,7 +324,7 @@ export function AgendaMobileEventDrawer({
     })
   }
 
-  const isFormDirty = JSON.stringify(form) !== JSON.stringify(initialFormRef.current)
+  const isFormDirty = JSON.stringify(form) !== JSON.stringify(initialFormSnapshot)
   const handleRequestClose = () => {
     if (mode !== "view" && isFormDirty)
       return window.confirm("Des modifications sont en cours. Fermer sans enregistrer ?")

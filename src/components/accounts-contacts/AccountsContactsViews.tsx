@@ -391,7 +391,7 @@ function ContactFormModal({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [deletePending, startDeleteTransition] = useTransition()
 
-  const set = (key: keyof ContactFormData, value: any) =>
+  const set = <K extends keyof ContactFormData>(key: K, value: ContactFormData[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
 
   const selectedCompany = useMemo(() => {
