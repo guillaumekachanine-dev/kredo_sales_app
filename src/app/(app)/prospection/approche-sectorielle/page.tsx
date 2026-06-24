@@ -22,7 +22,7 @@ const STRATEGIC_SECTORS_CONFIG: StrategicConfig[] = [
   {
     name: "Luxe, Chimie & Cosmétiques",
     slug: "parfumerie-aromes", // Maps to the seeded database sector
-    image_url: "/images/sectors/luxe_chimie_cosmetiques.png",
+    image_url: "/images/sectors/luxe_chimie_cosmetiques.jpeg",
     status: "active",
     attractiveness_score: 4.8,
     digital_maturity: "low",
@@ -37,7 +37,7 @@ const STRATEGIC_SECTORS_CONFIG: StrategicConfig[] = [
   {
     name: "Aéronautique & Défense",
     slug: "aeronautique-defense",
-    image_url: "/images/sectors/aeronautique_defense.png",
+    image_url: "/images/sectors/aeronautique_defense.jpeg",
     status: "watch",
     attractiveness_score: 3.8,
     digital_maturity: "medium",
@@ -52,7 +52,7 @@ const STRATEGIC_SECTORS_CONFIG: StrategicConfig[] = [
   {
     name: "Travel Tech & E-Commerce",
     slug: "travel-tech-ecommerce",
-    image_url: "/images/sectors/travel_tech_ecommerce.png",
+    image_url: "/images/sectors/travel_tech_ecommerce.jpeg",
     status: "development",
     attractiveness_score: 4.2,
     digital_maturity: "high",
@@ -67,7 +67,7 @@ const STRATEGIC_SECTORS_CONFIG: StrategicConfig[] = [
   {
     name: "Banque, Finance & Assurance",
     slug: "banque-finance-assurance",
-    image_url: "/images/sectors/banque_finance_assurance.png",
+    image_url: "/images/sectors/banque_finance_assurance.jpeg",
     status: "development",
     attractiveness_score: 4.5,
     digital_maturity: "medium",
@@ -82,7 +82,7 @@ const STRATEGIC_SECTORS_CONFIG: StrategicConfig[] = [
   {
     name: "Secteur Public & Collectivités",
     slug: "secteur-public-collectivites",
-    image_url: "/images/sectors/secteur_public_collectivites.png",
+    image_url: "/images/sectors/secteur_public_collectivites.jpeg",
     status: "watch",
     attractiveness_score: 3.2,
     digital_maturity: "low",

@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useState, useTransition, useCallback } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
+import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -332,7 +334,34 @@ export function ContactIdentityDrawer({
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false)
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false)
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [transitionPending, startTransition] = useTransition()
+
+  const handleTaskCreated = useCallback((task: TaskRow) => {
+    setData((prev) =>
+      prev ? { ...prev, tasks: [...prev.tasks, task] } : prev
+    )
+  }, [])
+
+  const handleToggleTask = useCallback(async (taskId: string, currentStatus: string) => {
+    const isDone = currentStatus !== "done"
+    setData((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        tasks: prev.tasks.map((t) =>
+          t.id === taskId
+            ? {
+                ...t,
+                status: isDone ? "done" : "open",
+                completed_at: isDone ? new Date().toISOString() : null,
+              }
+            : t
+        ),
+      }
+    })
+    await toggleTaskStatus(taskId, isDone)
+  }, [])
 
   const loading = transitionPending || (open && !!contactId && !data && !error)
 
@@ -392,20 +421,22 @@ export function ContactIdentityDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={
-        <span className="flex items-center sm:items-baseline gap-2 flex-wrap min-w-0">
-          <span>{fullName}</span>
-          {contact?.job_title && (
-            <span className="text-xs font-normal text-muted normal-case sm:hidden inline-block truncate max-w-[160px] leading-none">
-              {contact.job_title}
-            </span>
-          )}
-        </span>
+        company ? (
+          <span className="flex items-center gap-2 min-w-0">
+            <CompanyLogo
+              name={company.name}
+              logoPath={(company.metadata?.logo_path as string) || null}
+              website={company.website}
+              size="sm"
+              className="shrink-0 rounded"
+            />
+            <span className="truncate font-bold">{company.name}</span>
+          </span>
+        ) : (
+          <span>{fullName || "Fiche contact"}</span>
+        )
       }
-      subtitle={
-        contact
-          ? [contact.job_title, company?.name].filter(Boolean).join(" - ") || "Fiche contact"
-          : "Fiche contact"
-      }
+      subtitle={contact ? fullName : undefined}
       className="max-w-2xl"
       hideMobileBackBtn={true}
     >
@@ -444,8 +475,7 @@ export function ContactIdentityDrawer({
         </div>
       ) : data && contact && person ? (
         <div className="flex flex-col h-full gap-5">
-          {/* Mini-modal for company details on mobile */}
-          {device === "mobile" && company && isCompanyModalOpen && (
+          {company && isCompanyModalOpen && (
             <CompanyMiniModal
               company={company}
               onClose={() => setIsCompanyModalOpen(false)}
@@ -453,8 +483,7 @@ export function ContactIdentityDrawer({
             />
           )}
 
-          {/* Mini-modal for N+1 manager details on mobile */}
-          {device === "mobile" && data.manager && isManagerModalOpen && (
+          {data.manager && isManagerModalOpen && (
             <ManagerMiniModal
               manager={data.manager}
               onClose={() => setIsManagerModalOpen(false)}
@@ -462,32 +491,16 @@ export function ContactIdentityDrawer({
             />
           )}
 
-          {/* Identity Summary Card */}
+          {/* Identity Summary Card — bleu sur toutes les surfaces */}
           <div className={cn(
             "flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
-            device === "mobile"
-              ? "bg-primary text-white border-primary/20"
-              : "bg-canvas/30 text-heading border-border/50",
-            device === "mobile" && contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
+            "bg-primary text-white border-primary/20",
+            contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
           )}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0 flex-1">
-                {/* Mobile back arrow button */}
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className={cn(
-                    "sm:hidden flex items-center justify-center transition-colors cursor-pointer mr-0.5",
-                    device === "mobile" ? "text-white/80 hover:text-white" : "text-muted hover:text-heading"
-                  )}
-                  aria-label="Retour"
-                >
-                  <svg className="h-4 w-4 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="16,5 7,12 16,19" />
-                  </svg>
-                </button>
-
-                {device === "mobile" && company ? (
+                {/* Logo du compte (ou avatar initiales) */}
+                {company ? (
                   <div
                     onClick={() => setIsCompanyModalOpen(true)}
                     className="cursor-pointer transition-transform hover:scale-105 active:scale-95 shrink-0"
@@ -509,102 +522,64 @@ export function ContactIdentityDrawer({
                     {initials}
                   </div>
                 )}
-                
-                {device === "mobile" ? (
-                  <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
-                      {contact.job_title && (
-                        <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
-                          {contact.job_title}
-                        </span>
-                      )}
-                    </div>
-                    {onEditContact && (
-                      <button
-                        onClick={() => onEditContact(contact.id)}
-                        className="rounded-full p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
-                        title="Modifier les informations du contact"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-heading leading-tight">{fullName}</h3>
-                    </div>
+
+                <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
                     {contact.job_title && (
-                      <span className="text-[11px] text-muted font-medium block mt-0.5 leading-tight">
+                      <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
                         {contact.job_title}
                       </span>
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Edit Button for Desktop */}
-              {device !== "mobile" && onEditContact && (
-                <div className="flex flex-col items-end shrink-0">
-                  <button
-                    onClick={() => onEditContact(contact.id)}
-                    className="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2 py-0.5 rounded transition-colors"
-                    title="Modifier les informations du contact"
-                  >
-                    <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Éditer
-                  </button>
+                  {onEditContact && (
+                    <button
+                      onClick={() => onEditContact(contact.id)}
+                      className="rounded-full p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
+                      title="Modifier les informations du contact"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Quick professional attributes row - Distributed equally */}
-            <div className={cn(
-              "grid grid-cols-3 gap-2 items-center pt-2.5 text-[10px] w-full text-center border-t",
-              device === "mobile" ? "border-white/12" : "border-border/40"
-            )}>
-              <span className={cn(
-                "rounded border px-2 py-1 font-semibold truncate",
-                device === "mobile"
-                  ? "bg-white/10 border-white/10 text-white/90"
-                  : "bg-primary-fg border-border text-body"
-              )}>
-                Rôle : <span className={cn("capitalize font-bold", device === "mobile" ? "text-[#FFB812]" : "text-primary")}>{relationshipRoleDisplay}</span>
-              </span>
-              <span className={cn(
-                "rounded border px-2 py-1 font-semibold truncate",
-                device === "mobile"
-                  ? "bg-white/10 border-white/10 text-white/90"
-                  : "bg-primary-fg border-border text-body"
-              )}>
-                Intimité : <span className={cn("capitalize font-bold", device === "mobile" ? "text-white" : "text-primary")}>{relationshipLevelDisplay}</span>
-              </span>
-              {company?.lifecycle_status === "prospect" ? (
-                <span className={cn(
-                  "rounded border px-2 py-1 font-semibold truncate",
-                  device === "mobile"
-                    ? "bg-white/10 border-white/10 text-white/90"
-                    : contact.is_priority 
-                      ? "bg-success/5 border-success/20 text-success" 
-                      : "bg-primary-fg border-border text-body"
-                )}>
-                  Prioritaire : <span className="font-bold">{contact.is_priority ? "oui" : "non"}</span>
+            {/* Pastilles : Rôle / Intimité / Statut */}
+            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 text-[10px] w-full text-center border-t border-white/12">
+              {contact.relationship_role ? (
+                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-[#FFB812]">
+                  {relationshipRoleDisplay}
                 </span>
               ) : (
-                <span className={cn(
-                  "rounded border px-2 py-1 font-semibold truncate",
-                  device === "mobile"
-                    ? "bg-white/10 border-white/10 text-white/90"
-                    : contact.status === "actif" 
-                      ? "bg-success/5 border-success/20 text-success" 
-                      : "bg-primary-fg border-border text-body"
-                )}>
-                  Statut : <span className={cn("capitalize font-bold", device === "mobile" ? "text-white" : contact.status === "actif" ? "text-success" : "text-primary")}>{contact.status}</span>
+                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
+                  Rôle
+                </span>
+              )}
+              {contact.relationship_level ? (
+                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-white">
+                  {relationshipLevelDisplay}
+                </span>
+              ) : (
+                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
+                  Intimité
+                </span>
+              )}
+              {company?.lifecycle_status === "prospect" ? (
+                contact.is_priority !== null && contact.is_priority !== undefined ? (
+                  <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate text-white">
+                    {contact.is_priority ? "Oui" : "Non"}
+                  </span>
+                ) : (
+                  <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
+                    Prioritaire
+                  </span>
+                )
+              ) : (
+                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-white">
+                  {contact.status}
                 </span>
               )}
             </div>
@@ -640,7 +615,9 @@ export function ContactIdentityDrawer({
               <div className="space-y-5">
                 {/* Contact Coordinates */}
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading flex items-center gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/icons_set/contact.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
                     Coordonnées personnelles
                   </h4>
                   <div className={cn("grid gap-3", device === "mobile" ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-2")}>
@@ -824,7 +801,9 @@ export function ContactIdentityDrawer({
 
                 {/* Organigramme / Hiérarchie */}
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading flex items-center gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/icons_set/organigramme.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
                     {device === "mobile" ? "Département & hiérarchie" : "Organigramme & Hiérarchie"}
                   </h4>
                   <div className="bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4 flex flex-col items-center">
@@ -1043,82 +1022,125 @@ export function ContactIdentityDrawer({
 
             {activeTab === "taches" && (
               <div className="space-y-4">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2">
+                {contact && (
+                  <TaskCreateModal
+                    open={isTaskModalOpen}
+                    onOpenChange={setIsTaskModalOpen}
+                    entityType="contact"
+                    entityId={contact.id}
+                    onCreated={handleTaskCreated}
+                  />
+                )}
+
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-2 flex items-center gap-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/icons_set/date.png" alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-60 shrink-0" />
                   Tâches et Relances ({data.tasks.length})
                 </h4>
-                {data.tasks.length === 0 ? null : (
+
+                {data.tasks.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-muted/70 italic">
+                    Aucune tâche pour ce contact.
+                  </div>
+                ) : (
                   <div className="flex flex-col gap-3">
-                    {data.tasks.map((task) => (
-                      <SurfaceCard key={task.id} className="p-3.5 flex flex-col gap-2">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            {/* Simple simulated checkbox for display */}
-                            <span className={cn(
-                              "w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 text-white font-bold text-[10px]",
-                              task.status === "completed" 
-                                ? "bg-success border-success" 
-                                : "border-border bg-canvas/40"
-                            )}>
-                              {task.status === "completed" && "✓"}
-                            </span>
-                            <div className="min-w-0">
-                              <h5 className={cn(
-                                "text-xs font-bold leading-tight",
-                                task.status === "completed" ? "text-muted line-through" : "text-heading"
-                              )}>
-                                {task.title}
-                              </h5>
-                              {task.description && (
-                                <p className="text-[10px] text-muted mt-1 leading-snug font-normal">
-                                  {task.description}
-                                </p>
-                              )}
+                    {data.tasks.map((task) => {
+                      const isDone = task.status === "done"
+                      const isOverdue =
+                        !isDone &&
+                        !!task.due_date &&
+                        new Date(task.due_date) < new Date()
+
+                      const priorityStyle = {
+                        low: "bg-canvas border-border text-muted",
+                        normal: "bg-canvas border-border text-muted",
+                        high: "bg-warning/10 border-warning/20 text-warning",
+                        urgent: "bg-danger/10 border-danger/20 text-danger",
+                      }[task.priority] ?? "bg-canvas border-border text-muted"
+
+                      const priorityLabel = {
+                        low: "Basse",
+                        normal: "Normale",
+                        high: "Haute",
+                        urgent: "Urgente",
+                      }[task.priority] ?? task.priority
+
+                      return (
+                        <SurfaceCard key={task.id} className="p-3.5 flex flex-col gap-2">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTask(task.id, task.status)}
+                                className={cn(
+                                  "w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 text-white font-bold text-[10px] transition-colors cursor-pointer hover:opacity-80",
+                                  isDone
+                                    ? "bg-success border-success"
+                                    : "border-border bg-canvas/40 hover:border-success/60"
+                                )}
+                                title={isDone ? "Marquer comme ouverte" : "Marquer comme terminée"}
+                                aria-label={isDone ? "Rouvrir la tâche" : "Terminer la tâche"}
+                              >
+                                {isDone && (
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                              <div className="min-w-0">
+                                <h5 className={cn(
+                                  "text-xs font-bold leading-tight",
+                                  isDone ? "text-muted line-through" : "text-heading"
+                                )}>
+                                  {task.title}
+                                </h5>
+                                {task.description && (
+                                  <p className="text-[10px] text-muted mt-1 leading-snug font-normal">
+                                    {task.description}
+                                  </p>
+                                )}
+                              </div>
                             </div>
+
+                            <span className={cn(
+                              "rounded px-1.5 py-0.5 text-[9px] font-bold border shrink-0",
+                              priorityStyle
+                            )}>
+                              {priorityLabel}
+                            </span>
                           </div>
 
-                          <span className={cn(
-                            "rounded px-1.5 py-0.5 text-[9px] font-bold border capitalize shrink-0",
-                            task.priority === "haute" && "bg-danger/10 border-danger/20 text-danger",
-                            task.priority === "normale" && "bg-canvas border-border text-muted",
-                            task.priority === "basse" && "bg-success/5 border-success/15 text-muted"
-                          )}>
-                            {task.priority}
-                          </span>
-                        </div>
+                          <div className="flex items-center justify-between text-[9px] text-muted/80 border-t border-border/30 pt-2 mt-0.5">
+                            {task.due_date ? (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Échéance :{" "}
+                                <strong className={cn("font-bold", isOverdue ? "text-danger" : "text-body")}>
+                                  {formatDate(task.due_date)}
+                                </strong>
+                              </span>
+                            ) : (
+                              <span>Sans échéance</span>
+                            )}
 
-                        {/* Task metadata footer */}
-                        <div className="flex items-center justify-between text-[9px] text-muted/80 border-t border-border/30 pt-2 mt-0.5">
-                          {task.due_date ? (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              Échéance : <strong className={cn(
-                                "font-bold",
-                                !task.completed_at && new Date(task.due_date) < new Date() ? "text-danger" : "text-body"
-                              )}>{formatDate(task.due_date)}</strong>
-                            </span>
-                          ) : (
-                            <span>Sans échéance</span>
-                          )}
-
-                          {task.completed_at && (
-                            <span className="text-success font-medium">
-                              Complétée le {formatDate(task.completed_at)}
-                            </span>
-                          )}
-                        </div>
-                      </SurfaceCard>
-                    ))}
+                            {task.completed_at && (
+                              <span className="text-success font-medium">
+                                Terminée le {formatDate(task.completed_at)}
+                              </span>
+                            )}
+                          </div>
+                        </SurfaceCard>
+                      )
+                    })}
                   </div>
                 )}
 
-                {/* Centered Add Task Action Button */}
                 <div className="flex justify-center pt-2">
                   <button
-                    onClick={() => {
-                      alert("Fonctionnalité d'ajout de tâche bientôt disponible !");
-                    }}
+                    type="button"
+                    onClick={() => setIsTaskModalOpen(true)}
                     className="flex items-center gap-1.5 rounded-[var(--radius-medium)] bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 text-xs font-bold transition-all active:scale-95 hover:shadow"
                     title="Ajouter une nouvelle tâche"
                   >
