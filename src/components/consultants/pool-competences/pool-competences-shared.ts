@@ -129,7 +129,12 @@ export const categoryGlyphs: Record<SkillCategory, string> = {
 }
 
 export const categoryIcons: Partial<Record<SkillCategory, string>> = {
+  cloud: "/icons_set/cloud-computing.png",
+  data: "/icons_set/Data_&_IA.png",
   devops: "/icons_set/devops.png",
+  fonctionnel: "/icons_set/fonctionnel.png",
+  framework: "/icons_set/framework.png",
+  langage: "/icons_set/dev_langages.png",
   methode: "/icons_set/methodes_&_process.png",
   soft_skill: "/icons_set/soft_skills.png",
 }

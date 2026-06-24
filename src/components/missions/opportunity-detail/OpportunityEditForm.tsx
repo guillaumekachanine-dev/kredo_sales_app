@@ -64,6 +64,17 @@ const SEQUENTIAL_STEPS = [
   { key: "entretien_client", label: "Entretien client", num: 4 },
 ]
 
+const STAGE_LOGOS: Record<string, string> = {
+  qualification: "/icons_set/rdv_client.png",
+  recherche_profil: "/icons_set/sourcing_candidats_2.png",
+  cv_envoyes: "/icons_set/staffing.png",
+  entretien_client: "/icons_set/presentation_client_rt.png",
+  gagne: "/icons_set/oppy_win.png",
+  perdu: "/icons_set/oppy_perdu.png",
+  abandonne: "/icons_set/oppy_abandon.png",
+}
+
+
 const COMMERCIAL_ACTION_TYPES = [
   "appel de qualification",
   "envoi de CV",
@@ -410,36 +421,39 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     type="button"
                     disabled={isPending}
                     onClick={() => handleStageSelect(step.key as SalesStage)}
-                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300"
+                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
                     style={{
                       width: 44,
                       height: 44,
-                      backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
-                      border: isActive ? "3px solid #1a5c41" : "2px solid transparent",
-                      boxShadow: isActive ? "0 0 0 4px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 8px rgba(44,125,92,0.22)" : "none",
+                      backgroundColor: "#FFFFFF",
+                      border: isActive
+                        ? "3px solid #2C7D5C"
+                        : isCompleted
+                        ? "2.5px solid #2C7D5C"
+                        : "2px solid #E5E7EB",
+                      boxShadow: isActive
+                        ? "0 0 0 4px rgba(44,125,92,0.18)"
+                        : isCompleted
+                        ? "0 2px 8px rgba(44,125,92,0.22)"
+                        : "none",
                       transform: isActive ? "scale(1.12)" : "scale(1)",
                     }}
                   >
                     {isLoading ? (
                       <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
-                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : isActive ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
-                        <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-                        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-                        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-                      </svg>
-                    ) : isCompleted ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 13l4 4L19 7" />
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#2C7D5C" strokeWidth="4" />
+                        <path className="opacity-75" fill="#2C7D5C" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
+                      <img
+                        src={STAGE_LOGOS[step.key]}
+                        alt={step.label}
+                        className="w-full h-full object-contain p-1 rounded-full transition-all duration-300"
+                        style={{
+                          filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
+                          opacity: (isCompleted || isActive) ? 1 : 0.4,
+                        }}
+                      />
                     )}
                   </button>
 
@@ -491,18 +505,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     type="button"
                     disabled={isPending}
                     onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300"
+                    className="relative z-10 flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
                     style={{
                       width: 44,
                       height: 44,
-                      backgroundColor:
-                        form.stage === "gagne" ? "#2C7D5C"
-                        : form.stage === "perdu" ? "#DC2626"
-                        : form.stage === "abandonne" ? "#F59E0B"
-                        : form.stage === "non_traitee" ? "#9CA3AF"
-                        : "#F3F4F6",
-                      border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
-                        ? "none"
+                      backgroundColor: "#FFFFFF",
+                      border:
+                        form.stage === "gagne" ? "3px solid #2C7D5C"
+                        : form.stage === "perdu" ? "3px solid #DC2626"
+                        : form.stage === "abandonne" ? "3px solid #F59E0B"
+                        : form.stage === "non_traitee" ? "2px solid #9CA3AF"
                         : "2px solid #D1D5DB",
                       boxShadow:
                         form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18), 0 2px 8px rgba(44,125,92,0.25)"
@@ -514,24 +526,27 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   >
                     {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
                       <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
-                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
+                          loadingStage === "gagne" ? "#2C7D5C"
+                          : loadingStage === "perdu" ? "#DC2626"
+                          : loadingStage === "abandonne" ? "#F59E0B"
+                          : "#9CA3AF"
+                        } strokeWidth="4" />
+                        <path className="opacity-75" fill={
+                          loadingStage === "gagne" ? "#2C7D5C"
+                          : loadingStage === "perdu" ? "#DC2626"
+                          : loadingStage === "abandonne" ? "#F59E0B"
+                          : "#9CA3AF"
+                        } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-                    ) : form.stage === "gagne" ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : form.stage === "perdu" ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    ) : form.stage === "abandonne" ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                      </svg>
+                    ) : form.stage && STAGE_LOGOS[form.stage] ? (
+                      <img
+                        src={STAGE_LOGOS[form.stage]}
+                        alt={form.stage}
+                        className="w-full h-full object-contain p-1 rounded-full"
+                      />
                     ) : form.stage === "non_traitee" ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="10" />
                         <line x1="8" y1="12" x2="16" y2="12" />
                       </svg>
@@ -638,35 +653,35 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     type="button"
                     disabled={isPending}
                     onClick={() => handleStageSelect(step.key as SalesStage)}
-                    className="flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 shrink-0 z-10"
+                    className="flex items-center justify-center rounded-full cursor-pointer disabled:cursor-not-allowed transition-all duration-300 shrink-0 z-10 overflow-hidden"
                     style={{
                       width: 44,
                       height: 44,
-                      backgroundColor: (isCompleted || isActive) ? "#2C7D5C" : "#F3F4F6",
+                      backgroundColor: "#FFFFFF",
+                      border: isActive
+                        ? "3px solid #2C7D5C"
+                        : isCompleted
+                        ? "2.5px solid #2C7D5C"
+                        : "2px solid #E5E7EB",
                       boxShadow: isActive ? "0 0 0 4px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 8px rgba(44,125,92,0.2)" : "none",
                       transform: isActive ? "scale(1.08)" : "scale(1)",
                     }}
                   >
                     {isLoading ? (
                       <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
-                        <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : isActive ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2 .27-2.73 0-3c-.28-.27-1.72-.26-3 0z"/>
-                        <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-                        <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-                        <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-                      </svg>
-                    ) : isCompleted ? (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 13l4 4L19 7" />
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="#2C7D5C" strokeWidth="4" />
+                        <path className="opacity-75" fill="#2C7D5C" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 13l4 4L19 7" />
-                      </svg>
+                      <img
+                        src={STAGE_LOGOS[step.key]}
+                        alt={step.label}
+                        className="w-full h-full object-contain p-1 rounded-full transition-all duration-300"
+                        style={{
+                          filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
+                          opacity: (isCompleted || isActive) ? 1 : 0.4,
+                        }}
+                      />
                     )}
                   </button>
                   {/* Vertical connector pill */}
@@ -722,18 +737,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   type="button"
                   disabled={isPending}
                   onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
-                  className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer"
+                  className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer overflow-hidden"
                   style={{
                     width: 44,
                     height: 44,
-                    backgroundColor:
-                      form.stage === "gagne" ? "#2C7D5C"
-                      : form.stage === "perdu" ? "#DC2626"
-                      : form.stage === "abandonne" ? "#F59E0B"
-                      : form.stage === "non_traitee" ? "#9CA3AF"
-                      : "#F3F4F6",
-                    border: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee")
-                      ? "none"
+                    backgroundColor: "#FFFFFF",
+                    border:
+                      form.stage === "gagne" ? "3px solid #2C7D5C"
+                      : form.stage === "perdu" ? "3px solid #DC2626"
+                      : form.stage === "abandonne" ? "3px solid #F59E0B"
+                      : form.stage === "non_traitee" ? "2px solid #9CA3AF"
                       : "2px solid #D1D5DB",
                     boxShadow:
                       form.stage === "gagne" ? "0 0 0 4px rgba(44,125,92,0.18)"
@@ -746,24 +759,27 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 >
                   {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
                     <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" />
-                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
+                        loadingStage === "gagne" ? "#2C7D5C"
+                        : loadingStage === "perdu" ? "#DC2626"
+                        : loadingStage === "abandonne" ? "#F59E0B"
+                        : "#9CA3AF"
+                      } strokeWidth="4" />
+                      <path className="opacity-75" fill={
+                        loadingStage === "gagne" ? "#2C7D5C"
+                        : loadingStage === "perdu" ? "#DC2626"
+                        : loadingStage === "abandonne" ? "#F59E0B"
+                        : "#9CA3AF"
+                      } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                  ) : form.stage === "gagne" ? (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : form.stage === "perdu" ? (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : form.stage === "abandonne" ? (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                    </svg>
+                  ) : form.stage && STAGE_LOGOS[form.stage] ? (
+                    <img
+                      src={STAGE_LOGOS[form.stage]}
+                      alt={form.stage}
+                      className="w-full h-full object-contain p-1 rounded-full"
+                    />
                   ) : form.stage === "non_traitee" ? (
-                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
+                    <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="8" y1="12" x2="16" y2="12" />
                     </svg>
