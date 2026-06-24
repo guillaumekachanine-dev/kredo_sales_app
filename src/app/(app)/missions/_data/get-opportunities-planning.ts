@@ -42,7 +42,7 @@ export interface OpportunityPlanningData {
   interactions: OpportunityPlanningInteraction[]
 }
 
-function getCompanyName(companies: any): string {
+function getCompanyName(companies: { name: string } | { name: string }[] | null): string {
   if (!companies) return "Compte non renseigné"
   if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
   return companies.name ?? "Compte non renseigné"
@@ -159,30 +159,34 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
           candidatesMap[item.opportunity_id] = []
         }
 
-        const cand = item.candidates as any
-        const person = cand?.persons
-          ? (Array.isArray(cand.persons) ? cand.persons[0] : cand.persons)
+        const cand = item.candidates as Record<string, unknown> | null
+        const persons = cand?.persons
+        const person = persons
+          ? (Array.isArray(persons) ? persons[0] : persons) as Record<string, unknown> | null
           : null
 
         const collaborators = person?.collaborators
         const collaborator = collaborators
-          ? (Array.isArray(collaborators) ? collaborators[0] : collaborators)
+          ? (Array.isArray(collaborators) ? collaborators[0] : collaborators) as Record<string, unknown> | null
           : null
 
         const fullName = person
-          ? (person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim())
+          ? (String(person.full_name || "") || `${person.first_name || ""} ${person.last_name || ""}`.trim())
           : "Candidat sans nom"
 
-        const candidateTitle = cand?.metadata && typeof cand.metadata === "object" && !Array.isArray(cand.metadata)
-          ? (cand.metadata as any).title || (cand.metadata as any).job_title || (cand.metadata as any).current_title
+        const candMeta = cand?.metadata && typeof cand.metadata === "object" && !Array.isArray(cand.metadata)
+          ? cand.metadata as Record<string, unknown>
+          : null
+        const candidateTitle = candMeta
+          ? String(candMeta.title || candMeta.job_title || candMeta.current_title || "")
           : null
 
         const profileTitle = cand?.source === "collaborateur" && collaborator
-          ? (collaborator.current_title || collaborator.practice || "Collaborateur")
+          ? String(collaborator.current_title || collaborator.practice || "Collaborateur")
           : (candidateTitle || null)
 
         const collaboratorId = cand?.source === "collaborateur" && collaborator
-          ? collaborator.id
+          ? String(collaborator.id)
           : null
 
         candidatesMap[item.opportunity_id].push({
@@ -190,12 +194,12 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
           candidateId: item.candidate_id,
           fullName,
           status: item.status,
-          source: cand?.source ?? null,
+          source: (cand?.source as string) ?? null,
           proposedAt: item.proposed_at,
           sentToClientAt: item.sent_to_client_at,
           profileTitle,
           collaboratorId,
-          expectedSalary: cand?.expected_salary ?? null,
+          expectedSalary: (cand?.expected_salary as number) ?? null,
         })
       }
     }
@@ -204,9 +208,10 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
     return opps.map((item) => {
       const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
       const clientWebsite = compRecord?.website ?? null
-      const clientLogoPath = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
-        ? (compRecord.metadata as any).logo_path || null
+      const compMeta = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
+        ? compRecord.metadata as Record<string, unknown>
         : null
+      const clientLogoPath = compMeta && typeof compMeta.logo_path === "string" ? compMeta.logo_path : null
 
       return {
         id: item.id,

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useTransition, useEffect, useRef, useCallback } from "react"
 import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -283,7 +284,7 @@ export function OpportunitySkillsPanel({
 
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <div className="flex items-center gap-2">
-          <img src="/icons_set/opportunity_skills.png" alt="" className="w-5 h-5 object-contain shrink-0" />
+          <Image src="/icons_set/opportunity_skills.png" alt="" width={20} height={20} className="object-contain shrink-0" />
           <h3 className="text-sm font-bold text-heading">Compétences requises</h3>
         </div>
       </div>

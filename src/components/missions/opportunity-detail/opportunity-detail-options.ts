@@ -1,3 +1,5 @@
+import { OPPORTUNITY_STAGE_LABELS, getOpportunityStageLabel } from "@/lib/opportunities/stages"
+
 export const PRACTICE_OPTIONS = [
   "Data",
   "Cloud",
@@ -47,16 +49,7 @@ export const SENIORITY_OPTIONS = [
   { value: "expert", label: "Expert" }
 ]
 
-export const STAGE_LABELS: Record<string, string> = {
-  qualification: "Qualification",
-  recherche_profil: "Recherche profils",
-  cv_envoyes: "CV envoyés",
-  entretien_client: "Entretien client",
-  gagne: "Gagné",
-  perdu: "Perdu",
-  abandonne: "Abandonné",
-  non_traitee: "Non traitée",
-}
+export const STAGE_LABELS: Record<string, string> = { ...OPPORTUNITY_STAGE_LABELS }
 
 export const PRIORITY_LABELS: Record<string, string> = {
   basse: "Basse",
@@ -72,8 +65,7 @@ export const OUTCOME_LABELS: Record<string, string> = {
 }
 
 export function getStageLabel(stage: string | null | undefined): string {
-  if (!stage) return "—"
-  return STAGE_LABELS[stage] || stage
+  return getOpportunityStageLabel(stage)
 }
 
 export function getPriorityLabel(priority: string | null | undefined): string {

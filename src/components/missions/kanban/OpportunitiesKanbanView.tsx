@@ -5,7 +5,11 @@ import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { Badge } from "@/components/ui/Badge"
+import {
+  getOpportunityStageColor,
+  OPPORTUNITY_KANBAN_STAGES,
+} from "@/lib/opportunities/stages"
+import { formatEuroCompact, formatDate } from "@/lib/formatters"
 
 interface OpportunitiesKanbanViewProps {
   opportunities: OpportunityPlanningData[]
@@ -15,52 +19,16 @@ interface OpportunitiesKanbanViewProps {
   onOpenCandidate: (id: string) => void
 }
 
-const COLUMNS = [
-  { key: "qualification", label: "Qualification", colorClass: "bg-amber-500/10 text-amber-800 border-amber-500/20" },
-  { key: "recherche_profil", label: "Recherche profils", colorClass: "bg-indigo-500/10 text-indigo-800 border-indigo-500/20" },
-  { key: "cv_envoyes", label: "CV envoyés", colorClass: "bg-blue-500/10 text-blue-800 border-blue-500/20" },
-  { key: "entretien_client", label: "Entretien client", colorClass: "bg-violet-500/10 text-violet-800 border-violet-500/20" },
-  { key: "gagne", label: "Gagné", colorClass: "bg-emerald-500/10 text-emerald-800 border-emerald-500/20" },
-]
-
-const STATUS_LABELS: Record<string, string> = {
-  identifie: "Identifié",
-  preselectionne: "Présélectionné",
-  propose_interne: "Proposé interne",
-  envoye_client: "Envoyé client",
-  entretien_planifie: "Entretien planifié",
-  entretien_realise: "Entretien réalisé",
-  retenu: "Retenu",
-  refuse_client: "Refus client",
-  refuse_candidat: "Refus candidat",
-  abandonne: "Abandonné",
-}
-
-function getStatusLabel(value: string) {
-  if (!value) return "—"
-  return STATUS_LABELS[value] || value.replace(/_/g, " ")
-}
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} M€`
-  if (amount >= 1_000) return `${Math.round(amount / 1_000)} k€`
-  return `${Math.round(amount)} €`
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return "—"
-  return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
-}
+const COLUMNS = OPPORTUNITY_KANBAN_STAGES.map((stage) => ({
+  key: stage.value,
+  label: stage.label,
+}))
 
 // ─── COMPOSANT COLONNE DU KANBAN ─────────────────────────────────────────────
 
 interface KanbanColumnProps {
   stageKey: string
   label: string
-  colorClass: string
   opportunities: OpportunityPlanningData[]
   onMoveOpportunity: (id: string, newStage: string) => Promise<void>
   onCardClick: (opp: OpportunityPlanningData) => void
@@ -74,7 +42,6 @@ interface KanbanColumnProps {
 function KanbanColumn({
   stageKey,
   label,
-  colorClass,
   opportunities,
   onMoveOpportunity,
   onCardClick,
@@ -85,6 +52,8 @@ function KanbanColumn({
   onOpenCandidate,
 }: KanbanColumnProps) {
   const [isDragOver, setIsDragOver] = useState(false)
+
+  const accentColor = getOpportunityStageColor(stageKey)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -115,12 +84,21 @@ function KanbanColumn({
         isDragOver ? "border-primary bg-primary/5 ring-2 ring-primary/10 shadow-lg scale-[1.01]" : "border-border"
       )}
     >
-      {/* En-tête de la colonne */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <span className="text-[13px] font-bold text-heading flex items-center gap-2">
+      {/* En-tête coloré — couleur pipeline pleine vivacité, séparateur sous le header */}
+      <div
+        className="flex items-center justify-between mb-3 pb-2.5 px-1 border-b"
+        style={{ borderBottomColor: accentColor }}
+      >
+        <span
+          className="text-[13px] font-bold"
+          style={{ color: accentColor }}
+        >
           {label}
         </span>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-canvas border border-border text-muted">
+        <span
+          className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+          style={{ color: accentColor }}
+        >
           {opportunities.length}
         </span>
       </div>
@@ -184,7 +162,7 @@ function KanbanColumn({
                 <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-border/50 pt-2.5 text-[10px]">
                   <div className="flex flex-col">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Valeur (ACV)</span>
-                    <span className="font-semibold text-heading mt-0.5">{formatEuro(opp.acv || opp.estimatedGain)}</span>
+                    <span className="font-semibold text-heading mt-0.5">{formatEuroCompact(opp.acv || opp.estimatedGain)}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Date cible</span>
@@ -343,7 +321,6 @@ export function OpportunitiesKanbanView({
             key={col.key}
             stageKey={col.key}
             label={col.label}
-            colorClass={col.colorClass}
             opportunities={oppsInCol}
             onMoveOpportunity={onMoveOpportunity}
             onCardClick={handleCardClick}

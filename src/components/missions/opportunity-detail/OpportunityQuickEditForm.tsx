@@ -1,14 +1,22 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { Select } from "@/components/ui/Select"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
-import { cn } from "@/lib/utils"
 import { PRACTICE_OPTIONS } from "./opportunity-detail-options"
+import {
+  getOpportunityPipelineIndex,
+  getOpportunityStageColor,
+  getOpportunityStageIcon,
+  getOpportunityStageLabel,
+  OPPORTUNITY_ACTIVE_STAGES,
+  OPPORTUNITY_TERMINAL_STAGES,
+} from "@/lib/opportunities/stages"
 
-import type { Opportunity } from "@/types/database-domain"
+import type { Opportunity, SalesStage } from "@/types/database-domain"
 
 interface OpportunityDetailData {
   opportunity: Opportunity
@@ -23,21 +31,43 @@ interface OpportunityQuickEditFormProps {
   data: OpportunityDetailData
 }
 
-const SEQUENTIAL_STEPS = [
-  { key: "qualification", label: "Qualification", num: 1 },
-  { key: "recherche_profil", label: "Recherche profils", num: 2 },
-  { key: "cv_envoyes", label: "CV envoyés", num: 3 },
-  { key: "entretien_client", label: "Entretien client", num: 4 },
-]
+const SEQUENTIAL_STEPS = OPPORTUNITY_ACTIVE_STAGES.map((stage, index) => ({
+  key: stage.value,
+  label: stage.label,
+  num: index + 1,
+}))
 
-const STAGE_LOGOS: Record<string, string> = {
-  qualification: "/icons_set/rdv_client.png",
-  recherche_profil: "/icons_set/sourcing_candidats_2.png",
-  cv_envoyes: "/icons_set/staffing.png",
-  entretien_client: "/icons_set/presentation_client_rt.png",
-  gagne: "/icons_set/oppy_win.png",
-  perdu: "/icons_set/oppy_perdu.png",
-  abandonne: "/icons_set/oppy_abandon.png",
+const OUTCOME_STEPS = OPPORTUNITY_TERMINAL_STAGES.map((stage) => ({
+  key: stage.value,
+  label: stage.label,
+  color: getOpportunityStageColor(stage.value),
+}))
+
+function StageStepIcon({
+  stage,
+  label,
+  active,
+}: {
+  stage: string
+  label: string
+  active: boolean
+}) {
+  const icon = getOpportunityStageIcon(stage)
+  if (!icon) return null
+
+  return (
+    <Image
+      src={icon}
+      alt={label}
+      width={28}
+      height={28}
+      className="h-7 w-7 object-contain p-0.5 rounded-full transition-all duration-300"
+      style={{
+        filter: active ? "none" : "grayscale(100%)",
+        opacity: active ? 1 : 0.4,
+      }}
+    />
+  )
 }
 
 
@@ -57,13 +87,10 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
     duration: opportunity.duration !== null ? String(opportunity.duration) : "",
     start_date: opportunity.start_date || "",
     practice: opportunity.practice || "",
-    stage: opportunity.stage,
+    stage: opportunity.stage as SalesStage,
   })
 
-  const getStageIndex = (stage: string) => {
-    if (stage === "gagne" || stage === "perdu" || stage === "abandonne" || stage === "non_traitee") return 4
-    return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
-  }
+  const getStageIndex = (stage: string) => getOpportunityPipelineIndex(stage)
 
   const currentIdx = getStageIndex(form.stage)
 
@@ -81,7 +108,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
         duration: form.duration === "" ? null : Number(form.duration),
         start_date: form.start_date || null,
         practice: form.practice || null,
-        stage: form.stage as any,
+        stage: form.stage,
       })
 
       if (result.error) {
@@ -130,6 +157,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
               {SEQUENTIAL_STEPS.map((step, idx) => {
                 const isCompleted = currentIdx > idx
                 const isActive = currentIdx === idx
+                const stepColor = getOpportunityStageColor(step.key)
 
                 return (
                   <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
@@ -143,7 +171,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                           right: "-50%",
                           height: 6,
                           borderRadius: 3,
-                          backgroundColor: isCompleted ? "#2C7D5C" : "#E5E7EB",
+                          backgroundColor: isCompleted ? stepColor : "#E5E7EB",
                           transition: "background-color 0.4s ease",
                         }}
                       />
@@ -159,11 +187,11 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                           height: 6,
                           borderRadius: 3,
                           backgroundColor:
-                            form.stage === "gagne" ? "#2C7D5C"
-                            : form.stage === "perdu" ? "#DC2626"
-                            : form.stage === "abandonne" ? "#F59E0B"
-                            : form.stage === "non_traitee" ? "#9CA3AF"
-                            : isCompleted ? "#2C7D5C" : "#E5E7EB",
+                            form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                            : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                            : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                            : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
+                            : isCompleted ? stepColor : "#E5E7EB",
                           transition: "background-color 0.4s ease",
                         }}
                       />
@@ -172,7 +200,7 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                     {/* Status above */}
                     <span
                       className="text-[10px] font-bold mb-1 leading-none"
-                      style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                      style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}
                     >
                       {isActive ? "En cours" : isCompleted ? "✓" : "—"}
                     </span>
@@ -180,41 +208,33 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                     {/* Node */}
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, stage: step.key as any })}
+                      onClick={() => setForm({ ...form, stage: step.key as SalesStage })}
                       className="relative z-10 flex items-center justify-center rounded-full cursor-pointer transition-all duration-300 focus:outline-none overflow-hidden"
                       style={{
                         width: 36,
                         height: 36,
                         backgroundColor: "#FFFFFF",
                         border: isActive
-                          ? "2.5px solid #2C7D5C"
+                          ? `2.5px solid ${stepColor}`
                           : isCompleted
-                          ? "2px solid #2C7D5C"
+                          ? `2px solid ${stepColor}`
                           : "2px solid #E5E7EB",
                         boxShadow: isActive
-                          ? "0 0 0 3px rgba(44,125,92,0.18)"
+                          ? `0 0 0 3px color-mix(in srgb, ${stepColor} 18%, transparent)`
                           : isCompleted
-                          ? "0 2px 6px rgba(44,125,92,0.22)"
+                          ? `0 2px 6px color-mix(in srgb, ${stepColor} 22%, transparent)`
                           : "none",
                         transform: isActive ? "scale(1.12)" : "scale(1)",
                       }}
                     >
-                      <img
-                        src={STAGE_LOGOS[step.key]}
-                        alt={step.label}
-                        className="w-full h-full object-contain p-0.5 rounded-full transition-all duration-300"
-                        style={{
-                          filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
-                          opacity: (isCompleted || isActive) ? 1 : 0.4,
-                        }}
-                      />
+                      <StageStepIcon stage={step.key} label={step.label} active={isCompleted || isActive} />
                     </button>
 
                     {/* Label below */}
                     <div className="flex flex-col items-center mt-2 px-1 text-center">
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        onClick={() => setForm({ ...form, stage: step.key as SalesStage })}
                         className="text-[10px] font-bold leading-tight cursor-pointer transition-colors focus:outline-none"
                         style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
                       >
@@ -222,9 +242,9 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                       </button>
                       <span
                         className="text-[9px] leading-snug mt-0.5"
-                        style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}
+                        style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}
                       >
-                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client", "Validation contractuelle"][idx]}
                       </span>
                     </div>
                   </div>
@@ -238,17 +258,17 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                   className="text-[10px] font-bold mb-1 leading-none"
                   style={{
                     color:
-                      form.stage === "gagne" ? "#2C7D5C"
-                      : form.stage === "perdu" ? "#DC2626"
-                      : form.stage === "abandonne" ? "#F59E0B"
-                      : form.stage === "non_traitee" ? "#6B7280"
+                      form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                      : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                      : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                      : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                       : "#9CA3AF"
                   }}
                 >
-                  {form.stage === "gagne" ? "Gagné"
-                    : form.stage === "perdu" ? "Perdu"
-                    : form.stage === "abandonne" ? "Abandonné"
-                    : form.stage === "non_traitee" ? "Non traitée"
+                  {form.stage === "gagne" ? getOpportunityStageLabel("gagne")
+                    : form.stage === "perdu" ? getOpportunityStageLabel("perdu")
+                    : form.stage === "abandonne" ? getOpportunityStageLabel("abandonne")
+                    : form.stage === "non_traitee" ? getOpportunityStageLabel("non_traitee")
                     : "—"}
                 </span>
 
@@ -264,25 +284,21 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                         height: 36,
                         backgroundColor: "#FFFFFF",
                         border:
-                          form.stage === "gagne" ? "2.5px solid #2C7D5C"
-                          : form.stage === "perdu" ? "2.5px solid #DC2626"
-                          : form.stage === "abandonne" ? "2.5px solid #F59E0B"
-                          : form.stage === "non_traitee" ? "2px solid #9CA3AF"
+                          form.stage === "gagne" ? `2.5px solid ${getOpportunityStageColor("gagne")}`
+                          : form.stage === "perdu" ? `2.5px solid ${getOpportunityStageColor("perdu")}`
+                          : form.stage === "abandonne" ? `2.5px solid ${getOpportunityStageColor("abandonne")}`
+                          : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
                           : "2px solid #D1D5DB",
                         boxShadow:
-                          form.stage === "gagne" ? "0 0 0 3px rgba(44,125,92,0.18), 0 2px 6px rgba(44,125,92,0.22)"
-                          : form.stage === "perdu" ? "0 0 0 3px rgba(220,38,38,0.15), 0 2px 6px rgba(220,38,38,0.22)"
-                          : form.stage === "abandonne" ? "0 0 0 3px rgba(245,158,11,0.15), 0 2px 6px rgba(245,158,11,0.22)"
-                          : form.stage === "non_traitee" ? "0 0 0 3px rgba(156,163,175,0.15), 0 2px 6px rgba(156,163,175,0.22)"
+                          form.stage === "gagne" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("gagne")} 18%, transparent), 0 2px 6px color-mix(in srgb, ${getOpportunityStageColor("gagne")} 22%, transparent)`
+                          : form.stage === "perdu" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("perdu")} 15%, transparent), 0 2px 6px color-mix(in srgb, ${getOpportunityStageColor("perdu")} 22%, transparent)`
+                          : form.stage === "abandonne" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("abandonne")} 15%, transparent), 0 2px 6px color-mix(in srgb, ${getOpportunityStageColor("abandonne")} 22%, transparent)`
+                          : form.stage === "non_traitee" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("non_traitee")} 15%, transparent), 0 2px 6px color-mix(in srgb, ${getOpportunityStageColor("non_traitee")} 22%, transparent)`
                           : "none",
                       }}
                     >
-                      {form.stage && STAGE_LOGOS[form.stage] ? (
-                        <img
-                          src={STAGE_LOGOS[form.stage]}
-                          alt={form.stage}
-                          className="w-full h-full object-contain p-0.5 rounded-full"
-                        />
+                      {form.stage && getOpportunityStageIcon(form.stage) ? (
+                        <StageStepIcon stage={form.stage} label={form.stage} active />
                       ) : form.stage === "non_traitee" ? (
                         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
@@ -311,17 +327,12 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
                       <div className="absolute right-0 mt-2 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
-                        {[
-                          { key: "gagne", label: "Gagné", color: "#2C7D5C" },
-                          { key: "perdu", label: "Perdu", color: "#DC2626" },
-                          { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
-                          { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
-                        ].map((opt) => (
+                        {OUTCOME_STEPS.map((opt) => (
                           <button
                             key={opt.key}
                             type="button"
                             onClick={() => {
-                              setForm({ ...form, stage: opt.key as any })
+                              setForm({ ...form, stage: opt.key as SalesStage })
                               setIsIssueDropdownOpen(false)
                             }}
                             className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"
@@ -338,19 +349,12 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                 <div className="flex flex-col items-center mt-2 text-center">
                   <span
                     className="text-[10px] font-bold"
-                    style={{
-                      color:
-                        form.stage === "gagne" ? "#111827"
-                        : form.stage === "perdu" ? "#111827"
-                        : form.stage === "abandonne" ? "#111827"
-                        : form.stage === "non_traitee" ? "#111827"
-                        : "#6B7280"
-                    }}
+                    style={{ color: form.stage ? "#111827" : "#6B7280" }}
                   >
-                    {form.stage === "gagne" ? "Gagné"
-                      : form.stage === "perdu" ? "Perdu"
-                      : form.stage === "abandonne" ? "Abandonné"
-                      : form.stage === "non_traitee" ? "Non traitée"
+                    {form.stage === "gagne" ? getOpportunityStageLabel("gagne")
+                      : form.stage === "perdu" ? getOpportunityStageLabel("perdu")
+                      : form.stage === "abandonne" ? getOpportunityStageLabel("abandonne")
+                      : form.stage === "non_traitee" ? getOpportunityStageLabel("non_traitee")
                       : "Issue"}
                   </span>
                   <span className="text-[9px] mt-0.5 text-muted">Terminé</span>
@@ -364,37 +368,29 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                 const isCompleted = currentIdx > idx
                 const isActive = currentIdx === idx
                 const isLast = idx === SEQUENTIAL_STEPS.length - 1
-                const subs = ["Identification", "Analyse besoin", "Envoi profils", "Rendez-vous"]
+                const stepColor = getOpportunityStageColor(step.key)
 
                 return (
                   <div key={step.key} className="flex items-stretch gap-3">
                     <div className="flex flex-col items-center shrink-0" style={{ width: 36 }}>
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        onClick={() => setForm({ ...form, stage: step.key as SalesStage })}
                         className="flex items-center justify-center rounded-full cursor-pointer transition-all duration-300 shrink-0 z-10 focus:outline-none overflow-hidden"
                         style={{
                           width: 36,
                           height: 36,
                           backgroundColor: "#FFFFFF",
                           border: isActive
-                            ? "2.5px solid #2C7D5C"
+                            ? `2.5px solid ${stepColor}`
                             : isCompleted
-                            ? "2px solid #2C7D5C"
+                            ? `2px solid ${stepColor}`
                             : "2px solid #E5E7EB",
-                          boxShadow: isActive ? "0 0 0 3px rgba(44,125,92,0.18)" : isCompleted ? "0 2px 6px rgba(44,125,92,0.2)" : "none",
+                          boxShadow: isActive ? `0 0 0 3px color-mix(in srgb, ${stepColor} 18%, transparent)` : isCompleted ? `0 2px 6px color-mix(in srgb, ${stepColor} 20%, transparent)` : "none",
                           transform: isActive ? "scale(1.08)" : "scale(1)",
                         }}
                       >
-                        <img
-                          src={STAGE_LOGOS[step.key]}
-                          alt={step.label}
-                          className="w-full h-full object-contain p-0.5 rounded-full transition-all duration-300"
-                          style={{
-                            filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
-                            opacity: (isCompleted || isActive) ? 1 : 0.4,
-                          }}
-                        />
+                        <StageStepIcon stage={step.key} label={step.label} active={isCompleted || isActive} />
                       </button>
                       <div style={{
                         width: 6,
@@ -403,31 +399,31 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                         marginTop: 3,
                         borderRadius: 3,
                         backgroundColor: isCompleted
-                          ? "#2C7D5C"
+                          ? stepColor
                           : isLast
-                            ? form.stage === "gagne" ? "#2C7D5C"
-                            : form.stage === "perdu" ? "#DC2626"
-                            : form.stage === "abandonne" ? "#F59E0B"
-                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            ? form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                            : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                            : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                            : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                             : "#E5E7EB"
                           : "#E5E7EB",
                         transition: "background-color 0.4s",
                       }} />
                     </div>
                     <div className="flex flex-col justify-start py-1 pb-5">
-                      <span className="text-[10px] font-bold leading-none mb-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
+                      <span className="text-[10px] font-bold leading-none mb-0.5" style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}>
                         {isActive ? "En cours" : isCompleted ? "Terminé" : "À venir"}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, stage: step.key as any })}
+                        onClick={() => setForm({ ...form, stage: step.key as SalesStage })}
                         className="text-[11px] font-bold text-left cursor-pointer focus:outline-none"
                         style={{ color: (isCompleted || isActive) ? "#111827" : "#6B7280" }}
                       >
                         {step.label}
                       </button>
-                      <span className="text-[10px] mt-0.5" style={{ color: (isCompleted || isActive) ? "#2C7D5C" : "#9CA3AF" }}>
-                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client"][idx]}
+                      <span className="text-[10px] mt-0.5" style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}>
+                        {["Qualification besoin", "Sourcing candidats", "Envoi profils", "Rendez-vous client", "Validation contractuelle"][idx]}
                       </span>
                     </div>
                   </div>
@@ -443,30 +439,26 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                       onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
                       className="flex items-center justify-center rounded-full transition-all duration-300 shrink-0 z-10 cursor-pointer focus:outline-none overflow-hidden"
                       style={{
-                        width: 36,
-                        height: 36,
-                        backgroundColor: "#FFFFFF",
-                        border:
-                          form.stage === "gagne" ? "2.5px solid #2C7D5C"
-                          : form.stage === "perdu" ? "2.5px solid #DC2626"
-                          : form.stage === "abandonne" ? "2.5px solid #F59E0B"
-                          : form.stage === "non_traitee" ? "2px solid #9CA3AF"
+                      width: 36,
+                      height: 36,
+                      backgroundColor: "#FFFFFF",
+                      border:
+                          form.stage === "gagne" ? `2.5px solid ${getOpportunityStageColor("gagne")}`
+                          : form.stage === "perdu" ? `2.5px solid ${getOpportunityStageColor("perdu")}`
+                          : form.stage === "abandonne" ? `2.5px solid ${getOpportunityStageColor("abandonne")}`
+                          : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
                           : "2px solid #D1D5DB",
-                        boxShadow:
-                          form.stage === "gagne" ? "0 0 0 3px rgba(44,125,92,0.18)"
-                          : form.stage === "perdu" ? "0 0 0 3px rgba(220,38,38,0.15)"
-                          : form.stage === "abandonne" ? "0 0 0 3px rgba(245,158,11,0.15)"
-                          : form.stage === "non_traitee" ? "0 0 0 3px rgba(156,163,175,0.15)"
+                      boxShadow:
+                          form.stage === "gagne" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("gagne")} 18%, transparent)`
+                          : form.stage === "perdu" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("perdu")} 15%, transparent)`
+                          : form.stage === "abandonne" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("abandonne")} 15%, transparent)`
+                          : form.stage === "non_traitee" ? `0 0 0 3px color-mix(in srgb, ${getOpportunityStageColor("non_traitee")} 15%, transparent)`
                           : "none",
-                        transform: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee") ? "scale(1.08)" : "scale(1)",
-                      }}
-                    >
-                      {form.stage && STAGE_LOGOS[form.stage] ? (
-                        <img
-                          src={STAGE_LOGOS[form.stage]}
-                          alt={form.stage}
-                          className="w-full h-full object-contain p-0.5 rounded-full"
-                        />
+                      transform: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee") ? "scale(1.08)" : "scale(1)",
+                    }}
+                  >
+                      {form.stage && getOpportunityStageIcon(form.stage) ? (
+                        <StageStepIcon stage={form.stage} label={form.stage} active />
                       ) : form.stage === "non_traitee" ? (
                         <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
@@ -495,17 +487,17 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                     className="text-[10px] font-bold leading-none mb-0.5"
                     style={{
                       color:
-                        form.stage === "gagne" ? "#2C7D5C"
-                        : form.stage === "perdu" ? "#DC2626"
-                        : form.stage === "abandonne" ? "#F59E0B"
-                        : form.stage === "non_traitee" ? "#6B7280"
+                        form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                        : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                        : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                        : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                         : "#9CA3AF"
                     }}
                   >
-                    {form.stage === "gagne" ? "Gagné"
-                      : form.stage === "perdu" ? "Perdu"
-                      : form.stage === "abandonne" ? "Abandonné"
-                      : form.stage === "non_traitee" ? "Non traitée"
+                    {form.stage === "gagne" ? getOpportunityStageLabel("gagne")
+                      : form.stage === "perdu" ? getOpportunityStageLabel("perdu")
+                      : form.stage === "abandonne" ? getOpportunityStageLabel("abandonne")
+                      : form.stage === "non_traitee" ? getOpportunityStageLabel("non_traitee")
                       : "Issue"}
                   </span>
                   <span className="text-[11px] font-bold text-heading">
@@ -517,17 +509,12 @@ export function OpportunityQuickEditForm({ data }: OpportunityQuickEditFormProps
                     <>
                       <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
                       <div className="absolute left-0 top-10 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
-                        {[
-                          { key: "gagne", label: "Gagné", color: "#2C7D5C" },
-                          { key: "perdu", label: "Perdu", color: "#DC2626" },
-                          { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
-                          { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
-                        ].map((opt) => (
+                        {OUTCOME_STEPS.map((opt) => (
                           <button
                             key={opt.key}
                             type="button"
                             onClick={() => {
-                              setForm({ ...form, stage: opt.key as any })
+                              setForm({ ...form, stage: opt.key as SalesStage })
                               setIsIssueDropdownOpen(false)
                             }}
                             className="w-full text-left px-3 py-2 text-xs font-semibold hover:bg-muted/10 flex items-center gap-2"

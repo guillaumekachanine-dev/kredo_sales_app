@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
+import {
+  getOpportunityStageLabel,
+  isTerminalOpportunityStage,
+} from "@/lib/opportunities/stages"
+import { formatEuroCompact } from "@/lib/formatters"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Synthèse de prospection — couche données (DÉCISIONNEL portefeuille)
@@ -101,29 +106,6 @@ const LIFECYCLE_TONE: Record<string, SyntheseStatus> = {
   exclu: "danger",
 }
 
-const STAGE_LABEL: Record<string, string> = {
-  detection: "Détection",
-  qualification: "Qualification",
-  besoin_confirme: "Besoin confirmé",
-  recherche_profil: "Recherche profil",
-  cv_envoyes: "CV envoyés",
-  entretien_client: "Entretien client",
-  negociation: "Négociation",
-  gagne: "Gagné",
-  perdu: "Perdu",
-  abandonne: "Abandonné",
-  // legacy tolérés en lecture (CLAUDE.md) — ne pas réutiliser à l'écriture
-  en_cours: "En cours",
-  cv_sent: "CV envoyés",
-  rt: "Entretien client",
-  win: "Gagné",
-  lost: "Perdu",
-  non_traitee: "Non traitée",
-}
-
-// stages considérés « fermés » → exclus du pipeline ouvert
-const CLOSED_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee", "win", "lost"])
-
 // ─── Loose client (même approche que intelligence-data.ts) ────────────────────
 
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
@@ -152,10 +134,6 @@ function toNumber(value: number | string | null): number | null {
   return null
 }
 
-function formatEuro(value: number): string {
-  if (value >= 1000) return `${Math.round(value / 1000)} k€`
-  return `${Math.round(value)} €`
-}
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10
@@ -221,7 +199,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   let openCount = 0
   for (const o of opportunities) {
     const stage = o.stage ?? "detection"
-    if (CLOSED_STAGES.has(stage)) continue
+    if (isTerminalOpportunityStage(stage)) continue
     const weighted = toNumber(o.weighted_gain) ?? 0
     const entry = stageAgg.get(stage) ?? { count: 0, weighted: 0 }
     entry.count += 1
@@ -231,7 +209,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     openCount += 1
   }
   const stages: PipelineStage[] = [...stageAgg.entries()]
-    .map(([key, v]) => ({ key, label: STAGE_LABEL[key] ?? key, count: v.count, weighted: v.weighted }))
+    .map(([key, v]) => ({ key, label: getOpportunityStageLabel(key), count: v.count, weighted: v.weighted }))
     .sort((a, b) => b.weighted - a.weighted)
 
   // ── Comptes à activer (cibles/prospects à plus fort score) ──────────────────
@@ -256,7 +234,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   const kpis: SyntheseKpi[] = [
     { id: "k-portfolio", label: "Comptes au portefeuille", value: String(companies.length), status: "neutral" },
     { id: "k-targets", label: "Cibles & prospects à activer", value: String(targets), status: targets > 0 ? "warning" : "neutral" },
-    { id: "k-pipeline", label: "Pipeline pondéré ouvert", value: formatEuro(totalWeighted), status: "success", hint: `${openCount} opp. ouvertes` },
+    { id: "k-pipeline", label: "Pipeline pondéré ouvert", value: formatEuroCompact(totalWeighted), status: "success", hint: `${openCount} opp. ouvertes` },
     { id: "k-score", label: "Score moyen portefeuille", value: avgScore !== null ? `${avgScore}/5` : "—", status: "neutral", hint: `${scored.length} comptes scorés` },
     { id: "k-clients", label: "Clients actifs", value: String(activeClients), status: "success" },
   ]

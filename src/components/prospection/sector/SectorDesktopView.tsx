@@ -5,6 +5,7 @@ import Link from "next/link"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import type { SectorWithRelations, PracticeKey, Urgency } from "@/types/sector"
+import { formatDate } from "@/lib/formatters"
 
 // ─── Référentiels d'affichage ─────────────────────────────────────────────────
 
@@ -90,12 +91,6 @@ function ScoreBar({ value, max = 10 }: { value: number | null; max?: number }) {
   )
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  try {
-    return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(new Date(dateStr))
-  } catch { return dateStr }
-}
 
 // ─── Composant principal ──────────────────────────────────────────────────────
 

@@ -1,30 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { MissionsListRow } from "@/components/missions/MissionsListView"
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (Number.isNaN(date.getTime())) return "—"
-  const formatted = date.toLocaleDateString("fr-FR", {
-    month: "short",
-    year: "numeric",
-  })
-  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`.replace(".", "")
-}
+import { formatEuro, formatDateShort } from "@/lib/formatters"
 
 interface CompanyInfo {
   name: string
   website: string | null
-  metadata: any
+  metadata: Record<string, unknown> | null
 }
 
 interface PersonInfo {
@@ -51,7 +32,7 @@ interface DBMissionResult {
   updated_at: string
   companies: CompanyInfo | CompanyInfo[] | null
   collaborators: CollaboratorInfo | CollaboratorInfo[] | null
-  metadata: any
+  metadata: Record<string, unknown> | null
 }
 
 function getCompanyName(companies: CompanyInfo | CompanyInfo[] | null): string {
@@ -140,7 +121,8 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
       if (item.status === "closed") status = "closed"
       else if (item.status === "pending") status = "pending"
 
-      const meta = item.metadata || {}
+      const meta = (item.metadata || {}) as Record<string, unknown>
+      const riskLevel = typeof meta.risk_level === "string" ? meta.risk_level as "faible" | "modere" | "critique" : "faible"
 
       return {
         entityId: item.id,
@@ -151,7 +133,7 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         clientWebsite: companyWebsite,
         clientLogoPath: companyLogoPath,
         amount: item.tjm ? `${formatEuro(item.tjm)}/j` : "—",
-        date: formatDate(item.start_date),
+        date: formatDateShort(item.start_date),
         tag,
         status,
         tjm: item.tjm,
@@ -159,7 +141,7 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         consultant: consultantName,
         startDate: item.start_date || undefined,
         endDate: item.end_date || undefined,
-        riskLevel: meta.risk_level || "faible",
+        riskLevel,
         practice: item.practice || undefined,
       }
     })

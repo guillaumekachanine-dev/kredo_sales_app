@@ -1,4 +1,5 @@
 import React from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { IconBell, IconBolt, IconCalendar } from "./icons"
@@ -21,7 +22,7 @@ export function CockpitMobileHeader({
     <header className="top-header" role="banner">
       <div className="brand-lockup">
         <span className="brand-mark">
-          <img src="/branding/kredo/logo_sans_fond.png" alt="Logo KREDO" />
+          <Image src="/branding/kredo/logo_sans_fond.png" alt="Logo KREDO" width={36} height={36} />
         </span>
         <span className="brand-title">Cockpit</span>
       </div>

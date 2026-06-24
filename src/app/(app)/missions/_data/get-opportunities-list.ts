@@ -5,31 +5,14 @@ import {
   PRIORITY_LABELS,
   TYPE_OPTIONS,
 } from "@/components/missions/opportunity-detail/opportunity-detail-options"
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const date = new Date(dateStr)
-  if (Number.isNaN(date.getTime())) return "—"
-  const formatted = date.toLocaleDateString("fr-FR", {
-    month: "short",
-    year: "numeric",
-  })
-  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`.replace(".", "")
-}
+import { isOpenOpportunityStage, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
+import { formatEuro, formatDateShort } from "@/lib/formatters"
+import type { Json } from "@/types/database"
 
 interface CompanyInfo {
   name: string
   website?: string | null
-  metadata?: any
+  metadata?: Json | null
 }
 
 interface DBQueryResult {
@@ -78,9 +61,9 @@ function getCompanyName(companies: DBQueryResult["companies"]): string {
 }
 
 function mapStageToStatus(stage: string): MissionsListRow["status"] {
-  if (["gagne"].includes(stage)) return "won"
-  if (["perdu", "abandonne", "non_traitee"].includes(stage)) return "lost"
-  if (["qualification", "recherche_profil", "cv_envoyes", "entretien_client"].includes(stage)) return "active"
+  if (stage === "gagne") return "won"
+  if (isTerminalOpportunityStage(stage)) return "lost"
+  if (isOpenOpportunityStage(stage)) return "active"
   return "pending"
 }
 
@@ -128,9 +111,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
     const mapped: MappedRow[] = (data ?? []).map((item) => {
       const amountVal = item.acv ?? item.estimated_gain
       const dateVal = item.target_close_date ?? item.start_date
-      let dateStr = formatDate(dateVal)
+      let dateStr = formatDateShort(dateVal)
       if (dateStr === "—" && item.next_action_at) {
-        dateStr = `Action : ${formatDate(item.next_action_at)}`
+        dateStr = `Action : ${formatDateShort(item.next_action_at)}`
       }
 
       const tagParts: string[] = []
@@ -148,7 +131,7 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
       const clientWebsite = compRecord?.website ?? null
       const clientLogoPath = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
-        ? (compRecord.metadata as any).logo_path || null
+        ? ("logo_path" in compRecord.metadata && typeof compRecord.metadata.logo_path === "string" ? compRecord.metadata.logo_path : null)
         : null
 
       return {
@@ -226,4 +209,3 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
     return []
   }
 }
-

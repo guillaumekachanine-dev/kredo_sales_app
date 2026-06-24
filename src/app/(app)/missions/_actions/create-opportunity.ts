@@ -2,16 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import type { SalesStage } from "@/lib/opportunities/stages"
 
-export type SalesStage =
-  | "qualification"
-  | "recherche_profil"
-  | "cv_envoyes"
-  | "entretien_client"
-  | "gagne"
-  | "perdu"
-  | "abandonne"
-  | "non_traitee"
+export type { SalesStage } from "@/lib/opportunities/stages"
 
 export type SalesPriority = "basse" | "normale" | "haute"
 

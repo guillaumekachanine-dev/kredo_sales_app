@@ -8,6 +8,7 @@ import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AppDialog } from "@/components/ui/AppDialog"
 import Link from "next/link"
+import { formatEuro, formatDate } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import type { Json } from "@/types/database"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
@@ -124,26 +125,6 @@ function getYearsSince(dateStr: string | null): string | null {
   return diff > 0 ? `${diff} ${diff > 1 ? "ans" : "an"}` : "Moins d'un an"
 }
 
-// Helper: Format Date Fr
-function formatDateFr(value: string | Date | null): string {
-  const date = typeof value === "string" ? parseDateOnly(value) : value
-  if (!date) return "Non renseignée"
-  return date.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).replace(".", "")
-}
-
-// Helper: Format Euro
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
 
 // Helper: Calculate Working Days
 function getWorkingDaysCount(startStr: string | null, endStr: string | null): number | null {
@@ -532,7 +513,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
       events.push({
         id: "renewal",
         label: "Échéance renouvellement",
-        desc: `Date cible pour renégociation : ${formatDateFr(renewalDateStr)}.`,
+        desc: `Date cible pour renégociation : ${formatDate(renewalDateStr)}.`,
         type: "primary",
       })
     }
@@ -543,7 +524,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
       events.push({
         id: "next-meeting",
         label: "Prochain point client",
-        desc: `Point de suivi planifié le ${formatDateFr(nextMeetingStr)}.`,
+        desc: `Point de suivi planifié le ${formatDate(nextMeetingStr)}.`,
         type: "success",
       })
     } else {
@@ -922,7 +903,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
         {/* 3. Dates & Jours */}
         <div className="flex flex-col gap-1.5 bg-canvas/10 p-2 rounded-lg border border-border/40">
           <div className="flex justify-between text-[10px] text-muted font-medium px-0.5">
-            <span>{formatDateFr(mission.start_date)} — {mission.end_date ? formatDateFr(mission.end_date) : formatDateFr(defaultEndDate)}</span>
+            <span>{formatDate(mission.start_date)} — {mission.end_date ? formatDate(mission.end_date) : formatDate(defaultEndDate)}</span>
             <span className="font-bold text-heading">{workingDays}j ouvrés</span>
           </div>
           <div className="flex justify-between text-[11px] pt-1.5 border-t border-border/30 px-0.5">
@@ -1001,7 +982,7 @@ export function MissionDetailPanel({ tab, isMobile = false }: MissionDetailPanel
               <span className="font-bold text-heading uppercase bg-border/50 px-1.5 py-0.2 rounded shrink-0">
                 {interactions[0].type}
               </span>
-              <span className="text-muted">{formatDateFr(interactions[0].occurred_at)}</span>
+              <span className="text-muted">{formatDate(interactions[0].occurred_at)}</span>
             </div>
             <p className="text-xs text-body line-clamp-2 italic leading-relaxed mt-1">
               &ldquo;{interactions[0].summary || "Aucune description écrite"}&rdquo;

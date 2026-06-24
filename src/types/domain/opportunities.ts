@@ -1,4 +1,5 @@
 import type { Database } from "../database.generated"
+import type { SalesStage as OpportunitySalesStage } from "@/lib/opportunities/stages"
 
 type PublicSchema = Database["public"]
 
@@ -68,15 +69,7 @@ export type OpportunityStandingProfile = {
   origin: "pressenti" | "ia"
 }
 
-export type SalesStage =
-  | "qualification"
-  | "recherche_profil"
-  | "cv_envoyes"
-  | "entretien_client"
-  | "gagne"
-  | "perdu"
-  | "abandonne"
-  | "non_traitee"
+export type SalesStage = OpportunitySalesStage
 
 export type SalesOutcome = "gagnee" | "perdue" | "abandonnee" | "non_traitee"
 export type SalesPriority = "haute" | "moyenne" | "basse"

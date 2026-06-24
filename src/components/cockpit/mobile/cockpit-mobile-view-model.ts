@@ -2,6 +2,7 @@ import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
+import { formatEuroCompact } from "@/lib/formatters"
 
 export type AgendaItemVm = {
   id: string
@@ -390,9 +391,3 @@ export function buildCockpitMobileViewModel(
   }
 }
 
-function formatEuroCompact(value: number): string {
-  const abs = Math.abs(value)
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
-  if (abs >= 1_000) return `${Math.round(value / 1_000)} k€`
-  return `${Math.round(value)} €`
-}

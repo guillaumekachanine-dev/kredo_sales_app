@@ -2,24 +2,9 @@ import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { getStageLabel } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
+import { getOpportunityStageColor, OPPORTUNITY_ACTIVE_STAGES } from "@/lib/opportunities/stages"
 
 const OPEN_STATUSES = new Set(["active", "pending"])
-
-const STAGE_ORDER = [
-  "qualification",
-  "recherche_profil",
-  "cv_envoyes",
-  "entretien_client",
-  "negociation",
-]
-
-const STAGE_COLORS: Record<string, string> = {
-  qualification: "var(--color-dataviz-6)",
-  recherche_profil: "var(--color-dataviz-3)",
-  cv_envoyes: "var(--color-dataviz-1)",
-  entretien_client: "var(--color-dataviz-2)",
-  negociation: "var(--color-dataviz-4)",
-}
 
 type MetricOpportunity = Pick<
   MissionsListRow,
@@ -88,7 +73,8 @@ export function OpportunitiesKpiSection({ opportunities }: { opportunities: Miss
   }).length
   const noCloseDateCount = openOpportunities.filter((opportunity) => !parseDate(opportunity.targetCloseDate)).length
 
-  const stageRows = STAGE_ORDER.map((stage) => {
+  const stageRows = OPPORTUNITY_ACTIVE_STAGES.map((stageDefinition) => {
+    const stage = stageDefinition.value
     const stageOpportunities = openOpportunities.filter((opportunity) => opportunity.stage === stage)
     const weightedValue = stageOpportunities.reduce((sum, opportunity) => sum + getWeightedValue(opportunity), 0)
     return {
@@ -97,7 +83,7 @@ export function OpportunitiesKpiSection({ opportunities }: { opportunities: Miss
       count: stageOpportunities.length,
       weightedValue,
       share: getShare(weightedValue, weightedPipe),
-      color: STAGE_COLORS[stage] ?? "var(--color-border-strong)",
+      color: getOpportunityStageColor(stage),
     }
   }).filter((row) => row.count > 0)
 

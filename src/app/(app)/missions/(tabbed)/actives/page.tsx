@@ -3,22 +3,9 @@ import { NewMissionButton } from "@/components/missions/NewMissionButton"
 import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
 import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
+import { formatEuro, formatPct } from "@/lib/formatters"
 
 export const dynamic = "force-dynamic"
-
-function formatEuro(amount: number | null): string {
-  if (amount === null || amount === undefined || amount === 0) return "—"
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatPercent(value: number | null): string {
-  if (value === null || value === undefined || value === 0) return "—"
-  return `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)} %`
-}
 
 export default async function MissionsActivesPage() {
   const [allMissions, planningRows] = await Promise.all([
@@ -48,7 +35,7 @@ export default async function MissionsActivesPage() {
           <div className="flex items-center justify-around divide-x divide-border/60 w-full max-w-2xl">
             <HeaderKpiCard label="Missions en cours" value={activeMissions.length} className="flex-1" />
             <HeaderKpiCard label="TJ moyen" value={formatEuro(avgTjm)} className="flex-1" />
-            <HeaderKpiCard label="Tx marge moyen" value={formatPercent(avgMargin)} className="flex-1" />
+            <HeaderKpiCard label="Tx marge moyen" value={formatPct(avgMargin)} className="flex-1" />
           </div>
         </div>
         <div className="shrink-0 flex items-center justify-end">

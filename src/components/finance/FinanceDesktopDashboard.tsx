@@ -14,6 +14,7 @@ import { DataTable } from "@/components/ui/data-table/DataTable"
 import type { DataTableColumn, DataTableSort } from "@/components/ui/data-table/DataTable"
 import type { PageQuickAction } from "@/components/ui/page-quick-actions"
 import { PnlBarChart } from "./PnlBarChart"
+import { formatEuroCompact } from "@/lib/formatters"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
@@ -79,13 +80,6 @@ function toneFromKpi(t: FinanceKpiDeltaTone | undefined): "positive" | "negative
   return "neutral"
 }
 
-function fmtEuro(v: number): string {
-  const abs = Math.abs(v)
-  const sign = v < 0 ? "-" : ""
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)} M€`
-  if (abs >= 1_000) return `${sign}${Math.round(abs / 1_000)} k€`
-  return `${sign}${Math.round(abs)} €`
-}
 
 function PracticeMetricsPanel({
   metric,
@@ -103,13 +97,13 @@ function PracticeMetricsPanel({
   const items = [
     {
       label: "CA YTD",
-      value: fmtEuro(metric.revenue),
+      value: formatEuroCompact(metric.revenue),
       sub: `${sharePct.toFixed(0)} % du CA global`,
     },
     {
       label: "Marge brute",
       value: `${metric.grossMarginPct.toFixed(1)} %`,
-      sub: fmtEuro(metric.grossMargin),
+      sub: formatEuroCompact(metric.grossMargin),
       tone: marginTone,
     },
     {
