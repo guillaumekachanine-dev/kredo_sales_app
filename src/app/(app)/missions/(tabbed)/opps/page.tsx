@@ -6,6 +6,7 @@ import { getOpportunitySkillsCloud } from "@/app/(app)/missions/_data/get-opport
 import { createClient } from "@/lib/supabase/server"
 import { OpportunitySkillsCloud } from "@/components/missions/OpportunitySkillsCloud"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
+import { getOpportunitiesPlanning } from "@/app/(app)/missions/_data/get-opportunities-planning"
 
 export const dynamic = "force-dynamic"
 
@@ -16,7 +17,10 @@ function fmtEuro(v: number): string {
 }
 
 export default async function OpportunitesPage() {
-  const opportunites = await getOpportunitiesList()
+  const [opportunites, planningData] = await Promise.all([
+    getOpportunitiesList(),
+    getOpportunitiesPlanning(),
+  ])
 
   const openOpps = opportunites.filter((o) => o.status === "active" || o.status === "pending")
   const openOppIds = openOpps.map((opportunity) => opportunity.entityId)
@@ -103,7 +107,7 @@ export default async function OpportunitesPage() {
       </div>
 
       <div className="hidden md:block">
-        <OpportunitiesDesktopView opportunities={opportunites} />
+        <OpportunitiesDesktopView opportunities={opportunites} planningData={planningData} />
       </div>
 
       <div className="md:hidden">
