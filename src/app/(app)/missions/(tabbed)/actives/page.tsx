@@ -1,7 +1,7 @@
-import { MissionsListView } from "@/components/missions/MissionsListView"
+import { MissionsActivesContent } from "@/components/missions/MissionsActivesContent"
 import { NewMissionButton } from "@/components/missions/NewMissionButton"
-import { ActiveMissionsOverviewSection } from "@/components/missions/ActiveMissionsOverviewSection"
 import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
+import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 
 export const dynamic = "force-dynamic"
@@ -21,9 +21,11 @@ function formatPercent(value: number | null): string {
 }
 
 export default async function MissionsActivesPage() {
-  const allMissions = await getMissionsList()
+  const [allMissions, planningRows] = await Promise.all([
+    getMissionsList(),
+    getActiveMissionsPlanning(),
+  ])
 
-  // Filter for active missions (i.e. status === "active")
   const activeMissions = allMissions.filter((m) => m.status === "active")
 
   const activeMissionsWithTjm = activeMissions.filter((m) => m.tjm !== undefined && m.tjm > 0)
@@ -40,7 +42,7 @@ export default async function MissionsActivesPage() {
     <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-border w-full">
         <h1 className="text-2xl font-bold font-heading tracking-tight text-heading shrink-0">
-          Missions actives
+          Missions
         </h1>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex items-center justify-around divide-x divide-border/60 w-full max-w-2xl">
@@ -54,14 +56,10 @@ export default async function MissionsActivesPage() {
         </div>
       </div>
 
-      <ActiveMissionsOverviewSection
-        rows={activeMissions}
-        linkHref="/missions/planning"
-        linkLabel="Planning"
-        maxRows={8}
+      <MissionsActivesContent
+        missions={activeMissions}
+        planningRows={planningRows}
       />
-
-      <MissionsListView rows={activeMissions} emptyMessage="Aucune mission active." />
     </div>
   )
 }

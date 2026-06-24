@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
+import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
 
@@ -47,6 +47,8 @@ export function MobileBottomNav({
   activeHasRail,
   onActiveModulePress,
 }: MobileBottomNavProps) {
+  const activeHref = getActiveModuleHref(pathname)
+
   return (
     <nav
       aria-label="Navigation principale mobile"
@@ -54,7 +56,7 @@ export function MobileBottomNav({
     >
       {primaryNavItems.map((item) => {
         const href = item.href!
-        const isActive = pathname === href || pathname.startsWith(href + "/")
+        const isActive = href === activeHref
         const togglesRail = isActive && activeHasRail
 
         const inner = (
@@ -109,5 +111,6 @@ export function MobileBottomNav({
         )
       })}
     </nav>
+
   )
 }

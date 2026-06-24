@@ -4,7 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useTransition, useState } from "react"
-import { MainMenuItem, mainMenuItems } from "@/lib/navigation/main-menu.config"
+import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { signOut } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
@@ -51,14 +51,14 @@ function ModuleItem({
   item,
   pathname,
   isCollapsed,
+  activeModuleHref,
 }: {
   item: MainMenuItem
   pathname: string
   isCollapsed: boolean
+  activeModuleHref: string | null
 }) {
-  const isActive = item.href
-    ? pathname === item.href || pathname.startsWith(item.href + "/")
-    : false
+  const isActive = item.href ? item.href === activeModuleHref : false
 
   const canNavigate = !item.disabled && !item.comingSoon && !!item.href
 
@@ -135,6 +135,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
+  const activeModuleHref = getActiveModuleHref(pathname)
 
   const toggle = () => {
     const next = !isCollapsed
@@ -221,6 +222,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                         item={module}
                         pathname={pathname}
                         isCollapsed={isCollapsed}
+                        activeModuleHref={activeModuleHref}
                       />
                     ))}
                   </div>
@@ -233,6 +235,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                   item={item}
                   pathname={pathname}
                   isCollapsed={isCollapsed}
+                  activeModuleHref={activeModuleHref}
                 />
               )
             })}

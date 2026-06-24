@@ -29,6 +29,7 @@ export type SkillNode = {
   id: string
   name: string
   category: SkillCategory
+  skillDescription?: string | null
 }
 
 export const practices: PracticeTerritory[] = [

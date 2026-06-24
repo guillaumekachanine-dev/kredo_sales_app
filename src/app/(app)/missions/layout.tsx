@@ -1,16 +1,9 @@
-import { getModuleTabs } from "@/lib/navigation/main-menu.config"
 import { SectionNavBarSlot } from "@/components/layout/SectionNavBarSlot"
 
-// Layout commun à toutes les pages du module Missions :
-//   /missions           → vue d'ensemble
-//   /missions/actives   → (tabbed)/actives
-//   /missions/opps      → (tabbed)/opps
-//   /missions/planning  → (tabbed)/planning
-//
-// SectionNavBar est rendu ici (routing tabs) ; SectionTabBar (record tabs)
-// reste dans MissionsTabbedShell, uniquement pour les sous-pages (tabbed).
-
-const missionsTabs = getModuleTabs("/missions")
+// Layout commun à toutes les pages du module Missions.
+// Les onglets sont dérivés du pathname par SectionNavBar :
+//   /missions, /missions/actives, /missions/planning → tabs "Engagements"
+//   /missions/opps → pas de tabs (sidebar standalone "Opportunités")
 
 export default function MissionsLayout({
   children,
@@ -19,7 +12,7 @@ export default function MissionsLayout({
 }) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <SectionNavBarSlot tabs={missionsTabs} />
+      <SectionNavBarSlot />
       <div className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </div>

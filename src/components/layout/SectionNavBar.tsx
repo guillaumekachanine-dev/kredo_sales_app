@@ -2,32 +2,25 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { SectionTab } from "@/lib/navigation/main-menu.config"
+import { SectionTab, getSectionTabsForPath } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
 import { sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styles"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  SectionNavBar — barre d'onglets de routing intra-module
 //
-//  Rendu en haut de chaque module, au-dessus du SectionTabBar (record tabs).
-//  Reçoit les tabs depuis getModuleTabs() dans le layout du module.
-//
-//  Hiérarchie visuelle :
-//    AppHeader            (layout global)
-//    ─────────────────────
-//    SectionNavBar   ← routing : Vue d'ensemble / Actives / Opps / Planning
-//    ─────────────────────
-//    SectionTabBar   ← record tabs : fiches ouvertes (missions uniquement)
-//    ─────────────────────
-//    Contenu de page
+//  Quand `tabs` n'est pas passé en prop, les onglets sont dérivés du pathname
+//  via getSectionTabsForPath (matching le plus spécifique). Cela permet aux
+//  layouts de rendre <SectionNavBar /> sans connaître le module courant.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface SectionNavBarProps {
-  tabs: SectionTab[]
+  tabs?: SectionTab[]
 }
 
-export function SectionNavBar({ tabs }: SectionNavBarProps) {
+export function SectionNavBar({ tabs: propTabs }: SectionNavBarProps) {
   const pathname = usePathname()
+  const tabs = propTabs ?? getSectionTabsForPath(pathname)
 
   if (tabs.length === 0) return null
 
