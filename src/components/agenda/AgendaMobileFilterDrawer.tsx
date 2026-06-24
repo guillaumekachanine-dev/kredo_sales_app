@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useEffect, useEffectEvent, useState } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Select } from "@/components/ui/Select"
 import { AGENDA_EVENT_TYPE_OPTIONS } from "@/lib/agenda/agenda-config"
@@ -33,10 +33,12 @@ export function AgendaMobileFilterDrawer({
   })
 
   // Sync state when drawer opens
+  const syncLocalFilters = useEffectEvent(() => {
+    setLocalFilters(activeFilters)
+  })
+
   useEffect(() => {
-    if (open) {
-      setLocalFilters(activeFilters)
-    }
+    if (open) queueMicrotask(syncLocalFilters)
   }, [open, activeFilters])
 
   const setField = (key: keyof ActiveFilters, val: string) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { createClient } from '@/lib/supabase/client'
@@ -346,9 +346,7 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState<Tab>('synthese')
 
-  useEffect(() => {
-    if (!open || !candidateId) return
-
+  const loadDrawerData = useEffectEvent(async (nextCandidateId: string) => {
     setLoading(true)
     setFetchError(null)
     setActiveTab('synthese')
@@ -356,7 +354,7 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
 
     const supabase = createClient()
 
-    supabase
+    const { data, error } = await supabase
       .from('candidates')
       .select(`
         id, status, seniority, availability, expected_salary, expected_daily_rate, summary, notes,
@@ -368,16 +366,22 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
           )
         )
       `)
-      .eq('id', candidateId)
+      .eq('id', nextCandidateId)
       .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setFetchError('Impossible de charger le profil candidat.')
-        } else {
-          setDrawerData(data as unknown as DrawerCandidateData)
-        }
-        setLoading(false)
-      })
+
+    if (error || !data) {
+      setFetchError('Impossible de charger le profil candidat.')
+    } else {
+      setDrawerData(data as unknown as DrawerCandidateData)
+    }
+    setLoading(false)
+  })
+
+  useEffect(() => {
+    if (!open || !candidateId) return
+    queueMicrotask(() => {
+      void loadDrawerData(candidateId)
+    })
   }, [open, candidateId])
 
   const name     = drawerData ? resolveFullName(drawerData) : '…'

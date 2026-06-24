@@ -29,6 +29,24 @@ export interface AgendaEvent {
   } | null
 }
 
+export interface AgendaSelectContact {
+  id: string
+  full_name: string
+  job_title: string
+  email: string | null
+}
+
+export interface AgendaSelectOpportunity {
+  id: string
+  title: string
+}
+
+export interface AgendaSelectCandidate {
+  id: string
+  full_name: string
+  status: string
+}
+
 export interface AgendaEventFormInput {
   id?: string
   title: string

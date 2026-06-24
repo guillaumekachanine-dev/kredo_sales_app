@@ -1,4 +1,4 @@
-import { SectionDashboardConfig, SectionDashboardData } from "@/lib/dashboard/dashboard-types"
+import { DashboardAction, SectionDashboardConfig, SectionDashboardData } from "@/lib/dashboard/dashboard-types"
 import { DashboardHeader } from "./layout/DashboardHeader"
 import { DashboardKpiGrid } from "./layout/DashboardKpiGrid"
 import { DashboardMainPanel } from "./layout/DashboardMainPanel"
@@ -15,7 +15,7 @@ interface SectionDesktopDashboardProps {
 }
 
 // Helper to retrieve exactly 4 short, context-appropriate actions for the current dashboard section
-function getQuickActionsForSection(sectionKey: string, existingActions?: any[]) {
+function getQuickActionsForSection(sectionKey: string, existingActions?: DashboardAction[]) {
   const fallbackMap: Record<string, string[]> = {
     missions: ["Importer", "Exporter", "Nouveau", "Rapport"],
     finance: ["Facturer", "Note Frais", "TVA", "Exporter"],
@@ -131,4 +131,3 @@ export function SectionDesktopDashboard({ config, data }: SectionDesktopDashboar
     </div>
   )
 }
-

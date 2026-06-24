@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect, useTransition } from "react"
+import React, { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
@@ -90,22 +90,24 @@ export function AgendaMobilePage() {
   }, [referenceDate, view])
 
   // 5. Load data on range change
-  const loadData = () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
-    startTransition(async () => {
-      try {
-        const data = await getAgendaEvents(startRangeIso, endRangeIso)
+    try {
+      const data = await getAgendaEvents(startRangeIso, endRangeIso)
+      startTransition(() => {
         setEvents(data)
-      } catch (err) {
-        console.error("Error loading agenda events:", err)
-      } finally {
-        setLoading(false)
-      }
-    })
-  }
+      })
+    } catch (err) {
+      console.error("Error loading agenda events:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [endRangeIso, startTransition, startRangeIso])
 
   useEffect(() => {
-    loadData()
+    queueMicrotask(() => {
+      void loadData()
+    })
   }, [startRangeIso, endRangeIso])
 
   // 6. Local filtering & company extraction

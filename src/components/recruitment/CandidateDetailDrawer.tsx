@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Candidate } from "./dashboard/RecruitmentDesktopDashboard"
 import { cn } from "@/lib/utils"
 
@@ -15,23 +15,20 @@ export function CandidateDetailDrawer({
   onClose,
   onUpdateStage,
 }: CandidateDetailDrawerProps) {
-  const [isOpen, setIsOpen] = useState(false)
-
-  useEffect(() => {
-    if (candidate) {
-      setIsOpen(true)
-    } else {
-      setIsOpen(false)
-    }
-  }, [candidate])
+  const [isClosing, setIsClosing] = useState(false)
 
   const handleClose = () => {
-    setIsOpen(false)
+    setIsClosing(true)
     // Wait for slide animation to complete before clearing selection
-    setTimeout(onClose, 300)
+    setTimeout(() => {
+      setIsClosing(false)
+      onClose()
+    }, 300)
   }
 
   if (!candidate) return null
+
+  const isOpen = !isClosing
 
   const stages: { key: Candidate["stage"]; label: string }[] = [
     { key: "candidature", label: "Candidature" },

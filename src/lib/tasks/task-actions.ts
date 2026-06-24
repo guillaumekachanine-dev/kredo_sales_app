@@ -31,7 +31,6 @@ export async function createTask(
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("tasks")
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert({
       title: input.title.trim(),
       due_date: input.due_date || null,
@@ -41,7 +40,7 @@ export async function createTask(
       linked_entity_type: input.linked_entity_type || null,
       linked_entity_id: input.linked_entity_id || null,
       status: "open",
-    } as any)
+    })
     .select("id, title, description, due_date, priority, status, completed_at")
     .single()
 

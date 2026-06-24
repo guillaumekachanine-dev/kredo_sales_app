@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useEffectEvent, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import { AGENDA_CATEGORIES, AGENDA_EVENT_TYPES, type AgendaCategoryId } from "@/lib/agenda/agenda-config"
 
@@ -96,11 +96,13 @@ export function AgendaEventTypePicker({
   const [selectedCategory, setSelectedCategory] = useState<AgendaCategoryId | null>(null)
 
   // Init step when opening
+  const resetPickerState = useEffectEvent(() => {
+    setStep("category")
+    setSelectedCategory(null)
+  })
+
   useEffect(() => {
-    if (open) {
-      setStep("category")
-      setSelectedCategory(null)
-    }
+    if (open) queueMicrotask(resetPickerState)
   }, [open])
 
   // Native dialog control
@@ -183,7 +185,7 @@ export function AgendaEventTypePicker({
                 {step === "category" ? "Choisir la nature de l'événement" : currentCategory?.label}
               </h2>
               {step === "category" && (
-                <p className="text-[11px] text-muted mt-0.5">Sélectionnez d'abord la famille d'activité</p>
+                <p className="text-[11px] text-muted mt-0.5">Sélectionnez d&apos;abord la famille d&apos;activité</p>
               )}
               {step === "type" && currentCategory && (
                 <p className="text-[11px] text-muted mt-0.5">{currentCategory.subtitle}</p>

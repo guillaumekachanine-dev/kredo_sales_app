@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useState, useTransition, useEffect, useRef, useCallback } from "react"
+import { useState, useTransition, useEffect, useEffectEvent, useRef, useCallback } from "react"
 import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { OpportunitySkill, SkillImportance } from "@/types/database-domain"
@@ -61,7 +61,7 @@ function SkillPickerModal({ isOpen, onClose, onSelect, existingSkillNames }: Ski
   const [query, setQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
+  const syncDialogState = useEffectEvent(async () => {
     const el = dialogRef.current
     if (!el) return
     if (isOpen) {
@@ -69,14 +69,19 @@ function SkillPickerModal({ isOpen, onClose, onSelect, existingSkillNames }: Ski
       setQuery("")
       if (allSkills.length === 0) {
         setIsLoading(true)
-        getAllSkillsForPicker().then((data) => {
-          setAllSkills(data)
-          setIsLoading(false)
-        })
+        const data = await getAllSkillsForPicker()
+        setAllSkills(data)
+        setIsLoading(false)
       }
     } else {
       el.close()
     }
+  })
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void syncDialogState()
+    })
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

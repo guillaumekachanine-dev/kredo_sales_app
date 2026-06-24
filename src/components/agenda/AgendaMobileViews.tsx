@@ -36,7 +36,7 @@ export function AgendaMobileDayView({
         </div>
         <h4 className="text-sm font-bold text-heading">Aucun événement</h4>
         <p className="mt-1 text-xs text-body max-w-[200px]">
-          Il n'y a pas d'événement programmé pour cette journée.
+          Il n&apos;y a pas d&apos;événement programmé pour cette journée.
         </p>
         <button
           type="button"
