@@ -19,6 +19,17 @@ export function formatDate(dateStr: string | null | undefined): string {
   return formatted
 }
 
+export function formatDateNumeric(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—"
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date)
+}
+
 export function formatDateTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—"
   const date = new Date(dateStr)
@@ -31,4 +42,3 @@ export function formatDateTime(dateStr: string | null | undefined): string {
     minute: "2-digit",
   })
 }
-

@@ -187,123 +187,57 @@ export async function getCompanyIdentity(companyId: string) {
   try {
     const supabase = await createClient()
 
-    // 1. Fetch company details
-    const { data: company, error: companyError } = await supabase
-      .from("companies")
-      .select("*")
-      .eq("id", companyId)
-      .maybeSingle()
+    const [companyResult, contactsResult, oppsResult, missionsResult, interactionResult] = await Promise.all([
+      supabase
+        .from("companies")
+        .select("id, name, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, ai_score, tags, metadata, created_at, updated_at")
+        .eq("id", companyId)
+        .maybeSingle(),
+      supabase
+        .from("contacts")
+        .select(`
+          id, person_id, job_title, relationship_role, relationship_level, status, is_priority,
+          persons (id, full_name, first_name, last_name, primary_email, phone, linkedin_url)
+        `)
+        .eq("company_id", companyId),
+      supabase
+        .from("opportunities")
+        .select("id, title, opportunity_type, stage, priority, conviction, source, seniority, location, remote_policy, target_daily_rate, duration_days, estimated_gain, target_close_date, acv, required_headcount, requires_staffing")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("missions")
+        .select(`
+          id, title, status, start_date, end_date, tjm, cjm, gross_margin_pct, collaborator_id,
+          collaborators (id, persons (id, full_name, first_name, last_name))
+        `)
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("interactions")
+        .select("id, type, occurred_at, summary, sentiment, next_action")
+        .eq("company_id", companyId)
+        .order("occurred_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
 
-    if (companyError) return { error: companyError.message, data: null }
-    if (!company) return { error: "Compte introuvable", data: null }
+    if (companyResult.error) return { error: companyResult.error.message, data: null }
+    if (!companyResult.data) return { error: "Compte introuvable", data: null }
 
-    // 2. Fetch contacts with person details
-    const { data: contacts, error: contactsError } = await supabase
-      .from("contacts")
-      .select(`
-        id,
-        person_id,
-        job_title,
-        relationship_role,
-        relationship_level,
-        status,
-        is_priority,
-        persons (
-          id,
-          full_name,
-          first_name,
-          last_name,
-          primary_email,
-          phone,
-          linkedin_url
-        )
-      `)
-      .eq("company_id", companyId)
-
-    if (contactsError) {
-      console.error("Error fetching company contacts:", contactsError)
-    }
-
-    // 3. Fetch opportunities linked to the company
-    const { data: opportunities, error: oppsError } = await supabase
-      .from("opportunities")
-      .select(`
-        id,
-        title,
-        opportunity_type,
-        stage,
-        priority,
-        conviction,
-        source,
-        seniority,
-        location,
-        remote_policy,
-        target_daily_rate,
-        duration_days,
-        estimated_gain,
-        target_close_date,
-        acv,
-        required_headcount,
-        requires_staffing
-      `)
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false })
-
-    if (oppsError) {
-      console.error("Error fetching company opportunities:", oppsError)
-    }
-
-    // 4. Fetch missions linked to the company
-    const { data: missions, error: missionsError } = await supabase
-      .from("missions")
-      .select(`
-        id,
-        title,
-        status,
-        start_date,
-        end_date,
-        tjm,
-        cjm,
-        gross_margin_pct,
-        collaborator_id,
-        collaborators (
-          id,
-          persons (
-            id,
-            full_name,
-            first_name,
-            last_name
-          )
-        )
-      `)
-      .eq("company_id", companyId)
-      .order("created_at", { ascending: false })
-
-    if (missionsError) {
-      console.error("Error fetching company missions:", missionsError)
-    }
-
-    // Fetch latest interaction
-    const { data: lastInteraction, error: interactionError } = await supabase
-      .from("interactions")
-      .select("id, type, occurred_at, summary, sentiment, next_action")
-      .eq("company_id", companyId)
-      .order("occurred_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (interactionError) {
-      console.error("Error fetching latest company interaction:", interactionError)
-    }
+    if (contactsResult.error) console.error("Error fetching company contacts:", contactsResult.error)
+    if (oppsResult.error) console.error("Error fetching company opportunities:", oppsResult.error)
+    if (missionsResult.error) console.error("Error fetching company missions:", missionsResult.error)
+    if (interactionResult.error) console.error("Error fetching latest company interaction:", interactionResult.error)
 
     return {
       error: null,
       data: {
-        company,
-        contacts: contacts || [],
-        opportunities: opportunities || [],
-        missions: missions || [],
-        lastInteraction: lastInteraction || null,
+        company: companyResult.data,
+        contacts: contactsResult.data || [],
+        opportunities: oppsResult.data || [],
+        missions: missionsResult.data || [],
+        lastInteraction: interactionResult.data || null,
       },
     }
   } catch (err) {
@@ -318,175 +252,70 @@ export async function getContactIdentity(contactId: string) {
   try {
     const supabase = await createClient()
 
-    // 1. Fetch contact details (with person and company)
-    const { data: contact, error: contactError } = await supabase
-      .from("contacts")
-      .select(`
-        id,
-        person_id,
-        company_id,
-        job_title,
-        relationship_role,
-        relationship_level,
-        decision_power,
-        department,
-        status,
-        is_priority,
-        manager_contact_id,
-        campaign_id,
-        persons (
-          id,
-          full_name,
-          first_name,
-          last_name,
-          primary_email,
-          phone,
-          linkedin_url,
-          location,
-          notes,
-          metadata
-        ),
-        companies (
-          id,
-          name,
-          sector,
-          segment,
-          website,
-          hq_location,
-          priority,
-          lifecycle_status,
-          description,
-          revenue,
-          employee_count,
-          size_band,
-          health,
-          ai_score,
-          metadata
-        )
-      `)
-      .eq("id", contactId)
-      .maybeSingle()
+    // 1. Contact + all independent relations in parallel
+    const [contactResult, interactionsResult, oppsResult2, tasksResult] = await Promise.all([
+      supabase
+        .from("contacts")
+        .select(`
+          id, person_id, company_id, job_title, relationship_role, relationship_level,
+          decision_power, department, status, is_priority, manager_contact_id, campaign_id,
+          persons (id, full_name, first_name, last_name, primary_email, phone, linkedin_url, location, notes, metadata),
+          companies (id, name, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, ai_score, metadata)
+        `)
+        .eq("id", contactId)
+        .maybeSingle(),
+      supabase
+        .from("interactions")
+        .select("id, type, occurred_at, summary, sentiment, details, next_action")
+        .eq("contact_id", contactId)
+        .order("occurred_at", { ascending: false }),
+      supabase
+        .from("opportunity_contacts")
+        .select(`
+          role,
+          opportunities (id, title, opportunity_type, stage, priority, conviction, source, seniority, location, remote_policy, target_daily_rate, duration_days, estimated_gain, target_close_date, acv, required_headcount, requires_staffing)
+        `)
+        .eq("contact_id", contactId),
+      supabase
+        .from("tasks")
+        .select("id, title, description, due_date, priority, status, completed_at")
+        .eq("entity_id", contactId)
+        .eq("entity_type", "contact")
+        .order("due_date", { ascending: true, nullsFirst: false }),
+    ])
 
-    if (contactError) return { error: contactError.message, data: null }
+    if (contactResult.error) return { error: contactResult.error.message, data: null }
+    const contact = contactResult.data
     if (!contact) return { error: "Contact introuvable", data: null }
 
-    // 2. Fetch interactions linked to this contact
-    const { data: interactions, error: interactionsError } = await supabase
-      .from("interactions")
-      .select(`
-        id,
-        type,
-        occurred_at,
-        summary,
-        sentiment,
-        details,
-        next_action
-      `)
-      .eq("contact_id", contactId)
-      .order("occurred_at", { ascending: false })
+    if (interactionsResult.error) console.error("Error fetching contact interactions:", interactionsResult.error)
+    if (oppsResult2.error) console.error("Error fetching contact opportunities:", oppsResult2.error)
+    if (tasksResult.error) console.error("Error fetching contact tasks:", tasksResult.error)
 
-    if (interactionsError) {
-      console.error("Error fetching contact interactions:", interactionsError)
-    }
-
-    // 3. Fetch opportunities linked to this contact via opportunity_contacts
-    const { data: opportunityContacts, error: oppsError } = await supabase
-      .from("opportunity_contacts")
-      .select(`
-        role,
-        opportunities (
-          id,
-          title,
-          opportunity_type,
-          stage,
-          priority,
-          conviction,
-          source,
-          seniority,
-          location,
-          remote_policy,
-          target_daily_rate,
-          duration_days,
-          estimated_gain,
-          target_close_date,
-          acv,
-          required_headcount,
-          requires_staffing
-        )
-      `)
-      .eq("contact_id", contactId)
-
-    if (oppsError) {
-      console.error("Error fetching contact opportunities:", oppsError)
-    }
-
-    // Extract flat opportunity list with their role in opportunity_contacts
-    const opportunities = (opportunityContacts || [])
+    const opportunities = (oppsResult2.data || [])
       .map((oc) => {
         if (!oc.opportunities) return null
         const opp = Array.isArray(oc.opportunities) ? oc.opportunities[0] : oc.opportunities
         if (!opp) return null
-        return {
-          ...opp,
-          contact_role: oc.role,
-        }
+        return { ...opp, contact_role: oc.role }
       })
       .filter((opp): opp is NonNullable<typeof opp> => opp !== null)
 
-    // 4. Fetch tasks linked to the contact
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select(`
-        id,
-        title,
-        description,
-        due_date,
-        priority,
-        status,
-        completed_at
-      `)
-      .eq("entity_id", contactId)
-      .eq("entity_type", "contact")
-      .order("due_date", { ascending: true, nullsFirst: false })
-
-    if (tasksError) {
-      console.error("Error fetching contact tasks:", tasksError)
-    }
-
-    // Fetch sibling contacts in the same company to identify hierarchy (N+1 / N-1)
+    // Siblings query depends on contact.company_id
     let manager = null
     let reports: Array<{ id: string; fullName: string; job_title: string | null }> = []
 
     if (contact.company_id) {
       const { data: siblings } = await supabase
         .from("contacts")
-        .select(`
-          id,
-          job_title,
-          manager_contact_id,
-          persons (
-            id,
-            full_name,
-            first_name,
-            last_name,
-            primary_email,
-            phone
-          )
-        `)
+        .select("id, job_title, manager_contact_id, persons (full_name, first_name, last_name, primary_email, phone)")
         .eq("company_id", contact.company_id)
 
       if (siblings) {
-        const managerContactId = contact.manager_contact_id
-        type SiblingPerson = {
-          full_name: string | null
-          first_name: string | null
-          last_name: string | null
-          primary_email: string | null
-          phone: string | null
-        }
+        type SiblingPerson = { full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null; phone: string | null }
 
-        if (managerContactId) {
-          const m = siblings.find(s => s.id === managerContactId)
+        if (contact.manager_contact_id) {
+          const m = siblings.find(s => s.id === contact.manager_contact_id)
           if (m) {
             const mPersonObj = (Array.isArray(m.persons) ? m.persons[0] : m.persons) as SiblingPerson | null
             manager = {
@@ -506,7 +335,7 @@ export async function getContactIdentity(contactId: string) {
             return {
               id: s.id,
               fullName: sPersonObj?.full_name || `${sPersonObj?.first_name || ""} ${sPersonObj?.last_name || ""}`.trim(),
-              job_title: s.job_title
+              job_title: s.job_title,
             }
           })
       }
@@ -516,9 +345,9 @@ export async function getContactIdentity(contactId: string) {
       error: null,
       data: {
         contact,
-        interactions: interactions || [],
+        interactions: interactionsResult.data || [],
         opportunities: opportunities || [],
-        tasks: tasks || [],
+        tasks: tasksResult.data || [],
         manager,
         reports,
       },

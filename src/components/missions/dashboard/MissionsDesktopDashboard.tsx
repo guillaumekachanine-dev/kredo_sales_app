@@ -202,7 +202,7 @@ export function MissionsDesktopDashboard({
   const getStageCategory = (stageStr: string): "Qualif" | "Proposition" | "Nego" | "Gagne" => {
     const s = stageStr.toLowerCase()
     if (s === "gagne" || s === "won") return "Gagne"
-    if (s === "entretien_client" || s === "nego") return "Nego"
+    if (s === "entretien_client" || s === "contractualisation" || s === "negociation" || s === "nego") return "Nego"
     if (s === "cv_envoyes" || s === "proposition") return "Proposition"
     return "Qualif"
   }

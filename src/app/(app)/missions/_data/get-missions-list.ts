@@ -24,7 +24,7 @@ function formatDate(dateStr: string | null): string {
 interface CompanyInfo {
   name: string
   website: string | null
-  metadata: any
+  metadata: Record<string, unknown> | null
 }
 
 interface PersonInfo {
@@ -51,7 +51,7 @@ interface DBMissionResult {
   updated_at: string
   companies: CompanyInfo | CompanyInfo[] | null
   collaborators: CollaboratorInfo | CollaboratorInfo[] | null
-  metadata: any
+  metadata: Record<string, unknown> | null
 }
 
 function getCompanyName(companies: CompanyInfo | CompanyInfo[] | null): string {
@@ -140,7 +140,8 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
       if (item.status === "closed") status = "closed"
       else if (item.status === "pending") status = "pending"
 
-      const meta = item.metadata || {}
+      const meta = (item.metadata || {}) as Record<string, unknown>
+      const riskLevel = typeof meta.risk_level === "string" ? meta.risk_level as "faible" | "modere" | "critique" : "faible"
 
       return {
         entityId: item.id,
@@ -159,7 +160,7 @@ export async function getMissionsList(): Promise<MissionsListRow[]> {
         consultant: consultantName,
         startDate: item.start_date || undefined,
         endDate: item.end_date || undefined,
-        riskLevel: meta.risk_level || "faible",
+        riskLevel,
         practice: item.practice || undefined,
       }
     })

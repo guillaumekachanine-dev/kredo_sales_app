@@ -3,14 +3,13 @@
 import { useState, useMemo, useEffect, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { Badge } from "@/components/ui/Badge"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
-import { STAGE_LABELS, PRIORITY_LABELS } from "@/components/missions/opportunity-detail/opportunity-detail-options"
+import { PRIORITY_LABELS } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { OpportunitiesPlanningView } from "@/components/missions/planning/OpportunitiesPlanningView"
@@ -31,21 +30,25 @@ import {
 } from "@/app/(app)/missions/_actions/opportunity-staffing"
 import { ConsultantDrawer } from "@/components/consultants/ConsultantDrawer"
 import { CandidateDrawer } from "@/components/recruitment/CandidateDrawer"
+import {
+  getOpportunityStageColor,
+  getOpportunityStageLabel,
+  isTerminalOpportunityStage,
+  OPPORTUNITY_STAGES,
+  type SalesStage,
+} from "@/lib/opportunities/stages"
 
-// ─── Mapping Étape → StatusPill ───────────────────────────────────────────────
-
-const STAGE_PILL: Record<string, StatusPillVariant> = {
-  detection:        "inProgress",
-  qualification:    "inProgress",
-  besoin_confirme:  "inProgress",
-  recherche_profil: "info",
-  cv_envoyes:       "info",
-  entretien_client: "warning",
-  negociation:      "warning",
-  gagne:            "success",
-  perdu:            "danger",
-  abandonne:        "danger",
-  non_traitee:      "neutral",
+function StagePill({ stage, label }: { stage: string; label: string }) {
+  const color = getOpportunityStageColor(stage)
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[length:var(--font-size-label-sm)] font-medium leading-[var(--line-height-label-sm)]"
+      style={{ color }}
+    >
+      <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      <span>{label}</span>
+    </span>
+  )
 }
 
 // ─── Mapping Priorité → Badge ─────────────────────────────────────────────────
@@ -72,15 +75,19 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
 
   // Sync state with props when they change
   useEffect(() => {
+    // Local optimistic state must re-sync when the server payload changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpps(initialOpps)
   }, [initialOpps])
 
   useEffect(() => {
+    // Local optimistic state must re-sync when the server payload changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlanningData(initialPlanning)
   }, [initialPlanning])
 
   const [viewMode, setViewMode] = useState<"list" | "kanban" | "planning">("list")
-  const [planningScale, setPlanningScale] = useState<"year" | "quarter" | "month" | "week">("year")
+  const [planningScale, setPlanningScale] = useState<"year" | "quarter" | "month" | "week">("month")
   const [stageFilter, setStageFilter]       = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [convictionFilter, setConvictionFilter] = useState("all")
@@ -101,13 +108,7 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
   const [eventBody, setEventBody] = useState("")
 
   const openOpportunities = useMemo(() => {
-    return opps.filter(
-      (o) =>
-        o.stage !== "gagne" &&
-        o.stage !== "perdu" &&
-        o.stage !== "abandonne" &&
-        o.stage !== "non_traitee"
-    )
+    return opps.filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage))
   }, [opps])
 
   const handleOpenEventModal = () => {
@@ -263,7 +264,7 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
 
     const res = await updateOpportunity({
       id: opportunityId,
-      stage: newStage as any,
+      stage: newStage as SalesStage,
     })
 
     if (res.error) {
@@ -366,9 +367,8 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
       width: "11.5rem",
       render: (row) => {
         const stage = row.stage ?? ""
-        const label = STAGE_LABELS[stage] ?? stage
-        const variant = STAGE_PILL[stage] ?? "neutral"
-        return <StatusPill label={label} variant={variant} />
+        const label = getOpportunityStageLabel(stage)
+        return <StagePill stage={stage} label={label} />
       },
     },
     {
@@ -475,13 +475,10 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               onChange={setStageFilter}
               options={[
                 { value: "all", label: "Toutes les étapes" },
-                { value: "qualification", label: "Qualification" },
-                { value: "recherche_profil", label: "Recherche profils" },
-                { value: "cv_envoyes", label: "CV sent" },
-                { value: "entretien_client", label: "Présentation client (RT)" },
-                { value: "abandonne", label: "Abandonné" },
-                { value: "gagne", label: "Gagné" },
-                { value: "perdu", label: "Perdu" },
+                ...OPPORTUNITY_STAGES.map((stage) => ({
+                  value: stage.value,
+                  label: stage.label,
+                })),
               ]}
             />
             <PageFilterSelect
@@ -551,7 +548,7 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               <select
                 id="opp-planning-scale-select"
                 value={planningScale}
-                onChange={(e) => setPlanningScale(e.target.value as any)}
+                onChange={(e) => setPlanningScale(e.target.value as "year" | "quarter" | "month" | "week")}
                 className="bg-transparent font-semibold text-xs border-0 outline-none pr-4 cursor-pointer focus:ring-0 focus:outline-none appearance-none text-brand-brass font-sans"
                 style={{
                   backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
@@ -591,27 +588,39 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               Créer staffing
             </Button>
 
-            {/* Sélecteur Affichage distinctif */}
-            <div className="relative inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
-                Affichage
-              </span>
-              <select
-                id="opp-kanban-display-select"
-                value={kanbanDisplayMode}
-                onChange={(e) => setKanbanDisplayMode(e.target.value as "opportunities" | "consultants")}
-                className="bg-transparent font-semibold text-xs border-0 outline-none pr-4 cursor-pointer focus:ring-0 focus:outline-none appearance-none text-brand-brass font-sans"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right center",
-                  backgroundSize: "10px",
-                }}
+            {/* Toggle vue Opportunités ↔ Consultants */}
+            <button
+              type="button"
+              onClick={() =>
+                setKanbanDisplayMode((m) =>
+                  m === "opportunities" ? "consultants" : "opportunities"
+                )
+              }
+              className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95 cursor-pointer select-none"
+              title={`Basculer vers ${kanbanDisplayMode === "opportunities" ? "Consultants" : "Opportunités"}`}
+            >
+              <svg
+                className={cn(
+                  "size-3.5 transition-transform duration-500",
+                  kanbanDisplayMode === "consultants" && "rotate-180"
+                )}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <option value="opportunities" className="bg-surface text-body font-normal">Opportunités</option>
-                <option value="consultants" className="bg-surface text-body font-normal">Consultants</option>
-              </select>
-            </div>
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+              <span className="text-xs font-semibold">
+                {kanbanDisplayMode === "opportunities" ? "Opportunités" : "Consultants"}
+              </span>
+            </button>
           </>
         )}
       </PageFilterBar>
@@ -704,7 +713,7 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="modal-event-type" className="text-xs font-semibold text-heading">
-              Type d'événement <span className="text-danger">*</span>
+              Type d&apos;événement <span className="text-danger">*</span>
             </label>
             <Select
               id="modal-event-type"

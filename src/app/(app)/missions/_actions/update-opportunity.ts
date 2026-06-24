@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import type { Json } from "@/types/database"
 import type { OpportunityUpdate, SalesOutcome, SalesPriority, SalesStage } from "@/types/database-domain"
+import {
+  getOpportunityStageLabel,
+  isTerminalOpportunityStage,
+} from "@/lib/opportunities/stages"
 
 export interface UpdateOpportunityInput {
   id: string
@@ -125,14 +129,14 @@ export async function updateOpportunity(
   } else if (input.outcome === "non_traitee") {
     targetStage = "non_traitee"
   } else if (input.outcome === null) {
-    if (targetStage === "gagne" || targetStage === "perdu" || targetStage === "abandonne" || targetStage === "non_traitee" || !targetStage) {
+    if (!targetStage || isTerminalOpportunityStage(targetStage)) {
       const { data: currentOpp } = await supabase
         .from("opportunities")
         .select("stage")
         .eq("id", input.id)
         .maybeSingle()
       const currentStage = currentOpp?.stage as SalesStage | undefined
-      if (currentStage && currentStage !== "gagne" && currentStage !== "perdu" && currentStage !== "abandonne" && currentStage !== "non_traitee") {
+      if (currentStage && !isTerminalOpportunityStage(currentStage)) {
         targetStage = currentStage
       } else {
         targetStage = "qualification"
@@ -206,17 +210,6 @@ export async function updateOpportunity(
   if (input.win_reason !== undefined) updatePayload.win_reason = normalizeText(input.win_reason)
   if (input.loss_reason !== undefined) updatePayload.loss_reason = normalizeText(input.loss_reason)
 
-  const STAGE_LABELS_LOCAL: Record<string, string> = {
-    qualification: "Qualification",
-    recherche_profil: "Recherche profils",
-    cv_envoyes: "CV envoyés",
-    entretien_client: "Entretien client",
-    gagne: "Gagné",
-    perdu: "Perdu",
-    abandonne: "Abandonné",
-    non_traitee: "Non traitée",
-  }
-
   let oldStage: SalesStage | null = null
   const stageChanged = targetStage !== undefined
 
@@ -251,8 +244,8 @@ export async function updateOpportunity(
 
   // Si l'étape a changé, enregistrer un événement de changement d'étape
   if (stageChanged && oldStage !== null && oldStage !== targetStage) {
-    const oldStageLabel = STAGE_LABELS_LOCAL[oldStage] || oldStage
-    const newStageLabel = STAGE_LABELS_LOCAL[targetStage!] || targetStage!
+    const oldStageLabel = getOpportunityStageLabel(oldStage)
+    const newStageLabel = getOpportunityStageLabel(targetStage)
     const { error: eventError } = await supabase
       .from("interactions")
       .insert({

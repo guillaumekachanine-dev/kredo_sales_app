@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
+import {
+  getOpportunityStageLabel,
+  isTerminalOpportunityStage,
+} from "@/lib/opportunities/stages"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Synthèse de prospection — couche données (DÉCISIONNEL portefeuille)
@@ -101,29 +105,6 @@ const LIFECYCLE_TONE: Record<string, SyntheseStatus> = {
   exclu: "danger",
 }
 
-const STAGE_LABEL: Record<string, string> = {
-  detection: "Détection",
-  qualification: "Qualification",
-  besoin_confirme: "Besoin confirmé",
-  recherche_profil: "Recherche profil",
-  cv_envoyes: "CV envoyés",
-  entretien_client: "Entretien client",
-  negociation: "Négociation",
-  gagne: "Gagné",
-  perdu: "Perdu",
-  abandonne: "Abandonné",
-  // legacy tolérés en lecture (CLAUDE.md) — ne pas réutiliser à l'écriture
-  en_cours: "En cours",
-  cv_sent: "CV envoyés",
-  rt: "Entretien client",
-  win: "Gagné",
-  lost: "Perdu",
-  non_traitee: "Non traitée",
-}
-
-// stages considérés « fermés » → exclus du pipeline ouvert
-const CLOSED_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee", "win", "lost"])
-
 // ─── Loose client (même approche que intelligence-data.ts) ────────────────────
 
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }>
@@ -221,7 +202,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   let openCount = 0
   for (const o of opportunities) {
     const stage = o.stage ?? "detection"
-    if (CLOSED_STAGES.has(stage)) continue
+    if (isTerminalOpportunityStage(stage)) continue
     const weighted = toNumber(o.weighted_gain) ?? 0
     const entry = stageAgg.get(stage) ?? { count: 0, weighted: 0 }
     entry.count += 1
@@ -231,7 +212,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     openCount += 1
   }
   const stages: PipelineStage[] = [...stageAgg.entries()]
-    .map(([key, v]) => ({ key, label: STAGE_LABEL[key] ?? key, count: v.count, weighted: v.weighted }))
+    .map(([key, v]) => ({ key, label: getOpportunityStageLabel(key), count: v.count, weighted: v.weighted }))
     .sort((a, b) => b.weighted - a.weighted)
 
   // ── Comptes à activer (cibles/prospects à plus fort score) ──────────────────

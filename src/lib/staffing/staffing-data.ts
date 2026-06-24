@@ -1,4 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
+import {
+  getOpportunityStageLabel as getCanonicalOpportunityStageLabel,
+  isTerminalOpportunityStage,
+} from "@/lib/opportunities/stages"
 
 export type StaffingStatus = "success" | "warning" | "danger" | "neutral"
 
@@ -144,19 +148,6 @@ type CandidateRow = {
   }[] | null
 }
 
-const CLOSED_OPPORTUNITY_STAGES = new Set(["gagne", "perdu", "abandonne", "non_traitee", "win", "lost"])
-
-const OPPORTUNITY_STAGE_LABELS: Record<string, string> = {
-  qualification: "Qualification",
-  recherche_profil: "Recherche profils",
-  cv_envoyes: "CV envoyés",
-  entretien_client: "Entretien client",
-  gagne: "Gagné",
-  perdu: "Perdu",
-  abandonne: "Abandonné",
-  non_traitee: "Non traitée",
-}
-
 const STAFFING_STATUS_LABELS: Record<string, string> = {
   identifie: "Identifié",
   preselectionne: "Présélectionné",
@@ -227,7 +218,7 @@ function getCandidateName(candidate: CandidateRow | undefined) {
 
 function getStageLabel(stage: string | null | undefined) {
   const key = normalizeKey(stage)
-  return OPPORTUNITY_STAGE_LABELS[key] || STAFFING_STATUS_LABELS[key] || key.replace(/_/g, " ") || "Non renseigné"
+  return STAFFING_STATUS_LABELS[key] || getCanonicalOpportunityStageLabel(key)
 }
 
 function getPriorityLabel(priority: string | null | undefined) {
@@ -351,6 +342,7 @@ function scoreNeed(
   else score += 22
 
   if (links.length === 0) score += 35
+  if (stage === "contractualisation") score += 22
   if (stage === "recherche_profil") score += 18
   if (stage === "entretien_client") score += 14
   if (stage === "qualification") score += 8
@@ -443,7 +435,7 @@ export async function getStaffingDashboardData(): Promise<StaffingDashboardData>
     }
   }
 
-  const openNeeds = opportunities.filter((opportunity) => !CLOSED_OPPORTUNITY_STAGES.has(normalizeKey(opportunity.stage)))
+  const openNeeds = opportunities.filter((opportunity) => !isTerminalOpportunityStage(normalizeKey(opportunity.stage)))
   const openNeedIds = new Set(openNeeds.map((need) => need.id))
   const linksOnOpenNeeds = staffingLinks.filter((link) => openNeedIds.has(link.opportunity_id))
 

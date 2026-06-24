@@ -5,6 +5,7 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
 import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
@@ -934,7 +935,7 @@ export function ContactIdentityDrawer({
                               )}
                             </div>
                             <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
-                              {opp.stage.replace("_", " ")}
+                              {getOpportunityStageLabel(opp.stage)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">

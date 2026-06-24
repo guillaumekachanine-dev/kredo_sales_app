@@ -1,9 +1,9 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useRef, useState, useTransition } from "react"
 import { cn } from "@/lib/utils"
 import { AppDialog } from "@/components/ui/AppDialog"
-import { Badge, type BadgeVariant } from "@/components/ui/Badge"
 import { Select } from "@/components/ui/Select"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import type {
@@ -33,6 +33,7 @@ import { createOpportunityInteraction } from "@/app/(app)/missions/_actions/oppo
 import {
   formatEuro,
   formatDate,
+  formatDateNumeric,
   formatDateTime,
 } from "./opportunity-detail-utils"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
@@ -42,7 +43,17 @@ import {
   PRIORITY_LABELS,
   getStageLabel,
   getPriorityLabel,
+  getTypeLabel,
 } from "./opportunity-detail-options"
+import { getPracticeByName, type PracticeSlug } from "@/lib/config/practices"
+import {
+  getOpportunityPipelineIndex,
+  getOpportunityStageColor,
+  getOpportunityStageIcon,
+  getOpportunityStageLabel,
+  OPPORTUNITY_ACTIVE_STAGES,
+  OPPORTUNITY_TERMINAL_STAGES,
+} from "@/lib/opportunities/stages"
 
 interface OpportunityDetailData {
   opportunity: Opportunity
@@ -61,41 +72,53 @@ interface OpportunityDetailData {
   standingProfiles: OpportunityStandingProfile[]
 }
 
-const SEQUENTIAL_STEPS = [
-  { key: "qualification", label: "Qualification", num: 1 },
-  { key: "recherche_profil", label: "Recherche profils", num: 2 },
-  { key: "cv_envoyes", label: "CV envoyés", num: 3 },
-  { key: "entretien_client", label: "Entretien client", num: 4 },
-]
+const SEQUENTIAL_STEPS = OPPORTUNITY_ACTIVE_STAGES.map((stage, index) => ({
+  key: stage.value,
+  label: stage.label,
+  num: index + 1,
+}))
 
-const STAGE_LOGOS: Record<string, string> = {
-  qualification: "/icons_set/rdv_client.png",
-  recherche_profil: "/icons_set/sourcing_candidats_2.png",
-  cv_envoyes: "/icons_set/CV_envoyé.png",
-  entretien_client: "/icons_set/presentation_client_rt.png",
-  gagne: "/icons_set/oppy_win.png",
-  perdu: "/icons_set/oppy_perdu.png",
-  abandonne: "/icons_set/oppy_abandon.png",
+const OUTCOME_STEPS = OPPORTUNITY_TERMINAL_STAGES.map((stage) => ({
+  key: stage.value,
+  label: stage.label,
+  color: getOpportunityStageColor(stage.value),
+}))
+
+function StageStepIcon({
+  stage,
+  label,
+  active,
+  compact = false,
+}: {
+  stage: SalesStage
+  label: string
+  active: boolean
+  compact?: boolean
+}) {
+  const icon = getOpportunityStageIcon(stage)
+  if (!icon) return null
+
+  return (
+    <Image
+      src={icon}
+      alt={label}
+      width={compact ? 28 : 36}
+      height={compact ? 28 : 36}
+      className={cn(
+        "object-contain transition-all duration-300",
+        compact ? "h-7 w-7" : "h-9 w-9",
+        stage === "cv_envoyes" ? "p-0.5" : "p-1 rounded-full",
+      )}
+      style={{
+        filter: active ? "none" : "grayscale(100%)",
+        opacity: active ? 1 : 0.4,
+      }}
+    />
+  )
 }
 
-// Pipeline gradient 3-stop : teal vif → indigo → fuchsia (fidèle à la ref image)
-const PIPELINE_STOPS = [
-  [0,   210, 180],   // t=0   vivid teal    #00D2B4
-  [108,  88, 236],   // t=0.5 vivid indigo  #6C58EC
-  [234,  44, 162],   // t=1   vivid fuchsia #EA2CA2
-] as const
-
-function pipelineColorStr(t: number, alpha = 1): string {
-  const stops = PIPELINE_STOPS
-  const n = stops.length - 1
-  const scaled = Math.min(t * n, n - 0.0001)
-  const i = Math.floor(scaled)
-  const u = scaled - i
-  const a = stops[i], b = stops[i + 1]
-  const r = Math.round(a[0] + (b[0] - a[0]) * u)
-  const g = Math.round(a[1] + (b[1] - a[1]) * u)
-  const bl = Math.round(a[2] + (b[2] - a[2]) * u)
-  return alpha < 1 ? `rgba(${r},${g},${bl},${alpha})` : `rgb(${r},${g},${bl})`
+function stageRing(color: string, opacity: number) {
+  return `color-mix(in srgb, ${color} ${opacity}%, transparent)`
 }
 
 
@@ -119,20 +142,24 @@ const OPPORTUNITY_REMOTE_OPTIONS = [
   { value: "full_remote", label: "Full remote" },
 ] as const
 
+const HEADER_ICON_PATHS = {
+  engagementType: "/icons_set/type_engagement.png",
+  startDate: "/icons_set/date.png",
+  duration: "/icons_set/durée.png",
+  estimatedAcv: "/icons_set/ACV_estime.png",
+} as const
+
+const PRACTICE_LOGO_BY_SLUG: Record<PracticeSlug, string> = {
+  "data-ia": "/images/practices/logo_practice_data_ia.png",
+  "digital-cloud": "/images/practices/logo_practice_cloud_engineering.png",
+  "agile-pm": "/images/practices/logo_practice_agile_project_management.png",
+  cybersecurity: "/images/practices/logo_practice_cybersecurity.png",
+  "qa-testing": "/images/practices/logo_practice_QA_testing.png",
+}
+
 interface OpportunityEditFormProps {
   data: OpportunityDetailData
   onSuccess: () => void
-}
-
-const STAGE_BADGE_VARIANTS: Record<SalesStage, BadgeVariant> = {
-  qualification: "brand",
-  recherche_profil: "info",
-  cv_envoyes: "info",
-  entretien_client: "warning",
-  gagne: "success",
-  perdu: "danger",
-  abandonne: "warning",
-  non_traitee: "neutral",
 }
 
 // Pencil icon helper
@@ -155,8 +182,68 @@ function PencilIcon({ className }: { className?: string }) {
   )
 }
 
+function OpportunityHeaderMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-[10px] uppercase text-muted tracking-wider font-semibold whitespace-nowrap">
+          {label}
+        </span>
+        <span className="text-sm font-semibold leading-none text-heading whitespace-nowrap">
+          {value}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function formatOpportunityDuration(duration: number | null | undefined): string {
+  if (!duration) return "—"
+  return `${duration} jours`
+}
+
+function getPracticeHeaderContent(practice: string | null | undefined): {
+  iconSrc: string | null
+  value: string
+} {
+  if (!practice) {
+    return { iconSrc: null, value: "—" }
+  }
+
+  const practiceConfig = getPracticeByName(practice)
+  if (!practiceConfig) {
+    return { iconSrc: null, value: practice }
+  }
+
+  return {
+    iconSrc: PRACTICE_LOGO_BY_SLUG[practiceConfig.slug] ?? null,
+    value: practiceConfig.shortName,
+  }
+}
+
+function getEngagementTypeValue(opportunity: Opportunity): string {
+  const typeLabel = getTypeLabel(opportunity.opportunity_type)
+  if (typeLabel !== "—") return typeLabel
+  if (opportunity.requires_staffing) return "Staffing"
+  return "—"
+}
+
 export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProps) {
   const { opportunity, account } = data
+  const practiceHeaderContent = getPracticeHeaderContent(opportunity.practice)
+  const engagementTypeValue = getEngagementTypeValue(opportunity)
+  const estimatedAcv = opportunity.acv ?? opportunity.estimated_gain
   // editingSection: null = lecture, string = section en cours d'édition
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -376,10 +463,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     }, 250)
   }
 
-  const getStageIndex = (stage: string) => {
-    if (stage === "gagne" || stage === "perdu" || stage === "abandonne" || stage === "non_traitee") return 4
-    return SEQUENTIAL_STEPS.findIndex((s) => s.key === stage)
-  }
+  const getStageIndex = (stage: string) => getOpportunityPipelineIndex(stage)
 
   const currentIdx = getStageIndex(form.stage)
 
@@ -427,6 +511,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               const isCompleted = currentIdx > idx
               const isActive = currentIdx === idx
               const isLoading = loadingStage === step.key
+              const stepColor = getOpportunityStageColor(step.key)
+              const nextStepColor = getOpportunityStageColor(
+                SEQUENTIAL_STEPS[Math.min(idx + 1, SEQUENTIAL_STEPS.length - 1)]?.key ?? step.key,
+              )
 
               return (
                 <div key={step.key} className="flex-1 flex flex-col items-center relative min-w-0">
@@ -442,7 +530,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         height: 8,
                         borderRadius: 4,
                         background: isCompleted
-                          ? `linear-gradient(to right, ${pipelineColorStr(idx / 4)}, ${pipelineColorStr((idx + 1) / 4)})`
+                          ? `linear-gradient(to right, ${stepColor}, ${nextStepColor})`
                           : "#E5E7EB",
                       }}
                     />
@@ -459,10 +547,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         borderRadius: 4,
                         background:
                           form.stage === "gagne"
-                            ? `linear-gradient(to right, ${pipelineColorStr(0.75)}, ${pipelineColorStr(1)})`
-                            : form.stage === "perdu" ? "#DC2626"
-                            : form.stage === "abandonne" ? "#F59E0B"
-                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            ? `linear-gradient(to right, ${stepColor}, ${getOpportunityStageColor("gagne")})`
+                            : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                            : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                            : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                             : "#E5E7EB",
                       }}
                     />
@@ -471,7 +559,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   {/* Date label above */}
                   <span
                     className="text-[11px] font-bold mb-1.5 leading-none"
-                    style={{ color: (isCompleted || isActive) ? pipelineColorStr(idx / 4) : "#9CA3AF" }}
+                    style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}
                   >
                     {isActive ? "En cours" : isCompleted ? "✓" : "—"}
                   </span>
@@ -487,14 +575,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       height: 44,
                       backgroundColor: "#FFFFFF",
                       border: isActive
-                        ? `3px solid ${pipelineColorStr(idx / 4)}`
+                        ? `3px solid ${stepColor}`
                         : isCompleted
-                        ? `2.5px solid ${pipelineColorStr(idx / 4)}`
+                        ? `2.5px solid ${stepColor}`
                         : "2px solid #E5E7EB",
                       boxShadow: isActive
-                        ? `0 0 0 4px ${pipelineColorStr(idx / 4, 0.22)}`
+                        ? `0 0 0 4px ${stageRing(stepColor, 22)}`
                         : isCompleted
-                        ? `0 2px 8px ${pipelineColorStr(idx / 4, 0.28)}`
+                        ? `0 2px 8px ${stageRing(stepColor, 28)}`
                         : "none",
                       transform: isActive ? "scale(1.12)" : "scale(1)",
                     }}
@@ -505,19 +593,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         <path className="opacity-75" fill="#2C7D5C" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
-                      <img
-                        src={STAGE_LOGOS[step.key]}
-                        alt={step.label}
-                        className={cn(
-                          "object-contain transition-all duration-300",
-                          (step.key === "cv_envoyes" || step.key === "entretien_client")
-                            ? "w-8 h-8"
-                            : "w-full h-full p-1 rounded-full"
-                        )}
-                        style={{
-                          filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
-                          opacity: (isCompleted || isActive) ? 1 : 0.4,
-                        }}
+                      <StageStepIcon
+                        stage={step.key as SalesStage}
+                        label={step.label}
+                        active={isCompleted || isActive}
                       />
                     )}
                   </button>
@@ -544,12 +623,12 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {/* Status indicator above — ✓ si issue sélectionnée, — sinon (même pattern que les étapes) */}
               <span
                 className="text-[11px] font-bold mb-1.5 leading-none"
-                style={{
-                  color:
-                    form.stage === "gagne" ? "#FFB812"
-                    : form.stage === "perdu" ? "#DC2626"
-                    : form.stage === "abandonne" ? "#F59E0B"
-                    : form.stage === "non_traitee" ? "#6B7280"
+                    style={{
+                      color:
+                    form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                    : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                    : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                    : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                     : "#9CA3AF"
                 }}
               >
@@ -574,9 +653,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
                       border:
                         form.stage === "gagne" ? undefined
-                        : form.stage === "perdu" ? "3px solid #DC2626"
-                        : form.stage === "abandonne" ? "3px solid #F59E0B"
-                        : form.stage === "non_traitee" ? "2px solid #9CA3AF"
+                        : form.stage === "perdu" ? `3px solid ${getOpportunityStageColor("perdu")}`
+                        : form.stage === "abandonne" ? `3px solid ${getOpportunityStageColor("abandonne")}`
+                        : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
                         : "2px solid #D1D5DB",
                       boxShadow:
                         form.stage === "gagne" ? undefined
@@ -589,16 +668,16 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
                       <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
-                          loadingStage === "gagne" ? "#FFB812"
-                          : loadingStage === "perdu" ? "#DC2626"
-                          : loadingStage === "abandonne" ? "#F59E0B"
-                          : "#9CA3AF"
+                          loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                          : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                          : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                          : getOpportunityStageColor("non_traitee")
                         } strokeWidth="4" />
                         <path className="opacity-75" fill={
-                          loadingStage === "gagne" ? "#FFB812"
-                          : loadingStage === "perdu" ? "#DC2626"
-                          : loadingStage === "abandonne" ? "#F59E0B"
-                          : "#9CA3AF"
+                          loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                          : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                          : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                          : getOpportunityStageColor("non_traitee")
                         } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : form.stage === "gagne" ? (
@@ -629,12 +708,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
                     <div className="absolute right-0 mt-2 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
-                      {[
-                        { key: "gagne", label: "Gagné", color: "#2C7D5C" },
-                        { key: "perdu", label: "Perdu", color: "#DC2626" },
-                        { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
-                        { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
-                      ].map((opt) => (
+                      {OUTCOME_STEPS.map((opt) => (
                         <button
                           key={opt.key}
                           type="button"
@@ -659,17 +733,17 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                   className="text-[12px] font-bold leading-tight"
                   style={{
                     color:
-                      form.stage === "gagne" ? "#FFB812"
-                      : form.stage === "perdu" ? "#DC2626"
-                      : form.stage === "abandonne" ? "#F59E0B"
-                      : form.stage === "non_traitee" ? "#6B7280"
+                      form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                      : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                      : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                      : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                       : "#6B7280"
                   }}
                 >
-                  {form.stage === "gagne" ? "Gagné"
-                    : form.stage === "perdu" ? "Perdu"
-                    : form.stage === "abandonne" ? "Abandonné"
-                    : form.stage === "non_traitee" ? "Non traitée"
+                  {form.stage === "gagne" ? getOpportunityStageLabel("gagne")
+                    : form.stage === "perdu" ? getOpportunityStageLabel("perdu")
+                    : form.stage === "abandonne" ? getOpportunityStageLabel("abandonne")
+                    : form.stage === "non_traitee" ? getOpportunityStageLabel("non_traitee")
                     : "Issue"}
                 </span>
               </div>
@@ -714,6 +788,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             const isActive = currentIdx === idx
             const isLast = idx === SEQUENTIAL_STEPS.length - 1
             const isLoading = loadingStage === step.key
+            const stepColor = getOpportunityStageColor(step.key)
+            const nextStepColor = getOpportunityStageColor(
+              SEQUENTIAL_STEPS[Math.min(idx + 1, SEQUENTIAL_STEPS.length - 1)]?.key ?? step.key,
+            )
 
             return (
               <div key={step.key} className="flex items-stretch gap-4">
@@ -729,14 +807,14 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       height: 44,
                       backgroundColor: "#FFFFFF",
                       border: isActive
-                        ? `3px solid ${pipelineColorStr(idx / 4)}`
+                        ? `3px solid ${stepColor}`
                         : isCompleted
-                        ? `2.5px solid ${pipelineColorStr(idx / 4)}`
+                        ? `2.5px solid ${stepColor}`
                         : "2px solid #E5E7EB",
                       boxShadow: isActive
-                        ? `0 0 0 4px ${pipelineColorStr(idx / 4, 0.22)}`
+                        ? `0 0 0 4px ${stageRing(stepColor, 22)}`
                         : isCompleted
-                        ? `0 2px 8px ${pipelineColorStr(idx / 4, 0.28)}`
+                        ? `0 2px 8px ${stageRing(stepColor, 28)}`
                         : "none",
                       transform: isActive ? "scale(1.08)" : "scale(1)",
                     }}
@@ -747,19 +825,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                         <path className="opacity-75" fill="#2C7D5C" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                     ) : (
-                      <img
-                        src={STAGE_LOGOS[step.key]}
-                        alt={step.label}
-                        className={cn(
-                          "object-contain transition-all duration-300",
-                          (step.key === "cv_envoyes" || step.key === "entretien_client")
-                            ? "w-8 h-8"
-                            : "w-full h-full p-1 rounded-full"
-                        )}
-                        style={{
-                          filter: (isCompleted || isActive) ? "none" : "grayscale(100%)",
-                          opacity: (isCompleted || isActive) ? 1 : 0.4,
-                        }}
+                      <StageStepIcon
+                        stage={step.key as SalesStage}
+                        label={step.label}
+                        active={isCompleted || isActive}
                       />
                     )}
                   </button>
@@ -772,13 +841,13 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                       marginTop: 4,
                       borderRadius: 4,
                       background: isCompleted
-                        ? `linear-gradient(to bottom, ${pipelineColorStr(idx / 4)}, ${pipelineColorStr((idx + 1) / 4)})`
+                        ? `linear-gradient(to bottom, ${stepColor}, ${nextStepColor})`
                         : isLast
                           ? form.stage === "gagne"
-                            ? `linear-gradient(to bottom, ${pipelineColorStr(0.75)}, ${pipelineColorStr(1)})`
-                            : form.stage === "perdu" ? "#DC2626"
-                            : form.stage === "abandonne" ? "#F59E0B"
-                            : form.stage === "non_traitee" ? "#9CA3AF"
+                            ? `linear-gradient(to bottom, ${stepColor}, ${getOpportunityStageColor("gagne")})`
+                            : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                            : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                            : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                             : "#E5E7EB"
                           : "#E5E7EB",
                     }}
@@ -787,7 +856,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
 
                 {/* Right: date + label */}
                 <div className="flex flex-col justify-start py-1 pb-6">
-                  <span className="text-[11px] font-bold leading-none mb-1" style={{ color: (isCompleted || isActive) ? pipelineColorStr(idx / 4) : "#9CA3AF" }}>
+                  <span className="text-[11px] font-bold leading-none mb-1" style={{ color: (isCompleted || isActive) ? stepColor : "#9CA3AF" }}>
                     {isActive ? "En cours" : isCompleted ? "Terminé" : "À venir"}
                   </span>
                   <button
@@ -823,9 +892,9 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     backgroundColor: form.stage === "gagne" ? undefined : "#FFFFFF",
                     border:
                       form.stage === "gagne" ? undefined
-                      : form.stage === "perdu" ? "3px solid #DC2626"
-                      : form.stage === "abandonne" ? "3px solid #F59E0B"
-                      : form.stage === "non_traitee" ? "2px solid #9CA3AF"
+                      : form.stage === "perdu" ? `3px solid ${getOpportunityStageColor("perdu")}`
+                      : form.stage === "abandonne" ? `3px solid ${getOpportunityStageColor("abandonne")}`
+                      : form.stage === "non_traitee" ? `2px solid ${getOpportunityStageColor("non_traitee")}`
                       : "2px solid #D1D5DB",
                     boxShadow:
                       form.stage === "gagne" ? undefined
@@ -836,19 +905,19 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                     transform: (form.stage === "gagne" || form.stage === "perdu" || form.stage === "abandonne" || form.stage === "non_traitee") ? "scale(1.08)" : "scale(1)",
                   }}
                 >
-                  {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
-                    <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
-                        loadingStage === "gagne" ? "#FFB812"
-                        : loadingStage === "perdu" ? "#DC2626"
-                        : loadingStage === "abandonne" ? "#F59E0B"
-                        : "#9CA3AF"
+                    {loadingStage && ["gagne", "perdu", "abandonne", "non_traitee"].includes(loadingStage) ? (
+                      <svg className="animate-spin" width={20} height={20} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke={
+                        loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                        : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                        : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                        : getOpportunityStageColor("non_traitee")
                       } strokeWidth="4" />
                       <path className="opacity-75" fill={
-                        loadingStage === "gagne" ? "#FFB812"
-                        : loadingStage === "perdu" ? "#DC2626"
-                        : loadingStage === "abandonne" ? "#F59E0B"
-                        : "#9CA3AF"
+                        loadingStage === "gagne" ? getOpportunityStageColor("gagne")
+                        : loadingStage === "perdu" ? getOpportunityStageColor("perdu")
+                        : loadingStage === "abandonne" ? getOpportunityStageColor("abandonne")
+                        : getOpportunityStageColor("non_traitee")
                       } d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
                   ) : form.stage === "gagne" ? (
@@ -878,17 +947,17 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 className="text-[11px] font-bold leading-none mb-1"
                 style={{
                   color:
-                    form.stage === "gagne" ? "#FFB812"
-                    : form.stage === "perdu" ? "#DC2626"
-                    : form.stage === "abandonne" ? "#F59E0B"
-                    : form.stage === "non_traitee" ? "#6B7280"
+                    form.stage === "gagne" ? getOpportunityStageColor("gagne")
+                    : form.stage === "perdu" ? getOpportunityStageColor("perdu")
+                    : form.stage === "abandonne" ? getOpportunityStageColor("abandonne")
+                    : form.stage === "non_traitee" ? getOpportunityStageColor("non_traitee")
                     : "#9CA3AF"
                 }}
               >
-                {form.stage === "gagne" ? "Gagné"
-                  : form.stage === "perdu" ? "Perdu"
-                  : form.stage === "abandonne" ? "Abandonné"
-                  : form.stage === "non_traitee" ? "Non traitée"
+                {form.stage === "gagne" ? getOpportunityStageLabel("gagne")
+                  : form.stage === "perdu" ? getOpportunityStageLabel("perdu")
+                  : form.stage === "abandonne" ? getOpportunityStageLabel("abandonne")
+                  : form.stage === "non_traitee" ? getOpportunityStageLabel("non_traitee")
                   : "Issue"}
               </span>
               <span className="text-[13px] font-bold text-heading">
@@ -903,12 +972,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setIsIssueDropdownOpen(false)} />
                   <div className="absolute left-0 top-12 w-44 bg-canvas border border-border rounded-lg shadow-xl py-1 z-40">
-                    {[
-                      { key: "gagne", label: "Gagné", color: "#2C7D5C" },
-                      { key: "perdu", label: "Perdu", color: "#DC2626" },
-                      { key: "abandonne", label: "Abandonné", color: "#F59E0B" },
-                      { key: "non_traitee", label: "Non traitée", color: "#9CA3AF" },
-                    ].map((opt) => (
+                    {OUTCOME_STEPS.map((opt) => (
                       <button
                         key={opt.key}
                         type="button"
@@ -1900,68 +1964,142 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
     <>
     <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
       {/* Header Desktop */}
-      <div className="flex items-start justify-between gap-4 pb-5 border-b border-border">
-        {/* Logo compte */}
-        {account && (
-          <CompanyLogo
-            name={account.name}
-            website={account.website}
-            size="xl"
-            className="shrink-0 mt-0.5"
-          />
-        )}
+      <div className="flex items-center justify-between gap-4 pb-5 border-b border-border">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          {account && (
+            <CompanyLogo
+              name={account.name}
+              website={account.website}
+              size="xl"
+              className="shrink-0 mt-0.5"
+            />
+          )}
 
-        <div className="flex flex-col gap-1.5 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-success border border-success/20 px-2 py-0.5 rounded bg-success/10">
-              Opportunité
-            </span>
-            {account && <span className="text-xs text-muted">{account.name}</span>}
-          </div>
+          <div className="flex min-w-0 flex-1 items-center justify-between gap-6">
+            <div className="flex min-w-0 flex-col">
+              {account && (
+                <span className="text-sm font-semibold text-body">
+                  {account.name}
+                </span>
+              )}
 
-          {editingSection === "identite" ? (
-            <div className="mt-2 flex flex-col gap-3.5 w-2/3">
-              <div>
-                <label className={labelClass}>Intitulé de l&apos;opportunité</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs font-bold text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors"
-                  placeholder="Titre de l'opportunité"
-                  disabled={isPending}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Client</label>
-                <AccountCombobox
-                  value={selectedAccount}
-                  onChange={setSelectedAccount}
-                />
-                {selectedAccount?.isNew && (
-                  <p className="mt-1 text-[10px] text-muted">
-                    Le compte «&nbsp;{selectedAccount.name}&nbsp;» sera créé automatiquement.
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
-                {opportunity.title}
-              </h1>
-              {editingSection === null && (
-                <button
-                  type="button"
-                  onClick={() => setEditingSection("identite")}
-                  className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
-                  title="Modifier l'identité"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
+              {editingSection === "identite" ? (
+                <div className="mt-2 flex w-2/3 flex-col gap-3.5">
+                  <div>
+                    <label className={labelClass}>Intitulé de l&apos;opportunité</label>
+                    <input
+                      type="text"
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-1.5 text-xs font-bold text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors"
+                      placeholder="Titre de l'opportunité"
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Client</label>
+                    <AccountCombobox
+                      value={selectedAccount}
+                      onChange={setSelectedAccount}
+                    />
+                    {selectedAccount?.isNew && (
+                      <p className="mt-1 text-[10px] text-muted">
+                        Le compte «&nbsp;{selectedAccount.name}&nbsp;» sera créé automatiquement.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-1 flex items-center gap-3">
+                  <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
+                    {opportunity.title}
+                  </h1>
+                  {editingSection === null && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingSection("identite")}
+                      className="p-1 text-muted hover:text-heading transition-colors rounded-full hover:bg-muted/10"
+                      title="Modifier l'identité"
+                    >
+                      <PencilIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
+
+            <div className="flex shrink-0 items-center gap-4">
+              <OpportunityHeaderMetric
+                label="Practice"
+                value={practiceHeaderContent.value}
+                icon={
+                  practiceHeaderContent.iconSrc ? (
+                    <Image
+                      src={practiceHeaderContent.iconSrc}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="h-5 w-5 object-contain"
+                    />
+                  ) : (
+                    <span className="block h-2 w-2 rounded-full bg-border" />
+                  )
+                }
+              />
+              <OpportunityHeaderMetric
+                label="Type d'engagement"
+                value={engagementTypeValue}
+                icon={
+                  <Image
+                    src={HEADER_ICON_PATHS.engagementType}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                  />
+                }
+              />
+              <OpportunityHeaderMetric
+                label="Date de démarrage"
+                value={formatDateNumeric(opportunity.start_date)}
+                icon={
+                  <Image
+                    src={HEADER_ICON_PATHS.startDate}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                  />
+                }
+              />
+              <OpportunityHeaderMetric
+                label="Durée"
+                value={formatOpportunityDuration(opportunity.duration)}
+                icon={
+                  <Image
+                    src={HEADER_ICON_PATHS.duration}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                  />
+                }
+              />
+              <OpportunityHeaderMetric
+                label="ACV estimé"
+                value={formatEuro(estimatedAcv)}
+                icon={
+                  <Image
+                    src={HEADER_ICON_PATHS.estimatedAcv}
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="h-5 w-5 object-contain"
+                  />
+                }
+              />
+            </div>
+          </div>
         </div>
 
         {/* Boutons Desktop */}
@@ -1973,22 +2111,6 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )}
 
           {editingSection === "identite" && renderSectionEditControls("identite")}
-
-          {opportunity.target_close_date && (
-            <div className="flex flex-col items-end border-l border-border pl-4">
-              <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">Échéance</span>
-              <span className="text-lg font-bold text-heading">
-                {formatDate(opportunity.target_close_date)}
-              </span>
-            </div>
-          )}
-
-          <div className="flex flex-col items-end border-l border-border pl-4">
-            <span className="text-[10px] uppercase text-muted tracking-wider font-semibold">ACV Estimé</span>
-            <span className="text-lg font-bold text-heading">
-              {formatEuro(opportunity.acv ?? opportunity.estimated_gain)}
-            </span>
-          </div>
         </div>
       </div>
 

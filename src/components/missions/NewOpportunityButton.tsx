@@ -15,12 +15,10 @@ export function NewOpportunityButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-9 h-9 flex items-center justify-center rounded-md bg-primary text-primary-fg hover:bg-primary/90 active:scale-[.98] transition-all shrink-0"
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-3.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 active:scale-[.98] transition-all"
         title="Nouvelle opportunité"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
+        <span className="whitespace-nowrap">+ nouvelle opportunité</span>
       </button>
 
       <NewOpportunityDrawer open={open} onOpenChange={setOpen} />

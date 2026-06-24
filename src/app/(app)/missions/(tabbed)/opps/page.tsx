@@ -1,12 +1,10 @@
-import { KpiCard } from "@/components/ui/KpiCard"
-import { MissionsListView } from "@/components/missions/MissionsListView"
 import { OpportunitiesDesktopView } from "@/components/missions/OpportunitiesDesktopView"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
-import { getOpportunitySkillsCloud } from "@/app/(app)/missions/_data/get-opportunity-skills-cloud"
-import { createClient } from "@/lib/supabase/server"
-import { OpportunitySkillsCloud } from "@/components/missions/OpportunitySkillsCloud"
+import { MissionsListView } from "@/components/missions/MissionsListView"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 import { getOpportunitiesPlanning } from "@/app/(app)/missions/_data/get-opportunities-planning"
+import { createClient } from "@/lib/supabase/server"
+import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -14,6 +12,29 @@ function fmtEuro(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)} M€`
   if (v >= 1_000) return `${Math.round(v / 1_000)} k€`
   return `${Math.round(v)} €`
+}
+
+function StatChip({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-[8.75rem] shrink-0 flex-col justify-center rounded-[var(--radius-large)] border border-border bg-surface px-3 py-2"
+      )}
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+        {label}
+      </span>
+      <span className="mt-1 whitespace-nowrap font-heading text-[18px] font-bold leading-none tracking-tight text-heading tabular-nums">
+        {value}
+      </span>
+    </div>
+  )
 }
 
 export default async function OpportunitesPage() {
@@ -30,86 +51,59 @@ export default async function OpportunitesPage() {
     return sum + val * ((o.conviction ?? 0) / 100)
   }, 0)
 
-  const hautePrioCount = openOpps.filter((o) => o.priority === "haute").length
+  const supabase = await createClient()
+  const { data: candidates, error } = await supabase
+    .from("opportunity_candidates")
+    .select("opportunity_id")
+    .in("opportunity_id", openOppIds.length > 0 ? openOppIds : ["__none__"])
 
-  const [skillsCloud, staffingMetrics] = await Promise.all([
-    getOpportunitySkillsCloud(openOppIds),
-    (async () => {
-      if (openOppIds.length === 0) return { totalCandidates: 0, coverageRate: 0 }
+  const coveredOppIds = new Set(candidates?.map((c) => c.opportunity_id) ?? [])
+  const coverageRate =
+    openOppIds.length > 0
+      ? Math.round((coveredOppIds.size / openOppIds.length) * 100)
+      : 0
 
-      const supabase = await createClient()
-      const { data: candidates, error } = await supabase
-        .from("opportunity_candidates")
-        .select("opportunity_id")
-        .in("opportunity_id", openOppIds)
-
-      if (error) {
-        console.error("Error fetching opportunity candidates metrics:", error)
-        return { totalCandidates: 0, coverageRate: 0 }
-      }
-
-      const coveredOppIds = new Set(candidates?.map((c) => c.opportunity_id) ?? [])
-      const rate = Math.round((coveredOppIds.size / openOppIds.length) * 100)
-      return {
-        totalCandidates: candidates?.length ?? 0,
-        coverageRate: rate
-      }
-    })(),
-  ])
-
-  const { totalCandidates, coverageRate } = staffingMetrics
+  if (error) {
+    console.error("Error fetching opportunity candidates metrics:", error)
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8">
-      <div className="h-12 flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-          Opportunités
-        </h1>
-        <div className="hidden md:block">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 py-8">
+      <header className="grid gap-x-5 gap-y-3 border-b border-border/70 pb-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
+            Opportunités
+          </h1>
+        </div>
+
+        <div className="order-3 flex justify-center md:col-span-2 lg:order-2 lg:col-span-1 lg:justify-self-center">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <StatChip
+              label="Pipe pondéré"
+              value={weightedPipe > 0 ? fmtEuro(weightedPipe) : "—"}
+            />
+            <StatChip
+              label="Opportunités ouvertes"
+              value={String(openOpps.length)}
+            />
+            <StatChip
+              label="Taux de couverture"
+              value={`${coverageRate}%`}
+            />
+          </div>
+        </div>
+
+        <div className="hidden md:flex md:justify-self-end lg:order-3">
           <NewOpportunityButton />
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.74fr)_minmax(21rem,1fr)]">
-        <div className="grid h-full auto-rows-fr gap-4 md:grid-cols-3">
-          <KpiCard
-            label="Pipe pondéré"
-            value={weightedPipe > 0 ? fmtEuro(weightedPipe) : "—"}
-            context="Valeur × conviction sur opps actives"
-            accent="brass"
-          />
-          <KpiCard
-            label="Opportunités ouvertes"
-            value={String(openOpps.length)}
-            context={
-              hautePrioCount > 0
-                ? `dont ${hautePrioCount} haute priorité`
-                : "aucune haute priorité"
-            }
-          />
-          <KpiCard
-            label="Profils poussés"
-            value={String(totalCandidates)}
-            context={
-              <>
-                taux de couverture :{" "}
-                <span className={coverageRate < 70 ? "text-danger font-medium" : "text-success font-medium"}>
-                  {coverageRate}%
-                </span>
-              </>
-            }
-          />
-        </div>
-
-        <OpportunitySkillsCloud
-          items={skillsCloud.items}
-        />
-      </div>
-
+      {/* Vues desktop */}
       <div className="hidden md:block">
         <OpportunitiesDesktopView opportunities={opportunites} planningData={planningData} />
       </div>
 
+      {/* Vue mobile */}
       <div className="md:hidden">
         <MissionsListView
           rows={opportunites}

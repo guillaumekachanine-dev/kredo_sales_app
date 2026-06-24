@@ -110,7 +110,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
   // 1. Récupération du secteur par son slug
   const { data: raw, error: sectorError } = await supabase
     .from("sector_intelligence")
-    .select("*")
+    .select("id, name, slug, description, status, attractiveness_score, market_size_eur_bn, market_growth_pct, digital_maturity, practices_fit, key_players_paca, key_players_national, avg_tjm_min, avg_tjm_max, playbook, created_at, updated_at")
     .eq("slug", slug)
     .single()
 

@@ -7,6 +7,7 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 import { RatingIndicator } from "@/components/ui/RatingIndicator"
 import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 
@@ -912,7 +913,7 @@ export function CompanyIdentityDrawer({
             {activeTab === "crm" && (() => {
               const status = data.company.lifecycle_status
               const activeMissions = data.missions.filter((m) => m.status === "active")
-              const openOpps = data.opportunities.filter((o) => !["gagne", "perdu", "abandonne", "win", "lost"].includes(o.stage))
+              const openOpps = data.opportunities.filter((o) => !isTerminalOpportunityStage(o.stage))
               const priorityContacts = data.contacts.filter((c) => c.is_priority === true)
 
               // Check if we have a Décideur or Sponsor for addressing strategy
@@ -981,7 +982,7 @@ export function CompanyIdentityDrawer({
                               <div className="flex justify-between items-start gap-3">
                                 <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                                 <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
-                                  {opp.stage.replace("_", " ")}
+                                  {getOpportunityStageLabel(opp.stage)}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
@@ -1139,7 +1140,7 @@ export function CompanyIdentityDrawer({
                               <div className="flex justify-between items-start gap-3">
                                 <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                                 <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
-                                  {opp.stage.replace("_", " ")}
+                                  {getOpportunityStageLabel(opp.stage)}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
@@ -1248,7 +1249,7 @@ export function CompanyIdentityDrawer({
                             <div className="flex justify-between items-start gap-3">
                               <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
                               <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
-                                {opp.stage.replace("_", " ")}
+                                  {getOpportunityStageLabel(opp.stage)}
                               </span>
                             </div>
                             <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">

@@ -415,7 +415,7 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
   if (techInt) {
     techDate = new Date(techInt.occurredAt)
   }
-  const hasTech = ["entretien_client", "gagne"].includes(opp.stage) || techInt !== undefined
+  const hasTech = ["entretien_client", "contractualisation", "gagne"].includes(opp.stage) || techInt !== undefined
   if (hasTech) {
     addMilestone(
       `${opp.id}-reunion_technique`,
@@ -592,6 +592,7 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
         relance: "Relance",
         envoi_cv: "Envoi CV",
         entretien_client: "Entretien client",
+        contractualisation: "Contractualisation",
         proposition: "Proposition",
         signature: "Signature",
         note: "Note / Autre",

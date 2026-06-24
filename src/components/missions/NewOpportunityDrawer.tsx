@@ -9,14 +9,13 @@ import {
   type SalesPriority,
   type SalesStage,
 } from "@/app/(app)/missions/_actions/create-opportunity"
+import { OPPORTUNITY_STAGES } from "@/lib/opportunities/stages"
 import { cn } from "@/lib/utils"
 
-export const STAGE_OPTIONS: Array<{ value: SalesStage; label: string }> = [
-  { value: "qualification",    label: "Qualification" },
-  { value: "recherche_profil",  label: "Recherche profils" },
-  { value: "cv_envoyes",       label: "CV envoyés" },
-  { value: "entretien_client", label: "Entretien client" },
-]
+export const STAGE_OPTIONS: Array<{ value: SalesStage; label: string }> = OPPORTUNITY_STAGES.map((stage) => ({
+  value: stage.value,
+  label: stage.label,
+}))
 
 const PRIORITY_OPTIONS: Array<{ value: SalesPriority; label: string }> = [
   { value: "basse", label: "Basse" },
