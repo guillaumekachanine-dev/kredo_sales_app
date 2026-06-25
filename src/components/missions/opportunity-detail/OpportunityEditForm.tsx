@@ -149,11 +149,11 @@ const HEADER_ICON_PATHS = {
 } as const
 
 const PRACTICE_LOGO_BY_SLUG: Record<PracticeSlug, string> = {
-  "data-ia": "/images/practices/logo_practice_data_ia.png",
-  "digital-cloud": "/images/practices/logo_practice_cloud_engineering.png",
-  "agile-pm": "/images/practices/logo_practice_agile_project_management.png",
-  cybersecurity: "/images/practices/logo_practice_cybersecurity.png",
-  "qa-testing": "/images/practices/logo_practice_QA_testing.png",
+  "data-ia": "/images/practices/practice_data_ai.png",
+  "digital-cloud": "/images/practices/practice_cloud_computing.png",
+  "agile-pm": "/images/practices/practice_project_management.png",
+  cybersecurity: "/images/practices/practice_cybersecurite.png",
+  "qa-testing": "/images/practices/practice_qa_testing.png",
 }
 
 interface OpportunityEditFormProps {

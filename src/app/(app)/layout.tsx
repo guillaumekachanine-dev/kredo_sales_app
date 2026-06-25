@@ -1,5 +1,6 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { AppShell } from "@/components/layout/AppShell"
+import { EventDrawer } from "@/components/events/EventDrawer"
 
 export default async function AppLayout({
   children,
@@ -11,6 +12,7 @@ export default async function AppLayout({
   return (
     <AppShell device={device}>
       {children}
+      <EventDrawer />
     </AppShell>
   )
 }

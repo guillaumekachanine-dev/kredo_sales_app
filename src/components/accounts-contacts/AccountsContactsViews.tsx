@@ -18,6 +18,7 @@ import {
 } from "@/lib/accounts-contacts/accounts-contacts-filters"
 import { useUrlFilters } from "@/lib/search/use-url-filters"
 import { SearchToolbar } from "@/components/search/SearchToolbar"
+import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { FilterChip } from "@/components/search/FilterChip"
 import { FilterDropdown, type FilterOption } from "@/components/search/FilterDropdown"
 import {
@@ -891,27 +892,36 @@ function ContactsDesktop({
           <thead>
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3">Contact</th>
-              <th className="px-3 py-3">Entreprise</th>
               <th className="px-3 py-3">Fonction</th>
+              <th className="px-3 py-3 w-[12%] max-w-[140px]">Compte</th>
               <th className="px-3 py-3">Rôle</th>
               <th className="px-5 py-3">Email</th>
-              <th className="px-3 py-3">Téléphone</th>
-              <th className="px-3 py-3 text-right">Actions</th>
+              <th className="px-3 py-3 min-w-[130px]">Téléphone</th>
+              <th className="px-3 py-3 text-right w-[60px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
             {contacts.map((contact) => (
               <tr key={contact.id} className="kredo-hover-reference">
                 <td className="px-5 py-3 font-semibold text-heading">
-                  <span
-                    onClick={() => onOpenIdentity(contact.id)}
-                    className="cursor-pointer hover:text-primary transition-colors"
-                    title="Voir la fiche contact"
-                  >
-                    {contact.fullName}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <CompanyLogo
+                      name={contact.companyName}
+                      logoPath={contact.logoPath}
+                      website={contact.website}
+                      size="sm"
+                    />
+                    <span
+                      onClick={() => onOpenIdentity(contact.id)}
+                      className="cursor-pointer hover:text-primary transition-colors"
+                      title="Voir la fiche contact"
+                    >
+                      {contact.fullName}
+                    </span>
+                  </div>
                 </td>
-                <td className="px-3 py-3 text-body">
+                <td className="max-w-[200px] truncate px-3 py-3 text-body">{contact.jobTitle || "—"}</td>
+                <td className="max-w-[140px] truncate px-3 py-3 text-body">
                   {contact.companyId ? (
                     <span
                       onClick={() => onOpenCompanyIdentity(contact.companyId!)}
@@ -924,17 +934,13 @@ function ContactsDesktop({
                     contact.companyName
                   )}
                 </td>
-                <td className="max-w-[240px] truncate px-3 py-3 text-body">{contact.jobTitle || "—"}</td>
                 <td className="px-3 py-3 text-body capitalize">{contact.relationshipRole?.replace("_", " ") ?? "—"}</td>
                 <td className="px-5 py-3 text-body">{contact.email ?? "—"}</td>
-                <td className="px-3 py-3 text-body">{contact.phone ?? "—"}</td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center justify-end gap-1">
+                <td className="px-3 py-3 text-body whitespace-nowrap">{contact.phone ?? "—"}</td>
+                <td className="px-3 py-3 w-[60px]">
+                  <div className="flex items-center justify-end">
                     <button onClick={() => onEdit(contact)} className="rounded p-1.5 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
                       <IconEdit />
-                    </button>
-                    <button onClick={() => onDelete(contact)} className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-red-500 transition-colors" title="Supprimer">
-                      <IconTrash />
                     </button>
                   </div>
                 </td>
@@ -1230,25 +1236,16 @@ export function ProspectionAccountsView({
       </div>
 
       {/* Sub-tab selection */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setParam("tab", "accounts")}
-          className={cn(
-            "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
-            subTab === "accounts" ? "bg-primary text-primary-fg" : "text-muted hover:text-heading hover:bg-canvas/50"
-          )}
-        >
-          Comptes ({filteredAccounts.length})
-        </button>
-        <button
-          onClick={() => setParam("tab", "contacts")}
-          className={cn(
-            "px-3 py-1.5 text-xs font-semibold rounded-md transition-all",
-            subTab === "contacts" ? "bg-primary text-primary-fg" : "text-muted hover:text-heading hover:bg-canvas/50"
-          )}
-        >
-          Contacts ({filteredContacts.length})
-        </button>
+      <div>
+        <PageViewSelector
+          items={[
+            { value: "accounts", label: `Comptes (${filteredAccounts.length})` },
+            { value: "contacts", label: `Contacts (${filteredContacts.length})` },
+          ]}
+          value={subTab}
+          onChange={(value) => setParam("tab", value)}
+          ariaLabel="Sélection de la vue Comptes ou Contacts"
+        />
       </div>
 
       {/* Search & quick filters */}

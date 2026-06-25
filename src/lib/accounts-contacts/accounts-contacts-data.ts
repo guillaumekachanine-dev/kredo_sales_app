@@ -47,6 +47,8 @@ export type ContactRow = {
   managerContactId: string | null
   isPriority?: boolean | null
   campaignId: string | null
+  logoPath: string | null
+  website: string | null
 }
 
 export type StudyRow = {
@@ -131,6 +133,8 @@ type CompanyRelation = {
   id: string
   name: string
   sector: string | null
+  website: string | null
+  metadata: unknown
 }
 
 type ContactQueryRow = {
@@ -254,6 +258,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
   const company = firstRelation(row.companies)
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
   const managerContactId = row.manager_contact_id ?? null
+  const companyMetadata = company ? asRecord(company.metadata) : {}
 
   return {
     id: row.id,
@@ -275,6 +280,8 @@ function buildContact(row: ContactQueryRow): ContactRow {
     managerContactId,
     isPriority: row.is_priority ?? false,
     campaignId: row.campaign_id ?? null,
+    logoPath: typeof companyMetadata.logo_path === "string" ? companyMetadata.logo_path : null,
+    website: company?.website ?? null,
   }
 }
 
@@ -314,7 +321,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector),is_priority,manager_contact_id,campaign_id", { count: "exact" })
+      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector,website,metadata),is_priority,manager_contact_id,campaign_id", { count: "exact" })
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase

@@ -13,10 +13,12 @@ import { AgendaWeekView } from "./AgendaWeekView"
 import { AgendaMonthView } from "./AgendaMonthView"
 import { AgendaEventPreview } from "./AgendaEventPreview"
 import { AgendaEventDrawer } from "./AgendaEventDrawer"
+import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
 
 export function AgendaDesktopPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
 
   // 1. Sync state with search params
   const viewParam = searchParams.get("view")
@@ -127,8 +129,7 @@ export function AgendaDesktopPage() {
   const handleEventClick = (event: AgendaEvent) => {
     setHoveredEvent(null)
     setAnchorRect(null)
-    setSelectedEvent(event)
-    setDrawerOpen(true)
+    openEventDrawer(event.id)
   }
 
   const handleCreateNew = () => {

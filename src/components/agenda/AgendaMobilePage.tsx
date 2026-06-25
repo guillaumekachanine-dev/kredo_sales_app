@@ -19,10 +19,12 @@ import { AgendaMobileViewSwitcher, type AgendaViewMode } from "./AgendaMobileVie
 import { AgendaMobileDayView, AgendaMobileWeekView, AgendaMobileMonthView } from "./AgendaMobileViews"
 import { AgendaMobileFilterDrawer } from "./AgendaMobileFilterDrawer"
 import { AgendaMobileEventDrawer } from "./AgendaMobileEventDrawer"
+import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
 
 export function AgendaMobilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
 
   // 1. Sync search params
   const viewParam = searchParams.get("view") || "day"
@@ -235,8 +237,7 @@ export function AgendaMobilePage() {
 
   // 9. Drawer opening callbacks
   const handleEventClick = (event: AgendaEvent) => {
-    setSelectedEvent(event)
-    setEventDrawerOpen(true)
+    openEventDrawer(event.id)
   }
 
   const handleCreateClick = () => {
