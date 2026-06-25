@@ -3,6 +3,10 @@
 import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { AppDialog } from "@/components/ui/AppDialog"
+import { Button } from "@/components/ui/Button"
+import { Select } from "@/components/ui/Select"
+import { Input } from "@/components/ui/Input"
 import type { SuiviData } from "@/lib/prospection/suivi-data"
 import {
   ChannelIconCircle,
@@ -24,6 +28,30 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
   const [relancerOpen, setRelancerOpen] = useState(false)
   const [sheetProspect, setSheetProspect] = useState<string | null>(null)
 
+  // Modale nouveau rapport
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [reportTitle, setReportTitle] = useState("Rapport d'activité commerciale")
+  const [reportPeriod, setReportPeriod] = useState("mois")
+  const [reportCollab, setReportCollab] = useState("all")
+  const [includeR1, setIncludeR1] = useState(true)
+  const [includeNeeds, setIncludeNeeds] = useState(true)
+  const [includeProposals, setIncludeProposals] = useState(true)
+  const [includeInterviews, setIncludeInterviews] = useState(true)
+  const [includePlacements, setIncludePlacements] = useState(true)
+  const [includeIntercontracts, setIncludeIntercontracts] = useState(true)
+  const [includeAiSummary, setIncludeAiSummary] = useState(true)
+  const [reportFormat, setReportFormat] = useState("pdf")
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationSuccess, setGenerationSuccess] = useState(false)
+
+  const handleGenerateReport = () => {
+    setIsGenerating(true)
+    setTimeout(() => {
+      setIsGenerating(false)
+      setGenerationSuccess(true)
+    }, 1200)
+  }
+
   const urgentsPct = dashboardPersonnel.actionsUrgentesTotal > 0
     ? Math.round((dashboardPersonnel.actionsUrgentesCount / dashboardPersonnel.actionsUrgentesTotal) * 100)
     : 0
@@ -33,36 +61,30 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between border-b border-border/60 pb-3">
-        <button
-          type="button"
-          className="p-1.5 rounded-lg text-body"
-          aria-label="Menu"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-
-        <h1 className="text-sm font-bold font-heading text-heading tracking-tight">
-          Prospection Intelligence — Actions
-        </h1>
-
         <div className="flex items-center gap-2">
-          <button type="button" className="p-1.5 rounded-lg border border-border bg-surface text-body" aria-label="Calendrier">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <button
+            type="button"
+            className="p-1.5 rounded-lg text-body"
+            aria-label="Menu"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <button type="button" className="p-1.5 rounded-lg border border-border bg-surface text-body relative" aria-label="Notifications">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-danger border border-surface" />
-          </button>
-          <div className="w-7 h-7 rounded-full bg-primary border border-border flex items-center justify-center font-extrabold text-[10px] text-white">
-            GK
-          </div>
+
+          <h1 className="text-sm font-bold font-heading text-heading tracking-tight">
+            Tableau de bord activité
+          </h1>
         </div>
+
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setIsReportModalOpen(true)}
+          className="bg-primary hover:bg-primary-deep text-white cursor-pointer font-semibold py-1 h-8 min-h-8 text-[11px] px-2.5 rounded-md"
+        >
+          + rapport
+        </Button>
       </header>
 
       {/* ── Mon Dashboard Personnel ───────────────────────────────────────── */}
@@ -280,17 +302,256 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
               >
                 Lancer l&apos;analyse IA
               </button>
-              <button
-                type="button"
-                onClick={() => setRelancerOpen(false)}
-                className="w-full h-11 bg-canvas hover:bg-surface-hover border border-border text-body font-semibold text-sm rounded-lg transition-colors"
-              >
-                Annuler
-              </button>
             </div>
           </div>
         </div>
       )}
+
+      <AppDialog
+        open={isReportModalOpen}
+        onOpenChange={(open) => {
+          setIsReportModalOpen(open)
+          if (!open) {
+            setGenerationSuccess(false)
+            setIsGenerating(false)
+          }
+        }}
+        title="Créer un nouveau rapport d'activité"
+        description="Configurez les paramètres pour générer un rapport d'activité commerciale adapté aux ESN."
+        footer={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsReportModalOpen(false)
+                setGenerationSuccess(false)
+                setIsGenerating(false)
+              }}
+            >
+              Annuler
+            </Button>
+            {!generationSuccess && (
+              <Button
+                variant="primary"
+                size="sm"
+                loading={isGenerating}
+                onClick={handleGenerateReport}
+              >
+                Générer
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {isGenerating ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+            <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-sm font-semibold text-heading animate-pulse">Analyse des données d&apos;activité...</p>
+            <p className="text-xs text-muted max-w-[280px]">Calcul des KPIs et compilation par l&apos;IA</p>
+          </div>
+        ) : generationSuccess ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
+            <div className="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center text-success">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-bold text-heading">Rapport généré avec succès !</h3>
+            <p className="text-xs text-muted max-w-[320px]">
+              Le rapport d&apos;activité de l&apos;ESN a été structuré et exporté au format {reportFormat.toUpperCase()}.
+            </p>
+            <div className="mt-4 flex gap-2 w-full max-w-[280px]">
+              <Button
+                variant="brass"
+                size="sm"
+                fullWidth
+                onClick={() => {
+                  setIsReportModalOpen(false)
+                  setGenerationSuccess(false)
+                }}
+              >
+                Télécharger le rapport
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {/* Titre du rapport */}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="report-title-mobile" className="text-xs font-semibold text-heading">
+                Titre du rapport
+              </label>
+              <Input
+                id="report-title-mobile"
+                type="text"
+                value={reportTitle}
+                onChange={(e) => setReportTitle(e.target.value)}
+                fullWidth
+                placeholder="Ex: Activité Commerciale - Q2"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Période */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="report-period-mobile" className="text-xs font-semibold text-heading">
+                  Période du rapport
+                </label>
+                <Select
+                  id="report-period-mobile"
+                  value={reportPeriod}
+                  onChange={(e) => setReportPeriod(e.target.value)}
+                  fullWidth
+                >
+                  <option value="semaine">Cette semaine</option>
+                  <option value="mois">Ce mois-ci</option>
+                  <option value="trimestre">Ce trimestre (Q)</option>
+                  <option value="annee">Cette année</option>
+                  <option value="custom">Période personnalisée</option>
+                </Select>
+              </div>
+
+              {/* Commercial */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="report-collab-mobile" className="text-xs font-semibold text-heading">
+                  Périmètre / Commercial
+                </label>
+                <Select
+                  id="report-collab-mobile"
+                  value={reportCollab}
+                  onChange={(e) => setReportCollab(e.target.value)}
+                  fullWidth
+                >
+                  <option value="all">Tous les commerciaux</option>
+                  <option value="guillaume">Guillaume Kachanine</option>
+                  <option value="alexandre">Alexandre Martin</option>
+                  <option value="marie">Marie Dubois</option>
+                </Select>
+              </div>
+            </div>
+
+            {/* Custom dates if selected */}
+            {reportPeriod === "custom" && (
+              <div className="grid grid-cols-2 gap-3 border-l-2 border-primary/20 pl-3 py-1">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="report-start-mobile" className="text-[10px] font-semibold text-muted">
+                    Date de début
+                  </label>
+                  <Input id="report-start-mobile" type="date" fullWidth />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="report-end-mobile" className="text-[10px] font-semibold text-muted">
+                    Date de fin
+                  </label>
+                  <Input id="report-end-mobile" type="date" fullWidth />
+                </div>
+              </div>
+            )}
+
+            {/* Indicateurs clés ESN */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-bold text-heading">Indicateurs clés ESN à inclure</span>
+              
+              <div className="grid grid-cols-1 gap-2 bg-canvas/40 p-3 rounded-lg border border-border/60">
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeR1}
+                    onChange={(e) => setIncludeR1(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Rendez-vous R1 Qualifiés</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeNeeds}
+                    onChange={(e) => setIncludeNeeds(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Besoins reçus / Appels d&apos;offres</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeProposals}
+                    onChange={(e) => setIncludeProposals(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>CVs envoyés / Propositions</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeInterviews}
+                    onChange={(e) => setIncludeInterviews(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Entretiens clients planifiés</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includePlacements}
+                    onChange={(e) => setIncludePlacements(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Démarrages & Placements</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none">
+                  <input
+                    type="checkbox"
+                    checked={includeIntercontracts}
+                    onChange={(e) => setIncludeIntercontracts(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Gestion intercontrats</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Format d'export & options */}
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="report-format-mobile" className="text-xs font-semibold text-heading">
+                  Format d&apos;export
+                </label>
+                <Select
+                  id="report-format-mobile"
+                  value={reportFormat}
+                  onChange={(e) => setReportFormat(e.target.value)}
+                  fullWidth
+                >
+                  <option value="pdf">📄 PDF interactif</option>
+                  <option value="excel">📊 Fichier Excel (CSV)</option>
+                  <option value="ppt">📉 Présentation PowerPoint</option>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 pb-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs select-none font-medium">
+                  <input
+                    type="checkbox"
+                    checked={includeAiSummary}
+                    onChange={(e) => setIncludeAiSummary(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                  />
+                  <span>Synthèse d&apos;analyse IA (n8n)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+      </AppDialog>
     </div>
   )
 }

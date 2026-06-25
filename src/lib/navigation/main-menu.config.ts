@@ -148,7 +148,7 @@ export const mainMenuItems: MainMenuItem[] = [
           { label: "Synthèse",              shortLabel: "Synthèse",     href: "/prospection" },
           { label: "Comptes & contacts",    shortLabel: "Comptes",      href: "/prospection/accounts" },
           { label: "Approche sectorielle",  shortLabel: "Secteurs",     href: "/prospection/approche-sectorielle" },
-          { label: "Activité commerciale",  shortLabel: "Activité",     href: "/prospection/suivi" },
+          { label: "Activité",              shortLabel: "Activité",     href: "/prospection/suivi" },
           { label: "Prospection",           shortLabel: "Prospection",  href: "/prospection/prospection" },
         ],
       },

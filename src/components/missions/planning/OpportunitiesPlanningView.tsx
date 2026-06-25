@@ -76,20 +76,6 @@ export const JALONS_LEGEND: Record<string, JalonConfig> = {
     borderClass: "border-orange-600",
     iconName: "document-user",
   },
-  reunion_technique: {
-    label: "Réunion tech",
-    color: "text-amber-500",
-    bgClass: "bg-amber-500",
-    borderClass: "border-amber-600",
-    iconName: "cog",
-  },
-  prop_embauche: {
-    label: "Prop. embauche",
-    color: "text-pink-500",
-    bgClass: "bg-pink-500",
-    borderClass: "border-pink-600",
-    iconName: "briefcase",
-  },
   signature: {
     label: "Signature",
     color: "text-emerald-600",
@@ -104,13 +90,6 @@ export const JALONS_LEGEND: Record<string, JalonConfig> = {
     borderClass: "border-teal-600",
     iconName: "flag",
   },
-  suivi_integration: {
-    label: "Intégration / Suivi",
-    color: "text-cyan-600",
-    bgClass: "bg-cyan-600",
-    borderClass: "border-cyan-700",
-    iconName: "user-check",
-  },
   fin_mission: {
     label: "Fin mission",
     color: "text-rose-600",
@@ -118,12 +97,12 @@ export const JALONS_LEGEND: Record<string, JalonConfig> = {
     borderClass: "border-rose-700",
     iconName: "stop",
   },
-  avant_vente_projet: {
-    label: "Avant-vente Projet",
-    color: "text-indigo-500",
-    bgClass: "bg-indigo-500",
-    borderClass: "border-indigo-600",
-    iconName: "presentation-chart",
+  action_commerciale: {
+    label: "Action commerciale",
+    color: "text-brand-brass",
+    bgClass: "bg-brand-brass",
+    borderClass: "border-brand-brass/80",
+    iconName: "bolt",
   },
 }
 
@@ -150,18 +129,6 @@ function MilestoneIcon({ name }: { name: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
         </svg>
       )
-    case "cog":
-      return (
-        <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-1.413m11.886 9.305l-1.414-1.414m-11.886-9.305l-1.41-1.413m11.886 9.305l1.414-1.414M4.043 8.923l1.41 1.413M16.5 12h-.008v.008H16.5V12z" />
-        </svg>
-      )
-    case "briefcase":
-      return (
-        <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v3.85c0 .621-.504 1.125-1.125 1.125H4.875A1.125 1.125 0 013.75 18v-3.85m16.5 0a2.25 2.25 0 00-2.248-2.247m2.248 2.247v-1.156c0-1.161-.951-2.133-2.113-2.164A48.11 48.11 0 0012 8c-2.616 0-5.1.134-7.503.394-1.162.03-2.112 1.003-2.112 2.164V12.99m16.5 0c0 .621-.504 1.125-1.125 1.125H18M3.75 14.15v-1.16c0-1.161.951-2.133 2.112-2.164A48.11 48.11 0 0112 8c2.616 0 5.1.134 7.503.394 1.162.03 2.112 1.003 2.112 2.164V14.15m-18 0c0 .621.504 1.125 1.125 1.125H6M12 8V4.5a1.5 1.5 0 00-1.5-1.5h-3A1.5 1.5 0 006 4.5V8m12 0V4.5a1.5 1.5 0 00-1.5-1.5h-3a1.5 1.5 0 00-1.5 1.5V8M12 11.25V12" />
-        </svg>
-      )
     case "pencil":
       return (
         <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -186,28 +153,10 @@ function MilestoneIcon({ name }: { name: string }) {
           <rect x="5.25" y="5.25" width="13.5" height="13.5" rx="1.5" />
         </svg>
       )
-    case "academic-cap":
+    case "bolt":
       return (
         <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.62 48.62 0 0112 20.9m10.148-10.753a60.43 60.43 0 01-.49 6.347m-1.76-7.02l-8.522-3.65a48.567 48.567 0 00-7.3 0L3.086 6.25c-.272.117-.465.382-.5.679a6.002 6.002 0 001.077 4.14L10.5 14.3m9-8.05v8.05" />
-        </svg>
-      )
-    case "exclamation":
-      return (
-        <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-        </svg>
-      )
-    case "document-arrow-up":
-      return (
-        <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5h10.5a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0017.25 4.5H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-      )
-    case "presentation-chart":
-      return (
-        <svg className={cl} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0V18m7.5 0V18m-.75 3h-6m6 0a1.5 1.5 0 001.5-1.5V18a1.5 1.5 0 00-1.5-1.5h-6A1.5 1.5 0 009 18v1.5a1.5 1.5 0 001.5 1.5h6z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
         </svg>
       )
     default:
@@ -407,92 +356,13 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
     )
   }
 
-  // 4. Réunion technique / Entretiens
-  let techDate = new Date(openedDate.getTime() + 12 * 24 * 60 * 60 * 1000)
-  const techInt = opp.interactions.find(
-    i => i.type === "entretien_client" || i.type === "reunion" || i.summary?.toLowerCase().includes("technique") || i.summary?.toLowerCase().includes("entretien")
-  )
-  if (techInt) {
-    techDate = new Date(techInt.occurredAt)
-  }
-  const hasTech = ["entretien_client", "contractualisation", "gagne"].includes(opp.stage) || techInt !== undefined
-  if (hasTech) {
-    addMilestone(
-      `${opp.id}-reunion_technique`,
-      techDate,
-      "reunion_technique",
-      "Réunion technique",
-      "bg-amber-500 border-amber-600 text-white",
-      "cog",
-      techInt?.summary || "Entretien d'évaluation technique du candidat avec le client."
-    )
-  }
-
   const isProject = opp.opportunityType === "forfait" || opp.opportunityType === "centre_de_service" || opp.title.toLowerCase().includes("projet")
 
-  if (isProject && closeDate) {
-    const atelierDate = new Date(closeDate.getTime() - 12 * 24 * 60 * 60 * 1000)
-    addMilestone(
-      `${opp.id}-projet_atelier`,
-      atelierDate,
-      "avant_vente_projet",
-      "Ateliers client (Projet)",
-      "bg-indigo-500 border-indigo-600 text-white",
-      "academic-cap",
-      "Ateliers de co-conception ou cadrage d'avant-vente avec le client."
-    )
-
-    const questionsDate = new Date(closeDate.getTime() - 9 * 24 * 60 * 60 * 1000)
-    addMilestone(
-      `${opp.id}-projet_questions`,
-      questionsDate,
-      "avant_vente_projet",
-      "Date limite questions",
-      "bg-rose-500 border-rose-600 text-white",
-      "exclamation",
-      "Date limite contractuelle pour poser des questions de clarification au client."
-    )
-
-    const remiseDate = new Date(closeDate.getTime() - 6 * 24 * 60 * 60 * 1000)
-    addMilestone(
-      `${opp.id}-projet_remise`,
-      remiseDate,
-      "avant_vente_projet",
-      "Remise proposition V1",
-      "bg-cyan-500 border-cyan-600 text-white",
-      "document-arrow-up",
-      "Dépôt ou envoi de la première version de notre proposition commerciale forfaitaire."
-    )
-
-    const soutenanceDate = new Date(closeDate.getTime() - 3 * 24 * 60 * 60 * 1000)
-    addMilestone(
-      `${opp.id}-projet_soutenance`,
-      soutenanceDate,
-      "avant_vente_projet",
-      "Soutenance orale",
-      "bg-fuchsia-500 border-fuchsia-600 text-white",
-      "presentation-chart",
-      "Soutenance orale de l'offre devant le jury de sélection du client."
-    )
-  }
-
-  // 5. Proposition d'embauche & Signature pour candidat externe (non-salarie)
+  // 4. Signature pour candidat externe (non-salarie)
   const externalCand = opp.candidates.find(c => c.source !== "collaborateur")
-  const isWon = opp.stage === "gagne"
 
   if (externalCand) {
     const refDate = startDate || closeDate || today
-    
-    const propDate = new Date(refDate.getTime() - 8 * 24 * 60 * 60 * 1000)
-    addMilestone(
-      `${opp.id}-prop_embauche`,
-      propDate,
-      "prop_embauche",
-      "Proposition d'embauche",
-      "bg-pink-500 border-pink-600 text-white",
-      "briefcase",
-      `Offre de contrat d'embauche émise pour le candidat retenu ${externalCand.fullName}.`
-    )
 
     const sigDate = new Date(refDate.getTime() - 4 * 24 * 60 * 60 * 1000)
     addMilestone(
@@ -519,7 +389,7 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
     }
   }
 
-  // 6. Démarrage
+  // 5. Démarrage
   if (startDate) {
     addMilestone(
       `${opp.id}-demarrage`,
@@ -530,40 +400,6 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
       "flag",
       `Démarrage effectif des livrables ${externalCand ? `avec ${externalCand.fullName}` : ""}.`
     )
-
-    if (externalCand && isWon) {
-      addMilestone(
-        `${opp.id}-suivi_j0`,
-        startDate,
-        "suivi_integration",
-        "Intégration & Suivi J-0",
-        "bg-cyan-600 border-cyan-700 text-white",
-        "user-check",
-        `Accueil de ${externalCand.fullName} le premier jour de la mission et intégration.`
-      )
-
-      const j7Date = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-      addMilestone(
-        `${opp.id}-suivi_j7`,
-        j7Date,
-        "suivi_integration",
-        "Suivi intégration J+7",
-        "bg-cyan-700 border-cyan-800 text-white",
-        "user-check",
-        `Premier point hebdomadaire de suivi d'intégration pour ${externalCand.fullName}.`
-      )
-
-      const j30Date = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
-      addMilestone(
-        `${opp.id}-suivi_j30`,
-        j30Date,
-        "suivi_integration",
-        "Suivi intégration J+30",
-        "bg-cyan-800 border-cyan-900 text-white",
-        "user-check",
-        `Point mensuel de fin d'intégration pour ${externalCand.fullName}.`
-      )
-    }
   }
 
   if (startDate && opp.durationDays) {
@@ -581,7 +417,7 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
     }
   }
 
-  // 7. Événements créés depuis la page (Interactions de l'opportunité)
+  // 7. Actions commerciales créées depuis la page (interactions de l'opportunité)
   if (opp.interactions) {
     opp.interactions.forEach((int) => {
       const date = new Date(int.occurredAt)
@@ -602,10 +438,10 @@ function getOpportunityMilestones(opp: OpportunityPlanningData, today: Date): Mi
       milestones.push({
         key: `${opp.id}-event-${int.id}`,
         date,
-        type: `event_${int.type}`,
-        label: `Événement : ${label}`,
-        color: "text-brand-brass",
-        iconName: "triangle-down",
+        type: `action_commerciale_${int.type}`,
+        label: `Action commerciale : ${label}`,
+        color: "bg-brand-brass border-brand-brass/80 text-white",
+        iconName: "bolt",
         description: int.summary || "Aucune description.",
         status: date.getTime() < today.getTime() ? "completed" : "planned",
       })
@@ -812,21 +648,6 @@ export function OpportunitiesPlanningView({
                   <div className="relative w-full h-6">
                     {milestones.map((m) => {
                       const offset = clampPercent(getPercentOffset(m.date, range.start, range.totalDays))
-                      if (m.iconName === "triangle-down") {
-                        return (
-                          <div
-                            key={m.key}
-                            onMouseEnter={(e) => handleMilestoneMouseEnter(m, opp.title, opp.client, e)}
-                            onMouseLeave={handleMilestoneMouseLeave}
-                            className="absolute top-1/2 -translate-x-1/2 -translate-y-full w-4.5 h-4.5 flex items-center justify-center cursor-help transition-transform duration-150 hover:scale-125 z-25 text-brand-brass"
-                            style={{ left: `${offset}%` }}
-                          >
-                            <svg className="w-4.5 h-4.5 drop-shadow-sm filter" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 24 L2 4 h20 Z" />
-                            </svg>
-                          </div>
-                        )
-                      }
                       return (
                         <div
                           key={m.key}
@@ -875,14 +696,6 @@ export function OpportunitiesPlanningView({
               <span>{config.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-2.5 text-xs text-body font-medium">
-            <span className="w-5 h-5 flex items-center justify-center text-brand-brass shrink-0">
-              <svg className="w-4.5 h-4.5 drop-shadow-sm filter" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 24 L2 4 h20 Z" />
-              </svg>
-            </span>
-            <span>Événement créé</span>
-          </div>
         </div>
       </div>
 

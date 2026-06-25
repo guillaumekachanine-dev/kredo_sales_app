@@ -473,8 +473,9 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               label="Étape"
               value={stageFilter}
               onChange={setStageFilter}
+              className="sm:min-w-[8.25rem]"
               options={[
-                { value: "all", label: "Toutes les étapes" },
+                { value: "all", label: "Étape" },
                 ...OPPORTUNITY_STAGES.map((stage) => ({
                   value: stage.value,
                   label: stage.label,
@@ -486,8 +487,9 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               label="Priorité"
               value={priorityFilter}
               onChange={setPriorityFilter}
+              className="sm:min-w-[8.25rem]"
               options={[
-                { value: "all",     label: "Toutes priorités" },
+                { value: "all",     label: "Priorité" },
                 { value: "haute",   label: "Haute" },
                 { value: "normale", label: "Normale" },
                 { value: "basse",   label: "Basse" },
@@ -498,8 +500,9 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               label="Conviction"
               value={convictionFilter}
               onChange={setConvictionFilter}
+              className="sm:min-w-[8.25rem]"
               options={[
-                { value: "all", label: "Toutes convictions" },
+                { value: "all", label: "Conviction" },
                 { value: "under_70", label: "< 70 %" },
                 { value: "above_70", label: "> 70 %" },
               ]}
@@ -509,6 +512,7 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
               label="Valeur"
               value={valueSort}
               onChange={setValueSort}
+              className="sm:min-w-[8.25rem]"
               options={[
                 { value: "none", label: "Valeur (ACV)" },
                 { value: "desc", label: "Tri décroissant" },
