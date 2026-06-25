@@ -8,6 +8,8 @@ import { DrawerSection } from "@/components/ui/DrawerSection"
 import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
+
 import type {
   StaffingDashboardData,
   StaffingKpi,
@@ -346,6 +348,8 @@ function PositioningDetailPanel({
   stage: StaffingStageBucket | null
   details: StaffingPositioningDetail[]
 }) {
+  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
+  
   if (!stage) return null
   const tone = getStatusTone(stage.status)
 
@@ -366,7 +370,12 @@ function PositioningDetailPanel({
       ) : (
         <div className="divide-y divide-border/70">
           {details.map((detail) => (
-            <div key={detail.id} className="grid grid-cols-[1.1fr_0.95fr_1.1fr_88px_80px] items-center gap-3 px-4 py-3">
+            <button
+              key={detail.id}
+              type="button"
+              onClick={() => openStaffingDrawer(detail.id)}
+              className="w-full text-left grid grid-cols-[1.1fr_0.95fr_1.1fr_88px_80px] items-center gap-3 px-4 py-3 hover:bg-surface-hover transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            >
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-heading">{detail.candidateName}</p>
                 <p className="mt-0.5 truncate text-[11px] text-muted">{detail.nextAction}</p>
@@ -375,13 +384,14 @@ function PositioningDetailPanel({
               <p className="truncate text-xs text-body">{detail.needTitle}</p>
               <p className="text-right text-xs font-semibold text-heading">{detail.startDateLabel}</p>
               <p className="text-right text-xs font-bold text-heading">{detail.tjmLabel}</p>
-            </div>
+            </button>
           ))}
         </div>
       )}
     </div>
   )
 }
+
 
 function NeedCoveragePanel({
   data,

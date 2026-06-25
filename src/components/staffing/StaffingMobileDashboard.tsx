@@ -6,6 +6,8 @@ import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
+
 import type {
   StaffingDashboardData,
   StaffingKpi,
@@ -347,6 +349,8 @@ function MobilePositioningDetailPanel({
   stage: StaffingStageBucket | null
   details: StaffingPositioningDetail[]
 }) {
+  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
+
   if (!stage) return null
   const tone = getStatusTone(stage.status)
 
@@ -361,7 +365,12 @@ function MobilePositioningDetailPanel({
           <p className="px-3 py-5 text-center text-xs text-muted">Aucun détail disponible.</p>
         ) : (
           details.map((detail) => (
-            <div key={detail.id} className="px-3 py-3">
+            <button
+              key={detail.id}
+              type="button"
+              onClick={() => openStaffingDrawer(detail.id)}
+              className="w-full text-left px-3 py-3 hover:bg-surface-hover transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-heading">{detail.candidateName}</p>
@@ -371,13 +380,14 @@ function MobilePositioningDetailPanel({
               </div>
               <p className="mt-2 line-clamp-2 text-[11px] text-body">{detail.needTitle}</p>
               <p className="mt-1 text-[10px] font-semibold text-muted">Démarrage {detail.startDateLabel}</p>
-            </div>
+            </button>
           ))
         )}
       </div>
     </div>
   )
 }
+
 
 function MobileNeedCoveragePanel({
   data,

@@ -5,6 +5,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { formatDate, formatEuro } from "@/lib/formatters"
 import type { OpportunityStandingProfile } from "@/types/database-domain"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 
 interface OpportunityStandingPanelProps {
   profiles: OpportunityStandingProfile[]
@@ -79,6 +80,8 @@ function StandingProfileList({
   profiles: OpportunityStandingProfile[]
   emptyLabel: string
 }) {
+  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
+
   if (profiles.length === 0) {
     return <p className="text-xs text-muted italic py-2">{emptyLabel}</p>
   }
@@ -88,7 +91,16 @@ function StandingProfileList({
       {profiles.map((profile) => (
         <div
           key={profile.id}
-          className="rounded border border-border/50 bg-canvas/30 p-2.5 flex flex-col gap-1.5"
+          onClick={() => openStaffingDrawer(profile.id)}
+          className="rounded border border-border/50 bg-canvas/30 p-2.5 flex flex-col gap-1.5 cursor-pointer hover:border-primary/50 hover:bg-canvas/40 transition-all select-none text-left outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault()
+              openStaffingDrawer(profile.id)
+            }
+          }}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

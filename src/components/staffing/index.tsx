@@ -16,3 +16,6 @@ export async function SyntheseStaffingSection() {
     <StaffingMobileDashboard data={data} />
   )
 }
+
+export { StaffingDrawer } from "./StaffingDrawer"
+

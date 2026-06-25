@@ -10,6 +10,7 @@ import {
   OPPORTUNITY_KANBAN_STAGES,
 } from "@/lib/opportunities/stages"
 import { formatEuroCompact, formatDate } from "@/lib/formatters"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 
 interface OpportunitiesKanbanViewProps {
   opportunities: OpportunityPlanningData[]
@@ -51,6 +52,7 @@ function KanbanColumn({
   onOpenCollaborator,
   onOpenCandidate,
 }: KanbanColumnProps) {
+  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
   const [isDragOver, setIsDragOver] = useState(false)
 
   const accentColor = getOpportunityStageColor(stageKey)
@@ -230,17 +232,9 @@ function KanbanColumn({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (cand.source === "collaborateur") {
-                                if (cand.collaboratorId) {
-                                  onOpenCollaborator(cand.collaboratorId);
-                                }
-                              } else {
-                                if (cand.candidateId) {
-                                  onOpenCandidate(cand.candidateId);
-                                }
-                              }
+                              openStaffingDrawer(cand.id);
                             }}
-                            className="text-[10px] font-bold text-heading hover:text-primary hover:underline truncate text-left flex-1"
+                            className="text-[10px] font-bold text-heading hover:text-primary hover:underline truncate text-left flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
                             title={cand.fullName}
                           >
                             {cand.fullName}
