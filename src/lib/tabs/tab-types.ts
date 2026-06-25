@@ -1,4 +1,4 @@
-export type TabEntityType = "mission" | "opportunite" | "planning-item"
+export type TabEntityType = "mission" | "opportunite" | "planning-item" | "project"
 
 export type SectionTab = {
   id: string           // uuid généré à l'ouverture

@@ -3,6 +3,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { OpportunityDetailPanel } from "./opportunity-detail/OpportunityDetailPanel"
 import { MissionDetailPanel } from "./mission-detail/MissionDetailPanel"
+import { ProjectDetailPanel } from "./project-detail/ProjectDetailPanel"
 
 interface MissionsEntityPanelProps {
   tab: SectionTab
@@ -13,12 +14,14 @@ const entityLabels: Record<SectionTab["entityType"], string> = {
   mission: "Mission",
   opportunite: "Opportunité",
   "planning-item": "Planning",
+  project: "Projet",
 }
 
 const entityAccents: Record<SectionTab["entityType"], "primary" | "success" | "warning"> = {
   mission: "primary",
   opportunite: "success",
   "planning-item": "warning",
+  project: "primary",
 }
 
 function SkeletonRow({ width }: { width: string }) {
@@ -31,6 +34,9 @@ export function MissionsEntityPanel({ tab, isMobile = false }: MissionsEntityPan
   }
   if (tab.entityType === "mission") {
     return <MissionDetailPanel tab={tab} isMobile={isMobile} />
+  }
+  if (tab.entityType === "project") {
+    return <ProjectDetailPanel tab={tab} />
   }
 
   const label = entityLabels[tab.entityType]

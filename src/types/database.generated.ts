@@ -2404,8 +2404,6 @@ export type Database = {
           remote_policy: string | null
           required_headcount: number
           requires_staffing: boolean
-          rythme: string | null
-          budget: number | null
           sector_id: string | null
           seniority: string | null
           source: string | null
@@ -2420,6 +2418,8 @@ export type Database = {
           weighted_gain: number | null
           win_reason: string | null
           workspace_id: string
+          rythme: string | null
+          budget: number | null
         }
         Insert: {
           acv?: number | null
@@ -2444,8 +2444,6 @@ export type Database = {
           remote_policy?: string | null
           required_headcount?: number
           requires_staffing?: boolean
-          rythme?: string | null
-          budget?: number | null
           sector_id?: string | null
           seniority?: string | null
           source?: string | null
@@ -2460,6 +2458,8 @@ export type Database = {
           weighted_gain?: number | null
           win_reason?: string | null
           workspace_id?: string
+          rythme?: string | null
+          budget?: number | null
         }
         Update: {
           acv?: number | null
@@ -2484,8 +2484,6 @@ export type Database = {
           remote_policy?: string | null
           required_headcount?: number
           requires_staffing?: boolean
-          rythme?: string | null
-          budget?: number | null
           sector_id?: string | null
           seniority?: string | null
           source?: string | null
@@ -2500,6 +2498,8 @@ export type Database = {
           weighted_gain?: number | null
           win_reason?: string | null
           workspace_id?: string
+          rythme?: string | null
+          budget?: number | null
         }
         Relationships: [
           {
@@ -3093,6 +3093,339 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_phases: {
+        Row: {
+          consumed_days: number
+          created_at: string
+          deliverables: string[]
+          end_date_actual: string | null
+          end_date_planned: string | null
+          id: string
+          label: string
+          notes: string | null
+          planned_days: number | null
+          project_id: string
+          sort_order: number
+          start_date_actual: string | null
+          start_date_planned: string | null
+          status: Database["public"]["Enums"]["project_phase_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consumed_days?: number
+          created_at?: string
+          deliverables?: string[]
+          end_date_actual?: string | null
+          end_date_planned?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          planned_days?: number | null
+          project_id: string
+          sort_order?: number
+          start_date_actual?: string | null
+          start_date_planned?: string | null
+          status?: Database["public"]["Enums"]["project_phase_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          consumed_days?: number
+          created_at?: string
+          deliverables?: string[]
+          end_date_actual?: string | null
+          end_date_planned?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          planned_days?: number | null
+          project_id?: string
+          sort_order?: number
+          start_date_actual?: string | null
+          start_date_planned?: string | null
+          status?: Database["public"]["Enums"]["project_phase_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_phases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_team_members: {
+        Row: {
+          actual_days: number
+          allocation_pct: number | null
+          collaborator_id: string | null
+          contribution: string | null
+          created_at: string
+          daily_cost: number | null
+          end_date: string | null
+          id: string
+          is_external: boolean
+          is_project_lead: boolean
+          planned_days: number | null
+          project_id: string
+          role_label: string
+          seniority: string | null
+          start_date: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actual_days?: number
+          allocation_pct?: number | null
+          collaborator_id?: string | null
+          contribution?: string | null
+          created_at?: string
+          daily_cost?: number | null
+          end_date?: string | null
+          id?: string
+          is_external?: boolean
+          is_project_lead?: boolean
+          planned_days?: number | null
+          project_id: string
+          role_label: string
+          seniority?: string | null
+          start_date?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          actual_days?: number
+          allocation_pct?: number | null
+          collaborator_id?: string | null
+          contribution?: string | null
+          created_at?: string
+          daily_cost?: number | null
+          end_date?: string | null
+          id?: string
+          is_external?: boolean
+          is_project_lead?: boolean
+          planned_days?: number | null
+          project_id?: string
+          role_label?: string
+          seniority?: string | null
+          start_date?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_collaborator_ytd_activity"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "project_team_members_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "project_team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          actual_margin_pct: number | null
+          billing_milestones: Json
+          code: string | null
+          company_id: string
+          contract_amount: number | null
+          cost_actual: number
+          cost_target: number | null
+          created_at: string
+          deliverables: string[]
+          description: string | null
+          end_date_actual: string | null
+          end_date_planned: string | null
+          engagement_type_id: string | null
+          id: string
+          lessons_learned: string | null
+          metadata: Json
+          offer_id: string | null
+          opportunity_id: string | null
+          owner_id: string | null
+          progress_pct: number
+          ref_anonymized_label: string | null
+          ref_status: Database["public"]["Enums"]["project_ref_status"]
+          ref_visibility: Database["public"]["Enums"]["project_ref_visibility"]
+          scope: Json
+          start_date_actual: string | null
+          start_date_planned: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          tags: string[]
+          target_margin_pct: number | null
+          technologies: string[]
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          actual_margin_pct?: number | null
+          billing_milestones?: Json
+          code?: string | null
+          company_id: string
+          contract_amount?: number | null
+          cost_actual?: number
+          cost_target?: number | null
+          created_at?: string
+          deliverables?: string[]
+          description?: string | null
+          end_date_actual?: string | null
+          end_date_planned?: string | null
+          engagement_type_id?: string | null
+          id?: string
+          lessons_learned?: string | null
+          metadata?: Json
+          offer_id?: string | null
+          opportunity_id?: string | null
+          owner_id?: string | null
+          progress_pct?: number
+          ref_anonymized_label?: string | null
+          ref_status?: Database["public"]["Enums"]["project_ref_status"]
+          ref_visibility?: Database["public"]["Enums"]["project_ref_visibility"]
+          scope?: Json
+          start_date_actual?: string | null
+          start_date_planned?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          tags?: string[]
+          target_margin_pct?: number | null
+          technologies?: string[]
+          title: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Update: {
+          actual_margin_pct?: number | null
+          billing_milestones?: Json
+          code?: string | null
+          company_id?: string
+          contract_amount?: number | null
+          cost_actual?: number
+          cost_target?: number | null
+          created_at?: string
+          deliverables?: string[]
+          description?: string | null
+          end_date_actual?: string | null
+          end_date_planned?: string | null
+          engagement_type_id?: string | null
+          id?: string
+          lessons_learned?: string | null
+          metadata?: Json
+          offer_id?: string | null
+          opportunity_id?: string | null
+          owner_id?: string | null
+          progress_pct?: number
+          ref_anonymized_label?: string | null
+          ref_status?: Database["public"]["Enums"]["project_ref_status"]
+          ref_visibility?: Database["public"]["Enums"]["project_ref_visibility"]
+          scope?: Json
+          start_date_actual?: string | null
+          start_date_planned?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          tags?: string[]
+          target_margin_pct?: number | null
+          technologies?: string[]
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "projects_engagement_type_id_fkey"
+            columns: ["engagement_type_id"]
+            isOneToOne: false
+            referencedRelation: "offer_engagement_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -3920,6 +4253,10 @@ export type Database = {
         | "failed"
         | "cancelled"
       ai_run_status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+      project_phase_status: "planned" | "in_progress" | "completed" | "blocked"
+      project_ref_status: "not_reference" | "draft" | "approved" | "archived"
+      project_ref_visibility: "named" | "anonymized" | "confidential"
+      project_status: "draft" | "active" | "delivered" | "closed" | "cancelled"
     }
     CompositeTypes: {
       proposal_operation_result: {
@@ -4077,6 +4414,10 @@ export const Constants = {
         "cancelled",
       ],
       ai_run_status: ["queued", "running", "succeeded", "failed", "cancelled"],
+      project_phase_status: ["planned", "in_progress", "completed", "blocked"],
+      project_ref_status: ["not_reference", "draft", "approved", "archived"],
+      project_ref_visibility: ["named", "anonymized", "confidential"],
+      project_status: ["draft", "active", "delivered", "closed", "cancelled"],
     },
   },
 } as const

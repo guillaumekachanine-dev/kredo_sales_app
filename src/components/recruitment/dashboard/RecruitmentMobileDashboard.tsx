@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Candidate } from "./RecruitmentDesktopDashboard"
 
 interface RecruitmentMobileDashboardProps {
@@ -12,21 +11,6 @@ export function RecruitmentMobileDashboard({
   candidates,
   onSelectCandidate,
 }: RecruitmentMobileDashboardProps) {
-  const [carouselIndex, setCarouselIndex] = useState(0)
-
-  // Carousel metrics
-  const activeCandidates = candidates.filter((c) => c.stage !== "embauche")
-  const kpis = [
-    { label: "Candidats Actifs", value: activeCandidates.length },
-    { label: "TTH Moyen", value: "22 jours" },
-    { label: "Offres Acceptées", value: "85%" },
-    { label: "CPA Moyen", value: "2.1K€" },
-  ]
-
-  const nextKpi = () => {
-    setCarouselIndex((prev) => (prev + 1) % kpis.length)
-  }
-
   // Candidates prioritized for mobile view (typically high AI scores or active)
   const prioritizedCandidates = candidates
     .filter((c) => c.stage !== "embauche")
@@ -59,50 +43,7 @@ export function RecruitmentMobileDashboard({
   ]
 
   return (
-    <div className="w-full px-4 py-4 flex flex-col gap-5 bg-canvas select-none">
-      {/* Mobile Title */}
-      <div>
-        <h1 className="text-xl font-bold font-heading text-heading">
-          Recrutement
-        </h1>
-      </div>
-
-      {/* KPI Carousel */}
-      <div className="flex items-center gap-3 w-full">
-        <div className="flex-1 flex gap-3 overflow-hidden">
-          {/* Active Card */}
-          <div className="flex-1 bg-surface border border-border/70 rounded-xl p-4 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              {kpis[carouselIndex].label}
-            </span>
-            <span className="text-2xl font-bold text-heading mt-1">
-              {kpis[carouselIndex].value}
-            </span>
-          </div>
-
-          {/* Next Card */}
-          <div className="w-1/3 bg-surface border border-border/70 rounded-xl p-4 shadow-sm opacity-50 flex flex-col justify-between truncate">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {kpis[(carouselIndex + 1) % kpis.length].label}
-            </span>
-            <span className="text-lg font-bold text-heading mt-1 truncate">
-              {kpis[(carouselIndex + 1) % kpis.length].value}
-            </span>
-          </div>
-        </div>
-
-        {/* Carousel button */}
-        <button
-          onClick={nextKpi}
-          className="w-10 h-10 rounded-full border border-border bg-surface flex items-center justify-center shadow-sm text-primary active:scale-95 transition-all shrink-0"
-          aria-label="KPI suivant"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
+    <div className="flex flex-col gap-5 select-none">
       {/* Candidats Prioritaires Section */}
       <div className="flex flex-col gap-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted select-none">
