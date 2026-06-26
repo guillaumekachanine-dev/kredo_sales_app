@@ -1,4 +1,15 @@
+import Image from "next/image"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
+
+const iconImages: Partial<Record<IntelligenceIconKey, string>> = {
+  search_news: "/icons_set/intel_actualite_client.png",
+  scan_contact: "/icons_set/intel_contact_scan.png",
+  deep_analysis: "/icons_set/intel_ai.png",
+  generate_pitch: "/icons_set/fonctionnel.png",
+  write_email: "/icons_set/intel_mailing.png",
+  build_roadmap: "/icons_set/intel_roadmap_commerciale.png",
+  report: "/icons_set/intel_rapports_&_syntheses.png",
+}
 
 const iconPaths: Record<IntelligenceIconKey, string> = {
   search_news:
@@ -46,6 +57,20 @@ export function IntelligenceIcon({
   name: IntelligenceIconKey
   className?: string
 }) {
+  const imageSrc = iconImages[name]
+  if (imageSrc) {
+    return (
+      <Image
+        src={imageSrc}
+        alt=""
+        width={20}
+        height={20}
+        className={className}
+        aria-hidden="true"
+      />
+    )
+  }
+
   const d = iconPaths[name]
   if (!d) return null
   return (

@@ -21,24 +21,15 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
           isComingSoon ? "cursor-not-allowed opacity-55" : "cursor-pointer",
         )}
       >
-        <div className="relative z-10 flex w-full items-start justify-between gap-2">
-          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-fg/12 text-primary-fg">
-            <IntelligenceIcon name={action.icon} className="size-4" />
+        <div className="relative z-10">
+          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white text-primary-fg shadow-[0_0_0_1px_rgba(255,255,255,0.65),inset_0_1px_0_rgba(255,255,255,0.92)]">
+            <IntelligenceIcon name={action.icon} className="size-5" />
           </span>
-
-          {isComingSoon && (
-            <span className="shrink-0 rounded-full border border-primary-fg/15 bg-primary-fg/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-primary-fg/50">
-              Bientôt
-            </span>
-          )}
         </div>
 
         <div className="relative z-10 min-w-0">
           <p className="text-xs font-semibold leading-tight text-white">
             {action.label}
-          </p>
-          <p className="mt-0.5 text-[11px] leading-snug text-primary-fg/55">
-            {action.description}
           </p>
         </div>
       </button>

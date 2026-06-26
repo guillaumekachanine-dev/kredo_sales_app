@@ -17,7 +17,7 @@ function SectionHeading({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
-      <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-fg/50">
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
         {title}
       </h3>
     </div>
@@ -41,10 +41,10 @@ export function IntelligencePanel() {
         {/* Header — titre grand en or, sans pastille */}
         <div className="flex items-start justify-between gap-2">
           <h2
-            className="text-base font-bold uppercase tracking-[0.12em] leading-tight"
+            className="max-w-full whitespace-nowrap text-[clamp(0.82rem,1.15vw,1rem)] font-bold uppercase tracking-[0.08em] leading-none"
             style={{ color: "var(--color-secondary)" }}
           >
-            Cockpit<br />Intelligence
+            Cockpit intelligence
           </h2>
           <IconButton
             aria-label="Fermer le cockpit intelligence"

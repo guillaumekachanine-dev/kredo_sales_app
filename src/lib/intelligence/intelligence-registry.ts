@@ -117,6 +117,22 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     category: "contextual",
     status: "coming_soon",
   },
+  initiate_quote: {
+    id: "initiate_quote",
+    label: "Initier un devis",
+    description: "Initier la trame d'une proposition commerciale pour un staffing.",
+    icon: "generate_pitch",
+    category: "contextual",
+    status: "coming_soon",
+  },
+  initiate_offer: {
+    id: "initiate_offer",
+    label: "Initier une offre",
+    description: "Initier la trame d'une proposition d'embauche.",
+    icon: "generate_pitch",
+    category: "contextual",
+    status: "coming_soon",
+  },
   analyze_needs: {
     id: "analyze_needs",
     label: "Analyser les besoins",
@@ -218,7 +234,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   },
   common_write_pitch: {
     id: "common_write_pitch",
-    label: "Rédiger un pitch",
+    label: "Construire un pitch",
     description: "Rédiger un message commercial contextualisé.",
     icon: "generate_pitch",
     category: "common",
@@ -242,7 +258,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   },
   common_search_news: {
     id: "common_search_news",
-    label: "Veille & actualités",
+    label: "Rechercher des actualités",
     description: "Lancer une recherche d'actualités sur un secteur ou un compte.",
     icon: "search_news",
     category: "common",
@@ -306,7 +322,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   {
     pattern: "/missions/opps",
     label: "Opportunités",
-    actionIds: ["match_profiles", "prioritize_pipeline", "detect_risks", "analyze_needs"],
+    actionIds: ["match_profiles", "prioritize_pipeline", "initiate_quote", "analyze_needs"],
   },
   {
     pattern: "/staffing",
@@ -336,7 +352,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   {
     pattern: "/recruitment",
     label: "Recrutement",
-    actionIds: ["match_profiles", "scan_contacts", "analyze_skill_gaps"],
+    actionIds: ["match_profiles", "scan_contacts", "analyze_skill_gaps", "initiate_offer"],
   },
   {
     pattern: "/finance",
