@@ -17,6 +17,8 @@ export type PageFilterSelectProps = {
   onChange: (value: string) => void
   disabled?: boolean
   className?: string
+  /** Value considered "default" — select text is grayed when on this value */
+  defaultValue?: string
 }
 
 export function PageFilterSelect({
@@ -27,7 +29,9 @@ export function PageFilterSelect({
   onChange,
   disabled,
   className,
+  defaultValue = "all",
 }: PageFilterSelectProps) {
+  const isDefault = value === defaultValue
   return (
     <div className={cn("flex min-w-0 w-full flex-col sm:min-w-[9rem] sm:w-auto", className)}>
       <label htmlFor={id} className="sr-only">
@@ -39,7 +43,10 @@ export function PageFilterSelect({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-surface hover:bg-surface-hover"
+        className={cn(
+          "bg-surface hover:bg-surface-hover",
+          isDefault && "text-muted",
+        )}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

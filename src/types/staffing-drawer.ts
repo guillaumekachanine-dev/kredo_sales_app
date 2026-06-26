@@ -93,10 +93,17 @@ export interface StaffingDrawerOpportunity {
   title: string
   stage: string
   priority: string
+  opportunity_type: string | null
+  requires_staffing: boolean | null
   start_date: string | null
   target_daily_rate: number | null
   context: Json
-  company: { id: string; name: string } | null
+  company: {
+    id: string
+    name: string
+    website: string | null
+    metadata: Json | null
+  } | null
 }
 
 export interface StaffingDrawerViewModel {

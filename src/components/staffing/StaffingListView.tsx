@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { useStaffingTabStore } from "@/lib/tabs/staffing-tab-store"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
@@ -43,7 +42,6 @@ const STAGE_COLORS: Record<string, string> = {
 }
 
 export function StaffingListView({ rows }: StaffingListViewProps) {
-  const { openTab } = useStaffingTabStore()
   const { openStaffingDrawer } = useStaffingDrawerStore()
 
   const columns: StructuredListColumn<StaffingListRow>[] = [
@@ -189,14 +187,7 @@ export function StaffingListView({ rows }: StaffingListViewProps) {
         items={rows}
         columns={columns}
         getItemId={(row) => row.id}
-        onItemClick={(row) =>
-          openTab({
-            entityType: "staffing",
-            entityId: row.id,
-            title: row.fullName,
-            subtitle: row.opportunityTitle,
-          })
-        }
+        onItemClick={(row) => openStaffingDrawer(row.id)}
         ariaLabel="Liste des staffings actifs"
       />
     </SurfaceCard>

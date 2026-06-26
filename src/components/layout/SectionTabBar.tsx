@@ -5,7 +5,7 @@ import { IconButton } from "@/components/ui/IconButton"
 import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { SectionTab } from "@/lib/tabs/tab-types"
-import { sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styles"
+import { sectionTabHomeClasses, sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styles"
 
 interface SectionTabBarProps {
   homeLabel?: string
@@ -60,11 +60,16 @@ export function SectionTabBar({ homeLabel }: SectionTabBarProps) {
         aria-selected={activeTabId === "home"}
         className={cn(
           sectionTabItemClasses({ active: activeTabId === "home", compact: true }),
-          "border-r border-border px-4"
+          sectionTabHomeClasses(activeTabId === "home"),
+          "px-4"
         )}
       >
-        <HomeIcon />
-        <span>{homeLabel}</span>
+        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas text-primary shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)]">
+          <HomeIcon />
+        </span>
+        <span className="flex items-center self-stretch text-xs font-bold text-inherit leading-none">
+          {homeLabel}
+        </span>
       </button>
 
       {tabs.map((tab) => {

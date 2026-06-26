@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react"
 import { cn } from "@/lib/utils"
-import { useStaffingTabStore } from "@/lib/tabs/staffing-tab-store"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatEuro } from "@/lib/formatters"
 import { mapDbStatusToStaffingStage, STAFFING_STAGES, StaffingStageKey } from "@/lib/staffing/stages"
@@ -20,7 +20,7 @@ const COLUMNS = STAFFING_STAGES.map((s) => ({
 }))
 
 export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProps) {
-  const { openTab } = useStaffingTabStore()
+  const { openStaffingDrawer } = useStaffingDrawerStore()
 
   const grouped = useMemo(() => {
     const map: Record<StaffingStageKey, StaffingListRow[]> = {
@@ -78,14 +78,7 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                 columnRows.map((row) => (
                   <div
                     key={row.id}
-                    onClick={() =>
-                      openTab({
-                        entityType: "staffing",
-                        entityId: row.id,
-                        title: row.fullName,
-                        subtitle: row.opportunityTitle,
-                      })
-                    }
+                    onClick={() => openStaffingDrawer(row.id)}
                     className="w-full h-[152px] perspective-1000 cursor-pointer select-none"
                   >
                     {/* Inner container qui tourne */}

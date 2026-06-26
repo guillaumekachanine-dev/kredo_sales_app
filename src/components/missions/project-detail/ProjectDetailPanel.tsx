@@ -1,50 +1,28 @@
 "use client"
 
+import Link from "next/link"
+import Image from "next/image"
 import { useEffect, useState } from "react"
 import { SectionTab } from "@/lib/tabs/tab-types"
-import { getProjectDetail, type DetailedProjectData } from "@/app/(app)/missions/_data/get-project-detail"
+import {
+  getProjectDetail,
+  type DetailedProjectBillingMilestone,
+  type DetailedProjectData,
+  type DetailedProjectPhase,
+} from "@/app/(app)/missions/_data/get-project-detail"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { formatEuro, formatPct, formatDateNumeric } from "@/lib/formatters"
+import { getPracticeByName } from "@/lib/config/practices"
 import { cn } from "@/lib/utils"
 
 interface ProjectDetailPanelProps {
   tab: SectionTab
 }
 
-type TabType = "synthesis" | "phases" | "team"
-
-const PROJECT_STATUS: Record<string, StatusPillVariant> = {
-  draft: "draft",
-  active: "inProgress",
-  delivered: "success",
-  closed: "neutral",
-  cancelled: "danger",
-}
-
-const PROJECT_STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
-  active: "Actif",
-  delivered: "Livré",
-  closed: "Clôturé",
-  cancelled: "Annulé",
-}
-
-const REF_STATUS: Record<string, StatusPillVariant> = {
-  not_reference: "neutral",
-  draft: "draft",
-  approved: "success",
-  archived: "neutral",
-}
-
-const REF_STATUS_LABELS: Record<string, string> = {
-  not_reference: "Non référencé",
-  draft: "Brouillon Réf.",
-  approved: "Référencé",
-  archived: "Archivé",
-}
+type TabType = "synthesis" | "phases" | "team" | "governance" | "financial"
 
 const PHASE_STATUS: Record<string, StatusPillVariant> = {
   planned: "neutral",
@@ -58,6 +36,365 @@ const PHASE_STATUS_LABELS: Record<string, string> = {
   in_progress: "En cours",
   completed: "Terminé",
   blocked: "Bloqué",
+}
+
+const PRACTICE_IMAGE_BY_SLUG = {
+  "data-ia": "/images/practices/practice_data_ai.png",
+  "digital-cloud": "/images/practices/practice_cloud_computing.png",
+  "agile-pm": "/images/practices/practice_project_management.png",
+  cybersecurity: "/images/practices/practice_cybersecurite.png",
+  "qa-testing": "/images/practices/practice_qa_testing.png",
+} as const
+
+type FinancialHealthTone = "green" | "yellow" | "orange" | "red"
+type PhasePair = [DetailedProjectPhase, DetailedProjectPhase | null]
+type TimelinePhase = {
+  id: string
+  index: number
+  label: string
+  status: string
+  startDate: string | null
+  endDate: string | null
+  startMs: number | null
+  endMs: number | null
+  leftPct: number
+  widthPct: number
+  centerPct: number
+  isCurrent: boolean
+}
+
+function safeParseScope(scope: DetailedProjectData["scope"]) {
+  if (!scope) return {}
+  if (typeof scope === "string") {
+    try {
+      return JSON.parse(scope)
+    } catch {
+      return {}
+    }
+  }
+  return scope
+}
+
+function getProjectDurationMonths(startDate?: string | null, endDate?: string | null) {
+  if (!startDate || !endDate) return null
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null
+  const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+  return Math.max(1, Math.round(diffDays / 30.44))
+}
+
+function getFinancialHealth(project: DetailedProjectData): {
+  tone: FinancialHealthTone
+  label: string
+  detail: string
+} {
+  const actual = project.actual_margin_pct
+  const target = project.target_margin_pct
+
+  if (actual === null || target === null) {
+    return {
+      tone: "yellow",
+      label: "À l’attendu",
+      detail: "Visibilité financière partielle",
+    }
+  }
+
+  const gap = actual - target
+  if (gap >= 0) {
+    return {
+      tone: "green",
+      label: "Conduite financière impeccable",
+      detail: `Marge réelle ${formatPct(actual)} pour un objectif de ${formatPct(target)}`,
+    }
+  }
+  if (gap >= -3) {
+    return {
+      tone: "yellow",
+      label: "À l’attendu",
+      detail: `Écart contenu de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
+    }
+  }
+  if (gap >= -8) {
+    return {
+      tone: "orange",
+      label: "Risque sérieux identifié",
+      detail: `Écart de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
+    }
+  }
+  return {
+    tone: "red",
+    label: "Dérive constatée, projet en péril",
+    detail: `Sous-performance de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
+  }
+}
+
+function getFinancialToneClasses(tone: FinancialHealthTone) {
+  switch (tone) {
+    case "green":
+      return "bg-success"
+    case "yellow":
+      return "bg-warning"
+    case "orange":
+      return "bg-orange-500"
+    case "red":
+      return "bg-danger"
+  }
+}
+
+function getBudgetIndicator(project: DetailedProjectData) {
+  const actual = project.actual_margin_pct
+  const target = project.target_margin_pct
+
+  if (actual === null || target === null) {
+    return {
+      label: "À confirmer",
+      icon: "?"
+    }
+  }
+
+  if (actual >= target) {
+    return {
+      label: "Validé",
+      icon: "✓"
+    }
+  }
+
+  return {
+    label: "Attention",
+    icon: "!"
+  }
+}
+
+function getSatisfactionIndicator(project: DetailedProjectData) {
+  const actual = project.actual_margin_pct
+  const target = project.target_margin_pct
+
+  if (actual === null || target === null) {
+    return {
+      emoji: "😐",
+      label: "Neutre",
+    }
+  }
+
+  const gap = actual - target
+  if (gap >= 0 && project.status !== "cancelled") {
+    return {
+      emoji: "🙂",
+      label: "Satisfait",
+    }
+  }
+
+  if (gap >= -4) {
+    return {
+      emoji: "😐",
+      label: "Neutre",
+    }
+  }
+
+  return {
+    emoji: "🙁",
+    label: "Mécontent",
+  }
+}
+
+function extractGovernanceSignals(project: DetailedProjectData) {
+  const scope = safeParseScope(project.scope)
+  const included = Array.isArray(scope?.included) ? scope.included : []
+  const deliverables = Array.isArray(project.deliverables) ? project.deliverables : []
+  const allSignals = [...included, ...deliverables]
+
+  return {
+    sla: allSignals.filter((item) => /sla|incident|mco|support/i.test(item)),
+    copil: allSignals.filter((item) => /copil|reporting|comit/i.test(item)),
+    satisfaction: allSignals.filter((item) => /satisfaction|qualit|bonus/i.test(item)),
+  }
+}
+
+function getDateMs(date: string | null | undefined) {
+  if (!date) return null
+  const value = new Date(date).getTime()
+  return Number.isNaN(value) ? null : value
+}
+
+function getCurrentPhaseId(phases: DetailedProjectData["project_phases"]): string | null {
+  if (!phases || phases.length === 0) return null
+  const inProgress = phases.find((phase) => phase.status === "in_progress")
+  if (inProgress) return inProgress.id
+
+  const now = Date.now()
+  const activeByDate = phases.find((phase) => {
+    const startMs = getDateMs(phase.start_date_planned)
+    const endMs = getDateMs(phase.end_date_planned)
+    return startMs !== null && endMs !== null && startMs <= now && now <= endMs
+  })
+  if (activeByDate) return activeByDate.id
+
+  return phases[0]?.id ?? null
+}
+
+function buildTimelinePhases(phases: DetailedProjectData["project_phases"]): TimelinePhase[] {
+  if (!phases || phases.length === 0) return []
+
+  const currentPhaseId = getCurrentPhaseId(phases)
+  const phasesWithTime = phases.map((phase, index) => ({
+    phase,
+    index,
+    startMs: getDateMs(phase.start_date_planned),
+    endMs: getDateMs(phase.end_date_planned),
+  }))
+
+  const datedStarts = phasesWithTime.map((item) => item.startMs).filter((value): value is number => value !== null)
+  const datedEnds = phasesWithTime.map((item) => item.endMs).filter((value): value is number => value !== null)
+  const minStart = datedStarts.length > 0 ? Math.min(...datedStarts) : null
+  const maxEnd = datedEnds.length > 0 ? Math.max(...datedEnds) : null
+  const totalSpan = minStart !== null && maxEnd !== null ? Math.max(maxEnd - minStart, 1) : null
+
+  return phasesWithTime.map(({ phase, index, startMs, endMs }) => {
+    if (minStart !== null && totalSpan !== null && startMs !== null && endMs !== null) {
+      const leftPct = ((startMs - minStart) / totalSpan) * 100
+      const widthPct = Math.max(((endMs - startMs) / totalSpan) * 100, 6)
+      return {
+        id: phase.id,
+        index: index + 1,
+        label: phase.label,
+        status: phase.status,
+        startDate: phase.start_date_planned,
+        endDate: phase.end_date_planned,
+        startMs,
+        endMs,
+        leftPct,
+        widthPct,
+        centerPct: leftPct + widthPct / 2,
+        isCurrent: phase.id === currentPhaseId,
+      }
+    }
+
+    const fallbackWidth = 100 / phasesWithTime.length
+    const leftPct = index * fallbackWidth
+    return {
+      id: phase.id,
+      index: index + 1,
+      label: phase.label,
+      status: phase.status,
+      startDate: phase.start_date_planned,
+      endDate: phase.end_date_planned,
+      startMs,
+      endMs,
+      leftPct,
+      widthPct: fallbackWidth,
+      centerPct: leftPct + fallbackWidth / 2,
+      isCurrent: phase.id === currentPhaseId,
+    }
+  })
+}
+
+function pairPhases(phases: DetailedProjectData["project_phases"]): PhasePair[] {
+  if (!phases || phases.length === 0) return []
+  const pairs: PhasePair[] = []
+  for (let i = 0; i < phases.length; i += 2) {
+    pairs.push([phases[i], phases[i + 1] ?? null])
+  }
+  return pairs
+}
+
+function PhaseDependencyArrow() {
+  return (
+    <div className="hidden md:flex items-center justify-center h-full" aria-hidden="true">
+      <svg width="36" height="24" viewBox="0 0 36 24" className="overflow-visible">
+        <defs>
+          <linearGradient id="phase-arrow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f472b6" />
+            <stop offset="55%" stopColor="#fde047" />
+            <stop offset="100%" stopColor="#67e8f9" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M2 12H28"
+          stroke="url(#phase-arrow-gradient)"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M22 5L31 12L22 19"
+          fill="none"
+          stroke="url(#phase-arrow-gradient)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
+  )
+}
+
+function ProjectPhaseCard({
+  phase,
+}: {
+  phase: DetailedProjectPhase
+}) {
+  const variant = PHASE_STATUS[phase.status] ?? "neutral"
+  const label = PHASE_STATUS_LABELS[phase.status] ?? phase.status
+  const plannedDays = phase.planned_days ?? 0
+  const progressPct =
+    plannedDays > 0
+      ? Math.min(100, Math.round((phase.consumed_days / plannedDays) * 100))
+      : 0
+
+  return (
+    <SurfaceCard className="p-4 flex flex-col gap-3 h-full">
+      <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/40">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <span className="font-semibold text-heading text-sm leading-snug">
+            {phase.label}
+          </span>
+          {phase.start_date_planned && phase.end_date_planned ? (
+            <span className="text-[11px] text-muted font-medium">
+              {formatDateNumeric(phase.start_date_planned)} au{" "}
+              {formatDateNumeric(phase.end_date_planned)}
+            </span>
+          ) : null}
+        </div>
+        <StatusPill label={label} variant={variant} dot={true} />
+      </div>
+
+      {plannedDays > 0 ? (
+        <div className="flex flex-col gap-1.5 w-full mt-1">
+          <div className="flex justify-between text-[10px] font-medium text-muted">
+            <span>Consommé : {phase.consumed_days} j / {plannedDays} j</span>
+            <span>{progressPct}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-[width] duration-300"
+              style={{
+                width: `${progressPct}%`,
+                background:
+                  "linear-gradient(90deg, rgba(244,114,182,0.95) 0%, rgba(250,204,21,0.95) 55%, rgba(34,211,238,0.95) 100%)",
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="text-[10px] font-medium text-muted mt-1">
+          Consommé : <span className="font-semibold text-body">{phase.consumed_days} j</span> (aucun budget prévu)
+        </div>
+      )}
+
+      {phase.deliverables && phase.deliverables.length > 0 && (
+        <div className="mt-1">
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">
+            Livrables de la phase
+          </span>
+          <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+            {phase.deliverables.map((del, idx) => (
+              <li key={idx}>{del}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </SurfaceCard>
+  )
 }
 
 export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
@@ -81,7 +418,7 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
         } else {
           setProject(res.data)
         }
-      } catch (err) {
+      } catch {
         if (!active) return
         setError("Une erreur est survenue lors de la récupération des détails.")
       } finally {
@@ -119,20 +456,43 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
   const company = Array.isArray(project.companies) ? project.companies[0] : project.companies
   const isAnonymized = project.ref_visibility === "anonymized"
   const clientName = isAnonymized ? (project.ref_anonymized_label ?? "Client Anonymisé") : (company?.name ?? "—")
-  const logoPath = isAnonymized ? null : (company?.metadata as any)?.logo_path
+  const logoPath =
+    !isAnonymized && company?.metadata && typeof company.metadata.logo_path === "string"
+      ? company.metadata.logo_path
+      : null
   const website = isAnonymized ? null : company?.website
 
-  // Calc margin tone
-  const marginTone =
-    project.actual_margin_pct !== null && project.target_margin_pct !== null
-      ? project.actual_margin_pct >= project.target_margin_pct
-        ? ("positive" as const)
-        : ("negative" as const)
-      : ("neutral" as const)
-
-  const scopeObj = typeof project.scope === "string" ? JSON.parse(project.scope) : project.scope
+  const scopeObj = safeParseScope(project.scope)
   const scopeIncluded: string[] = Array.isArray(scopeObj?.included) ? scopeObj.included : []
   const scopeExcluded: string[] = Array.isArray(scopeObj?.excluded) ? scopeObj.excluded : []
+  const practiceSource = [
+    project.title,
+    ...(project.tags ?? []),
+    ...(project.technologies ?? []),
+    ...((project.project_team_members ?? []).map((member) => member.role_label).filter(Boolean)),
+  ].join(" ")
+  const practice = getPracticeByName(practiceSource)
+  const practiceImage = practice ? PRACTICE_IMAGE_BY_SLUG[practice.slug] : null
+  const durationMonths = getProjectDurationMonths(project.start_date_planned, project.end_date_planned)
+  const dateRangeLabel =
+    project.start_date_planned && project.end_date_planned
+      ? `${formatDateNumeric(project.start_date_planned)} au ${formatDateNumeric(project.end_date_planned)}`
+      : "Dates non renseignées"
+  const financialHealth = getFinancialHealth(project)
+  const budgetIndicator = getBudgetIndicator(project)
+  const satisfactionIndicator = getSatisfactionIndicator(project)
+  const governanceSignals = extractGovernanceSignals(project)
+  const billingMilestones = Array.isArray(project.billing_milestones)
+    ? (project.billing_milestones as DetailedProjectBillingMilestone[])
+    : []
+  const billedAmount = billingMilestones.reduce(
+    (sum, milestone) => sum + (milestone.invoiced_at ? Number(milestone.amount ?? 0) : 0),
+    0
+  )
+  const remainingAmount =
+    project.contract_amount !== null ? Math.max(project.contract_amount - billedAmount, 0) : null
+  const timelinePhases = buildTimelinePhases(project.project_phases)
+  const phasePairs = pairPhases(project.project_phases)
 
   return (
     <div className="w-full max-w-5xl mx-auto px-6 py-8 flex flex-col gap-6">
@@ -148,35 +508,106 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
           <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
             {project.title}
           </h1>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-            <StatusPill
-              label={PROJECT_STATUS_LABELS[project.status] ?? project.status}
-              variant={PROJECT_STATUS[project.status] ?? "neutral"}
-            />
-            <StatusPill
-              label={REF_STATUS_LABELS[project.ref_status] ?? project.ref_status}
-              variant={REF_STATUS[project.ref_status] ?? "neutral"}
-            />
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-2">
+            <div className="flex items-center gap-2 min-w-0">
+              {practiceImage ? (
+                <Image
+                  src={practiceImage}
+                  alt={practice?.shortName ?? "Practice"}
+                  width={22}
+                  height={22}
+                  className="shrink-0 rounded-sm"
+                />
+              ) : null}
+              <span className="text-sm font-semibold text-heading truncate">
+                {practice?.name ?? "Practice non renseignée"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Image
+                src="/icons_set/durée.png"
+                alt="Durée"
+                width={18}
+                height={18}
+                className="shrink-0 object-contain"
+              />
+              <span className="text-sm font-semibold text-heading">
+                {durationMonths ? `${durationMonths} mois` : "Durée non renseignée"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Image
+                src="/icons_set/conditions_financieres_2.png"
+                alt="Budget"
+                width={18}
+                height={18}
+                className="shrink-0 object-contain"
+              />
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-sm font-semibold",
+                  budgetIndicator.label === "Validé" ? "text-success" : budgetIndicator.label === "Attention" ? "text-danger" : "text-heading"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-flex size-4 items-center justify-center rounded-full text-[11px] font-bold",
+                    budgetIndicator.label === "Validé"
+                      ? "bg-success/12 text-success"
+                      : budgetIndicator.label === "Attention"
+                        ? "bg-danger/12 text-danger"
+                        : "bg-canvas text-heading"
+                  )}
+                >
+                  {budgetIndicator.icon}
+                </span>
+                Budget {budgetIndicator.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 min-w-0">
+              <Image
+                src="/icons_set/project_satisfaction.png"
+                alt="Satisfaction"
+                width={18}
+                height={18}
+                className="shrink-0 object-contain"
+              />
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-heading">
+                <span className="text-base leading-none" aria-hidden="true">
+                  {satisfactionIndicator.emoji}
+                </span>
+                Satisfaction {satisfactionIndicator.label}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Client identity box */}
-        <div className="flex items-center gap-3 bg-canvas/30 px-3 py-2.5 rounded-[var(--radius-medium)] border border-border/40 shrink-0 self-start">
-          <CompanyLogo name={clientName} logoPath={logoPath} website={website} size="sm" />
+        <div className="flex items-center gap-4 bg-canvas/30 px-4 py-3 rounded-[var(--radius-medium)] border border-border/40 shrink-0 self-start min-w-[18rem]">
+          <CompanyLogo name={clientName} logoPath={logoPath} website={website} size="xl" />
           <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-muted uppercase tracking-wider leading-none mb-1">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-[0.22em] leading-none mb-1.5">
               Client
             </span>
-            <span className="font-bold text-heading text-xs leading-none">{clientName}</span>
+            <span className="font-bold text-heading text-xl md:text-2xl leading-tight">{clientName}</span>
           </div>
         </div>
       </div>
 
       {/* Tabs navigation */}
       <div className="flex items-center border-b border-border/60">
-        {(["synthesis", "phases", "team"] as TabType[]).map((tabId) => {
+        {(["synthesis", "phases", "team", "governance", "financial"] as TabType[]).map((tabId) => {
           const isActive = activeSubTab === tabId
-          const label = tabId === "synthesis" ? "Synthèse" : tabId === "phases" ? "Phases" : "Équipe"
+          const label =
+            tabId === "synthesis"
+              ? "Synthèse"
+              : tabId === "phases"
+                ? "Phases"
+                : tabId === "team"
+                  ? "Équipe"
+                  : tabId === "governance"
+                    ? "Gouvernance"
+                    : "Financier"
           return (
             <button
               key={tabId}
@@ -198,23 +629,6 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
       {/* Tab views */}
       {activeSubTab === "synthesis" && (
         <div className="flex flex-col gap-6">
-          {/* Tech Badges if present */}
-          {project.technologies && project.technologies.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider mr-1">
-                Technologies :
-              </span>
-              {project.technologies.map((tech) => (
-                <span
-                  key={tech}
-                  className="bg-canvas border border-border/60 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-body"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          )}
-
           {/* 3 KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <KpiCard
@@ -222,26 +636,36 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
               value={formatEuro(project.contract_amount)}
               accent="none"
               size="compact"
+              compactLayout={true}
+              className="min-h-[6.5rem]"
             />
             <KpiCard
-              label="Marge Cible"
-              value={formatPct(project.target_margin_pct)}
+              label="Durée"
+              value={durationMonths ? `${durationMonths} mois` : "—"}
+              context={dateRangeLabel}
               accent="none"
               size="compact"
+              compactLayout={true}
+              className="min-h-[6.5rem]"
+              contextClassName="text-muted"
             />
             <KpiCard
-              label="Marge Réelle"
-              value={formatPct(project.actual_margin_pct)}
-              delta={
-                project.actual_margin_pct !== null && project.target_margin_pct !== null
-                  ? `${project.actual_margin_pct >= project.target_margin_pct ? "+" : ""}${(
-                      project.actual_margin_pct - project.target_margin_pct
-                    ).toFixed(1)}%`
-                  : undefined
+              label="État financier"
+              value={
+                <span className="flex items-center gap-2 text-left">
+                  <span
+                    className={cn("inline-flex size-3 rounded-full shrink-0", getFinancialToneClasses(financialHealth.tone))}
+                    aria-hidden="true"
+                  />
+                  <span className="text-base md:text-lg leading-snug">{financialHealth.label}</span>
+                </span>
               }
-              deltaTone={marginTone}
+              context={financialHealth.detail}
               accent="none"
               size="compact"
+              compactLayout={true}
+              className="min-h-[6.5rem]"
+              contextClassName="text-muted"
             />
           </div>
 
@@ -288,6 +712,22 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
             </SurfaceCard>
           )}
 
+          {project.technologies && project.technologies.length > 0 && (
+            <SurfaceCard className="p-5 flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-heading">Environnement Technologique</h3>
+              <div className="flex flex-wrap gap-2">
+                {project.technologies.map((tech) => (
+                  <span
+                    key={tech}
+                    className="bg-canvas border border-border/60 px-2.5 py-1 rounded-full text-[11px] font-semibold text-body"
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </SurfaceCard>
+          )}
+
           {/* Deliverables */}
           {project.deliverables && project.deliverables.length > 0 && (
             <SurfaceCard className="p-5 flex flex-col gap-3">
@@ -312,6 +752,145 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
         </div>
       )}
 
+      {activeSubTab === "governance" && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <SurfaceCard className="p-5 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-heading">SLA</h3>
+            {governanceSignals.sla.length > 0 ? (
+              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+                {governanceSignals.sla.map((item, idx) => (
+                  <li key={`${item}-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted leading-relaxed">
+                Aucun SLA structuré n’est encore renseigné sur cette fiche projet.
+              </p>
+            )}
+          </SurfaceCard>
+
+          <SurfaceCard className="p-5 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-heading">Enquêtes de satisfaction</h3>
+            {governanceSignals.satisfaction.length > 0 ? (
+              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+                {governanceSignals.satisfaction.map((item, idx) => (
+                  <li key={`${item}-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted leading-relaxed">
+                Aucune enquête de satisfaction n’est documentée à ce stade.
+              </p>
+            )}
+          </SurfaceCard>
+
+          <SurfaceCard className="p-5 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-heading">Supports de COPIL</h3>
+            {governanceSignals.copil.length > 0 ? (
+              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+                {governanceSignals.copil.map((item, idx) => (
+                  <li key={`${item}-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted leading-relaxed">
+                Aucun support de COPIL n’est encore référencé sur la fiche.
+              </p>
+            )}
+          </SurfaceCard>
+        </div>
+      )}
+
+      {activeSubTab === "financial" && (
+        <div className="flex flex-col gap-4">
+          <SurfaceCard className="p-5 flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-bold text-heading">Feuille de route financière initiale</h3>
+              <p className="text-xs text-muted">
+                Jalons vendus au lancement du projet et séquencement prévu de la facturation.
+              </p>
+            </div>
+            {billingMilestones.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {billingMilestones.map((milestone, index) => (
+                  <div
+                    key={`${milestone.label}-${index}`}
+                    className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-4 flex flex-col gap-2"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-sm font-semibold text-heading">{milestone.label}</span>
+                      {milestone.pct !== undefined && milestone.pct !== null ? (
+                        <span className="text-xs font-bold text-primary">{milestone.pct}%</span>
+                      ) : null}
+                    </div>
+                    <div className="text-xs text-body font-medium">
+                      {formatEuro(milestone.amount ?? null)}
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      Échéance : {milestone.due_date ? formatDateNumeric(milestone.due_date) : "récurrente / non datée"}
+                    </div>
+                    <div className="text-[11px] text-muted">
+                      Facturation : {milestone.invoiced_at ? `émise le ${formatDateNumeric(milestone.invoiced_at)}` : "non émise"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">Aucun jalon financier initial n’est renseigné.</p>
+            )}
+          </SurfaceCard>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SurfaceCard className="p-5 flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-heading">État actuel du projet</h3>
+              <ul className="space-y-2 text-xs text-body">
+                <li>CA vendu : <span className="font-semibold text-heading">{formatEuro(project.contract_amount)}</span></li>
+                <li>Coût cible : <span className="font-semibold text-heading">{formatEuro(project.contract_amount !== null && project.target_margin_pct !== null ? project.contract_amount * (1 - project.target_margin_pct / 100) : null)}</span></li>
+                <li>Coût constaté : <span className="font-semibold text-heading">{formatEuro(project.contract_amount !== null && project.actual_margin_pct !== null ? project.contract_amount * (1 - project.actual_margin_pct / 100) : null)}</span></li>
+                <li>Marge cible : <span className="font-semibold text-heading">{formatPct(project.target_margin_pct)}</span></li>
+                <li>Marge actuelle : <span className="font-semibold text-heading">{formatPct(project.actual_margin_pct)}</span></li>
+              </ul>
+              <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 px-3 py-2.5 text-xs text-body">
+                {project.actual_margin_pct !== null && project.target_margin_pct !== null ? (
+                  project.actual_margin_pct >= project.target_margin_pct ? (
+                    <span>Le projet génère à date un niveau de productivité supérieur ou égal à la cible vendue.</span>
+                  ) : (
+                    <span>Le projet présente une dérive budgétaire à surveiller au regard de la cible vendue.</span>
+                  )
+                ) : (
+                  <span>Les données de marge sont incomplètes pour qualifier précisément les gains ou dérives.</span>
+                )}
+              </div>
+            </SurfaceCard>
+
+            <SurfaceCard className="p-5 flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-heading">État de la facturation</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Jalons</div>
+                  <div className="mt-2 text-lg font-bold text-heading">{billingMilestones.length}</div>
+                </div>
+                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Déjà facturé</div>
+                  <div className="mt-2 text-lg font-bold text-heading">{formatEuro(billedAmount)}</div>
+                </div>
+                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Reste à facturer</div>
+                  <div className="mt-2 text-lg font-bold text-heading">{formatEuro(remainingAmount)}</div>
+                </div>
+              </div>
+              <p className="text-xs text-muted leading-relaxed">
+                {billingMilestones.some((milestone) => !milestone.invoiced_at)
+                  ? "Au moins un jalon vendu n’a pas encore été facturé."
+                  : billingMilestones.length > 0
+                    ? "Tous les jalons renseignés sont facturés."
+                    : "Aucun suivi de facturation n’est disponible pour ce projet."}
+              </p>
+            </SurfaceCard>
+          </div>
+        </div>
+      )}
+
       {activeSubTab === "phases" && (
         <div className="flex flex-col gap-4">
           {(!project.project_phases || project.project_phases.length === 0) ? (
@@ -319,67 +898,97 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
               Aucune phase planifiée pour ce projet.
             </div>
           ) : (
-            project.project_phases.map((phase) => {
-              const variant = PHASE_STATUS[phase.status] ?? "neutral"
-              const label = PHASE_STATUS_LABELS[phase.status] ?? phase.status
-              const plannedDays = phase.planned_days ?? 0
-              const progressPct =
-                plannedDays > 0
-                  ? Math.min(100, Math.round((phase.consumed_days / plannedDays) * 100))
-                  : 0
-
-              return (
-                <SurfaceCard key={phase.id} className="p-5 flex flex-col gap-3">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-border/40">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-heading text-sm">
-                        {phase.label}
-                      </span>
-                      <StatusPill label={label} variant={variant} dot={true} />
-                    </div>
-                    {phase.start_date_planned && phase.end_date_planned && (
-                      <span className="text-xs text-muted font-medium">
-                        Période : {formatDateNumeric(phase.start_date_planned)} au {formatDateNumeric(phase.end_date_planned)}
-                      </span>
-                    )}
+            <>
+              <section className="relative overflow-hidden rounded-[1.75rem] border border-border/50 px-4 py-5 md:px-6 md:py-6">
+                <div
+                  className="absolute inset-0 opacity-90"
+                  style={{
+                    background:
+                      "linear-gradient(165deg, rgba(216,180,254,0.9) 0%, rgba(244,114,182,0.88) 18%, rgba(236,72,153,0.92) 34%, rgba(253,186,116,0.82) 56%, rgba(250,245,110,0.9) 73%, rgba(167,243,208,0.86) 88%, rgba(103,232,249,0.92) 100%)",
+                  }}
+                />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_38%)]" />
+                <div className="relative flex flex-col gap-4">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-700/80">
+                      Avancement des phases
+                    </p>
+                    <h3 className="mt-1 text-lg font-bold text-slate-900">Chronologie du projet</h3>
                   </div>
 
-                  {/* Consumed/Planned indicator */}
-                  {plannedDays > 0 ? (
-                    <div className="flex flex-col gap-1.5 w-full max-w-sm mt-1">
-                      <div className="flex justify-between text-[10px] font-medium text-muted">
-                        <span>Consommé : {phase.consumed_days} j / {plannedDays} j</span>
-                        <span>{progressPct}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
+                  <div className="relative overflow-x-auto pb-1">
+                    <div className="relative min-w-[640px] h-36">
+                      <div className="absolute left-0 right-0 top-[5.2rem] h-[3px] rounded-full bg-slate-700/25" />
+                      {timelinePhases.map((phase) => (
                         <div
-                          className="h-full bg-primary rounded-full transition-[width] duration-300"
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-[10px] font-medium text-muted mt-1">
-                      Consommé : <span className="font-semibold text-body">{phase.consumed_days} j</span> (aucun budget prévu)
-                    </div>
-                  )}
+                          key={phase.id}
+                          className="absolute top-0"
+                          style={{
+                            left: `${phase.leftPct}%`,
+                            width: `${phase.widthPct}%`,
+                            minWidth: "5.25rem",
+                          }}
+                        >
+                          <div className="px-1">
+                            <div className="min-h-[3.5rem]">
+                              <div className="flex items-start gap-2 rounded-2xl bg-white/35 px-2.5 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[6px]">
+                                <span className="text-xl font-black leading-none text-slate-900/85 tabular-nums">
+                                  {String(phase.index).padStart(2, "0")}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-semibold leading-tight text-slate-900">
+                                    {phase.label}
+                                  </div>
+                                  <div className="mt-1 text-[10px] text-slate-700">
+                                    {phase.startDate ? formatDateNumeric(phase.startDate) : "—"}{" "}
+                                    <span className="text-slate-500">→</span>{" "}
+                                    {phase.endDate ? formatDateNumeric(phase.endDate) : "—"}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
 
-                  {/* Phase Deliverables Checklist */}
-                  {phase.deliverables && phase.deliverables.length > 0 && (
-                    <div className="mt-3">
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">
-                        Livrables de la phase
-                      </span>
-                      <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
-                        {phase.deliverables.map((del, idx) => (
-                          <li key={idx}>{del}</li>
-                        ))}
-                      </ul>
+                            <div className="h-[1.625rem]" />
+
+                            <div
+                              className={cn(
+                                "relative h-4 rounded-full border border-slate-900/8 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm",
+                                phase.isCurrent
+                                  ? "bg-fuchsia-600/90 ring-2 ring-fuchsia-300/70"
+                                  : "bg-slate-900/12"
+                              )}
+                            />
+                            <div
+                              className={cn(
+                                "absolute top-[4.85rem] -translate-x-1/2 size-3 rounded-full border-2 border-slate-900/15 bg-slate-50 shadow-[0_0_0_6px_rgba(255,255,255,0.16)]",
+                                phase.isCurrent && "size-4 bg-slate-900 shadow-[0_0_0_10px_rgba(255,255,255,0.2)]"
+                              )}
+                              style={{ left: `${phase.centerPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </SurfaceCard>
-              )
-            })
+                  </div>
+                </div>
+              </section>
+
+              <div className="flex flex-col gap-4">
+                {phasePairs.map(([firstPhase, secondPhase]) => (
+                  <div
+                    key={`${firstPhase.id}-${secondPhase?.id ?? "single"}`}
+                    className={cn(
+                      "grid gap-3 md:gap-4 items-stretch",
+                      secondPhase ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)]" : "grid-cols-1"
+                    )}
+                  >
+                    <ProjectPhaseCard phase={firstPhase} />
+                    {secondPhase ? <PhaseDependencyArrow /> : null}
+                    {secondPhase ? <ProjectPhaseCard phase={secondPhase} /> : null}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -391,55 +1000,75 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
               Aucun membre d&apos;équipe assigné à ce projet.
             </div>
           ) : (
-            project.project_team_members.map((member) => (
-              <SurfaceCard key={member.id} className="p-5 flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-heading text-sm">
-                        {member.fullName ?? member.role_label}
-                      </span>
-                      {member.is_project_lead && (
-                        <StatusPill label="Dirigeant de projet" variant="benchmark" dot={false} />
-                      )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {project.project_team_members.map((member) => (
+                <SurfaceCard key={member.id} className="p-4 flex flex-col gap-4 h-full">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-bold text-heading text-sm truncate">
+                          {member.fullName ?? member.role_label}
+                        </span>
+                        {member.is_project_lead && (
+                          <StatusPill label="Dirigeant de projet" variant="benchmark" dot={false} />
+                        )}
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        {member.role_label} {member.seniority ? `· Séniorité : ${member.seniority}` : ""}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted mt-1">
-                      {member.role_label} {member.seniority ? `· Séniorité : ${member.seniority}` : ""}
-                    </div>
+                    {member.daily_cost !== null && (
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">
+                          Coût Journalier
+                        </span>
+                        <span className="font-semibold text-heading text-xs">
+                          {formatEuro(member.daily_cost)}/j
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  {member.daily_cost !== null && (
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">
-                        Coût Journalier
-                      </span>
-                      <span className="font-semibold text-heading text-xs">
-                        {formatEuro(member.daily_cost)}/j
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-canvas/30 p-3 rounded-lg border border-border/40 text-xs">
-                  <div>
-                    <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
-                      Temps prévu vs consommé
-                    </span>
-                    <span className="font-medium text-body">
-                      {member.planned_days !== null ? `${member.planned_days} j prévus` : "Non spécifié"} ·{" "}
-                      <span className="font-semibold text-heading">{member.actual_days} j passés</span>
-                    </span>
-                  </div>
-                  {member.contribution && (
-                    <div>
-                      <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-canvas/30 p-3 rounded-lg border border-border/40 text-xs">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[9px] font-bold text-muted uppercase tracking-wider">
+                        Temps prévu vs consommé
+                      </span>
+                      <span className="font-medium text-body leading-relaxed">
+                        {member.planned_days !== null ? `${member.planned_days} j prévus` : "Non spécifié"} ·{" "}
+                        <span className="font-semibold text-heading">{member.actual_days} j passés</span>
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[9px] font-bold text-muted uppercase tracking-wider">
                         Contribution / Rôle
                       </span>
-                      <span className="text-body leading-relaxed">{member.contribution}</span>
+                      <span className="text-body leading-relaxed">
+                        {member.contribution ?? "Non renseigné"}
+                      </span>
                     </div>
-                  )}
-                </div>
-              </SurfaceCard>
-            ))
+                  </div>
+
+                  <div className="pt-3 border-t border-border/35 flex flex-col gap-1">
+                    <span className="text-[9px] font-bold text-muted uppercase tracking-[0.2em]">
+                      Collaborateur mobilisé
+                    </span>
+                    {member.collaborator_id && member.fullName ? (
+                      <Link
+                        href={`/consultants?collaboratorId=${member.collaborator_id}`}
+                        className="text-sm font-semibold text-primary hover:text-primary/80 underline decoration-primary/35 underline-offset-4 transition-colors"
+                      >
+                        {member.fullName}
+                      </Link>
+                    ) : (
+                      <span className="text-sm font-semibold text-heading">
+                        {member.fullName ?? "Collaborateur non renseigné"}
+                      </span>
+                    )}
+                  </div>
+                </SurfaceCard>
+              ))}
+            </div>
           )}
         </div>
       )}

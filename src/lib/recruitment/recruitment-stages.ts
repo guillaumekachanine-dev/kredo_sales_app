@@ -1,3 +1,26 @@
+export type HiringKanbanStageKey =
+  | "prequalification"
+  | "entretien_manager"
+  | "tests_techniques"
+  | "proposition"
+  | "signature"
+  | "integration"
+
+export interface HiringKanbanStageConfig {
+  key: HiringKanbanStageKey
+  label: string
+  color: string
+}
+
+export const HIRING_KANBAN_STAGES: readonly HiringKanbanStageConfig[] = [
+  { key: "prequalification", label: "Préqualification", color: "#8B5CF6" },
+  { key: "entretien_manager", label: "Entretien manager", color: "var(--color-primary)" },
+  { key: "tests_techniques", label: "Tests techniques", color: "#F59E0B" },
+  { key: "proposition", label: "Proposition", color: "var(--color-info)" },
+  { key: "signature", label: "Signature", color: "var(--color-success)" },
+  { key: "integration", label: "Intégration", color: "#14B8A6" },
+] as const
+
 export type RecruitmentStageKey =
   | "identification"
   | "prequalification"

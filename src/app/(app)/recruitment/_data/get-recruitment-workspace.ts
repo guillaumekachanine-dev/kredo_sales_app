@@ -151,6 +151,7 @@ export interface RecruitmentWorkspaceRow {
   clientName: string
   clientWebsite: string | null
   clientLogoPath: string | null
+  hiringProcessId: string | null
   hiringProcessStatus: string | null
   hiringCurrentStep: string | null
   hiringStartedAt: string | null
@@ -557,7 +558,7 @@ export async function getRecruitmentWorkspace() {
       clientName: company?.name?.trim() || "Client inconnu",
       clientWebsite: company?.website ?? null,
       clientLogoPath: extractLogoPath(company?.metadata ?? null),
-    } as Omit<RecruitmentWorkspaceRow, "planningMilestones" | "hiringProcessStatus" | "hiringCurrentStep" | "hiringStartedAt" | "hasActiveHiringProcess">
+    } as Omit<RecruitmentWorkspaceRow, "planningMilestones" | "hiringProcessId" | "hiringProcessStatus" | "hiringCurrentStep" | "hiringStartedAt" | "hasActiveHiringProcess">
 
     const scopedEvents = (eventsByCandidate.get(candidateId) ?? []).filter((event) => {
       if (event.opportunity_id && event.opportunity_id === opportunity.id) return true
@@ -581,6 +582,7 @@ export async function getRecruitmentWorkspace() {
     return [
       {
         ...baseRow,
+        hiringProcessId: latestHiringProcess?.id ?? null,
         hiringProcessStatus: latestHiringProcess?.status ?? null,
         hiringCurrentStep: latestHiringProcess?.current_step ?? null,
         hiringStartedAt: latestHiringProcess?.started_at ?? null,

@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useMemo } from "react"
-import { useStaffingTabStore } from "@/lib/tabs/staffing-tab-store"
+import React from "react"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatEuro } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
@@ -40,7 +40,7 @@ const STAGE_COLORS: Record<string, string> = {
 }
 
 export function StaffingMobileView({ rows }: StaffingMobileViewProps) {
-  const { openTab } = useStaffingTabStore()
+  const { openStaffingDrawer } = useStaffingDrawerStore()
 
   if (rows.length === 0) {
     return (
@@ -59,14 +59,7 @@ export function StaffingMobileView({ rows }: StaffingMobileViewProps) {
         return (
           <div
             key={row.id}
-            onClick={() =>
-              openTab({
-                entityType: "staffing",
-                entityId: row.id,
-                title: row.fullName,
-                subtitle: row.opportunityTitle,
-              })
-            }
+            onClick={() => openStaffingDrawer(row.id)}
             className="bg-surface border border-border/50 rounded-[var(--radius-medium)] p-4 flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all select-none"
           >
             {/* Header: Client Name, Logo and Statut Pill */}

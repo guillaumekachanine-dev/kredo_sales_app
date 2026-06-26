@@ -14,9 +14,11 @@ import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { cn } from "@/lib/utils"
 
+export type PlanningScale = "week" | "month" | "quarter" | "year"
+
 interface RecruitmentPlanningViewProps {
   rows: RecruitmentWorkspaceRow[]
-  year: number
+  scale: PlanningScale
 }
 
 type TimelineRange = {
@@ -161,12 +163,71 @@ function buildYearRange(year: number, today: Date): TimelineRange {
       isCurrent: today.getFullYear() === year && today.getMonth() === index,
     }
   })
+  return { start, end, totalDays: differenceInDays(start, end) + 1, columns }
+}
 
-  return {
-    start,
-    end,
-    totalDays: differenceInDays(start, end) + 1,
-    columns,
+function buildQuarterRange(today: Date): TimelineRange {
+  const q = Math.floor(today.getMonth() / 3)
+  const start = new Date(today.getFullYear(), q * 3, 1)
+  const end = new Date(today.getFullYear(), q * 3 + 3, 0)
+  const columns = Array.from({ length: 3 }, (_, i) => {
+    const date = new Date(today.getFullYear(), q * 3 + i, 1)
+    return {
+      key: `${today.getFullYear()}-${String(q * 3 + i + 1).padStart(2, "0")}`,
+      label: date.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "").toUpperCase(),
+      isCurrent: today.getMonth() === q * 3 + i,
+    }
+  })
+  return { start, end, totalDays: differenceInDays(start, end) + 1, columns }
+}
+
+function buildMonthRange(today: Date): TimelineRange {
+  const start = new Date(today.getFullYear(), today.getMonth(), 1)
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+  const totalDays = differenceInDays(start, end) + 1
+  const numWeeks = Math.ceil(totalDays / 7)
+  const columns = Array.from({ length: numWeeks }, (_, i) => {
+    const weekStart = new Date(start)
+    weekStart.setDate(start.getDate() + i * 7)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 6)
+    const clampedEnd = weekEnd > end ? end : weekEnd
+    const isCurrentWeek = today >= weekStart && today <= clampedEnd
+    return {
+      key: `w${i + 1}`,
+      label: `${String(weekStart.getDate()).padStart(2, "0")}–${String(clampedEnd.getDate()).padStart(2, "0")}`,
+      isCurrent: isCurrentWeek,
+    }
+  })
+  return { start, end, totalDays, columns }
+}
+
+function buildWeekRange(today: Date): TimelineRange {
+  const day = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1))
+  monday.setHours(0, 0, 0, 0)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  const DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+  const columns = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(monday)
+    date.setDate(monday.getDate() + i)
+    return {
+      key: date.toISOString().slice(0, 10),
+      label: `${DAY_NAMES[i]} ${date.getDate()}`,
+      isCurrent: date.toDateString() === today.toDateString(),
+    }
+  })
+  return { start: monday, end: sunday, totalDays: 7, columns }
+}
+
+function buildRange(scale: PlanningScale, today: Date): TimelineRange {
+  switch (scale) {
+    case "week": return buildWeekRange(today)
+    case "month": return buildMonthRange(today)
+    case "quarter": return buildQuarterRange(today)
+    case "year": return buildYearRange(today.getFullYear(), today)
   }
 }
 
@@ -188,12 +249,12 @@ function formatTooltipDate(date: string) {
 
 export function RecruitmentPlanningView({
   rows,
-  year,
+  scale,
 }: RecruitmentPlanningViewProps) {
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
   const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
   const today = useMemo(() => startOfDay(new Date()), [])
-  const range = useMemo(() => buildYearRange(year, today), [today, year])
+  const range = useMemo(() => buildRange(scale, today), [scale, today])
   const [hoveredMilestone, setHoveredMilestone] = useState<{
     milestone: RecruitmentPlanningMilestone
     row: RecruitmentWorkspaceRow
@@ -216,7 +277,7 @@ export function RecruitmentPlanningView({
   )
 
   const todayOffset = getPercentOffset(today.toISOString(), range)
-  const showToday = today.getFullYear() === year
+  const showToday = today >= range.start && today <= range.end
   const todayLeft = `${clampPercent(todayOffset)}%`
 
   return (

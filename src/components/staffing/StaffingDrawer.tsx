@@ -8,7 +8,31 @@ import { StaffingDrawerHeader } from "./StaffingDrawerHeader"
 import { TabDetails } from "./TabDetails"
 import { TabRessources } from "./TabRessources"
 import { HiringProcessStepper, findActiveProcess, type HiringProcess } from "@/components/recruitment/HiringProcessStepper"
+import { StaffingProcessStepper } from "./StaffingProcessStepper"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
+
+interface DrawerEventRecord {
+  id: string
+  title: string
+  event_type: string
+  status: string
+  starts_at: string
+  ends_at: string | null
+  description: string | null
+  metadata: {
+    resources?: Array<{
+      name: string
+      bucket?: string
+      storage_path?: string
+    }>
+  } | null
+  organizer_id: string | null
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message
+  return "Erreur de chargement des données."
+}
 
 // Drawer skeleton for loading state
 function DrawerSkeleton() {
@@ -33,18 +57,20 @@ export function StaffingDrawer() {
   const { isOpen, staffingId, activeTab, closeStaffingDrawer, setActiveTab } = useStaffingDrawerStore()
   
   const [drawerData, setDrawerData] = useState<StaffingDrawerViewModel | null>(null)
-  const [events, setEvents] = useState<any[]>([])
+  const [events, setEvents] = useState<DrawerEventRecord[]>([])
   const [profiles, setProfiles] = useState<Record<string, { full_name: string | null }>>({})
   
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false,
+  )
+  const [reloadKey, setReloadKey] = useState(0)
   const [, startTransition] = useTransition()
 
   // Detect mobile device client-side
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)")
-    setIsMobile(media.matches)
     const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     media.addEventListener("change", listener)
     return () => media.removeEventListener("change", listener)
@@ -57,6 +83,9 @@ export function StaffingDrawer() {
     const loadData = async () => {
       setLoading(true)
       setFetchError(null)
+      setDrawerData(null)
+      setEvents([])
+      setProfiles({})
       
       try {
         const supabase = createClient()
@@ -67,8 +96,8 @@ export function StaffingDrawer() {
           .select(`
             id, status, comment, next_action, positioning_origin, proposed_at, sent_to_client_at, status_changed_at, created_at, updated_at,
             opportunity:opportunities (
-              id, title, stage, priority, start_date, target_daily_rate, context,
-              company:companies ( id, name )
+              id, title, stage, priority, opportunity_type, requires_staffing, start_date, target_daily_rate, context,
+              company:companies ( id, name, website, metadata )
             ),
             candidate:candidates (
               id, status, source, current_title, seniority, expected_daily_rate, expected_salary, availability,
@@ -124,7 +153,9 @@ export function StaffingDrawer() {
           ])
 
           if (eventsResult.data) {
-            setEvents(eventsResult.data)
+            setEvents(eventsResult.data as DrawerEventRecord[])
+          } else {
+            setEvents([])
           }
           
           if (profilesResult.data) {
@@ -133,11 +164,13 @@ export function StaffingDrawer() {
               profileMap[p.id] = { full_name: p.full_name }
             })
             setProfiles(profileMap)
+          } else {
+            setProfiles({})
           }
         }
-      } catch (err: any) {
-        console.error("[StaffingDrawer] Error loading data:", err)
-        setFetchError(err.message || "Erreur de chargement des données.")
+      } catch (error: unknown) {
+        console.error("[StaffingDrawer] Error loading data:", error)
+        setFetchError(getErrorMessage(error))
       } finally {
         setLoading(false)
       }
@@ -146,7 +179,7 @@ export function StaffingDrawer() {
     startTransition(() => {
       void loadData()
     })
-  }, [isOpen, staffingId])
+  }, [isOpen, reloadKey, staffingId])
 
   const isCollaborator = drawerData?.candidate?.source === "collaborateur" || 
     (drawerData?.candidate?.person?.collaborators && drawerData.candidate.person.collaborators.length > 0) || 
@@ -157,9 +190,10 @@ export function StaffingDrawer() {
     : null
 
   const TABS: { id: StaffingDrawerTab; label: string }[] = [
-    { id: "details", label: "Détails" },
+    { id: "profil", label: "Profil" },
+    { id: "staffing", label: "Staffing" },
+    { id: "recrutement", label: "Recrutement" },
     { id: "ressources", label: "Ressources" },
-    ...(hiringProcess ? [{ id: "recrutement" as const, label: "Recrutement" }] : []),
   ]
 
   const handleTabChange = (tab: StaffingDrawerTab) => {
@@ -170,12 +204,25 @@ export function StaffingDrawer() {
     if (!drawerData) return null
 
     switch (activeTab) {
-      case "details":
+      case "profil":
         return <TabDetails data={drawerData} isCollaborator={isCollaborator} />
+      case "staffing":
+        return <StaffingProcessStepper data={drawerData} events={events} />
       case "ressources":
         return <TabRessources data={drawerData} events={events} profiles={profiles} />
       case "recrutement":
-        return hiringProcess ? <HiringProcessStepper process={hiringProcess} /> : null
+        return hiringProcess ? (
+          <HiringProcessStepper process={hiringProcess} />
+        ) : (
+          <div
+            className="flex min-h-32 items-center justify-center rounded-xl border border-dashed text-center"
+            style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
+          >
+            <p className="max-w-xs text-xs leading-relaxed">
+              Aucun processus de recrutement actif n&apos;est associé à ce candidat.
+            </p>
+          </div>
+        )
       default:
         return null
     }
@@ -191,11 +238,11 @@ export function StaffingDrawer() {
         drawerData ? (
           <StaffingDrawerHeader data={drawerData} isCollaborator={isCollaborator} />
         ) : (
-          "Dossier Staffing"
+          "Dossier candidat"
         )
       }
-      eyebrow="Positionnement"
-      className={isMobile ? "w-full max-w-full" : "max-w-[480px]"}
+      eyebrow="Dossier candidat"
+      className={isMobile ? "w-full max-w-full" : "max-w-[520px]"}
       loading={loading && !drawerData}
     >
       {/* ── Tabs selector ──────────────────────────────────────────── */}
@@ -242,10 +289,7 @@ export function StaffingDrawer() {
           <p className="text-xs">{fetchError}</p>
           <button
             onClick={() => {
-              if (staffingId) {
-                // Re-trigger load by resetting state slightly or forcing load
-                setDrawerData(null)
-              }
+              if (staffingId) setReloadKey((current) => current + 1)
             }}
             className="mt-1 text-xs underline underline-offset-2 text-primary cursor-pointer"
           >

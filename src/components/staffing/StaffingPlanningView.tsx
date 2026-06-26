@@ -1,8 +1,7 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
-import { useStaffingTabStore } from "@/lib/tabs/staffing-tab-store"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { cn } from "@/lib/utils"
 import type { StaffingPlanningData, StaffingPlanningMilestone } from "@/app/(app)/staffing/_data/get-staffings-planning"
 
@@ -123,7 +122,7 @@ function getPercentOffset(dateStr: string, rangeStart: Date, totalDays: number):
 // ─── COMPOSANT ───────────────────────────────────────────────────────────────
 
 export function StaffingPlanningView({ planningData, scale = "week" }: StaffingPlanningViewProps) {
-  const { openTab } = useStaffingTabStore()
+  const { openStaffingDrawer } = useStaffingDrawerStore()
   const [hoveredMilestone, setHoveredMilestone] = useState<{
     m: StaffingPlanningMilestone
     fullName: string
@@ -217,7 +216,7 @@ export function StaffingPlanningView({ planningData, scale = "week" }: StaffingP
                   <div className="min-w-0">
                     <button
                       type="button"
-                      onClick={() => openTab({ entityType: "staffing", entityId: row.id, title: row.fullName, subtitle: row.opportunityTitle })}
+                      onClick={() => openStaffingDrawer(row.id)}
                       className="text-left font-bold text-xs text-heading hover:text-primary hover:underline truncate block w-full"
                     >
                       {row.fullName}

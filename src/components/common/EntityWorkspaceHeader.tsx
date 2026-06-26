@@ -2,36 +2,20 @@ import React, { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 export interface EntityWorkspaceHeaderProps {
-  /**
-   * Title text rendered on the left.
-   */
+  /** Title text rendered on the left. */
   title: string
-  /**
-   * KPI stat chips or badges slot rendered in the center.
-   * On mobile, this falls below the title/actions with full width alignment.
-   */
+  /** Optional subtitle rendered below the title (e.g. period selector). */
+  subtitle?: ReactNode
+  /** KPI stat chips or badges slot rendered in the center. */
   kpis?: ReactNode
-  /**
-   * Action buttons rendered on the right.
-   * Typically hidden on mobile view and visible from md screens onwards.
-   */
+  /** Action buttons rendered on the right. */
   actions?: ReactNode
   className?: string
 }
 
-/**
- * EntityWorkspaceHeader provides a standardized page title area, KPIs container, and actions layout.
- *
- * Responsibilities:
- * - Position elements inside a responsive CSS grid matching KREDO styling guides.
- * - Center-align KPIs and place primary actions at the top right (hidden on mobile).
- * - Render border and padding dividers beneath the header area.
- *
- * Feature Responsibilities:
- * - Provide actual title text, render KPI cards/badges (e.g. StatChip), and action buttons.
- */
 export function EntityWorkspaceHeader({
   title,
+  subtitle,
   kpis,
   actions,
   className,
@@ -47,6 +31,9 @@ export function EntityWorkspaceHeader({
         <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
           {title}
         </h1>
+        {subtitle && (
+          <div className="mt-0.5">{subtitle}</div>
+        )}
       </div>
 
       {kpis && (

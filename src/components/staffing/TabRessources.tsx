@@ -7,6 +7,18 @@ import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { getEventResourceSignedUrl } from "@/lib/agenda/event-drawer-actions"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
 
+interface EventResourceFile {
+  name: string
+  bucket?: string
+  storage_path?: string
+}
+
+interface OpportunityContext {
+  client_context?: string
+  need_detail?: string
+  searched_profile?: string
+}
+
 interface TabRessourcesProps {
   data: StaffingDrawerViewModel
   events: Array<{
@@ -15,9 +27,11 @@ interface TabRessourcesProps {
     event_type: string
     status: string
     starts_at: string
-    ends_at: string
+    ends_at: string | null
     description: string | null
-    metadata: any
+    metadata: {
+      resources?: EventResourceFile[]
+    } | null
     organizer_id: string | null
   }>
   profiles: Record<string, { full_name: string | null }>
@@ -71,12 +85,15 @@ export function TabRessources({ data, events, profiles }: TabRessourcesProps) {
     const ctx = data.opportunity.context
     if (typeof ctx === "string") {
       try {
-        return JSON.parse(ctx)
+        return JSON.parse(ctx) as OpportunityContext
       } catch {
-        return {}
+        return {} as OpportunityContext
       }
     }
-    return (ctx as Record<string, any>) || {}
+    if (ctx && typeof ctx === "object") {
+      return ctx as OpportunityContext
+    }
+    return {} as OpportunityContext
   }, [data.opportunity.context])
 
   const clientContext = opportunityContext.client_context || ""
@@ -105,13 +122,13 @@ export function TabRessources({ data, events, profiles }: TabRessourcesProps) {
     openEventDrawer(eventId)
   }
 
-  const renderDocumentList = (resources: any[]) => {
+  const renderDocumentList = (resources: EventResourceFile[] | undefined) => {
     if (!resources || resources.length === 0) return null
     return (
       <div className="mt-2 space-y-1.5 border-t border-border/25 pt-2">
         <span className="text-[10px] text-muted block select-none">Documents joints</span>
         <div className="space-y-1">
-          {resources.map((res: any, idx: number) => {
+          {resources.map((res, idx) => {
             const isDownloading = downloadingFile === res.name
             return (
               <button

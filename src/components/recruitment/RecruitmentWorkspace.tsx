@@ -12,28 +12,92 @@ import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
-import { IconButton } from "@/components/ui/IconButton"
 import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
 import { updateRecruitmentStatus } from "@/app/(app)/recruitment/_actions/update-recruitment-status"
+import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
 import { RecruitmentListView } from "./RecruitmentListView"
 import { RecruitmentKanbanView } from "./RecruitmentKanbanView"
-import { RecruitmentPlanningView } from "./RecruitmentPlanningView"
+import { RecruitmentPlanningView, type PlanningScale } from "./RecruitmentPlanningView"
 import {
+  HIRING_KANBAN_STAGES,
   RECRUITMENT_STAGES,
   RECRUITMENT_TERMINAL_STATUSES,
+  type HiringKanbanStageKey,
   type RecruitmentStageKey,
 } from "@/lib/recruitment/recruitment-stages"
 import { cn } from "@/lib/utils"
 
 type RecruitmentViewMode = "list" | "kanban" | "planning"
+type PeriodDisplay = "week" | "month" | "quarter" | "year"
 
 interface RecruitmentWorkspaceProps {
   rows: RecruitmentWorkspaceRow[]
   isMobile: boolean
 }
+
+// ── Period helpers ─────────────────────────────────────────────────────────────
+
+function getISOWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+}
+
+function getMondayOfWeek(date: Date): Date {
+  const day = date.getDay()
+  const monday = new Date(date)
+  monday.setDate(date.getDate() - (day === 0 ? 6 : day - 1))
+  monday.setHours(0, 0, 0, 0)
+  return monday
+}
+
+function formatDD(d: Date) {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
+}
+
+function getPeriodLabel(period: PeriodDisplay): string {
+  const today = new Date()
+  if (period === "week") {
+    const monday = getMondayOfWeek(today)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    const weekNum = getISOWeek(today)
+    return `semaine ${weekNum} - ${formatDD(monday)} au ${formatDD(sunday)}`
+  }
+  if (period === "month") {
+    return today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+  }
+  if (period === "quarter") {
+    const q = Math.ceil((today.getMonth() + 1) / 3)
+    return `T${q} ${today.getFullYear()}`
+  }
+  return String(today.getFullYear())
+}
+
+function getPeriodStart(period: PeriodDisplay): Date | null {
+  const now = new Date()
+  if (period === "week") {
+    return getMondayOfWeek(now)
+  }
+  if (period === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  }
+  if (period === "quarter") {
+    const q = Math.floor(now.getMonth() / 3)
+    return new Date(now.getFullYear(), q * 3, 1)
+  }
+  if (period === "year") {
+    return new Date(now.getFullYear(), 0, 1)
+  }
+  return null
+}
+
+// ── Misc helpers ───────────────────────────────────────────────────────────────
 
 function getRoundedQuarterTime() {
   const now = new Date()
@@ -43,16 +107,12 @@ function getRoundedQuarterTime() {
   start.setMinutes(roundedMinutes, 0, 0)
   const end = new Date(start)
   end.setHours(start.getHours() + 1)
-
   const toTime = (value: Date) =>
     `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`
-
-  return {
-    date,
-    start_time: toTime(start),
-    end_time: toTime(end),
-  }
+  return { date, start_time: toTime(start), end_time: toTime(end) }
 }
+
+// ── Mobile cards ───────────────────────────────────────────────────────────────
 
 function RecruitmentMobileCards({
   rows,
@@ -93,9 +153,8 @@ function RecruitmentMobileCards({
   if (viewMode === "kanban") {
     return (
       <div className="flex flex-col gap-3">
-        {RECRUITMENT_STAGES.map((stage) => {
-          const stageRows = rows.filter((row) => row.stageKey === stage.key)
-
+        {HIRING_KANBAN_STAGES.map((stage) => {
+          const stageRows = rows.filter((row) => (row.hiringCurrentStep ?? "prequalification") === stage.key)
           return (
             <SurfaceCard key={stage.key} className="p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -117,7 +176,7 @@ function RecruitmentMobileCards({
                       <p className="text-xs font-bold text-heading">{row.candidateName}</p>
                       <p className="mt-0.5 text-[11px] text-body">{row.currentTitle || "Profil"}</p>
                       <p className="mt-2 text-[10px] text-muted">
-                        {row.clientName} • {row.opportunityTitle}
+                        {row.clientName} · {row.opportunityTitle}
                       </p>
                     </div>
                   ))
@@ -145,15 +204,8 @@ function RecruitmentMobileCards({
                 {row.currentTitle || "Profil non renseigné"}
               </p>
             </div>
-            <span
-              className={cn(
-                "rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-                row.isCollaborator
-                  ? "border-primary/10 bg-primary/5 text-primary"
-                  : "border-brand-brass/10 bg-brand-brass/5 text-brand-brass",
-              )}
-            >
-              {row.isCollaborator ? "Interne" : "Externe"}
+            <span className="rounded-full border border-brand-brass/10 bg-brand-brass/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-brass">
+              Externe
             </span>
           </div>
           <div className="mt-3 space-y-1 text-[11px] text-body">
@@ -167,6 +219,97 @@ function RecruitmentMobileCards({
   )
 }
 
+// ── Hiring steps filter options ────────────────────────────────────────────────
+
+const HIRING_STEP_OPTIONS = [
+  { value: "all", label: "Étapes" },
+  { value: "prequalification", label: "Préqualification" },
+  { value: "entretien_manager", label: "Entretien manager" },
+  { value: "tests_techniques", label: "Tests techniques" },
+  { value: "proposition", label: "Proposition" },
+  { value: "signature", label: "Signature" },
+  { value: "integration", label: "Intégration" },
+]
+
+// ── Period selector display in header ─────────────────────────────────────────
+
+function PeriodSelector({
+  period,
+  onChange,
+}: {
+  period: PeriodDisplay
+  onChange: (value: PeriodDisplay) => void
+}) {
+  const label = getPeriodLabel(period)
+
+  return (
+    <div className="relative inline-flex items-center gap-2">
+      <span className="text-sm font-semibold text-primary">
+        {label}
+      </span>
+      <svg
+        className="size-4 shrink-0 text-primary/60"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M4 6l4 4 4-4" />
+      </svg>
+      <select
+        value={period}
+        onChange={(e) => onChange(e.target.value as PeriodDisplay)}
+        className="absolute inset-0 cursor-pointer opacity-0"
+        aria-label="Changer la période d'affichage"
+      >
+        <option value="week">Semaine en cours</option>
+        <option value="month">Mois en cours</option>
+        <option value="quarter">Trimestre en cours</option>
+        <option value="year">Année en cours</option>
+      </select>
+    </div>
+  )
+}
+
+// ── Scale picker (planning) — same design as Opportunités ─────────────────────
+
+function ScalePicker({
+  scale,
+  onChange,
+}: {
+  scale: PlanningScale
+  onChange: (value: PlanningScale) => void
+}) {
+  return (
+    <div className="relative inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors sm:h-8">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
+        Échelle
+      </span>
+      <select
+        value={scale}
+        onChange={(e) => onChange(e.target.value as PlanningScale)}
+        className="appearance-none border-0 bg-transparent pr-4 text-xs font-semibold text-brand-brass outline-none focus:outline-none focus:ring-0"
+        style={{
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right center",
+          backgroundSize: "10px",
+        }}
+      >
+        <option value="week" className="bg-surface font-normal text-body">Semaine</option>
+        <option value="month" className="bg-surface font-normal text-body">Mois</option>
+        <option value="quarter" className="bg-surface font-normal text-body">Trimestre</option>
+        <option value="year" className="bg-surface font-normal text-body">Année</option>
+      </select>
+    </div>
+  )
+}
+
+// ── Workspace ──────────────────────────────────────────────────────────────────
+
 export function RecruitmentWorkspace({
   rows: initialRows,
   isMobile,
@@ -174,12 +317,12 @@ export function RecruitmentWorkspace({
   const router = useRouter()
   const [rows, setRows] = useState(initialRows)
   const [viewMode, setViewMode] = useState<RecruitmentViewMode>("list")
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [stageFilter, setStageFilter] = useState("all")
   const [hiringFilter, setHiringFilter] = useState("all")
-  const [periodFilter, setPeriodFilter] = useState("all")
+  const [periodDisplay, setPeriodDisplay] = useState<PeriodDisplay>("month")
   const [practiceFilter, setPracticeFilter] = useState("all")
-  const [seniorityFilter, setSeniorityFilter] = useState("all")
+  const [planningScale, setPlanningScale] = useState<PlanningScale>("month")
+  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidates" | "opportunities">("candidates")
   const [newCandidateDrawerOpen, setNewCandidateDrawerOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
@@ -192,56 +335,34 @@ export function RecruitmentWorkspace({
     [rows],
   )
 
-  const seniorityOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(rows.map((row) => row.seniority).filter((value): value is string => Boolean(value))),
-      ).sort(),
-    [rows],
-  )
-
   const externalRows = useMemo(() => rows.filter((row) => !row.isCollaborator), [rows])
 
   const filteredRows = useMemo(() => {
-    const now = new Date()
-    let periodStart: Date | null = null
-    if (periodFilter === "week") {
-      periodStart = new Date(now)
-      periodStart.setDate(now.getDate() - now.getDay() + 1)
-      periodStart.setHours(0, 0, 0, 0)
-    } else if (periodFilter === "month") {
-      periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    } else if (periodFilter === "year") {
-      periodStart = new Date(now.getFullYear(), 0, 1)
-    }
+    const periodStart = getPeriodStart(periodDisplay)
 
     return externalRows.filter((row) => {
-      if (stageFilter !== "all" && row.stageKey !== stageFilter) return false
+      if (stageFilter !== "all" && row.hiringCurrentStep !== stageFilter) return false
       if (hiringFilter === "oui" && !row.hasActiveHiringProcess) return false
       if (hiringFilter === "non" && row.hasActiveHiringProcess) return false
       if (practiceFilter !== "all" && row.practice !== practiceFilter) return false
-      if (seniorityFilter !== "all" && row.seniority !== seniorityFilter) return false
       if (periodStart) {
         const rowDate = new Date(row.updatedAt)
         if (rowDate < periodStart) return false
       }
       return true
     })
-  }, [externalRows, hiringFilter, periodFilter, practiceFilter, seniorityFilter, stageFilter])
+  }, [externalRows, hiringFilter, periodDisplay, practiceFilter, stageFilter])
 
   const activeFilterCount =
     (stageFilter !== "all" ? 1 : 0) +
     (hiringFilter !== "all" ? 1 : 0) +
-    (periodFilter !== "all" ? 1 : 0) +
-    (practiceFilter !== "all" ? 1 : 0) +
-    (seniorityFilter !== "all" ? 1 : 0)
+    (practiceFilter !== "all" ? 1 : 0)
 
   const resetFilters = () => {
     setStageFilter("all")
     setHiringFilter("all")
-    setPeriodFilter("all")
     setPracticeFilter("all")
-    setSeniorityFilter("all")
+    setPeriodDisplay("month")
   }
 
   const activeRows = externalRows.filter((row) => !RECRUITMENT_TERMINAL_STATUSES.has(row.positioningStatus))
@@ -272,9 +393,9 @@ export function RecruitmentWorkspace({
     setEventDrawerOpen(true)
   }
 
+  // ── Kanban move: staffing stage (legacy list kanban, not used in hiring kanban) ──
   const handleMoveRow = async (itemId: string, nextStage: RecruitmentStageKey) => {
     const previousRows = rows
-
     setRows((current) =>
       current.map((row) =>
         row.id === itemId
@@ -288,54 +409,59 @@ export function RecruitmentWorkspace({
           : row,
       ),
     )
-
     const result = await updateRecruitmentStatus({ id: itemId, stage: nextStage })
-
     if (result.error) {
       console.error("[recruitment] Failed to update stage:", result.error)
       setRows(previousRows)
     }
   }
 
-  const filters = (
+  // ── Kanban move: hiring step ──────────────────────────────────────────────────
+  const handleMoveHiringStep = async (itemId: string, step: HiringKanbanStageKey) => {
+    const row = rows.find((r) => r.id === itemId)
+    if (!row?.hiringProcessId) return
+
+    const previousRows = rows
+    setRows((current) =>
+      current.map((r) => r.id === itemId ? { ...r, hiringCurrentStep: step } : r),
+    )
+
+    const result = await updateHiringStep(row.hiringProcessId, step)
+    if (result.error) {
+      console.error("[recruitment] Failed to update hiring step:", result.error)
+      setRows(previousRows)
+    }
+  }
+
+  // ── Period selector shown in header subtitle ────────────────────────────────
+  const headerSubtitle = (
+    <PeriodSelector period={periodDisplay} onChange={setPeriodDisplay} />
+  )
+
+  // ── Filters per view mode ──────────────────────────────────────────────────
+
+  const listFilters = (
     <>
       <PageFilterSelect
         id="recruitment-stage-filter"
-        label="Étape"
+        label="Étape recrutement"
         value={stageFilter}
         onChange={setStageFilter}
+        defaultValue="all"
         className="sm:min-w-[9rem]"
-        options={[
-          { value: "all", label: "Toutes les étapes" },
-          ...RECRUITMENT_STAGES.map((stage) => ({
-            value: stage.key,
-            label: stage.label,
-          })),
-        ]}
+        options={HIRING_STEP_OPTIONS}
       />
       <PageFilterSelect
         id="recruitment-hiring-filter"
         label="Recrutement"
         value={hiringFilter}
         onChange={setHiringFilter}
+        defaultValue="all"
         className="sm:min-w-[8rem]"
         options={[
-          { value: "all", label: "Tous" },
+          { value: "all", label: "Recrutement" },
           { value: "oui", label: "En cours" },
           { value: "non", label: "Sans processus" },
-        ]}
-      />
-      <PageFilterSelect
-        id="recruitment-period-filter"
-        label="Période"
-        value={periodFilter}
-        onChange={setPeriodFilter}
-        className="sm:min-w-[8rem]"
-        options={[
-          { value: "all", label: "Toutes les périodes" },
-          { value: "week", label: "Cette semaine" },
-          { value: "month", label: "Ce mois" },
-          { value: "year", label: "Cette année" },
         ]}
       />
       <PageFilterSelect
@@ -343,59 +469,76 @@ export function RecruitmentWorkspace({
         label="Practice"
         value={practiceFilter}
         onChange={setPracticeFilter}
+        defaultValue="all"
         className="sm:min-w-[9rem]"
         options={[
-          { value: "all", label: "Toutes les practices" },
+          { value: "all", label: "Practice" },
           ...practiceOptions.map((practice) => ({
             value: practice,
             label: practice,
           })),
         ]}
       />
-      <PageFilterSelect
-        id="recruitment-seniority-filter"
-        label="Séniorité"
-        value={seniorityFilter}
-        onChange={setSeniorityFilter}
-        className="sm:min-w-[9rem]"
-        options={[
-          { value: "all", label: "Toutes séniorités" },
-          ...seniorityOptions.map((seniority) => ({
-            value: seniority,
-            label: seniority,
-          })),
-        ]}
-      />
     </>
   )
 
-  const planningControls = (
+  const kanbanFilters = (
     <>
-      <div className="inline-flex items-center overflow-hidden rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass">
-        <IconButton
-          aria-label="Année précédente"
-          variant="ghost"
-          size="sm"
-          onClick={() => setSelectedYear((year) => year - 1)}
-          className="size-8 rounded-none border-r border-brand-brass/20 text-brand-brass hover:bg-brand-brass/[0.12]"
+      <PageFilterSelect
+        id="recruitment-kanban-practice-filter"
+        label="Practice"
+        value={practiceFilter}
+        onChange={setPracticeFilter}
+        defaultValue="all"
+        className="sm:min-w-[9rem]"
+        options={[
+          { value: "all", label: "Practice" },
+          ...practiceOptions.map((practice) => ({
+            value: practice,
+            label: practice,
+          })),
+        ]}
+      />
+      {/* Basculer candidat ↔ opportunité — identique à la page Opportunités kanban */}
+      <button
+        type="button"
+        onClick={() =>
+          setKanbanDisplayMode((current) =>
+            current === "candidates" ? "opportunities" : "candidates",
+          )
+        }
+        className="inline-flex cursor-pointer select-none items-center gap-2 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 py-1.5 text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95"
+        title={
+          kanbanDisplayMode === "candidates"
+            ? "Afficher les infos opportunités"
+            : "Afficher les infos candidats"
+        }
+      >
+        <svg
+          className="size-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
         >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-        </IconButton>
-        <span className="px-3 text-xs font-semibold tracking-wide">{selectedYear}</span>
-        <IconButton
-          aria-label="Année suivante"
-          variant="ghost"
-          size="sm"
-          onClick={() => setSelectedYear((year) => year + 1)}
-          className="size-8 rounded-none border-l border-brand-brass/20 text-brand-brass hover:bg-brand-brass/[0.12]"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-          </svg>
-        </IconButton>
-      </div>
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
+        </svg>
+        <span className="text-xs font-semibold">
+          {kanbanDisplayMode === "candidates" ? "Candidats" : "Opportunités"}
+        </span>
+      </button>
+    </>
+  )
+
+  // Planning : bouton créer + sélecteur échelle côte à côte à gauche (même hauteur)
+  const planningFilters = (
+    <>
       <Button
         variant="primary"
         size="sm"
@@ -405,12 +548,15 @@ export function RecruitmentWorkspace({
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         }
-        className="h-8"
+        className="h-9 sm:h-8"
       >
         Créer un événement
       </Button>
+      <ScalePicker scale={planningScale} onChange={setPlanningScale} />
     </>
   )
+
+  // ── Mobile ─────────────────────────────────────────────────────────────────
 
   if (isMobile) {
     return (
@@ -418,6 +564,7 @@ export function RecruitmentWorkspace({
         <EntityWorkspacePage>
           <EntityWorkspaceHeader
             title="Recrutement"
+            subtitle={headerSubtitle}
             kpis={
               <>
                 <HeaderKpiCard label="Actifs" value={activeRows.length} className="flex-1" />
@@ -446,7 +593,6 @@ export function RecruitmentWorkspace({
             <PageFilterBar
               activeCount={activeFilterCount}
               onReset={resetFilters}
-              controlsClassName={viewMode === "planning" ? "[&>*]:h-8 [&>*]:shrink-0" : undefined}
               viewSelector={
                 <PageViewSelector
                   items={[
@@ -460,8 +606,9 @@ export function RecruitmentWorkspace({
                 />
               }
             >
-              {filters}
-              {viewMode === "planning" ? planningControls : null}
+              {viewMode === "list" && listFilters}
+              {viewMode === "kanban" && kanbanFilters}
+              {viewMode === "planning" && planningFilters}
             </PageFilterBar>
 
             <RecruitmentMobileCards rows={filteredRows} viewMode={viewMode} />
@@ -484,10 +631,13 @@ export function RecruitmentWorkspace({
     )
   }
 
+  // ── Desktop ────────────────────────────────────────────────────────────────
+
   return (
     <>
       <EntityWorkspaceTemplate
         title="Recrutement"
+        headerSubtitle={headerSubtitle}
         kpis={
           <>
             <HeaderKpiCard label="Candidatures actives" value={activeRows.length} className="flex-1" />
@@ -514,16 +664,22 @@ export function RecruitmentWorkspace({
         activeFilterCount={activeFilterCount}
         onResetFilters={resetFilters}
         filters={
-          <>
-            {filters}
-            {viewMode === "planning" ? planningControls : null}
-          </>
+          viewMode === "list"
+            ? listFilters
+            : viewMode === "kanban"
+              ? kanbanFilters
+              : planningFilters
         }
+        secondaryActions={null}
         listView={<RecruitmentListView rows={filteredRows} />}
         kanbanView={
-          <RecruitmentKanbanView rows={filteredRows} onMoveRow={handleMoveRow} />
+          <RecruitmentKanbanView
+            rows={filteredRows}
+            onMoveRow={handleMoveHiringStep}
+            displayMode={kanbanDisplayMode}
+          />
         }
-        planningView={<RecruitmentPlanningView rows={filteredRows} year={selectedYear} />}
+        planningView={<RecruitmentPlanningView rows={filteredRows} scale={planningScale} />}
       />
 
       <AgendaEventDrawer

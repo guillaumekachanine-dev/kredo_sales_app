@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 
-export type StaffingDrawerTab = "details" | "ressources" | "recrutement"
+export type StaffingDrawerTab = "profil" | "staffing" | "recrutement" | "ressources"
 
 interface StaffingDrawerState {
   isOpen: boolean
@@ -16,8 +16,8 @@ interface StaffingDrawerState {
 export const useStaffingDrawerStore = create<StaffingDrawerState>((set) => ({
   isOpen: false,
   staffingId: null,
-  activeTab: "details",
-  openStaffingDrawer: (staffingId, tab = "details") =>
+  activeTab: "profil",
+  openStaffingDrawer: (staffingId, tab = "profil") =>
     set({ isOpen: true, staffingId, activeTab: tab }),
   closeStaffingDrawer: () => set({ isOpen: false, staffingId: null }),
   setActiveTab: (activeTab) => set({ activeTab }),

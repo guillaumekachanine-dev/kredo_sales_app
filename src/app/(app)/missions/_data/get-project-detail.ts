@@ -35,6 +35,14 @@ export interface DetailedProjectTeamMember {
   email?: string
 }
 
+export interface DetailedProjectBillingMilestone {
+  label: string
+  pct?: number | null
+  amount?: number | null
+  due_date?: string | null
+  invoiced_at?: string | null
+}
+
 export interface DetailedProjectData {
   id: string
   code: string | null
@@ -52,12 +60,45 @@ export interface DetailedProjectData {
   tags: string[]
   technologies: string[]
   description: string | null
-  scope: any
+  scope: unknown
   deliverables: string[]
   lessons_learned: string | null
+  billing_milestones: DetailedProjectBillingMilestone[]
+  metadata: Record<string, unknown> | null
   companies: DetailedProjectCompany | DetailedProjectCompany[] | null
   project_phases: DetailedProjectPhase[] | null
-  project_team_members: any[] | null
+  project_team_members: DetailedProjectTeamMember[] | null
+}
+
+interface RawPerson {
+  full_name?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  primary_email?: string | null
+}
+
+interface RawCollaborator {
+  persons?: RawPerson | RawPerson[] | null
+}
+
+interface RawProjectTeamMember {
+  id: string
+  role_label: string
+  seniority: string | null
+  planned_days: number | null
+  actual_days: number | null
+  daily_cost: number | null
+  contribution: string | null
+  is_project_lead: boolean | null
+  collaborator_id: string | null
+  collaborators?: RawCollaborator | RawCollaborator[] | null
+}
+
+function normalizeRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return null
 }
 
 export async function getProjectDetail(projectId: string): Promise<{ data: DetailedProjectData | null; error?: string }> {
@@ -74,7 +115,7 @@ export async function getProjectDetail(projectId: string): Promise<{ data: Detai
         id, code, title, status, ref_status, ref_visibility, ref_anonymized_label,
         progress_pct, contract_amount, target_margin_pct, actual_margin_pct,
         start_date_planned, end_date_planned, tags, technologies,
-        description, scope, deliverables, lessons_learned,
+        description, scope, deliverables, lessons_learned, billing_milestones, metadata,
         companies ( name, website, metadata ),
         project_phases ( id, label, status, start_date_planned, end_date_planned, consumed_days, planned_days, deliverables, sort_order ),
         project_team_members (
@@ -104,8 +145,8 @@ export async function getProjectDetail(projectId: string): Promise<{ data: Detai
     }
 
     // Process and sort team members (leads first)
-    const teamMembersRaw = data.project_team_members ?? []
-    const mappedTeamMembers: DetailedProjectTeamMember[] = teamMembersRaw.map((member: any) => {
+    const teamMembersRaw = (data.project_team_members ?? []) as RawProjectTeamMember[]
+    const mappedTeamMembers: DetailedProjectTeamMember[] = teamMembersRaw.map((member) => {
       let fullName = ""
       let email = ""
 
@@ -145,16 +186,35 @@ export async function getProjectDetail(projectId: string): Promise<{ data: Detai
     // Process and sort phases
     const phasesRaw: DetailedProjectPhase[] = data.project_phases ?? []
     const sortedPhases = [...phasesRaw].sort((a, b) => a.sort_order - b.sort_order)
+    const billingMilestones = Array.isArray(data.billing_milestones)
+      ? (data.billing_milestones as unknown as DetailedProjectBillingMilestone[])
+      : []
+    const metadata = normalizeRecord(data.metadata)
+    const companies = Array.isArray(data.companies)
+      ? data.companies.map((company) => ({
+          ...company,
+          metadata: normalizeRecord(company.metadata),
+        }))
+      : data.companies
+        ? {
+            ...data.companies,
+            metadata: normalizeRecord(data.companies.metadata),
+          }
+        : null
 
     const processedData: DetailedProjectData = {
-      ...(data as any),
+      ...data,
+      billing_milestones: billingMilestones,
+      metadata,
+      companies,
       project_phases: sortedPhases,
       project_team_members: mappedTeamMembers,
     }
 
     return { data: processedData }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Une erreur inattendue est survenue."
     console.error("Unhandled error in getProjectDetail:", err)
-    return { data: null, error: err.message || "Une erreur inattendue est survenue." }
+    return { data: null, error: message }
   }
 }

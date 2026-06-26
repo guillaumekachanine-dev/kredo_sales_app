@@ -12,6 +12,7 @@ export interface KpiCardProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
   label: string
   value: React.ReactNode
   context?: React.ReactNode
+  contextClassName?: string
   delta?: React.ReactNode
   deltaTone?: KpiCardDeltaTone
   target?: React.ReactNode
@@ -21,6 +22,7 @@ export interface KpiCardProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
   accent?: KpiCardAccent
   loading?: boolean
   href?: string
+  compactLayout?: boolean
 }
 
 const sizeClasses: Record<KpiCardSize, { wrapper: string; value: string; label: string }> = {
@@ -59,6 +61,7 @@ export function KpiCard({
   label,
   value,
   context,
+  contextClassName,
   delta,
   deltaTone = "neutral",
   target,
@@ -68,6 +71,7 @@ export function KpiCard({
   accent = "none",
   loading = false,
   href,
+  compactLayout = false,
   className,
   ...props
 }: KpiCardProps) {
@@ -82,7 +86,14 @@ export function KpiCard({
       className={cn("h-full", className)}
       {...props}
     >
-      <div className={cn("flex h-full flex-col", currentSize.wrapper)} aria-busy={loading || undefined}>
+      <div
+        className={cn(
+          "flex h-full flex-col",
+          currentSize.wrapper,
+          compactLayout && size === "compact" && "gap-1.5 p-3"
+        )}
+        aria-busy={loading || undefined}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className={cn("text-muted", currentSize.label)}>{label}</p>
@@ -104,7 +115,12 @@ export function KpiCard({
           ) : null}
         </div>
 
-        <div className="flex-1 flex flex-col justify-center my-3 min-h-[3.25rem]">
+        <div
+          className={cn(
+            "flex-1 flex flex-col justify-center my-3 min-h-[3.25rem]",
+            compactLayout && size === "compact" && "my-1.5 min-h-[2.25rem]"
+          )}
+        >
           <div className="flex items-center justify-start gap-2">
             <p
               className={cn(
@@ -130,7 +146,16 @@ export function KpiCard({
         </div>
 
         {context ? (
-          <p className={cn("mt-auto text-[11px] leading-normal text-muted/80 pt-2 text-center w-full", loading && "text-transparent")}>{context}</p>
+          <p
+            className={cn(
+              "mt-auto text-[11px] leading-normal text-muted/80 pt-2 text-center w-full",
+              compactLayout && "pt-1 text-left text-muted",
+              contextClassName,
+              loading && "text-transparent"
+            )}
+          >
+            {context}
+          </p>
         ) : null}
 
         {target || normalizedProgress !== undefined ? (

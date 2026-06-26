@@ -1,5 +1,4 @@
 import React from "react"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getStaffingsList } from "@/app/(app)/staffing/_data/get-staffings-list"
 import { getStaffingsPlanning } from "@/app/(app)/staffing/_data/get-staffings-planning"
 import { StaffingDesktopView } from "./StaffingDesktopView"
@@ -35,8 +34,7 @@ function StatChip({
 
 // Server Component: sniffs device and loads dataset in parallel (ADR-0006)
 export async function SyntheseStaffingSection() {
-  const [device, staffings, planningData] = await Promise.all([
-    getDashboardDevice(),
+  const [staffings, planningData] = await Promise.all([
     getStaffingsList(),
     getStaffingsPlanning(),
   ])
@@ -96,4 +94,3 @@ export async function SyntheseStaffingSection() {
 
 export { StaffingDrawer } from "./StaffingDrawer"
 export { StaffingTabbedShell } from "./StaffingTabbedShell"
-export { StaffingEntityPanel } from "./StaffingEntityPanel"

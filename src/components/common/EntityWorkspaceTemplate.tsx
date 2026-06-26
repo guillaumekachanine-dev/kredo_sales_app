@@ -11,6 +11,7 @@ export type EntityWorkspaceViewMode = "list" | "kanban" | "planning"
 
 export interface EntityWorkspaceTemplateProps {
   title: string
+  headerSubtitle?: React.ReactNode
   kpis?: React.ReactNode
   actions?: React.ReactNode
   filters?: React.ReactNode
@@ -37,6 +38,7 @@ const DEFAULT_VIEW_ITEMS = [
 
 export function EntityWorkspaceTemplate({
   title,
+  headerSubtitle,
   kpis,
   actions,
   filters,
@@ -63,7 +65,7 @@ export function EntityWorkspaceTemplate({
 
   return (
     <EntityWorkspacePage>
-      <EntityWorkspaceHeader title={title} kpis={kpis} actions={actions} />
+      <EntityWorkspaceHeader title={title} subtitle={headerSubtitle} kpis={kpis} actions={actions} />
 
       {isMobile ? (
         mobileView ?? null

@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { StatusPill } from "@/components/ui/StatusPill"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
 
 interface StaffingDrawerHeaderProps {
@@ -15,51 +14,18 @@ export function StaffingDrawerHeader({ data, isCollaborator }: StaffingDrawerHea
     `${person?.first_name || ""} ${person?.last_name || ""}`.trim() || 
     "Profil sans nom"
 
-  // Title: collaborator current_title, or candidate current_title when available.
   const title = isCollaborator 
-    ? person?.collaborators[0]?.current_title || "Collaborateur"
-    : data.candidate?.current_title || "Candidat externe"
-
-  const priority = data.opportunity.priority || "normale"
-  const priorityLower = priority.toLowerCase()
-  
-  let priorityVariant: "neutral" | "warning" | "danger" | "success" = "neutral"
-  let priorityLabel = "Normale"
-  
-  if (priorityLower === "haute" || priorityLower === "high") {
-    priorityVariant = "danger"
-    priorityLabel = "Haute Priorité"
-  } else if (priorityLower === "basse" || priorityLower === "low") {
-    priorityVariant = "neutral"
-    priorityLabel = "Basse Priorité"
-  } else {
-    priorityVariant = "warning"
-    priorityLabel = "Moyenne Priorité"
-  }
+    ? person?.collaborators[0]?.current_title || data.candidate?.current_title || "Profil non renseigné"
+    : data.candidate?.current_title || "Profil non renseigné"
 
   return (
-    <div className="flex flex-col gap-2 select-none">
-      <div className="flex items-center gap-2 flex-wrap">
-        <StatusPill
-          label={isCollaborator ? "Collaborateur" : "Candidat"}
-          variant={isCollaborator ? "info" : "benchmark"}
-          dot={false}
-        />
-        <StatusPill
-          label={priorityLabel}
-          variant={priorityVariant}
-          dot={true}
-        />
-      </div>
-      
-      <div className="mt-1">
-        <h3 className="text-sm font-bold text-heading leading-tight">
-          {fullName}
-        </h3>
-        <p className="text-xs text-muted mt-0.5 font-medium">
-          {title}
-        </p>
-      </div>
-    </div>
+    <span className="inline-flex flex-col gap-0.5 align-top select-none">
+      <span className="text-[1.02rem] font-bold leading-tight text-heading">
+        {fullName}
+      </span>
+      <span className="text-xs font-medium leading-snug text-muted">
+        {title}
+      </span>
+    </span>
   )
 }

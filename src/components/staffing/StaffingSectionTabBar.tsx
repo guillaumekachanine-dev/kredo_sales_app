@@ -4,7 +4,7 @@ import { KeyboardEvent } from "react"
 import { IconButton } from "@/components/ui/IconButton"
 import { cn } from "@/lib/utils"
 import { useStaffingTabStore } from "@/lib/tabs/staffing-tab-store"
-import { sectionTabItemClasses, sectionTabListClasses } from "@/components/layout/section-tab-styles"
+import { sectionTabHomeClasses, sectionTabItemClasses, sectionTabListClasses } from "@/components/layout/section-tab-styles"
 
 function TabEntityIcon() {
   return (
@@ -40,11 +40,16 @@ export function StaffingSectionTabBar() {
         aria-selected={activeTabId === "home"}
         className={cn(
           sectionTabItemClasses({ active: activeTabId === "home", compact: true }),
-          "border-r border-border px-4 cursor-pointer"
+          sectionTabHomeClasses(activeTabId === "home"),
+          "px-4 cursor-pointer"
         )}
       >
-        <HomeIcon />
-        <span>Staffings actifs</span>
+        <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-canvas text-primary shadow-[inset_0_0_0_1px_rgba(148,163,184,0.16)]">
+          <HomeIcon />
+        </span>
+        <span className="flex items-center self-stretch text-xs font-bold text-inherit leading-none">
+          Staffings actifs
+        </span>
       </button>
 
       {tabs.map((tab) => {
