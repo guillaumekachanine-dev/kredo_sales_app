@@ -6,6 +6,8 @@ import type {
   MissionPlanningPerson,
   MissionPlanningQuarterlyRevenue,
   MissionPlanningRow,
+  MissionPlanningTimelineEvent,
+  MissionPlanningTimelineEventCategory,
 } from "@/components/missions/planning/mission-planning-types"
 
 type CompanyRecord = Pick<
@@ -63,6 +65,43 @@ type RevenueRow = Pick<
   | "billable_days"
 >
 
+type CollaboratorAbsenceRecord = Pick<
+  Tables<"collaborator_absences">,
+  "id" | "collaborator_id" | "absence_type" | "start_date" | "end_date" | "notes"
+>
+
+type ClientClosureRecord = Pick<
+  Tables<"client_closures">,
+  "id" | "company_id" | "label" | "start_date" | "end_date" | "notes"
+>
+
+type CalendarEventRecord = Pick<
+  Tables<"calendar_events">,
+  | "id"
+  | "title"
+  | "event_type"
+  | "status"
+  | "starts_at"
+  | "ends_at"
+  | "all_day"
+  | "description"
+  | "company_id"
+>
+
+const CLIENT_FOLLOW_UP_EVENT_TYPES = [
+  "suivi_mission_client",
+  "rdv_client_suivi",
+] as const
+
+const COLLABORATOR_FOLLOW_UP_EVENT_TYPES = [
+  "suivi_mission_collab",
+] as const
+
+const TIMELINE_EVENT_TYPES = [
+  ...CLIENT_FOLLOW_UP_EVENT_TYPES,
+  ...COLLABORATOR_FOLLOW_UP_EVENT_TYPES,
+] as const
+
 function pickOne<T>(value: T | T[] | null | undefined): T | null {
   if (!value) return null
   return Array.isArray(value) ? value[0] ?? null : value
@@ -83,6 +122,12 @@ function getMetadataDate(metadata: Json, keys: string[]): string | null {
   }
 
   return null
+}
+
+function getDateOnly(value: string | null | undefined): string | null {
+  if (!value) return null
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/)
+  return match ? match[0] : null
 }
 
 function mapCompany(company: CompanyRecord | null): MissionPlanningCompany {
@@ -177,6 +222,235 @@ async function getRevenueByMission(
   return revenueByMission
 }
 
+function pushGroupedEvent(
+  target: Map<string, MissionPlanningTimelineEvent[]>,
+  key: string | null | undefined,
+  event: MissionPlanningTimelineEvent
+) {
+  if (!key) return
+
+  const existing = target.get(key)
+  if (existing) {
+    existing.push(event)
+    return
+  }
+
+  target.set(key, [event])
+}
+
+function buildAbsenceEvent(
+  absence: CollaboratorAbsenceRecord
+): MissionPlanningTimelineEvent | null {
+  const startDate = getDateOnly(absence.start_date)
+  if (!startDate) return null
+
+  return {
+    id: `absence-${absence.id}`,
+    sourceId: absence.id,
+    sourceType: "collaborator_absence",
+    category: "absence",
+    title: absence.absence_type,
+    startDate,
+    endDate: getDateOnly(absence.end_date) ?? startDate,
+    allDay: true,
+    status: null,
+    description: absence.notes,
+    companyId: null,
+    collaboratorId: absence.collaborator_id,
+    calendarEventId: null,
+  }
+}
+
+function buildClosureEvent(
+  closure: ClientClosureRecord
+): MissionPlanningTimelineEvent | null {
+  const startDate = getDateOnly(closure.start_date)
+  if (!startDate) return null
+
+  return {
+    id: `closure-${closure.id}`,
+    sourceId: closure.id,
+    sourceType: "client_closure",
+    category: "client_closure",
+    title: closure.label,
+    startDate,
+    endDate: getDateOnly(closure.end_date) ?? startDate,
+    allDay: true,
+    status: null,
+    description: closure.notes,
+    companyId: closure.company_id,
+    collaboratorId: null,
+    calendarEventId: null,
+  }
+}
+
+function getCalendarEventCategory(
+  eventType: string
+): MissionPlanningTimelineEventCategory | null {
+  if (
+    (CLIENT_FOLLOW_UP_EVENT_TYPES as readonly string[]).includes(eventType)
+  ) {
+    return "client_follow_up"
+  }
+
+  if (
+    (COLLABORATOR_FOLLOW_UP_EVENT_TYPES as readonly string[]).includes(eventType)
+  ) {
+    return "collaborator_follow_up"
+  }
+
+  return null
+}
+
+function buildCalendarTimelineEvent(
+  event: CalendarEventRecord
+): MissionPlanningTimelineEvent | null {
+  const category = getCalendarEventCategory(event.event_type)
+  const startDate = getDateOnly(event.starts_at)
+
+  if (!category || !startDate) return null
+
+  return {
+    id: `calendar-${event.id}`,
+    sourceId: event.id,
+    sourceType: "calendar_event",
+    category,
+    title: event.title,
+    startDate,
+    endDate: getDateOnly(event.ends_at) ?? startDate,
+    allDay: event.all_day,
+    status: event.status,
+    description: event.description,
+    companyId: event.company_id,
+    collaboratorId: null,
+    calendarEventId: event.id,
+  }
+}
+
+async function getAbsencesByCollaborator(
+  collaboratorIds: string[]
+): Promise<Map<string, MissionPlanningTimelineEvent[]>> {
+  const absencesByCollaborator = new Map<string, MissionPlanningTimelineEvent[]>()
+  if (collaboratorIds.length === 0) return absencesByCollaborator
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("collaborator_absences")
+    .select(`
+      id,
+      collaborator_id,
+      absence_type,
+      start_date,
+      end_date,
+      notes
+    `)
+    .in("collaborator_id", collaboratorIds)
+    .order("start_date", { ascending: true })
+
+  if (error) {
+    console.error(
+      "Supabase error fetching collaborator absences:",
+      error.message,
+      error.code,
+      error.details,
+      error.hint
+    )
+    return absencesByCollaborator
+  }
+
+  for (const absence of (data ?? []) as CollaboratorAbsenceRecord[]) {
+    const timelineEvent = buildAbsenceEvent(absence)
+    if (!timelineEvent) continue
+    pushGroupedEvent(absencesByCollaborator, absence.collaborator_id, timelineEvent)
+  }
+
+  return absencesByCollaborator
+}
+
+async function getClosuresByCompany(
+  companyIds: string[]
+): Promise<Map<string, MissionPlanningTimelineEvent[]>> {
+  const closuresByCompany = new Map<string, MissionPlanningTimelineEvent[]>()
+  if (companyIds.length === 0) return closuresByCompany
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("client_closures")
+    .select(`
+      id,
+      company_id,
+      label,
+      start_date,
+      end_date,
+      notes
+    `)
+    .in("company_id", companyIds)
+    .order("start_date", { ascending: true })
+
+  if (error) {
+    console.error(
+      "Supabase error fetching client closures:",
+      error.message,
+      error.code,
+      error.details,
+      error.hint
+    )
+    return closuresByCompany
+  }
+
+  for (const closure of (data ?? []) as ClientClosureRecord[]) {
+    const timelineEvent = buildClosureEvent(closure)
+    if (!timelineEvent) continue
+    pushGroupedEvent(closuresByCompany, closure.company_id, timelineEvent)
+  }
+
+  return closuresByCompany
+}
+
+async function getCalendarEventsByCompany(
+  companyIds: string[]
+): Promise<Map<string, MissionPlanningTimelineEvent[]>> {
+  const eventsByCompany = new Map<string, MissionPlanningTimelineEvent[]>()
+  if (companyIds.length === 0) return eventsByCompany
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("calendar_events")
+    .select(`
+      id,
+      title,
+      event_type,
+      status,
+      starts_at,
+      ends_at,
+      all_day,
+      description,
+      company_id
+    `)
+    .in("company_id", companyIds)
+    .in("event_type", [...TIMELINE_EVENT_TYPES])
+    .order("starts_at", { ascending: true })
+
+  if (error) {
+    console.error(
+      "Supabase error fetching mission planning calendar events:",
+      error.message,
+      error.code,
+      error.details,
+      error.hint
+    )
+    return eventsByCompany
+  }
+
+  for (const event of (data ?? []) as CalendarEventRecord[]) {
+    const timelineEvent = buildCalendarTimelineEvent(event)
+    if (!timelineEvent) continue
+    pushGroupedEvent(eventsByCompany, event.company_id, timelineEvent)
+  }
+
+  return eventsByCompany
+}
+
 export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]> {
   try {
     const supabase = await createClient()
@@ -235,11 +509,45 @@ export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]>
     }
 
     const missions = (data ?? []) as MissionPlanningQueryRow[]
-    const revenueByMission = await getRevenueByMission(missions.map((mission) => mission.id))
+    const missionIds = missions.map((mission) => mission.id)
+    const companyIds = Array.from(
+      new Set(missions.map((mission) => mission.company_id).filter(Boolean))
+    ) as string[]
+    const collaboratorIds = Array.from(
+      new Set(missions.map((mission) => mission.collaborator_id).filter(Boolean))
+    ) as string[]
+
+    const [
+      revenueByMission,
+      absencesByCollaborator,
+      closuresByCompany,
+      calendarEventsByCompany,
+    ] = await Promise.all([
+      getRevenueByMission(missionIds),
+      getAbsencesByCollaborator(collaboratorIds),
+      getClosuresByCompany(companyIds),
+      getCalendarEventsByCompany(companyIds),
+    ])
 
     return missions.map((mission) => {
       const company = pickOne(mission.companies)
       const collaborator = pickOne(mission.collaborators)
+      const timelineEvents = [
+        ...(mission.collaborator_id
+          ? absencesByCollaborator.get(mission.collaborator_id) ?? []
+          : []),
+        ...(mission.company_id
+          ? closuresByCompany.get(mission.company_id) ?? []
+          : []),
+        ...(mission.company_id
+          ? calendarEventsByCompany.get(mission.company_id) ?? []
+          : []),
+      ].sort((left, right) => {
+        if (left.startDate === right.startDate) {
+          return left.id.localeCompare(right.id)
+        }
+        return left.startDate.localeCompare(right.startDate)
+      })
 
       return {
         id: mission.id,
@@ -266,6 +574,7 @@ export async function getActiveMissionsPlanning(): Promise<MissionPlanningRow[]>
         company: mapCompany(company),
         collaborator: mapCollaborator(collaborator),
         lastQuarterRevenue: revenueByMission.get(mission.id) ?? null,
+        timelineEvents,
       }
     })
   } catch (err) {

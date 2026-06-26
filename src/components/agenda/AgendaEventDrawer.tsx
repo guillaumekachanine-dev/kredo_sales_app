@@ -29,6 +29,20 @@ interface AgendaEventDrawerProps {
   onOpenChange: (open: boolean) => void
   event: AgendaEvent | null
   onSaved: () => void
+  initialValues?: AgendaEventDrawerInitialValues
+}
+
+export interface AgendaEventDrawerInitialValues {
+  title?: string
+  event_type?: string
+  date?: string
+  start_time?: string
+  end_time?: string
+  description?: string
+  company?: AccountValue | null
+  contact_id?: string
+  opportunity_id?: string
+  candidate_id?: string
 }
 
 interface FormState {
@@ -78,6 +92,7 @@ export function AgendaEventDrawer({
   onOpenChange,
   event,
   onSaved,
+  initialValues,
 }: AgendaEventDrawerProps) {
   const [mode, setMode] = useState<"create" | "view" | "edit">("create")
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
@@ -146,14 +161,19 @@ export function AgendaEventDrawer({
       const m = String(today.getMonth() + 1).padStart(2, "0")
       const d = String(today.getDate()).padStart(2, "0")
       const todayStr = `${y}-${m}-${d}`
-      setForm({ ...INITIAL_FORM, date: todayStr, task_date: todayStr })
+      setForm({
+        ...INITIAL_FORM,
+        date: todayStr,
+        task_date: todayStr,
+        ...initialValues,
+      })
     }
   })
 
   useEffect(() => {
     if (!open) return
     queueMicrotask(syncDrawerState)
-  }, [open, event])
+  }, [open, event, initialValues])
 
   useEffect(() => {
     getOpportunitiesForSelect().then(setOpportunities)

@@ -2,7 +2,10 @@ import React from "react"
 import { EntityWorkspaceHeader } from "@/components/common/EntityWorkspaceHeader"
 import { EntityWorkspacePage } from "@/components/common/EntityWorkspacePage"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
-import { PageViewSelector } from "@/components/ui/PageViewSelector"
+import {
+  PageViewSelector,
+  type PageViewSelectorItem,
+} from "@/components/ui/PageViewSelector"
 
 export type EntityWorkspaceViewMode = "list" | "kanban" | "planning"
 
@@ -23,6 +26,7 @@ export interface EntityWorkspaceTemplateProps {
   secondaryActions?: React.ReactNode
   summary?: React.ReactNode
   controlsClassName?: string
+  viewItems?: PageViewSelectorItem[]
 }
 
 const DEFAULT_VIEW_ITEMS = [
@@ -48,6 +52,7 @@ export function EntityWorkspaceTemplate({
   secondaryActions,
   summary,
   controlsClassName,
+  viewItems = [...DEFAULT_VIEW_ITEMS],
 }: EntityWorkspaceTemplateProps) {
   const activeView =
     viewMode === "kanban"
@@ -72,7 +77,7 @@ export function EntityWorkspaceTemplate({
             controlsClassName={controlsClassName}
             viewSelector={
               <PageViewSelector
-                items={[...DEFAULT_VIEW_ITEMS]}
+                items={viewItems}
                 value={viewMode}
                 onChange={(value) => onViewModeChange(value as EntityWorkspaceViewMode)}
                 ariaLabel={`Mode d'affichage de ${title.toLowerCase()}`}

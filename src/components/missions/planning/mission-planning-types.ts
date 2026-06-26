@@ -40,6 +40,33 @@ export type MissionPlanningQuarterlyRevenue = {
   billableDays: number | null
 }
 
+export type MissionPlanningTimelineEventCategory =
+  | "absence"
+  | "client_closure"
+  | "client_follow_up"
+  | "collaborator_follow_up"
+
+export type MissionPlanningTimelineEventSource =
+  | "collaborator_absence"
+  | "client_closure"
+  | "calendar_event"
+
+export type MissionPlanningTimelineEvent = {
+  id: string
+  sourceId: string
+  sourceType: MissionPlanningTimelineEventSource
+  category: MissionPlanningTimelineEventCategory
+  title: string
+  startDate: string
+  endDate: string | null
+  allDay: boolean
+  status: string | null
+  description: string | null
+  companyId: string | null
+  collaboratorId: string | null
+  calendarEventId: string | null
+}
+
 export type MissionPlanningRow = {
   id: string
   title: string
@@ -59,4 +86,5 @@ export type MissionPlanningRow = {
   company: MissionPlanningCompany
   collaborator: MissionPlanningCollaborator | null
   lastQuarterRevenue: MissionPlanningQuarterlyRevenue | null
+  timelineEvents: MissionPlanningTimelineEvent[]
 }
