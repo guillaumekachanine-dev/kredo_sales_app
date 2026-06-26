@@ -14,6 +14,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import { IconButton } from "@/components/ui/IconButton"
 import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
+import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
 import { updateRecruitmentStatus } from "@/app/(app)/recruitment/_actions/update-recruitment-status"
@@ -23,7 +24,6 @@ import { RecruitmentPlanningView } from "./RecruitmentPlanningView"
 import {
   RECRUITMENT_STAGES,
   RECRUITMENT_TERMINAL_STATUSES,
-  getRecruitmentSourceLabel,
   type RecruitmentStageKey,
 } from "@/lib/recruitment/recruitment-stages"
 import { cn } from "@/lib/utils"
@@ -159,7 +159,7 @@ function RecruitmentMobileCards({
           <div className="mt-3 space-y-1 text-[11px] text-body">
             <p>{row.opportunityTitle}</p>
             <p className="text-muted">{row.clientName}</p>
-            <p className="text-muted">{getRecruitmentSourceLabel(row.source)}</p>
+            <p className="text-muted">{row.availability || "—"}</p>
           </div>
         </SurfaceCard>
       ))}
@@ -176,9 +176,11 @@ export function RecruitmentWorkspace({
   const [viewMode, setViewMode] = useState<RecruitmentViewMode>("list")
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [stageFilter, setStageFilter] = useState("all")
-  const [sourceFilter, setSourceFilter] = useState("all")
+  const [hiringFilter, setHiringFilter] = useState("all")
+  const [periodFilter, setPeriodFilter] = useState("all")
   const [practiceFilter, setPracticeFilter] = useState("all")
   const [seniorityFilter, setSeniorityFilter] = useState("all")
+  const [newCandidateDrawerOpen, setNewCandidateDrawerOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
 
@@ -198,42 +200,53 @@ export function RecruitmentWorkspace({
     [rows],
   )
 
-  const sourceOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(rows.map((row) => row.source).filter((value): value is string => Boolean(value))),
-      ).sort(),
-    [rows],
-  )
+  const externalRows = useMemo(() => rows.filter((row) => !row.isCollaborator), [rows])
 
-  const filteredRows = useMemo(
-    () =>
-      rows.filter((row) => {
-        if (stageFilter !== "all" && row.stageKey !== stageFilter) return false
-        if (sourceFilter !== "all" && row.source !== sourceFilter) return false
-        if (practiceFilter !== "all" && row.practice !== practiceFilter) return false
-        if (seniorityFilter !== "all" && row.seniority !== seniorityFilter) return false
-        return true
-      }),
-    [practiceFilter, rows, seniorityFilter, sourceFilter, stageFilter],
-  )
+  const filteredRows = useMemo(() => {
+    const now = new Date()
+    let periodStart: Date | null = null
+    if (periodFilter === "week") {
+      periodStart = new Date(now)
+      periodStart.setDate(now.getDate() - now.getDay() + 1)
+      periodStart.setHours(0, 0, 0, 0)
+    } else if (periodFilter === "month") {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    } else if (periodFilter === "year") {
+      periodStart = new Date(now.getFullYear(), 0, 1)
+    }
+
+    return externalRows.filter((row) => {
+      if (stageFilter !== "all" && row.stageKey !== stageFilter) return false
+      if (hiringFilter === "oui" && !row.hasActiveHiringProcess) return false
+      if (hiringFilter === "non" && row.hasActiveHiringProcess) return false
+      if (practiceFilter !== "all" && row.practice !== practiceFilter) return false
+      if (seniorityFilter !== "all" && row.seniority !== seniorityFilter) return false
+      if (periodStart) {
+        const rowDate = new Date(row.updatedAt)
+        if (rowDate < periodStart) return false
+      }
+      return true
+    })
+  }, [externalRows, hiringFilter, periodFilter, practiceFilter, seniorityFilter, stageFilter])
 
   const activeFilterCount =
     (stageFilter !== "all" ? 1 : 0) +
-    (sourceFilter !== "all" ? 1 : 0) +
+    (hiringFilter !== "all" ? 1 : 0) +
+    (periodFilter !== "all" ? 1 : 0) +
     (practiceFilter !== "all" ? 1 : 0) +
     (seniorityFilter !== "all" ? 1 : 0)
 
   const resetFilters = () => {
     setStageFilter("all")
-    setSourceFilter("all")
+    setHiringFilter("all")
+    setPeriodFilter("all")
     setPracticeFilter("all")
     setSeniorityFilter("all")
   }
 
-  const activeRows = rows.filter((row) => !RECRUITMENT_TERMINAL_STATUSES.has(row.positioningStatus))
-  const distinctCandidates = new Set(rows.map((row) => row.candidateId)).size
-  const upcomingEvents = rows.reduce((count, row) => {
+  const activeRows = externalRows.filter((row) => !RECRUITMENT_TERMINAL_STATUSES.has(row.positioningStatus))
+  const distinctCandidates = new Set(externalRows.map((row) => row.candidateId)).size
+  const upcomingEvents = externalRows.reduce((count, row) => {
     return (
       count +
       row.planningMilestones.filter((milestone) => milestone.eventId && milestone.status === "planned")
@@ -301,17 +314,28 @@ export function RecruitmentWorkspace({
         ]}
       />
       <PageFilterSelect
-        id="recruitment-source-filter"
-        label="Source"
-        value={sourceFilter}
-        onChange={setSourceFilter}
+        id="recruitment-hiring-filter"
+        label="Recrutement"
+        value={hiringFilter}
+        onChange={setHiringFilter}
         className="sm:min-w-[8rem]"
         options={[
-          { value: "all", label: "Toutes les sources" },
-          ...sourceOptions.map((source) => ({
-            value: source,
-            label: getRecruitmentSourceLabel(source),
-          })),
+          { value: "all", label: "Tous" },
+          { value: "oui", label: "En cours" },
+          { value: "non", label: "Sans processus" },
+        ]}
+      />
+      <PageFilterSelect
+        id="recruitment-period-filter"
+        label="Période"
+        value={periodFilter}
+        onChange={setPeriodFilter}
+        className="sm:min-w-[8rem]"
+        options={[
+          { value: "all", label: "Toutes les périodes" },
+          { value: "week", label: "Cette semaine" },
+          { value: "month", label: "Ce mois" },
+          { value: "year", label: "Cette année" },
         ]}
       />
       <PageFilterSelect
@@ -408,14 +432,14 @@ export function RecruitmentWorkspace({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => openCreateEventDrawer()}
+                onClick={() => setNewCandidateDrawerOpen(true)}
                 leftIcon={
                   <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                 }
               >
-                Créer un événement
+                Nouveau candidat
               </Button>
             </div>
 
@@ -454,6 +478,7 @@ export function RecruitmentWorkspace({
           }}
           initialValues={eventInitialValues}
         />
+        <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
         <StaffingDrawer />
       </>
     )
@@ -474,14 +499,14 @@ export function RecruitmentWorkspace({
           <Button
             variant="primary"
             size="sm"
-            onClick={() => openCreateEventDrawer()}
+            onClick={() => setNewCandidateDrawerOpen(true)}
             leftIcon={
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
             }
           >
-            Créer un événement
+            Nouveau candidat
           </Button>
         }
         viewMode={viewMode}
@@ -511,6 +536,7 @@ export function RecruitmentWorkspace({
         }}
         initialValues={eventInitialValues}
       />
+      <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
       <StaffingDrawer />
     </>
   )

@@ -35,6 +35,9 @@ export type StructuredListProps<T> = {
   footer?: React.ReactNode
   ariaLabel: string
   className?: string
+  getRowStyle?: (item: T) => React.CSSProperties | undefined
+  /** Force table-layout: fixed so column widths are strictly respected (needed when aligning two separate tables) */
+  tableFixed?: boolean
 }
 
 // ─── Density tokens ───────────────────────────────────────────────────────────
@@ -83,6 +86,8 @@ export function StructuredList<T>({
   footer,
   ariaLabel,
   className,
+  getRowStyle,
+  tableFixed = false,
 }: StructuredListProps<T>) {
   const isClickable = Boolean(onItemClick)
   const rowPy   = ROW_PY[density]
@@ -159,7 +164,10 @@ export function StructuredList<T>({
   return (
     <div className={cn("overflow-x-auto", className)} aria-label={ariaLabel}>
       {header}
-      <table className="w-full border-collapse text-left text-xs">
+      <table
+        className="w-full border-collapse text-left text-xs"
+        style={tableFixed ? { tableLayout: "fixed" } : undefined}
+      >
         {headerRow}
         <tbody>
           {items.map((item) => {
@@ -182,6 +190,7 @@ export function StructuredList<T>({
                 }
                 tabIndex={isClickable ? 0 : undefined}
                 aria-selected={isSelected ? true : undefined}
+                style={getRowStyle?.(item)}
                 className={cn(
                   "border-b border-border/40 last:border-0",
                   isClickable && "kredo-hover-reference group",

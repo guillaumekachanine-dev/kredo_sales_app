@@ -20,7 +20,7 @@ export async function updateRecruitmentStatus({
 
   const { data: current, error: currentError } = await supabase
     .from("opportunity_candidates")
-    .select("status, sent_to_client_at")
+    .select("status, proposed_at, sent_to_client_at")
     .eq("id", id)
     .maybeSingle()
 
@@ -33,13 +33,28 @@ export async function updateRecruitmentStatus({
     return { error: "Positionnement introuvable." }
   }
 
+  const REQUIRES_PROPOSED_AT = new Set([
+    "propose_interne",
+    "envoye_client",
+    "entretien_planifie",
+    "entretien_realise",
+    "retenu",
+    "refuse_client",
+    "refuse_candidat",
+  ])
+
   const updatePayload: {
     status: string
     status_changed_at: string
+    proposed_at?: string
     sent_to_client_at?: string
   } = {
     status: nextStatus,
     status_changed_at: now,
+  }
+
+  if (REQUIRES_PROPOSED_AT.has(nextStatus) && !current.proposed_at) {
+    updatePayload.proposed_at = now
   }
 
   if (

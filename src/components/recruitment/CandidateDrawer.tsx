@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent, useMemo, useState } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
+import { HiringProcessStepper, findActiveProcess, type HiringProcess } from '@/components/recruitment/HiringProcessStepper'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +44,7 @@ export interface DrawerCandidateData {
     notes: string | null
     person_skills?: DrawerCandidateSkill[]
   } | null
+  candidate_hiring_processes?: HiringProcess[]
 }
 
 interface CandidateDrawerProps {
@@ -51,9 +53,9 @@ interface CandidateDrawerProps {
   onOpenChange: (open: boolean) => void
 }
 
-type Tab = 'synthese' | 'competences'
+type Tab = 'synthese' | 'competences' | 'recrutement'
 
-const TABS: { id: Tab; label: string }[] = [
+const BASE_TABS: { id: Tab; label: string }[] = [
   { id: 'synthese',    label: 'Synthèse' },
   { id: 'competences', label: 'Compétences' },
 ]
@@ -365,6 +367,13 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
             id, level, years, confidence, source,
             skill:skills ( id, name, category )
           )
+        ),
+        candidate_hiring_processes (
+          id, status, current_step, started_at, closed_at, close_reason,
+          job_profile:job_profiles ( id, title ),
+          candidate_hiring_milestones (
+            id, step, result, scheduled_at, completed_at, notes
+          )
         )
       `)
       .eq('id', nextCandidateId)
@@ -390,6 +399,13 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
     ? [drawerData.current_title, drawerData.seniority].filter(Boolean).join(' · ') || 'Candidat externe'
     : 'Candidat externe'
 
+  const hiringProcess = drawerData ? findActiveProcess(drawerData.candidate_hiring_processes ?? null) : null
+
+  const tabs = useMemo(() => {
+    if (!hiringProcess) return BASE_TABS
+    return [...BASE_TABS, { id: 'recrutement' as Tab, label: 'Recrutement' }]
+  }, [hiringProcess])
+
   return (
     <AppDrawer
       open={open}
@@ -404,7 +420,7 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
           style={{ borderColor: 'var(--color-border)' }}
           role="tablist"
         >
-          {TABS.map(({ id, label }) => {
+          {tabs.map(({ id, label }) => {
             const isActive = activeTab === id
             return (
               <button
@@ -455,6 +471,9 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
             <TabCompetences
               skills={drawerData.person?.person_skills ?? []}
             />
+          )}
+          {activeTab === 'recrutement' && hiringProcess && (
+            <HiringProcessStepper process={hiringProcess} />
           )}
         </div>
       )}

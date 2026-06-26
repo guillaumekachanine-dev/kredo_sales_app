@@ -55,6 +55,26 @@ export interface StaffingDrawerPerson {
   collaborators: StaffingDrawerCollaborator[]
 }
 
+export interface StaffingDrawerHiringMilestone {
+  id: string
+  step: string
+  result: string
+  scheduled_at: string | null
+  completed_at: string | null
+  notes: string | null
+}
+
+export interface StaffingDrawerHiringProcess {
+  id: string
+  status: string
+  current_step: string
+  started_at: string
+  closed_at: string | null
+  close_reason: string | null
+  job_profile: { id: string; title: string } | null
+  candidate_hiring_milestones: StaffingDrawerHiringMilestone[]
+}
+
 export interface StaffingDrawerCandidate {
   id: string
   status: string
@@ -65,6 +85,7 @@ export interface StaffingDrawerCandidate {
   expected_salary: number | null
   availability: string | null
   person: StaffingDrawerPerson | null
+  candidate_hiring_processes?: StaffingDrawerHiringProcess[]
 }
 
 export interface StaffingDrawerOpportunity {

@@ -7,7 +7,7 @@ import { useStaffingDrawerStore, type StaffingDrawerTab } from "@/hooks/use-staf
 import { StaffingDrawerHeader } from "./StaffingDrawerHeader"
 import { TabDetails } from "./TabDetails"
 import { TabRessources } from "./TabRessources"
-import { TabTimeline } from "./TabTimeline"
+import { HiringProcessStepper, findActiveProcess, type HiringProcess } from "@/components/recruitment/HiringProcessStepper"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
 
 // Drawer skeleton for loading state
@@ -86,6 +86,13 @@ export function StaffingDrawer() {
                     company:companies ( name )
                   )
                 )
+              ),
+              candidate_hiring_processes (
+                id, status, current_step, started_at, closed_at, close_reason,
+                job_profile:job_profiles ( id, title ),
+                candidate_hiring_milestones (
+                  id, step, result, scheduled_at, completed_at, notes
+                )
               )
             )
           `)
@@ -145,17 +152,20 @@ export function StaffingDrawer() {
     (drawerData?.candidate?.person?.collaborators && drawerData.candidate.person.collaborators.length > 0) || 
     false
 
-  const TABS = [
-    { id: "details" as const, label: "Détails" },
-    { id: "ressources" as const, label: "Ressources" },
-    { id: "timeline" as const, label: "Timeline" },
+  const hiringProcess = drawerData?.candidate?.candidate_hiring_processes
+    ? findActiveProcess(drawerData.candidate.candidate_hiring_processes as unknown as HiringProcess[])
+    : null
+
+  const TABS: { id: StaffingDrawerTab; label: string }[] = [
+    { id: "details", label: "Détails" },
+    { id: "ressources", label: "Ressources" },
+    ...(hiringProcess ? [{ id: "recrutement" as const, label: "Recrutement" }] : []),
   ]
 
   const handleTabChange = (tab: StaffingDrawerTab) => {
     setActiveTab(tab)
   }
 
-  // Sub-views depending on responsive device type
   const renderTabContent = () => {
     if (!drawerData) return null
 
@@ -164,8 +174,8 @@ export function StaffingDrawer() {
         return <TabDetails data={drawerData} isCollaborator={isCollaborator} />
       case "ressources":
         return <TabRessources data={drawerData} events={events} profiles={profiles} />
-      case "timeline":
-        return <TabTimeline data={drawerData} events={events} />
+      case "recrutement":
+        return hiringProcess ? <HiringProcessStepper process={hiringProcess} /> : null
       default:
         return null
     }

@@ -14,6 +14,8 @@ export interface EntityListViewProps<T> {
   onItemClick?: (item: T) => void
   ariaLabel: string
   emptyState?: React.ReactNode
+  getRowStyle?: (item: T) => React.CSSProperties | undefined
+  tableFixed?: boolean
 }
 
 export function EntityListView<T>({
@@ -24,6 +26,8 @@ export function EntityListView<T>({
   onItemClick,
   ariaLabel,
   emptyState,
+  getRowStyle,
+  tableFixed,
 }: EntityListViewProps<T>) {
   return (
     <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
@@ -35,6 +39,8 @@ export function EntityListView<T>({
         onItemClick={onItemClick}
         ariaLabel={ariaLabel}
         emptyState={emptyState}
+        getRowStyle={getRowStyle}
+        tableFixed={tableFixed}
       />
     </SurfaceCard>
   )

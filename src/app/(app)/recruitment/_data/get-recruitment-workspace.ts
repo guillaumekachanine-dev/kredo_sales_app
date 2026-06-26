@@ -80,6 +80,26 @@ type CalendarEventRecord = {
   company_id: string | null
 }
 
+type HiringMilestoneRecord = {
+  id: string
+  step: string
+  result: string
+  scheduled_at: string | null
+  completed_at: string | null
+  notes: string | null
+  calendar_event_id: string | null
+}
+
+type HiringProcessRecord = {
+  id: string
+  status: string
+  current_step: string
+  started_at: string
+  closed_at: string | null
+  candidate_id: string
+  candidate_hiring_milestones: HiringMilestoneRecord[]
+}
+
 export type RecruitmentPlanningMilestoneType =
   | "identification"
   | "prequalification"
@@ -131,6 +151,10 @@ export interface RecruitmentWorkspaceRow {
   clientName: string
   clientWebsite: string | null
   clientLogoPath: string | null
+  hiringProcessStatus: string | null
+  hiringCurrentStep: string | null
+  hiringStartedAt: string | null
+  hasActiveHiringProcess: boolean
   planningMilestones: RecruitmentPlanningMilestone[]
 }
 
@@ -181,9 +205,35 @@ function takeFirstMatchingEvent(
   return event ?? null
 }
 
+const HIRING_STEP_TO_MILESTONE_TYPE: Record<string, RecruitmentPlanningMilestoneType> = {
+  prequalification: "prequalification",
+  entretien_manager: "manager_interview",
+  tests_techniques: "tech_test",
+  proposition: "hiring_offer",
+  signature: "signature",
+  integration: "start",
+}
+
+const HIRING_STEP_LABELS: Record<string, string> = {
+  prequalification: "Préqualification",
+  entretien_manager: "Entretien manager",
+  tests_techniques: "Tests techniques",
+  proposition: "Proposition",
+  signature: "Signature",
+  integration: "Démarrage",
+}
+
+function hiringResultToStatus(result: string, dateValue: string): "completed" | "planned" | "cancelled" {
+  if (result === "annule") return "cancelled"
+  if (result === "valide") return "completed"
+  if (result === "refuse") return "cancelled"
+  return new Date(dateValue).getTime() > Date.now() ? "planned" : "completed"
+}
+
 function buildPlanningMilestones(
-  row: Omit<RecruitmentWorkspaceRow, "planningMilestones">,
+  row: Pick<RecruitmentWorkspaceRow, "id" | "createdAt" | "comment" | "opportunityTitle" | "opportunityStartDate">,
   scopedEvents: CalendarEventRecord[],
+  hiringProcesses: HiringProcessRecord[],
 ): RecruitmentPlanningMilestone[] {
   const milestones: RecruitmentPlanningMilestone[] = [
     {
@@ -196,101 +246,122 @@ function buildPlanningMilestones(
       eventId: null,
     },
   ]
-  const usedIds = new Set<string>()
 
-  const prequalification = takeFirstMatchingEvent(
-    scopedEvents,
-    usedIds,
-    (event, text) =>
-      event.event_type === "preparation_candidat" ||
-      (event.event_type === "entretien_candidat" &&
-        matchesAny(text, ["prequal", "préqual", "qualif", "fit", "culture", "sourcing"])),
-  )
+  const activeProcess =
+    hiringProcesses.find((p) => p.status === "active") ??
+    hiringProcesses.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
+    null
 
-  if (prequalification) {
-    milestones.push({
-      key: `${row.id}-prequalification`,
-      type: "prequalification",
-      label: "Préqualification",
-      date: prequalification.starts_at,
-      status: toMilestoneStatus(prequalification.starts_at, prequalification.status),
-      description: prequalification.description,
-      eventId: prequalification.id,
-    })
-  }
+  if (activeProcess && activeProcess.candidate_hiring_milestones.length > 0) {
+    for (const hm of activeProcess.candidate_hiring_milestones) {
+      const milestoneType = HIRING_STEP_TO_MILESTONE_TYPE[hm.step]
+      if (!milestoneType) continue
 
-  const managerInterview = takeFirstMatchingEvent(
-    scopedEvents,
-    usedIds,
-    (event, text) =>
-      event.event_type === "entretien_rh" ||
-      matchesAny(text, ["manager", "rh", "practice"]),
-  )
+      const dateValue = hm.completed_at ?? hm.scheduled_at
+      if (!dateValue) continue
 
-  if (managerInterview) {
-    milestones.push({
-      key: `${row.id}-manager`,
-      type: "manager_interview",
-      label: "Entretien manager",
-      date: managerInterview.starts_at,
-      status: toMilestoneStatus(managerInterview.starts_at, managerInterview.status),
-      description: managerInterview.description,
-      eventId: managerInterview.id,
-    })
-  }
+      milestones.push({
+        key: `${row.id}-hiring-${hm.id}`,
+        type: milestoneType,
+        label: HIRING_STEP_LABELS[hm.step] ?? hm.step,
+        date: dateValue,
+        status: hiringResultToStatus(hm.result, dateValue),
+        description: hm.notes,
+        eventId: hm.calendar_event_id,
+      })
+    }
+  } else {
+    const usedIds = new Set<string>()
 
-  const techTest = takeFirstMatchingEvent(
-    scopedEvents,
-    usedIds,
-    (_, text) => matchesAny(text, ["tech", "test", "coding", "case", "assessment"]),
-  )
+    const prequalification = takeFirstMatchingEvent(
+      scopedEvents,
+      usedIds,
+      (event, text) =>
+        event.event_type === "preparation_candidat" ||
+        (event.event_type === "entretien_candidat" &&
+          matchesAny(text, ["prequal", "préqual", "qualif", "fit", "culture", "sourcing"])),
+    )
+    if (prequalification) {
+      milestones.push({
+        key: `${row.id}-prequalification`,
+        type: "prequalification",
+        label: "Préqualification",
+        date: prequalification.starts_at,
+        status: toMilestoneStatus(prequalification.starts_at, prequalification.status),
+        description: prequalification.description,
+        eventId: prequalification.id,
+      })
+    }
 
-  if (techTest) {
-    milestones.push({
-      key: `${row.id}-tech`,
-      type: "tech_test",
-      label: "Tests techniques",
-      date: techTest.starts_at,
-      status: toMilestoneStatus(techTest.starts_at, techTest.status),
-      description: techTest.description,
-      eventId: techTest.id,
-    })
-  }
+    const managerInterview = takeFirstMatchingEvent(
+      scopedEvents,
+      usedIds,
+      (event, text) =>
+        event.event_type === "entretien_rh" ||
+        matchesAny(text, ["manager", "rh", "practice"]),
+    )
+    if (managerInterview) {
+      milestones.push({
+        key: `${row.id}-manager`,
+        type: "manager_interview",
+        label: "Entretien manager",
+        date: managerInterview.starts_at,
+        status: toMilestoneStatus(managerInterview.starts_at, managerInterview.status),
+        description: managerInterview.description,
+        eventId: managerInterview.id,
+      })
+    }
 
-  const hiringOffer = takeFirstMatchingEvent(
-    scopedEvents,
-    usedIds,
-    (_, text) => matchesAny(text, ["offre", "proposition", "proposal", "embauche"]),
-  )
+    const techTest = takeFirstMatchingEvent(
+      scopedEvents,
+      usedIds,
+      (_, text) => matchesAny(text, ["tech", "test", "coding", "case", "assessment"]),
+    )
+    if (techTest) {
+      milestones.push({
+        key: `${row.id}-tech`,
+        type: "tech_test",
+        label: "Tests techniques",
+        date: techTest.starts_at,
+        status: toMilestoneStatus(techTest.starts_at, techTest.status),
+        description: techTest.description,
+        eventId: techTest.id,
+      })
+    }
 
-  if (hiringOffer) {
-    milestones.push({
-      key: `${row.id}-offer`,
-      type: "hiring_offer",
-      label: "Proposition d'embauche",
-      date: hiringOffer.starts_at,
-      status: toMilestoneStatus(hiringOffer.starts_at, hiringOffer.status),
-      description: hiringOffer.description,
-      eventId: hiringOffer.id,
-    })
-  }
+    const hiringOffer = takeFirstMatchingEvent(
+      scopedEvents,
+      usedIds,
+      (_, text) => matchesAny(text, ["offre", "proposition", "proposal", "embauche"]),
+    )
+    if (hiringOffer) {
+      milestones.push({
+        key: `${row.id}-offer`,
+        type: "hiring_offer",
+        label: "Proposition d'embauche",
+        date: hiringOffer.starts_at,
+        status: toMilestoneStatus(hiringOffer.starts_at, hiringOffer.status),
+        description: hiringOffer.description,
+        eventId: hiringOffer.id,
+      })
+    }
 
-  const signature = takeFirstMatchingEvent(
-    scopedEvents,
-    usedIds,
-    (_, text) => matchesAny(text, ["signature", "contrat", "contract"]),
-  )
-
-  if (signature) {
-    milestones.push({
-      key: `${row.id}-signature`,
-      type: "signature",
-      label: "Signature",
-      date: signature.starts_at,
-      status: toMilestoneStatus(signature.starts_at, signature.status),
-      description: signature.description,
-      eventId: signature.id,
-    })
+    const signature = takeFirstMatchingEvent(
+      scopedEvents,
+      usedIds,
+      (_, text) => matchesAny(text, ["signature", "contrat", "contract"]),
+    )
+    if (signature) {
+      milestones.push({
+        key: `${row.id}-signature`,
+        type: "signature",
+        label: "Signature",
+        date: signature.starts_at,
+        status: toMilestoneStatus(signature.starts_at, signature.status),
+        description: signature.description,
+        eventId: signature.id,
+      })
+    }
   }
 
   if (row.opportunityStartDate) {
@@ -385,20 +456,33 @@ export async function getRecruitmentWorkspace() {
   })
 
   let eventsByCandidate = new Map<string, CalendarEventRecord[]>()
+  let hiringProcessesByCandidate = new Map<string, HiringProcessRecord[]>()
 
   if (candidateIds.length > 0) {
-    const { data: eventsData, error: eventsError } = await supabase
-      .from("calendar_events")
-      .select(
-        "id, title, event_type, status, starts_at, ends_at, description, candidate_id, opportunity_id, company_id",
-      )
-      .in("candidate_id", candidateIds)
-      .order("starts_at", { ascending: true })
+    const [eventsResult, hiringResult] = await Promise.all([
+      supabase
+        .from("calendar_events")
+        .select(
+          "id, title, event_type, status, starts_at, ends_at, description, candidate_id, opportunity_id, company_id",
+        )
+        .in("candidate_id", candidateIds)
+        .order("starts_at", { ascending: true }),
+      supabase
+        .from("candidate_hiring_processes")
+        .select(`
+          id, status, current_step, started_at, closed_at, candidate_id,
+          candidate_hiring_milestones (
+            id, step, result, scheduled_at, completed_at, notes, calendar_event_id
+          )
+        `)
+        .in("candidate_id", candidateIds)
+        .order("started_at", { ascending: false }),
+    ])
 
-    if (eventsError) {
-      console.error("[recruitment] Failed to load candidate events:", eventsError)
+    if (eventsResult.error) {
+      console.error("[recruitment] Failed to load candidate events:", eventsResult.error)
     } else {
-      eventsByCandidate = (eventsData ?? []).reduce<Map<string, CalendarEventRecord[]>>(
+      eventsByCandidate = (eventsResult.data ?? []).reduce<Map<string, CalendarEventRecord[]>>(
         (acc, event) => {
           if (!event.candidate_id) return acc
           const current = acc.get(event.candidate_id) ?? []
@@ -407,6 +491,22 @@ export async function getRecruitmentWorkspace() {
           return acc
         },
         new Map<string, CalendarEventRecord[]>(),
+      )
+    }
+
+    if (hiringResult.error) {
+      console.error("[recruitment] Failed to load hiring processes:", hiringResult.error)
+    } else {
+      hiringProcessesByCandidate = (hiringResult.data ?? []).reduce<Map<string, HiringProcessRecord[]>>(
+        (acc, process) => {
+          const cId = (process as unknown as HiringProcessRecord).candidate_id
+          if (!cId) return acc
+          const current = acc.get(cId) ?? []
+          current.push(process as unknown as HiringProcessRecord)
+          acc.set(cId, current)
+          return acc
+        },
+        new Map<string, HiringProcessRecord[]>(),
       )
     }
   }
@@ -457,7 +557,7 @@ export async function getRecruitmentWorkspace() {
       clientName: company?.name?.trim() || "Client inconnu",
       clientWebsite: company?.website ?? null,
       clientLogoPath: extractLogoPath(company?.metadata ?? null),
-    } satisfies Omit<RecruitmentWorkspaceRow, "planningMilestones">
+    } as Omit<RecruitmentWorkspaceRow, "planningMilestones" | "hiringProcessStatus" | "hiringCurrentStep" | "hiringStartedAt" | "hasActiveHiringProcess">
 
     const scopedEvents = (eventsByCandidate.get(candidateId) ?? []).filter((event) => {
       if (event.opportunity_id && event.opportunity_id === opportunity.id) return true
@@ -468,10 +568,24 @@ export async function getRecruitmentWorkspace() {
       return false
     })
 
+    const candidateHiringProcesses = hiringProcessesByCandidate.get(candidateId) ?? []
+    const activeHiringProcess =
+      candidateHiringProcesses.find((p) => p.status === "active") ?? null
+    const latestHiringProcess =
+      activeHiringProcess ??
+      candidateHiringProcesses.sort(
+        (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+      )[0] ??
+      null
+
     return [
       {
         ...baseRow,
-        planningMilestones: buildPlanningMilestones(baseRow, scopedEvents),
+        hiringProcessStatus: latestHiringProcess?.status ?? null,
+        hiringCurrentStep: latestHiringProcess?.current_step ?? null,
+        hiringStartedAt: latestHiringProcess?.started_at ?? null,
+        hasActiveHiringProcess: activeHiringProcess !== null,
+        planningMilestones: buildPlanningMilestones(baseRow, scopedEvents, candidateHiringProcesses),
       },
     ]
   })
