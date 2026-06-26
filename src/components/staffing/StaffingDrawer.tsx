@@ -71,7 +71,7 @@ export function StaffingDrawer() {
               company:companies ( id, name )
             ),
             candidate:candidates (
-              id, status, source, seniority, expected_daily_rate, expected_salary, availability,
+              id, status, source, current_title, seniority, expected_daily_rate, expected_salary, availability,
               person:persons (
                 id, first_name, last_name, full_name, primary_email, phone, linkedin_url, location, notes,
                 person_skills (

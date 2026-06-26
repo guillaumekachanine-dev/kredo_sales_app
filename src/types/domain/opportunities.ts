@@ -64,6 +64,7 @@ export type OpportunityStandingProfile = {
   id: string
   candidate_id: string
   full_name: string
+  currentTitle: string | null
   seniority: string | null
   availability: string | null
   mobility: string | null

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { normalizeCandidateSeniority, normalizeCurrentTitle } from "@/lib/candidates/profile"
 
 export type StaffingSourceType = "collaborator" | "candidate"
 
@@ -30,6 +31,7 @@ interface PersonHit {
 interface CandidateRow {
   id: string
   person_id: string
+  current_title: string | null
   seniority: string | null
   availability: string | null
   persons: {
@@ -125,7 +127,7 @@ export async function searchOpportunityStaffingProfiles(query: string, sourceTyp
     if (sourceType === "candidate") {
       const { data, error } = await supabase
         .from("candidates")
-        .select("id, person_id, seniority, availability, persons(full_name, first_name, last_name)")
+        .select("id, person_id, current_title, seniority, availability, persons(full_name, first_name, last_name)")
         .in("person_id", personIds)
         .limit(12)
 
@@ -141,7 +143,7 @@ export async function searchOpportunityStaffingProfiles(query: string, sourceTyp
           person_id: item.person_id,
           full_name: getPersonName(person),
           source_type: "candidate",
-          subtitle: [item.seniority, item.availability].filter(Boolean).join(" · ") || "Candidat",
+          subtitle: [item.current_title, item.seniority, item.availability].filter(Boolean).join(" · ") || "Candidat",
         }
       })
     }
@@ -192,7 +194,7 @@ export async function createOpportunityStaffing(input: CreateOpportunityStaffing
   if (input.source_type === "collaborator") {
     const { data: collaborator, error: collaboratorError } = await supabase
       .from("collaborators")
-      .select("person_id, seniority")
+      .select("person_id, current_title, seniority")
       .eq("id", input.source_id)
       .maybeSingle()
 
@@ -223,7 +225,8 @@ export async function createOpportunityStaffing(input: CreateOpportunityStaffing
         .from("candidates")
         .insert({
           person_id: collaborator.person_id,
-          seniority: collaborator.seniority,
+          current_title: normalizeCurrentTitle(collaborator.current_title),
+          seniority: normalizeCandidateSeniority(collaborator.seniority),
           status: "actif",
           source: "collaborateur",
         })

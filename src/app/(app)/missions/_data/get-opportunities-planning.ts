@@ -108,12 +108,12 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
         sent_to_client_at,
         candidates (
           id,
+          current_title,
           source,
           seniority,
           availability,
           expected_salary,
           person_id,
-          metadata,
           persons (
             id,
             full_name,
@@ -174,11 +174,8 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
           ? (String(person.full_name || "") || `${person.first_name || ""} ${person.last_name || ""}`.trim())
           : "Candidat sans nom"
 
-        const candMeta = cand?.metadata && typeof cand.metadata === "object" && !Array.isArray(cand.metadata)
-          ? cand.metadata as Record<string, unknown>
-          : null
-        const candidateTitle = candMeta
-          ? String(candMeta.title || candMeta.job_title || candMeta.current_title || "")
+        const candidateTitle = typeof cand?.current_title === "string" && cand.current_title.trim() !== ""
+          ? cand.current_title
           : null
 
         const profileTitle = cand?.source === "collaborateur" && collaborator

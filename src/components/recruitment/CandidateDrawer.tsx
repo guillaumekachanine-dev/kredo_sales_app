@@ -24,6 +24,7 @@ export interface DrawerCandidateSkill {
 export interface DrawerCandidateData {
   id: string
   status: string
+  current_title: string | null
   seniority: string | null
   availability: string | null
   expected_salary: number | null
@@ -155,7 +156,7 @@ function TabSynthese({ data }: { data: DrawerCandidateData }) {
         </p>
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold leading-snug" style={{ color: 'var(--color-heading)' }}>
-            Candidat externe
+            {data.current_title ?? 'Candidat externe'}
           </span>
           <StatusPill
             label={candidateStatusLabel(data.status)}
@@ -357,7 +358,7 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
     const { data, error } = await supabase
       .from('candidates')
       .select(`
-        id, status, seniority, availability, expected_salary, expected_daily_rate, summary, notes,
+        id, status, current_title, seniority, availability, expected_salary, expected_daily_rate, summary, notes,
         person:persons (
           id, full_name, first_name, last_name, primary_email, phone, linkedin_url, location, notes,
           person_skills (
@@ -385,7 +386,9 @@ export function CandidateDrawer({ candidateId, open, onOpenChange }: CandidateDr
   }, [open, candidateId])
 
   const name     = drawerData ? resolveFullName(drawerData) : '…'
-  const subtitle = drawerData?.seniority ? `Candidat · ${drawerData.seniority}` : 'Candidat externe'
+  const subtitle = drawerData
+    ? [drawerData.current_title, drawerData.seniority].filter(Boolean).join(' · ') || 'Candidat externe'
+    : 'Candidat externe'
 
   return (
     <AppDrawer

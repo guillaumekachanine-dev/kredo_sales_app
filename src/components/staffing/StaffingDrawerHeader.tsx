@@ -15,10 +15,10 @@ export function StaffingDrawerHeader({ data, isCollaborator }: StaffingDrawerHea
     `${person?.first_name || ""} ${person?.last_name || ""}`.trim() || 
     "Profil sans nom"
 
-  // Title: collaborator current_title, or candidate seniority + "Candidat"
+  // Title: collaborator current_title, or candidate current_title when available.
   const title = isCollaborator 
     ? person?.collaborators[0]?.current_title || "Collaborateur"
-    : person?.notes || "Candidat externe" // Fallback to candidate summary/notes or just "Candidat externe"
+    : data.candidate?.current_title || "Candidat externe"
 
   const priority = data.opportunity.priority || "normale"
   const priorityLower = priority.toLowerCase()

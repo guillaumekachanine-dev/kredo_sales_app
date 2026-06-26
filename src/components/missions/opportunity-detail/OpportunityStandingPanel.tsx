@@ -106,7 +106,7 @@ function StandingProfileList({
             <div className="min-w-0">
               <p className="text-xs font-semibold text-heading truncate">{profile.full_name}</p>
               <p className="text-[10px] text-muted capitalize">
-                {[profile.seniority, profile.availability].filter(Boolean).map(normalizeLabel).join(" · ") || "Profil candidat"}
+                {[profile.currentTitle, profile.seniority, profile.availability].filter(Boolean).map(normalizeLabel).join(" · ") || "Profil candidat"}
               </p>
             </div>
             {profile.internal_score !== null && (

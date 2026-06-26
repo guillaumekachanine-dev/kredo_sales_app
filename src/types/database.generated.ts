@@ -732,6 +732,7 @@ export type Database = {
         Row: {
           availability: string | null
           created_at: string
+          current_title: string | null
           expected_daily_rate: number | null
           expected_salary: number | null
           id: string
@@ -751,6 +752,7 @@ export type Database = {
         Insert: {
           availability?: string | null
           created_at?: string
+          current_title?: string | null
           expected_daily_rate?: number | null
           expected_salary?: number | null
           id?: string
@@ -770,6 +772,7 @@ export type Database = {
         Update: {
           availability?: string | null
           created_at?: string
+          current_title?: string | null
           expected_daily_rate?: number | null
           expected_salary?: number | null
           id?: string
@@ -2418,8 +2421,6 @@ export type Database = {
           weighted_gain: number | null
           win_reason: string | null
           workspace_id: string
-          rythme: string | null
-          budget: number | null
         }
         Insert: {
           acv?: number | null
@@ -2458,8 +2459,6 @@ export type Database = {
           weighted_gain?: number | null
           win_reason?: string | null
           workspace_id?: string
-          rythme?: string | null
-          budget?: number | null
         }
         Update: {
           acv?: number | null
@@ -2498,8 +2497,6 @@ export type Database = {
           weighted_gain?: number | null
           win_reason?: string | null
           workspace_id?: string
-          rythme?: string | null
-          budget?: number | null
         }
         Relationships: [
           {

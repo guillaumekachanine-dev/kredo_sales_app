@@ -127,6 +127,13 @@ export function TabDetails({ data, isCollaborator }: TabDetailsProps) {
             </div>
           )}
 
+          {!isCollaborator && data.candidate?.current_title && (
+            <div>
+              <span className="text-[10px] text-muted block select-none">Intitulé</span>
+              <span className="text-xs font-bold text-heading mt-0.5 block">{data.candidate.current_title}</span>
+            </div>
+          )}
+
           {isCollaborator && collaborator?.practice && (
             <div>
               <span className="text-[10px] text-muted block select-none">Practice de rattachement</span>

@@ -59,6 +59,7 @@ type CandidatePersonRelation = {
 
 type CandidateWithPerson = {
   id: string
+  current_title: string | null
   seniority: string | null
   availability: string | null
   mobility: string | null
@@ -243,7 +244,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
     if (candidateIds.length > 0) {
       const { data: candidatesData, error: candidatesError } = await supabase
         .from("candidates")
-        .select("id, seniority, availability, mobility, expected_daily_rate, source, summary, internal_score, status, persons(full_name, first_name, last_name)")
+        .select("id, current_title, seniority, availability, mobility, expected_daily_rate, source, summary, internal_score, status, persons(full_name, first_name, last_name)")
         .in("id", candidateIds)
 
       if (candidatesError) {
@@ -258,6 +259,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
             id: link.id,
             candidate_id: link.candidate_id,
             full_name: getPersonDisplayName(candidate.persons),
+            currentTitle: candidate.current_title,
             seniority: candidate.seniority,
             availability: candidate.availability,
             mobility: candidate.mobility,

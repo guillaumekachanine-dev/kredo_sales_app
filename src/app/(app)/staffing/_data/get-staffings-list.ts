@@ -1,0 +1,171 @@
+import { createClient } from "@/lib/supabase/server"
+
+export interface StaffingListRow {
+  id: string
+  status: string
+  proposedAt: string | null
+  sentToClientAt: string | null
+  updatedAt: string
+  positioningOrigin: string | null
+  comment: string | null
+  
+  // Person
+  personId: string
+  fullName: string
+  profileTitle: string | null
+  isCollaborator: boolean
+  collaboratorId: string | null
+  candidateId: string
+  
+  // Finance
+  salary: number | null // expected_salary for candidate, gross_annual for collaborator
+  targetTjm: number | null // expected_daily_rate for candidate, target_daily_rate of opportunity for collaborator
+  marginPct: number | null // target margin calculated if cjm & tjm are available
+  
+  // Opportunity
+  opportunityId: string
+  opportunityTitle: string
+  opportunityPriority: string
+  practice: string | null
+  clientName: string
+  clientWebsite: string | null
+  clientLogoPath: string | null
+  seniority: string | null
+}
+
+export async function getStaffingsList(): Promise<StaffingListRow[]> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("opportunity_candidates")
+      .select(`
+        id,
+        status,
+        proposed_at,
+        sent_to_client_at,
+        updated_at,
+        positioning_origin,
+        comment,
+        opportunity:opportunities (
+          id,
+          title,
+          priority,
+          practice,
+          target_daily_rate,
+          company:companies (
+            name,
+            website,
+            metadata
+          )
+        ),
+        candidate:candidates (
+          id,
+          current_title,
+          source,
+          seniority,
+          expected_daily_rate,
+          expected_salary,
+          person:persons (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            collaborators (
+              id,
+              current_title,
+              practice,
+              seniority,
+              compensation:collaborator_compensation (
+                gross_annual,
+                cjm,
+                effective_to
+              )
+            )
+          )
+        )
+      `)
+      .order("updated_at", { ascending: false })
+
+    if (error) {
+      console.error("Error fetching staffing list:", error)
+      return []
+    }
+
+    return (data ?? []).map((item: any) => {
+      const opportunity = item.opportunity
+      const company = opportunity?.company
+      const companyRecord = Array.isArray(company) ? company[0] : company
+      const compMeta = companyRecord?.metadata && typeof companyRecord.metadata === "object"
+        ? companyRecord.metadata as Record<string, any>
+        : null
+      const clientLogoPath = compMeta?.logo_path || null
+
+      const candidate = item.candidate
+      const person = candidate?.person
+      const fullName = person?.full_name || `${person?.first_name || ""} ${person?.last_name || ""}`.trim() || "Profil sans nom"
+      
+      const collaborator = person?.collaborators?.[0]
+      const isCollaborator = candidate?.source === "collaborateur" || !!collaborator
+
+      const activeCompensation = collaborator?.compensation?.find((c: any) => c.effective_to === null) || collaborator?.compensation?.[0]
+      const grossAnnual = activeCompensation?.gross_annual || null
+      const cjm = activeCompensation?.cjm || null
+
+      // Resolve profile title
+      const profileTitle = candidate?.current_title || null
+
+      // Resolve seniority
+      const seniority = isCollaborator
+        ? (collaborator?.seniority || null)
+        : (candidate?.seniority || null)
+
+      // Financials
+      const salary = isCollaborator ? grossAnnual : (candidate?.expected_salary || null)
+      
+      // Target TJM: expected rate for candidate, or opportunity rate for collaborator
+      const targetTjm = isCollaborator 
+        ? (opportunity?.target_daily_rate || null) 
+        : (candidate?.expected_daily_rate || null)
+
+      // Margin
+      let marginPct: number | null = null
+      if (isCollaborator && targetTjm && cjm) {
+        marginPct = Math.round(((targetTjm - cjm) / targetTjm) * 100)
+      }
+
+      return {
+        id: item.id,
+        status: item.status,
+        proposedAt: item.proposed_at,
+        sentToClientAt: item.sent_to_client_at,
+        updatedAt: item.updated_at,
+        positioningOrigin: item.positioning_origin,
+        comment: item.comment,
+        
+        personId: person?.id || "",
+        fullName,
+        profileTitle,
+        isCollaborator,
+        collaboratorId: collaborator?.id || null,
+        candidateId: candidate?.id || "",
+        
+        salary,
+        targetTjm,
+        marginPct,
+        
+        opportunityId: opportunity?.id || "",
+        opportunityTitle: opportunity?.title || "Besoin sans titre",
+        opportunityPriority: opportunity?.priority || "normale",
+        practice: opportunity?.practice || collaborator?.practice || null,
+        clientName: companyRecord?.name || "Client inconnu",
+        clientWebsite: companyRecord?.website || null,
+        clientLogoPath,
+        seniority,
+      }
+    })
+  } catch (err) {
+    console.error("Unhandled error in getStaffingsList:", err)
+    return []
+  }
+}

@@ -59,6 +59,7 @@ export interface StaffingDrawerCandidate {
   id: string
   status: string
   source: string | null
+  current_title: string | null
   seniority: string | null
   expected_daily_rate: number | null
   expected_salary: number | null
@@ -91,4 +92,3 @@ export interface StaffingDrawerViewModel {
   opportunity: StaffingDrawerOpportunity
   candidate: StaffingDrawerCandidate
 }
-
