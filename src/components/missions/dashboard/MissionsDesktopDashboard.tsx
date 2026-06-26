@@ -6,8 +6,6 @@ import { getPracticeByName } from "@/lib/config/practices"
 import { MissionsListRow } from "../MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { cn } from "@/lib/utils"
-import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { Trajectory2026Chart } from "./Trajectory2026Chart"
 import type { Trajectory2026Data } from "./trajectory-2026-types"
 
@@ -307,25 +305,8 @@ export function MissionsDesktopDashboard({
       <div className="flex items-center justify-between border-b border-border/60 pb-4 select-none">
         <div>
           <h1 className="text-xl font-bold font-heading text-heading tracking-tight">
-            Missions & Opportunités
+            Contrats actifs
           </h1>
-        </div>
-        
-        {/* Right side Header actions mirroring mockup */}
-        <div className="flex items-center gap-4">
-          <HeaderCalendar />
-          
-          <HeaderAlerts />
-
-          {/* User Avatar */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary border border-border flex items-center justify-center font-bold text-xs text-white">
-              GK
-            </div>
-            <svg className="w-3.5 h-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
         </div>
       </div>
 

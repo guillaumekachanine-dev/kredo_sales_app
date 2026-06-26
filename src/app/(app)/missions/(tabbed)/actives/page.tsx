@@ -1,17 +1,13 @@
 import { MissionsActivesContent } from "@/components/missions/MissionsActivesContent"
 import { NewMissionButton } from "@/components/missions/NewMissionButton"
 import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
-import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import { formatEuro, formatPct } from "@/lib/formatters"
 
 export const dynamic = "force-dynamic"
 
 export default async function MissionsActivesPage() {
-  const [allMissions, planningRows] = await Promise.all([
-    getMissionsList(),
-    getActiveMissionsPlanning(),
-  ])
+  const allMissions = await getMissionsList()
 
   const activeMissions = allMissions.filter((m) => m.status === "active")
 
@@ -29,7 +25,7 @@ export default async function MissionsActivesPage() {
     <div className="w-full max-w-7xl mx-auto px-6 py-8 flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-border w-full">
         <h1 className="text-2xl font-bold font-heading tracking-tight text-heading shrink-0">
-          Missions
+          Missions en cours
         </h1>
         <div className="flex-1 flex items-center justify-center">
           <div className="flex items-center justify-around divide-x divide-border/60 w-full max-w-2xl">
@@ -43,10 +39,7 @@ export default async function MissionsActivesPage() {
         </div>
       </div>
 
-      <MissionsActivesContent
-        missions={activeMissions}
-        planningRows={planningRows}
-      />
+      <MissionsActivesContent missions={activeMissions} />
     </div>
   )
 }

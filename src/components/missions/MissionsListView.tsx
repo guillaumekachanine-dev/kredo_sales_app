@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, FormEvent } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { SectionTab } from "@/lib/tabs/tab-types"
@@ -9,7 +10,9 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
 import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { getPracticeByName } from "@/lib/config/practices"
 import { cn } from "@/lib/utils"
+import { MissionsMobileListView } from "@/components/missions/MissionsMobileListView"
 
 export type MissionsListRow = {
   entityId: string
@@ -53,7 +56,43 @@ interface MissionsListViewProps {
   emptyMessage?: string
 }
 
-import { formatEuro, formatDateNumeric } from "@/lib/formatters"
+import { formatEuro } from "@/lib/formatters"
+
+const PRACTICE_IMAGE_BY_SLUG = {
+  "data-ia": "/images/practices/practice_data_ai.png",
+  "digital-cloud": "/images/practices/practice_cloud_computing.png",
+  "agile-pm": "/images/practices/practice_project_management.png",
+  cybersecurity: "/images/practices/practice_cybersecurite.png",
+  "qa-testing": "/images/practices/practice_qa_testing.png",
+} as const
+
+function formatDayMonth(date?: string | null) {
+  if (!date) return "—"
+
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return "—"
+
+  const day = String(parsed.getDate()).padStart(2, "0")
+  const month = String(parsed.getMonth() + 1).padStart(2, "0")
+  return `${day}/${month}`
+}
+
+function getMissionEndProgress(endDate?: string) {
+  if (!endDate) {
+    return { label: "Indéterminée", pct: 100, color: "bg-emerald-500" }
+  }
+
+  const end = new Date(endDate)
+  const now = new Date()
+  const diffTime = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays <= 0) return { label: "Terminée", pct: 100, color: "bg-slate-300" }
+  if (diffDays <= 15) return { label: "15 jours", pct: 20, color: "bg-amber-500" }
+  if (diffDays <= 30) return { label: "30 jours", pct: 40, color: "bg-amber-500" }
+  if (diffDays <= 60) return { label: "2 mois", pct: 60, color: "bg-blue-600" }
+  return { label: "3 mois +", pct: 85, color: "bg-emerald-500" }
+}
 
 // Pastille styles matching: OK (green), vigilance (yellow), danger (red)
 function getPastilleStyles(riskLevel?: "faible" | "modere" | "critique") {
@@ -152,6 +191,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
     {
       id: "client",
       header: "Client",
+      width: "12.5rem",
       render: (row) => (
         <div className="flex items-center gap-2.5">
           <CompanyLogo
@@ -167,6 +207,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
     {
       id: "intitule",
       header: "Intitulé",
+      width: "15rem",
       render: (row) => (
         <span className="font-semibold text-body group-hover:text-primary transition-colors duration-150">
           {row.title}
@@ -176,12 +217,35 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
     {
       id: "consultant",
       header: "Consultant",
-      render: (row) => <span className="text-body">{row.consultant ?? "—"}</span>,
+      width: "10.5rem",
+      render: (row) => {
+        const practice = getPracticeByName(row.practice)
+        const practiceImage = practice ? PRACTICE_IMAGE_BY_SLUG[practice.slug] : null
+        const practiceTitle = practice?.name
+        const practiceLabel = practice?.shortName ?? ""
+
+        return (
+          <div className="flex items-center gap-2 min-w-0">
+            {practiceImage ? (
+              <Image
+                src={practiceImage}
+                alt={practiceLabel}
+                width={18}
+                height={18}
+                className="shrink-0 rounded-sm"
+                title={practiceTitle}
+              />
+            ) : null}
+            <span className="truncate text-body">{row.consultant ?? "—"}</span>
+          </div>
+        )
+      },
     },
     {
       id: "tarif",
       header: "Tarif",
       align: "right",
+      width: "5.75rem",
       render: (row) => (
         <span className="font-medium text-heading">
           {row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}
@@ -192,10 +256,11 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
       id: "marge",
       header: "Marge",
       align: "right",
+      width: "5.5rem",
       render: (row) => (
         <span className="font-medium text-heading">
           {row.grossMarginPct !== null && row.grossMarginPct !== undefined
-            ? `${row.grossMarginPct} %`
+            ? `${Math.round(row.grossMarginPct)} %`
             : "—"}
         </span>
       ),
@@ -204,30 +269,30 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
       id: "date-debut",
       header: "Date début",
       align: "center",
-      render: (row) => <span className="text-body">{formatDateNumeric(row.startDate)}</span>,
+      width: "5.5rem",
+      render: (row) => <span className="text-body">{formatDayMonth(row.startDate)}</span>,
     },
     {
       id: "date-fin",
       header: "Date fin",
       align: "center",
-      render: (row) => <span className="text-body">{formatDateNumeric(row.endDate)}</span>,
+      width: "5.5rem",
+      render: (row) => <span className="text-body">{formatDayMonth(row.endDate)}</span>,
     },
     {
-      id: "statut",
-      header: "Statut",
+      id: "fin-mission",
+      header: <span className="whitespace-nowrap">Fin de mission</span>,
       align: "center",
+      width: "10rem",
       render: (row) => {
-        const style = getPastilleStyles(row.riskLevel)
+        const progress = getMissionEndProgress(row.endDate)
         return (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
-              style.bg,
-            )}
-          >
-            <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
-            {style.label}
-          </span>
+          <div className="flex w-[9rem] flex-col gap-1 justify-self-center">
+            <span className="text-[10px] text-body">{progress.label}</span>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className={progress.color} style={{ width: `${progress.pct}%`, height: "100%" }} />
+            </div>
+          </div>
         )
       },
     },
@@ -251,6 +316,26 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
           </svg>
         </button>
       ),
+    },
+    {
+      id: "statut",
+      header: "Statut",
+      align: "right",
+      width: "6.5rem",
+      render: (row) => {
+        const style = getPastilleStyles(row.riskLevel)
+        return (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border uppercase tracking-wider select-none",
+              style.bg,
+            )}
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
+            {style.label}
+          </span>
+        )
+      },
     },
   ]
 
@@ -278,102 +363,11 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
       </div>
 
       {/* Mobile view (cards) - Mobile-First & Integrally Readable */}
-      <div className="md:hidden flex flex-col gap-3">
-        {rows.map((row) => {
-          const style = getPastilleStyles(row.riskLevel)
-          return (
-            <div
-              key={row.entityId}
-              onClick={() =>
-                openTab({
-                  entityType: row.entityType,
-                  entityId: row.entityId,
-                  title: row.entityType === "opportunite" ? (row.client ?? row.title) : row.title,
-                  subtitle: row.entityType === "opportunite" ? row.title : row.subtitle,
-                })
-              }
-              className={cn(
-                "bg-surface border border-border/50 rounded-[var(--radius-medium)] p-4 flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all"
-              )}
-            >
-              {/* Row 1: Client logo + name, and risk level */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <CompanyLogo
-                    name={row.client || "Client"}
-                    logoPath={row.clientLogoPath}
-                    website={row.clientWebsite}
-                    size="sm"
-                  />
-                  <span className="font-bold text-heading text-xs">{row.client ?? "—"}</span>
-                </div>
-                
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider select-none shrink-0",
-                    style.bg
-                  )}
-                >
-                  <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", style.dot)} />
-                  {style.label}
-                </span>
-              </div>
-
-              {/* Row 2: Title and Edit pencil button */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col min-w-0">
-                  <h4 className="font-semibold text-body text-xs leading-snug group-hover:text-primary transition-colors duration-150">
-                    {row.title}
-                  </h4>
-                  <p className="text-[10px] text-muted mt-0.5">
-                    Consultant : <span className="font-medium text-body">{row.consultant ?? "—"}</span>
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleEditClick(row)
-                  }}
-                  className="p-1.5 text-muted hover:text-primary hover:bg-primary/5 rounded transition-all duration-150 shrink-0 self-start border border-transparent hover:border-border/60"
-                  title="Modifier la mission"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Row 3: Grid KPIs (TJM, Marge, Dates) */}
-              <div className="flex flex-col gap-2 bg-canvas/30 p-2.5 rounded-[var(--radius-medium)] border border-border/40 text-[10px] text-body">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">TJM</span>
-                    <span className="font-extrabold text-heading">{row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}</span>
-                  </div>
-                  <div className="flex flex-col border-l border-border/30 pl-2">
-                    <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">Marge</span>
-                    <span className="font-extrabold text-heading">
-                      {row.grossMarginPct !== null && row.grossMarginPct !== undefined
-                        ? `${row.grossMarginPct} %`
-                        : "—"}
-                    </span>
-                  </div>
-                </div>
-                <div className="border-t border-border/20 pt-2 flex items-center gap-1.5 text-muted-foreground text-[9px]">
-                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span>
-                    Période : <span className="font-semibold text-body">{formatDateNumeric(row.startDate)} au {formatDateNumeric(row.endDate)}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <MissionsMobileListView
+        rows={rows}
+        emptyMessage={emptyMessage}
+        onEditClick={handleEditClick}
+      />
 
       {/* Rapid Edit Dialog */}
       <AppDialog

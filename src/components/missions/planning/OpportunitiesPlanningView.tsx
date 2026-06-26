@@ -1,6 +1,10 @@
 "use client"
 
 import React, { useMemo, useState } from "react"
+import {
+  EntityPlanningView,
+  type EntityPlanningColumn,
+} from "@/components/common/EntityPlanningView"
 import { cn } from "@/lib/utils"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
@@ -24,17 +28,11 @@ interface OpportunitiesPlanningViewProps {
   scale?: "year" | "quarter" | "month" | "week"
 }
 
-type TimelineColumn = {
-  key: string
-  label: string
-  isCurrent: boolean
-}
-
 type TimelineRange = {
   start: Date
   end: Date
   totalDays: number
-  columns: TimelineColumn[]
+  columns: EntityPlanningColumn[]
 }
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
@@ -497,15 +495,6 @@ export function OpportunitiesPlanningView({
       .filter((row) => row.milestones.length > 0)
   }, [opportunities, range, today])
 
-  const gridStyle = {
-    gridTemplateColumns: `${LABEL_COLUMN_WIDTH}px minmax(${range.columns.length * MONTH_COLUMN_WIDTH}px, 1fr)`,
-    minWidth: `${LABEL_COLUMN_WIDTH + range.columns.length * MONTH_COLUMN_WIDTH}px`,
-  }
-
-  const monthGridStyle = {
-    gridTemplateColumns: `repeat(${range.columns.length}, minmax(${MONTH_COLUMN_WIDTH}px, 1fr))`,
-  }
-
   const todayOffset = getPercentOffset(today, range.start, range.totalDays)
   const showToday = todayOffset >= 0 && todayOffset <= 100
   const todayLeft = `${clampPercent(todayOffset)}%`
@@ -531,158 +520,111 @@ export function OpportunitiesPlanningView({
   }
 
   return (
-    <div className="flex flex-col gap-5 select-none relative">
-      
-      {/* Timeline Grid Table */}
-      <div className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface shadow-sm">
-        
-        {/* Table Header */}
-        <div className="grid border-b border-border/80" style={gridStyle}>
-          <div className="sticky left-0 z-30 flex h-11 items-center border-r border-border bg-surface px-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
-              Opportunité / Compte
-            </span>
+    <div className="relative flex flex-col gap-5 select-none">
+      <EntityPlanningView
+        rows={mappedRows}
+        columns={range.columns}
+        getRowId={(row) => row.opp.id}
+        labelColumnHeader="Opportunité / Compte"
+        labelColumnWidth={LABEL_COLUMN_WIDTH}
+        timelineColumnMinWidth={MONTH_COLUMN_WIDTH}
+        currentMarkerLeft={showToday ? todayLeft : null}
+        emptyState={
+          <div>
+            <p className="text-sm font-semibold text-heading">Aucun planning disponible</p>
+            <p className="mt-1 text-xs text-muted">Aucune opportunité ne possède de jalon sur cette période.</p>
           </div>
-
-          <div className="relative bg-surface">
-            <div className="grid" style={monthGridStyle}>
-              {range.columns.map((col) => (
-                <div
-                  key={col.key}
-                  className={cn(
-                    "flex h-11 items-center justify-center border-r border-border/70 text-[10px] font-bold tracking-[0.18em] last:border-r-0 px-2 text-center",
-                    col.isCurrent ? "text-primary font-extrabold" : "text-muted"
-                  )}
-                >
-                  {col.label}
-                </div>
-              ))}
+        }
+        renderRowLabel={({ opp }) => (
+          <div className="flex min-w-0 items-center gap-2.5">
+            <CompanyLogo
+              name={opp.client || "Client"}
+              logoPath={opp.clientLogoPath}
+              website={opp.clientWebsite}
+              size="sm"
+            />
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <button
+                type="button"
+                onClick={() =>
+                  openTab({
+                    entityType: "opportunite",
+                    entityId: opp.id,
+                    title: opp.client ?? opp.title,
+                    subtitle: opp.title,
+                  })
+                }
+                className="block max-w-full truncate text-left text-[11px] font-bold text-heading transition-colors hover:text-primary"
+              >
+                {opp.title}
+              </button>
+              <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-muted">
+                <span className="truncate font-semibold text-heading/70">{opp.client}</span>
+                <span>•</span>
+                <span className="shrink-0 font-bold text-primary">
+                  {opp.candidates.length} staffing{opp.candidates.length > 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
-
-            {/* Ligne Rouge Aujourd'hui */}
-            {showToday && (
+          </div>
+        )}
+        renderTimelineRow={({ opp, milestones, firstOffset, lastOffset }) => (
+          <>
+            {showToday ? (
               <div
-                className="absolute inset-y-0 z-20 w-px bg-danger/80"
+                className="pointer-events-none absolute inset-y-0 z-10 w-px bg-danger/10 group-hover:bg-danger/25"
                 style={{ left: todayLeft }}
                 aria-hidden="true"
               />
-            )}
-          </div>
-        </div>
+            ) : null}
 
-        {/* Table Body */}
-        <div className="divide-y divide-border/60">
-          {mappedRows.map(({ opp, milestones, firstOffset, lastOffset }) => (
             <div
-              key={opp.id}
-              className="group grid min-h-[56px] hover:bg-canvas/30 transition-colors duration-150"
-              style={gridStyle}
+              className="pointer-events-none absolute inset-0 grid"
+              style={{ gridTemplateColumns: `repeat(${range.columns.length}, minmax(${MONTH_COLUMN_WIDTH}px, 1fr))` }}
             >
-              {/* Colonne d'identité gauche avec logo, titre réduit et staffings */}
-              <div className="sticky left-0 z-30 flex items-center gap-2.5 border-r border-border bg-surface px-4 py-2 min-w-0">
-                <CompanyLogo
-                  name={opp.client || "Client"}
-                  logoPath={opp.clientLogoPath}
-                  website={opp.clientWebsite}
-                  size="sm"
-                />
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openTab({
-                        entityType: "opportunite",
-                        entityId: opp.id,
-                        title: opp.client ?? opp.title,
-                        subtitle: opp.title,
-                      })
-                    }
-                    className="text-left font-bold text-[11px] text-heading hover:text-primary transition-colors truncate block max-w-full"
-                  >
-                    {opp.title}
-                  </button>
-                  <div className="flex items-center gap-1.5 mt-0.5 truncate text-[10px] text-muted">
-                    <span className="font-semibold text-heading/70 truncate">{opp.client}</span>
-                    <span>•</span>
-                    <span className="font-bold text-primary shrink-0">
-                      {opp.candidates.length} staffing{opp.candidates.length > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {range.columns.map((col) => (
+                <div key={col.key} className="h-full border-r border-border/40 last:border-r-0" />
+              ))}
+            </div>
 
-              {/* Colonne Timeline droite */}
-              <div className="relative flex items-center bg-surface">
-                {/* Ligne Rouge Aujourd'hui */}
-                {showToday && (
-                  <div
-                    className="absolute inset-y-0 z-10 w-px bg-danger/10 group-hover:bg-danger/25 pointer-events-none"
-                    style={{ left: todayLeft }}
-                    aria-hidden="true"
-                  />
-                )}
+            <div className="pointer-events-none absolute left-6 right-6 h-0.5 bg-border/60" />
 
-                {/* Grille de fond des colonnes */}
-                <div className="absolute inset-0 grid pointer-events-none" style={monthGridStyle}>
-                  {range.columns.map((col) => (
-                    <div key={col.key} className="border-r border-border/40 h-full last:border-r-0" />
-                  ))}
-                </div>
+            {milestones.length > 1 ? (
+              <div
+                className="pointer-events-none absolute h-0.8 bg-primary/20"
+                style={{
+                  left: `calc(${firstOffset}% + 6px)`,
+                  width: `calc(${lastOffset - firstOffset}% - 12px)`,
+                }}
+              />
+            ) : null}
 
-                {/* Ligne horizontale de fond de l'opportunité */}
-                <div className="absolute h-0.5 left-6 right-6 bg-border/60 pointer-events-none" />
-
-                {/* Segment de couleur active reliant le premier au dernier jalon */}
-                {milestones.length > 1 && (
-                  <div
-                    className="absolute h-0.8 bg-primary/20 pointer-events-none"
-                    style={{
-                      left: `calc(${firstOffset}% + 6px)`,
-                      width: `calc(${lastOffset - firstOffset}% - 12px)`,
-                    }}
-                  />
-                )}
-
-                {/* Les Jalons (Milestones) */}
-                <div className="absolute inset-x-6 h-full flex items-center">
-                  <div className="relative w-full h-6">
-                    {milestones.map((m) => {
-                      const offset = clampPercent(getPercentOffset(m.date, range.start, range.totalDays))
-                      return (
-                        <div
-                          key={m.key}
-                          onMouseEnter={(e) => handleMilestoneMouseEnter(m, opp.title, opp.client, e)}
-                          onMouseLeave={handleMilestoneMouseLeave}
-                          className={cn(
-                            "absolute top-1/2 -translate-x-1/2 -translate-y-1/2",
-                            "w-6 h-6 flex items-center justify-center rounded-full border shadow-sm cursor-help",
-                            "transition-transform duration-150 hover:scale-125 z-20",
-                            m.color
-                          )}
-                          style={{ left: `${offset}%` }}
-                        >
-                          <MilestoneIcon name={m.iconName} />
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
+            <div className="absolute inset-x-6 flex h-full items-center">
+              <div className="relative h-6 w-full">
+                {milestones.map((milestone) => {
+                  const offset = clampPercent(getPercentOffset(milestone.date, range.start, range.totalDays))
+                  return (
+                    <div
+                      key={milestone.key}
+                      onMouseEnter={(event) =>
+                        handleMilestoneMouseEnter(milestone, opp.title, opp.client, event)
+                      }
+                      onMouseLeave={handleMilestoneMouseLeave}
+                      className={cn(
+                        "absolute top-1/2 z-20 flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 cursor-help items-center justify-center rounded-full border shadow-sm transition-transform duration-150 hover:scale-125",
+                        milestone.color,
+                      )}
+                      style={{ left: `${offset}%` }}
+                    >
+                      <MilestoneIcon name={milestone.iconName} />
+                    </div>
+                  )
+                })}
               </div>
             </div>
-          ))}
-
-          {mappedRows.length === 0 && (
-            <div className="flex h-40 items-center justify-center text-center bg-surface">
-              <div>
-                <p className="text-sm font-semibold text-heading">Aucun planning disponible</p>
-                <p className="text-xs text-muted mt-1">Aucune opportunité ne possède de jalon sur cette période.</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-      </div>
+          </>
+        )}
+      />
 
       {/* Légende en bas de page */}
       <div className="rounded-[var(--radius-medium)] border border-border bg-surface px-5 py-4 shadow-sm">

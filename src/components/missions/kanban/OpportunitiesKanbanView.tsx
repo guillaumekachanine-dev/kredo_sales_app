@@ -1,331 +1,205 @@
 "use client"
 
-import React, { useState } from "react"
-import { cn } from "@/lib/utils"
-import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
-import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
+import React from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { EntityKanbanCard } from "@/components/common/EntityKanbanCard"
+import {
+  EntityKanbanView,
+  type EntityKanbanColumn,
+} from "@/components/common/EntityKanbanView"
+import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
+import { formatEuroCompact, formatDate } from "@/lib/formatters"
 import {
   getOpportunityStageColor,
   OPPORTUNITY_KANBAN_STAGES,
 } from "@/lib/opportunities/stages"
-import { formatEuroCompact, formatDate } from "@/lib/formatters"
-import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
+import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { cn } from "@/lib/utils"
 
 interface OpportunitiesKanbanViewProps {
   opportunities: OpportunityPlanningData[]
   onMoveOpportunity: (id: string, newStage: string) => Promise<void>
   displayMode: "opportunities" | "consultants"
-  onOpenCollaborator: (id: string) => void
-  onOpenCandidate: (id: string) => void
 }
 
-const COLUMNS = OPPORTUNITY_KANBAN_STAGES.map((stage) => ({
+const COLUMNS: EntityKanbanColumn<string>[] = OPPORTUNITY_KANBAN_STAGES.map((stage) => ({
   key: stage.value,
   label: stage.label,
 }))
-
-// ─── COMPOSANT COLONNE DU KANBAN ─────────────────────────────────────────────
-
-interface KanbanColumnProps {
-  stageKey: string
-  label: string
-  opportunities: OpportunityPlanningData[]
-  onMoveOpportunity: (id: string, newStage: string) => Promise<void>
-  onCardClick: (opp: OpportunityPlanningData) => void
-  draggedId: string | null
-  setDraggedId: (id: string | null) => void
-  displayMode: "opportunities" | "consultants"
-  onOpenCollaborator: (id: string) => void
-  onOpenCandidate: (id: string) => void
-}
-
-function KanbanColumn({
-  stageKey,
-  label,
-  opportunities,
-  onMoveOpportunity,
-  onCardClick,
-  draggedId,
-  setDraggedId,
-  displayMode,
-  onOpenCollaborator,
-  onOpenCandidate,
-}: KanbanColumnProps) {
-  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
-  const [isDragOver, setIsDragOver] = useState(false)
-
-  const accentColor = getOpportunityStageColor(stageKey)
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragOver(false)
-  }
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    const id = e.dataTransfer.getData("opportunityId")
-    if (id && draggedId === id) {
-      setDraggedId(null)
-      await onMoveOpportunity(id, stageKey)
-    }
-  }
-
-  return (
-    <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={cn(
-        "flex flex-col flex-1 min-w-[200px] max-w-[280px] rounded-2xl border bg-surface/60 p-3 transition-all duration-200 select-none",
-        isDragOver ? "border-primary bg-primary/5 ring-2 ring-primary/10 shadow-lg scale-[1.01]" : "border-border"
-      )}
-    >
-      {/* En-tête coloré — couleur pipeline pleine vivacité, séparateur sous le header */}
-      <div
-        className="flex items-center justify-between mb-3 pb-2.5 px-1 border-b"
-        style={{ borderBottomColor: accentColor }}
-      >
-        <span
-          className="text-[13px] font-bold"
-          style={{ color: accentColor }}
-        >
-          {label}
-        </span>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-          style={{ color: accentColor }}
-        >
-          {opportunities.length}
-        </span>
-      </div>
-
-      {/* Zone de dépôt des cartes */}
-      <div className="flex flex-col gap-3 overflow-y-auto max-h-[640px] pr-1 py-1 custom-scrollbar">
-        {opportunities.map((opp) => (
-          <div
-            key={opp.id}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData("opportunityId", opp.id)
-              setDraggedId(opp.id)
-              e.currentTarget.style.opacity = "0.4"
-            }}
-            onDragEnd={(e) => {
-              setDraggedId(null)
-              e.currentTarget.style.opacity = "1"
-            }}
-            onClick={() => onCardClick(opp)}
-            className="w-full h-[162px] perspective-1000 cursor-grab active:cursor-grabbing select-none"
-          >
-            <div
-              className={cn(
-                "relative w-full h-full duration-500 transform-style-3d transition-transform ease-out-back",
-                displayMode === "consultants" ? "rotate-y-180" : ""
-              )}
-            >
-              {/* Face Avant (Opportunité) */}
-              <div className="absolute inset-0 backface-hidden w-full h-full flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-sm hover:border-primary/50 hover:shadow-md transition-all duration-150">
-                {/* Haut de la carte : Logo, Client et Titre (Compact) */}
-                <div className="flex items-start justify-between gap-2 min-w-0">
-                  <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <CompanyLogo
-                      name={opp.client || "Client"}
-                      logoPath={opp.clientLogoPath}
-                      website={opp.clientWebsite}
-                      size="sm"
-                      className="shrink-0 mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0 flex flex-col items-start">
-                      <span className="text-[9px] font-bold text-muted uppercase tracking-wider truncate block max-w-full">
-                        {opp.client}
-                      </span>
-                      <h4 className="font-bold text-[11px] text-heading leading-tight hover:text-primary transition-colors truncate block max-w-full mt-0.5" title={opp.title}>
-                        {opp.title}
-                      </h4>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 gap-1.5 items-center mt-1">
-                    {opp.priority === "haute" && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" title="Priorité haute" />
-                    )}
-                    {opp.priority === "normale" && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-muted" title="Priorité normale" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Informations principales (métadonnées) */}
-                <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-border/50 pt-2.5 text-[10px]">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Valeur (ACV)</span>
-                    <span className="font-semibold text-heading mt-0.5">{formatEuroCompact(opp.acv || opp.estimatedGain)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Date cible</span>
-                    <span className="font-semibold text-heading mt-0.5">{formatDate(opp.targetCloseDate || opp.startDate)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Staffing</span>
-                    <span className="font-semibold text-primary mt-0.5">
-                      {opp.candidates.length} profil{opp.candidates.length > 1 ? "s" : ""} poussé{opp.candidates.length > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Conviction</span>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <div className="h-1 w-10 overflow-hidden rounded-full bg-border">
-                        <div
-                          className="h-full rounded-full bg-primary/70"
-                          style={{ width: `${opp.conviction}%` }}
-                        />
-                      </div>
-                      <span className="font-bold text-heading">{opp.conviction}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Face Arrière (Consultants) */}
-              <div className="absolute inset-0 backface-hidden rotate-y-180 w-full h-full flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm hover:border-primary/50 hover:shadow-md transition-all duration-150 overflow-hidden">
-                {/* Header (Logo + Client + Small Opp title) - Mêmes styles que face avant */}
-                <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2 min-w-0">
-                  <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <CompanyLogo
-                      name={opp.client || "Client"}
-                      logoPath={opp.clientLogoPath}
-                      website={opp.clientWebsite}
-                      size="sm"
-                      className="shrink-0 mt-0.5"
-                    />
-                    <div className="flex-1 min-w-0 flex flex-col items-start">
-                      <span className="text-[9px] font-bold text-muted uppercase tracking-wider truncate block max-w-full">
-                        {opp.client}
-                      </span>
-                      <span className="text-[10px] font-bold text-heading leading-tight truncate block max-w-full mt-0.5" title={opp.title}>
-                        {opp.title}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 gap-1.5 items-center mt-1">
-                    {opp.priority === "haute" && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" title="Priorité haute" />
-                    )}
-                    {opp.priority === "normale" && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-muted" title="Priorité normale" />
-                    )}
-                  </div>
-                </div>
-
-                {/* Consultants/Staffings list */}
-                <div className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-0.5">
-                  {opp.candidates.length > 0 ? (
-                    opp.candidates.map((cand) => (
-                      <div key={cand.id} className="flex flex-col gap-0.5 py-1 border-b border-border/20 last:border-b-0">
-                        <div className="flex items-center justify-between gap-1.5 min-w-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openStaffingDrawer(cand.id);
-                            }}
-                            className="text-[10px] font-bold text-heading hover:text-primary hover:underline truncate text-left flex-1 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
-                            title={cand.fullName}
-                          >
-                            {cand.fullName}
-                          </button>
-                          <span className={cn(
-                            "text-[7px] font-extrabold px-1 py-0.2 rounded shrink-0 border uppercase tracking-wider",
-                            cand.source === "collaborateur"
-                              ? "bg-primary/5 border-primary/10 text-primary"
-                              : "bg-brand-brass/5 border-brand-brass/10 text-brand-brass"
-                          )}>
-                            {cand.source === "collaborateur" ? "Interne" : "Recrutement"}
-                          </span>
-                        </div>
-                        <div className="text-[9px] text-muted truncate text-left">
-                          {cand.profileTitle || (cand.source === "collaborateur" 
-                            ? "Collaborateur" 
-                            : (cand.expectedSalary 
-                              ? `Salaire : ${cand.expectedSalary.toLocaleString('fr-FR')} €` 
-                              : "Salaire : —"
-                            )
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-muted py-2">
-                      <span className="text-[9px] italic">Aucun staffing</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {opportunities.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 border border-dashed border-border/50 rounded-xl bg-canvas/30 text-muted">
-            <span className="text-[10px] font-medium">Déposer une carte ici</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── COMPOSANT PRINCIPAL KANBAN ───────────────────────────────────────────────
 
 export function OpportunitiesKanbanView({
   opportunities,
   onMoveOpportunity,
   displayMode,
-  onOpenCollaborator,
-  onOpenCandidate,
 }: OpportunitiesKanbanViewProps) {
   const { openTab } = useMissionsTabStore()
-  const [draggedId, setDraggedId] = useState<string | null>(null)
-
-  const handleCardClick = (opp: OpportunityPlanningData) => {
-    openTab({
-      entityType: "opportunite",
-      entityId: opp.id,
-      title: opp.client ?? opp.title,
-      subtitle: opp.title,
-    })
-  }
-
-  // Filtrer les opportunités pour ne garder que celles qui correspondent à l'un des 5 statuts Kanban
-  const validOpportunities = opportunities.filter((o) =>
-    COLUMNS.some((col) => col.key === o.stage)
-  )
+  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4 pr-1 scrollbar-thin select-none min-h-[500px]">
-      {COLUMNS.map((col) => {
-        const oppsInCol = validOpportunities.filter((o) => o.stage === col.key)
-        return (
-          <KanbanColumn
-            key={col.key}
-            stageKey={col.key}
-            label={col.label}
-            opportunities={oppsInCol}
-            onMoveOpportunity={onMoveOpportunity}
-            onCardClick={handleCardClick}
-            draggedId={draggedId}
-            setDraggedId={setDraggedId}
-            displayMode={displayMode}
-            onOpenCollaborator={onOpenCollaborator}
-            onOpenCandidate={onOpenCandidate}
-          />
-        )
-      })}
-    </div>
+    <EntityKanbanView
+      columns={COLUMNS}
+      items={opportunities}
+      getItemId={(opportunity) => opportunity.id}
+      getColumnKey={(opportunity) => opportunity.stage}
+      getColumnAccentColor={getOpportunityStageColor}
+      onItemMove={onMoveOpportunity}
+      onCardClick={(opportunity) =>
+        openTab({
+          entityType: "opportunite",
+          entityId: opportunity.id,
+          title: opportunity.client ?? opportunity.title,
+          subtitle: opportunity.title,
+        })
+      }
+      renderCard={(opportunity) => (
+        <EntityKanbanCard
+          isFlipped={displayMode === "consultants"}
+          front={
+            <div className="flex h-full w-full flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-primary/50 hover:shadow-md">
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <CompanyLogo
+                    name={opportunity.client || "Client"}
+                    logoPath={opportunity.clientLogoPath}
+                    website={opportunity.clientWebsite}
+                    size="sm"
+                    className="mt-0.5 shrink-0"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col items-start">
+                    <span className="block max-w-full truncate text-[9px] font-bold uppercase tracking-wider text-muted">
+                      {opportunity.client}
+                    </span>
+                    <h4
+                      className="mt-0.5 block max-w-full truncate text-[11px] font-bold leading-tight text-heading transition-colors hover:text-primary"
+                      title={opportunity.title}
+                    >
+                      {opportunity.title}
+                    </h4>
+                  </div>
+                </div>
+                <div className="mt-1 flex shrink-0 items-center gap-1.5">
+                  {opportunity.priority === "haute" ? (
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" title="Priorité haute" />
+                  ) : null}
+                  {opportunity.priority === "normale" ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted" title="Priorité normale" />
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-border/50 pt-2.5 text-[10px]">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Valeur (ACV)</span>
+                  <span className="mt-0.5 font-semibold text-heading">
+                    {formatEuroCompact(opportunity.acv || opportunity.estimatedGain)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Date cible</span>
+                  <span className="mt-0.5 font-semibold text-heading">
+                    {formatDate(opportunity.targetCloseDate || opportunity.startDate)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Staffing</span>
+                  <span className="mt-0.5 font-semibold text-primary">
+                    {opportunity.candidates.length} profil{opportunity.candidates.length > 1 ? "s" : ""} poussé{opportunity.candidates.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Conviction</span>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <div className="h-1 w-10 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="h-full rounded-full bg-primary/70"
+                        style={{ width: `${opportunity.conviction}%` }}
+                      />
+                    </div>
+                    <span className="font-bold text-heading">{opportunity.conviction}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+          back={
+            <div className="flex h-full w-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-primary/50 hover:shadow-md">
+              <div className="flex min-w-0 items-start justify-between gap-2 border-b border-border/50 pb-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <CompanyLogo
+                    name={opportunity.client || "Client"}
+                    logoPath={opportunity.clientLogoPath}
+                    website={opportunity.clientWebsite}
+                    size="sm"
+                    className="mt-0.5 shrink-0"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col items-start">
+                    <span className="block max-w-full truncate text-[9px] font-bold uppercase tracking-wider text-muted">
+                      {opportunity.client}
+                    </span>
+                    <span className="mt-0.5 block max-w-full truncate text-[10px] font-bold leading-tight text-heading" title={opportunity.title}>
+                      {opportunity.title}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-1 flex shrink-0 items-center gap-1.5">
+                  {opportunity.priority === "haute" ? (
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-danger" title="Priorité haute" />
+                  ) : null}
+                  {opportunity.priority === "normale" ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted" title="Priorité normale" />
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="custom-scrollbar flex flex-1 flex-col gap-1 overflow-y-auto pr-0.5">
+                {opportunity.candidates.length > 0 ? (
+                  opportunity.candidates.map((candidate) => (
+                    <div key={candidate.id} className="flex flex-col gap-0.5 border-b border-border/20 py-1 last:border-b-0">
+                      <div className="flex min-w-0 items-center justify-between gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            openStaffingDrawer(candidate.id)
+                          }}
+                          className="flex-1 cursor-pointer truncate text-left text-[10px] font-bold text-heading hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+                          title={candidate.fullName}
+                        >
+                          {candidate.fullName}
+                        </button>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded border px-1 py-0.2 text-[7px] font-extrabold uppercase tracking-wider",
+                            candidate.source === "collaborateur"
+                              ? "border-primary/10 bg-primary/5 text-primary"
+                              : "border-brand-brass/10 bg-brand-brass/5 text-brand-brass",
+                          )}
+                        >
+                          {candidate.source === "collaborateur" ? "Interne" : "Recrutement"}
+                        </span>
+                      </div>
+                      <div className="truncate text-left text-[9px] text-muted">
+                        {candidate.profileTitle || (
+                          candidate.source === "collaborateur"
+                            ? "Collaborateur"
+                            : candidate.expectedSalary
+                              ? `Salaire : ${candidate.expectedSalary.toLocaleString("fr-FR")} €`
+                              : "Salaire : —"
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center py-2 text-muted">
+                    <span className="text-[9px] italic">Aucun staffing</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          }
+        />
+      )}
+    />
   )
 }

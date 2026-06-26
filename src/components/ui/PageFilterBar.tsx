@@ -27,6 +27,7 @@ export type PageFilterBarProps = {
   onReset?: () => void
   viewSelector?: React.ReactNode
   secondaryActions?: React.ReactNode
+  controlsClassName?: string
   className?: string
 }
 
@@ -37,6 +38,7 @@ export function PageFilterBar({
   onReset,
   viewSelector,
   secondaryActions,
+  controlsClassName,
   className,
 }: PageFilterBarProps) {
   const hasReset = activeCount > 0 && Boolean(onReset)
@@ -50,7 +52,11 @@ export function PageFilterBar({
     >
       {/* Filtres — gauche */}
       <div className="flex flex-1 flex-wrap items-center gap-2">
-        {children}
+        {children ? (
+          <div className={cn("flex flex-wrap items-center gap-2", controlsClassName)}>
+            {children}
+          </div>
+        ) : null}
 
         {hasReset ? (
           <Button

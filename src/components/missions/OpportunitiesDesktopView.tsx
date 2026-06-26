@@ -2,15 +2,15 @@
 
 import { useState, useMemo, useEffect, useTransition } from "react"
 import { cn } from "@/lib/utils"
-import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
+import { type StructuredListColumn } from "@/components/ui/StructuredList"
 import { Badge } from "@/components/ui/Badge"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { PageFilterBar } from "@/components/ui/PageFilterBar"
+import { EntityListView } from "@/components/common/EntityListView"
+import { EntityWorkspaceTemplate } from "@/components/common/EntityWorkspaceTemplate"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
-import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { PRIORITY_LABELS } from "@/components/missions/opportunity-detail/opportunity-detail-options"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
+import { MissionsMobileListView } from "@/components/missions/MissionsMobileListView"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { OpportunitiesPlanningView } from "@/components/missions/planning/OpportunitiesPlanningView"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
@@ -21,6 +21,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { Textarea } from "@/components/ui/Textarea"
+import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 import { addOpportunityEvent } from "@/app/(app)/missions/_actions/opportunity-events"
 import {
   getAllCollaboratorsForStaffing,
@@ -28,8 +29,7 @@ import {
   createOpportunityStaffing,
   type StaffingSearchResult,
 } from "@/app/(app)/missions/_actions/opportunity-staffing"
-import { ConsultantDrawer } from "@/components/consultants/ConsultantDrawer"
-import { CandidateDrawer } from "@/components/recruitment/CandidateDrawer"
+import { formatEuroCompact } from "@/lib/formatters"
 import {
   getOpportunityStageColor,
   getOpportunityStageLabel,
@@ -65,9 +65,39 @@ const PRIORITY_BADGE: Record<string, BadgeVariant> = {
 interface OpportunitiesDesktopViewProps {
   opportunities: MissionsListRow[]
   planningData: OpportunityPlanningData[]
+  weightedPipe: number
+  openOpportunitiesCount: number
+  coverageRate: number
+  isMobile: boolean
 }
 
-export function OpportunitiesDesktopView({ opportunities: initialOpps, planningData: initialPlanning }: OpportunitiesDesktopViewProps) {
+function StatChip({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="flex min-w-[8.75rem] shrink-0 flex-col justify-center rounded-[var(--radius-large)] border border-border bg-surface px-3 py-2">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+        {label}
+      </span>
+      <span className="mt-1 whitespace-nowrap font-heading text-[18px] font-bold leading-none tracking-tight text-heading tabular-nums">
+        {value}
+      </span>
+    </div>
+  )
+}
+
+export function OpportunitiesDesktopView({
+  opportunities: initialOpps,
+  planningData: initialPlanning,
+  weightedPipe,
+  openOpportunitiesCount,
+  coverageRate,
+  isMobile,
+}: OpportunitiesDesktopViewProps) {
   const { openTab } = useMissionsTabStore()
 
   const [opps, setOpps] = useState(initialOpps)
@@ -96,9 +126,6 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
   // States for event creation modal
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
 
-  // Drawers states
-  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string | null>(null)
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [eventError, setEventError] = useState<string | null>(null)
 
@@ -448,192 +475,163 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
   ]
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Filter bar */}
-      <PageFilterBar
-        activeCount={activeFilterCount}
-        onReset={handleReset}
-        viewSelector={
-          <PageViewSelector
-            items={[
-              { value: "list", label: "Liste" },
-              { value: "kanban", label: "Kanban" },
-              { value: "planning", label: "Planning" },
-            ]}
-            value={viewMode}
-            onChange={(val) => setViewMode(val as "list" | "kanban" | "planning")}
-            ariaLabel="Mode d'affichage des opportunités"
-          />
+    <>
+      <EntityWorkspaceTemplate
+        title="Opportunités"
+        isMobile={isMobile}
+        kpis={
+          <>
+            <StatChip
+              label="Pipe pondéré"
+              value={weightedPipe > 0 ? formatEuroCompact(weightedPipe) : "—"}
+            />
+            <StatChip label="Opportunités ouvertes" value={String(openOpportunitiesCount)} />
+            <StatChip label="Taux de couverture" value={`${coverageRate}%`} />
+          </>
         }
-      >
-        {viewMode === "list" && (
-          <>
-            <PageFilterSelect
-              id="opp-stage-filter"
-              label="Étape"
-              value={stageFilter}
-              onChange={setStageFilter}
-              className="sm:min-w-[8.25rem]"
-              options={[
-                { value: "all", label: "Étape" },
-                ...OPPORTUNITY_STAGES.map((stage) => ({
-                  value: stage.value,
-                  label: stage.label,
-                })),
-              ]}
-            />
-            <PageFilterSelect
-              id="opp-priority-filter"
-              label="Priorité"
-              value={priorityFilter}
-              onChange={setPriorityFilter}
-              className="sm:min-w-[8.25rem]"
-              options={[
-                { value: "all",     label: "Priorité" },
-                { value: "haute",   label: "Haute" },
-                { value: "normale", label: "Normale" },
-                { value: "basse",   label: "Basse" },
-              ]}
-            />
-            <PageFilterSelect
-              id="opp-conviction-filter"
-              label="Conviction"
-              value={convictionFilter}
-              onChange={setConvictionFilter}
-              className="sm:min-w-[8.25rem]"
-              options={[
-                { value: "all", label: "Conviction" },
-                { value: "under_70", label: "< 70 %" },
-                { value: "above_70", label: "> 70 %" },
-              ]}
-            />
-            <PageFilterSelect
-              id="opp-value-sort"
-              label="Valeur"
-              value={valueSort}
-              onChange={setValueSort}
-              className="sm:min-w-[8.25rem]"
-              options={[
-                { value: "none", label: "Valeur (ACV)" },
-                { value: "desc", label: "Tri décroissant" },
-                { value: "asc", label: "Tri croissant" },
-              ]}
-            />
-          </>
-        )}
-
-        {viewMode === "planning" && (
-          <>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenEventModal}
-              leftIcon={
+        actions={<NewOpportunityButton />}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        controlsClassName={viewMode === "list" ? undefined : "[&>*]:h-8 [&>*]:shrink-0"}
+        activeFilterCount={activeFilterCount}
+        onResetFilters={handleReset}
+        filters={
+          viewMode === "list" ? (
+            <>
+              <PageFilterSelect
+                id="opp-stage-filter"
+                label="Étape"
+                value={stageFilter}
+                onChange={setStageFilter}
+                className="sm:min-w-[8.25rem]"
+                options={[
+                  { value: "all", label: "Étape" },
+                  ...OPPORTUNITY_STAGES.map((stage) => ({
+                    value: stage.value,
+                    label: stage.label,
+                  })),
+                ]}
+              />
+              <PageFilterSelect
+                id="opp-priority-filter"
+                label="Priorité"
+                value={priorityFilter}
+                onChange={setPriorityFilter}
+                className="sm:min-w-[8.25rem]"
+                options={[
+                  { value: "all", label: "Priorité" },
+                  { value: "haute", label: "Haute" },
+                  { value: "normale", label: "Normale" },
+                  { value: "basse", label: "Basse" },
+                ]}
+              />
+              <PageFilterSelect
+                id="opp-conviction-filter"
+                label="Conviction"
+                value={convictionFilter}
+                onChange={setConvictionFilter}
+                className="sm:min-w-[8.25rem]"
+                options={[
+                  { value: "all", label: "Conviction" },
+                  { value: "under_70", label: "< 70 %" },
+                  { value: "above_70", label: "> 70 %" },
+                ]}
+              />
+              <PageFilterSelect
+                id="opp-value-sort"
+                label="Valeur"
+                value={valueSort}
+                onChange={setValueSort}
+                className="sm:min-w-[8.25rem]"
+                options={[
+                  { value: "none", label: "Valeur (ACV)" },
+                  { value: "desc", label: "Tri décroissant" },
+                  { value: "asc", label: "Tri croissant" },
+                ]}
+              />
+            </>
+          ) : viewMode === "planning" ? (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenEventModal}
+                leftIcon={
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                }
+              >
+                Créer un événement
+              </Button>
+              <div className="relative inline-flex items-center gap-1.5 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
+                  Échelle
+                </span>
+                <select
+                  id="opp-planning-scale-select"
+                  value={planningScale}
+                  onChange={(event) => setPlanningScale(event.target.value as "year" | "quarter" | "month" | "week")}
+                  className="appearance-none border-0 bg-transparent pr-4 text-xs font-semibold text-brand-brass outline-none focus:outline-none focus:ring-0"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right center",
+                    backgroundSize: "10px",
+                  }}
+                >
+                  <option value="year" className="bg-surface font-normal text-body">Année</option>
+                  <option value="quarter" className="bg-surface font-normal text-body">Trimestre</option>
+                  <option value="month" className="bg-surface font-normal text-body">Mois</option>
+                  <option value="week" className="bg-surface font-normal text-body">Semaine</option>
+                </select>
+              </div>
+            </>
+          ) : viewMode === "kanban" ? (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenStaffingModal}
+                leftIcon={
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                }
+              >
+                Créer staffing
+              </Button>
+              <button
+                type="button"
+                onClick={() => setKanbanDisplayMode((mode) => (mode === "opportunities" ? "consultants" : "opportunities"))}
+                className="inline-flex cursor-pointer select-none items-center gap-2 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95"
+                title={`Basculer vers ${kanbanDisplayMode === "opportunities" ? "Consultants" : "Opportunités"}`}
+              >
                 <svg
-                  className="size-4"
-                  fill="none"
+                  className={cn("size-3.5 transition-transform duration-500", kanbanDisplayMode === "consultants" && "rotate-180")}
                   viewBox="0 0 24 24"
+                  fill="none"
                   stroke="currentColor"
                   strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
                 </svg>
-              }
-            >
-              Créer un événement
-            </Button>
-
-            {/* Filtre Échelle distinctif */}
-            <div className="relative inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
-                Échelle
-              </span>
-              <select
-                id="opp-planning-scale-select"
-                value={planningScale}
-                onChange={(e) => setPlanningScale(e.target.value as "year" | "quarter" | "month" | "week")}
-                className="bg-transparent font-semibold text-xs border-0 outline-none pr-4 cursor-pointer focus:ring-0 focus:outline-none appearance-none text-brand-brass font-sans"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right center",
-                  backgroundSize: "10px",
-                }}
-              >
-                <option value="year" className="bg-surface text-body font-normal">Année</option>
-                <option value="quarter" className="bg-surface text-body font-normal">Trimestre</option>
-                <option value="month" className="bg-surface text-body font-normal">Mois</option>
-                <option value="week" className="bg-surface text-body font-normal">Semaine</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        {viewMode === "kanban" && (
-          <>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenStaffingModal}
-              leftIcon={
-                <svg
-                  className="size-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-              }
-            >
-              Créer staffing
-            </Button>
-
-            {/* Toggle vue Opportunités ↔ Consultants */}
-            <button
-              type="button"
-              onClick={() =>
-                setKanbanDisplayMode((m) =>
-                  m === "opportunities" ? "consultants" : "opportunities"
-                )
-              }
-              className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95 cursor-pointer select-none"
-              title={`Basculer vers ${kanbanDisplayMode === "opportunities" ? "Consultants" : "Opportunités"}`}
-            >
-              <svg
-                className={cn(
-                  "size-3.5 transition-transform duration-500",
-                  kanbanDisplayMode === "consultants" && "rotate-180"
-                )}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M8 16H3v5" />
-              </svg>
-              <span className="text-xs font-semibold">
-                {kanbanDisplayMode === "opportunities" ? "Opportunités" : "Consultants"}
-              </span>
-            </button>
-          </>
-        )}
-      </PageFilterBar>
-
-      {/* Views */}
-      {viewMode === "list" && (
-        <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
-          <StructuredList
-            density="compact"
+                <span className="text-xs font-semibold">
+                  {kanbanDisplayMode === "opportunities" ? "Opportunités" : "Consultants"}
+                </span>
+              </button>
+            </>
+          ) : null
+        }
+        secondaryActions={null}
+        listView={
+          <EntityListView
             items={filtered}
             columns={columns}
             getItemId={(row) => row.entityId}
@@ -648,22 +646,22 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
             ariaLabel="Liste des opportunités"
             emptyState="Aucune opportunité ne correspond aux filtres."
           />
-        </SurfaceCard>
-      )}
-
-      {viewMode === "kanban" && (
-        <OpportunitiesKanbanView
-          opportunities={filteredPlanningData}
-          onMoveOpportunity={handleMoveOpportunity}
-          displayMode={kanbanDisplayMode}
-          onOpenCollaborator={setSelectedCollaboratorId}
-          onOpenCandidate={setSelectedCandidateId}
-        />
-      )}
-
-      {viewMode === "planning" && (
-        <OpportunitiesPlanningView opportunities={filteredPlanningData} scale={planningScale} />
-      )}
+        }
+        kanbanView={
+          <OpportunitiesKanbanView
+            opportunities={filteredPlanningData}
+            onMoveOpportunity={handleMoveOpportunity}
+            displayMode={kanbanDisplayMode}
+          />
+        }
+        planningView={<OpportunitiesPlanningView opportunities={filteredPlanningData} scale={planningScale} />}
+        mobileView={
+          <MissionsMobileListView
+            rows={initialOpps}
+            emptyMessage="Aucune opportunité pour l'instant. Créez votre première opportunité pour initialiser le pipeline."
+          />
+        }
+      />
 
       {/* Event creation modal */}
       <AppDialog
@@ -895,17 +893,6 @@ export function OpportunitiesDesktopView({ opportunities: initialOpps, planningD
         </div>
       </AppDialog>
 
-      {/* Drawers */}
-      <ConsultantDrawer
-        collaboratorId={selectedCollaboratorId}
-        open={!!selectedCollaboratorId}
-        onOpenChange={(open) => !open && setSelectedCollaboratorId(null)}
-      />
-      <CandidateDrawer
-        candidateId={selectedCandidateId}
-        open={!!selectedCandidateId}
-        onOpenChange={(open) => !open && setSelectedCandidateId(null)}
-      />
-    </div>
+    </>
   )
 }
