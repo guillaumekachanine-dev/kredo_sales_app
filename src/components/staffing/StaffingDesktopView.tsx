@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useMemo, useTransition } from "react"
+import React, { useMemo, useState, useTransition } from "react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
@@ -18,7 +19,7 @@ interface StaffingDesktopViewProps {
 }
 
 const STAGE_OPTIONS = [
-  { value: "all", label: "Toutes les étapes" },
+  { value: "all", label: "Étapes" },
   { value: "identifie", label: "Identifié" },
   { value: "prequal", label: "Préqualification" },
   { value: "cv_envoye", label: "CV envoyé" },
@@ -27,7 +28,7 @@ const STAGE_OPTIONS = [
 ]
 
 const PRIORITY_OPTIONS = [
-  { value: "all", label: "Toutes les priorités" },
+  { value: "all", label: "Priorité" },
   { value: "haute", label: "Haute" },
   { value: "normale", label: "Normale" },
   { value: "basse", label: "Basse" },
@@ -38,6 +39,9 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
+
+  const [planningScale, setPlanningScale] = useState<"year" | "quarter" | "month" | "week">("week")
+  const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidat" | "opportunite">("candidat")
 
   // 1. Sync states with URL search parameters
   const viewMode = (searchParams.get("view") || "list") as "list" | "kanban" | "planning"
@@ -74,7 +78,7 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
       if (s.practice) set.add(s.practice)
     })
     return [
-      { value: "all", label: "Toutes les practices" },
+      { value: "all", label: "Practice" },
       ...Array.from(set).map((p) => ({ value: p, label: p })),
     ]
   }, [staffings])
@@ -131,34 +135,102 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
           />
         }
       >
-        <PageFilterSelect
-          id="staffing-stage-filter"
-          label="Étape"
-          options={STAGE_OPTIONS}
-          value={stageFilter}
-          onChange={(val) => updateParam("stage", val)}
-        />
-        <PageFilterSelect
-          id="staffing-priority-filter"
-          label="Priorité"
-          options={PRIORITY_OPTIONS}
-          value={priorityFilter}
-          onChange={(val) => updateParam("priority", val)}
-        />
-        <PageFilterSelect
-          id="staffing-practice-filter"
-          label="Practice"
-          options={practiceOptions}
-          value={practiceFilter}
-          onChange={(val) => updateParam("practice", val)}
-        />
+        {viewMode === "list" && (
+          <>
+            <PageFilterSelect
+              id="staffing-stage-filter"
+              label="Étape"
+              options={STAGE_OPTIONS}
+              value={stageFilter}
+              onChange={(val) => updateParam("stage", val)}
+            />
+            <PageFilterSelect
+              id="staffing-priority-filter"
+              label="Priorité"
+              options={PRIORITY_OPTIONS}
+              value={priorityFilter}
+              onChange={(val) => updateParam("priority", val)}
+            />
+            <PageFilterSelect
+              id="staffing-practice-filter"
+              label="Practice"
+              options={practiceOptions}
+              value={practiceFilter}
+              onChange={(val) => updateParam("practice", val)}
+            />
+          </>
+        )}
+
+        {viewMode === "kanban" && (
+          <button
+            type="button"
+            onClick={() => setKanbanDisplayMode((m) => m === "candidat" ? "opportunite" : "candidat")}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95 cursor-pointer select-none"
+            title={`Basculer vers ${kanbanDisplayMode === "candidat" ? "Opportunités" : "Candidats"}`}
+          >
+            <svg
+              className={cn("size-3.5 transition-transform duration-500", kanbanDisplayMode === "opportunite" && "rotate-180")}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M8 16H3v5" />
+            </svg>
+            <span className="text-xs font-semibold">
+              {kanbanDisplayMode === "candidat" ? "Candidats" : "Opportunités"}
+            </span>
+          </button>
+        )}
+
+        {viewMode === "planning" && (
+          <>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-medium)] border border-primary bg-primary/[0.08] text-primary text-xs font-semibold transition-colors hover:bg-primary/[0.15] active:scale-95 cursor-pointer select-none"
+              onClick={() => {}}
+            >
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Créer un événement
+            </button>
+
+            <div className="relative inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">Échelle</span>
+              <select
+                id="staffing-planning-scale-select"
+                value={planningScale}
+                onChange={(e) => setPlanningScale(e.target.value as "year" | "quarter" | "month" | "week")}
+                className="bg-transparent font-semibold text-xs border-0 outline-none pr-4 cursor-pointer focus:ring-0 focus:outline-none appearance-none text-brand-brass font-sans"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right center",
+                  backgroundSize: "10px",
+                }}
+              >
+                <option value="week" className="bg-surface text-body font-normal">Semaine</option>
+                <option value="month" className="bg-surface text-body font-normal">Mois</option>
+                <option value="quarter" className="bg-surface text-body font-normal">Trimestre</option>
+                <option value="year" className="bg-surface text-body font-normal">Année</option>
+              </select>
+            </div>
+          </>
+        )}
       </PageFilterBar>
 
       {/* Main view distribution */}
       <div className="mt-2">
         {viewMode === "list" && <StaffingListView rows={filteredStaffings} />}
-        {viewMode === "kanban" && <StaffingKanbanView rows={filteredStaffings} />}
-        {viewMode === "planning" && <StaffingPlanningView planningData={filteredPlanning} />}
+        {viewMode === "kanban" && <StaffingKanbanView rows={filteredStaffings} displayMode={kanbanDisplayMode} />}
+        {viewMode === "planning" && <StaffingPlanningView planningData={filteredPlanning} scale={planningScale} />}
       </div>
     </div>
   )

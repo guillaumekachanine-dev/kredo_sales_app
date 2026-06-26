@@ -149,7 +149,7 @@ export function StaffingListView({ rows }: StaffingListViewProps) {
       id: "margin",
       header: "Marge cible",
       align: "right",
-      width: "6.5rem",
+      width: "7.5rem",
       render: (row) => (
         <span className={cn(
           "font-bold tabular-nums",
