@@ -2,6 +2,8 @@ import { cookies } from "next/headers"
 import { DesktopSidebar } from "./DesktopSidebar"
 import { AppHeader } from "./AppHeader"
 import { MobileNav } from "./MobileNav"
+import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
+import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
 interface AppShellProps {
@@ -21,6 +23,7 @@ export async function AppShell({ device, children }: AppShellProps) {
           {children}
         </main>
 
+        <IntelligenceFAB />
         <MobileNav />
       </div>
     )
@@ -36,9 +39,13 @@ export async function AppShell({ device, children }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AppHeader />
 
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto min-w-0">
+            {children}
+          </main>
+
+          <IntelligencePanel />
+        </div>
       </div>
     </div>
   )

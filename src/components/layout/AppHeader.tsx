@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Breadcrumb } from "./Breadcrumb"
-import { Badge } from "@/components/ui/Badge"
+import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
 
 interface AppHeaderProps {
   className?: string
@@ -17,9 +17,7 @@ export function AppHeader({ className }: AppHeaderProps) {
       <Breadcrumb />
 
       <div className="flex items-center gap-4 shrink-0">
-        <Badge variant="success" size="sm" dot>
-          Réseau opérationnel
-        </Badge>
+        <IntelligenceToggle />
       </div>
     </header>
   )
