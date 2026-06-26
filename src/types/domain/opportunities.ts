@@ -17,14 +17,8 @@ export type Opportunity = PublicSchema["Tables"]["opportunities"]["Row"] & {
   budget?: number | null
 }
 
-export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"] & {
-  rythme?: string | null
-  budget?: number | null
-}
-export type OpportunityUpdate = PublicSchema["Tables"]["opportunities"]["Update"] & {
-  rythme?: string | null
-  budget?: number | null
-}
+export type OpportunityInsert = PublicSchema["Tables"]["opportunities"]["Insert"]
+export type OpportunityUpdate = PublicSchema["Tables"]["opportunities"]["Update"]
 
 export type Account = PublicSchema["Tables"]["companies"]["Row"]
 

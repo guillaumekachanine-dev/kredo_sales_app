@@ -131,6 +131,20 @@ export async function updateOpportunity(
     newContext.searched_profile = normalizeText(input.searched_profile)
     hasContextChange = true
   }
+  if (input.rythme !== undefined) {
+    newContext.rythme = normalizeText(input.rythme)
+    hasContextChange = true
+  }
+  if (input.budget !== undefined) {
+    const b = input.budget
+    if (b !== null) {
+      if (typeof b !== "number" || isNaN(b) || b < 0) {
+        return { error: "Le budget doit être supérieur ou égal à 0." }
+      }
+    }
+    newContext.budget = b
+    hasContextChange = true
+  }
 
   if (hasContextChange) {
     updatePayload.context = newContext
@@ -215,16 +229,6 @@ export async function updateOpportunity(
   if (input.remote_policy !== undefined) updatePayload.remote_policy = normalizeText(input.remote_policy)
   if (input.seniority !== undefined) updatePayload.seniority = normalizeText(input.seniority)
   if (input.opened_at !== undefined) updatePayload.opened_at = normalizeText(input.opened_at)
-  if (input.rythme !== undefined) updatePayload.rythme = normalizeText(input.rythme)
-  if (input.budget !== undefined) {
-    const b = input.budget
-    if (b !== null) {
-      if (typeof b !== "number" || isNaN(b) || b < 0) {
-        return { error: "Le budget doit être supérieur ou égal à 0." }
-      }
-    }
-    updatePayload.budget = b
-  }
   if (input.required_headcount !== undefined) {
     if (!Number.isInteger(input.required_headcount) || input.required_headcount <= 0) {
       return { error: "Le nombre de profils requis doit être un entier supérieur à 0." }
