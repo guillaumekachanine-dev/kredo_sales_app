@@ -2,8 +2,8 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import dynamic from "next/dynamic"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
   AccountRow,
@@ -698,12 +698,14 @@ function AccountsDesktop({
   accounts,
   studies,
   onOpenIdentity,
+  onOpenIntelligence,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
   onOpenIdentity: (id: string) => void
+  onOpenIntelligence: (account: AccountRow) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
 }) {
@@ -757,9 +759,9 @@ function AccountsDesktop({
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center">
                     {hasStudy ? (
-                      <Link
-                        href={`/prospection/accounts/${account.id}`}
-                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap"
+                      <button
+                        onClick={() => onOpenIntelligence(account)}
+                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap cursor-pointer"
                       >
                         <span>Cockpit client</span>
                         <span
@@ -770,7 +772,7 @@ function AccountsDesktop({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
                           </svg>
                         </span>
-                      </Link>
+                      </button>
                     ) : (
                       <span className="text-muted text-[11px] italic">—</span>
                     )}
@@ -796,12 +798,14 @@ function AccountsMobile({
   accounts,
   studies,
   onOpenIdentity,
+  onOpenIntelligence,
   onEdit,
   onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
   onOpenIdentity: (id: string) => void
+  onOpenIntelligence: (account: AccountRow) => void
   onEdit: (account: AccountRow) => void
   onDelete: (account: AccountRow) => void
 }) {
@@ -845,9 +849,9 @@ function AccountsMobile({
                 </button>
               </div>
               {hasStudy && (
-                <Link
-                  href={`/prospection/accounts/${account.id}`}
-                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap"
+                <button
+                  onClick={() => onOpenIntelligence(account)}
+                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap cursor-pointer"
                 >
                   <span>Cockpit client</span>
                   <span
@@ -858,7 +862,7 @@ function AccountsMobile({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
                     </svg>
                   </span>
-                </Link>
+                </button>
               )}
             </div>
           </SurfaceCard>
@@ -1075,6 +1079,7 @@ export function ProspectionAccountsView({
 }) {
   const router = useRouter()
   const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
+  const { openTab: openCrmTab } = useCrmTabStore()
   const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
   const [selectedContactIdForIdentity, setSelectedContactIdForIdentity] = useState<string | null>(null)
   const [companyDrawerReturnToContactId, setCompanyDrawerReturnToContactId] = useState<string | null>(null)
@@ -1348,6 +1353,9 @@ export function ProspectionAccountsView({
             accounts={displayAccounts}
             studies={data.studies}
             onOpenIdentity={setSelectedCompanyIdForIdentity}
+            onOpenIntelligence={(account) =>
+              openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
+            }
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />
@@ -1356,6 +1364,9 @@ export function ProspectionAccountsView({
             accounts={displayAccounts}
             studies={data.studies}
             onOpenIdentity={setSelectedCompanyIdForIdentity}
+            onOpenIntelligence={(account) =>
+              openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
+            }
             onEdit={(a) => setCompanyModal({ open: true, editing: a })}
             onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />

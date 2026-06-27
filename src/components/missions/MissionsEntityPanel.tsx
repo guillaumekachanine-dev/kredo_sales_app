@@ -16,6 +16,7 @@ const entityLabels: Record<SectionTab["entityType"], string> = {
   "planning-item": "Planning",
   project: "Projet",
   staffing: "Staffing",
+  "company-intelligence": "Compte",
 }
 
 const entityAccents: Record<SectionTab["entityType"], "primary" | "success" | "warning"> = {
@@ -24,6 +25,7 @@ const entityAccents: Record<SectionTab["entityType"], "primary" | "success" | "w
   "planning-item": "warning",
   project: "primary",
   staffing: "success",
+  "company-intelligence": "primary",
 }
 
 function SkeletonRow({ width }: { width: string }) {
