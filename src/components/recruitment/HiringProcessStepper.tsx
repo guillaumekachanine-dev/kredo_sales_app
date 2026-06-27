@@ -1,5 +1,6 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { cn } from '@/lib/utils'
 
@@ -72,147 +73,205 @@ export function findActiveProcess(processes: HiringProcess[] | null | undefined)
 
 export function HiringProcessStepper({ process }: { process: HiringProcess }) {
   const currentStepIdx = HIRING_STEPS.findIndex((s) => s.key === process.current_step)
-  const statusCfg = HIRING_STATUS_CONFIG[process.status] ?? HIRING_STATUS_CONFIG.active
+  const statusCfg      = HIRING_STATUS_CONFIG[process.status] ?? HIRING_STATUS_CONFIG.active
 
   const milestoneByStep = new Map<HiringStep, HiringMilestone>()
   for (const m of process.candidate_hiring_milestones) {
     const existing = milestoneByStep.get(m.step as HiringStep)
-    if (!existing || new Date(m.scheduled_at ?? m.completed_at ?? 0) > new Date(existing.scheduled_at ?? existing.completed_at ?? 0)) {
+    if (
+      !existing ||
+      new Date(m.scheduled_at ?? m.completed_at ?? 0) >
+        new Date(existing.scheduled_at ?? existing.completed_at ?? 0)
+    ) {
       milestoneByStep.set(m.step as HiringStep, m)
     }
   }
 
+  // Approximate height per step for shine clipping (~76px / step)
+  const shineHeight = (currentStepIdx + 1) * 76
+
   return (
-    <div className="space-y-4">
-      {/* Header — statut + profil de poste */}
-      <div
-        className="rounded-xl border px-3 py-2.5"
-        style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
-              Processus de recrutement
-            </p>
-            <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)' }}>
-              {process.job_profile?.title ?? 'Poste non spécifié'}
-            </p>
-          </div>
-          <StatusPill label={statusCfg.label} variant={statusCfg.variant} dot={process.status === 'active'} />
-        </div>
-        <div className="mt-1.5 flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
-          <span>Lancé le {fmtShortDate(process.started_at)}</span>
-          {process.closed_at && <span>Clôturé le {fmtShortDate(process.closed_at)}</span>}
-        </div>
-      </div>
+    <>
+      <style>{`
+        @keyframes kredo-hiring-shine {
+          0%   { transform: translateY(-100%); opacity: 0; }
+          4%   { opacity: 1; }
+          16%  { opacity: 0.7; }
+          22%  { transform: translateY(220%); opacity: 0; }
+          100% { transform: translateY(220%); opacity: 0; }
+        }
+        .kredo-hiring-shine-beam {
+          position: absolute;
+          left: -30%;
+          right: -30%;
+          height: 55%;
+          will-change: transform;
+          background: linear-gradient(
+            162deg,
+            transparent 0%,
+            rgba(37, 84, 184, 0.04) 35%,
+            rgba(255, 255, 255, 0.24) 50%,
+            rgba(37, 84, 184, 0.04) 65%,
+            transparent 100%
+          );
+          animation: kredo-hiring-shine 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          animation-delay: 1.2s;
+          pointer-events: none;
+        }
+      `}</style>
 
-      {/* Stepper vertical */}
-      <div className="relative pl-4">
-        {HIRING_STEPS.map((step, idx) => {
-          const milestone = milestoneByStep.get(step.key)
-          const isCurrent = idx === currentStepIdx && process.status === 'active'
-          const isPast = milestone?.result === 'valide'
-          const isFailed = milestone?.result === 'refuse'
-          const isFuture = !milestone || milestone.result === 'en_attente'
-          const isLast = idx === HIRING_STEPS.length - 1
-
-          let dotColor = 'var(--color-border)'
-          let dotBorder = 'var(--color-border)'
-          if (isPast) { dotColor = 'var(--color-success)'; dotBorder = 'var(--color-success)' }
-          else if (isFailed) { dotColor = 'var(--color-danger)'; dotBorder = 'var(--color-danger)' }
-          else if (isCurrent) { dotColor = 'var(--color-primary)'; dotBorder = 'var(--color-primary)' }
-
-          return (
-            <div key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
-              {/* Vertical line */}
-              {!isLast && (
-                <div
-                  className="absolute left-[7px] top-[20px] w-0.5"
-                  style={{
-                    height: 'calc(100% - 12px)',
-                    background: isPast ? 'var(--color-success)' : 'var(--color-border)',
-                  }}
-                />
-              )}
-
-              {/* Dot */}
-              <div
-                className={cn(
-                  'relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold',
-                  isCurrent && 'ring-2 ring-offset-1',
-                )}
-                style={{
-                  borderColor: dotBorder,
-                  background: (isPast || isFailed) ? dotColor : 'var(--color-surface)',
-                  color: (isPast || isFailed) ? 'white' : dotColor,
-                  ...(isCurrent ? { '--tw-ring-color': 'var(--color-primary)', '--tw-ring-offset-color': 'var(--color-surface)' } as React.CSSProperties : {}),
-                }}
-              >
-                {isPast && '✓'}
-                {isFailed && '✕'}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: isCurrent ? 'var(--color-primary)' : (isFuture && !isCurrent) ? 'var(--color-muted)' : 'var(--color-heading)' }}
-                  >
-                    {step.label}
-                  </span>
-                  {isCurrent && (
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-                      style={{ background: 'var(--color-primary)', color: 'white' }}
-                    >
-                      En cours
-                    </span>
-                  )}
-                </div>
-
-                {milestone && (
-                  <div className="mt-1 space-y-0.5">
-                    <div className="flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
-                      {milestone.scheduled_at && (
-                        <span>Prévu : {fmtShortDate(milestone.scheduled_at)}</span>
-                      )}
-                      {milestone.completed_at && (
-                        <span style={{ color: isPast ? 'var(--color-success)' : isFailed ? 'var(--color-danger)' : undefined }}>
-                          Réalisé : {fmtShortDate(milestone.completed_at)}
-                        </span>
-                      )}
-                    </div>
-                    {milestone.notes && (
-                      <p className="text-[10px] leading-relaxed" style={{ color: 'var(--color-body)' }}>
-                        {milestone.notes}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Close reason */}
-      {process.close_reason && (
+      <div className="space-y-4">
+        {/* Header */}
         <div
           className="rounded-xl border px-3 py-2.5"
-          style={{
-            background: process.status === 'rejected' ? 'rgba(190,62,62,0.04)' : 'var(--color-canvas)',
-            borderColor: 'var(--color-border)',
-          }}
+          style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-muted)' }}>
-            Motif de clôture
-          </p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-body)' }}>
-            {process.close_reason}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p
+                className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+                style={{ color: 'var(--color-muted)' }}
+              >
+                Processus de recrutement
+              </p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)' }}>
+                {process.job_profile?.title ?? 'Poste non spécifié'}
+              </p>
+            </div>
+            <StatusPill
+              label={statusCfg.label}
+              variant={statusCfg.variant}
+              dot={process.status === 'active'}
+            />
+          </div>
+          <div className="mt-1.5 flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
+            <span>Lancé le {fmtShortDate(process.started_at)}</span>
+            {process.closed_at && <span>Clôturé le {fmtShortDate(process.closed_at)}</span>}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Stepper vertical */}
+        <div className="relative pl-4">
+          {/* Shine overlay — clipped to active steps */}
+          {currentStepIdx >= 0 && (
+            <div
+              className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+              style={{ top: 0, height: shineHeight, zIndex: 10 }}
+            >
+              <div className="kredo-hiring-shine-beam" />
+            </div>
+          )}
+
+          {HIRING_STEPS.map((step, idx) => {
+            const milestone  = milestoneByStep.get(step.key)
+            const isCurrent  = idx === currentStepIdx && process.status === 'active'
+            const isPast     = milestone?.result === 'valide'
+            const isFailed   = milestone?.result === 'refuse'
+            const isFuture   = !isCurrent && !isPast && !isFailed
+            const isLast     = idx === HIRING_STEPS.length - 1
+
+            return (
+              <div key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
+                {/* Vertical line */}
+                {!isLast && (
+                  <div
+                    className="absolute left-[7px] top-[20px] w-0.5"
+                    style={{
+                      height: 'calc(100% - 12px)',
+                      background: isPast ? 'var(--color-primary)' : 'var(--color-border)',
+                    }}
+                  />
+                )}
+
+                {/* Dot */}
+                <div
+                  className={cn(
+                    'relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold',
+                    isCurrent && 'ring-2 ring-offset-1',
+                  )}
+                  style={{
+                    borderColor: 'var(--color-primary)',
+                    background: (isPast || isFailed) ? 'var(--color-primary)' : 'var(--color-surface)',
+                    color: (isPast || isFailed) ? 'white' : 'var(--color-primary)',
+                    ...(isCurrent
+                      ? ({
+                          '--tw-ring-color': 'var(--color-primary)',
+                          '--tw-ring-offset-color': 'var(--color-surface)',
+                        } as CSSProperties)
+                      : {}),
+                  }}
+                >
+                  {isPast && '✓'}
+                  {isFailed && '✕'}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-xs font-semibold"
+                      style={{
+                        color: isFuture ? 'var(--color-muted)' : 'var(--color-primary)',
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                    {isCurrent && (
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
+                        style={{ background: 'var(--color-primary)', color: 'white' }}
+                      >
+                        En cours
+                      </span>
+                    )}
+                  </div>
+
+                  {milestone && (
+                    <div className="mt-1 space-y-0.5">
+                      <div className="flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                        {milestone.scheduled_at && (
+                          <span>Prévu : {fmtShortDate(milestone.scheduled_at)}</span>
+                        )}
+                        {milestone.completed_at && (
+                          <span style={{ color: 'var(--color-primary)' }}>
+                            Réalisé : {fmtShortDate(milestone.completed_at)}
+                          </span>
+                        )}
+                      </div>
+                      {milestone.notes && (
+                        <p className="text-[10px] leading-relaxed" style={{ color: 'var(--color-body)' }}>
+                          {milestone.notes}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Close reason */}
+        {process.close_reason && (
+          <div
+            className="rounded-xl border px-3 py-2.5"
+            style={{
+              background: process.status === 'rejected' ? 'rgba(190,62,62,0.04)' : 'var(--color-canvas)',
+              borderColor: 'var(--color-border)',
+            }}
+          >
+            <p
+              className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+              style={{ color: 'var(--color-muted)' }}
+            >
+              Motif de clôture
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-body)' }}>
+              {process.close_reason}
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
