@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Fragment, type ReactNode } from "react"
+import { useState, useRef, useEffect, Fragment, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
@@ -40,7 +40,20 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [activeAction, setActiveAction] = useState<"pitch" | "summary" | "campaign" | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [expandedViewer, setExpandedViewer] = useState(false)
+  const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const { company, client, freshness, presence, contacts } = data
+  const { diagnosticPdfUrl } = data
+
+  useEffect(() => {
+    const dialog = pdfDialogRef.current
+    if (!dialog) return
+    if (expandedViewer && diagnosticPdfUrl) {
+      if (!dialog.open) dialog.showModal()
+    } else {
+      if (dialog.open) dialog.close()
+    }
+  }, [expandedViewer, diagnosticPdfUrl])
 
   const quickActions: DashboardAction[] = [
     {
@@ -182,7 +195,14 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               onOpenTab={(tab) => setActiveTab(tab)}
             />
           )}
-          {activeTab === "analyses" && <AnalyseTab data={data} setMessage={setMessage} />}
+          {activeTab === "analyses" && (
+            <AnalyseTab
+              data={data}
+              setMessage={setMessage}
+              isExpandedViewer={expandedViewer}
+              onExpandViewer={setExpandedViewer}
+            />
+          )}
           {activeTab === "enjeux" && (
             <div className="pt-6">
               <ComingSoon lot="lot F">Cartographie enjeux × offres ESN</ComingSoon>
@@ -207,7 +227,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
       </div>
 
       {/* Drawer Action IA */}
-      {activeAction && (
+      {!expandedViewer && activeAction && (
         <div className="w-[460px] shrink-0 border-l border-border bg-surface flex flex-col h-full overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
@@ -230,15 +250,47 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         </div>
       )}
 
-      {/* ── Tour de contrôle : rail droit pleine hauteur (tranche sur le cockpit clair) ── */}
-      <IntelligenceRightRail
-        freshness={freshness}
-        presence={presence}
-        contacts={contacts}
-        analysisSource={analysisSource}
-        quickActions={quickActions}
-        message={message}
-      />
+      {/* ── Tour de contrôle : masqué en mode lecteur plein écran ── */}
+      {!expandedViewer && (
+        <IntelligenceRightRail
+          freshness={freshness}
+          presence={presence}
+          contacts={contacts}
+          analysisSource={analysisSource}
+          quickActions={quickActions}
+          message={message}
+        />
+      )}
+
+      {/* ── Lecteur PDF plein écran (dialog native) ─────────────────────────── */}
+      {diagnosticPdfUrl && (
+        <dialog
+          ref={pdfDialogRef}
+          onClose={() => setExpandedViewer(false)}
+          className="m-0 p-0 border-0 w-screen h-dvh max-w-[100vw] max-h-[100dvh] bg-canvas [&::backdrop]:bg-black/75"
+        >
+          <DocumentViewerShell
+            fileName={`Diagnostic process — ${company.name}`}
+            fileUrl={diagnosticPdfUrl}
+            metadata={{
+              "Compte": company.name,
+              "Type": "Diagnostic process",
+              "Source": data.diagnostic?.source === "engine" ? "Moteur IA" : "Import",
+            }}
+            className="h-full rounded-none border-0"
+            actions={
+              <button
+                type="button"
+                onClick={() => setExpandedViewer(false)}
+                className="inline-flex items-center gap-1.5 rounded border border-border bg-surface-hover px-2.5 py-1 text-[11px] font-semibold text-body hover:text-heading transition-colors cursor-pointer"
+              >
+                <CollapseIcon className="h-3 w-3" />
+                Condenser
+              </button>
+            }
+          />
+        </dialog>
+      )}
     </div>
   )
 }
@@ -367,20 +419,36 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
   ],
 }
 
-function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMessage: (msg: string | null) => void }) {
+function AnalyseTab({
+  data,
+  setMessage,
+  isExpandedViewer,
+  onExpandViewer,
+}: {
+  data: ClientIntelligenceData
+  setMessage: (msg: string | null) => void
+  isExpandedViewer: boolean
+  onExpandViewer: (v: boolean) => void
+}) {
   const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
   const { client, sector, diagnostic, diagnosticPdfUrl, company } = data
 
   function isAvailable(key: AnalysisTypeKey) {
     if (key === "client") return !!client
     if (key === "sector") return !!sector
-    return !!diagnostic
+    return !!diagnostic || !!diagnosticPdfUrl
   }
 
   function getSource(key: AnalysisTypeKey): IntelligenceSource {
     if (key === "client") return client?.source ?? "none"
     if (key === "sector") return sector?.source ?? "none"
     return diagnostic?.source ?? "none"
+  }
+
+  function handleSelect(key: AnalysisTypeKey) {
+    const next = selected === key ? null : key
+    setSelected(next)
+    onExpandViewer(next === "process" && !!(diagnostic || diagnosticPdfUrl))
   }
 
   const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
@@ -403,7 +471,7 @@ function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMes
                   key={entry.key}
                   type="button"
                   disabled={!available}
-                  onClick={() => setSelected(isSelected ? null : entry.key)}
+                  onClick={() => handleSelect(entry.key)}
                   className={cn(
                     "group relative flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition-all duration-200 cursor-pointer min-h-[38px]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
@@ -482,7 +550,7 @@ function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMes
       {selected === "sector" && sector && (
         <SectorAnalysisContent data={sector.data} />
       )}
-      {selected === "process" && diagnostic && (
+      {selected === "process" && (diagnostic || diagnosticPdfUrl) && !isExpandedViewer && (
         diagnosticPdfUrl ? (
           <div className="h-[calc(100vh-220px)] min-h-[600px]">
             <DocumentViewerShell
@@ -491,13 +559,23 @@ function AnalyseTab({ data, setMessage }: { data: ClientIntelligenceData; setMes
               metadata={{
                 "Compte": company.name,
                 "Type": "Diagnostic process",
-                "Source": diagnostic.source === "engine" ? "Moteur IA" : "Import",
+                "Source": diagnostic?.source === "engine" ? "Moteur IA" : "Import",
               }}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => onExpandViewer(true)}
+                  className="inline-flex items-center gap-1.5 rounded border border-border bg-surface-hover px-2.5 py-1 text-[11px] font-semibold text-body hover:text-heading transition-colors cursor-pointer"
+                >
+                  <ExpandIcon className="h-3 w-3" />
+                  Plein écran
+                </button>
+              }
             />
           </div>
-        ) : (
+        ) : diagnostic ? (
           <ProcessDiagnosticContent data={diagnostic.data} />
-        )
+        ) : null
       )}
 
       {/* État vide global */}
@@ -1201,6 +1279,28 @@ function SummaryIcon({ className }: { className?: string }) {
       <path d="M10 9H8" />
       <path d="M16 13H8" />
       <path d="M16 17H8" />
+    </svg>
+  )
+}
+
+export function CollapseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+      <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+      <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+      <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+    </svg>
+  )
+}
+
+export function ExpandIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+      <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+      <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+      <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
     </svg>
   )
 }

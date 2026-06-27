@@ -56,7 +56,8 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
     case "analyses": {
       const hasEngine = (data.client && data.client.source === "engine") || (data.sector && data.sector.source === "engine")
       const hasFolio = (data.client && data.client.source === "folio") || (data.sector && data.sector.source === "folio")
-      if (hasEngine) {
+      const hasDiagnosticPdf = !!data.diagnosticPdfUrl
+      if (hasEngine || hasDiagnosticPdf) {
         return { label: "Disponible", tone: "success" }
       }
       if (hasFolio) {
