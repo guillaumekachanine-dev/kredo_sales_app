@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Fragment } from "react"
+import { useState, useRef, useEffect, Fragment } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
@@ -15,6 +15,7 @@ import {
   SignalList,
   FreshnessLine,
 } from "./intelligence-parts"
+import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { PitchMailDrawerContent, SummaryDrawerContent, CampaignDrawerContent } from "./IntelligenceActionDrawers"
 import {
   type TabKey,
@@ -30,17 +31,31 @@ import {
   SectorStudyIcon,
   ProcessDiagnosticIcon,
   PlusCircleIcon,
+  ExpandIcon,
+  CollapseIcon,
 } from "./ClientIntelligenceDesktopView"
 
 type MobilePanelKey = TabKey | "pitch" | "summary" | "campaign"
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
-  const { company, client, sector, diagnostic, signals } = data
+  const { company, client, sector, diagnostic, diagnosticPdfUrl, signals } = data
 
   const [activePanel, setActivePanel] = useState<MobilePanelKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const pdfDialogRef = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    const dialog = pdfDialogRef.current
+    if (!dialog) return
+    if (pdfDialogOpen && diagnosticPdfUrl) {
+      if (!dialog.open) dialog.showModal()
+    } else {
+      if (dialog.open) dialog.close()
+    }
+  }, [pdfDialogOpen, diagnosticPdfUrl])
 
   const quickActions: DashboardAction[] = [
     {
@@ -200,13 +215,21 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
                 <button
                   type="button"
-                  disabled={!diagnostic}
-                  onClick={() => setSelectedAnalysis(selectedAnalysis === "processus" ? null : "processus")}
+                  disabled={!diagnostic && !diagnosticPdfUrl}
+                  onClick={() => {
+                    if (selectedAnalysis === "processus") {
+                      setSelectedAnalysis(null)
+                      setPdfDialogOpen(false)
+                    } else {
+                      setSelectedAnalysis("processus")
+                      if (diagnosticPdfUrl) setPdfDialogOpen(true)
+                    }
+                  }}
                   className={cn(
                     "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
                     selectedAnalysis === "processus"
                       ? "border-primary bg-primary/5 text-primary"
-                      : diagnostic
+                      : (diagnostic || diagnosticPdfUrl)
                       ? "border-border bg-surface hover:bg-surface-hover text-muted"
                       : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed text-muted"
                   )}
@@ -290,11 +313,63 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               )}
 
               {selectedAnalysis === "processus" && (
-                diagnostic ? (
+                diagnosticPdfUrl && !pdfDialogOpen ? (
+                  <div className="h-[70vh] min-h-[400px]">
+                    <DocumentViewerShell
+                      fileName={`Diagnostic process — ${company.name}`}
+                      fileUrl={diagnosticPdfUrl}
+                      metadata={{
+                        "Compte": company.name,
+                        "Type": "Diagnostic process",
+                        "Source": diagnostic?.source === "engine" ? "Moteur IA" : "Import",
+                      }}
+                      actions={
+                        <button
+                          type="button"
+                          onClick={() => setPdfDialogOpen(true)}
+                          className="inline-flex items-center gap-1.5 rounded border border-border bg-surface-hover px-2.5 py-1 text-[11px] font-semibold text-body hover:text-heading transition-colors cursor-pointer"
+                        >
+                          <ExpandIcon className="h-3 w-3" />
+                          Plein écran
+                        </button>
+                      }
+                    />
+                  </div>
+                ) : !diagnosticPdfUrl && diagnostic ? (
                   <ProcessDiagnosticContent data={diagnostic.data} />
-                ) : (
+                ) : !diagnosticPdfUrl ? (
                   <p className="text-xs text-muted italic">Aucun diagnostic process disponible.</p>
-                )
+                ) : null
+              )}
+
+              {/* Dialog PDF plein écran */}
+              {diagnosticPdfUrl && (
+                <dialog
+                  ref={pdfDialogRef}
+                  onClose={() => setPdfDialogOpen(false)}
+                  className="m-0 p-0 border-0 w-screen h-dvh max-w-[100vw] max-h-[100dvh] bg-canvas [&::backdrop]:bg-black/75"
+                >
+                  <DocumentViewerShell
+                    fileName={`Diagnostic process — ${company.name}`}
+                    fileUrl={diagnosticPdfUrl}
+                    metadata={{
+                      "Compte": company.name,
+                      "Type": "Diagnostic process",
+                      "Source": diagnostic?.source === "engine" ? "Moteur IA" : "Import",
+                    }}
+                    className="h-full rounded-none border-0"
+                    actions={
+                      <button
+                        type="button"
+                        onClick={() => setPdfDialogOpen(false)}
+                        className="inline-flex items-center gap-1.5 rounded border border-border bg-surface-hover px-2.5 py-1 text-[11px] font-semibold text-body hover:text-heading transition-colors cursor-pointer"
+                      >
+                        <CollapseIcon className="h-3 w-3" />
+                        Condenser
+                      </button>
+                    }
+                  />
+                </dialog>
               )}
             </>
           )}

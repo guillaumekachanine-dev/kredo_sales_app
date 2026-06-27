@@ -1,12 +1,15 @@
 import { SectionNavBarSlot } from "@/components/layout/SectionNavBarSlot"
+import { CrmTabbedShell } from "@/components/accounts-contacts/CrmTabbedShell"
+import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
-export default function ProspectionLayout({ children }: { children: React.ReactNode }) {
+export default async function ProspectionLayout({ children }: { children: React.ReactNode }) {
+  const device = await getDashboardDevice()
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <SectionNavBarSlot />
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <CrmTabbedShell isMobile={device === "mobile"}>
         {children}
-      </div>
+      </CrmTabbedShell>
     </div>
   )
 }
