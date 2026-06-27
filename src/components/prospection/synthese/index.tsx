@@ -1,17 +1,15 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getProspectionSummaryData } from "@/lib/prospection/prospection-summary-data"
-import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { SyntheseDesktopView } from "./SyntheseDesktopView"
 import { SyntheseMobileView } from "./SyntheseMobileView"
 
-export async function SyntheseSection() {
+export async function SyntheseSection({ lens }: { lens?: string }) {
   const device = await getDashboardDevice()
+  const data = await getProspectionSummaryData()
 
   if (device === "desktop") {
-    const data = await getProspectionSummaryData()
     return <SyntheseDesktopView data={data} />
   }
 
-  const data = await getSyntheseData()
-  return <SyntheseMobileView data={data} />
+  return <SyntheseMobileView data={data} lens={lens} />
 }
