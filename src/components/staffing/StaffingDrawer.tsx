@@ -92,11 +92,11 @@ export function StaffingDrawer() {
               company:companies ( id, name, website, metadata )
             ),
             candidate:candidates (
-              id, status, source, current_title, seniority, expected_daily_rate, expected_salary, availability,
+              *,
               person:persons (
                 id, first_name, last_name, full_name, primary_email, phone, linkedin_url, location, notes,
                 person_skills (
-                  id, level, years, confidence, source,
+                  *,
                   skill:skills ( id, name, category )
                 ),
                 collaborators (
@@ -124,18 +124,41 @@ export function StaffingDrawer() {
         if (!staffing) throw new Error("Positionnement de staffing introuvable.")
 
         const model = staffing as unknown as StaffingDrawerViewModel
-        setDrawerData(model)
-
         const candidateId = model.candidate?.id
-        if (candidateId) {
-          const { data: candidateEvents } = await supabase
-            .from("calendar_events")
-            .select("id, title, event_type, status, starts_at, ends_at, description, metadata, organizer_id")
-            .eq("candidate_id", candidateId)
-            .order("starts_at", { ascending: false })
+        const practiceId = model.candidate?.practice_id
 
-          setEvents((candidateEvents ?? []) as DrawerEventRecord[])
+        const [eventsResult, practiceResult] = await Promise.all([
+          candidateId
+            ? supabase
+                .from("calendar_events")
+                .select("id, title, event_type, status, starts_at, ends_at, description, metadata, organizer_id")
+                .eq("candidate_id", candidateId)
+                .order("starts_at", { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+          practiceId
+            ? supabase
+                .from("offer_practices")
+                .select("id, name, slug, color_hex")
+                .eq("id", practiceId)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
+        ])
+
+        if (eventsResult.error) {
+          console.error("[StaffingDrawer] Candidate events error:", eventsResult.error)
         }
+        if (practiceResult.error) {
+          console.error("[StaffingDrawer] Candidate practice error:", practiceResult.error)
+        }
+
+        setEvents((eventsResult.data ?? []) as DrawerEventRecord[])
+        setDrawerData({
+          ...model,
+          candidate: {
+            ...model.candidate,
+            practice: practiceResult.data ?? null,
+          },
+        })
       } catch (error: unknown) {
         console.error("[StaffingDrawer] Error loading data:", error)
         setFetchError(getErrorMessage(error))
