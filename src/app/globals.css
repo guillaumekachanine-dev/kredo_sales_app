@@ -115,7 +115,7 @@
      Token de SURFACE dédié — auparavant `bg-heading` réutilisait
      le token de texte (surcharge). Séparé pour permettre l'inversion
      cockpit sans casser le rail. */
-  --color-rail:         #1A2540;  /* bg-rail — navy */
+  --color-rail:         #2A6B8A;  /* bg-rail — bleu pétrole cockpit */
 
   /* ── Data visualization ─────────────────────────────────── */
   --color-dataviz-1: var(--color-brand-primary);
@@ -192,22 +192,25 @@
   --color-surface:       #1E4596; /* cartes / header : cobalt enfoncé   */
   --color-surface-hover: #22489D;
   --color-border:        #3A60B5; /* liseré clair sur cobalt            */
-  --color-heading:       #FFC233; /* titres + chiffres-clés EN OR       */
+  --color-heading:       #FFC107; /* titres + chiffres-clés — jaune ambre */
   --color-body:          #D6E1F4; /* texte courant clair                */
   --color-muted:         #A9BDE6; /* labels / métadonnées               */
-  --color-primary:       #FFB812; /* liens, soulignement onglet, accents → or */
-  --color-rail:          #FDFCFA; /* Tour de contrôle : même blanc que le menu de navigation à gauche */
+  --color-primary:       #FFC107; /* liens, soulignement onglet, accents → ambre */
+  --color-rail:          #3688AA; /* Tour de contrôle : bleu pétrole */
 }
 
-/* Redéfinition des couleurs à l'intérieur du rail d'intelligence sous cockpit (fond blanc #FDFCFA) */
+/* Redéfinition des couleurs à l'intérieur du rail d'intelligence (fond bleu pétrole #3688AA) */
 [data-theme="cockpit"] aside.bg-rail {
-  --color-primary-fg:    #1A2540; /* text-primary-fg devient bleu marine foncé */
-  --color-primary:       #2554B8; /* primary devient bleu cobalt standard */
-  --color-heading:       #1A2540; /* titres foncés */
-  --color-body:          #526074; /* texte courant foncé */
-  --color-muted:         #93A0B0; /* métadonnées grises */
-  --color-border:        #DBE0EB; /* bordures claires */
-  --color-surface:       #FDFCFA; /* surfaces claires */
+  --color-primary-fg:    #FFFFFF;          /* texte principal → blanc franc sur pétrole */
+  --color-primary:       #FFC107;          /* primary → jaune ambre */
+  --color-heading:       #FFC107;          /* titres section → jaune ambre */
+  --color-body:          rgba(255,255,255,0.82); /* texte courant clair sur pétrole */
+  --color-muted:         rgba(255,255,255,0.50); /* métadonnées atténuées */
+  --color-border:        rgba(255,255,255,0.14); /* bordures légères sur pétrole */
+  --color-surface:       rgba(255,255,255,0.07); /* surfaces cartes sur pétrole */
+  --color-surface-hover: rgba(255,255,255,0.13); /* hover cartes */
+  --color-brand-brass:   #FFC107;          /* brass → ambre dans ce contexte */
+  --color-secondary:     #FFC107;          /* secondary → ambre */
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
@@ -473,7 +476,7 @@ dialog.kredo-drawer-bottom {
 
 .kredo-action-card-dark {
   position: relative;
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(255, 255, 255, 0.08);
   border: none;
   overflow: hidden;
   transition:
@@ -482,7 +485,7 @@ dialog.kredo-drawer-bottom {
     background-color 0.2s ease;
 }
 
-/* Gradient ring statique — cobalt vers brass */
+/* Gradient ring statique — pétrole → ambre → ocre */
 .kredo-action-card-dark::before {
   content: "";
   position: absolute;
@@ -491,9 +494,9 @@ dialog.kredo-drawer-bottom {
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(91, 87, 245, 0.55) 0%,
-    rgba(200, 154, 43, 0.40) 50%,
-    rgba(0, 194, 255, 0.35) 100%
+    rgba(54, 136, 170, 0.70) 0%,
+    rgba(179, 125, 83, 0.55) 50%,
+    rgba(255, 193, 7, 0.45) 100%
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -525,15 +528,16 @@ dialog.kredo-drawer-bottom {
   opacity: 0;
 }
 
-/* Hover : lift + glow brass */
+/* Hover : lift + glow pétrole-ambre */
 .kredo-action-card-dark:not(:disabled):hover {
   transform: translateY(-3px);
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 6px 24px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(200, 154, 43, 0.30),
-    0 0 32px rgba(200, 154, 43, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    0 6px 24px rgba(0, 0, 0, 0.30),
+    0 0 0 1px rgba(255, 193, 7, 0.40),
+    0 0 32px rgba(179, 125, 83, 0.22),
+    0 0 16px rgba(54, 136, 170, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10);
 }
 
 /* Hover : bordure plus vive */

@@ -15,15 +15,21 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     return (
       <button
         type="button"
-        disabled={isComingSoon}
+        onClick={isComingSoon ? undefined : undefined}
         className={cn(
-          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left",
-          isComingSoon ? "cursor-not-allowed opacity-55" : "cursor-pointer",
+          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer",
         )}
       >
+        {/* Badge "Bientôt" discret en superposition */}
+        {isComingSoon && (
+          <span className="absolute top-2 right-2 z-20 rounded-full bg-white/10 px-1.5 py-px text-[7px] font-bold uppercase tracking-widest text-white/50">
+            Bientôt
+          </span>
+        )}
+
         <div className="relative z-10">
-          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white text-primary-fg shadow-[0_0_0_1px_rgba(255,255,255,0.65),inset_0_1px_0_rgba(255,255,255,0.92)]">
-            <IntelligenceIcon name={action.icon} className="size-5" />
+          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white/20 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25),inset_0_1px_0_rgba(255,255,255,0.30)]">
+            <IntelligenceIcon name={action.icon} className="size-5 text-white" />
           </span>
         </div>
 
