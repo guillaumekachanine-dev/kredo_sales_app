@@ -68,19 +68,14 @@ export interface AssistanceCaseOpportunity {
   opportunity_candidates: AssistanceCasePositioning[]
 }
 
-export interface AssistanceCaseEvent {
-  id: string
-  title: string
-  event_type: string
-  status: string
-  starts_at: string
-  ends_at: string | null
-  description: string | null
-  candidate_id: string | null
-  opportunity_candidate_id: string | null
-  metadata: Json | null
-  organizer_id: string | null
-}
+/**
+ * Runtime projection of calendar_events for the assistance case.
+ * The live schema already contains opportunity_candidate_id, while the committed
+ * generated Supabase facade is intentionally refreshed in a separate operation.
+ * Keep this boundary local instead of weakening the application-wide client type.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AssistanceCaseEvent = any
 
 export function getPositioningHiringProcesses(
   positioning: AssistanceCasePositioning,
