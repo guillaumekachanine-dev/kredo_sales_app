@@ -91,6 +91,25 @@ const SCORE_OPTIONS: FilterOption[] = [
   { value: "2", label: "≥ 2" },
 ]
 
+const SORT_OPTIONS: FilterOption[] = [
+  { value: "score", label: "Score" },
+  { value: "alphabetique", label: "Alphabétique" },
+  { value: "activite", label: "Activité" },
+]
+
+// Abbreviations applied only in the mobile grid cards.
+const CARD_NAME_ABBREVIATIONS = new Map<string, string>([
+  ["banque populaire méditerranée", "BPMed"],
+  ["casa (communauté d'agglomérations de sophia antipolis)", "CASA"],
+  ["cnrs institut de la mer de villefranche", "CNRS Institut de la Mer"],
+  ["cnrs observatoire de la cote d'azur", "CNRS OCA"],
+  ["european society of cardiology", "ES Cardio"],
+])
+
+function abbreviateForCard(name: string): string {
+  return CARD_NAME_ABBREVIATIONS.get(name.toLowerCase()) ?? name
+}
+
 const ROLE_OPTIONS = [
   { value: "decideur", label: "Décideur" },
   { value: "prescripteur", label: "Prescripteur" },
@@ -796,78 +815,40 @@ function AccountsDesktop({
 
 function AccountsMobile({
   accounts,
-  studies,
   onOpenIdentity,
-  onOpenIntelligence,
-  onEdit,
-  onDelete,
 }: {
   accounts: AccountRow[]
-  studies: StudyRow[]
   onOpenIdentity: (id: string) => void
-  onOpenIntelligence: (account: AccountRow) => void
-  onEdit: (account: AccountRow) => void
-  onDelete: (account: AccountRow) => void
 }) {
   return (
-    <div className="flex flex-col gap-3">
-      {accounts.map((account) => {
-        const hasStudy = studies.some((s) => s.id === account.id)
-        return (
-          <SurfaceCard key={account.id} id={`account-row-${account.id}`} className="p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div 
-                className="flex items-center gap-2.5 min-w-0 cursor-pointer hover:opacity-85 transition-opacity"
-                onClick={() => onOpenIdentity(account.id)}
-              >
-                <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" />
-                <div className="min-w-0">
-                  <h2 className="truncate text-sm font-bold text-heading hover:text-primary transition-colors">{account.name}</h2>
-                  <p className="mt-0.5 text-xs text-body">{account.sector} · {account.status.replace("_", " ")} · CA: {displayRevenue(account.revenue)}</p>
-                </div>
-              </div>
-              <PriorityBadge priority={account.priority} />
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Score</p>
-                <p className="text-sm font-bold text-heading">{formatScore(account.score)}</p>
-              </div>
-              <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Taille</p>
-                <p className="text-sm font-bold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</p>
-              </div>
-              <div className="rounded border border-border bg-canvas px-2 py-2">
-                <p className="text-[10px] text-muted">Contacts</p>
-                <p className="text-sm font-bold text-heading">{account.contactCount}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-1">
-              <div className="flex gap-2">
-                <button onClick={() => onEdit(account)} className="flex items-center gap-1 rounded border border-border px-2.5 py-1 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">
-                  <IconEdit /> Modifier
-                </button>
-              </div>
-              {hasStudy && (
-                <button
-                  onClick={() => onOpenIntelligence(account)}
-                  className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap cursor-pointer"
-                >
-                  <span>Cockpit client</span>
-                  <span
-                    className="kredo-ready-action-circle"
-                    style={{ width: "14px", height: "14px", minWidth: "14px", minHeight: "14px" }}
-                  >
-                    <svg className="w-2 h-2 relative z-10 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                    </svg>
-                  </span>
-                </button>
-              )}
-            </div>
-          </SurfaceCard>
-        )
-      })}
+    <div className="grid grid-cols-2 gap-3">
+      {accounts.map((account) => (
+        <button
+          key={account.id}
+          id={`account-row-${account.id}`}
+          type="button"
+          onClick={() => onOpenIdentity(account.id)}
+          className="flex flex-col items-stretch rounded-xl border border-border bg-surface text-left overflow-hidden active:opacity-75 transition-opacity"
+        >
+          {/* Logo — fond blanc, sans cadre, dimensions inchangées */}
+          <div className="w-full aspect-square overflow-hidden bg-white p-3">
+            <CompanyLogo
+              name={account.name}
+              logoPath={account.logoPath}
+              website={account.website}
+              size="md"
+              fill
+              className="!border-0"
+            />
+          </div>
+          {/* Bande bleue — nom abrégé en blanc gras */}
+          <div className="bg-primary px-2 py-2.5 w-full">
+            <span className="block text-xs font-bold text-white leading-snug text-center line-clamp-2">
+              {abbreviateForCard(account.name)}
+            </span>
+          </div>
+        </button>
+      ))}
     </div>
   )
 }
@@ -1150,10 +1131,26 @@ export function ProspectionAccountsView({
     [data.contacts, filters, deferredQuery]
   )
 
+  // Mobile-only client-side sort applied after filtering.
+  const sortedAccounts = useMemo(() => {
+    if (device !== "mobile") return filteredAccounts
+    return [...filteredAccounts].sort((a, b) => {
+      if (filters.sortAccounts === "alphabetique") return a.name.localeCompare(b.name)
+      if (filters.sortAccounts === "activite") {
+        const actA = a.taskCount + a.contactCount
+        const actB = b.taskCount + b.contactCount
+        return actB - actA || a.name.localeCompare(b.name)
+      }
+      // "score" — highest first, nulls last
+      return (b.score ?? -1) - (a.score ?? -1) || a.name.localeCompare(b.name)
+    })
+  }, [filteredAccounts, filters.sortAccounts, device])
+
   // Device-aware display limits applied AFTER filtering — never before.
+  // Mobile grid is compact enough to handle the full dataset (~96 companies).
   const displayAccounts = useMemo(
-    () => filteredAccounts.slice(0, device === "mobile" ? 40 : 160),
-    [filteredAccounts, device]
+    () => sortedAccounts.slice(0, device === "mobile" ? 300 : 160),
+    [sortedAccounts, device]
   )
   const displayContacts = useMemo(
     () => filteredContacts.slice(0, device === "mobile" ? 60 : 200),
@@ -1307,16 +1304,28 @@ export function ProspectionAccountsView({
               panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
               fullWidthPanel
             />
-            <FilterDropdown
-              label="Score"
-              mode="single"
-              options={SCORE_OPTIONS}
-              selected={filters.minScore === null ? [] : [String(filters.minScore)]}
-              onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
-              onClear={() => setParam("minScore", null)}
-              compact={isMobileAccounts}
-              panelWidthCh={isMobileAccounts ? 11 : undefined}
-            />
+            {isMobileAccounts ? (
+              <FilterDropdown
+                label="Tri"
+                mode="single"
+                options={SORT_OPTIONS}
+                selected={[filters.sortAccounts]}
+                onToggle={(value) => setParam("sortAcc", value === filters.sortAccounts ? null : value)}
+                onClear={() => setParam("sortAcc", null)}
+                compact
+                panelWidthCh={14}
+              />
+            ) : (
+              <FilterDropdown
+                label="Score"
+                mode="single"
+                options={SCORE_OPTIONS}
+                selected={filters.minScore === null ? [] : [String(filters.minScore)]}
+                onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
+                onClear={() => setParam("minScore", null)}
+                panelWidthCh={11}
+              />
+            )}
           </>
         ) : (
           <>
@@ -1351,13 +1360,7 @@ export function ProspectionAccountsView({
         device === "mobile" ? (
           <AccountsMobile
             accounts={displayAccounts}
-            studies={data.studies}
             onOpenIdentity={setSelectedCompanyIdForIdentity}
-            onOpenIntelligence={(account) =>
-              openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
-            }
-            onEdit={(a) => setCompanyModal({ open: true, editing: a })}
-            onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />
         ) : (
           <AccountsDesktop

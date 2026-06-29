@@ -3,6 +3,8 @@ import type { AccountRow, ContactRow } from "./accounts-contacts-data"
 
 export type AccountsContactsTab = "accounts" | "contacts"
 
+export type SortAccountsValue = "score" | "alphabetique" | "activite"
+
 export type AccountsContactsFilters = {
   tab: AccountsContactsTab
   q: string
@@ -21,6 +23,7 @@ export type AccountsContactsFilters = {
   missingEmail: boolean
   hasStudy: boolean
   hasPhone: boolean
+  sortAccounts: SortAccountsValue
 }
 
 // URL param keys — kept short and readable.
@@ -42,6 +45,7 @@ const KEYS = {
   missingEmail: "missingEmail",
   hasStudy: "hasStudy",
   hasPhone: "hasPhone",
+  sortAccounts: "sortAcc",
 } as const
 
 function readList(params: URLSearchParams, key: string): string[] {
@@ -59,6 +63,11 @@ function readNumber(params: URLSearchParams, key: string): number | null {
   if (!raw) return null
   const parsed = Number(raw)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function parseSortAccounts(value: string | null): SortAccountsValue {
+  if (value === "alphabetique" || value === "activite") return value
+  return "score"
 }
 
 export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
@@ -80,6 +89,7 @@ export function parseFilters(params: URLSearchParams): AccountsContactsFilters {
     missingEmail: readBool(params, KEYS.missingEmail),
     hasStudy: readBool(params, KEYS.hasStudy),
     hasPhone: readBool(params, KEYS.hasPhone),
+    sortAccounts: parseSortAccounts(params.get(KEYS.sortAccounts)),
   }
 }
 
