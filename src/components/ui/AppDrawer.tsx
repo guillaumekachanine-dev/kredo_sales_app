@@ -47,6 +47,7 @@ export interface AppDrawerProps {
   loading?: boolean
   error?: React.ReactNode | DrawerErrorState | null
   dirty?: boolean
+  headerStyle?: React.CSSProperties
   onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
   closeLabel?: string
   hideMobileBackBtn?: boolean
@@ -101,6 +102,7 @@ export function AppDrawer({
   loading = false,
   error = null,
   dirty = false,
+  headerStyle,
   onRequestClose,
   closeLabel = "Fermer",
   hideMobileBackBtn = false,
@@ -186,6 +188,15 @@ export function AppDrawer({
 
   const headerDescription = description ?? subtitle
   const headerDescriptionId = headerDescription ? descriptionId : undefined
+  const titleContent = React.isValidElement(title) ? (
+    <div id={titleId} className="min-w-0">
+      {title}
+    </div>
+  ) : (
+    <h2 id={titleId} className="font-heading text-base font-bold leading-7 tracking-tight text-heading">
+      {title}
+    </h2>
+  )
 
   return (
     <dialog
@@ -221,7 +232,10 @@ export function AppDrawer({
     >
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
-          <header className="shrink-0 border-b border-border bg-surface px-4 py-4 sm:px-6">
+          <header
+            className="shrink-0 px-4 py-4 transition-colors sm:px-6"
+            style={headerStyle}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 {eyebrow ? (
@@ -242,9 +256,7 @@ export function AppDrawer({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 id={titleId} className="font-heading text-base font-bold leading-7 text-heading tracking-tight">
-                        {title}
-                      </h2>
+                      {titleContent}
                       {dirty ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-warning/20 bg-warning/[0.12] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-status-warning-ink)]">
                           <span className="size-1.5 rounded-full bg-warning" aria-hidden="true" />
@@ -292,9 +304,19 @@ export function AppDrawer({
                 </IconButton>
               </div>
             </div>
+
           </header>
 
-          <div className={cn("min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
+          <div className={cn("relative min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-12"
+              aria-hidden="true"
+              style={{
+                background:
+                  "linear-gradient(to bottom, var(--drawer-header-fade-start, rgba(255,255,255,0.55)) 0%, var(--drawer-header-fade-end, rgba(253,252,250,0)) 100%)",
+                zIndex: 0,
+              }}
+            />
             {loading ? <DrawerLoadingState /> : error ? <DrawerErrorContent error={error} /> : children}
           </div>
 

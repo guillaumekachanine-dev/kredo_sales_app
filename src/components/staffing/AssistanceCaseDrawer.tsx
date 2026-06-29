@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { Button } from "@/components/ui/Button"
 import { CandidateProfileEditor } from "@/components/recruitment/CandidateProfileEditor"
 import { CandidateReferenceProfile } from "@/components/recruitment/CandidateReferenceProfile"
 import {
@@ -15,7 +14,10 @@ import {
   useStaffingDrawerStore,
   type AssistanceCaseTab,
 } from "@/hooks/use-staffing-drawer-store"
-import { AssistanceCaseHeader } from "./AssistanceCaseHeader"
+import {
+  AssistanceCaseHeader,
+  getAssistanceCaseHeaderStyle,
+} from "./AssistanceCaseHeader"
 import { OpportunityNeedTab } from "./OpportunityNeedTab"
 import { OpportunityStaffingTab } from "./OpportunityStaffingTab"
 import { OpportunityRecruitmentTab } from "./OpportunityRecruitmentTab"
@@ -34,18 +36,6 @@ import type {
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
   return "Erreur de chargement du dossier assistance technique."
-}
-
-function EditIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M16.862 4.487 19.5 7.125m-1.638-4.276a1.875 1.875 0 1 1 2.652 2.652L7.125 18.89 3 20l1.11-4.125L17.862 2.85Z"
-      />
-    </svg>
-  )
 }
 
 function DrawerSkeleton() {
@@ -109,7 +99,7 @@ export function AssistanceCaseDrawer() {
   const [skillOptions, setSkillOptions] = useState<CandidateSkillOption[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
-  const [editing, setEditing] = useState(false)
+  const [editingMode, setEditingMode] = useState<"candidate" | "opportunity" | null>(null)
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [isMobile, setIsMobile] = useState(
@@ -130,7 +120,7 @@ export function AssistanceCaseDrawer() {
     const loadData = async () => {
       setLoading(true)
       setFetchError(null)
-      setEditing(false)
+      setEditingMode(null)
       setDirty(false)
 
       try {
@@ -326,9 +316,11 @@ export function AssistanceCaseDrawer() {
   ]
 
   const requestClose = () => {
-    if (!editing || !dirty) return true
+    if (editingMode !== "candidate" || !dirty) return true
     return window.confirm("Des modifications ne sont pas enregistrées. Fermer le dossier ?")
   }
+
+  const isCandidateEditing = editingMode === "candidate"
 
   const openCandidatePerspective = (
     positioning: AssistanceCasePositioning,
@@ -383,7 +375,7 @@ export function AssistanceCaseDrawer() {
       )
     }
 
-    if (editing) {
+    if (editingMode === "candidate") {
       return (
         <CandidateProfileEditor
           data={currentPositioning.candidate}
@@ -391,12 +383,12 @@ export function AssistanceCaseDrawer() {
           skillOptions={skillOptions}
           onCancel={() => {
             if (!dirty || requestClose()) {
-              setEditing(false)
+              setEditingMode(null)
               setDirty(false)
             }
           }}
           onSaved={() => {
-            setEditing(false)
+            setEditingMode(null)
             setDirty(false)
             setReloadKey((current) => current + 1)
           }}
@@ -432,17 +424,31 @@ export function AssistanceCaseDrawer() {
         if (!open) closeStaffingDrawer()
       }}
       onRequestClose={requestClose}
-      dirty={editing && dirty}
+      dirty={isCandidateEditing && dirty}
+      headerStyle={getAssistanceCaseHeaderStyle(perspective)}
       title={
         opportunity ? (
           <AssistanceCaseHeader
             opportunity={opportunity}
             positioning={currentPositioning}
             perspective={perspective}
+            onEdit={() => {
+              if (perspective === "candidate") {
+                if (!currentPositioning) return
+                setEditingMode("candidate")
+                setDirty(false)
+                return
+              }
+
+              setEditingMode("opportunity")
+              setDirty(false)
+            }}
+            editDisabled={perspective === "candidate" && !currentPositioning}
             onPerspectiveChange={(nextPerspective) => {
               if (nextPerspective === "candidate" && !currentPositioning) return
+              if (editingMode === "candidate" && dirty && !requestClose()) return
               setPerspective(nextPerspective)
-              setEditing(false)
+              setEditingMode(null)
               setDirty(false)
             }}
           />
@@ -450,29 +456,16 @@ export function AssistanceCaseDrawer() {
           "Dossier assistance technique"
         )
       }
-      subtitle={editing ? "Modification du dossier candidat" : undefined}
+      subtitle={
+        isCandidateEditing ? "Modification du dossier candidat" : undefined
+      }
       eyebrow="Dossier assistance technique"
       className={isMobile ? "w-full max-w-full" : "max-w-[720px]"}
       loading={loading && !opportunity}
-      headerActions={
-        !editing &&
-        perspective === "candidate" &&
-        currentPositioning &&
-        activeTab === "subject" ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<EditIcon />}
-            onClick={() => setEditing(true)}
-          >
-            Modifier
-          </Button>
-        ) : null
-      }
     >
       {loading && !opportunity && <DrawerSkeleton />}
 
-      {!loading && opportunity && !editing && (
+      {!loading && opportunity && !isCandidateEditing && (
         <div
           className="-mt-4 mb-4 flex items-center gap-0 border-b border-border select-none"
           role="tablist"
@@ -499,19 +492,6 @@ export function AssistanceCaseDrawer() {
               </button>
             )
           })}
-
-          {perspective === "candidate" && activeTab === "subject" && currentPositioning && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="ml-auto inline-flex min-h-11 items-center gap-1.5 px-3 text-[11px] font-bold text-primary sm:hidden"
-            >
-              <span className="size-3.5" aria-hidden="true">
-                <EditIcon />
-              </span>
-              Modifier
-            </button>
-          )}
         </div>
       )}
 

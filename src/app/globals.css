@@ -106,6 +106,16 @@
   --color-cat-idea:    #9C27B0;
   --color-cat-idea-fg: #FFFFFF;
 
+  /* ── Assistance case perspectives ───────────────────────── */
+  --color-case-need:           #FFC107;
+  --color-case-need-fg:        #3A2A02;
+  --color-case-need-muted:     #6C5300;
+  --color-case-need-border:    #D8A400;
+  --color-case-candidate:      #9C27B0;
+  --color-case-candidate-fg:   #FFFFFF;
+  --color-case-candidate-muted:#E6C8ED;
+  --color-case-candidate-border:#7E1F8E;
+
   /* Bleu Turquoise — Information · Note · Général
      Texte FONCÉ : contraste blanc sur turquoise ~3,7:1 (borderline AA). */
   --color-cat-info:    #00BCD4;
@@ -124,6 +134,17 @@
   --color-dataviz-4: #719A5A;
   --color-dataviz-5: #7B6BB2;
   --color-dataviz-6: #D4B26A;
+}
+
+:root {
+  --color-case-need: #FFC107;
+  --color-case-need-fg: #3A2A02;
+  --color-case-need-muted: #6C5300;
+  --color-case-need-border: #D8A400;
+  --color-case-candidate: #9C27B0;
+  --color-case-candidate-fg: #FFFFFF;
+  --color-case-candidate-muted: #E6C8ED;
+  --color-case-candidate-border: #7E1F8E;
 }
 
 @keyframes pool-competences-draw {
@@ -1373,4 +1394,3 @@ canvas {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
-
