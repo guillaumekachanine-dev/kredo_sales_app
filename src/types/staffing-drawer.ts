@@ -71,6 +71,7 @@ export interface StaffingDrawerHiringMilestone {
 
 export interface StaffingDrawerHiringProcess {
   id: string
+  opportunity_candidate_id?: string | null
   status: string
   current_step: string
   started_at: string
