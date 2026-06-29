@@ -5,6 +5,7 @@ import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
 
 interface TabDetailsProps {
   data: StaffingDrawerViewModel
+  isCollaborator?: boolean
 }
 
 export function TabDetails({ data }: TabDetailsProps) {
