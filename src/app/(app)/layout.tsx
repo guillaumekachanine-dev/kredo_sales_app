@@ -14,8 +14,7 @@ export default async function AppLayout({
     <AppShell device={device}>
       {children}
       <EventDrawer />
-      <StaffingDrawer />
+      <StaffingDrawer device={device} />
     </AppShell>
   )
 }
-
