@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { formatEuro, formatDateNumeric } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
@@ -42,6 +43,21 @@ export function MissionsMobileListView({
 }: MissionsMobileListViewProps) {
   const router = useRouter()
   const { openTab } = useMissionsTabStore()
+  const { openOpportunityDrawer } = useStaffingDrawerStore()
+
+  const handleOpen = (row: MissionsListRow) => {
+    if (row.entityType === "opportunite") {
+      openOpportunityDrawer(row.entityId, "besoin")
+      return
+    }
+
+    openTab({
+      entityType: row.entityType,
+      entityId: row.entityId,
+      title: row.title,
+      subtitle: row.subtitle,
+    })
+  }
 
   if (rows.length === 0) {
     return (
@@ -59,14 +75,7 @@ export function MissionsMobileListView({
         return (
           <div
             key={row.entityId}
-            onClick={() =>
-              openTab({
-                entityType: row.entityType,
-                entityId: row.entityId,
-                title: row.entityType === "opportunite" ? (row.client ?? row.title) : row.title,
-                subtitle: row.entityType === "opportunite" ? row.title : row.subtitle,
-              })
-            }
+            onClick={() => handleOpen(row)}
             className="relative flex cursor-pointer flex-col gap-3 rounded-[var(--radius-medium)] border border-border/50 bg-surface p-4 transition-all active:scale-[0.99]"
           >
             <div className="flex items-center justify-between gap-2">
@@ -139,7 +148,7 @@ export function MissionsMobileListView({
               </div>
               <div className="flex items-center gap-1.5 border-t border-border/20 pt-2 text-[9px] text-muted-foreground">
                 <svg className="h-3.5 w-3.5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5V7a2 2 0 002-2z" />
                 </svg>
                 <span>
                   Période : <span className="font-semibold text-body">{formatDateNumeric(row.startDate)} au {formatDateNumeric(row.endDate)}</span>
