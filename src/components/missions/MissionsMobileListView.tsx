@@ -148,7 +148,7 @@ export function MissionsMobileListView({
               </div>
               <div className="flex items-center gap-1.5 border-t border-border/20 pt-2 text-[9px] text-muted-foreground">
                 <svg className="h-3.5 w-3.5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5V7a2 2 0 002-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span>
                   Période : <span className="font-semibold text-body">{formatDateNumeric(row.startDate)} au {formatDateNumeric(row.endDate)}</span>
