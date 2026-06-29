@@ -137,7 +137,7 @@ export function AssistanceCaseDrawer() {
         const supabase = createClient()
         let resolvedOpportunityId = opportunityId
         let resolvedCandidateId = candidateId
-        let resolvedStaffingId = staffingId
+        const resolvedStaffingId = staffingId
 
         if (!resolvedOpportunityId && resolvedStaffingId) {
           const contextResult = await supabase
@@ -263,7 +263,7 @@ export function AssistanceCaseDrawer() {
           })),
         )
         setSkillOptions((skillsResult.data ?? []) as CandidateSkillOption[])
-        setEvents((eventsResult.data ?? []) as AssistanceCaseEvent[])
+        setEvents((eventsResult.data ?? []) as unknown as AssistanceCaseEvent[])
         hydrateCaseContext({
           opportunityId: resolvedOpportunityId,
           staffingId: selectedPositioning?.id ?? null,
@@ -318,10 +318,6 @@ export function AssistanceCaseDrawer() {
     ).filter((process) => process.opportunity_candidate_id === currentPositioning.id)
     return findActiveProcess(exactProcesses as unknown as HiringProcess[])
   }, [currentPositioning])
-
-  const isCollaborator = Boolean(
-    currentPositioning?.candidate.person?.collaborators?.length,
-  )
 
   const tabs: { id: AssistanceCaseTab; label: string }[] = [
     { id: "subject", label: perspective === "candidate" ? "Profil" : "Besoin" },
