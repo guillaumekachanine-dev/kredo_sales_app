@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppDrawer } from '@/components/ui/AppDrawer'
+import { Button } from '@/components/ui/Button'
+import { CandidateProfileEditor } from '@/components/recruitment/CandidateProfileEditor'
 import { CandidateReferenceProfile } from '@/components/recruitment/CandidateReferenceProfile'
 import {
   HiringProcessStepper,
@@ -11,6 +13,10 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { CandidateReferenceProfileData } from '@/types/candidate-reference-profile'
+import type {
+  CandidatePracticeOption,
+  CandidateSkillOption,
+} from '@/types/candidate-profile-form'
 
 interface DrawerCandidateData extends CandidateReferenceProfileData {
   candidate_hiring_processes?: HiringProcess[]
@@ -55,64 +61,94 @@ function DrawerSkeleton() {
   )
 }
 
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487 19.5 7.125m-1.638-4.276a1.875 1.875 0 1 1 2.652 2.652L7.125 18.89 3 20l1.11-4.125L17.862 2.85Z" />
+    </svg>
+  )
+}
+
 export function CandidateDrawer({
   candidateId,
   open,
   onOpenChange,
 }: CandidateDrawerProps) {
   const [drawerData, setDrawerData] = useState<DrawerCandidateData | null>(null)
+  const [practices, setPractices] = useState<CandidatePracticeOption[]>([])
+  const [skillOptions, setSkillOptions] = useState<CandidateSkillOption[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('profil')
+  const [editing, setEditing] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
   const loadDrawerData = useCallback(async (nextCandidateId: string) => {
     setLoading(true)
     setFetchError(null)
     setActiveTab('profil')
+    setEditing(false)
+    setDirty(false)
     setDrawerData(null)
 
     try {
       const supabase = createClient()
-      const { data, error } = await supabase
-        .from('candidates')
-        .select(`
-          *,
-          person:persons (
-            id, full_name, first_name, last_name, primary_email, phone, linkedin_url, location, notes,
-            person_skills (
-              *,
-              skill:skills ( id, name, category )
+      const [candidateResult, practicesResult, skillsResult] = await Promise.all([
+        supabase
+          .from('candidates')
+          .select(`
+            *,
+            person:persons (
+              id, full_name, first_name, last_name, primary_email, phone, linkedin_url, location, notes,
+              person_skills (
+                *,
+                skill:skills ( id, name, category )
+              )
+            ),
+            candidate_hiring_processes (
+              id, status, current_step, started_at, closed_at, close_reason,
+              job_profile:job_profiles ( id, title ),
+              candidate_hiring_milestones (
+                id, step, result, scheduled_at, completed_at, calendar_event_id, notes
+              )
             )
-          ),
-          candidate_hiring_processes (
-            id, status, current_step, started_at, closed_at, close_reason,
-            job_profile:job_profiles ( id, title ),
-            candidate_hiring_milestones (
-              id, step, result, scheduled_at, completed_at, calendar_event_id, notes
-            )
-          )
-        `)
-        .eq('id', nextCandidateId)
-        .single()
+          `)
+          .eq('id', nextCandidateId)
+          .single(),
+        supabase
+          .from('offer_practices')
+          .select('id, name, slug, color_hex')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('skills')
+          .select('id, name, category')
+          .order('name', { ascending: true }),
+      ])
 
-      if (error || !data) {
-        throw new Error(error?.message ?? 'Candidat introuvable.')
+      if (candidateResult.error || !candidateResult.data) {
+        throw new Error(candidateResult.error?.message ?? 'Candidat introuvable.')
+      }
+      if (practicesResult.error) {
+        throw new Error(practicesResult.error.message)
+      }
+      if (skillsResult.error) {
+        throw new Error(skillsResult.error.message)
       }
 
-      const model = data as unknown as DrawerCandidateData
-      const { data: practice, error: practiceError } = model.practice_id
-        ? await supabase
-            .from('offer_practices')
-            .select('id, name, slug, color_hex')
-            .eq('id', model.practice_id)
-            .maybeSingle()
-        : { data: null, error: null }
+      const model = candidateResult.data as unknown as DrawerCandidateData
+      const practice = (practicesResult.data ?? []).find(
+        (item) => item.id === model.practice_id,
+      )
 
-      if (practiceError) {
-        console.error('[CandidateDrawer] Practice loading error:', practiceError)
-      }
-
+      setPractices(
+        (practicesResult.data ?? []).map((item) => ({
+          id: item.id,
+          name: item.name,
+        })),
+      )
+      setSkillOptions((skillsResult.data ?? []) as CandidateSkillOption[])
       setDrawerData({
         ...model,
         practice: practice ?? null,
@@ -151,18 +187,39 @@ export function CandidateDrawer({
         .join(' · ') || 'Candidat externe'
     : 'Candidat externe'
 
+  const requestClose = () => {
+    if (!editing || !dirty) return true
+    return window.confirm(
+      'Des modifications ne sont pas enregistrées. Fermer le dossier ?',
+    )
+  }
+
   return (
     <AppDrawer
       open={open}
       onOpenChange={onOpenChange}
+      onRequestClose={requestClose}
+      dirty={editing && dirty}
       title={name}
-      subtitle={subtitle}
+      subtitle={editing ? 'Modification du dossier candidat' : subtitle}
       eyebrow="Dossier candidat"
-      className="max-w-[520px]"
+      className="max-w-[620px]"
+      headerActions={
+        !editing && drawerData && activeTab === 'profil' ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<EditIcon />}
+            onClick={() => setEditing(true)}
+          >
+            Modifier
+          </Button>
+        ) : null
+      }
     >
-      {!loading && drawerData && (
+      {!loading && drawerData && !editing && (
         <div
-          className="-mt-4 mb-4 flex gap-0 border-b"
+          className="-mt-4 mb-4 flex items-center gap-0 border-b"
           style={{ borderColor: 'var(--color-border)' }}
           role="tablist"
         >
@@ -191,6 +248,18 @@ export function CandidateDrawer({
               </button>
             )
           })}
+          {activeTab === 'profil' && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="ml-auto inline-flex min-h-11 items-center gap-1.5 px-3 text-[11px] font-bold text-primary sm:hidden"
+            >
+              <span className="size-3.5" aria-hidden="true">
+                <EditIcon />
+              </span>
+              Modifier
+            </button>
+          )}
         </div>
       )}
 
@@ -218,11 +287,33 @@ export function CandidateDrawer({
 
       {!loading && !fetchError && drawerData && (
         <div role="tabpanel" className="pb-6">
-          {activeTab === 'profil' && (
-            <CandidateReferenceProfile data={drawerData} />
-          )}
-          {activeTab === 'recrutement' && hiringProcess && (
-            <HiringProcessStepper process={hiringProcess} />
+          {editing ? (
+            <CandidateProfileEditor
+              data={drawerData}
+              practices={practices}
+              skillOptions={skillOptions}
+              onCancel={() => {
+                if (!dirty || requestClose()) {
+                  setEditing(false)
+                  setDirty(false)
+                }
+              }}
+              onSaved={() => {
+                setEditing(false)
+                setDirty(false)
+                setReloadKey((current) => current + 1)
+              }}
+              onDirtyChange={setDirty}
+            />
+          ) : (
+            <>
+              {activeTab === 'profil' && (
+                <CandidateReferenceProfile data={drawerData} />
+              )}
+              {activeTab === 'recrutement' && hiringProcess && (
+                <HiringProcessStepper process={hiringProcess} />
+              )}
+            </>
           )}
         </div>
       )}
