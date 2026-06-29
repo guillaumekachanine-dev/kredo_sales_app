@@ -1,3 +1,5 @@
+"use client"
+
 import React from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import {
@@ -5,6 +7,7 @@ import {
   type StructuredListColumn,
   type StructuredListDensity,
 } from "@/components/ui/StructuredList"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 
 export interface EntityListViewProps<T> {
   items: T[]
@@ -18,6 +21,11 @@ export interface EntityListViewProps<T> {
   tableFixed?: boolean
 }
 
+interface OpportunityListEntity {
+  entityType?: string
+  entityId?: string
+}
+
 export function EntityListView<T>({
   items,
   columns,
@@ -29,6 +37,19 @@ export function EntityListView<T>({
   getRowStyle,
   tableFixed,
 }: EntityListViewProps<T>) {
+  const { openOpportunityDrawer } = useStaffingDrawerStore()
+
+  const handleItemClick = onItemClick
+    ? (item: T) => {
+        const entity = item as T & OpportunityListEntity
+        if (entity.entityType === "opportunite" && entity.entityId) {
+          openOpportunityDrawer(entity.entityId, "besoin")
+          return
+        }
+        onItemClick(item)
+      }
+    : undefined
+
   return (
     <SurfaceCard className="overflow-hidden border-0 rounded-[var(--radius-medium)]">
       <StructuredList
@@ -36,7 +57,7 @@ export function EntityListView<T>({
         items={items}
         columns={columns}
         getItemId={getItemId}
-        onItemClick={onItemClick}
+        onItemClick={handleItemClick}
         ariaLabel={ariaLabel}
         emptyState={emptyState}
         getRowStyle={getRowStyle}
