@@ -20,12 +20,16 @@ export function useMissionsTabStore() {
   const pathname = usePathname()
   const engagementsTabStore = useEngagementsTabStore()
   const opportunitiesTabStore = useOpportunitiesTabStore()
-  const assistanceCase = useStaffingDrawerStore((state) => ({
-    isOpen: state.isOpen,
-    perspective: state.perspective,
-    opportunityId: state.opportunityId,
-    openOpportunityDrawer: state.openOpportunityDrawer,
-  }))
+  const assistanceCaseOpen = useStaffingDrawerStore((state) => state.isOpen)
+  const assistanceCasePerspective = useStaffingDrawerStore(
+    (state) => state.perspective,
+  )
+  const assistanceCaseOpportunityId = useStaffingDrawerStore(
+    (state) => state.opportunityId,
+  )
+  const openOpportunityDrawer = useStaffingDrawerStore(
+    (state) => state.openOpportunityDrawer,
+  )
 
   if (getMissionsTabScope(pathname) !== "opportunities") {
     return engagementsTabStore
@@ -36,12 +40,12 @@ export function useMissionsTabStore() {
     openTab: (tab: Omit<SectionTab, "id">) => {
       if (tab.entityType === "opportunite") {
         const explicitFullNavigation =
-          assistanceCase.isOpen &&
-          assistanceCase.perspective === "opportunity" &&
-          assistanceCase.opportunityId === tab.entityId
+          assistanceCaseOpen &&
+          assistanceCasePerspective === "opportunity" &&
+          assistanceCaseOpportunityId === tab.entityId
 
         if (!explicitFullNavigation) {
-          assistanceCase.openOpportunityDrawer(tab.entityId)
+          openOpportunityDrawer(tab.entityId)
           return
         }
       }
