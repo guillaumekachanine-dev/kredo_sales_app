@@ -43,6 +43,8 @@ select pg_temp.assert_true(
   'A profile, practice and skill are required for the candidate profile test.'
 );
 
+grant select on pg_temp.candidate_profile_context to authenticated;
+
 select set_config(
   'request.jwt.claim.sub',
   (select actor_id::text from pg_temp.candidate_profile_context),
