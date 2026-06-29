@@ -14,7 +14,6 @@ import {
   getOpportunityStageColor,
   OPPORTUNITY_KANBAN_STAGES,
 } from "@/lib/opportunities/stages"
-import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import { cn } from "@/lib/utils"
 
 interface OpportunitiesKanbanViewProps {
@@ -33,8 +32,7 @@ export function OpportunitiesKanbanView({
   onMoveOpportunity,
   displayMode,
 }: OpportunitiesKanbanViewProps) {
-  const { openTab } = useMissionsTabStore()
-  const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
+  const { openOpportunityDrawer, openStaffingDrawer } = useStaffingDrawerStore()
 
   return (
     <EntityKanbanView
@@ -44,14 +42,7 @@ export function OpportunitiesKanbanView({
       getColumnKey={(opportunity) => opportunity.stage}
       getColumnAccentColor={getOpportunityStageColor}
       onItemMove={onMoveOpportunity}
-      onCardClick={(opportunity) =>
-        openTab({
-          entityType: "opportunite",
-          entityId: opportunity.id,
-          title: opportunity.client ?? opportunity.title,
-          subtitle: opportunity.title,
-        })
-      }
+      onCardClick={(opportunity) => openOpportunityDrawer(opportunity.id, "besoin")}
       renderCard={(opportunity) => (
         <EntityKanbanCard
           isFlipped={displayMode === "consultants"}
