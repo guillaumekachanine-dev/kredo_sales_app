@@ -1,11 +1,15 @@
 import type { Json } from "./database"
+import type { CandidateReferenceProfileData } from "./candidate-reference-profile"
 
 export interface StaffingDrawerSkill {
   id: string
   level: number | null
   years: number | null
+  last_used_year: number | null
   confidence: number | null
   source: string | null
+  comment: string | null
+  profile_rank: number | null
   skill: {
     id: string
     name: string
@@ -61,6 +65,7 @@ export interface StaffingDrawerHiringMilestone {
   result: string
   scheduled_at: string | null
   completed_at: string | null
+  calendar_event_id?: string | null
   notes: string | null
 }
 
@@ -75,15 +80,8 @@ export interface StaffingDrawerHiringProcess {
   candidate_hiring_milestones: StaffingDrawerHiringMilestone[]
 }
 
-export interface StaffingDrawerCandidate {
-  id: string
-  status: string
-  source: string | null
-  current_title: string | null
-  seniority: string | null
-  expected_daily_rate: number | null
-  expected_salary: number | null
-  availability: string | null
+export interface StaffingDrawerCandidate
+  extends Omit<CandidateReferenceProfileData, "person"> {
   person: StaffingDrawerPerson | null
   candidate_hiring_processes?: StaffingDrawerHiringProcess[]
 }
