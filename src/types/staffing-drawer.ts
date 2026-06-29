@@ -76,6 +76,7 @@ export interface StaffingDrawerHiringProcess {
   started_at: string
   closed_at: string | null
   close_reason: string | null
+  opportunity_candidate_id: string | null
   job_profile: { id: string; title: string } | null
   candidate_hiring_milestones: StaffingDrawerHiringMilestone[]
 }
