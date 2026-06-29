@@ -12,7 +12,6 @@ import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
-import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
@@ -626,7 +625,6 @@ export function RecruitmentWorkspace({
           initialValues={eventInitialValues}
         />
         <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
-        <StaffingDrawer />
       </>
     )
   }
@@ -693,7 +691,6 @@ export function RecruitmentWorkspace({
         initialValues={eventInitialValues}
       />
       <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
-      <StaffingDrawer />
     </>
   )
 }
