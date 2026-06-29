@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 
-export type StaffingDrawerTab = "profil" | "staffing" | "recrutement" | "ressources"
+export type StaffingDrawerTab = "profil" | "staffing" | "recrutement"
 
 interface StaffingDrawerState {
   isOpen: boolean

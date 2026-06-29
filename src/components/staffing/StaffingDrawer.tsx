@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client"
 import { useStaffingDrawerStore, type StaffingDrawerTab } from "@/hooks/use-staffing-drawer-store"
 import { StaffingDrawerHeader } from "./StaffingDrawerHeader"
 import { TabDetails } from "./TabDetails"
-import { TabRessources } from "./TabRessources"
 import { HiringProcessStepper, findActiveProcess, type HiringProcess } from "@/components/recruitment/HiringProcessStepper"
 import { StaffingProcessStepper } from "./StaffingProcessStepper"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
@@ -34,7 +33,6 @@ function getErrorMessage(error: unknown) {
   return "Erreur de chargement des données."
 }
 
-// Drawer skeleton for loading state
 function DrawerSkeleton() {
   return (
     <div className="space-y-4 pt-1 select-none">
@@ -55,11 +53,9 @@ function DrawerSkeleton() {
 
 export function StaffingDrawer() {
   const { isOpen, staffingId, activeTab, closeStaffingDrawer, setActiveTab } = useStaffingDrawerStore()
-  
+
   const [drawerData, setDrawerData] = useState<StaffingDrawerViewModel | null>(null)
   const [events, setEvents] = useState<DrawerEventRecord[]>([])
-  const [profiles, setProfiles] = useState<Record<string, { full_name: string | null }>>({})
-  
   const [loading, setLoading] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(
@@ -68,15 +64,13 @@ export function StaffingDrawer() {
   const [reloadKey, setReloadKey] = useState(0)
   const [, startTransition] = useTransition()
 
-  // Detect mobile device client-side
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)")
-    const listener = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    const listener = (event: MediaQueryListEvent) => setIsMobile(event.matches)
     media.addEventListener("change", listener)
     return () => media.removeEventListener("change", listener)
   }, [])
 
-  // Load staffing details
   useEffect(() => {
     if (!isOpen || !staffingId) return
 
@@ -85,12 +79,10 @@ export function StaffingDrawer() {
       setFetchError(null)
       setDrawerData(null)
       setEvents([])
-      setProfiles({})
-      
+
       try {
         const supabase = createClient()
-        
-        // 1. Fetch main staffing data
+
         const { data: staffing, error: staffingError } = await supabase
           .from("opportunity_candidates")
           .select(`
@@ -120,7 +112,7 @@ export function StaffingDrawer() {
                 id, status, current_step, started_at, closed_at, close_reason,
                 job_profile:job_profiles ( id, title ),
                 candidate_hiring_milestones (
-                  id, step, result, scheduled_at, completed_at, notes
+                  id, step, result, scheduled_at, completed_at, calendar_event_id, notes
                 )
               )
             )
@@ -128,45 +120,21 @@ export function StaffingDrawer() {
           .eq("id", staffingId)
           .maybeSingle()
 
-        if (staffingError) {
-          throw new Error(staffingError.message)
-        }
-        if (!staffing) {
-          throw new Error("Positionnement de staffing introuvable.")
-        }
+        if (staffingError) throw new Error(staffingError.message)
+        if (!staffing) throw new Error("Positionnement de staffing introuvable.")
 
         const model = staffing as unknown as StaffingDrawerViewModel
         setDrawerData(model)
 
-        // 2. Fetch candidate events & profile catalog in parallel
         const candidateId = model.candidate?.id
         if (candidateId) {
-          const [eventsResult, profilesResult] = await Promise.all([
-            supabase
-              .from("calendar_events")
-              .select("id, title, event_type, status, starts_at, ends_at, description, metadata, organizer_id")
-              .eq("candidate_id", candidateId)
-              .order("starts_at", { ascending: false }),
-            supabase
-              .from("profiles")
-              .select("id, full_name")
-          ])
+          const { data: candidateEvents } = await supabase
+            .from("calendar_events")
+            .select("id, title, event_type, status, starts_at, ends_at, description, metadata, organizer_id")
+            .eq("candidate_id", candidateId)
+            .order("starts_at", { ascending: false })
 
-          if (eventsResult.data) {
-            setEvents(eventsResult.data as DrawerEventRecord[])
-          } else {
-            setEvents([])
-          }
-          
-          if (profilesResult.data) {
-            const profileMap: Record<string, { full_name: string | null }> = {}
-            profilesResult.data.forEach(p => {
-              profileMap[p.id] = { full_name: p.full_name }
-            })
-            setProfiles(profileMap)
-          } else {
-            setProfiles({})
-          }
+          setEvents((candidateEvents ?? []) as DrawerEventRecord[])
         }
       } catch (error: unknown) {
         console.error("[StaffingDrawer] Error loading data:", error)
@@ -181,24 +149,18 @@ export function StaffingDrawer() {
     })
   }, [isOpen, reloadKey, staffingId])
 
-  const isCollaborator = drawerData?.candidate?.source === "collaborateur" || 
-    (drawerData?.candidate?.person?.collaborators && drawerData.candidate.person.collaborators.length > 0) || 
-    false
+  const isCollaborator = drawerData?.candidate?.source === "collaborateur" ||
+    Boolean(drawerData?.candidate?.person?.collaborators?.length)
 
   const hiringProcess = drawerData?.candidate?.candidate_hiring_processes
     ? findActiveProcess(drawerData.candidate.candidate_hiring_processes as unknown as HiringProcess[])
     : null
 
-  const TABS: { id: StaffingDrawerTab; label: string }[] = [
+  const tabs: { id: StaffingDrawerTab; label: string }[] = [
     { id: "profil", label: "Profil" },
     { id: "staffing", label: "Staffing" },
     { id: "recrutement", label: "Recrutement" },
-    { id: "ressources", label: "Ressources" },
   ]
-
-  const handleTabChange = (tab: StaffingDrawerTab) => {
-    setActiveTab(tab)
-  }
 
   const renderTabContent = () => {
     if (!drawerData) return null
@@ -208,8 +170,6 @@ export function StaffingDrawer() {
         return <TabDetails data={drawerData} isCollaborator={isCollaborator} />
       case "staffing":
         return <StaffingProcessStepper data={drawerData} events={events} />
-      case "ressources":
-        return <TabRessources data={drawerData} events={events} profiles={profiles} />
       case "recrutement":
         return hiringProcess ? (
           <HiringProcessStepper process={hiringProcess} />
@@ -219,7 +179,7 @@ export function StaffingDrawer() {
             style={{ borderColor: "var(--color-border)", color: "var(--color-muted)" }}
           >
             <p className="max-w-xs text-xs leading-relaxed">
-              Aucun processus de recrutement actif n&apos;est associé à ce candidat.
+              Aucun processus de recrutement actif n&apos;est associé à ce positionnement.
             </p>
           </div>
         )
@@ -245,21 +205,20 @@ export function StaffingDrawer() {
       className={isMobile ? "w-full max-w-full" : "max-w-[520px]"}
       loading={loading && !drawerData}
     >
-      {/* ── Tabs selector ──────────────────────────────────────────── */}
       {!loading && drawerData && (
         <div
           className="-mt-4 mb-4 flex gap-0 border-b select-none"
           style={{ borderColor: "var(--color-border)" }}
           role="tablist"
         >
-          {TABS.map(({ id, label }) => {
+          {tabs.map(({ id, label }) => {
             const isActive = activeTab === id
             return (
               <button
                 key={id}
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => handleTabChange(id)}
+                onClick={() => setActiveTab(id)}
                 className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none cursor-pointer"
                 style={{
                   color: isActive ? "var(--color-primary)" : "var(--color-muted)",
@@ -277,7 +236,6 @@ export function StaffingDrawer() {
         </div>
       )}
 
-      {/* ── Drawer States ──────────────────────────────────────────── */}
       {loading && !drawerData && <DrawerSkeleton />}
 
       {fetchError && !loading && (
@@ -298,7 +256,6 @@ export function StaffingDrawer() {
         </div>
       )}
 
-      {/* ── Tab Content ────────────────────────────────────────────── */}
       {!loading && !fetchError && drawerData && (
         <div role="tabpanel" className="pb-6">
           {renderTabContent()}

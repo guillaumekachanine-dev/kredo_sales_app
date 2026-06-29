@@ -1,6 +1,7 @@
 "use client"
 
 import type { CSSProperties } from "react"
+import { TimelineRecordDisclosure } from "@/components/staffing/TimelineRecordDisclosure"
 import { cn } from "@/lib/utils"
 import { mapDbStatusToStaffingStage, type StaffingStageKey } from "@/lib/staffing/stages"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
@@ -31,16 +32,20 @@ interface StaffingMilestone {
 }
 
 const STAFFING_STEPS: { key: StaffingStageKey; label: string }[] = [
-  { key: "identifie",        label: "Identification" },
-  { key: "prequal",          label: "Préqualification" },
-  { key: "cv_envoye",        label: "CV envoyé" },
+  { key: "identifie", label: "Identification" },
+  { key: "prequal", label: "Préqualification" },
+  { key: "cv_envoye", label: "CV envoyé" },
   { key: "entretien_client", label: "Entretien client" },
-  { key: "issue",            label: "Issue" },
+  { key: "issue", label: "Issue" },
 ]
 
 function formatShortDate(iso: string | null) {
   if (!iso) return null
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
 }
 
 function normalize(value: string) {
@@ -48,38 +53,54 @@ function normalize(value: string) {
 }
 
 function matchesAny(text: string, values: readonly string[]) {
-  return values.some((v) => text.includes(v))
+  return values.some((value) => text.includes(value))
 }
 
 function findEvent(
   events: StaffingTimelineEvent[],
   predicate: (event: StaffingTimelineEvent, text: string) => boolean,
 ) {
-  return [...events]
-    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime())
-    .find((e) => predicate(e, normalize(`${e.title} ${e.description ?? ""}`))) ?? null
+  return (
+    [...events]
+      .sort(
+        (left, right) =>
+          new Date(left.starts_at).getTime() - new Date(right.starts_at).getTime(),
+      )
+      .find((event) =>
+        predicate(event, normalize(`${event.title} ${event.description ?? ""}`)),
+      ) ?? null
+  )
 }
 
 function extractLogoPath(metadata: Json | null | undefined) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null
+  }
   const record = metadata as Record<string, unknown>
   return typeof record.logo_path === "string" ? record.logo_path : null
 }
 
 function getIssueResult(status: string): StaffingResult {
-  if (status === "refuse_client" || status === "refuse_candidat" || status === "abandonne") return "refuse"
-  if (status === "retenu" || status === "gagne") return "valide"
+  if (["refuse_client", "refuse_candidat", "abandonne"].includes(status)) {
+    return "refuse"
+  }
+  if (["retenu", "gagne"].includes(status)) return "valide"
   return "en_attente"
 }
 
 function getIssueLabel(status: string) {
   switch (status) {
     case "retenu":
-    case "gagne":          return "Issue positive"
-    case "refuse_client":  return "Refus client"
-    case "refuse_candidat":return "Refus candidat"
-    case "abandonne":      return "Abandonné"
-    default:               return "Issue"
+    case "gagne":
+      return "Issue positive"
+    case "refuse_client":
+      return "Refus client"
+    case "refuse_candidat":
+      return "Refus candidat"
+    case "abandonne":
+      return "Abandonné"
+    default:
+      return "Issue"
   }
 }
 
@@ -90,25 +111,37 @@ function getIssueNote(data: StaffingDrawerViewModel) {
       ? `Positionnement validé. Démarrage prévu le ${startLabel}.`
       : "Positionnement validé côté client."
   }
-  if (data.status === "refuse_client")  return data.next_action ?? "Le client n'a pas retenu le profil."
-  if (data.status === "refuse_candidat")return data.next_action ?? "Le candidat a décliné la proposition."
-  if (data.status === "abandonne")      return data.next_action ?? "Le positionnement a été interrompu."
+  if (data.status === "refuse_client") {
+    return data.next_action ?? "Le client n'a pas retenu le profil."
+  }
+  if (data.status === "refuse_candidat") {
+    return data.next_action ?? "Le candidat a décliné la proposition."
+  }
+  if (data.status === "abandonne") {
+    return data.next_action ?? "Le positionnement a été interrompu."
+  }
   return data.next_action ?? "Décision finale en attente."
 }
 
-function buildMilestones(data: StaffingDrawerViewModel, events: StaffingTimelineEvent[]) {
-  const activeStageKey  = mapDbStatusToStaffingStage(data.status)
-  const activeStepIndex = STAFFING_STEPS.findIndex((s) => s.key === activeStageKey)
+function buildMilestones(
+  data: StaffingDrawerViewModel,
+  events: StaffingTimelineEvent[],
+) {
+  const activeStageKey = mapDbStatusToStaffingStage(data.status)
+  const activeStepIndex = STAFFING_STEPS.findIndex(
+    (step) => step.key === activeStageKey,
+  )
 
   const prequalEvent = findEvent(
     events,
-    (e, text) =>
-      e.event_type === "entretien_candidat" &&
+    (event, text) =>
+      event.event_type === "entretien_candidat" &&
       matchesAny(text, ["qualif", "prequal", "fit", "culturel", "sourcing", "appel"]),
   )
   const clientEvent = findEvent(
     events,
-    (e, text) => e.event_type === "entretien_client" || text.includes("client"),
+    (event, text) =>
+      event.event_type === "entretien_client" || text.includes("client"),
   )
 
   const milestones = new Map<StaffingStageKey, StaffingMilestone>()
@@ -118,15 +151,25 @@ function buildMilestones(data: StaffingDrawerViewModel, events: StaffingTimeline
     result: "valide",
     scheduled_at: data.created_at,
     completed_at: data.created_at,
-    notes: data.comment ?? `Profil positionné sur le besoin ${data.opportunity.title}.`,
+    notes:
+      data.comment ??
+      `Profil positionné sur le besoin ${data.opportunity.title}.`,
   })
 
   milestones.set("prequal", {
     step: "prequal",
-    result: activeStepIndex > 1 || Boolean(prequalEvent?.starts_at) ? "valide" : "en_attente",
+    result:
+      activeStepIndex > 1 || Boolean(prequalEvent?.starts_at)
+        ? "valide"
+        : "en_attente",
     scheduled_at: prequalEvent?.starts_at ?? data.proposed_at,
-    completed_at: activeStepIndex > 1 ? (prequalEvent?.starts_at ?? data.proposed_at ?? null) : null,
-    notes: prequalEvent?.description ?? "Qualification initiale et arbitrage du positionnement.",
+    completed_at:
+      activeStepIndex > 1
+        ? prequalEvent?.starts_at ?? data.proposed_at ?? null
+        : null,
+    notes:
+      prequalEvent?.description ??
+      "Qualification initiale et arbitrage du positionnement.",
   })
 
   milestones.set("cv_envoye", {
@@ -136,32 +179,40 @@ function buildMilestones(data: StaffingDrawerViewModel, events: StaffingTimeline
     completed_at: data.sent_to_client_at,
     notes: data.sent_to_client_at
       ? "CV et éléments de synthèse transmis au client."
-      : (data.next_action ?? "Préparation de l'envoi client."),
+      : data.next_action ?? "Préparation de l'envoi client.",
   })
 
   milestones.set("entretien_client", {
     step: "entretien_client",
-    result: data.status === "entretien_realise" || activeStepIndex > 3 ? "valide" : "en_attente",
+    result:
+      data.status === "entretien_realise" || activeStepIndex > 3
+        ? "valide"
+        : "en_attente",
     scheduled_at: clientEvent?.starts_at ?? null,
     completed_at:
       data.status === "entretien_realise" || activeStepIndex > 3
-        ? (clientEvent?.starts_at ?? data.status_changed_at ?? null)
+        ? clientEvent?.starts_at ?? data.status_changed_at ?? null
         : null,
-    notes: clientEvent?.description ?? data.next_action ?? "Entretien client à cadrer.",
+    notes:
+      clientEvent?.description ??
+      data.next_action ??
+      "Entretien client à cadrer.",
   })
 
   milestones.set("issue", {
     step: "issue",
     result: getIssueResult(data.status),
     scheduled_at: data.opportunity.start_date,
-    completed_at: getIssueResult(data.status) === "en_attente" ? null : (data.status_changed_at ?? data.updated_at),
+    completed_at:
+      getIssueResult(data.status) === "en_attente"
+        ? null
+        : data.status_changed_at ?? data.updated_at,
     notes: getIssueNote(data),
   })
 
   return { activeStageKey, milestones }
 }
 
-// Logo renderer that self-stretches to fill card height
 function ClientLogoFill({
   name,
   logoPath,
@@ -172,20 +223,37 @@ function ClientLogoFill({
   website: string | null | undefined
 }) {
   const faviconUrl = website
-    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(website.replace(/^https?:\/\//, ""))}&sz=64`
+    ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+        website.replace(/^https?:\/\//, ""),
+      )}&sz=64`
     : null
 
   return (
     <div
-      className="self-stretch shrink-0 flex items-center justify-center rounded-lg border overflow-hidden"
-      style={{ width: 52, borderColor: "var(--color-border)", background: "var(--color-surface)" }}
+      className="flex shrink-0 self-stretch items-center justify-center overflow-hidden rounded-lg border"
+      style={{
+        width: 52,
+        borderColor: "var(--color-border)",
+        background: "var(--color-surface)",
+      }}
     >
       {logoPath ? (
-        <img src={logoPath} alt={`Logo ${name}`} className="w-full h-full object-contain p-1.5" />
+        <img
+          src={logoPath}
+          alt={`Logo ${name}`}
+          className="h-full w-full object-contain p-1.5"
+        />
       ) : faviconUrl ? (
-        <img src={faviconUrl} alt={`Logo ${name}`} className="w-7 h-7 object-contain" />
+        <img
+          src={faviconUrl}
+          alt={`Logo ${name}`}
+          className="h-7 w-7 object-contain"
+        />
       ) : (
-        <span className="text-xs font-bold" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-xs font-bold"
+          style={{ color: "var(--color-primary)" }}
+        >
           {name.slice(0, 2).toUpperCase()}
         </span>
       )}
@@ -193,14 +261,17 @@ function ClientLogoFill({
   )
 }
 
-export function StaffingProcessStepper({ data, events }: StaffingProcessStepperProps) {
+export function StaffingProcessStepper({
+  data,
+  events,
+}: StaffingProcessStepperProps) {
   const { activeStageKey, milestones } = buildMilestones(data, events)
-  const currentStepIdx  = STAFFING_STEPS.findIndex((s) => s.key === activeStageKey)
-  const clientLogoPath  = extractLogoPath(data.opportunity.company?.metadata)
-  const clientName      = data.opportunity.company?.name ?? "Client"
-  const issueLabel      = getIssueLabel(data.status)
-
-  // Approximate height of active steps for shine clipping (~76px / step)
+  const currentStepIdx = STAFFING_STEPS.findIndex(
+    (step) => step.key === activeStageKey,
+  )
+  const clientLogoPath = extractLogoPath(data.opportunity.company?.metadata)
+  const clientName = data.opportunity.company?.name ?? "Client"
+  const issueLabel = getIssueLabel(data.status)
   const shineHeight = (currentStepIdx + 1) * 76
 
   return (
@@ -234,10 +305,12 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
       `}</style>
 
       <div className="space-y-4">
-        {/* ── Top card ─────────────────────────────────────────────── */}
         <div
           className="rounded-xl border px-3 py-2.5"
-          style={{ background: "var(--color-canvas)", borderColor: "var(--color-border)" }}
+          style={{
+            background: "var(--color-canvas)",
+            borderColor: "var(--color-border)",
+          }}
         >
           <div className="flex items-stretch justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -247,10 +320,16 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
               >
                 Positionnement
               </p>
-              <p className="text-sm font-semibold" style={{ color: "var(--color-heading)" }}>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: "var(--color-heading)" }}
+              >
                 {data.opportunity.title}
               </p>
-              <p className="mt-1 text-xs font-medium" style={{ color: "var(--color-body)" }}>
+              <p
+                className="mt-1 text-xs font-medium"
+                style={{ color: "var(--color-body)" }}
+              >
                 {clientName}
               </p>
             </div>
@@ -263,41 +342,45 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
           </div>
         </div>
 
-        {/* ── Timeline ─────────────────────────────────────────────── */}
         <div className="relative pl-4">
-          {/* Shine overlay — clipped to active steps height */}
           {currentStepIdx >= 0 && (
             <div
-              className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+              className="pointer-events-none absolute left-0 right-0 overflow-hidden"
               style={{ top: 0, height: shineHeight, zIndex: 10 }}
             >
               <div className="kredo-staffing-shine-beam" />
             </div>
           )}
 
-          {STAFFING_STEPS.map((step, idx) => {
+          {STAFFING_STEPS.map((step, index) => {
             const milestone = milestones.get(step.key)
-            const isCurrent = idx === currentStepIdx && milestone?.result !== "valide" && milestone?.result !== "refuse"
-            const isPast    = milestone?.result === "valide"
-            const isFailed  = milestone?.result === "refuse"
-            const isFuture  = !isCurrent && !isPast && !isFailed
-            const isLast    = idx === STAFFING_STEPS.length - 1
-            const label     = step.key === "issue" ? issueLabel : step.label
+            const isCurrent =
+              index === currentStepIdx &&
+              milestone?.result !== "valide" &&
+              milestone?.result !== "refuse"
+            const isPast = milestone?.result === "valide"
+            const isFailed = milestone?.result === "refuse"
+            const isFuture = !isCurrent && !isPast && !isFailed
+            const isLast = index === STAFFING_STEPS.length - 1
+            const label = step.key === "issue" ? issueLabel : step.label
 
             return (
-              <div key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
-                {/* Connector line */}
+              <div
+                key={step.key}
+                className="relative flex gap-3 pb-4 last:pb-0"
+              >
                 {!isLast && (
                   <div
                     className="absolute left-[7px] top-[20px] w-0.5"
                     style={{
                       height: "calc(100% - 12px)",
-                      background: isPast ? "var(--color-primary)" : "var(--color-border)",
+                      background: isPast
+                        ? "var(--color-primary)"
+                        : "var(--color-border)",
                     }}
                   />
                 )}
 
-                {/* Dot */}
                 <div
                   className={cn(
                     "relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold",
@@ -305,8 +388,12 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
                   )}
                   style={{
                     borderColor: "var(--color-primary)",
-                    background: (isPast || isFailed) ? "var(--color-primary)" : "var(--color-surface)",
-                    color: (isPast || isFailed) ? "white" : "var(--color-primary)",
+                    background:
+                      isPast || isFailed
+                        ? "var(--color-primary)"
+                        : "var(--color-surface)",
+                    color:
+                      isPast || isFailed ? "white" : "var(--color-primary)",
                     ...(isCurrent
                       ? ({
                           "--tw-ring-color": "var(--color-primary)",
@@ -319,7 +406,6 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
                   {isFailed && "✕"}
                 </div>
 
-                {/* Content */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span
@@ -344,9 +430,14 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
 
                   {milestone && (
                     <div className="mt-1 space-y-0.5">
-                      <div className="flex gap-3 text-[10px]" style={{ color: "var(--color-muted)" }}>
+                      <div
+                        className="flex gap-3 text-[10px]"
+                        style={{ color: "var(--color-muted)" }}
+                      >
                         {milestone.scheduled_at && (
-                          <span>Prévu : {formatShortDate(milestone.scheduled_at)}</span>
+                          <span>
+                            Prévu : {formatShortDate(milestone.scheduled_at)}
+                          </span>
                         )}
                         {milestone.completed_at && (
                           <span style={{ color: "var(--color-primary)" }}>
@@ -354,11 +445,7 @@ export function StaffingProcessStepper({ data, events }: StaffingProcessStepperP
                           </span>
                         )}
                       </div>
-                      {milestone.notes && (
-                        <p className="text-[10px] leading-relaxed" style={{ color: "var(--color-body)" }}>
-                          {milestone.notes}
-                        </p>
-                      )}
+                      <TimelineRecordDisclosure notes={milestone.notes} />
                     </div>
                   )}
                 </div>
