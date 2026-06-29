@@ -7,6 +7,7 @@ export type StatusPillVariant =
   | "neutral"
   | "draft"
   | "inProgress"
+  | "brand"
   | "success"
   | "warning"
   | "danger"
@@ -24,6 +25,7 @@ const statusPillClasses: Record<StatusPillVariant, string> = {
   neutral: "border-border bg-canvas text-body",
   draft: "border-border bg-canvas text-muted",
   inProgress: "border-primary/15 bg-primary/[0.08] text-primary-deep",
+  brand: "border-primary/15 bg-primary/[0.08] text-primary-deep",
   success: "border-success/15 bg-success/[0.10] text-success",
   warning: "border-warning/20 bg-warning/[0.12] text-[var(--color-status-warning-ink)]",
   danger: "border-danger/15 bg-danger/[0.10] text-danger",
@@ -35,6 +37,7 @@ const statusPillDotClasses: Record<StatusPillVariant, string> = {
   neutral: "bg-muted",
   draft: "bg-muted",
   inProgress: "bg-primary",
+  brand: "bg-primary",
   success: "bg-success",
   warning: "bg-warning",
   danger: "bg-danger",
