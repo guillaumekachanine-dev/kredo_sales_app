@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import type { MissionsListRow } from "@/components/missions/MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { formatEuro, formatDateNumeric } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
@@ -42,6 +43,21 @@ export function MissionsMobileListView({
 }: MissionsMobileListViewProps) {
   const router = useRouter()
   const { openTab } = useMissionsTabStore()
+  const { openOpportunityDrawer } = useStaffingDrawerStore()
+
+  const handleOpen = (row: MissionsListRow) => {
+    if (row.entityType === "opportunite") {
+      openOpportunityDrawer(row.entityId, "besoin")
+      return
+    }
+
+    openTab({
+      entityType: row.entityType,
+      entityId: row.entityId,
+      title: row.title,
+      subtitle: row.subtitle,
+    })
+  }
 
   if (rows.length === 0) {
     return (
@@ -59,14 +75,7 @@ export function MissionsMobileListView({
         return (
           <div
             key={row.entityId}
-            onClick={() =>
-              openTab({
-                entityType: row.entityType,
-                entityId: row.entityId,
-                title: row.entityType === "opportunite" ? (row.client ?? row.title) : row.title,
-                subtitle: row.entityType === "opportunite" ? row.title : row.subtitle,
-              })
-            }
+            onClick={() => handleOpen(row)}
             className="relative flex cursor-pointer flex-col gap-3 rounded-[var(--radius-medium)] border border-border/50 bg-surface p-4 transition-all active:scale-[0.99]"
           >
             <div className="flex items-center justify-between gap-2">

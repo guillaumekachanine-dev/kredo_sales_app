@@ -92,5 +92,5 @@ export async function SyntheseStaffingSection() {
   )
 }
 
-export { StaffingDrawer } from "./StaffingDrawer"
+export { AssistanceCaseDrawer as StaffingDrawer } from "./AssistanceCaseDrawer"
 export { StaffingTabbedShell } from "./StaffingTabbedShell"
