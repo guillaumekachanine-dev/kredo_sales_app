@@ -70,6 +70,7 @@ export interface SectorEvent {
 export interface SectorCompany {
   id: string
   name: string
+  website: string | null
   revenue: string | null
   lifecycle_status: string
   ai_score: number | null

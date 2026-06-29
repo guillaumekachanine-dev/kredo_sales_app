@@ -8,6 +8,7 @@ import { ScoreBar } from './blocks/ScoreBar'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/formatters'
+import { CompanyLogo } from '@/components/accounts-contacts/CompanyLogo'
 
 // ─── Render configuration mappings ──────────────────────────────────────────
 
@@ -79,22 +80,17 @@ const MATURITY_LABEL: Record<string, string> = {
   high: 'Élevée',
 }
 
-const MATURITY_STYLE: Record<string, string> = {
-  low: 'bg-danger/10 text-danger border border-danger/30',
-  medium: 'bg-warning/10 text-warning border border-warning/30',
-  high: 'bg-success/10 text-success border border-success/30',
+const PRACTICE_LOGO_CLASS: Record<PracticeKey, string> = {
+  data_ai: 'bg-primary text-primary-fg',
+  cloud_eng: 'bg-success text-primary-fg',
+  product: 'bg-accent text-primary-fg',
+  cyber: 'bg-danger text-primary-fg',
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  active: 'Actif',
-  development: 'En développement',
-  watch: 'Sous veille',
-}
-
-const STATUS_STYLE: Record<string, string> = {
-  active: 'bg-success/10 text-success border border-success/30',
-  development: 'bg-warning/10 text-warning border border-warning/30',
-  watch: 'bg-border/40 text-muted border-border',
+const PRACTICE_LOGO_INITIAL: Record<PracticeKey, string> = {
+  data_ai: 'AI',
+  cloud_eng: 'DC',
+  product: 'PM',
+  cyber: 'CY',
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -116,6 +112,9 @@ export default function SectorDetailView({ sector }: Props) {
 
   // Mobile navigation bottom sheet drawer
   const [playbookOpen, setPlaybookOpen] = useState(false)
+
+  // Comptes liés expandable
+  const [accountsOpen, setAccountsOpen] = useState(false)
 
   // Trigger event optimism actions
   const [eventStatuses, setEventStatuses] = useState<
@@ -316,23 +315,13 @@ export default function SectorDetailView({ sector }: Props) {
   }
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 px-4 lg:px-6 pt-5">
       {/* ── HEADER ───────────────────────────────────────────────────────────── */}
       <div className="bg-surface border border-border p-6 rounded-2xl flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-xl font-black text-heading leading-tight font-heading">
-              {sector.name}
-            </h1>
-            <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded border shrink-0', STATUS_STYLE[sector.status] ?? STATUS_STYLE.watch)}>
-              {STATUS_LABEL[sector.status] ?? sector.status}
-            </span>
-            {sector.digital_maturity && (
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded border shrink-0', MATURITY_STYLE[sector.digital_maturity])}>
-                Maturité : {maturityLabel}
-              </span>
-            )}
-          </div>
+          <h1 className="text-xl font-black text-heading leading-tight font-heading">
+            Secteur {sector.name}
+          </h1>
           {sector.description && (
             <p className="text-xs text-body leading-relaxed max-w-3xl">
               {sector.description}
@@ -408,17 +397,27 @@ export default function SectorDetailView({ sector }: Props) {
             Pitch Conformité GAFI
           </button>
         )}
-        <button
-          onClick={() =>
-            handleAction(
-              '+ Nouveau compte',
-              `/prospection/comptes/nouveau?sector=${sector.slug}`
-            )
-          }
-          className="text-xs font-bold px-4 py-2.5 rounded-xl bg-surface border border-border text-heading hover:bg-surface-hover transition-all active:scale-98 cursor-pointer outline-none ml-auto"
-        >
-          + Nouveau compte
-        </button>
+        <div className="ml-auto flex items-center gap-2.5">
+          {sortedCompanies.length > 0 && (
+            <div className="flex -space-x-1.5">
+              {sortedCompanies.slice(0, 7).map((c) => (
+                <CompanyLogo key={c.id} name={c.name} website={c.website} size="sm" className="ring-2 ring-surface" />
+              ))}
+              {sortedCompanies.length > 7 && (
+                <div className="w-6 h-6 rounded border border-border bg-canvas flex items-center justify-center text-[8px] font-bold text-muted ring-2 ring-surface shrink-0">
+                  +{sortedCompanies.length - 7}
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => handleAction('+ Nouveau compte', `/prospection/comptes/nouveau?sector=${sector.slug}`)}
+            className="w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-surface border border-border text-heading text-sm font-bold hover:bg-surface-hover transition-all active:scale-98 cursor-pointer outline-none"
+            title="Nouveau compte"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {/* ── RESPONSIVE GRID LAYOUT ─────────────────────────────────────────── */}
@@ -454,24 +453,18 @@ export default function SectorDetailView({ sector }: Props) {
                     if (key === 'cyber') barColor = 'bg-danger'
 
                     return (
-                      <div
-                        key={key}
-                        className="bg-canvas/30 border border-border/50 rounded-xl p-3.5 space-y-2 flex flex-col justify-between"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-heading">
-                            {PRACTICE_LABEL[key]}
-                          </span>
-                          {/* Removed */}
-                          <span className="text-xs font-bold text-primary">
-                            {score.toFixed(1)}/5
-                          </span>
+                      <div key={key} className="bg-canvas/30 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
+                        <div className={cn('w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-[9px] font-black', PRACTICE_LOGO_CLASS[key])}>
+                          {PRACTICE_LOGO_INITIAL[key]}
                         </div>
-                        <div className="h-2 w-full bg-border/40 rounded-full overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full transition-all duration-300', barColor)}
-                            style={{ width: `${(score / 5) * 100}%` }}
-                          />
+                        <div className="flex-1 space-y-2 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-heading">{PRACTICE_LABEL[key]}</span>
+                            <span className="text-xs font-bold text-primary">{score.toFixed(1)}/5</span>
+                          </div>
+                          <div className="h-2 w-full bg-border/40 rounded-full overflow-hidden">
+                            <div className={cn('h-full rounded-full transition-all duration-300', barColor)} style={{ width: `${(score / 5) * 100}%` }} />
+                          </div>
                         </div>
                       </div>
                     )
@@ -516,21 +509,50 @@ export default function SectorDetailView({ sector }: Props) {
                     : '—'}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-2.5 last:pb-0">
-                <span className="text-muted font-medium">Comptes liés</span>
-                {/* Removed */}
-                <span className="font-bold text-heading">
-                  {sector.companies.length}
-                </span>
+              <div>
+                <button
+                  onClick={() => setAccountsOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between py-2.5 cursor-pointer outline-none group"
+                >
+                  <span className="text-muted font-medium text-xs group-hover:text-heading transition-colors">Comptes liés</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-heading text-xs">{sector.companies.length}</span>
+                    <svg className={cn('w-3 h-3 text-muted transition-transform duration-200', accountsOpen && 'rotate-180')}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+                {accountsOpen && (
+                  <div className="mt-1 border-t border-border/40 pt-2 divide-y divide-border/30 max-h-64 overflow-y-auto">
+                    {sortedCompanies.length === 0 ? (
+                      <p className="text-xs text-muted italic py-2">Aucun compte lié.</p>
+                    ) : (
+                      sortedCompanies.map((c) => (
+                        <div key={c.id} className="py-2 flex items-center gap-2">
+                          <CompanyLogo name={c.name} website={c.website} size="sm" />
+                          <Link href={`/prospection/accounts/${c.id}`}
+                            className="text-xs font-semibold text-heading hover:text-primary transition-colors truncate flex-1 min-w-0">
+                            {c.name}
+                          </Link>
+                          <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0',
+                            LIFECYCLE_STYLE[c.lifecycle_status] ?? 'bg-border/40 text-muted border-border')}>
+                            {LIFECYCLE_LABEL[c.lifecycle_status] ?? c.lifecycle_status}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* MIDDLE ROW: Pain Points and Playbook Panel side by side on Desktop (50% / 50% split) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          
-          {/* Section: Pain Points (50% width) */}
+        {/* BLOC A — Pain Points + Calendar + Events (3 colonnes) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+          {/* Section: Pain Points */}
           <div className="bg-surface border border-border rounded-2xl overflow-hidden">
             <button
               onClick={() => toggleSection('sec-pain')}
@@ -607,37 +629,6 @@ export default function SectorDetailView({ sector }: Props) {
             )}
           </div>
 
-          {/* Section: Playbook Panel (50% width, Desktop inline, hidden on mobile) */}
-          <div className="hidden lg:block bg-surface border border-border rounded-2xl p-5 space-y-4">
-            <h3 className="text-[10px] font-bold text-heading font-heading uppercase tracking-wider border-b border-border/40 pb-2">
-              Playbook commercial
-            </h3>
-            <div className="flex border-b border-border/60 overflow-x-auto pb-px gap-1">
-              {playbookTabs.map((tab, idx) => {
-                const isActive = activeTab === idx
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveTab(idx)}
-                    className={cn(
-                      'text-[10px] font-bold px-2.5 py-1.5 border-b-2 transition-all whitespace-nowrap outline-none cursor-pointer',
-                      isActive
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted hover:text-heading'
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="pt-2 min-h-[200px]">{renderPlaybookContent()}</div>
-          </div>
-        </div>
-
-        {/* BOTTOM ROW: Calendar, Trigger Events, and Accounts List side by side on Desktop (3 columns) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
           {/* Section: Regulatory Calendar */}
           <div className="bg-surface border border-border rounded-2xl overflow-hidden">
             <button
@@ -806,56 +797,36 @@ export default function SectorDetailView({ sector }: Props) {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Section: Accounts list */}
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-            <button
-              onClick={() => toggleSection('sec-accounts')}
-              className="w-full flex items-center justify-between p-5 text-left font-heading text-xs font-bold text-heading uppercase tracking-wider cursor-pointer hover:bg-surface-hover/20 outline-none"
-            >
-              <span>Comptes rattachés ({sector.companies.length})</span>
-              <svg
-                className={cn('w-4 h-4 transition-transform duration-200 text-muted', openSections.has('sec-accounts') && 'rotate-180')}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {openSections.has('sec-accounts') && (
-              <div className="p-5 pt-0 border-t border-border/40 divide-y divide-border/30">
-                {sortedCompanies.length === 0 ? (
-                  <p className="text-xs text-muted italic pt-4">Aucun compte lié.</p>
-                ) : (
-                  sortedCompanies.map((c) => (
-                    <div
-                      key={c.id}
-                      className="py-3 first:pt-4 last:pb-0 flex items-center justify-between gap-4"
-                    >
-                      <Link
-                        href={`/prospection/accounts/${c.id}`}
-                        className="text-xs font-bold text-heading hover:text-primary transition-colors truncate flex-1"
-                      >
-                        {c.name}
-                      </Link>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded border', LIFECYCLE_STYLE[c.lifecycle_status] ?? 'bg-border/40 text-muted border-border')}>
-                          {LIFECYCLE_LABEL[c.lifecycle_status] ?? c.lifecycle_status}
-                        </span>
-                        {c.ai_score !== null && (
-                          /* Removed */
-                          <span className="text-xs font-black text-heading">
-                            {c.ai_score.toFixed(1)}/5
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+        {/* BLOC B — Playbook commercial, pleine largeur, header cobalt */}
+        <div className="hidden lg:block bg-surface border border-border rounded-2xl overflow-hidden">
+          <div className="bg-primary px-5 py-4">
+            <h3 className="text-xs font-bold text-primary-fg font-heading uppercase tracking-wider">
+              Playbook commercial
+            </h3>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="flex border-b border-border/60 overflow-x-auto pb-px gap-1">
+              {playbookTabs.map((tab, idx) => {
+                const isActive = activeTab === idx
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveTab(idx)}
+                    className={cn(
+                      'text-[10px] font-bold px-2.5 py-1.5 border-b-2 transition-all whitespace-nowrap outline-none cursor-pointer',
+                      isActive
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted hover:text-heading'
+                    )}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="pt-2 min-h-[200px]">{renderPlaybookContent()}</div>
           </div>
         </div>
 

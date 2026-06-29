@@ -143,7 +143,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
 
     supabase
       .from("companies")
-      .select("id, name, revenue, lifecycle_status, ai_score")
+      .select("id, name, website, revenue, lifecycle_status, ai_score")
       .eq("sector_id", sectorId)
   ])
 
@@ -212,6 +212,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
     companies: (companiesResult.data ?? []).map((item) => ({
       id: item.id,
       name: item.name,
+      website: item.website ?? null,
       revenue: item.revenue,
       lifecycle_status: item.lifecycle_status,
       ai_score: toNumber(item.ai_score),
