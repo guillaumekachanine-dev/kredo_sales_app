@@ -2,9 +2,8 @@
 
 import type { CSSProperties } from 'react'
 import { StatusPill } from '@/components/ui/StatusPill'
+import { TimelineRecordDisclosure } from '@/components/staffing/TimelineRecordDisclosure'
 import { cn } from '@/lib/utils'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type HiringStep =
   | 'prequalification'
@@ -22,6 +21,7 @@ export interface HiringMilestone {
   result: HiringResult
   scheduled_at: string | null
   completed_at: string | null
+  calendar_event_id?: string | null
   notes: string | null
 }
 
@@ -36,58 +36,68 @@ export interface HiringProcess {
   candidate_hiring_milestones: HiringMilestone[]
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
 const HIRING_STEPS: { key: HiringStep; label: string }[] = [
-  { key: 'prequalification',  label: 'Préqualification' },
+  { key: 'prequalification', label: 'Préqualification' },
   { key: 'entretien_manager', label: 'Entretien manager' },
-  { key: 'tests_techniques',  label: 'Tests techniques' },
-  { key: 'proposition',       label: 'Proposition' },
-  { key: 'signature',         label: 'Signature' },
-  { key: 'integration',       label: 'Intégration' },
+  { key: 'tests_techniques', label: 'Tests techniques' },
+  { key: 'proposition', label: 'Proposition' },
+  { key: 'signature', label: 'Signature' },
+  { key: 'integration', label: 'Intégration' },
 ]
 
-const HIRING_STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'neutral' | 'warning' | 'danger' }> = {
-  active:    { label: 'En cours',   variant: 'warning' },
-  hired:     { label: 'Recruté',    variant: 'success' },
-  rejected:  { label: 'Refusé',     variant: 'danger' },
-  withdrawn: { label: 'Retiré',     variant: 'neutral' },
-  cancelled: { label: 'Annulé',     variant: 'neutral' },
+const HIRING_STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: 'success' | 'neutral' | 'warning' | 'danger' }
+> = {
+  active: { label: 'En cours', variant: 'warning' },
+  hired: { label: 'Recruté', variant: 'success' },
+  rejected: { label: 'Refusé', variant: 'danger' },
+  withdrawn: { label: 'Retiré', variant: 'neutral' },
+  cancelled: { label: 'Annulé', variant: 'neutral' },
 }
 
 function fmtShortDate(iso: string | null) {
   if (!iso) return null
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 }
 
-export function findActiveProcess(processes: HiringProcess[] | null | undefined): HiringProcess | null {
+export function findActiveProcess(
+  processes: HiringProcess[] | null | undefined,
+): HiringProcess | null {
   if (!processes || processes.length === 0) return null
   return (
-    processes.find((p) => p.status === 'active') ??
-    [...processes].sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] ??
+    processes.find((process) => process.status === 'active') ??
+    [...processes].sort(
+      (left, right) =>
+        new Date(right.started_at).getTime() - new Date(left.started_at).getTime(),
+    )[0] ??
     null
   )
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function HiringProcessStepper({ process }: { process: HiringProcess }) {
-  const currentStepIdx = HIRING_STEPS.findIndex((s) => s.key === process.current_step)
-  const statusCfg      = HIRING_STATUS_CONFIG[process.status] ?? HIRING_STATUS_CONFIG.active
+  const currentStepIdx = HIRING_STEPS.findIndex(
+    (step) => step.key === process.current_step,
+  )
+  const statusCfg =
+    HIRING_STATUS_CONFIG[process.status] ?? HIRING_STATUS_CONFIG.active
 
   const milestoneByStep = new Map<HiringStep, HiringMilestone>()
-  for (const m of process.candidate_hiring_milestones) {
-    const existing = milestoneByStep.get(m.step as HiringStep)
+  for (const milestone of process.candidate_hiring_milestones) {
+    const existing = milestoneByStep.get(milestone.step as HiringStep)
     if (
       !existing ||
-      new Date(m.scheduled_at ?? m.completed_at ?? 0) >
+      new Date(milestone.scheduled_at ?? milestone.completed_at ?? 0) >
         new Date(existing.scheduled_at ?? existing.completed_at ?? 0)
     ) {
-      milestoneByStep.set(m.step as HiringStep, m)
+      milestoneByStep.set(milestone.step as HiringStep, milestone)
     }
   }
 
-  // Approximate height per step for shine clipping (~76px / step)
   const shineHeight = (currentStepIdx + 1) * 76
 
   return (
@@ -121,20 +131,25 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
       `}</style>
 
       <div className="space-y-4">
-        {/* Header */}
         <div
           className="rounded-xl border px-3 py-2.5"
-          style={{ background: 'var(--color-canvas)', borderColor: 'var(--color-border)' }}
+          style={{
+            background: 'var(--color-canvas)',
+            borderColor: 'var(--color-border)',
+          }}
         >
           <div className="flex items-center justify-between">
             <div>
               <p
-                className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+                className="mb-0.5 text-[10px] font-bold uppercase tracking-widest"
                 style={{ color: 'var(--color-muted)' }}
               >
                 Processus de recrutement
               </p>
-              <p className="text-sm font-semibold" style={{ color: 'var(--color-heading)' }}>
+              <p
+                className="text-sm font-semibold"
+                style={{ color: 'var(--color-heading)' }}
+              >
                 {process.job_profile?.title ?? 'Poste non spécifié'}
               </p>
             </div>
@@ -144,46 +159,53 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
               dot={process.status === 'active'}
             />
           </div>
-          <div className="mt-1.5 flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
+          <div
+            className="mt-1.5 flex gap-3 text-[10px]"
+            style={{ color: 'var(--color-muted)' }}
+          >
             <span>Lancé le {fmtShortDate(process.started_at)}</span>
-            {process.closed_at && <span>Clôturé le {fmtShortDate(process.closed_at)}</span>}
+            {process.closed_at && (
+              <span>Clôturé le {fmtShortDate(process.closed_at)}</span>
+            )}
           </div>
         </div>
 
-        {/* Stepper vertical */}
         <div className="relative pl-4">
-          {/* Shine overlay — clipped to active steps */}
           {currentStepIdx >= 0 && (
             <div
-              className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+              className="pointer-events-none absolute left-0 right-0 overflow-hidden"
               style={{ top: 0, height: shineHeight, zIndex: 10 }}
             >
               <div className="kredo-hiring-shine-beam" />
             </div>
           )}
 
-          {HIRING_STEPS.map((step, idx) => {
-            const milestone  = milestoneByStep.get(step.key)
-            const isCurrent  = idx === currentStepIdx && process.status === 'active'
-            const isPast     = milestone?.result === 'valide'
-            const isFailed   = milestone?.result === 'refuse'
-            const isFuture   = !isCurrent && !isPast && !isFailed
-            const isLast     = idx === HIRING_STEPS.length - 1
+          {HIRING_STEPS.map((step, index) => {
+            const milestone = milestoneByStep.get(step.key)
+            const isCurrent =
+              index === currentStepIdx && process.status === 'active'
+            const isPast = milestone?.result === 'valide'
+            const isFailed = milestone?.result === 'refuse'
+            const isFuture = !isCurrent && !isPast && !isFailed
+            const isLast = index === HIRING_STEPS.length - 1
 
             return (
-              <div key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
-                {/* Vertical line */}
+              <div
+                key={step.key}
+                className="relative flex gap-3 pb-4 last:pb-0"
+              >
                 {!isLast && (
                   <div
                     className="absolute left-[7px] top-[20px] w-0.5"
                     style={{
                       height: 'calc(100% - 12px)',
-                      background: isPast ? 'var(--color-primary)' : 'var(--color-border)',
+                      background: isPast
+                        ? 'var(--color-primary)'
+                        : 'var(--color-border)',
                     }}
                   />
                 )}
 
-                {/* Dot */}
                 <div
                   className={cn(
                     'relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold',
@@ -191,8 +213,12 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
                   )}
                   style={{
                     borderColor: 'var(--color-primary)',
-                    background: (isPast || isFailed) ? 'var(--color-primary)' : 'var(--color-surface)',
-                    color: (isPast || isFailed) ? 'white' : 'var(--color-primary)',
+                    background:
+                      isPast || isFailed
+                        ? 'var(--color-primary)'
+                        : 'var(--color-surface)',
+                    color:
+                      isPast || isFailed ? 'white' : 'var(--color-primary)',
                     ...(isCurrent
                       ? ({
                           '--tw-ring-color': 'var(--color-primary)',
@@ -205,13 +231,14 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
                   {isFailed && '✕'}
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span
                       className="text-xs font-semibold"
                       style={{
-                        color: isFuture ? 'var(--color-muted)' : 'var(--color-primary)',
+                        color: isFuture
+                          ? 'var(--color-muted)'
+                          : 'var(--color-primary)',
                       }}
                     >
                       {step.label}
@@ -219,7 +246,10 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
                     {isCurrent && (
                       <span
                         className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
-                        style={{ background: 'var(--color-primary)', color: 'white' }}
+                        style={{
+                          background: 'var(--color-primary)',
+                          color: 'white',
+                        }}
                       >
                         En cours
                       </span>
@@ -228,9 +258,14 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
 
                   {milestone && (
                     <div className="mt-1 space-y-0.5">
-                      <div className="flex gap-3 text-[10px]" style={{ color: 'var(--color-muted)' }}>
+                      <div
+                        className="flex gap-3 text-[10px]"
+                        style={{ color: 'var(--color-muted)' }}
+                      >
                         {milestone.scheduled_at && (
-                          <span>Prévu : {fmtShortDate(milestone.scheduled_at)}</span>
+                          <span>
+                            Prévu : {fmtShortDate(milestone.scheduled_at)}
+                          </span>
                         )}
                         {milestone.completed_at && (
                           <span style={{ color: 'var(--color-primary)' }}>
@@ -238,11 +273,7 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
                           </span>
                         )}
                       </div>
-                      {milestone.notes && (
-                        <p className="text-[10px] leading-relaxed" style={{ color: 'var(--color-body)' }}>
-                          {milestone.notes}
-                        </p>
-                      )}
+                      <TimelineRecordDisclosure notes={milestone.notes} />
                     </div>
                   )}
                 </div>
@@ -251,22 +282,27 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
           })}
         </div>
 
-        {/* Close reason */}
         {process.close_reason && (
           <div
             className="rounded-xl border px-3 py-2.5"
             style={{
-              background: process.status === 'rejected' ? 'rgba(190,62,62,0.04)' : 'var(--color-canvas)',
+              background:
+                process.status === 'rejected'
+                  ? 'rgba(190,62,62,0.04)'
+                  : 'var(--color-canvas)',
               borderColor: 'var(--color-border)',
             }}
           >
             <p
-              className="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+              className="mb-0.5 text-[10px] font-bold uppercase tracking-widest"
               style={{ color: 'var(--color-muted)' }}
             >
               Motif de clôture
             </p>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-body)' }}>
+            <p
+              className="text-xs leading-relaxed"
+              style={{ color: 'var(--color-body)' }}
+            >
               {process.close_reason}
             </p>
           </div>
