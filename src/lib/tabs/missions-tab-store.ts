@@ -1,5 +1,7 @@
 import { usePathname } from "next/navigation"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { createTabStore } from "./create-tab-store"
+import type { SectionTab } from "./tab-types"
 
 export type MissionsTabScope = "engagements" | "opportunities"
 
@@ -18,8 +20,22 @@ export function useMissionsTabStore() {
   const pathname = usePathname()
   const engagementsTabStore = useEngagementsTabStore()
   const opportunitiesTabStore = useOpportunitiesTabStore()
+  const openOpportunityDrawer = useStaffingDrawerStore(
+    (state) => state.openOpportunityDrawer,
+  )
 
-  return getMissionsTabScope(pathname) === "opportunities"
-    ? opportunitiesTabStore
-    : engagementsTabStore
+  if (getMissionsTabScope(pathname) !== "opportunities") {
+    return engagementsTabStore
+  }
+
+  return {
+    ...opportunitiesTabStore,
+    openTab: (tab: Omit<SectionTab, "id">) => {
+      if (tab.entityType === "opportunite") {
+        openOpportunityDrawer(tab.entityId)
+        return
+      }
+      opportunitiesTabStore.openTab(tab)
+    },
+  }
 }
