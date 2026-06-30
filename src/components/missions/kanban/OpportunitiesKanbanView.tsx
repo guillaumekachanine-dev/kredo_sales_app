@@ -44,10 +44,10 @@ export function OpportunitiesKanbanView({
       onItemMove={onMoveOpportunity}
       onCardClick={(opportunity) => openOpportunityDrawer(opportunity.id, "besoin")}
       renderCard={(opportunity) => (
-        <EntityKanbanCard
+         <EntityKanbanCard
           isFlipped={displayMode === "consultants"}
           front={
-            <div className="flex h-full w-full flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-primary/50 hover:shadow-md">
+            <div className="flex h-full w-full flex-col gap-3 rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-[#FFC107]/60 hover:shadow-md">
               <div className="flex min-w-0 items-start justify-between gap-2">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <CompanyLogo
@@ -81,13 +81,13 @@ export function OpportunitiesKanbanView({
 
               <div className="grid grid-cols-2 gap-x-1.5 gap-y-1 border-t border-border/50 pt-2.5 text-[10px]">
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Valeur (ACV)</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">ACV</span>
                   <span className="mt-0.5 font-semibold text-heading">
                     {formatEuroCompact(opportunity.acv || opportunity.estimatedGain)}
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Date cible</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">démarrage</span>
                   <span className="mt-0.5 font-semibold text-heading">
                     {formatDate(opportunity.targetCloseDate || opportunity.startDate)}
                   </span>
@@ -95,16 +95,19 @@ export function OpportunitiesKanbanView({
                 <div className="flex flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Staffing</span>
                   <span className="mt-0.5 font-semibold text-primary">
-                    {opportunity.candidates.length} profil{opportunity.candidates.length > 1 ? "s" : ""} poussé{opportunity.candidates.length > 1 ? "s" : ""}
+                    {opportunity.candidates.length} profil{opportunity.candidates.length > 1 ? "s" : ""}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-muted/80">Conviction</span>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <div className="h-1 w-10 overflow-hidden rounded-full bg-border">
+                    <div className="h-1.5 w-10 overflow-hidden rounded-full bg-border">
                       <div
-                        className="h-full rounded-full bg-primary/70"
-                        style={{ width: `${opportunity.conviction}%` }}
+                        className="h-full rounded-full"
+                        style={{ 
+                          width: `${opportunity.conviction}%`,
+                          background: "linear-gradient(90deg, #ff007f 0%, #ffc107 50%, #00c853 100%)"
+                        }}
                       />
                     </div>
                     <span className="font-bold text-heading">{opportunity.conviction}%</span>
@@ -114,7 +117,7 @@ export function OpportunitiesKanbanView({
             </div>
           }
           back={
-            <div className="flex h-full w-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-primary/50 hover:shadow-md">
+            <div className="flex h-full w-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-150 hover:border-[#9C27B0]/60 hover:shadow-md">
               <div className="flex min-w-0 items-start justify-between gap-2 border-b border-border/50 pb-2">
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   <CompanyLogo
@@ -159,16 +162,6 @@ export function OpportunitiesKanbanView({
                         >
                           {candidate.fullName}
                         </button>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded border px-1 py-0.2 text-[7px] font-extrabold uppercase tracking-wider",
-                            candidate.source === "collaborateur"
-                              ? "border-primary/10 bg-primary/5 text-primary"
-                              : "border-brand-brass/10 bg-brand-brass/5 text-brand-brass",
-                          )}
-                        >
-                          {candidate.source === "collaborateur" ? "Interne" : "Recrutement"}
-                        </span>
                       </div>
                       <div className="truncate text-left text-[9px] text-muted">
                         {candidate.profileTitle || (

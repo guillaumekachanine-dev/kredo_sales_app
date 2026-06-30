@@ -370,13 +370,18 @@ export function NeedsStaffingWorkspace({
     <button
       type="button"
       onClick={() => setKanbanDisplayMode((m) => m === "besoin" ? "candidat" : "besoin")}
-      className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border border-[#FFC107]/70 bg-[#FFC107]/25 px-3 text-[length:var(--font-size-label-sm)] font-semibold text-[#7a5200] transition-colors hover:bg-[#FFC107]/35 hover:text-[#5c3d00]"
+      className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border px-3 text-[length:var(--font-size-label-sm)] font-semibold transition-colors hover:opacity-85 active:scale-95 cursor-pointer select-none"
+      style={{
+        borderColor: kanbanDisplayMode === "besoin" ? "#FFC107" : "#9C27B0",
+        backgroundColor: kanbanDisplayMode === "besoin" ? "rgba(255, 193, 7, 0.08)" : "rgba(156, 39, 176, 0.08)",
+        color: kanbanDisplayMode === "besoin" ? "#D8A400" : "#9C27B0",
+      }}
       title="Alterner entre la vue Besoin et la vue Candidat"
     >
       <svg className="size-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M2 5h12M2 11h12M11 2l3 3-3 3M5 8l-3 3 3 3" />
       </svg>
-      {kanbanDisplayMode === "besoin" ? "Vue : Besoin" : "Vue : Candidat"}
+      <span className="capitalize">{kanbanDisplayMode === "besoin" ? "besoin" : "candidat"}</span>
     </button>
   )
 
