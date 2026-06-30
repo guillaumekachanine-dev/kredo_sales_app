@@ -387,16 +387,41 @@ export function NeedsStaffingWorkspace({
 
   // Boutons planning : couche (cycle) + période (cycle)
   const PLANNING_LAYER_CYCLE: Array<"besoin" | "staffing" | "both"> = ["besoin", "staffing", "both"]
-  const PLANNING_LAYER_LABELS: Record<string, string> = { besoin: "Vue : Besoin", staffing: "Vue : Staffing", both: "Vue : Besoin + Staffing" }
+  const PLANNING_LAYER_LABELS: Record<string, string> = { besoin: "Besoin", staffing: "Staffing", both: "Besoin + Staffing" }
   const PLANNING_SCALE_CYCLE: Array<"month" | "quarter" | "year" | "week"> = ["month", "quarter", "year", "week"]
   const PLANNING_SCALE_LABELS: Record<string, string> = { month: "Période : Mois", quarter: "Période : Trimestre", year: "Période : Année", week: "Période : Semaine" }
+
+  const getLayerButtonStyle = () => {
+    switch (planningLayer) {
+      case "besoin":
+        return {
+          borderColor: "#FFC107",
+          backgroundColor: "rgba(255, 193, 7, 0.08)",
+          color: "#D8A400",
+        }
+      case "staffing":
+        return {
+          borderColor: "#9C27B0",
+          backgroundColor: "rgba(156, 39, 176, 0.08)",
+          color: "#9C27B0",
+        }
+      case "both":
+      default:
+        return {
+          borderColor: "#607D8B",
+          backgroundColor: "rgba(96, 125, 139, 0.08)",
+          color: "#455A64",
+        }
+    }
+  }
 
   const planningLayerButtons = (
     <div className="inline-flex items-center gap-2">
       <button
         type="button"
         onClick={() => setPlanningLayer((cur) => PLANNING_LAYER_CYCLE[(PLANNING_LAYER_CYCLE.indexOf(cur) + 1) % PLANNING_LAYER_CYCLE.length])}
-        className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border border-[#FFC107]/70 bg-[#FFC107]/25 px-3 text-[length:var(--font-size-label-sm)] font-semibold text-[#7a5200] transition-colors hover:bg-[#FFC107]/35 hover:text-[#5c3d00]"
+        className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border px-3 text-[length:var(--font-size-label-sm)] font-semibold transition-colors hover:opacity-85 active:scale-95 cursor-pointer select-none"
+        style={getLayerButtonStyle()}
       >
         <svg className="size-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M2 5h12M2 11h12M11 2l3 3-3 3M5 8l-3 3 3 3" />
@@ -406,7 +431,12 @@ export function NeedsStaffingWorkspace({
       <button
         type="button"
         onClick={() => setPlanningScale((cur) => PLANNING_SCALE_CYCLE[(PLANNING_SCALE_CYCLE.indexOf(cur) + 1) % PLANNING_SCALE_CYCLE.length])}
-        className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border border-[#FFC107]/70 bg-[#FFC107]/25 px-3 text-[length:var(--font-size-label-sm)] font-semibold text-[#7a5200] transition-colors hover:bg-[#FFC107]/35 hover:text-[#5c3d00]"
+        className="inline-flex h-7 items-center gap-1.5 rounded-[var(--radius-medium)] border px-3 text-[length:var(--font-size-label-sm)] font-semibold transition-colors hover:opacity-85 active:scale-95 cursor-pointer select-none"
+        style={{
+          borderColor: "#FF5252",
+          backgroundColor: "rgba(255, 82, 82, 0.08)",
+          color: "#FF5252",
+        }}
       >
         <svg className="size-3.5 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M3 4h10M3 8h6M3 12h8" />
