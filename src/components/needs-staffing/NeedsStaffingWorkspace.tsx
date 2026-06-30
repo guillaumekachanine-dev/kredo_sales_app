@@ -32,6 +32,7 @@ import { NewStaffingButton } from "./NewStaffingButton"
 import { StaffingListWorkspaceView } from "./StaffingListWorkspaceView"
 import { StaffingKanbanView } from "@/components/staffing/StaffingKanbanView"
 import { StaffingPlanningView } from "@/components/staffing/StaffingPlanningView"
+import { UnifiedPlanningView } from "@/components/needs-staffing/UnifiedPlanningView"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatDateShort } from "@/lib/formatters"
@@ -621,17 +622,16 @@ export function NeedsStaffingWorkspace({
           ) : (
             // Planning : afficher selon la couche active
             <div className="flex flex-col gap-4">
-              {(planningLayer === "besoin" || planningLayer === "both") && (
-                <div>
-                  {planningLayer === "both" && <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted">Besoins</p>}
-                  <OpportunitiesPlanningView opportunities={filteredNeedsPlanning} scale={planningScale} />
-                </div>
-              )}
-              {(planningLayer === "staffing" || planningLayer === "both") && (
-                <div>
-                  {planningLayer === "both" && <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted">Staffing</p>}
-                  <StaffingPlanningView planningData={filteredStaffingPlanning} scale={planningScale} />
-                </div>
+              {planningLayer === "both" ? (
+                <UnifiedPlanningView
+                  opportunities={filteredNeedsPlanning}
+                  staffingData={filteredStaffingPlanning}
+                  scale={planningScale}
+                />
+              ) : planningLayer === "besoin" ? (
+                <OpportunitiesPlanningView opportunities={filteredNeedsPlanning} scale={planningScale} />
+              ) : (
+                <StaffingPlanningView planningData={filteredStaffingPlanning} scale={planningScale} />
               )}
             </div>
           )}
