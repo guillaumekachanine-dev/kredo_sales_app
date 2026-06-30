@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useDeferredValue, useRef, useState } from "react"
+import { startTransition, useDeferredValue, useState } from "react"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
@@ -48,7 +48,6 @@ function ReadySyntheseDesktopView({
 }) {
   const { searchParams, setParam, clearAll } = useUrlFilters()
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(data.accounts[0]?.id ?? null)
-  const analyticsRef = useRef<HTMLElement | null>(null)
 
   const filters = {
     period: parsePeriod(searchParams.get("period")),
@@ -166,59 +165,70 @@ function ReadySyntheseDesktopView({
           className="min-h-[18rem]"
         />
       ) : (
-        <div className="space-y-6">
-          <WeeklyCommercialFocus
-            focusAccounts={viewModel.weeklyFocus.slice(0, 5)}
-            selectedAccountId={viewModel.selectedAccount?.id ?? null}
-            onSelectAccount={(accountId) => {
-              startTransition(() => {
-                setSelectedAccountId(accountId)
-              })
+        <div className="space-y-3">
+          {/* Section header for WeeklyFocus — sits above the 2-col grid so the right rail
+              aligns with the top border of the first account card, not the section title */}
+          <div className="space-y-1">
+            <h2 className="font-heading text-xl font-bold text-heading">Focus commercial de la semaine</h2>
+            <p className="text-sm leading-6 text-body">
+              Shortlist resserrée des comptes qui demandent un arbitrage commercial immédiat.
+            </p>
+          </div>
 
-              const node = analyticsRef.current
-              if (!node) return
-              const { top, bottom } = node.getBoundingClientRect()
-              const viewportHeight = window.innerHeight
-              if (top < 80 || bottom > viewportHeight - 80) {
-                node.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-            }}
-          />
-
-          <section
-            ref={analyticsRef}
-            className="grid gap-6 min-[1400px]:grid-cols-[minmax(0,1.85fr)_minmax(22rem,0.95fr)]"
-          >
-            <PotentialReachMatrix
-              accounts={viewModel.visibleAccounts}
-              period={deferredFilters.period}
-              selectedAccountId={viewModel.selectedAccount?.id ?? null}
-              onSelectAccount={(accountId) => {
-                startTransition(() => {
-                  setSelectedAccountId(accountId)
-                })
-              }}
-              summarySentence={viewModel.summarySentence}
-            />
-            <div className="min-w-0 min-[1400px]:sticky min-[1400px]:top-6 min-[1400px]:self-start">
-              <SelectedAccountPanel
-                account={viewModel.selectedAccount}
-                period={deferredFilters.period}
+          {/* 2-col grid without items-start so the right column stretches to match the
+              left column height — required for position:sticky to work inside the rail */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+            {/* Left column: all content */}
+            <div className="min-w-0 space-y-6">
+              <WeeklyCommercialFocus
+                showHeader={false}
+                focusAccounts={viewModel.weeklyFocus.slice(0, 5)}
+                selectedAccountId={viewModel.selectedAccount?.id ?? null}
+                onSelectAccount={(accountId) => {
+                  startTransition(() => {
+                    setSelectedAccountId(accountId)
+                  })
+                }}
                 trust={viewModel.trust}
               />
-            </div>
-          </section>
 
-          <AccountsToActivateTable
-            accounts={viewModel.visibleAccounts}
-            period={deferredFilters.period}
-            selectedAccountId={viewModel.selectedAccount?.id ?? null}
-            onSelectAccount={(accountId) => {
-              startTransition(() => {
-                setSelectedAccountId(accountId)
-              })
-            }}
-          />
+              <PotentialReachMatrix
+                accounts={viewModel.visibleAccounts}
+                period={deferredFilters.period}
+                selectedAccountId={viewModel.selectedAccount?.id ?? null}
+                onSelectAccount={(accountId) => {
+                  startTransition(() => {
+                    setSelectedAccountId(accountId)
+                  })
+                }}
+                summarySentence={viewModel.summarySentence}
+              />
+
+              <AccountsToActivateTable
+                accounts={viewModel.visibleAccounts}
+                period={deferredFilters.period}
+                selectedAccountId={viewModel.selectedAccount?.id ?? null}
+                onSelectAccount={(accountId) => {
+                  startTransition(() => {
+                    setSelectedAccountId(accountId)
+                  })
+                }}
+              />
+            </div>
+
+            {/* Right rail: sticky SelectedAccountPanel.
+                No self-start here — the column stretches to left col height,
+                giving the sticky child room to travel. */}
+            <div className="min-w-0">
+              <div className="sticky top-4">
+                <SelectedAccountPanel
+                  account={viewModel.selectedAccount}
+                  period={deferredFilters.period}
+                  trust={viewModel.trust}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </DesktopAnalyticalPage>

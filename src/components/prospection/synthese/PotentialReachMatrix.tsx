@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useId, useRef, useState, type CSSProperties } from "react"
 import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import {
@@ -32,6 +32,70 @@ function pointSize(contactCount: number) {
 
 function roundOffset(value: number) {
   return Math.round(value * 1000) / 1000
+}
+
+// Color encoding — multi-stop spectral gradient mapped to reachScore (0→100).
+// Stops: navy → cyan → emerald → amber → magenta (cold to warm).
+// Inline HSL values are intentional — these are data-driven computed colors,
+// not design tokens, following the same pattern as the opacity-based halo.
+type ColorStop = { at: number; h: number; s: number; l: number }
+
+// Rainbow spectrum — visible light from red (low reach) to violet/magenta (high reach).
+const REACH_STOPS: ColorStop[] = [
+  { at: 0,   h: 0,   s: 100, l: 50 }, // red
+  { at: 17,  h: 25,  s: 100, l: 54 }, // orange
+  { at: 33,  h: 58,  s: 100, l: 50 }, // yellow
+  { at: 50,  h: 122, s: 76,  l: 40 }, // green
+  { at: 67,  h: 188, s: 80,  l: 46 }, // cyan
+  { at: 83,  h: 228, s: 85,  l: 52 }, // blue
+  { at: 100, h: 288, s: 78,  l: 48 }, // violet / magenta
+]
+
+function interpolateStops(stops: ColorStop[], t: number) {
+  const clamped = Math.max(0, Math.min(100, t))
+  let lo = stops[0]
+  let hi = stops[stops.length - 1]
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (clamped >= stops[i].at && clamped <= stops[i + 1].at) {
+      lo = stops[i]
+      hi = stops[i + 1]
+      break
+    }
+  }
+  const span = hi.at - lo.at
+  const progress = span === 0 ? 0 : (clamped - lo.at) / span
+  return {
+    h: lo.h + (hi.h - lo.h) * progress,
+    s: lo.s + (hi.s - lo.s) * progress,
+    l: lo.l + (hi.l - lo.l) * progress,
+  }
+}
+
+function pointColorStyle(reachScore: number): CSSProperties {
+  const { h, s, l } = interpolateStops(REACH_STOPS, reachScore)
+  return {
+    backgroundColor: `hsl(${h}, ${s}%, ${l}%)`,
+    borderColor: `hsl(${h}, ${s}%, ${Math.max(20, l - 12)}%)`,
+  }
+}
+
+function haloColorStyle(reachScore: number): CSSProperties {
+  // Complementary hue: opposite on the color wheel (+180°).
+  const { h, s } = interpolateStops(REACH_STOPS, reachScore)
+  return { borderColor: `hsl(${(h + 180) % 360}, ${s}%, 58%)` }
+}
+
+const GRADIENT_STYLE: CSSProperties = {
+  background: [
+    "linear-gradient(to right,",
+    "hsl(0, 100%, 50%),",     // red
+    "hsl(25, 100%, 54%),",    // orange
+    "hsl(58, 100%, 50%),",    // yellow
+    "hsl(122, 76%, 40%),",    // green
+    "hsl(188, 80%, 46%),",    // cyan
+    "hsl(228, 85%, 52%),",    // blue
+    "hsl(288, 78%, 48%))",    // violet / magenta
+  ].join(" "),
 }
 
 function buildMatrixPoints(accounts: ProspectionPortfolioAccount[], period: ProspectionPeriod) {
@@ -116,16 +180,6 @@ function findNextPoint(current: MatrixPoint, points: MatrixPoint[], direction: "
   return best
 }
 
-function priorityClasses(priorityScore: number) {
-  if (priorityScore >= 80) {
-    return "border-brand-brass bg-brand-brass"
-  }
-  if (priorityScore >= 65) {
-    return "border-primary bg-primary"
-  }
-  return "border-border bg-muted"
-}
-
 export function PotentialReachMatrix({
   accounts,
   period,
@@ -141,14 +195,23 @@ export function PotentialReachMatrix({
 }) {
   const [scope, setScope] = useState<MatrixScope>("priority")
   const [activePointId, setActivePointId] = useState<string | null>(null)
+  const [matrixQuery, setMatrixQuery] = useState("")
   const pointRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const inputId = useId()
 
-  const ranked = [...accounts]
+  const queryLower = matrixQuery.trim().toLowerCase()
+  const filteredByQuery = queryLower
+    ? accounts.filter((a) => a.name.toLowerCase().includes(queryLower))
+    : accounts
+
+  const ranked = [...filteredByQuery]
     .sort((left, right) => getPortfolioPeriodMetrics(right, period).actionPriorityScore - getPortfolioPeriodMetrics(left, period).actionPriorityScore)
     .slice(0, 28)
+
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null
+
   const matrixAccounts = scope === "all"
-    ? accounts
+    ? filteredByQuery
     : selectedAccount && !ranked.some((account) => account.id === selectedAccount.id)
       ? [...ranked, selectedAccount]
       : ranked
@@ -158,14 +221,44 @@ export function PotentialReachMatrix({
   const activePoint = points.find((point) => point.account.id === (activePointId ?? selectedAccountId)) ?? null
   const activeTooltipId = activePoint ? `matrix-tooltip-${activePoint.account.id}` : undefined
 
+  const countLabel = filteredByQuery.length !== accounts.length
+    ? `${filteredByQuery.length} / ${accounts.length} comptes`
+    : `${accounts.length} comptes`
+
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="font-heading text-xl font-bold text-heading">Potentiel et couverture commerciale</h2>
-          <p className="text-sm leading-6 text-body">{summarySentence}</p>
+      <div className="space-y-1">
+        <h2 className="font-heading text-xl font-bold text-heading">Potentiel et couverture commerciale</h2>
+        <p className="text-sm leading-6 text-body">{summarySentence}</p>
+      </div>
+
+      {/* Single toolbar row: input → scope selector → réinitialiser → count */}
+      <div className="flex items-center gap-2">
+        {/* Search input */}
+        <label htmlFor={inputId} className="sr-only">Rechercher un compte</label>
+        <div className="relative min-w-0 flex-1">
+          <input
+            id={inputId}
+            type="search"
+            value={matrixQuery}
+            onChange={(e) => setMatrixQuery(e.target.value)}
+            placeholder="Rechercher un compte…"
+            className="w-full rounded-md border border-border bg-surface px-3 py-2 pr-8 text-sm text-body placeholder:text-muted focus:border-primary/40 focus:outline-none"
+          />
+          {matrixQuery.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMatrixQuery("")}
+              aria-label="Effacer"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-base leading-none text-muted hover:text-heading"
+            >
+              ×
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-1 rounded-[var(--radius-medium)] border border-border p-0.5">
+
+        {/* Scope selector */}
+        <div className="flex shrink-0 items-center gap-1 rounded-[var(--radius-medium)] border border-border p-0.5">
           <Button variant={scope === "priority" ? "primary" : "ghost"} size="sm" onClick={() => setScope("priority")}>
             Prioritaires
           </Button>
@@ -173,22 +266,26 @@ export function PotentialReachMatrix({
             Tous
           </Button>
         </div>
+
+        {/* Réinitialiser */}
+        <button
+          type="button"
+          onClick={() => setMatrixQuery("")}
+          className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:text-heading"
+        >
+          Réinitialiser
+        </button>
+
+        {/* Result count */}
+        <span className="shrink-0 whitespace-nowrap text-xs text-muted">{countLabel}</span>
       </div>
 
       <SurfaceCard className="overflow-hidden">
-        <div className="border-b border-border px-5 py-4">
-          <p id="matrix-description" className="text-sm leading-6 text-body">
-            Axe horizontal&nbsp;: reach commercial proxy. Axe vertical&nbsp;: potentiel compte. Taille du point&nbsp;: densité de contacts.
-            Halo&nbsp;: momentum. Couleur&nbsp;: priorité commerciale.
-          </p>
-        </div>
-
         <div className="grid gap-4 px-5 py-4">
           <div
             className="relative overflow-hidden rounded-[var(--radius-large)] border border-border bg-canvas p-4"
             role="group"
             aria-label="Matrice potentiel et couverture commerciale"
-            aria-describedby="matrix-description"
           >
             <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <line x1="50" x2="50" y1="0" y2="100" stroke="var(--color-border)" strokeDasharray="2 2" />
@@ -249,13 +346,21 @@ export function PotentialReachMatrix({
                         {point.account.name}
                       </span>
                     ) : null}
+
+                    {/* Halo — complementary color to the point, opacity = momentum */}
                     <span
-                      className="absolute inset-[-8px] rounded-full border border-info/45"
-                      style={{ opacity: 0.15 + (point.momentumScore / 100) * 0.7 }}
+                      className="absolute inset-[-8px] rounded-full border"
+                      style={{
+                        ...haloColorStyle(point.account.reachScore),
+                        opacity: 0.15 + (point.momentumScore / 100) * 0.7,
+                      }}
                       aria-hidden="true"
                     />
+
+                    {/* Point — HSL gradient from cold (left) to warm/magenta (right) */}
                     <span
-                      className={`absolute inset-0 rounded-full border ${priorityClasses(point.priorityScore)} ${isSelected ? "scale-[1.12]" : ""}`}
+                      className={`absolute inset-0 rounded-full border transition-transform ${isSelected ? "scale-[1.12]" : ""}`}
+                      style={pointColorStyle(point.account.reachScore)}
                       aria-hidden="true"
                     />
                   </button>
@@ -278,10 +383,6 @@ export function PotentialReachMatrix({
                 </div>
               ) : null}
 
-              <div className="absolute inset-x-6 bottom-2 flex justify-between text-[11px] text-muted">
-                <span>Reach faible</span>
-                <span>Reach fort</span>
-              </div>
               <div className="absolute inset-y-6 left-1 flex flex-col justify-between text-[11px] text-muted">
                 <span>Potentiel élevé</span>
                 <span>Potentiel faible</span>
@@ -289,10 +390,33 @@ export function PotentialReachMatrix({
             </div>
           </div>
 
+          {/* Color spectrum axis — visual legend for the cold→warm gradient by reach */}
+          <div className="flex items-center gap-3 px-1">
+            <span className="shrink-0 text-[11px] text-muted">Reach faible</span>
+            <div
+              className="h-1.5 flex-1 rounded-full"
+              style={GRADIENT_STYLE}
+              aria-hidden="true"
+            />
+            <span className="shrink-0 text-[11px] text-muted">Reach fort</span>
+          </div>
+
           <div className="grid gap-3 lg:grid-cols-3">
-            <LegendCard label="Couleur" value="Priorité commerciale" context="Brass = plus prioritaire, cobalt = priorité intermédiaire." />
-            <LegendCard label="Halo" value="Momentum" context="Plus le halo est visible, plus le compte montre une activité récente dense." />
-            <LegendCard label="Taille" value="Densité de contacts" context="Les points les plus grands représentent les comptes avec le plus de contacts identifiés." />
+            <LegendCard
+              label="Couleur"
+              value="Couverture commerciale"
+              context="Dégradé froid → chaud selon le reach. Bleu = faible couverture, magenta = couverture solide."
+            />
+            <LegendCard
+              label="Halo"
+              value="Momentum (opacité)"
+              context="Teinte complémentaire au point. L'opacité traduit la densité d'activité récente."
+            />
+            <LegendCard
+              label="Taille"
+              value="Densité de contacts"
+              context="Les points les plus grands représentent les comptes avec le plus de contacts identifiés."
+            />
           </div>
         </div>
       </SurfaceCard>
