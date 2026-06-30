@@ -1,12 +1,49 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import type { Database, Json } from "@/types/database"
 import { revalidatePath } from "next/cache"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { calculateFinancialModel } from "../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../domain/financial-model.schema"
 import { mapFormStateToDb } from "../persistence/map-financial-model-snapshot"
 import type { FinancialModelFormState } from "../persistence/financial-model-persistence.types"
-import type { Json } from "@/types/database.types"
+
+type SaveFinancialModelSnapshotArgs = Omit<
+  Database["public"]["Functions"]["save_financial_model_snapshot"]["Args"],
+  "p_model_id" | "p_expected_updated_at"
+> & {
+  /**
+   * PostgreSQL accepts NULL for these optional identifiers, but the Supabase type
+   * generator currently models them as required strings in TypeScript. Keep this
+   * adapter local so the runtime payload still sends all four RPC keys explicitly.
+   */
+  p_model_id: string | null
+  p_expected_updated_at: string | null
+}
+
+type DatabaseWithNullableSaveFinancialModelSnapshotArgs = Omit<Database, "public"> & {
+  public: Omit<Database["public"], "Functions"> & {
+    Functions: Omit<Database["public"]["Functions"], "save_financial_model_snapshot"> & {
+      save_financial_model_snapshot: Omit<
+        Database["public"]["Functions"]["save_financial_model_snapshot"],
+        "Args"
+      > & {
+        Args: SaveFinancialModelSnapshotArgs
+      }
+    }
+  }
+}
+
+function saveFinancialModelSnapshotRpc(
+  supabase: SupabaseClient<Database>,
+  args: SaveFinancialModelSnapshotArgs,
+) {
+  const typedSupabase =
+    supabase as SupabaseClient<DatabaseWithNullableSaveFinancialModelSnapshotArgs>
+
+  return typedSupabase.rpc("save_financial_model_snapshot", args)
+}
 
 export async function saveFinancialModelAction(state: FinancialModelFormState) {
   try {
@@ -26,11 +63,11 @@ export async function saveFinancialModelAction(state: FinancialModelFormState) {
 
     // 4. Save via transactional RPC
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc("save_financial_model_snapshot", {
-      p_model_id: (state.id || undefined) as unknown as string,
-      p_expected_updated_at: (state.expected_updated_at || undefined) as unknown as string,
-      p_model: model as unknown as Json,
-      p_expenses: expenses as unknown as Json,
+    const { data, error } = await saveFinancialModelSnapshotRpc(supabase, {
+      p_model_id: state.id ?? null,
+      p_expected_updated_at: state.expected_updated_at ?? null,
+      p_model: model as Json,
+      p_expenses: expenses as Json,
     })
 
     if (error) {

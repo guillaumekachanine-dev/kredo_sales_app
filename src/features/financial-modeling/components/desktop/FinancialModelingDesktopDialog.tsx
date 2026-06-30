@@ -34,6 +34,18 @@ interface FinancialModelingDesktopDialogProps {
   initialId?: string
 }
 
+function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
+  return JSON.parse(JSON.stringify(state)) as FinancialModelFormState
+}
+
+function serializeComparableState(state: FinancialModelFormState): string {
+  return JSON.stringify({
+    ...state,
+    updated_at: undefined,
+    expected_updated_at: undefined,
+  })
+}
+
 function createDefaultFormState(): FinancialModelFormState {
   return {
     title: "Nouvelle simulation",
@@ -60,11 +72,13 @@ function createDefaultFormState(): FinancialModelFormState {
 
 export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }: FinancialModelingDesktopDialogProps) {
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
+  const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [bootstrap, setBootstrap] = useState<FinancialModelingModelingContext | null>(null)
   const [recentSimulations, setRecentSimulations] = useState<FinancialModelRow[]>([])
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -83,10 +97,14 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
       if (initialId) {
         const modelRes = await getFinancialModelAction(initialId)
         if (modelRes.success && modelRes.data) {
-          setFormState(modelRes.data)
+          const loadedState = cloneFormState(modelRes.data)
+          setFormState(loadedState)
+          setBaselineState(cloneFormState(loadedState))
         }
       } else {
-        setFormState(createDefaultFormState())
+        const defaultState = createDefaultFormState()
+        setFormState(defaultState)
+        setBaselineState(cloneFormState(defaultState))
       }
       setLoading(false)
     }
@@ -106,6 +124,31 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
   }, [formState.input])
 
   const canSave = clientResult !== null
+  const isDirty = useMemo(
+    () => serializeComparableState(formState) !== serializeComparableState(baselineState),
+    [baselineState, formState],
+  )
+  const selectedResource = useMemo(() => {
+    if (!bootstrap) return null
+    if (formState.input.resourceType === "collaborator") {
+      return bootstrap.catalog.collaborators.find((item) => item.id === formState.collaboratorId) ?? null
+    }
+    if (formState.input.resourceType === "candidate") {
+      return bootstrap.catalog.candidates.find((item) => item.id === formState.candidateId) ?? null
+    }
+    return null
+  }, [bootstrap, formState.collaboratorId, formState.candidateId, formState.input.resourceType])
+  const currentChargesRate =
+    formState.input.costModel === "salaried" ? formState.input.employerChargesRate ?? null : null
+
+  const handleRequestClose = () => {
+    if (loading || saving) return
+    if (isDirty) {
+      setShowDiscardConfirm(true)
+      return
+    }
+    onOpenChange(false)
+  }
 
   // 3. Save draft or validation actions
   const handleSave = async (statusOverride?: "draft" | "validated") => {
@@ -134,13 +177,15 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     setSaving(false)
 
     if (res.success) {
-      setFormState((prev) => ({
-        ...prev,
+      const nextState = cloneFormState({
+        ...payload,
         id: res.id,
         status: res.status as "draft" | "validated" | "archived",
         updated_at: res.updated_at,
         expected_updated_at: res.updated_at
-      }))
+      })
+      setFormState(nextState)
+      setBaselineState(cloneFormState(nextState))
       
       // Refresh recent list
       const recentRes = await getRecentFinancialModelsAction()
@@ -163,7 +208,9 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     if (res.success) {
       // If we archived the currently opened simulation, reset it
       if (formState.id === id) {
-        setFormState(createDefaultFormState())
+        const defaultState = createDefaultFormState()
+        setFormState(defaultState)
+        setBaselineState(cloneFormState(defaultState))
       }
       
       // Refresh list
@@ -183,7 +230,9 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     setLoading(false)
     
     if (res.success && res.data) {
-      setFormState(res.data)
+      const loadedState = cloneFormState(res.data)
+      setFormState(loadedState)
+      setBaselineState(cloneFormState(loadedState))
     } else {
       alert(res.error || "Erreur de chargement de la simulation")
     }
@@ -196,15 +245,16 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     setLoading(false)
     
     if (res.success && res.data) {
-      const duplicated: FinancialModelFormState = {
+      const duplicated = cloneFormState({
         ...res.data,
         id: undefined,
         status: "draft",
         title: `${res.data.title} (Copie)`,
         updated_at: undefined,
         expected_updated_at: undefined
-      }
+      })
       setFormState(duplicated)
+      setBaselineState(cloneFormState(duplicated))
     } else {
       alert(res.error || "Erreur de duplication")
     }
@@ -224,13 +274,27 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     <>
       <AppDialog
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            handleRequestClose()
+          }
+        }}
         title={
-          formState.input.mode === "flash"
-            ? "Modélisation Financière (Flash)"
-            : "Modélisation Financière (Complet)"
+          <div className="flex items-center gap-2">
+            <img
+              src="/icons_set/calculatrice.png"
+              alt="Calculatrice"
+              className="w-5 h-5 object-contain"
+            />
+            <span>
+              {formState.input.mode === "flash"
+                ? "Modélisation Financière (Flash)"
+                : "Modélisation Financière (Complet)"}
+            </span>
+          </div>
         }
         className="w-full max-w-5xl h-[85vh] max-h-[85vh]"
+        headerClassName="-mx-4 -mt-4 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5 rounded-t-[var(--radius-medium)] bg-[#FFC107] text-slate-900 [&_button]:text-slate-700 [&_button]:hover:text-slate-950 border-b border-amber-500/20"
         bodyClassName="p-0 overflow-hidden flex flex-col h-full"
       >
         {/* Persistent Floating Results Header Bar */}
@@ -325,13 +389,69 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                       <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} />
                     </div>
 
-                    {/* Section Results and warnings */}
+                    {/* Section Results */}
                     <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">6. Synthèse & Warnings</h3>
-                      <FinancialModelingResults result={clientResult} />
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">6. Résultats</h3>
+                      <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} />
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">7. Warnings</h3>
                       {clientResult && clientResult.warnings.length > 0 && (
                         <FinancialModelingWarnings warnings={clientResult.warnings} />
                       )}
+                      {(!clientResult || clientResult.warnings.length === 0) && (
+                        <p className="rounded-[var(--radius-medium)] border border-border/60 bg-canvas/20 px-3 py-2 text-[11px] text-muted">
+                          Aucun warning métier actif sur cette simulation.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">8. Provenance</h3>
+                      <div className="rounded-[var(--radius-medium)] border border-border/60 bg-canvas/20 p-3 text-[11px] text-body space-y-2">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Ressource</p>
+                            <p>{selectedResource?.label || formState.resourceLabel || "Aucune ressource sélectionnée"}</p>
+                            <p className="text-muted">
+                              Profil: {selectedResource?.provenance.jobProfile ?? "Snapshot manuel"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Charges</p>
+                            <p>
+                              {currentChargesRate != null
+                                ? `${(currentChargesRate * 100).toFixed(1)} %`
+                                : "Hypothèse par défaut"}
+                            </p>
+                            <p className="text-muted">
+                              Source: {selectedResource?.provenance.employerChargesRate ?? "financial_charge_rates / défaut"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Activité historique</p>
+                            <p>
+                              {formState.input.historicalActivityRate != null
+                                ? `${(formState.input.historicalActivityRate * 100).toFixed(1)} %`
+                                : "Non disponible"}
+                            </p>
+                            <p className="text-muted">
+                              Source: {selectedResource?.provenance.historicalActivityRate ?? "Aucune source"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Tarification</p>
+                            <p>{formState.input.salesDailyRate > 0 ? formatEuroWithCents(formState.input.salesDailyRate) : "Non renseignée"}</p>
+                            <p className="text-muted">
+                              Source: {formState.pricingAgreementId ? "Accord client" : formState.precedentMissionId ? "Mission passée" : formState.precedentOpportunityId || formState.opportunityId ? "Opportunité" : "Saisie manuelle / benchmark"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
@@ -340,7 +460,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                 {formState.input.mode === "flash" && (
                   <div className="space-y-3">
                     <h3 className="text-xs font-bold text-heading uppercase tracking-wider">Résultats immédiats</h3>
-                    <FinancialModelingResults result={clientResult} />
+                    <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} />
                     {clientResult && clientResult.warnings.length > 0 && (
                       <FinancialModelingWarnings warnings={clientResult.warnings} />
                     )}
@@ -358,7 +478,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
               {/* Sidebar: Recent Simulations (only in Complet Mode) */}
               {formState.input.mode === "full" && (
                 <div className="col-span-1 border-l border-border/60 pl-6 space-y-4">
-                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">Simulations récentes</h3>
+                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">9. Simulations récentes</h3>
                   
                   {recentSimulations.length === 0 ? (
                     <p className="text-[11px] text-muted italic">Aucune simulation enregistrée.</p>
@@ -441,7 +561,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
+            <Button variant="secondary" size="sm" onClick={handleRequestClose}>
               Fermer
             </Button>
             
@@ -494,6 +614,33 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
         <p className="leading-relaxed text-xs">
           Cette simulation comporte des alertes de rentabilité critiques (marge commerciale négative ou TJM de vente inférieur au CJM productif).
           Voulez-vous quand même la valider ?
+        </p>
+      </AppDialog>
+
+      <AppDialog
+        open={showDiscardConfirm}
+        onOpenChange={setShowDiscardConfirm}
+        title="Quitter sans enregistrer ?"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowDiscardConfirm(false)}>
+              Continuer l&apos;édition
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setShowDiscardConfirm(false)
+                onOpenChange(false)
+              }}
+            >
+              Fermer sans enregistrer
+            </Button>
+          </>
+        }
+      >
+        <p className="leading-relaxed text-xs">
+          Des modifications non enregistrées seraient perdues. Confirmez la fermeture uniquement si vous souhaitez abandonner cette saisie.
         </p>
       </AppDialog>
     </>

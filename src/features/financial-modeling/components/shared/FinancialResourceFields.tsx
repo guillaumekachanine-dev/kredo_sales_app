@@ -113,7 +113,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
 
     updated.input = {
       ...value.input,
-      historicalActivityRate: null,
+      historicalActivityRate: item.historicalActivityRate ?? null,
       flags: {
         ...value.input.flags,
         annualGrossSalaryEstimated: item.isEstimate && mapping.annualGrossSalary !== null,
@@ -228,19 +228,37 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
 
       {/* Selected Item Info Badges */}
       {selectedItem && (
-        <div className="bg-canvas/30 border border-border/50 rounded-[var(--radius-medium)] p-2.5 text-[11px] space-y-1">
-          <p className="font-semibold text-heading">Profil Snapshot :</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted">
-            <div>Métier : <span className="font-medium text-body">{selectedItem.jobProfileTitle || "—"}</span></div>
-            <div>Niveau : <span className="font-medium text-body">{selectedItem.seniority || "—"}</span></div>
-            <div>Contrat : <span className="font-medium text-body">{selectedItem.employmentStatus || "—"}</span></div>
-            <div>Localisation : <span className="font-medium text-body">{selectedItem.location || "—"}</span></div>
-          </div>
-          {selectedItem.isEstimate && (
-            <div className="mt-1.5 flex items-center gap-1.5 text-warning font-medium">
-              <span className="size-1.5 rounded-full bg-warning" />
-              Ce profil utilise des estimations
+      <div className="bg-canvas/30 border border-border/50 rounded-[var(--radius-medium)] p-2.5 text-[11px] space-y-1">
+        <p className="font-semibold text-heading">Profil Snapshot :</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-muted">
+          <div>Métier : <span className="font-medium text-body">{selectedItem.jobProfileTitle || "—"}</span></div>
+          <div>Niveau : <span className="font-medium text-body">{selectedItem.seniority || "—"}</span></div>
+          <div>Contrat : <span className="font-medium text-body">{selectedItem.employmentStatus || "—"}</span></div>
+          <div>Localisation : <span className="font-medium text-body">{selectedItem.location || "—"}</span></div>
+        </div>
+        {resourceType === "collaborator" ? (
+          <div className="rounded-[var(--radius-small)] border border-border/50 bg-surface/70 px-2 py-1.5 text-[10px] text-muted">
+            <div className="flex items-center justify-between gap-3">
+              <span>Taux d&apos;activité historique</span>
+              <span className="font-semibold text-heading">
+                {selectedItem.historicalActivityRate != null
+                  ? `${(selectedItem.historicalActivityRate * 100).toFixed(1)} %`
+                  : "Non disponible"}
+              </span>
             </div>
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <span>Provenance</span>
+              <span className="font-medium text-body">
+                {selectedItem.provenance.historicalActivityRate ?? "Aucune source"}
+              </span>
+            </div>
+          </div>
+        ) : null}
+        {selectedItem.isEstimate && (
+          <div className="mt-1.5 flex items-center gap-1.5 text-warning font-medium">
+            <span className="size-1.5 rounded-full bg-warning" />
+            Ce profil utilise des estimations
+          </div>
           )}
         </div>
       )}

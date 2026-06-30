@@ -29,11 +29,13 @@ export type FinancialResourceCatalogItem = {
     employerChargesRate: string | null
     annualWorkingDays: string | null
     purchaseDailyRate: string | null
+    historicalActivityRate: string | null
     jobProfile: string | null
     employmentStatus: string | null
   }
   missingData: string[]
   isEstimate: boolean
+  historicalActivityRate: number | null
   lot0InputMapping: {
     annualGrossSalary: number | null
     annualVariablePay: number | null
@@ -95,6 +97,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
     personsResult,
     jobProfilesResult,
     collaboratorCostsResult,
+    activityRatesResult,
   ] = await Promise.all([
     supabase
       .from("collaborators")
@@ -111,6 +114,9 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
       .select(
         "collaborator_id, gross_annual, variable_pay, charges_rate, working_days_per_year, base_daily_cost, productive_daily_cost, legacy_cjm",
       ),
+    supabase
+      .from("v_financial_model_activity_rates")
+      .select("collaborator_id, historical_activity_rate"),
   ])
 
   if (collaboratorsResult.error) {
@@ -143,16 +149,26 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
     )
   }
 
+  if (activityRatesResult.error) {
+    throw new Error(
+      `Failed to read collaborator activity rate view: ${activityRatesResult.error.message}`,
+    )
+  }
+
   const collaborators = collaboratorsResult.data ?? []
   const candidates = candidatesResult.data ?? []
   const persons = personsResult.data ?? []
   const jobProfiles = jobProfilesResult.data ?? []
   const collaboratorCosts = collaboratorCostsResult.data ?? []
+  const activityRates = activityRatesResult.data ?? []
 
   const personById = new Map(persons.map((person) => [person.id, person]))
   const jobProfileById = new Map(jobProfiles.map((jobProfile) => [jobProfile.id, jobProfile]))
   const collaboratorCostById = new Map(
     collaboratorCosts.map((costRow) => [costRow.collaborator_id, costRow]),
+  )
+  const activityRateByCollaboratorId = new Map(
+    activityRates.map((rateRow) => [rateRow.collaborator_id, rateRow]),
   )
 
   const collaboratorItems: FinancialResourceCatalogItem[] = collaborators.map(
@@ -162,6 +178,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
         ? jobProfileById.get(collaborator.job_profile_id)
         : undefined
       const costRow = collaboratorCostById.get(collaborator.id)
+      const activityRateRow = activityRateByCollaboratorId.get(collaborator.id)
       const missingData: string[] = []
 
       if (!collaborator.job_profile_id) {
@@ -174,6 +191,10 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
 
       if (!costRow) {
         missingData.push("compensation_snapshot")
+      }
+
+      if (activityRateRow?.historical_activity_rate == null) {
+        missingData.push("historical_activity_rate")
       }
 
       return {
@@ -199,6 +220,10 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
             ? "v_financial_model_collaborator_costs.working_days_per_year"
             : null,
           purchaseDailyRate: null,
+          historicalActivityRate:
+            activityRateRow?.historical_activity_rate != null
+              ? "v_financial_model_activity_rates.historical_activity_rate"
+              : null,
           jobProfile: collaborator.job_profile_id ? "collaborators.job_profile_id" : null,
           employmentStatus: collaborator.employment_status
             ? "collaborators.employment_status"
@@ -206,6 +231,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
         },
         missingData,
         isEstimate: false,
+        historicalActivityRate: activityRateRow?.historical_activity_rate ?? null,
         lot0InputMapping: {
           annualGrossSalary: costRow?.gross_annual ?? null,
           annualVariablePay: costRow?.variable_pay ?? null,
@@ -287,11 +313,13 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
         employerChargesRate: null,
         annualWorkingDays: null,
         purchaseDailyRate: purchaseDailyRateProvenance,
+        historicalActivityRate: null,
         jobProfile: candidate.job_profile_id ? "candidates.job_profile_id" : null,
         employmentStatus: null,
       },
       missingData,
       isEstimate: true,
+      historicalActivityRate: null,
       lot0InputMapping: {
         annualGrossSalary,
         annualVariablePay: null,

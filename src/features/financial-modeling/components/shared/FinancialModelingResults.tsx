@@ -105,46 +105,73 @@ export function FinancialModelingResults({ result, loading, salesDailyRate }: Fi
               )}
             </span>
           </div>
-          
-          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
-            <span className="text-muted">CJM productif (coût journalier réel)</span>
-            <span className="font-semibold text-heading text-right">
-              {result.productiveDailyCost !== null ? formatEuroWithCents(result.productiveDailyCost) : "—"}
-            </span>
-          </div>
 
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
-            <span className="text-muted">CJM chargé (coût journalier structurel)</span>
+            <span className="text-muted">CJM de base</span>
             <span className="font-semibold text-heading text-right">
               {result.loadedDailyCost !== null ? formatEuroWithCents(result.loadedDailyCost) : "—"}
             </span>
           </div>
 
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
-            <span className="text-muted">Jours ouvrés / produits</span>
+            <span className="text-muted">CJM productif</span>
             <span className="font-semibold text-heading text-right">
-              {result.periodBusinessDays} j / {result.producedDays.toFixed(2)} j
+              {result.productiveDailyCost !== null ? formatEuroWithCents(result.productiveDailyCost) : "—"}
             </span>
           </div>
 
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
-            <span className="text-muted">Coût ressource sur la période</span>
+            <span className="text-muted">Jours ouvrés</span>
+            <span className="font-semibold text-heading text-right">
+              {result.periodBusinessDays} j
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">Jours produits</span>
+            <span className="font-semibold text-heading text-right">{result.producedDays.toFixed(2)} j</span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">Chiffre d&apos;affaires</span>
+            <span className="font-semibold text-heading text-right">{formatEuroWithCents(result.periodRevenue)}</span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">Coût de la ressource</span>
             <span className="font-semibold text-heading text-right">{formatEuroWithCents(result.resourceCostPeriod)}</span>
           </div>
 
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
-            <span className="text-muted">Total des frais ESN</span>
+            <span className="text-muted">Frais</span>
             <span className="font-semibold text-heading text-right">{formatEuroWithCents(result.totalExpenses)}</span>
           </div>
 
-          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10 bg-canvas/20">
-            <span className="font-semibold text-heading">TCV (Total Contract Value)</span>
-            <span className="font-bold text-heading text-right">{formatEuroWithCents(result.tcv)}</span>
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">Coût total</span>
+            <span className="font-semibold text-heading text-right">{formatEuroWithCents(result.totalCosts)}</span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">Marge totale</span>
+            <span className={`font-semibold text-right ${result.commercialMargin < 0 ? "text-danger" : "text-success"}`}>
+              {formatEuroWithCents(result.commercialMargin)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">
+            <span className="text-muted">MCO</span>
+            <span className="font-semibold text-heading text-right">{formatPct(result.mcoPercent)}</span>
           </div>
 
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10 bg-canvas/20">
             <span className="font-semibold text-heading">ACV (Annual Contract Value)</span>
             <span className="font-bold text-heading text-right">{formatEuroWithCents(result.acv)}</span>
+          </div>
+
+          <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10 bg-canvas/20">
+            <span className="font-semibold text-heading">TCV (Total Contract Value)</span>
+            <span className="font-bold text-heading text-right">{formatEuroWithCents(result.tcv)}</span>
           </div>
         </div>
       </div>

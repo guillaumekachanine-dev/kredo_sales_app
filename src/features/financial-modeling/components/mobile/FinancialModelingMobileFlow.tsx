@@ -25,6 +25,18 @@ interface FinancialModelingMobileFlowProps {
   onOpenChange: (open: boolean) => void
 }
 
+function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
+  return JSON.parse(JSON.stringify(state)) as FinancialModelFormState
+}
+
+function serializeComparableState(state: FinancialModelFormState): string {
+  return JSON.stringify({
+    ...state,
+    updated_at: undefined,
+    expected_updated_at: undefined,
+  })
+}
+
 function createDefaultFormState(): FinancialModelFormState {
   return {
     title: "Simulation Mobile",
@@ -52,19 +64,18 @@ function createDefaultFormState(): FinancialModelFormState {
 export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialModelingMobileFlowProps) {
   const [step, setStep] = useState(1)
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
+  const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [bootstrap, setBootstrap] = useState<FinancialModelingBootstrapData | null>(null)
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
 
-  // React 19 recommended pattern to reset state when props change
-  const [isOpenPrev, setIsOpenPrev] = useState(open)
-  if (open !== isOpenPrev) {
-    setIsOpenPrev(open)
-    if (open) {
-      setStep(1)
-      setFormState(createDefaultFormState())
-    }
+  const resetFlow = () => {
+    const defaultState = createDefaultFormState()
+    setStep(1)
+    setFormState(defaultState)
+    setBaselineState(cloneFormState(defaultState))
   }
 
   useEffect(() => {
@@ -100,6 +111,20 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
       (input.resourceType === "external" || formState.collaboratorId || formState.candidateId)
     )
   }, [formState])
+  const isDirty = useMemo(
+    () => serializeComparableState(formState) !== serializeComparableState(baselineState),
+    [baselineState, formState],
+  )
+
+  const handleRequestClose = () => {
+    if (loading || saving) return
+    if (isDirty) {
+      setShowDiscardConfirm(true)
+      return
+    }
+    resetFlow()
+    onOpenChange(false)
+  }
 
   const handleSave = async (statusOverride?: "draft" | "validated") => {
     const targetStatus = statusOverride || formState.status
@@ -120,6 +145,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
     setSaving(false)
 
     if (res.success) {
+      resetFlow()
       onOpenChange(false)
     } else {
       alert(res.error || "Erreur de sauvegarde")
@@ -167,7 +193,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         return (
           <div className="space-y-5 pb-6">
             <h3 className="text-xs font-bold text-heading uppercase tracking-wider">3. Résultats & Détails</h3>
-            <FinancialModelingResults result={clientResult} />
+            <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} />
             
             {clientResult && clientResult.warnings.length > 0 && (
               <div className="space-y-2">
@@ -189,10 +215,19 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
     <>
       <AppDrawer
         open={open}
-        onOpenChange={onOpenChange}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            handleRequestClose()
+          }
+        }}
         side="bottom"
         title={
           <div className="flex items-center gap-2">
+            <img
+              src="/icons_set/calculatrice.png"
+              alt="Calculatrice"
+              className="w-5 h-5 object-contain"
+            />
             <span>Simuler une mission</span>
             {step === 3 && (
               <StatusPill
@@ -204,6 +239,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         }
         hideMobileBackBtn
         className="sm:hidden h-[90vh] max-h-[90vh]"
+        headerClassName="bg-[#FFC107] text-slate-900 [&_button]:text-slate-700 [&_button]:hover:text-slate-950 border-b border-amber-500/20"
         contentClassName="flex-1 overflow-y-auto px-4 py-3"
         footer={
           <div className="w-full flex items-center justify-between gap-3">
@@ -218,7 +254,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
             ) : (
               <button
                 type="button"
-                onClick={() => onOpenChange(false)}
+                onClick={handleRequestClose}
                 className="h-11 px-4 text-sm font-semibold text-muted hover:text-heading transition-colors"
               >
                 Annuler
@@ -301,6 +337,34 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         <p className="leading-relaxed text-xs">
           Cette simulation comporte des alertes de rentabilité (marge négative ou TJM inférieur au CJM productif).
           Voulez-vous quand même l&apos;enregistrer dans l&apos;état validé ?
+        </p>
+      </AppDialog>
+
+      <AppDialog
+        open={showDiscardConfirm}
+        onOpenChange={setShowDiscardConfirm}
+        title="Quitter sans enregistrer ?"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setShowDiscardConfirm(false)}>
+              Continuer l&apos;édition
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setShowDiscardConfirm(false)
+                resetFlow()
+                onOpenChange(false)
+              }}
+            >
+              Fermer sans enregistrer
+            </Button>
+          </>
+        }
+      >
+        <p className="leading-relaxed text-xs">
+          Des modifications non enregistrées seraient perdues. Confirmez la fermeture uniquement si vous souhaitez abandonner cette saisie.
         </p>
       </AppDialog>
     </>

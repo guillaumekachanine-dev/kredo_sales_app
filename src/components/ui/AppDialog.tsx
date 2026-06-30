@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils"
 export interface AppDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title: string
+  title: React.ReactNode
   description?: string
   children: React.ReactNode
   footer?: React.ReactNode
   className?: string
   titleClassName?: string
   bodyClassName?: string
+  headerClassName?: string
 }
 
 export function AppDialog({
@@ -25,6 +26,7 @@ export function AppDialog({
   className,
   titleClassName,
   bodyClassName,
+  headerClassName,
 }: AppDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
@@ -45,18 +47,27 @@ export function AppDialog({
 
   useEffect(() => {
     const dialog = dialogRef.current
-    if (!dialog) return
+    if (!dialog || !open) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      e.preventDefault()
+      e.stopPropagation()
+      onOpenChange(false)
+    }
 
     const handleCancel = (e: Event) => {
       e.preventDefault()
       onOpenChange(false)
     }
 
+    dialog.addEventListener("keydown", handleKeyDown)
     dialog.addEventListener("cancel", handleCancel)
     return () => {
+      dialog.removeEventListener("keydown", handleKeyDown)
       dialog.removeEventListener("cancel", handleCancel)
     }
-  }, [onOpenChange])
+  }, [open, onOpenChange])
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
     if (e.target === dialogRef.current) {
@@ -77,9 +88,13 @@ export function AppDialog({
     >
       <div className="flex h-full min-h-0 flex-col gap-4">
         {/* Header */}
-        <div className="flex flex-col gap-1.5">
+        <div className={cn("flex flex-col gap-1.5", headerClassName)}>
           <div className="flex items-center justify-between">
-            <h2 className={cn("font-heading text-sm font-bold", titleClassName)}>{title}</h2>
+            {typeof title === "string" ? (
+              <h2 className={cn("font-heading text-sm font-bold", titleClassName)}>{title}</h2>
+            ) : (
+              title
+            )}
             <button
               type="button"
               onClick={() => onOpenChange(false)}
