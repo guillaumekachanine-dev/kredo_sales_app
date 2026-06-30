@@ -175,10 +175,7 @@ function ReadySyntheseDesktopView({
             </p>
           </div>
 
-          {/* 2-col grid without items-start so the right column stretches to match the
-              left column height — required for position:sticky to work inside the rail */}
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            {/* Left column: all content */}
             <div className="min-w-0 space-y-6">
               <WeeklyCommercialFocus
                 showHeader={false}
@@ -203,22 +200,8 @@ function ReadySyntheseDesktopView({
                 }}
                 summarySentence={viewModel.summarySentence}
               />
-
-              <AccountsToActivateTable
-                accounts={viewModel.visibleAccounts}
-                period={deferredFilters.period}
-                selectedAccountId={viewModel.selectedAccount?.id ?? null}
-                onSelectAccount={(accountId) => {
-                  startTransition(() => {
-                    setSelectedAccountId(accountId)
-                  })
-                }}
-              />
             </div>
 
-            {/* Right rail: sticky SelectedAccountPanel.
-                No self-start here — the column stretches to left col height,
-                giving the sticky child room to travel. */}
             <div className="min-w-0">
               <div className="sticky top-4">
                 <SelectedAccountPanel
@@ -229,6 +212,17 @@ function ReadySyntheseDesktopView({
               </div>
             </div>
           </div>
+
+          <AccountsToActivateTable
+            accounts={viewModel.visibleAccounts}
+            period={deferredFilters.period}
+            selectedAccountId={viewModel.selectedAccount?.id ?? null}
+            onSelectAccount={(accountId) => {
+              startTransition(() => {
+                setSelectedAccountId(accountId)
+              })
+            }}
+          />
         </div>
       )}
     </DesktopAnalyticalPage>
