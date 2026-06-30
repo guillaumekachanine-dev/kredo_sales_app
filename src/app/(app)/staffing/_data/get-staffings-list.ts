@@ -34,6 +34,10 @@ export interface StaffingListRow {
   clientWebsite: string | null
   clientLogoPath: string | null
   seniority: string | null
+  conviction: number | null
+  acv: number | null
+  estimatedGain: number | null
+  startDate: string | null
 }
 
 export async function getStaffingsList(): Promise<StaffingListRow[]> {
@@ -57,6 +61,10 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
           priority,
           practice,
           target_daily_rate,
+          conviction,
+          acv,
+          estimated_gain,
+          start_date,
           company:companies (
             name,
             website,
@@ -171,6 +179,10 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         clientWebsite: companyRecord?.website || null,
         clientLogoPath,
         seniority,
+        conviction: opportunity?.conviction || null,
+        acv: opportunity?.acv || null,
+        estimatedGain: opportunity?.estimated_gain || null,
+        startDate: opportunity?.start_date || null,
       }
     })
 

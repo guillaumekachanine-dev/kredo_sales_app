@@ -89,10 +89,10 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                       )}
                     >
                       {/* Face Avant — Candidat */}
-                      <div className="absolute inset-0 backface-hidden w-full h-full flex flex-col gap-2 p-3 bg-surface border border-border/60 hover:border-primary/50 hover:bg-canvas/30 rounded-xl transition-all duration-150 overflow-hidden">
+                      <div className="absolute inset-0 backface-hidden w-full h-full flex flex-col gap-2 p-3 bg-surface border border-border/60 hover:border-[#9C27B0]/60 hover:bg-canvas/30 rounded-xl transition-all duration-150 overflow-hidden">
                         {/* Identity */}
                         <div className="flex items-start justify-between gap-1.5">
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <span className="text-xs font-bold text-heading hover:text-primary truncate block">
                               {row.fullName}
                             </span>
@@ -100,14 +100,6 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                               {row.profileTitle || "—"}
                             </span>
                           </div>
-                          <span className={cn(
-                            "text-[7px] font-extrabold px-1.5 py-0.5 rounded shrink-0 border uppercase tracking-wider",
-                            row.isCollaborator
-                              ? "bg-primary/5 border-primary/10 text-primary"
-                              : "bg-brand-brass/5 border-brand-brass/10 text-brand-brass"
-                          )}>
-                            {row.isCollaborator ? "Interne" : "Externe"}
-                          </span>
                         </div>
 
                         {/* Client & Opportunity */}
@@ -142,7 +134,7 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                       </div>
 
                       {/* Face Arrière — Opportunité */}
-                      <div className="absolute inset-0 backface-hidden rotate-y-180 w-full h-full flex flex-col gap-2 p-3 bg-surface border border-border/60 hover:border-primary/50 hover:bg-canvas/30 rounded-xl transition-all duration-150 overflow-hidden">
+                      <div className="absolute inset-0 backface-hidden rotate-y-180 w-full h-full flex flex-col gap-2 p-3 bg-surface border border-border/60 hover:border-[#FFC107]/60 hover:bg-canvas/30 rounded-xl transition-all duration-150 overflow-hidden">
                         {/* Client header */}
                         <div className="flex items-center gap-2 border-b border-border/50 pb-2 min-w-0">
                           <CompanyLogo
@@ -163,10 +155,10 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                         </div>
 
                         {/* Opportunity metadata */}
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[9px] flex-1">
+                        <div className="grid grid-cols-3 gap-x-2 gap-y-1.5 text-[9px] flex-1">
                           <div className="flex flex-col">
                             <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">Séniorité</span>
-                            <span className="font-semibold text-heading mt-0.5">{row.seniority || "—"}</span>
+                            <span className="font-semibold text-heading mt-0.5 truncate">{row.seniority || "—"}</span>
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">TJM cible</span>
@@ -177,24 +169,48 @@ export function StaffingKanbanView({ rows, displayMode }: StaffingKanbanViewProp
                             <span className="font-semibold text-heading mt-0.5 truncate">{row.practice || "—"}</span>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">Marge cible</span>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">Marge</span>
                             <span className={cn("font-bold mt-0.5", row.marginPct !== null && row.marginPct >= 20 ? "text-success" : "text-heading")}>
                               {row.marginPct !== null ? `${row.marginPct} %` : "—"}
                             </span>
                           </div>
+                          <div className="flex flex-col">
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">ACV</span>
+                            <span className="font-semibold text-heading mt-0.5 truncate">
+                              {row.acv ? formatEuro(row.acv) : row.estimatedGain ? formatEuro(row.estimatedGain) : "—"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">démarrage</span>
+                            <span className="font-semibold text-heading mt-0.5 truncate">
+                              {row.startDate ? new Date(row.startDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) : "—"}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Candidate recap */}
-                        <div className="mt-auto pt-1.5 border-t border-border/40 flex items-center justify-between gap-1">
-                          <span className="text-[9px] font-bold text-heading truncate">{row.fullName}</span>
-                          <span className={cn(
-                            "text-[7px] font-extrabold px-1.5 py-0.5 rounded shrink-0 border uppercase tracking-wider",
-                            row.isCollaborator
-                              ? "bg-primary/5 border-primary/10 text-primary"
-                              : "bg-brand-brass/5 border-brand-brass/10 text-brand-brass"
-                          )}>
-                            {row.isCollaborator ? "Interne" : "Externe"}
-                          </span>
+                        {/* Candidate recap & conviction bar */}
+                        <div className="mt-auto pt-1.5 border-t border-border/40 flex items-end justify-between gap-2 min-w-0">
+                          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">profil</span>
+                            <span className="text-[9px] font-bold text-heading truncate">{row.fullName}</span>
+                          </div>
+                          {row.conviction !== null && (
+                            <div className="flex flex-col items-end shrink-0">
+                              <span className="text-[8px] font-bold uppercase tracking-wider text-muted/80">Conviction</span>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[9px] font-black text-heading leading-none">{row.conviction}%</span>
+                                <div className="w-10 h-1.5 rounded-full bg-muted/20 overflow-hidden relative">
+                                  <div 
+                                    className="h-full rounded-full"
+                                    style={{ 
+                                      width: `${row.conviction}%`,
+                                      background: "linear-gradient(90deg, #ff007f 0%, #ffc107 50%, #00c853 100%)" 
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

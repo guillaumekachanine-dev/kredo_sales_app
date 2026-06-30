@@ -165,8 +165,13 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
           <button
             type="button"
             onClick={() => setKanbanDisplayMode((m) => m === "candidat" ? "opportunite" : "candidat")}
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors hover:bg-brand-brass/[0.15] active:scale-95 cursor-pointer select-none"
-            title={`Basculer vers ${kanbanDisplayMode === "candidat" ? "Opportunités" : "Candidats"}`}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-[var(--radius-medium)] border transition-all active:scale-95 cursor-pointer select-none"
+            style={{
+              borderColor: kanbanDisplayMode === "candidat" ? "#9C27B0" : "#FFC107",
+              backgroundColor: kanbanDisplayMode === "candidat" ? "rgba(156, 39, 176, 0.08)" : "rgba(255, 193, 7, 0.08)",
+              color: kanbanDisplayMode === "candidat" ? "#9C27B0" : "#D8A400",
+            }}
+            title={`Basculer vers ${kanbanDisplayMode === "candidat" ? "Besoins" : "Candidats"}`}
           >
             <svg
               className={cn("size-3.5 transition-transform duration-500", kanbanDisplayMode === "opportunite" && "rotate-180")}
@@ -183,8 +188,8 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
               <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
               <path d="M8 16H3v5" />
             </svg>
-            <span className="text-xs font-semibold">
-              {kanbanDisplayMode === "candidat" ? "Candidats" : "Opportunités"}
+            <span className="text-xs font-semibold capitalize">
+              {kanbanDisplayMode === "candidat" ? "candidat" : "besoin"}
             </span>
           </button>
         )}
