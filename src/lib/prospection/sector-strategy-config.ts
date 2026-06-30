@@ -28,6 +28,21 @@ export const STRATEGIC_SECTOR_CONFIG: readonly StrategicSectorConfig[] = [
     companiesCount: 7,
   },
   {
+    name: "Nutraceutique, Santé Naturelle & Compléments",
+    slug: "nutraceutique-sante-naturelle",
+    imageUrl: "/images/sectors/luxe_chimie_cosmetiques.jpeg",
+    status: "active",
+    attractivenessScore: 4.3,
+    digitalMaturity: "medium",
+    practicesFit: {
+      data_ai: 5.0,
+      cloud_eng: 3.0,
+      product: 2.0,
+      cyber: 4.0,
+    },
+    companiesCount: 2,
+  },
+  {
     name: "Aéronautique & Défense",
     slug: "aeronautique-defense",
     imageUrl: "/images/sectors/aeronautique_defense.jpeg",

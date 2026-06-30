@@ -50,7 +50,7 @@ export default async function ApprocheSectoriellePage() {
             Approche Sectorielle
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-body">
-            Pilotez nos campagnes de prospection et notre stratégie commerciale à travers nos 5 secteurs cibles.
+            Pilotez nos campagnes de prospection et notre stratégie commerciale à travers nos 6 secteurs cibles.
             Analysez l&apos;attractivité, la maturité digitale globale, les points de douleur critiques et accédez aux playbooks commerciaux de prospection opérationnels.
           </p>
         </div>

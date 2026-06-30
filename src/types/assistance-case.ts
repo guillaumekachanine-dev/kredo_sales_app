@@ -58,6 +58,8 @@ export interface AssistanceCaseOpportunity {
   next_action_label: string | null
   next_action_at: string | null
   required_headcount: number
+  client_contact_name: string | null
+  client_contact_role: string | null
   company: {
     id: string
     name: string

@@ -2,6 +2,7 @@ import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
 import { MobileErrorWithRetry } from "./MobileErrorWithRetry"
+import type { SyntheseDesignVariant } from "./design-variants"
 import { buildMobilePriorityViewModel, parseLens } from "./mobile-priority-view-model"
 import { MobilePriorityInteractiveList } from "./MobilePriorityInteractiveList"
 import type { ProspectionSummaryData } from "@/lib/prospection/prospection-summary-data"
@@ -10,9 +11,11 @@ import type { ProspectionSummaryFilters } from "./synthese-view-model"
 export function SyntheseMobileView({
   data,
   lens: rawLens,
+  design = null,
 }: {
   data: ProspectionSummaryData
   lens?: string
+  design?: SyntheseDesignVariant | null
 }) {
   if (data.state === "error") {
     return (
@@ -62,5 +65,5 @@ export function SyntheseMobileView({
     trust: data.trust,
   })
 
-  return <MobilePriorityInteractiveList viewModel={viewModel} />
+  return <MobilePriorityInteractiveList viewModel={viewModel} design={design} />
 }

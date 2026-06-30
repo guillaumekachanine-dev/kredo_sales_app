@@ -10,6 +10,7 @@ import { AccountsToActivateTable } from "@/components/prospection/synthese/Accou
 import { PotentialReachMatrix } from "@/components/prospection/synthese/PotentialReachMatrix"
 import { ProspectionPortfolioKpis } from "@/components/prospection/synthese/ProspectionPortfolioKpis"
 import { SelectedAccountPanel } from "@/components/prospection/synthese/SelectedAccountPanel"
+import { SyntheseDesktopDesignLab } from "@/components/prospection/synthese/SyntheseDesktopDesignLab"
 import { WeeklyCommercialFocus } from "@/components/prospection/synthese/WeeklyCommercialFocus"
 import {
   buildProspectionSummaryViewModel,
@@ -20,6 +21,7 @@ import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalP
 import { EmptyState } from "@/components/dashboard/widgets/EmptyState"
 import { useUrlFilters } from "@/lib/search/use-url-filters"
 import type { ProspectionSummaryData } from "@/lib/prospection/prospection-summary-data"
+import type { SyntheseDesignVariant } from "./design-variants"
 
 const DEFAULT_FILTERS: ProspectionSummaryFilters = {
   period: "90d",
@@ -29,7 +31,13 @@ const DEFAULT_FILTERS: ProspectionSummaryFilters = {
   focus: "all",
 }
 
-export function SyntheseDesktopView({ data }: { data: ProspectionSummaryData }) {
+export function SyntheseDesktopView({
+  data,
+  design = null,
+}: {
+  data: ProspectionSummaryData
+  design?: SyntheseDesignVariant | null
+}) {
   if (data.state === "error") {
     return (
       <div className="mx-auto max-w-7xl px-6 py-6">
@@ -38,13 +46,15 @@ export function SyntheseDesktopView({ data }: { data: ProspectionSummaryData }) 
     )
   }
 
-  return <ReadySyntheseDesktopView data={data} />
+  return <ReadySyntheseDesktopView data={data} design={design} />
 }
 
 function ReadySyntheseDesktopView({
   data,
+  design,
 }: {
   data: Extract<ProspectionSummaryData, { state: "ready" }>
+  design?: SyntheseDesignVariant | null
 }) {
   const { searchParams, setParam, clearAll } = useUrlFilters()
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(data.accounts[0]?.id ?? null)
@@ -80,7 +90,7 @@ function ReadySyntheseDesktopView({
   const toolbar = (
     <PageFilterBar
       activeCount={activeFilterCount}
-      onReset={() => clearAll()}
+      onReset={() => clearAll(["design"])}
       summary={viewModel.focusLabel ? `${viewModel.visibleAccounts.length} comptes · filtre actif : ${viewModel.focusLabel}` : `${viewModel.baseAccounts.length} comptes visibles`}
     >
       <PageFilterSelect
@@ -131,101 +141,118 @@ function ReadySyntheseDesktopView({
     </PageFilterBar>
   )
 
-  return (
-    <DesktopAnalyticalPage
-      eyebrow="CRM & Prospection"
-      title="Synthèse"
-      actions={(
-        <div className="flex items-center gap-2">
-          <HeaderCalendar />
-          <HeaderAlerts />
-        </div>
-      )}
-      toolbar={(
-        <div className="space-y-3">
-          <p className="text-sm leading-6 text-body">
-            Priorisez les comptes à engager et identifiez les déficits de couverture commerciale.
-          </p>
-          {toolbar}
-        </div>
-      )}
-      kpis={(
-        <ProspectionPortfolioKpis
-          kpis={viewModel.kpis}
-          onToggleFocus={(focus) => setParam("focus", focus === "all" ? null : focus)}
-        />
-      )}
-      maxWidth="full"
-      className="pb-8"
-    >
-      {viewModel.baseAccounts.length === 0 ? (
-        <EmptyState
-          title="Aucun compte dans le portefeuille"
-          description="La synthèse réapparaîtra dès que des comptes et des activités seront disponibles dans les sources autorisées."
-          className="min-h-[18rem]"
-        />
-      ) : (
-        <div className="space-y-3">
-          {/* Section header for WeeklyFocus — sits above the 2-col grid so the right rail
-              aligns with the top border of the first account card, not the section title */}
-          <div className="space-y-1">
-            <h2 className="font-heading text-xl font-bold text-heading">Focus commercial de la semaine</h2>
-            <p className="text-sm leading-6 text-body">
-              Shortlist resserrée des comptes qui demandent un arbitrage commercial immédiat.
-            </p>
+  if (!design) {
+    return (
+      <DesktopAnalyticalPage
+        eyebrow="CRM & Prospection"
+        title="Synthèse"
+        actions={(
+          <div className="flex items-center gap-2">
+            <HeaderCalendar />
+            <HeaderAlerts />
           </div>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            <div className="min-w-0 space-y-6">
-              <WeeklyCommercialFocus
-                showHeader={false}
-                focusAccounts={viewModel.weeklyFocus.slice(0, 5)}
-                selectedAccountId={viewModel.selectedAccount?.id ?? null}
-                onSelectAccount={(accountId) => {
-                  startTransition(() => {
-                    setSelectedAccountId(accountId)
-                  })
-                }}
-                trust={viewModel.trust}
-              />
-
-              <PotentialReachMatrix
-                accounts={viewModel.visibleAccounts}
-                period={deferredFilters.period}
-                selectedAccountId={viewModel.selectedAccount?.id ?? null}
-                onSelectAccount={(accountId) => {
-                  startTransition(() => {
-                    setSelectedAccountId(accountId)
-                  })
-                }}
-                summarySentence={viewModel.summarySentence}
-              />
+        )}
+        toolbar={(
+          <div className="space-y-3">
+            <p className="text-sm leading-6 text-body">
+              Priorisez les comptes à engager et identifiez les déficits de couverture commerciale.
+            </p>
+            {toolbar}
+          </div>
+        )}
+        kpis={(
+          <ProspectionPortfolioKpis
+            kpis={viewModel.kpis}
+            onToggleFocus={(focus) => setParam("focus", focus === "all" ? null : focus)}
+          />
+        )}
+        maxWidth="full"
+        className="pb-8"
+      >
+        {viewModel.baseAccounts.length === 0 ? (
+          <EmptyState
+            title="Aucun compte dans le portefeuille"
+            description="La synthèse réapparaîtra dès que des comptes et des activités seront disponibles dans les sources autorisées."
+            className="min-h-[18rem]"
+          />
+        ) : (
+          <div className="space-y-3">
+            {/* Section header for WeeklyFocus — sits above the 2-col grid so the right rail
+                aligns with the top border of the first account card, not the section title */}
+            <div className="space-y-1">
+              <h2 className="font-heading text-xl font-bold text-heading">Focus commercial de la semaine</h2>
+              <p className="text-sm leading-6 text-body">
+                Shortlist resserrée des comptes qui demandent un arbitrage commercial immédiat.
+              </p>
             </div>
 
-            <div className="min-w-0">
-              <div className="sticky top-4">
-                <SelectedAccountPanel
-                  account={viewModel.selectedAccount}
-                  period={deferredFilters.period}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+              <div className="min-w-0 space-y-6">
+                <WeeklyCommercialFocus
+                  showHeader={false}
+                  focusAccounts={viewModel.weeklyFocus.slice(0, 5)}
+                  selectedAccountId={viewModel.selectedAccount?.id ?? null}
+                  onSelectAccount={(accountId) => {
+                    startTransition(() => {
+                      setSelectedAccountId(accountId)
+                    })
+                  }}
                   trust={viewModel.trust}
                 />
+
+                <PotentialReachMatrix
+                  accounts={viewModel.visibleAccounts}
+                  period={deferredFilters.period}
+                  selectedAccountId={viewModel.selectedAccount?.id ?? null}
+                  onSelectAccount={(accountId) => {
+                    startTransition(() => {
+                      setSelectedAccountId(accountId)
+                    })
+                  }}
+                  summarySentence={viewModel.summarySentence}
+                />
+              </div>
+
+              <div className="min-w-0">
+                <div className="sticky top-4">
+                  <SelectedAccountPanel
+                    account={viewModel.selectedAccount}
+                    period={deferredFilters.period}
+                    trust={viewModel.trust}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <AccountsToActivateTable
-            accounts={viewModel.visibleAccounts}
-            period={deferredFilters.period}
-            selectedAccountId={viewModel.selectedAccount?.id ?? null}
-            onSelectAccount={(accountId) => {
-              startTransition(() => {
-                setSelectedAccountId(accountId)
-              })
-            }}
-          />
-        </div>
-      )}
-    </DesktopAnalyticalPage>
+            <AccountsToActivateTable
+              accounts={viewModel.visibleAccounts}
+              period={deferredFilters.period}
+              selectedAccountId={viewModel.selectedAccount?.id ?? null}
+              onSelectAccount={(accountId) => {
+                startTransition(() => {
+                  setSelectedAccountId(accountId)
+                })
+              }}
+            />
+          </div>
+        )}
+      </DesktopAnalyticalPage>
+    )
+  }
+
+  return (
+    <SyntheseDesktopDesignLab
+      design={design}
+      filterBar={toolbar}
+      viewModel={viewModel}
+      period={deferredFilters.period}
+      onSelectAccount={(accountId) => {
+        startTransition(() => {
+          setSelectedAccountId(accountId)
+        })
+      }}
+      onToggleFocus={(focus) => setParam("focus", focus === "all" ? null : focus)}
+    />
   )
 }
 

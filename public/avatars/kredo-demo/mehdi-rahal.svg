@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Avatar synthétique de Mehdi Rahal</title>
+  <desc id="desc">Portrait vectoriel fictif et non photographique, généré pour le dataset KREDO.</desc>
+  <rect width="256" height="256" rx="28" fill="#EBF2E9"/>
+  <circle cx="189" cy="52" r="52" fill="#BC6C25" opacity=".22"/>
+  <path d="M0 206 C52 164, 102 234, 162 188 C202 158, 228 174, 256 150 L256 256 L0 256 Z" fill="#386641" opacity=".18"/>
+  <circle cx="128" cy="104" r="55" fill="#386641"/>
+  <path d="M54 236 C61 178, 91 156, 128 156 C165 156, 195 178, 202 236 Z" fill="#386641"/>
+  <circle cx="86" cy="74" r="18" fill="#BC6C25" opacity=".85"/>
+  <text x="128" y="119" text-anchor="middle" dominant-baseline="middle"
+        font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+        font-size="48" font-weight="700" letter-spacing="1" fill="#FFFFFF">MR</text>
+  <rect x="24" y="24" width="38" height="8" rx="4" fill="#386641" opacity=".75"/>
+</svg>

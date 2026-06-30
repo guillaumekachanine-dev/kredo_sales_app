@@ -1,13 +1,15 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { useCallback, useMemo, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
+import type { SyntheseDesignVariant } from "./design-variants"
 import { MobilePriorityCard } from "./MobilePriorityCard"
 import { MobilePriorityActionDrawer } from "./MobilePriorityActionDrawer"
+import { SyntheseMobileDesignLab } from "./SyntheseMobileDesignLab"
 import type {
   MobileLensKey,
   MobilePriorityViewModel,
@@ -17,19 +19,18 @@ import { buildLensUrl } from "./mobile-priority-url"
 const SESSION_KEY = "kredo_examined_accounts"
 
 function useExaminedAccounts() {
-  const [examined, setExamined] = useState<Set<string>>(new Set())
-  const initialized = useRef(false)
+  const [examined, setExamined] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") {
+      return new Set()
+    }
 
-  useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
     try {
       const stored = sessionStorage.getItem(SESSION_KEY)
-      if (stored) setExamined(new Set(JSON.parse(stored)))
+      return stored ? new Set(JSON.parse(stored)) : new Set()
     } catch {
-      // ignore
+      return new Set()
     }
-  }, [])
+  })
 
   const markExamined = useCallback((accountId: string) => {
     setExamined((prev) => {
@@ -50,8 +51,10 @@ function useExaminedAccounts() {
 
 export function MobilePriorityInteractiveList({
   viewModel,
+  design = null,
 }: {
   viewModel: MobilePriorityViewModel
+  design?: SyntheseDesignVariant | null
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -104,58 +107,90 @@ export function MobilePriorityInteractiveList({
 
   return (
     <>
-      <MobileActionPage
-        header={
-          <MobilePageHeader
-            eyebrow="CRM · Synthèse"
-            title="Priorités commerciales"
-            contextControl={<PeriodChip label={viewModel.periodLabel} />}
-          />
-        }
-        context={
-          <div className="flex flex-col gap-3">
-            <SummaryBar
-              totalForLens={viewModel.totalForLens}
-              totalPortfolio={viewModel.totalPortfolio}
-              examinedCount={examinedCount}
-              activeLens={viewModel.activeLens}
-              isPending={isPending}
-            />
-            <LensChips
-              lenses={viewModel.lenses}
-              activeLens={viewModel.activeLens}
-              onChangeLens={handleLensChange}
-              isPending={isPending}
-            />
-          </div>
-        }
-      >
-        {viewModel.items.length === 0 ? (
-          <EmptyLensState
-            activeLens={viewModel.activeLens}
-            onReset={() => handleLensChange("all")}
-          />
-        ) : (
-          <div className={cn("flex flex-col gap-4", isPending && "opacity-60 transition-opacity")}>
-            {viewModel.items.map((item) => (
-              <MobilePriorityCard
-                key={item.accountId}
-                item={item}
-                onOpenActions={handleOpenDrawer}
-                onOpenAccount={(id) => {
-                  router.push(`/prospection/accounts/${id}`)
-                }}
-                onWhyNowOpen={handleWhyNowOpen}
+      {design ? (
+        viewModel.items.length === 0 ? (
+          <MobileActionPage
+            header={
+              <MobilePageHeader
+                eyebrow="CRM · Synthèse"
+                title="Priorités commerciales"
+                contextControl={<PeriodChip label={viewModel.periodLabel} />}
               />
-            ))}
-            {overflowCount > 0 ? (
-              <p className="py-2 text-center text-xs text-muted">
-                {overflowCount} priorité{overflowCount > 1 ? "s" : ""} supplémentaire{overflowCount > 1 ? "s" : ""}
-              </p>
-            ) : null}
-          </div>
-        )}
-      </MobileActionPage>
+            }
+          >
+            <EmptyLensState
+              activeLens={viewModel.activeLens}
+              onReset={() => handleLensChange("all")}
+            />
+          </MobileActionPage>
+        ) : (
+          <SyntheseMobileDesignLab
+            design={design}
+            viewModel={viewModel}
+            examinedCount={examinedCount}
+            isPending={isPending}
+            onChangeLens={handleLensChange}
+            onOpenActions={handleOpenDrawer}
+            onOpenAccount={(id) => {
+              router.push(`/prospection/accounts/${id}`)
+            }}
+            onWhyNowOpen={handleWhyNowOpen}
+          />
+        )
+      ) : (
+        <MobileActionPage
+          header={
+            <MobilePageHeader
+              eyebrow="CRM · Synthèse"
+              title="Priorités commerciales"
+              contextControl={<PeriodChip label={viewModel.periodLabel} />}
+            />
+          }
+          context={
+            <div className="flex flex-col gap-3">
+              <SummaryBar
+                totalForLens={viewModel.totalForLens}
+                totalPortfolio={viewModel.totalPortfolio}
+                examinedCount={examinedCount}
+                activeLens={viewModel.activeLens}
+                isPending={isPending}
+              />
+              <LensChips
+                lenses={viewModel.lenses}
+                activeLens={viewModel.activeLens}
+                onChangeLens={handleLensChange}
+                isPending={isPending}
+              />
+            </div>
+          }
+        >
+          {viewModel.items.length === 0 ? (
+            <EmptyLensState
+              activeLens={viewModel.activeLens}
+              onReset={() => handleLensChange("all")}
+            />
+          ) : (
+            <div className={cn("flex flex-col gap-4", isPending && "opacity-60 transition-opacity")}>
+              {viewModel.items.map((item) => (
+                <MobilePriorityCard
+                  key={item.accountId}
+                  item={item}
+                  onOpenActions={handleOpenDrawer}
+                  onOpenAccount={(id) => {
+                    router.push(`/prospection/accounts/${id}`)
+                  }}
+                  onWhyNowOpen={handleWhyNowOpen}
+                />
+              ))}
+              {overflowCount > 0 ? (
+                <p className="py-2 text-center text-xs text-muted">
+                  {overflowCount} priorité{overflowCount > 1 ? "s" : ""} supplémentaire{overflowCount > 1 ? "s" : ""}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </MobileActionPage>
+      )}
 
       <MobilePriorityActionDrawer
         item={drawerItem}

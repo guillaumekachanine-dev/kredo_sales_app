@@ -7,6 +7,7 @@ import type {
 import type { AssistanceCasePerspective } from "@/hooks/use-staffing-drawer-store"
 import { cn } from "@/lib/utils"
 import type { CSSProperties } from "react"
+import Link from "next/link"
 
 interface AssistanceCaseHeaderProps {
   opportunity: AssistanceCaseOpportunity
@@ -96,9 +97,31 @@ export function AssistanceCaseHeader({
   return (
     <div className="flex min-w-0 flex-col gap-3 select-none">
       <div className="min-w-0">
-        <p className="truncate text-[1.02rem] font-bold leading-tight text-heading">
-          {title}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[1.02rem] font-bold leading-tight text-heading">
+            {title}
+          </span>
+          {!isCandidate ? (
+            <Link
+              href={`/missions/opps/${opportunity.id}/edit`}
+              className="inline-flex shrink-0 items-center justify-center text-heading hover:opacity-80 transition-opacity"
+              title="Ouvrir l'opportunité"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </Link>
+          ) : (
+            <span
+              className="inline-flex shrink-0 items-center justify-center text-muted/50 cursor-not-allowed"
+              title="Page candidat (bientôt disponible)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="size-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </span>
+          )}
+        </div>
         <p className="truncate pt-0.5 text-xs font-medium leading-snug text-muted">
           {subtitle}
         </p>

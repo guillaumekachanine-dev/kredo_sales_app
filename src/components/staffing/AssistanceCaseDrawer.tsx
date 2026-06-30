@@ -1,7 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import {
+  AgendaEventDrawer,
+  type AgendaEventDrawerInitialValues,
+} from "@/components/agenda/AgendaEventDrawer"
 import { CandidateProfileEditor } from "@/components/recruitment/CandidateProfileEditor"
 import { CandidateReferenceProfile } from "@/components/recruitment/CandidateReferenceProfile"
 import {
@@ -14,6 +19,7 @@ import {
   useStaffingDrawerStore,
   type AssistanceCaseTab,
 } from "@/hooks/use-staffing-drawer-store"
+import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
 import {
   AssistanceCaseHeader,
   getAssistanceCaseHeaderStyle,
@@ -79,6 +85,8 @@ function toStaffingViewModel(
 }
 
 export function AssistanceCaseDrawer() {
+  const router = useRouter()
+  const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
   const {
     isOpen,
     staffingId,
@@ -103,6 +111,8 @@ export function AssistanceCaseDrawer() {
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
+  const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
   const [, startTransition] = useTransition()
 
   useEffect(() => {
@@ -330,18 +340,81 @@ export function AssistanceCaseDrawer() {
     setPerspective("candidate")
   }
 
+  const openCreateNextActionEventDrawer = (positioning: AssistanceCasePositioning) => {
+    const now = new Date()
+    const rounded = new Date(now)
+    rounded.setMinutes(Math.ceil(rounded.getMinutes() / 15) * 15, 0, 0)
+    const end = new Date(rounded.getTime() + 60 * 60 * 1000)
+    const formatDate = (value: Date) =>
+      `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+    const formatTime = (value: Date) =>
+      `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`
+
+    setEventInitialValues({
+      title: positioning.next_action || `Prochaine action · ${positioning.candidate.person?.full_name ?? opportunity?.title ?? "staffing"}`,
+      event_type:
+        positioning.status === "entretien_planifie" || positioning.status === "entretien_realise"
+          ? "entretien_client"
+          : "preparation_candidat",
+      date: formatDate(rounded),
+      start_time: formatTime(rounded),
+      end_time: formatTime(end),
+      description: positioning.next_action ?? "",
+      company: opportunity?.company
+        ? { id: opportunity.company.id, name: opportunity.company.name, isNew: false }
+        : null,
+      opportunity_id: opportunity?.id,
+      candidate_id: positioning.candidate.id,
+    })
+    setEventDrawerOpen(true)
+  }
+
+  const openCreateOpportunityEventDrawer = () => {
+    const now = new Date()
+    const rounded = new Date(now)
+    rounded.setMinutes(Math.ceil(rounded.getMinutes() / 15) * 15, 0, 0)
+    const end = new Date(rounded.getTime() + 60 * 60 * 1000)
+    const formatDate = (value: Date) =>
+      `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`
+    const formatTime = (value: Date) =>
+      `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`
+
+    setEventInitialValues({
+      title: opportunity?.next_action_label || `Next action · ${opportunity?.title ?? "Besoin"}`,
+      event_type: "preparation_candidat",
+      date: formatDate(rounded),
+      start_time: formatTime(rounded),
+      end_time: formatTime(end),
+      description: "",
+      company: opportunity?.company
+        ? { id: opportunity.company.id, name: opportunity.company.name, isNew: false }
+        : null,
+      opportunity_id: opportunity?.id,
+    })
+    setEventDrawerOpen(true)
+  }
+
   const renderOpportunityContent = () => {
     if (!opportunity) return null
 
     switch (activeTab) {
       case "subject":
-        return <OpportunityNeedTab opportunity={opportunity} />
+        return (
+          <OpportunityNeedTab
+            opportunity={opportunity}
+            events={events}
+            onCreateEvent={openCreateOpportunityEventDrawer}
+          />
+        )
       case "staffing":
         return (
           <OpportunityStaffingTab
             opportunity={opportunity}
+            events={events}
             activePositioningId={currentPositioning?.id ?? null}
             onOpenCandidate={(positioning) => openCandidatePerspective(positioning, "staffing")}
+            onOpenNextActionEvent={(eventId) => openEventDrawer(eventId)}
+            onCreateNextActionEvent={openCreateNextActionEventDrawer}
           />
         )
       case "recruitment":
@@ -514,6 +587,18 @@ export function AssistanceCaseDrawer() {
             : renderCandidateContent()}
         </div>
       )}
+
+      <AgendaEventDrawer
+        open={eventDrawerOpen}
+        onOpenChange={setEventDrawerOpen}
+        event={null}
+        initialValues={eventInitialValues}
+        onSaved={() => {
+          setEventDrawerOpen(false)
+          setReloadKey((current) => current + 1)
+          router.refresh()
+        }}
+      />
     </AppDrawer>
   )
 }
