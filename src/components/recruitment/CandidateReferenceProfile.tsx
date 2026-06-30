@@ -207,49 +207,54 @@ export function CandidateReferenceProfile({
 
   return (
     <div className="space-y-6">
-      {/* ── Profil professionnel ── */}
-      <section className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <SectionTitle>Profil professionnel</SectionTitle>
-            <p className="mt-2 text-sm font-bold leading-snug text-heading">
-              {data.current_title || "Intitulé non renseigné"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted">
-              {data.practice?.name || "Practice non renseignée"}
-            </p>
-          </div>
-          <StatusPill
-            label={STATUS_LABELS[data.status] ?? data.status.replace(/_/g, " ")}
-            variant={statusVariant(data.status)}
-            dot={data.status === "en_process"}
-          />
+      {/* ── Profil professionnel (En-tête sous forme de cadre) ── */}
+      <section className="rounded-[var(--radius-large)] border border-border bg-surface p-3.5 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4
+            className="select-none text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ color: "#9C27B0" }}
+          >
+            Profil professionnel
+          </h4>
+          <p className="mt-1.5 text-sm font-bold leading-snug text-heading">
+            {data.current_title || "Intitulé non renseigné"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            {data.practice?.name || "Practice non renseignée"}
+          </p>
         </div>
+        <StatusPill
+          label={STATUS_LABELS[data.status] ?? data.status.replace(/_/g, " ")}
+          variant={statusVariant(data.status)}
+          dot={data.status === "en_process"}
+          className="!rounded-[4px] shrink-0"
+        />
+      </section>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
-          <ProfileField label="Séniorité" value={display(data.seniority)} />
-          <ProfileField
-            label="Expérience"
-            value={
-              data.experience_years !== null
-                ? `${data.experience_years} an${data.experience_years > 1 ? "s" : ""}`
-                : "Non renseignée"
-            }
-          />
-          <ProfileField
-            label="Diplôme le plus élevé"
-            value={
-              data.highest_degree_level
-                ? DEGREE_LABELS[data.highest_degree_level] ??
-                  data.highest_degree_level
-                : "Non renseigné"
-            }
-          />
-          <ProfileField
-            label="Localisation"
-            value={display(data.person?.location)}
-          />
-        </div>
+      {/* ── Détails du profil (flat) ── */}
+      <section className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
+        <ProfileField label="Séniorité" value={display(data.seniority)} />
+        <ProfileField
+          label="Expérience"
+          value={
+            data.experience_years !== null
+              ? `${data.experience_years} an${data.experience_years > 1 ? "s" : ""}`
+              : "Non renseignée"
+          }
+        />
+        <ProfileField
+          label="Diplôme le plus élevé"
+          value={
+            data.highest_degree_level
+              ? DEGREE_LABELS[data.highest_degree_level] ??
+                data.highest_degree_level
+              : "Non renseigné"
+          }
+        />
+        <ProfileField
+          label="Localisation"
+          value={display(data.person?.location)}
+        />
       </section>
 
       <hr className="border-border/40" />

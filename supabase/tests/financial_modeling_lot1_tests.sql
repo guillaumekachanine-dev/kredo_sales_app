@@ -77,14 +77,24 @@ $$;
 create temp table pg_temp.financial_modeling_test_context (
   actor_id uuid not null,
   workspace_id uuid not null,
-  practice_id uuid not null
+  practice_id uuid not null,
+  other_workspace_id uuid not null,
+  other_company_id uuid not null
 ) on commit drop;
 
-insert into pg_temp.financial_modeling_test_context (actor_id, workspace_id, practice_id)
+insert into pg_temp.financial_modeling_test_context (
+  actor_id,
+  workspace_id,
+  practice_id,
+  other_workspace_id,
+  other_company_id
+)
 select
   p.id,
   p.workspace_id,
-  op.id
+  op.id,
+  gen_random_uuid(),
+  gen_random_uuid()
 from public.profiles p
 join public.offer_practices op
   on op.workspace_id = p.workspace_id
@@ -99,6 +109,21 @@ select pg_temp.assert_true(
 
 grant select on pg_temp.financial_modeling_test_context to authenticated;
 
+insert into public.workspaces (id, name, owner_id)
+select
+  other_workspace_id,
+  'Other workspace for financial lot1 tests',
+  actor_id
+from pg_temp.financial_modeling_test_context;
+
+insert into public.companies (id, workspace_id, owner_id, name)
+select
+  other_company_id,
+  other_workspace_id,
+  actor_id,
+  'Other client'
+from pg_temp.financial_modeling_test_context;
+
 select set_config(
   'request.jwt.claim.sub',
   (select actor_id::text from pg_temp.financial_modeling_test_context),
@@ -112,9 +137,8 @@ declare
   v_actor_id uuid := (select actor_id from pg_temp.financial_modeling_test_context);
   v_workspace_id uuid := (select workspace_id from pg_temp.financial_modeling_test_context);
   v_practice_id uuid := (select practice_id from pg_temp.financial_modeling_test_context);
-
-  v_other_workspace_id uuid := gen_random_uuid();
-  v_other_company_id uuid := gen_random_uuid();
+  v_other_workspace_id uuid := (select other_workspace_id from pg_temp.financial_modeling_test_context);
+  v_other_company_id uuid := (select other_company_id from pg_temp.financial_modeling_test_context);
 
   v_person_id uuid := gen_random_uuid();
   v_candidate_person_id uuid := gen_random_uuid();
@@ -358,12 +382,6 @@ begin
   insert into public.companies (id, workspace_id, name)
   values (v_company_id, v_workspace_id, 'Client financier test');
 
-  insert into public.workspaces (id, name)
-  values (v_other_workspace_id, 'Other workspace for financial lot1 tests');
-
-  insert into public.companies (id, workspace_id, name)
-  values (v_other_company_id, v_other_workspace_id, 'Other client');
-
   insert into public.job_profiles (
     id, workspace_id, practice_id, title, main_mission, responsibilities, tech_stack, kpis, version, source
   )
@@ -377,7 +395,7 @@ begin
     array['TypeScript']::text[],
     array['margin']::text[],
     'v1',
-    'test'
+    'internal'
   );
 
   insert into public.collaborators (
@@ -389,7 +407,7 @@ begin
     v_person_id,
     'Financial Modeling Consultant',
     'senior',
-    'active',
+    'actif',
     v_job_profile_id,
     'cadre'
   );
@@ -402,7 +420,7 @@ begin
     v_workspace_id,
     v_candidate_person_id,
     'Financial Candidate',
-    'senior',
+    'Senior',
     'nouveau',
     v_job_profile_id,
     'subcontractor_daily_rate',
@@ -601,7 +619,7 @@ begin
       $sql$
       insert into public.client_pricing_agreement_lines (
         workspace_id, agreement_id, profile_name_snapshot, tjm_min, tjm_recommended, tjm_max
-      ) values ('%1$s', '%2$s', 'Bad range', 800, 700, 750)
+      ) values ('%1$s', '%2$s', 'Bad range', 700, 760, 750)
       $sql$,
       v_workspace_id,
       v_agreement_id
@@ -751,15 +769,46 @@ begin
       $sql$
       insert into public.financial_models (
         workspace_id, title, mode, status, calculation_version, currency,
+        resource_type, resource_cost_model, collaborator_id, resource_label,
+        forecast_activity_rate, start_date, projection_end_date, projection_basis,
+        business_days, production_days, sale_daily_rate,
+        external_fixed_cost_snapshot,
+        resource_cost_total, expenses_total, total_costs, revenue_total, gross_margin_amount, acv, tcv
+      ) values (
+        '%1$s', 'Invalid collaborator fixed cost model', 'flash', 'validated', 1, 'EUR',
+        'collaborator', 'fixed_external_cost', '%2$s', 'Invalid combo',
+        1, date '2026-01-01', date '2026-01-31', 'explicit_end_date',
+        22, 22, 700,
+        9000,
+        9000, 0, 9000, 15400, 6400, 15400, 15400
+      )
+      $sql$,
+      v_workspace_id,
+      v_collaborator_id
+    ),
+    'financial_models_resource_type_cost_model_check',
+    'resource_type and resource_cost_model combinations must stay coherent',
+    '23514'
+  );
+
+  perform pg_temp.expect_exception(
+    format(
+      $sql$
+      insert into public.financial_models (
+        workspace_id, title, mode, status, calculation_version, currency,
         resource_type, resource_cost_model, resource_label,
         forecast_activity_rate, start_date, projection_end_date, projection_basis,
         business_days, production_days, sale_daily_rate,
+        gross_annual_snapshot, variable_pay_snapshot, charges_rate_snapshot, annual_working_days_snapshot,
+        annual_employer_cost, base_daily_cost, productive_daily_cost, salary_cost_total,
         resource_cost_total, expenses_total, total_costs, revenue_total, gross_margin_amount, acv, tcv
       ) values (
         '%1$s', 'Missing collaborator id', 'full', 'validated', 1, 'EUR',
-        'collaborator', 'fixed_external_cost', 'Bad collaborator',
+        'collaborator', 'salaried', 'Bad collaborator',
         1, date '2026-01-01', date '2026-01-31', 'explicit_end_date',
         22, 22, 700,
+        50000, 0, 0.45, 218,
+        72500, 332.57, 332.57, 72500,
         0, 0, 0, 15400, 15400, 15400, 15400
       )
       $sql$,
@@ -778,12 +827,14 @@ begin
         resource_type, resource_cost_model, resource_label,
         forecast_activity_rate, start_date, projection_end_date, projection_basis,
         business_days, production_days, sale_daily_rate,
+        external_daily_cost_snapshot,
         resource_cost_total, expenses_total, total_costs, revenue_total, gross_margin_amount, acv, tcv
       ) values (
         '%1$s', 'Missing candidate id', 'full', 'validated', 1, 'EUR',
-        'candidate', 'fixed_external_cost', 'Bad candidate',
+        'candidate', 'subcontractor_daily_rate', 'Bad candidate',
         1, date '2026-01-01', date '2026-01-31', 'explicit_end_date',
         22, 22, 700,
+        420,
         0, 0, 0, 15400, 15400, 15400, 15400
       )
       $sql$,

@@ -441,113 +441,113 @@ alter table public.client_pricing_agreement_lines enable row level security;
 create policy financial_assumption_sets_select_admin on public.financial_assumption_sets
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_assumption_sets_insert_admin on public.financial_assumption_sets
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_assumption_sets_update_admin on public.financial_assumption_sets
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_assumption_sets_delete_admin on public.financial_assumption_sets
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_charge_rates_select_admin on public.financial_charge_rates
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_charge_rates_insert_admin on public.financial_charge_rates
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_charge_rates_update_admin on public.financial_charge_rates
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_charge_rates_delete_admin on public.financial_charge_rates
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreements_select_admin on public.client_pricing_agreements
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreements_insert_admin on public.client_pricing_agreements
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreements_update_admin on public.client_pricing_agreements
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreements_delete_admin on public.client_pricing_agreements
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreement_lines_select_admin on public.client_pricing_agreement_lines
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreement_lines_insert_admin on public.client_pricing_agreement_lines
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreement_lines_update_admin on public.client_pricing_agreement_lines
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy client_pricing_agreement_lines_delete_admin on public.client_pricing_agreement_lines
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 grant select, insert, update, delete on public.financial_assumption_sets to authenticated;

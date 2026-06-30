@@ -142,7 +142,7 @@ function RecruitmentProcessBadge({
 
   return (
     <div
-      className="max-w-[10.5rem] rounded-[10px] border px-2.5 py-1 text-right text-[10px] font-bold leading-tight"
+      className="max-w-[10.5rem] rounded-[4px] border px-2.5 py-1 text-right text-[10px] font-bold leading-tight"
       style={getBadgeStyle(process.status)}
       title={label}
     >
@@ -215,7 +215,7 @@ export function OpportunityRecruitmentTab({
               key={positioning.id}
               className="border-b border-border/70 px-1 pb-3.5 last:border-b-0"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">
                     <p className="truncate text-sm font-bold text-heading">

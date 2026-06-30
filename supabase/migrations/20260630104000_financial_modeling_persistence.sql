@@ -92,6 +92,18 @@ create table if not exists public.financial_models (
     check (resource_type in ('collaborator', 'candidate', 'external')),
   constraint financial_models_resource_cost_model_check
     check (resource_cost_model in ('salaried', 'subcontractor_daily_rate', 'fixed_external_cost')),
+  constraint financial_models_resource_type_cost_model_check
+    check (
+      (resource_type = 'collaborator' and resource_cost_model = 'salaried')
+      or (
+        resource_type = 'candidate'
+        and resource_cost_model in ('salaried', 'subcontractor_daily_rate')
+      )
+      or (
+        resource_type = 'external'
+        and resource_cost_model in ('subcontractor_daily_rate', 'fixed_external_cost')
+      )
+    ),
   constraint financial_models_projection_basis_check
     check (projection_basis in ('explicit_end_date', 'year_end_default', 'manual_business_days')),
   constraint financial_models_calculation_version_check
@@ -433,57 +445,57 @@ alter table public.financial_model_expenses enable row level security;
 create policy financial_models_select_admin on public.financial_models
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_models_insert_admin on public.financial_models
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_models_update_admin on public.financial_models
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_models_delete_admin on public.financial_models
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_model_expenses_select_admin on public.financial_model_expenses
   for select using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_model_expenses_insert_admin on public.financial_model_expenses
   for insert with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_model_expenses_update_admin on public.financial_model_expenses
   for update using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   )
   with check (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 create policy financial_model_expenses_delete_admin on public.financial_model_expenses
   for delete using (
     workspace_id = private.current_workspace_id()
-    and public.is_workspace_admin()
+    and private.is_workspace_admin()
   );
 
 grant select, insert, update, delete on public.financial_models to authenticated;
