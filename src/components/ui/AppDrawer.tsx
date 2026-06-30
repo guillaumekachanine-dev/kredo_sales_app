@@ -48,6 +48,7 @@ export interface AppDrawerProps {
   error?: React.ReactNode | DrawerErrorState | null
   dirty?: boolean
   headerStyle?: React.CSSProperties
+  headerClassName?: string
   onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
   closeLabel?: string
   hideMobileBackBtn?: boolean
@@ -103,6 +104,7 @@ export function AppDrawer({
   error = null,
   dirty = false,
   headerStyle,
+  headerClassName,
   onRequestClose,
   closeLabel = "Fermer",
   hideMobileBackBtn = false,
@@ -233,7 +235,7 @@ export function AppDrawer({
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
           <header
-            className="shrink-0 px-4 py-4 transition-colors sm:px-6"
+            className={cn("shrink-0 px-4 py-4 transition-colors sm:px-6", headerClassName)}
             style={headerStyle}
           >
             <div className="flex items-start justify-between gap-3">
