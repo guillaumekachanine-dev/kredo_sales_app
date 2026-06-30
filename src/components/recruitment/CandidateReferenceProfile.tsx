@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { StatusPill } from "@/components/ui/StatusPill"
 import type {
   CandidateReferenceProfileData,
@@ -85,9 +84,16 @@ function display(value: string | number | null | undefined, suffix = "") {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="select-none text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
-      {children}
-    </h4>
+    <div className="flex items-center gap-2">
+      <span
+        className="inline-block h-0 w-0 border-y-[4px] border-y-transparent border-l-[6px]"
+        style={{ borderLeftColor: "#9C27B0" }}
+        aria-hidden="true"
+      />
+      <h4 className="select-none text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+        {children}
+      </h4>
+    </div>
   )
 }
 
@@ -105,7 +111,7 @@ function ProfileField({
       <span className="block text-[10px] text-muted">{label}</span>
       <span
         className={`mt-0.5 block text-xs font-semibold leading-relaxed ${
-          accent ? "text-primary" : "text-heading"
+          accent ? "text-[#9C27B0]" : "text-heading"
         }`}
       >
         {value}
@@ -116,10 +122,10 @@ function ProfileField({
 
 function SkillPill({ skill }: { skill: CandidateReferenceSkill }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-medium)] border border-border bg-canvas px-2 py-1 text-[10px] font-semibold text-body">
+    <span className="inline-flex items-center gap-1.5 rounded-[var(--radius-medium)] border border-border/60 bg-muted/10 px-2.5 py-1 text-[11px] font-medium text-heading">
       <span>{skill.skill.name}</span>
       {skill.level !== null && (
-        <span className="text-muted">{skill.level}/5</span>
+        <span className="text-[10px] font-semibold text-[#9C27B0]">{skill.level}/5</span>
       )}
     </span>
   )
@@ -135,8 +141,8 @@ function SkillsGroup({
   if (skills.length === 0) return null
 
   return (
-    <div>
-      <span className="mb-1.5 block text-[10px] text-muted">{label}</span>
+    <div className="space-y-1.5">
+      <span className="block text-[9px] font-bold uppercase tracking-wider text-muted">{label}</span>
       <div className="flex flex-wrap gap-1.5">
         {skills.map((skill) => (
           <SkillPill key={skill.id} skill={skill} />
@@ -200,12 +206,13 @@ export function CandidateReferenceProfile({
     OFFER_LABELS.none
 
   return (
-    <div className="space-y-4">
-      <SurfaceCard className="space-y-3 p-4">
+    <div className="space-y-6">
+      {/* ── Profil professionnel ── */}
+      <section className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <SectionTitle>Profil professionnel</SectionTitle>
-            <p className="mt-1 text-sm font-bold leading-snug text-heading">
+            <p className="mt-2 text-sm font-bold leading-snug text-heading">
               {data.current_title || "Intitulé non renseigné"}
             </p>
             <p className="mt-0.5 text-xs text-muted">
@@ -219,7 +226,7 @@ export function CandidateReferenceProfile({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 border-t border-border/50 pt-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
           <ProfileField label="Séniorité" value={display(data.seniority)} />
           <ProfileField
             label="Expérience"
@@ -243,9 +250,12 @@ export function CandidateReferenceProfile({
             value={display(data.person?.location)}
           />
         </div>
-      </SurfaceCard>
+      </section>
 
-      <SurfaceCard className="space-y-3 p-4">
+      <hr className="border-border/40" />
+
+      {/* ── Expertise ── */}
+      <section className="space-y-3">
         <SectionTitle>Expertise</SectionTitle>
         {groupedSkills.primary.length > 0 ? (
           <SkillsGroup
@@ -255,41 +265,49 @@ export function CandidateReferenceProfile({
         ) : (
           <p className="text-xs text-muted">Aucune compétence renseignée.</p>
         )}
-        <SkillsGroup label="Secteurs" skills={groupedSkills.sectors} />
-        <SkillsGroup label="Langues" skills={groupedSkills.languages} />
-        <SkillsGroup
-          label="Certifications"
-          skills={groupedSkills.certifications}
-        />
+        <div className="grid grid-cols-1 gap-3 pt-1">
+          <SkillsGroup label="Secteurs" skills={groupedSkills.sectors} />
+          <SkillsGroup label="Langues" skills={groupedSkills.languages} />
+          <SkillsGroup
+            label="Certifications"
+            skills={groupedSkills.certifications}
+          />
+        </div>
         {data.sector_context && (
-          <div className="border-t border-border/50 pt-3">
+          <div className="pt-1">
             <ProfileField label="Contexte sectoriel" value={data.sector_context} />
           </div>
         )}
-      </SurfaceCard>
+      </section>
 
-      <SurfaceCard className="space-y-3 p-4">
+      <hr className="border-border/40" />
+
+      {/* ── Expérience et projet professionnel ── */}
+      <section className="space-y-3">
         <SectionTitle>Expérience et projet professionnel</SectionTitle>
-        <ProfileField
-          label="Dernière mission"
-          value={display(data.last_mission_title)}
-        />
-        {data.last_mission_contribution && (
-          <p className="whitespace-pre-wrap text-xs leading-relaxed text-body">
-            {data.last_mission_contribution}
-          </p>
-        )}
-        <div className="border-t border-border/50 pt-3">
+        <div className="space-y-3 pt-1">
+          <ProfileField
+            label="Dernière mission"
+            value={display(data.last_mission_title)}
+          />
+          {data.last_mission_contribution && (
+            <p className="whitespace-pre-wrap text-xs leading-relaxed text-body">
+              {data.last_mission_contribution}
+            </p>
+          )}
           <ProfileField
             label="Motif de recherche"
             value={display(data.search_reason)}
           />
         </div>
-      </SurfaceCard>
+      </section>
 
-      <SurfaceCard className="space-y-3 p-4">
+      <hr className="border-border/40" />
+
+      {/* ── Conditions recherchées ── */}
+      <section className="space-y-3">
         <SectionTitle>Conditions recherchées</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
           <ProfileField
             label="Salaire souhaité"
             value={formatCurrency(data.expected_salary)}
@@ -323,11 +341,14 @@ export function CandidateReferenceProfile({
             }
           />
         </div>
-      </SurfaceCard>
+      </section>
 
-      <SurfaceCard className="space-y-3 p-4">
+      <hr className="border-border/40" />
+
+      {/* ── Mobilité et contraintes ── */}
+      <section className="space-y-3">
         <SectionTitle>Mobilité et contraintes</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
           <ProfileField label="Zone de mobilité" value={display(data.mobility)} />
           <ProfileField label="Télétravail" value={remoteLabel} />
           <ProfileField
@@ -350,18 +371,21 @@ export function CandidateReferenceProfile({
           />
         </div>
         {data.constraints_notes && (
-          <div className="border-t border-border/50 pt-3">
+          <div className="pt-1">
             <ProfileField
               label="Contraintes particulières"
               value={data.constraints_notes}
             />
           </div>
         )}
-      </SurfaceCard>
+      </section>
 
-      <SurfaceCard className="space-y-3 p-4">
+      <hr className="border-border/40" />
+
+      {/* ── Situation marché ── */}
+      <section className="space-y-3">
         <SectionTitle>Situation marché</SectionTitle>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 pt-1">
           <ProfileField label="Statut" value={offerLabel} />
           <ProfileField
             label="Échéance"
@@ -369,77 +393,89 @@ export function CandidateReferenceProfile({
           />
         </div>
         {data.active_offer_notes && (
-          <p className="whitespace-pre-wrap border-t border-border/50 pt-3 text-xs leading-relaxed text-body">
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-body pt-1">
             {data.active_offer_notes}
           </p>
         )}
-      </SurfaceCard>
+      </section>
 
       {(data.person?.primary_email ||
         data.person?.phone ||
         data.person?.linkedin_url) && (
-        <SurfaceCard className="space-y-3 p-4">
-          <SectionTitle>Coordonnées</SectionTitle>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {data.person.primary_email && (
-              <a
-                href={`mailto:${data.person.primary_email}`}
-                className="min-h-11 rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-heading transition-colors hover:bg-canvas"
-              >
-                <span className="block text-[9px] uppercase tracking-wider text-muted">
-                  E-mail
-                </span>
-                <span className="mt-0.5 block truncate">
-                  {data.person.primary_email}
-                </span>
-              </a>
+        <>
+          <hr className="border-border/40" />
+          {/* ── Coordonnées ── */}
+          <section className="space-y-3">
+            <SectionTitle>Coordonnées</SectionTitle>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 pt-1">
+              {data.person.primary_email && (
+                <a
+                  href={`mailto:${data.person.primary_email}`}
+                  className="min-h-11 rounded-[var(--radius-medium)] border border-border/80 bg-muted/10 px-3 py-2 text-xs font-semibold text-heading transition-colors hover:bg-muted/20"
+                >
+                  <span className="block text-[9px] uppercase tracking-wider text-muted">
+                    E-mail
+                  </span>
+                  <span className="mt-0.5 block truncate">
+                    {data.person.primary_email}
+                  </span>
+                </a>
+              )}
+              {data.person.phone && (
+                <a
+                  href={`tel:${data.person.phone}`}
+                  className="min-h-11 rounded-[var(--radius-medium)] border border-border/80 bg-muted/10 px-3 py-2 text-xs font-semibold text-heading transition-colors hover:bg-muted/20"
+                >
+                  <span className="block text-[9px] uppercase tracking-wider text-muted">
+                    Téléphone
+                  </span>
+                  <span className="mt-0.5 block">{data.person.phone}</span>
+                </a>
+              )}
+            </div>
+            {data.person.linkedin_url && (
+              <div className="pt-1">
+                <a
+                  href={
+                    data.person.linkedin_url.startsWith("http")
+                      ? data.person.linkedin_url
+                      : `https://${data.person.linkedin_url}`
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-9 items-center text-xs font-semibold text-[#9C27B0] hover:underline"
+                >
+                  Ouvrir le profil LinkedIn
+                </a>
+              </div>
             )}
-            {data.person.phone && (
-              <a
-                href={`tel:${data.person.phone}`}
-                className="min-h-11 rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2 text-xs font-semibold text-heading transition-colors hover:bg-canvas"
-              >
-                <span className="block text-[9px] uppercase tracking-wider text-muted">
-                  Téléphone
-                </span>
-                <span className="mt-0.5 block">{data.person.phone}</span>
-              </a>
-            )}
-          </div>
-          {data.person.linkedin_url && (
-            <a
-              href={
-                data.person.linkedin_url.startsWith("http")
-                  ? data.person.linkedin_url
-                  : `https://${data.person.linkedin_url}`
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-11 items-center text-xs font-semibold text-primary hover:underline"
-            >
-              Ouvrir le profil LinkedIn
-            </a>
-          )}
-        </SurfaceCard>
+          </section>
+        </>
       )}
 
       {(data.summary || data.notes || data.person?.notes) && (
-        <SurfaceCard className="space-y-3 p-4">
-          <SectionTitle>Notes internes</SectionTitle>
-          {data.summary && (
-            <div className="rounded-[var(--radius-medium)] border border-primary/20 bg-primary/[0.05] p-3">
-              <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-primary">
-                Synthèse dérivée
-              </span>
-              <p className="text-xs leading-relaxed text-body">{data.summary}</p>
+        <>
+          <hr className="border-border/40" />
+          {/* ── Notes internes ── */}
+          <section className="space-y-3">
+            <SectionTitle>Notes internes</SectionTitle>
+            <div className="space-y-3 pt-1">
+              {data.summary && (
+                <div className="rounded-[var(--radius-medium)] border border-[#9C27B0]/20 bg-[#9C27B0]/[0.05] p-3">
+                  <span className="mb-1 block text-[9px] font-bold uppercase tracking-wider text-[#9C27B0]">
+                    Synthèse dérivée
+                  </span>
+                  <p className="text-xs leading-relaxed text-body">{data.summary}</p>
+                </div>
+              )}
+              {(data.notes || data.person?.notes) && (
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-body">
+                  {data.notes || data.person?.notes}
+                </p>
+              )}
             </div>
-          )}
-          {(data.notes || data.person?.notes) && (
-            <p className="whitespace-pre-wrap text-xs leading-relaxed text-body">
-              {data.notes || data.person?.notes}
-            </p>
-          )}
-        </SurfaceCard>
+          </section>
+        </>
       )}
     </div>
   )
