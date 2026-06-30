@@ -39,6 +39,8 @@ const STAFFING_STEPS: { key: StaffingStageKey; label: string }[] = [
   { key: "issue", label: "Issue" },
 ]
 
+const AMBER_ACCENT = "#FFC107"
+
 function formatShortDate(iso: string | null) {
   if (!iso) return null
   return new Date(iso).toLocaleDateString("fr-FR", {
@@ -316,7 +318,7 @@ export function StaffingProcessStepper({
             <div className="min-w-0 flex-1">
               <p
                 className="mb-0.5 text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: "var(--color-muted)" }}
+                style={{ color: AMBER_ACCENT }}
               >
                 Positionnement
               </p>
@@ -430,21 +432,21 @@ export function StaffingProcessStepper({
 
                   {milestone && (
                     <div className="mt-1 space-y-0.5">
-                      <div
-                        className="flex gap-3 text-[10px]"
-                        style={{ color: "var(--color-muted)" }}
-                      >
-                        {milestone.scheduled_at && (
-                          <span>
-                            Prévu : {formatShortDate(milestone.scheduled_at)}
-                          </span>
-                        )}
-                        {milestone.completed_at && (
-                          <span style={{ color: "var(--color-primary)" }}>
-                            Réalisé : {formatShortDate(milestone.completed_at)}
-                          </span>
-                        )}
-                      </div>
+                      {((isPast || isFailed) && milestone.completed_at) ? (
+                        <div
+                          className="text-[10px]"
+                          style={{ color: "var(--color-muted)" }}
+                        >
+                          Réalisé : {formatShortDate(milestone.completed_at)}
+                        </div>
+                      ) : milestone.scheduled_at ? (
+                        <div
+                          className="text-[10px]"
+                          style={{ color: "var(--color-muted)" }}
+                        >
+                          Prévu : {formatShortDate(milestone.scheduled_at)}
+                        </div>
+                      ) : null}
                       <TimelineRecordDisclosure notes={milestone.notes} />
                     </div>
                   )}

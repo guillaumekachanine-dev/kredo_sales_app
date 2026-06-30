@@ -27,6 +27,11 @@ import {
 import { OpportunityNeedTab } from "./OpportunityNeedTab"
 import { OpportunityStaffingTab } from "./OpportunityStaffingTab"
 import { OpportunityRecruitmentTab } from "./OpportunityRecruitmentTab"
+import {
+  RecruitmentInitiationButton,
+  RecruitmentInitiationDialog,
+  type RecruitmentInitiationPayload,
+} from "./RecruitmentInitiationDialog"
 import { StaffingProcessStepper } from "./StaffingProcessStepper"
 import type {
   AssistanceCaseEvent,
@@ -110,14 +115,17 @@ export function AssistanceCaseDrawer() {
   const [editingMode, setEditingMode] = useState<"candidate" | "opportunity" | null>(null)
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false,
+  )
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
+  const [recruitmentDraftPositioning, setRecruitmentDraftPositioning] =
+    useState<AssistanceCasePositioning | null>(null)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)")
-    setIsMobile(media.matches)
     const listener = (event: MediaQueryListEvent) => setIsMobile(event.matches)
     media.addEventListener("change", listener)
     return () => media.removeEventListener("change", listener)
@@ -394,6 +402,125 @@ export function AssistanceCaseDrawer() {
     setEventDrawerOpen(true)
   }
 
+  const openRecruitmentInitiation = (positioning: AssistanceCasePositioning) => {
+    setRecruitmentDraftPositioning(positioning)
+  }
+
+  const handleRecruitmentDialogOpenChange = (open: boolean) => {
+    if (!open) setRecruitmentDraftPositioning(null)
+  }
+
+  const handleRecruitmentInitiationSubmit = async (
+    payload: RecruitmentInitiationPayload,
+  ) => {
+    if (!opportunity || !recruitmentDraftPositioning) {
+      throw new Error("Contexte de recrutement introuvable.")
+    }
+
+    const positioning = recruitmentDraftPositioning
+    const supabase = createClient()
+
+    const { data: existingProcess, error: existingProcessError } = await supabase
+      .from("candidate_hiring_processes")
+      .select("id, opportunity_candidate_id")
+      .eq("candidate_id", positioning.candidate.id)
+      .eq("status", "active")
+      .maybeSingle()
+
+    if (existingProcessError) {
+      throw new Error(existingProcessError.message)
+    }
+
+    if (existingProcess) {
+      const isSamePositioning =
+        existingProcess.opportunity_candidate_id === positioning.id
+      throw new Error(
+        isSamePositioning
+          ? "Un processus actif existe déjà pour ce positionnement."
+          : "Ce candidat a déjà un processus de recrutement actif sur un autre positionnement.",
+      )
+    }
+
+    let jobProfileId: string | null = null
+    const roleTitle = payload.roleTitle.trim()
+
+    if (roleTitle) {
+      const { data: jobProfile, error: jobProfileError } = await supabase
+        .from("job_profiles")
+        .select("id")
+        .eq("title", roleTitle)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle()
+
+      if (jobProfileError) {
+        throw new Error(jobProfileError.message)
+      }
+
+      jobProfileId = jobProfile?.id ?? null
+    }
+
+    const { data: createdProcess, error: createProcessError } = await supabase
+      .from("candidate_hiring_processes")
+      .insert({
+        candidate_id: positioning.candidate.id,
+        opportunity_candidate_id: positioning.id,
+        job_profile_id: jobProfileId,
+        current_step: "prequalification",
+        status: "active",
+      })
+      .select("id")
+      .single()
+
+    if (createProcessError || !createdProcess) {
+      throw new Error(
+        createProcessError?.message ?? "Impossible de créer le processus de recrutement.",
+      )
+    }
+
+    const foundationLines = [
+      `Poste cible : ${roleTitle}`,
+      payload.targetSalary.trim()
+        ? `Salaire cible : ${payload.targetSalary.trim()} €`
+        : null,
+      payload.targetDailyRate.trim()
+        ? `TJM client : ${payload.targetDailyRate.trim()} €`
+        : null,
+      payload.availability.trim()
+        ? `Disponibilité : ${payload.availability.trim()}`
+        : null,
+      payload.location.trim() ? `Localisation : ${payload.location.trim()}` : null,
+      payload.proposalFoundation.trim() || null,
+    ]
+      .filter(Boolean)
+      .join("\n")
+
+    const { error: milestoneError } = await supabase
+      .from("candidate_hiring_milestones")
+      .insert({
+        hiring_process_id: createdProcess.id,
+        step: "prequalification",
+        result: "en_attente",
+        scheduled_at: `${payload.scheduledDate}T09:00:00`,
+        notes: foundationLines,
+      })
+
+    if (milestoneError) {
+      await supabase
+        .from("candidate_hiring_processes")
+        .delete()
+        .eq("id", createdProcess.id)
+      throw new Error(milestoneError.message)
+    }
+
+    setRecruitmentDraftPositioning(null)
+    selectPositioning(positioning.id, positioning.candidate.id)
+    setPerspective("candidate")
+    setActiveTab("recruitment")
+    setReloadKey((current) => current + 1)
+    router.refresh()
+  }
+
   const renderOpportunityContent = () => {
     if (!opportunity) return null
 
@@ -424,6 +551,7 @@ export function AssistanceCaseDrawer() {
             onOpenCandidateRecruitment={(positioning) =>
               openCandidatePerspective(positioning, "recruitment")
             }
+            onInitiateRecruitment={openRecruitmentInitiation}
           />
         )
       default:
@@ -476,12 +604,20 @@ export function AssistanceCaseDrawer() {
         return <StaffingProcessStepper data={currentViewModel} events={candidateEvents} />
       case "recruitment":
         return hiringProcess ? (
-          <HiringProcessStepper process={hiringProcess} />
+          <HiringProcessStepper
+            process={hiringProcess}
+            fallbackTitle={currentPositioning.candidate.current_title ?? opportunity?.title}
+          />
         ) : (
           <div className="flex min-h-32 items-center justify-center rounded-xl border border-dashed border-border text-center">
-            <p className="max-w-xs text-xs leading-relaxed text-muted">
-              Aucun processus de recrutement actif n&apos;est associé à ce positionnement.
-            </p>
+            <div className="w-full max-w-xs px-4">
+              <RecruitmentInitiationButton
+                label="Initier le recrutement"
+                onClick={() => openRecruitmentInitiation(currentPositioning)}
+                dashed
+                fullWidth
+              />
+            </div>
           </div>
         )
       default:
@@ -599,6 +735,16 @@ export function AssistanceCaseDrawer() {
           router.refresh()
         }}
       />
+
+      {opportunity && recruitmentDraftPositioning ? (
+        <RecruitmentInitiationDialog
+          open={Boolean(recruitmentDraftPositioning)}
+          opportunity={opportunity}
+          positioning={recruitmentDraftPositioning}
+          onOpenChange={handleRecruitmentDialogOpenChange}
+          onSubmit={handleRecruitmentInitiationSubmit}
+        />
+      ) : null}
     </AppDrawer>
   )
 }

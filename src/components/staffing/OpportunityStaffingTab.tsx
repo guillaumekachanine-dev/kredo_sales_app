@@ -30,6 +30,8 @@ const STATUS_LABELS: Record<string, string> = {
   abandonne: "Abandonné",
 }
 
+const CANDIDATE_ACCENT = "#9C27B0"
+
 function getCandidateName(positioning: AssistanceCasePositioning) {
   const person = positioning.candidate.person
   return (
@@ -56,8 +58,21 @@ function formatSalary(value: number | null) {
   return `${Math.round(value / 1000)} k€`
 }
 
-function getMcoStaffing(positioning: AssistanceCasePositioning) {
-  return positioning.comment ?? positioning.client_feedback ?? positioning.positioning_origin ?? "Non renseigné"
+function getMcoStaffing(
+  positioning: AssistanceCasePositioning,
+  opportunity: AssistanceCaseOpportunity,
+) {
+  const expectedSalary = positioning.candidate.expected_salary
+  const targetDailyRate = opportunity.target_daily_rate
+
+  if (!expectedSalary || !targetDailyRate) return "—"
+
+  const yearlyCost = expectedSalary * 1.45
+  const dailyCost = yearlyCost / 210
+  const margin = (targetDailyRate - dailyCost) / targetDailyRate
+  const marginPct = Math.round(margin * 100)
+
+  return `${String(Math.max(0, marginPct)).padStart(2, "0")}%`
 }
 
 function getNextActionEvent(
@@ -169,39 +184,47 @@ export function OpportunityStaffingTab({
                 key={positioning.id}
                 className={cn(
                   "border-b border-border/70 px-1 pb-3.5 transition-colors last:border-b-0",
-                  isActive && "border-primary/35",
+                  isActive && "bg-[color:var(--color-candidate-accent)]/[0.03]",
                 )}
+                style={{ ["--color-candidate-accent" as string]: CANDIDATE_ACCENT }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="grid min-w-0 grid-cols-[8px_minmax(0,1fr)] gap-x-2">
                       <span
                         aria-hidden="true"
-                        className="mt-0.5 inline-block h-0 w-0 shrink-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-primary"
+                        className="mt-[0.38rem] inline-block h-0 w-0 shrink-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-primary"
                       />
-                      <p className="truncate text-sm font-bold text-heading">
-                        {getCandidateName(positioning)}
-                        <span className="ml-1.5 inline-block text-[9px] font-bold uppercase tracking-[0.12em] text-primary">
-                          - {STATUS_LABELS[positioning.status] ?? positioning.status}
-                        </span>
-                      </p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-heading">
+                          {getCandidateName(positioning)}
+                          <span className="ml-1.5 inline-block text-[9px] font-bold uppercase tracking-[0.12em] text-muted">
+                            - {STATUS_LABELS[positioning.status] ?? positioning.status}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 truncate text-xs font-bold text-heading">
+                          {candidate.current_title ?? "Intitulé non renseigné"}
+                        </p>
+                      </div>
                     </div>
-                    <p className="mt-0.5 truncate text-xs font-medium text-muted">
-                      {candidate.current_title ?? "Intitulé non renseigné"}
-                    </p>
                   </div>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => onOpenCandidate(positioning)}
-                    className="h-7 px-2.5 text-[10px] border-primary/50 text-primary hover:bg-primary/5 hover:border-primary focus-visible:ring-primary"
+                    className="h-7 rounded-[10px] px-2.5 text-[10px] hover:bg-[color:var(--color-candidate-accent)]/6 focus-visible:ring-[color:var(--color-candidate-accent)]"
+                    style={{
+                      borderColor: CANDIDATE_ACCENT,
+                      color: CANDIDATE_ACCENT,
+                      ["--color-candidate-accent" as string]: CANDIDATE_ACCENT,
+                    }}
                     leftIcon={<ChangeArrowIcon />}
                   >
                     candidat
                   </Button>
                 </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-x-3 gap-y-3 border-t border-border/70 pt-3 text-[10px]">
+                <div className="mt-3 grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] gap-x-3 gap-y-3 border-t border-border/70 pt-3 text-[10px]">
                   <div>
                     <p className="font-bold uppercase tracking-wider text-muted">Disponibilité</p>
                     <p className="mt-1 font-semibold text-body">{getAvailability(positioning)}</p>
@@ -214,27 +237,15 @@ export function OpportunityStaffingTab({
                   </div>
                   <div>
                     <p className="font-bold uppercase tracking-wider text-muted">MCO staffing</p>
-                    <p className="mt-1 font-semibold text-body">
-                      {(() => {
-                        const expectedSalary = candidate.expected_salary
-                        const targetDailyRate = opportunity.target_daily_rate
-                        if (!expectedSalary || !targetDailyRate) return "—"
-                        const yearlyCost = expectedSalary * 1.45
-                        const dailyCost = yearlyCost / 210
-                        const margin = (targetDailyRate - dailyCost) / targetDailyRate
-                        const marginPct = Math.round(margin * 100)
-                        return `${marginPct}%`
-                      })()}
-                    </p>
+                    <p className="mt-1 font-semibold text-body">{getMcoStaffing(positioning, opportunity)}</p>
                   </div>
                 </div>
 
                 <div className="mt-4.5 text-[10px]">
-                  <p className="font-bold uppercase tracking-wider text-muted">Prochaine action</p>
-                  <p className="mt-1 font-semibold text-body flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="min-w-0">
-                      {positioning.next_action ?? "À définir"}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="font-bold uppercase tracking-wider text-muted">
+                      Prochaine action
+                    </p>
                     <button
                       type="button"
                       onClick={() =>
@@ -249,6 +260,9 @@ export function OpportunityStaffingTab({
                         <ActionArrowIcon />
                       </span>
                     </button>
+                  </div>
+                  <p className="mt-1 font-semibold text-body">
+                    {positioning.next_action ?? "À définir"}
                   </p>
                 </div>
               </article>

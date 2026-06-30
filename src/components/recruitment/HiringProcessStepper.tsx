@@ -79,7 +79,13 @@ export function findActiveProcess(
   )
 }
 
-export function HiringProcessStepper({ process }: { process: HiringProcess }) {
+export function HiringProcessStepper({
+  process,
+  fallbackTitle,
+}: {
+  process: HiringProcess
+  fallbackTitle?: string | null
+}) {
   const currentStepIdx = HIRING_STEPS.findIndex(
     (step) => step.key === process.current_step,
   )
@@ -150,7 +156,7 @@ export function HiringProcessStepper({ process }: { process: HiringProcess }) {
                 className="text-sm font-semibold"
                 style={{ color: 'var(--color-heading)' }}
               >
-                {process.job_profile?.title ?? 'Poste non spécifié'}
+                {process.job_profile?.title ?? fallbackTitle ?? 'Poste non spécifié'}
               </p>
             </div>
             <StatusPill
