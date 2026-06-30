@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/ui/StatusPill"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { FinanceDashboardData, LateBilling, BillingAnomaly } from "@/lib/finance/finance-data"
+import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
 
 type SheetType = "dunning" | "bench"
 
@@ -49,6 +50,7 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
   const { kpis, pnlRows, lateBillings, anomalies } = data
 
   const margeKpi = kpis.find((k) => k.id === "f-marge-brute")
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
   const opKpi = kpis.find((k) => k.id === "f-resultat-op")
 
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null)
@@ -130,6 +132,22 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
           ) : undefined
         }
       >
+        {/* Action prioritaire de simulation */}
+        <div className="shrink-0">
+          <Button
+            variant="primary"
+            size="md"
+            fullWidth
+            onClick={() => setIsSimulationOpen(true)}
+            className="h-11 rounded-[var(--radius-large)] flex items-center justify-center gap-2"
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 19h14M7 16V9M12 16V5M17 16v-7" />
+            </svg>
+            <span>Simuler une mission</span>
+          </Button>
+        </div>
+
         {/* Facturation urgente */}
         {urgentBilling && (
           <MobileActionCard
@@ -286,6 +304,11 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
       >
         <p className="leading-relaxed">{activeSheet?.description ?? ""}</p>
       </AppDialog>
+
+      <FinancialModelingMobileFlow
+        open={isSimulationOpen}
+        onOpenChange={setIsSimulationOpen}
+      />
     </>
   )
 }

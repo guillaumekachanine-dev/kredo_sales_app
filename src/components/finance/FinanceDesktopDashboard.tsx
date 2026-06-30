@@ -11,6 +11,7 @@ import { PageQuickActions } from "@/components/ui/PageQuickActions"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { DataTable } from "@/components/ui/data-table/DataTable"
+import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
 import type { DataTableColumn, DataTableSort } from "@/components/ui/data-table/DataTable"
 import type { PageQuickAction } from "@/components/ui/page-quick-actions"
 import { PnlBarChart } from "./PnlBarChart"
@@ -157,6 +158,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
   const { kpis, pnlRows, anomalies, lateBillings, practiceMetrics } = data
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null)
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
   const [billingRows, setBillingRows] = useState<LateBilling[]>(lateBillings)
   const [anomalyRows, setAnomalyRows] = useState<BillingAnomaly[]>(anomalies)
   const [sort, setSort] = useState<DataTableSort | null>(null)
@@ -349,7 +351,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       label: "Simulation",
       variant: "secondary",
       icon: <IconSimulation />,
-      feedbackMessage: "Fonctionnalité à venir",
+      onClick: () => setIsSimulationOpen(true),
     },
   ]
 
@@ -588,6 +590,11 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       >
         <p className="leading-relaxed">{activeModal?.content ?? ""}</p>
       </AppDialog>
+
+      <FinancialModelingDesktopDialog
+        open={isSimulationOpen}
+        onOpenChange={setIsSimulationOpen}
+      />
     </>
   )
 }

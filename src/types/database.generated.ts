@@ -2208,7 +2208,7 @@ export type Database = {
           assumptions: Json
           base_daily_cost: number | null
           business_days: number
-          calculation_version: number
+          calculation_version: string
           candidate_id: string | null
           charges_rate_snapshot: number | null
           collaborator_id: string | null
@@ -2269,7 +2269,7 @@ export type Database = {
           assumptions?: Json
           base_daily_cost?: number | null
           business_days: number
-          calculation_version: number
+          calculation_version: string
           candidate_id?: string | null
           charges_rate_snapshot?: number | null
           collaborator_id?: string | null
@@ -2330,7 +2330,7 @@ export type Database = {
           assumptions?: Json
           base_daily_cost?: number | null
           business_days?: number
-          calculation_version?: number
+          calculation_version?: string
           candidate_id?: string | null
           charges_rate_snapshot?: number | null
           collaborator_id?: string | null
@@ -5263,6 +5263,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      archive_financial_model: {
+        Args: { p_model_id: string }
+        Returns: {
+          id: string
+          status: string
+          updated_at: string
+        }[]
+      }
       create_calendar_event: {
         Args: {
           p_all_day?: boolean
@@ -5302,6 +5310,19 @@ export type Database = {
           p_skills?: Json
         }
         Returns: string
+      }
+      save_financial_model_snapshot: {
+        Args: {
+          p_expected_updated_at: string
+          p_expenses: Json
+          p_model: Json
+          p_model_id: string
+        }
+        Returns: {
+          id: string
+          status: string
+          updated_at: string
+        }[]
       }
       upsert_candidate_reference_profile: {
         Args: {
