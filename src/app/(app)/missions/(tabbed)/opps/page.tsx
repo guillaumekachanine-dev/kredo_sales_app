@@ -23,35 +23,22 @@ export default async function OpportunitesPage({ searchParams }: OppsPageProps) 
 
   const state = parseNeedsStaffingUrlState(resolvedSearchParams)
   const device = await getDashboardDevice()
-  const sharedDataPromise = getNeedsStaffingSharedData()
 
-  if (state.scope === "staffing") {
-    const [sharedData, rows, planningData] = await Promise.all([
-      sharedDataPromise,
-      getStaffingsList(),
-      getStaffingsPlanning(),
-    ])
-
-    return (
-      <NeedsStaffingWorkspace
-        device={device}
-        sharedData={sharedData}
-        staffingData={{ rows, planningData }}
-      />
-    )
-  }
-
-  const [sharedData, rows, planningData] = await Promise.all([
-    sharedDataPromise,
+  // Charger toutes les données en parallèle pour alimenter le planning unifié et les switchs de vues
+  const [sharedData, needsRows, needsPlanning, staffingsRows, staffingsPlanning] = await Promise.all([
+    getNeedsStaffingSharedData(),
     getOpportunitiesList({ onlyStaffingNeeds: true }),
     getOpportunitiesPlanning({ onlyStaffingNeeds: true }),
+    getStaffingsList(),
+    getStaffingsPlanning(),
   ])
 
   return (
     <NeedsStaffingWorkspace
       device={device}
       sharedData={sharedData}
-      needsData={{ rows, planningData }}
+      needsData={{ rows: needsRows, planningData: needsPlanning }}
+      staffingData={{ rows: staffingsRows, planningData: staffingsPlanning }}
     />
   )
 }
