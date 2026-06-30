@@ -40,6 +40,7 @@ export type MissionsListRow = {
   targetDailyRate?: number | null
   practice?: string
   targetCloseDate?: string | null
+  nextActionLabel?: string | null
   nextActionAt?: string | null
   updatedAt?: string
   source?: string | null

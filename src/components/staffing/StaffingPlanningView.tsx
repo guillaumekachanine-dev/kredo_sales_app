@@ -25,10 +25,8 @@ const MILESTONE_COLORS: Record<string, string> = {
   identification: "bg-indigo-500 border-indigo-600 text-white",
   cv_sent: "bg-orange-500 border-orange-600 text-white",
   prequal: "bg-violet-500 border-violet-600 text-white",
-  manager_interview: "bg-blue-500 border-blue-600 text-white",
-  tech_test: "bg-yellow-500 border-yellow-600 text-white",
-  client_presentation: "bg-pink-500 border-pink-600 text-white",
-  exit_mission: "bg-rose-500 border-rose-600 text-white",
+  client_interview: "bg-pink-500 border-pink-600 text-white",
+  decision: "bg-rose-500 border-rose-600 text-white",
   demarrage: "bg-teal-500 border-teal-600 text-white",
 }
 

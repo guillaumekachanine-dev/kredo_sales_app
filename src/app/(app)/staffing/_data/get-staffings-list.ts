@@ -8,7 +8,8 @@ export interface StaffingListRow {
   updatedAt: string
   positioningOrigin: string | null
   comment: string | null
-  
+  nextAction: string | null
+
   // Person
   personId: string
   fullName: string
@@ -16,7 +17,9 @@ export interface StaffingListRow {
   isCollaborator: boolean
   collaboratorId: string | null
   candidateId: string
-  
+  availability: string | null
+  matchScore: number | null
+
   // Finance
   salary: number | null // expected_salary for candidate, gross_annual for collaborator
   targetTjm: number | null // expected_daily_rate for candidate, target_daily_rate of opportunity for collaborator
@@ -47,6 +50,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         updated_at,
         positioning_origin,
         comment,
+        next_action,
         opportunity:opportunities (
           id,
           title,
@@ -64,6 +68,8 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
           current_title,
           source,
           seniority,
+          availability,
+          internal_score,
           expected_daily_rate,
           expected_salary,
           person:persons (
@@ -92,7 +98,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
       return []
     }
 
-    return (data ?? []).map((item: any) => {
+    const rows = (data ?? []).map((item: any) => {
       const opportunity = item.opportunity
       const company = opportunity?.company
       const companyRecord = Array.isArray(company) ? company[0] : company
@@ -142,6 +148,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         updatedAt: item.updated_at,
         positioningOrigin: item.positioning_origin,
         comment: item.comment,
+        nextAction: item.next_action,
         
         personId: person?.id || "",
         fullName,
@@ -149,6 +156,8 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         isCollaborator,
         collaboratorId: collaborator?.id || null,
         candidateId: candidate?.id || "",
+        availability: candidate?.availability || null,
+        matchScore: candidate?.internal_score ?? null,
         
         salary,
         targetTjm,
@@ -157,13 +166,45 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         opportunityId: opportunity?.id || "",
         opportunityTitle: opportunity?.title || "Besoin sans titre",
         opportunityPriority: opportunity?.priority || "normale",
-        practice: opportunity?.practice || collaborator?.practice || null,
+        practice: opportunity?.practice || null,
         clientName: companyRecord?.name || "Client inconnu",
         clientWebsite: companyRecord?.website || null,
         clientLogoPath,
         seniority,
       }
     })
+
+    const personIds = [...new Set(rows.map((row) => row.personId).filter(Boolean))]
+    const opportunityIds = [...new Set(rows.map((row) => row.opportunityId).filter(Boolean))]
+
+    if (personIds.length === 0 || opportunityIds.length === 0) {
+      return rows
+    }
+
+    const { data: matchScores, error: matchScoresError } = await supabase
+      .from("match_scores")
+      .select("person_id, opportunity_id, overall_score")
+      .in("person_id", personIds)
+      .in("opportunity_id", opportunityIds)
+
+    if (matchScoresError) {
+      console.error("Error fetching staffing match scores:", matchScoresError)
+      return rows
+    }
+
+    const matchScoreByPair = new Map<string, number | null>()
+    for (const score of matchScores ?? []) {
+      matchScoreByPair.set(
+        `${score.opportunity_id}:${score.person_id}`,
+        score.overall_score ?? null,
+      )
+    }
+
+    return rows.map((row) => ({
+      ...row,
+      matchScore:
+        matchScoreByPair.get(`${row.opportunityId}:${row.personId}`) ?? row.matchScore,
+    }))
   } catch (err) {
     console.error("Unhandled error in getStaffingsList:", err)
     return []

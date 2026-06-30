@@ -1,13 +1,12 @@
-import { Suspense } from "react"
-import { SyntheseStaffingSection } from "@/components/staffing"
-import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
+import { redirect } from "next/navigation"
+import { resolveLegacyStaffingRedirect } from "@/lib/needs-staffing/url-state"
 
 export const dynamic = "force-dynamic"
 
-export default function StaffingPage() {
-  return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <SyntheseStaffingSection />
-    </Suspense>
-  )
+interface StaffingPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function StaffingPage({ searchParams }: StaffingPageProps) {
+  redirect(resolveLegacyStaffingRedirect(await searchParams))
 }

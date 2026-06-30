@@ -6,9 +6,9 @@ import {
   type EntityPlanningColumn,
 } from "@/components/common/EntityPlanningView"
 import { cn } from "@/lib/utils"
-import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 
 // ─── TYPES ET INTERFACES ──────────────────────────────────────────────────────
 
@@ -456,9 +456,9 @@ export function OpportunitiesPlanningView({
   opportunities,
   scale = "year",
 }: OpportunitiesPlanningViewProps) {
-  const { openTab } = useMissionsTabStore()
+  const { openOpportunityDrawer } = useStaffingDrawerStore()
 
-  const today = useMemo(() => startOfDay(new Date("2026-06-24")), [])
+  const today = useMemo(() => startOfDay(new Date()), [])
   const range = useMemo(() => buildTimelineRange(scale, today), [scale, today])
   const [hoveredMilestone, setHoveredMilestone] = useState<{
     milestone: Milestone
@@ -546,14 +546,7 @@ export function OpportunitiesPlanningView({
             <div className="flex min-w-0 flex-1 flex-col justify-center">
               <button
                 type="button"
-                onClick={() =>
-                  openTab({
-                    entityType: "opportunite",
-                    entityId: opp.id,
-                    title: opp.client ?? opp.title,
-                    subtitle: opp.title,
-                  })
-                }
+                onClick={() => openOpportunityDrawer(opp.id, "besoin")}
                 className="block max-w-full truncate text-left text-[11px] font-bold text-heading transition-colors hover:text-primary"
               >
                 {opp.title}

@@ -613,6 +613,8 @@ export type Database = {
           location: string | null
           meeting_url: string | null
           metadata: Json
+          mission_id: string | null
+          opportunity_candidate_id: string | null
           opportunity_id: string | null
           organizer_id: string | null
           starts_at: string
@@ -634,6 +636,8 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           metadata?: Json
+          mission_id?: string | null
+          opportunity_candidate_id?: string | null
           opportunity_id?: string | null
           organizer_id?: string | null
           starts_at: string
@@ -655,6 +659,8 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           metadata?: Json
+          mission_id?: string | null
+          opportunity_candidate_id?: string | null
           opportunity_id?: string | null
           organizer_id?: string | null
           starts_at?: string
@@ -697,6 +703,27 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["mission_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_opportunity_candidate_id_fkey"
+            columns: ["opportunity_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_candidates"
             referencedColumns: ["id"]
           },
           {
@@ -771,11 +798,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "candidate_hiring_milestones_hiring_process_id_fkey"
-            columns: ["hiring_process_id"]
+            foreignKeyName: "candidate_hiring_milestones_process_workspace_fkey"
+            columns: ["hiring_process_id", "workspace_id"]
             isOneToOne: false
             referencedRelation: "candidate_hiring_processes"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "workspace_id"]
           },
           {
             foreignKeyName: "candidate_hiring_milestones_workspace_id_fkey"
@@ -795,6 +822,7 @@ export type Database = {
           current_step: string
           id: string
           job_profile_id: string | null
+          opportunity_candidate_id: string | null
           recruiter_id: string | null
           started_at: string
           status: string
@@ -809,6 +837,7 @@ export type Database = {
           current_step?: string
           id?: string
           job_profile_id?: string | null
+          opportunity_candidate_id?: string | null
           recruiter_id?: string | null
           started_at?: string
           status?: string
@@ -823,6 +852,7 @@ export type Database = {
           current_step?: string
           id?: string
           job_profile_id?: string | null
+          opportunity_candidate_id?: string | null
           recruiter_id?: string | null
           started_at?: string
           status?: string
@@ -845,6 +875,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "candidate_hiring_processes_positioning_context_fkey"
+            columns: [
+              "opportunity_candidate_id",
+              "candidate_id",
+              "workspace_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "opportunity_candidates"
+            referencedColumns: ["id", "candidate_id", "workspace_id"]
+          },
+          {
             foreignKeyName: "candidate_hiring_processes_recruiter_id_fkey"
             columns: ["recruiter_id"]
             isOneToOne: false
@@ -862,18 +903,38 @@ export type Database = {
       }
       candidates: {
         Row: {
+          active_offer_deadline: string | null
+          active_offer_notes: string | null
+          active_offer_status: string | null
           availability: string | null
+          availability_notes: string | null
+          available_from: string | null
+          constraints_notes: string | null
           created_at: string
           current_title: string | null
+          desired_workload_pct: number | null
           expected_daily_rate: number | null
           expected_salary: number | null
+          experience_years: number | null
+          has_vehicle: boolean | null
+          highest_degree_level: string | null
           id: string
           internal_score: number | null
+          last_mission_contribution: string | null
+          last_mission_title: string | null
+          last_salary: number | null
+          max_commute_minutes: number | null
           metadata: Json
           mobility: string | null
           notes: string | null
+          notice_period_days: number | null
           person_id: string
+          practice_id: string | null
           recruiter_id: string | null
+          remote_days_per_week: number | null
+          remote_preference: string | null
+          search_reason: string | null
+          sector_context: string | null
           seniority: string | null
           source: string | null
           status: string
@@ -882,18 +943,38 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          active_offer_deadline?: string | null
+          active_offer_notes?: string | null
+          active_offer_status?: string | null
           availability?: string | null
+          availability_notes?: string | null
+          available_from?: string | null
+          constraints_notes?: string | null
           created_at?: string
           current_title?: string | null
+          desired_workload_pct?: number | null
           expected_daily_rate?: number | null
           expected_salary?: number | null
+          experience_years?: number | null
+          has_vehicle?: boolean | null
+          highest_degree_level?: string | null
           id?: string
           internal_score?: number | null
+          last_mission_contribution?: string | null
+          last_mission_title?: string | null
+          last_salary?: number | null
+          max_commute_minutes?: number | null
           metadata?: Json
           mobility?: string | null
           notes?: string | null
+          notice_period_days?: number | null
           person_id: string
+          practice_id?: string | null
           recruiter_id?: string | null
+          remote_days_per_week?: number | null
+          remote_preference?: string | null
+          search_reason?: string | null
+          sector_context?: string | null
           seniority?: string | null
           source?: string | null
           status?: string
@@ -902,18 +983,38 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          active_offer_deadline?: string | null
+          active_offer_notes?: string | null
+          active_offer_status?: string | null
           availability?: string | null
+          availability_notes?: string | null
+          available_from?: string | null
+          constraints_notes?: string | null
           created_at?: string
           current_title?: string | null
+          desired_workload_pct?: number | null
           expected_daily_rate?: number | null
           expected_salary?: number | null
+          experience_years?: number | null
+          has_vehicle?: boolean | null
+          highest_degree_level?: string | null
           id?: string
           internal_score?: number | null
+          last_mission_contribution?: string | null
+          last_mission_title?: string | null
+          last_salary?: number | null
+          max_commute_minutes?: number | null
           metadata?: Json
           mobility?: string | null
           notes?: string | null
+          notice_period_days?: number | null
           person_id?: string
+          practice_id?: string | null
           recruiter_id?: string | null
+          remote_days_per_week?: number | null
+          remote_preference?: string | null
+          search_reason?: string | null
+          sector_context?: string | null
           seniority?: string | null
           source?: string | null
           status?: string
@@ -935,6 +1036,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["person_id"]
+          },
+          {
+            foreignKeyName: "candidates_practice_workspace_fkey"
+            columns: ["practice_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "offer_practices"
+            referencedColumns: ["id", "workspace_id"]
           },
           {
             foreignKeyName: "candidates_workspace_id_fkey"
@@ -3002,6 +3110,7 @@ export type Database = {
           last_used_year: number | null
           level: number | null
           person_id: string
+          profile_rank: number | null
           skill_id: string
           source: string | null
           workspace_id: string
@@ -3015,6 +3124,7 @@ export type Database = {
           last_used_year?: number | null
           level?: number | null
           person_id: string
+          profile_rank?: number | null
           skill_id: string
           source?: string | null
           workspace_id?: string
@@ -3028,6 +3138,7 @@ export type Database = {
           last_used_year?: number | null
           level?: number | null
           person_id?: string
+          profile_rank?: number | null
           skill_id?: string
           source?: string | null
           workspace_id?: string
@@ -4353,6 +4464,24 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_candidate_reference_profile: {
+        Args: {
+          p_candidate?: Json
+          p_candidate_id: string
+          p_person?: Json
+          p_skills?: Json
+        }
+        Returns: string
+      }
+      upsert_candidate_reference_profile: {
+        Args: {
+          p_candidate?: Json
+          p_candidate_id?: string
+          p_person?: Json
+          p_profile_skills?: Json
+        }
+        Returns: string
       }
       validate_and_apply_enrichment_proposal: {
         Args: { p_proposal_id: string; p_reason?: string }

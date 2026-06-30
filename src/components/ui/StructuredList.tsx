@@ -13,6 +13,9 @@ export type StructuredListColumn<T> = {
   width?: string
   align?: "left" | "center" | "right"
   className?: string
+  ariaSort?: React.AriaAttributes["aria-sort"]
+  onHeaderClick?: () => void
+  headerAriaLabel?: string
 }
 
 export type StructuredListDensity = "compact" | "default"
@@ -101,6 +104,7 @@ export function StructuredList<T>({
           <th
             key={col.id}
             scope="col"
+            aria-sort={col.ariaSort}
             className={cn(
               `px-4 ${headPy} text-[10px] font-semibold uppercase tracking-wider text-muted`,
               col.align ? ALIGN[col.align] : "text-left",
@@ -108,7 +112,22 @@ export function StructuredList<T>({
             )}
             style={col.width ? { width: col.width } : undefined}
           >
-            {col.header}
+            {col.onHeaderClick ? (
+              <button
+                type="button"
+                onClick={col.onHeaderClick}
+                aria-label={col.headerAriaLabel}
+                className={cn(
+                  "inline-flex items-center gap-1 outline-none transition-colors",
+                  "focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]",
+                  "focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-canvas)]",
+                  col.align === "center" && "mx-auto",
+                  col.align === "right" && "ml-auto",
+                )}
+              >
+                {col.header}
+              </button>
+            ) : col.header}
           </th>
         ))}
       </tr>

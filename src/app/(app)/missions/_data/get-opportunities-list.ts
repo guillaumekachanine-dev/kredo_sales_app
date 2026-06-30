@@ -5,6 +5,7 @@ import {
   PRIORITY_LABELS,
   TYPE_OPTIONS,
 } from "@/components/missions/opportunity-detail/opportunity-detail-options"
+import { isStaffingNeedOpportunity } from "@/lib/needs-staffing/coverage"
 import { isOpenOpportunityStage, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 import { formatEuro, formatDateShort } from "@/lib/formatters"
 import type { Json } from "@/types/database"
@@ -29,6 +30,7 @@ interface DBQueryResult {
   updated_at: string
   practice: string | null
   opportunity_type: string | null
+  next_action_label: string | null
   next_action_at: string | null
   source: string | null
   seniority: string | null
@@ -42,6 +44,10 @@ interface DBQueryResult {
 
 interface MappedRow extends MissionsListRow {
   updatedAt: string
+}
+
+export interface GetOpportunitiesListOptions {
+  onlyStaffingNeeds?: boolean
 }
 
 type SupabaseError = { message: string; code?: string; details?: string; hint?: string }
@@ -67,7 +73,9 @@ function mapStageToStatus(stage: string): MissionsListRow["status"] {
   return "pending"
 }
 
-export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
+export async function getOpportunitiesList(
+  options: GetOpportunitiesListOptions = {},
+): Promise<MissionsListRow[]> {
   try {
     const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
@@ -87,6 +95,7 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         updated_at,
         practice,
         opportunity_type,
+        next_action_label,
         next_action_at,
         source,
         seniority,
@@ -108,7 +117,16 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       return []
     }
 
-    const mapped: MappedRow[] = (data ?? []).map((item) => {
+    const mapped: MappedRow[] = (data ?? [])
+      .filter((item) => (
+        options.onlyStaffingNeeds
+          ? isStaffingNeedOpportunity({
+              requiredHeadcount: item.required_headcount,
+              requiresStaffing: item.requires_staffing,
+            })
+          : true
+      ))
+      .map((item) => {
       const amountVal = item.acv ?? item.estimated_gain
       const dateVal = item.target_close_date ?? item.start_date
       let dateStr = formatDateShort(dateVal)
@@ -153,7 +171,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
         stage: item.stage,
         priority: item.priority,
         targetDailyRate: item.target_daily_rate,
+        practice: item.practice ?? undefined,
         targetCloseDate: item.target_close_date,
+        nextActionLabel: item.next_action_label,
         nextActionAt: item.next_action_at,
         source: item.source,
         seniority: item.seniority,
@@ -193,7 +213,9 @@ export async function getOpportunitiesList(): Promise<MissionsListRow[]> {
       stage: row.stage,
       priority: row.priority,
       targetDailyRate: row.targetDailyRate,
+      practice: row.practice,
       targetCloseDate: row.targetCloseDate,
+      nextActionLabel: row.nextActionLabel,
       nextActionAt: row.nextActionAt,
       updatedAt: row.updatedAt,
       source: row.source,

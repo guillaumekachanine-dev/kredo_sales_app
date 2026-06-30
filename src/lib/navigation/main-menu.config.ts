@@ -152,16 +152,11 @@ export const mainMenuItems: MainMenuItem[] = [
         ],
       },
       {
-        label: "Opportunités",
-        shortLabel: "Opps",
+        label: "Besoins & Staffing",
+        shortLabel: "Besoins",
         href: "/missions/opps",
         icon: "sales",
         primary: true,
-      },
-      {
-        label: "Staffing",
-        href: "/staffing",
-        icon: "staffing",
       },
       {
         label: "Engagements",

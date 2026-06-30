@@ -32,6 +32,7 @@ export async function getStaffingsPlanning(): Promise<StaffingPlanningData[]> {
         status,
         proposed_at,
         sent_to_client_at,
+        status_changed_at,
         created_at,
         comment,
         opportunity:opportunities (
@@ -130,52 +131,38 @@ export async function getStaffingsPlanning(): Promise<StaffingPlanningData[]> {
         })
       }
 
-      // Add common base identification milestone
-      addMilestone(`${item.id}-identification`, item.created_at, isCollaborator ? "Présentation de mission" : "Identification du profil", "identification", item.comment)
+      addMilestone(
+        `${item.id}-identification`,
+        item.created_at,
+        isCollaborator ? "Identification du positionnement" : "Identification du profil",
+        "identification",
+        item.comment,
+      )
 
-      // Add CV sent milestone
-      addMilestone(`${item.id}-cv_sent`, item.sent_to_client_at || item.proposed_at, "CV envoyé au client", "cv_sent")
+      addMilestone(
+        `${item.id}-cv_sent`,
+        item.sent_to_client_at || item.proposed_at,
+        "Envoi du CV",
+        "cv_sent",
+      )
 
       if (isCollaborator) {
-        // Collaborator timeline mapping:
-        // - Présentation de mission (mapped to created_at)
-        // - Envoi du CV (sent_to_client_at)
-        // - Présentation client (via client interview event)
-        // - Sortie de mission actuelle (via collaborator exit_date or ended mission end_date)
-        // - Démarrage de la nouvelle mission (opportunity start_date)
-        
-        // Find client interview event
         const clientInterview = candidateEvents.find(e => 
           e.event_type === "entretien_client" || e.title.toLowerCase().includes("client")
         )
         if (clientInterview) {
-          addMilestone(`${item.id}-client_presentation`, clientInterview.starts_at, "Présentation client", "client_presentation", clientInterview.description)
+          addMilestone(
+            `${item.id}-client_interview`,
+            clientInterview.starts_at,
+            "Entretien client",
+            "client_interview",
+            clientInterview.description,
+          )
         }
-
-        // Sortie de mission actuelle
-        const lastEndedMission = collaborator?.missions?.find((m: any) => m.status === "ended")
-        const exitDate = collaborator?.exit_date || lastEndedMission?.end_date || null
-        if (exitDate) {
-          addMilestone(`${item.id}-exit_current_mission`, exitDate, "Sortie de mission actuelle", "exit_mission")
-        }
-
-        // Démarrage de la nouvelle mission
         if (opportunity?.start_date) {
-          addMilestone(`${item.id}-demarrage`, opportunity.start_date, "Démarrage mission", "demarrage")
+          addMilestone(`${item.id}-demarrage`, opportunity.start_date, "Démarrage", "demarrage")
         }
       } else {
-        // Candidate timeline mapping:
-        // - identification (created_at)
-        // - préqualification (via prequal calendar event)
-        // - entretien manager (via manager calendar event)
-        // - tests techniques (via test tech calendar event)
-        // - envoi du CV (sent_to_client_at)
-        // - présentation client (via client interview calendar event)
-        // - proposition d'embauche (via candidate status changing or event)
-        // - signature (via candidate status or event)
-        // - démarrage (opportunity start_date)
-
-        // Prequalification event
         const prequalEvent = candidateEvents.find(e => 
           e.event_type === "entretien_candidat" &&
           (e.title.toLowerCase().includes("qualif") || e.title.toLowerCase().includes("fit") || e.title.toLowerCase().includes("culturel"))
@@ -183,36 +170,35 @@ export async function getStaffingsPlanning(): Promise<StaffingPlanningData[]> {
         if (prequalEvent) {
           addMilestone(`${item.id}-prequal`, prequalEvent.starts_at, "Préqualification", "prequal", prequalEvent.description)
         }
-
-        // Entretien manager
-        const managerEvent = candidateEvents.find(e => 
-          (e.event_type === "entretien_candidat" || e.event_type === "entretien_rh") &&
-          (e.title.toLowerCase().includes("manager") || e.title.toLowerCase().includes("rh") || e.title.toLowerCase().includes("pratique"))
-        )
-        if (managerEvent) {
-          addMilestone(`${item.id}-manager_interview`, managerEvent.starts_at, "Entretien manager", "manager_interview", managerEvent.description)
-        }
-
-        // Tests techniques
-        const techEvent = candidateEvents.find(e => 
-          e.title.toLowerCase().includes("tech") || e.title.toLowerCase().includes("test")
-        )
-        if (techEvent) {
-          addMilestone(`${item.id}-tech_test`, techEvent.starts_at, "Tests techniques", "tech_test", techEvent.description)
-        }
-
-        // Présentation client
         const clientInterview = candidateEvents.find(e => 
           e.event_type === "entretien_client" || e.title.toLowerCase().includes("client")
         )
         if (clientInterview) {
-          addMilestone(`${item.id}-client_presentation`, clientInterview.starts_at, "Présentation client", "client_presentation", clientInterview.description)
+          addMilestone(
+            `${item.id}-client_interview`,
+            clientInterview.starts_at,
+            "Entretien client",
+            "client_interview",
+            clientInterview.description,
+          )
         }
-
-        // Démarrage
         if (opportunity?.start_date) {
           addMilestone(`${item.id}-demarrage`, opportunity.start_date, "Démarrage", "demarrage")
         }
+      }
+
+      if (
+        item.status_changed_at &&
+        ["retenu", "gagne", "refuse_client", "refuse_candidat", "abandonne"].includes(item.status)
+      ) {
+        addMilestone(
+          `${item.id}-decision`,
+          item.status_changed_at,
+          "Décision",
+          "decision",
+          item.comment,
+          item.status === "abandonne" ? "cancelled" : undefined,
+        )
       }
 
       // Sort milestones chronologically ascending

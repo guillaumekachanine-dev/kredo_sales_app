@@ -1,53 +1,57 @@
-import { OpportunitiesDesktopView } from "@/components/missions/OpportunitiesDesktopView"
+import { redirect } from "next/navigation"
+import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
+import { buildNeedsStaffingUrl, parseNeedsStaffingUrlState } from "@/lib/needs-staffing/url-state"
+import { getNeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
 import { getOpportunitiesPlanning } from "@/app/(app)/missions/_data/get-opportunities-planning"
-import { createClient } from "@/lib/supabase/server"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
+import { getStaffingsList } from "@/app/(app)/staffing/_data/get-staffings-list"
+import { getStaffingsPlanning } from "@/app/(app)/staffing/_data/get-staffings-planning"
+import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
 
 export const dynamic = "force-dynamic"
 
-export default async function OpportunitesPage() {
-  const device = await getDashboardDevice()
+interface OppsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
 
-  const [opportunites, planningData] = await Promise.all([
-    getOpportunitiesList(),
-    getOpportunitiesPlanning(),
-  ])
+export default async function OpportunitesPage({ searchParams }: OppsPageProps) {
+  const resolvedSearchParams = await searchParams
 
-  const openOpps = opportunites.filter((opportunity) => (
-    opportunity.status === "active" || opportunity.status === "pending"
-  ))
-  const openOppIds = openOpps.map((opportunity) => opportunity.entityId)
-
-  const weightedPipe = openOpps.reduce((sum, opportunity) => {
-    const value = opportunity.acv ?? opportunity.estimatedGain ?? 0
-    return sum + value * ((opportunity.conviction ?? 0) / 100)
-  }, 0)
-
-  const supabase = await createClient()
-  const { data: candidates, error } = await supabase
-    .from("opportunity_candidates")
-    .select("opportunity_id")
-    .in("opportunity_id", openOppIds.length > 0 ? openOppIds : ["__none__"])
-
-  const coveredOppIds = new Set(candidates?.map((candidate) => candidate.opportunity_id) ?? [])
-  const coverageRate =
-    openOppIds.length > 0
-      ? Math.round((coveredOppIds.size / openOppIds.length) * 100)
-      : 0
-
-  if (error) {
-    console.error("Error fetching opportunity candidates metrics:", error)
+  if (!resolvedSearchParams.scope) {
+    redirect(buildNeedsStaffingUrl("/missions/opps", parseNeedsStaffingUrlState(resolvedSearchParams)))
   }
 
+  const state = parseNeedsStaffingUrlState(resolvedSearchParams)
+  const device = await getDashboardDevice()
+  const sharedDataPromise = getNeedsStaffingSharedData()
+
+  if (state.scope === "staffing") {
+    const [sharedData, rows, planningData] = await Promise.all([
+      sharedDataPromise,
+      getStaffingsList(),
+      getStaffingsPlanning(),
+    ])
+
+    return (
+      <NeedsStaffingWorkspace
+        device={device}
+        sharedData={sharedData}
+        staffingData={{ rows, planningData }}
+      />
+    )
+  }
+
+  const [sharedData, rows, planningData] = await Promise.all([
+    sharedDataPromise,
+    getOpportunitiesList({ onlyStaffingNeeds: true }),
+    getOpportunitiesPlanning({ onlyStaffingNeeds: true }),
+  ])
+
   return (
-    <OpportunitiesDesktopView
-      opportunities={opportunites}
-      planningData={planningData}
-      weightedPipe={weightedPipe}
-      openOpportunitiesCount={openOpps.length}
-      coverageRate={coverageRate}
-      isMobile={device === "mobile"}
+    <NeedsStaffingWorkspace
+      device={device}
+      sharedData={sharedData}
+      needsData={{ rows, planningData }}
     />
   )
 }

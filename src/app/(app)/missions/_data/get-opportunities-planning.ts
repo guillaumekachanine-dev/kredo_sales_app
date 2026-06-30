@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { isStaffingNeedOpportunity } from "@/lib/needs-staffing/coverage"
 
 export interface OpportunityPlanningCandidate {
   id: string
@@ -31,6 +32,8 @@ export interface OpportunityPlanningData {
   stage: string
   priority: string
   conviction: number
+  requiredHeadcount: number
+  requiresStaffing: boolean
   startDate: string | null
   targetCloseDate: string | null
   durationDays: number | null
@@ -42,13 +45,19 @@ export interface OpportunityPlanningData {
   interactions: OpportunityPlanningInteraction[]
 }
 
+export interface GetOpportunitiesPlanningOptions {
+  onlyStaffingNeeds?: boolean
+}
+
 function getCompanyName(companies: { name: string } | { name: string }[] | null): string {
   if (!companies) return "Compte non renseigné"
   if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
   return companies.name ?? "Compte non renseigné"
 }
 
-export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningData[]> {
+export async function getOpportunitiesPlanning(
+  options: GetOpportunitiesPlanningOptions = {},
+): Promise<OpportunityPlanningData[]> {
   try {
     const supabase = await createClient()
 
@@ -61,6 +70,9 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
         stage,
         priority,
         conviction,
+        practice,
+        required_headcount,
+        requires_staffing,
         start_date,
         target_close_date,
         duration_days,
@@ -82,7 +94,16 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
       return []
     }
 
-    const oppIds = opps.map((o) => o.id)
+    const filteredOpps = opps.filter((opportunity) => (
+      options.onlyStaffingNeeds
+        ? isStaffingNeedOpportunity({
+            requiredHeadcount: opportunity.required_headcount,
+            requiresStaffing: opportunity.requires_staffing,
+          })
+        : true
+    ))
+
+    const oppIds = filteredOpps.map((o) => o.id)
     if (oppIds.length === 0) return []
 
     // 2. Récupérer toutes les interactions liées à ces opportunités
@@ -202,7 +223,7 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
     }
 
     // 4. Assembler et mapper les données complètes
-    return opps.map((item) => {
+    return filteredOpps.map((item) => {
       const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
       const clientWebsite = compRecord?.website ?? null
       const compMeta = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
@@ -216,11 +237,13 @@ export async function getOpportunitiesPlanning(): Promise<OpportunityPlanningDat
         client: getCompanyName(item.companies),
         clientWebsite,
         clientLogoPath,
-        practice: null, // Ce champ sera complété si nécessaire par ailleurs ou restera optionnel
+        practice: item.practice,
         opportunityType: item.opportunity_type,
         stage: item.stage,
         priority: item.priority,
         conviction: item.conviction,
+        requiredHeadcount: item.required_headcount,
+        requiresStaffing: item.requires_staffing,
         startDate: item.start_date,
         targetCloseDate: item.target_close_date,
         durationDays: item.duration_days,

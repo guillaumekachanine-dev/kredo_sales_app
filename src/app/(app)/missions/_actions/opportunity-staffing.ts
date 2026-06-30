@@ -18,6 +18,9 @@ export interface CreateOpportunityStaffingInput {
   opportunity_id: string
   source_type: StaffingSourceType
   source_id: string
+  positioning_origin?: string | null
+  initial_status?: string | null
+  next_action?: string | null
 }
 
 export type StaffingActionResult =
@@ -221,24 +224,9 @@ export async function createOpportunityStaffing(input: CreateOpportunityStaffing
     if (existingCandidate) {
       candidateId = existingCandidate.id
     } else {
-      const { data: createdCandidate, error: createCandidateError } = await supabase
-        .from("candidates")
-        .insert({
-          person_id: collaborator.person_id,
-          current_title: normalizeCurrentTitle(collaborator.current_title),
-          seniority: normalizeCandidateSeniority(collaborator.seniority),
-          status: "actif",
-          source: "collaborateur",
-        })
-        .select("id")
-        .single()
-
-      if (createCandidateError || !createdCandidate) {
-        console.error("Erreur lors de la création du candidat depuis le collaborateur:", createCandidateError)
-        return { error: createCandidateError?.message || "Création du candidat impossible." }
+      return {
+        error: "Ce collaborateur n'a pas encore de profil candidat rattaché. Créez ou rattachez d'abord le profil candidat existant.",
       }
-
-      candidateId = createdCandidate.id
     }
   }
 
@@ -263,7 +251,9 @@ export async function createOpportunityStaffing(input: CreateOpportunityStaffing
     .insert({
       opportunity_id: input.opportunity_id,
       candidate_id: candidateId,
-      status: "identifie",
+      status: input.initial_status?.trim() || "identifie",
+      positioning_origin: input.positioning_origin?.trim() || null,
+      next_action: input.next_action?.trim() || null,
       proposed_at: new Date().toISOString(),
     })
 
@@ -273,5 +263,6 @@ export async function createOpportunityStaffing(input: CreateOpportunityStaffing
   }
 
   revalidatePath("/missions/opps")
+  revalidatePath("/staffing")
   return { success: true }
 }

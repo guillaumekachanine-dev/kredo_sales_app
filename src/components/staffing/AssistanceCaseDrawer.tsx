@@ -102,13 +102,12 @@ export function AssistanceCaseDrawer() {
   const [editingMode, setEditingMode] = useState<"candidate" | "opportunity" | null>(null)
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false,
-  )
+  const [isMobile, setIsMobile] = useState(false)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)")
+    setIsMobile(media.matches)
     const listener = (event: MediaQueryListEvent) => setIsMobile(event.matches)
     media.addEventListener("change", listener)
     return () => media.removeEventListener("change", listener)
