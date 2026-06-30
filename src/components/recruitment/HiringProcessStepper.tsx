@@ -163,6 +163,7 @@ export function HiringProcessStepper({
               label={statusCfg.label}
               variant={statusCfg.variant}
               dot={process.status === 'active'}
+              className="!rounded-[4px] shrink-0"
             />
           </div>
           <div

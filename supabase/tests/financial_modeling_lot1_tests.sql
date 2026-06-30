@@ -866,6 +866,11 @@ begin
     'Deleting a financial model must cascade to its expenses.'
   );
 
+  update public.financial_models
+  set pricing_agreement_id = null
+  where workspace_id = v_workspace_id
+    and pricing_agreement_id = v_agreement_id;
+
   delete from public.client_pricing_agreements
   where id = v_agreement_id
     and workspace_id = v_workspace_id;

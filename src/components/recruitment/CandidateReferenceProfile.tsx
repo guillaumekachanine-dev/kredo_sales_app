@@ -208,7 +208,10 @@ export function CandidateReferenceProfile({
   return (
     <div className="space-y-6">
       {/* ── Profil professionnel (En-tête sous forme de cadre) ── */}
-      <section className="rounded-[var(--radius-large)] border border-border bg-surface p-3.5 flex items-center justify-between gap-3">
+      <section 
+        className="rounded-[var(--radius-large)] border flex items-center justify-between gap-3 p-3.5"
+        style={{ background: "var(--color-canvas)", borderColor: "var(--color-border)" }}
+      >
         <div className="min-w-0">
           <h4
             className="select-none text-[10px] font-bold uppercase tracking-[0.14em]"
