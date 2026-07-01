@@ -51,7 +51,6 @@ export interface AppDrawerProps {
   headerClassName?: string
   onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
   closeLabel?: string
-  hideMobileBackBtn?: boolean
   showMobileCloseButton?: boolean
 }
 
@@ -108,7 +107,6 @@ export function AppDrawer({
   headerClassName,
   onRequestClose,
   closeLabel = "Fermer",
-  hideMobileBackBtn = false,
   showMobileCloseButton = false,
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -280,19 +278,6 @@ export function AppDrawer({
 
               <div className="flex shrink-0 items-start gap-2">
                 {headerActions ? <div className="hidden items-center gap-2 sm:flex">{headerActions}</div> : null}
-
-                {hideMobileBackBtn ? null : (
-                  <button
-                    type="button"
-                    onClick={() => requestClose("mobile-back")}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-heading focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:hidden"
-                  >
-                    <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                    </svg>
-                    <span>Retour</span>
-                  </button>
-                )}
 
                 <IconButton
                   ref={closeButtonRef}

@@ -350,7 +350,6 @@ export function CompanyIdentityDrawer({
       title={data?.company?.name || "Chargement..."}
       subtitle="Fiche d'identité"
       className="max-w-2xl"
-      hideMobileBackBtn={true}
     >
       {loading ? (
         <div className="flex flex-col gap-6 p-2">

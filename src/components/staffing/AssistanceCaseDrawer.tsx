@@ -747,7 +747,6 @@ export function AssistanceCaseDrawer() {
       }
       eyebrow="Dossier assistance technique"
       className="w-screen max-w-screen overflow-x-hidden md:w-full md:max-w-[720px]"
-      hideMobileBackBtn={true}
       showMobileCloseButton={true}
       loading={loading && !opportunity}
     >

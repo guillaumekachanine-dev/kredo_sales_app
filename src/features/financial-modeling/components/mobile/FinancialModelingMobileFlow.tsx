@@ -237,7 +237,6 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
             )}
           </div>
         }
-        hideMobileBackBtn
         className="sm:hidden h-[90vh] max-h-[90vh]"
         headerClassName="bg-[#FFC107] text-slate-900 [&_button]:text-slate-700 [&_button]:hover:text-slate-950 border-b border-amber-500/20"
         contentClassName="flex-1 overflow-y-auto px-4 py-3"
