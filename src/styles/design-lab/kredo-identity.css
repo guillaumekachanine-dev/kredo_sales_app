@@ -1,0 +1,862 @@
+/* KREDO visual identity lab. Scope only; no production token is overridden. */
+
+.kredo-identity-lab {
+  --lab-radius-sm: 6px;
+  --lab-radius-md: 8px;
+  --lab-radius-lg: 14px;
+  --lab-radius-xl: 22px;
+  --lab-duration-fast: 120ms;
+  --lab-duration-standard: 180ms;
+  --lab-duration-emphasis: 280ms;
+  --lab-ease: cubic-bezier(0.2, 0, 0, 1);
+  --lab-ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+  --lab-shadow-interactive: 0 10px 26px -18px color-mix(in srgb, var(--lab-shadow-color) 42%, transparent);
+  --lab-shadow-panel: 0 20px 46px -28px color-mix(in srgb, var(--lab-shadow-color) 50%, transparent);
+  --lab-shadow-selected: 0 0 0 1px color-mix(in srgb, var(--lab-domain) 42%, transparent), 0 18px 40px -28px var(--lab-domain);
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--lab-domain) 14%, transparent), transparent 28rem),
+    linear-gradient(180deg, var(--color-surface-canvas), color-mix(in srgb, var(--color-surface-canvas) 88%, var(--color-surface-base)));
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  overflow-x: clip;
+}
+
+.kredo-identity-lab[data-kredo-concept="a"] {
+  --color-brand-core: #244FB3;
+  --color-brand-navy: #13244B;
+  --color-brand-brass: #C99A2E;
+  --color-surface-canvas: #F4F1EA;
+  --color-surface-base: #FFFDF8;
+  --color-surface-raised: #F7F4ED;
+  --color-surface-tint: #ECF1FB;
+  --color-border-default: #D8DFEA;
+  --color-border-strong: #B9C5D9;
+  --color-text-primary: #18223A;
+  --color-text-secondary: #506078;
+  --color-text-muted: #8390A3;
+  --color-status-success: #287657;
+  --color-status-warning: #B57B18;
+  --color-status-danger: #B64242;
+  --color-status-info: #257C8C;
+  --color-domain-need: #E5A600;
+  --color-domain-candidate: #8E3FA7;
+  --color-domain-collaborator: #5F8750;
+  --color-domain-account: #247B8D;
+  --color-domain-recruitment: #A33C78;
+  --color-domain-mission-at: #3F6FA7;
+  --color-domain-fixed-project: #5A58A8;
+  --color-domain-finance: #6B7D2F;
+  --color-domain-intelligence: #173D89;
+  --color-domain-ai: #6B5CF6;
+  --color-dataviz-1: #4F8DD9;
+  --color-dataviz-2: #C99A2E;
+  --color-dataviz-3: #5F8750;
+  --lab-shadow-color: #13244B;
+  --lab-panel-border: color-mix(in srgb, var(--color-border-default) 78%, var(--color-brand-core));
+  --lab-panel-bg: color-mix(in srgb, var(--color-surface-base) 94%, var(--lab-domain));
+}
+
+.kredo-identity-lab[data-kredo-concept="b"] {
+  --color-brand-core: #20304F;
+  --color-brand-navy: #315C9C;
+  --color-brand-brass: #B8844A;
+  --color-surface-canvas: #F7F4EF;
+  --color-surface-base: #FFFFFF;
+  --color-surface-raised: #F2EFE8;
+  --color-surface-tint: #EEF3F7;
+  --color-border-default: #DED8CE;
+  --color-border-strong: #C9C0B3;
+  --color-text-primary: #1B2435;
+  --color-text-secondary: #55606F;
+  --color-text-muted: #8B8175;
+  --color-status-success: #2E7251;
+  --color-status-warning: #A9711A;
+  --color-status-danger: #A94040;
+  --color-status-info: #4E7F9B;
+  --color-domain-need: #D19513;
+  --color-domain-candidate: #7C4D8D;
+  --color-domain-collaborator: #4F8064;
+  --color-domain-account: #4E7F9B;
+  --color-domain-recruitment: #A85A73;
+  --color-domain-mission-at: #456F9C;
+  --color-domain-fixed-project: #62609B;
+  --color-domain-finance: #727C3A;
+  --color-domain-intelligence: #2F5F8F;
+  --color-domain-ai: #4E63D9;
+  --color-dataviz-1: #C4694A;
+  --color-dataviz-2: #4F8064;
+  --color-dataviz-3: #315C9C;
+  --lab-shadow-color: #20304F;
+  --lab-panel-border: var(--color-border-default);
+  --lab-panel-bg: color-mix(in srgb, var(--color-surface-base) 96%, var(--color-surface-canvas));
+}
+
+.kredo-identity-lab[data-kredo-concept="c"] {
+  --color-brand-core: #3D6DF2;
+  --color-brand-navy: #081322;
+  --color-brand-brass: #E3B94A;
+  --color-surface-canvas: #0D1726;
+  --color-surface-base: #111D2F;
+  --color-surface-raised: #17243A;
+  --color-surface-tint: #152D4D;
+  --color-border-default: #263854;
+  --color-border-strong: #3B557D;
+  --color-text-primary: #EAF1FF;
+  --color-text-secondary: #AEBBD0;
+  --color-text-muted: #78869E;
+  --color-status-success: #42B883;
+  --color-status-warning: #F1B642;
+  --color-status-danger: #F15C64;
+  --color-status-info: #39D9F2;
+  --color-domain-need: #F2B33D;
+  --color-domain-candidate: #B06CFF;
+  --color-domain-collaborator: #58CFA2;
+  --color-domain-account: #3CC7D6;
+  --color-domain-recruitment: #FF7DA8;
+  --color-domain-mission-at: #63A4FF;
+  --color-domain-fixed-project: #8D8BFF;
+  --color-domain-finance: #B9D85A;
+  --color-domain-intelligence: #6F7DFF;
+  --color-domain-ai: #39D9F2;
+  --color-dataviz-1: #FFB86B;
+  --color-dataviz-2: #63A4FF;
+  --color-dataviz-3: #58CFA2;
+  --lab-shadow-color: #000000;
+  --lab-panel-border: color-mix(in srgb, var(--color-border-default) 80%, var(--lab-domain));
+  --lab-panel-bg: color-mix(in srgb, var(--color-surface-base) 93%, var(--lab-domain));
+}
+
+.kredo-identity-lab[data-domain="need"] { --lab-domain: var(--color-domain-need); }
+.kredo-identity-lab[data-domain="candidate"] { --lab-domain: var(--color-domain-candidate); }
+.kredo-identity-lab[data-domain="collaborator"] { --lab-domain: var(--color-domain-collaborator); }
+.kredo-identity-lab[data-domain="account"] { --lab-domain: var(--color-domain-account); }
+.kredo-identity-lab[data-domain="recruitment"] { --lab-domain: var(--color-domain-recruitment); }
+.kredo-identity-lab[data-domain="missionAt"] { --lab-domain: var(--color-domain-mission-at); }
+.kredo-identity-lab[data-domain="fixedProject"] { --lab-domain: var(--color-domain-fixed-project); }
+.kredo-identity-lab[data-domain="finance"] { --lab-domain: var(--color-domain-finance); }
+.kredo-identity-lab[data-domain="intelligence"] { --lab-domain: var(--color-domain-intelligence); }
+.kredo-identity-lab[data-domain="ai"] { --lab-domain: var(--color-domain-ai); }
+
+.kredo-identity-lab[data-motion="off"] *,
+.kredo-identity-lab[data-motion="off"] *::before,
+.kredo-identity-lab[data-motion="off"] *::after {
+  animation: none !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+.kredo-lab-shell {
+  width: min(100%, 1728px);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.kredo-lab-topbar {
+  display: grid;
+  grid-template-columns: minmax(34rem, 1fr) minmax(22rem, 32rem);
+  gap: 20px;
+  align-items: start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.kredo-lab-topbar > * {
+  min-width: 0;
+}
+
+.kredo-lab-kicker {
+  color: var(--lab-domain);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.kredo-lab-title {
+  margin-top: 8px;
+  font-family: var(--font-heading);
+  font-size: clamp(30px, 4vw, 58px);
+  line-height: 0.96;
+  letter-spacing: 0;
+  color: var(--color-text-primary);
+}
+
+.kredo-lab-summary {
+  margin-top: 12px;
+  max-width: 760px;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.kredo-lab-control-panel {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 520px);
+  padding: 14px;
+  border: 1px solid var(--lab-panel-border);
+  border-radius: var(--lab-radius-lg);
+  background: color-mix(in srgb, var(--color-surface-base) 88%, transparent);
+  box-shadow: var(--lab-shadow-panel);
+}
+
+.kredo-lab-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kredo-lab-field {
+  display: grid;
+  gap: 5px;
+}
+
+.kredo-lab-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.kredo-lab-select,
+.kredo-lab-button {
+  min-height: 44px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--lab-radius-md);
+  background: var(--color-surface-base);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kredo-lab-select {
+  padding: 0 12px;
+}
+
+.kredo-lab-button {
+  padding: 0 12px;
+  cursor: pointer;
+  transition:
+    transform var(--lab-duration-standard) var(--lab-ease-emphasis),
+    background-color var(--lab-duration-standard) var(--lab-ease),
+    border-color var(--lab-duration-standard) var(--lab-ease);
+}
+
+.kredo-lab-button[aria-pressed="true"],
+.kredo-lab-button:hover {
+  border-color: color-mix(in srgb, var(--lab-domain) 55%, var(--color-border-default));
+  background: color-mix(in srgb, var(--lab-domain) 10%, var(--color-surface-base));
+}
+
+.kredo-lab-button:focus-visible,
+.kredo-lab-select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--lab-domain) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.kredo-lab-direction-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kredo-lab-direction-button {
+  min-height: 78px;
+  text-align: left;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--lab-radius-md);
+  padding: 10px;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-base);
+  cursor: pointer;
+}
+
+.kredo-lab-direction-button strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.kredo-lab-direction-button span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.kredo-lab-direction-button[aria-current="true"] {
+  border-color: var(--lab-domain);
+  background: color-mix(in srgb, var(--lab-domain) 11%, var(--color-surface-base));
+  box-shadow: var(--lab-shadow-selected);
+}
+
+.kredo-lab-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 22px;
+  align-items: start;
+  padding-top: 22px;
+}
+
+.kredo-lab-stage {
+  min-width: 0;
+}
+
+.kredo-lab-device {
+  margin: 0 auto;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-base);
+  box-shadow: var(--lab-shadow-panel);
+  overflow: hidden;
+}
+
+.kredo-lab-device[data-viewport="desktop"] {
+  width: min(100%, 1180px);
+  min-height: 760px;
+  border-radius: 18px;
+}
+
+.kredo-lab-device[data-viewport="mobile"] {
+  width: min(100%, 390px);
+  min-height: 844px;
+  border-radius: 32px;
+}
+
+.kredo-lab-app {
+  display: grid;
+  min-height: inherit;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--lab-domain) 8%, transparent), transparent 36%),
+    var(--color-surface-canvas);
+}
+
+.kredo-lab-app[data-viewport="desktop"] {
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+.kredo-lab-app[data-viewport="mobile"] {
+  display: block;
+  padding-bottom: 18px;
+}
+
+.kredo-lab-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px;
+  background: var(--color-brand-navy);
+  color: #fff;
+}
+
+.kredo-lab-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--color-brand-core);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 900;
+}
+
+.kredo-lab-rail-dot {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kredo-lab-rail-dot.is-active {
+  background: var(--lab-domain);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lab-domain) 24%, transparent);
+}
+
+.kredo-lab-workspace {
+  min-width: 0;
+  padding: 18px;
+}
+
+.kredo-lab-mobile-head {
+  display: none;
+}
+
+.kredo-lab-screen-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 16px;
+}
+
+.kredo-lab-section {
+  min-width: 0;
+  border: 1px solid var(--lab-panel-border);
+  border-radius: var(--lab-radius-lg);
+  background: var(--lab-panel-bg);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+.kredo-lab-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.kredo-lab-section-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.kredo-lab-section-note {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.kredo-lab-pill {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--lab-domain) 28%, var(--color-border-default));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--lab-domain) 12%, var(--color-surface-base));
+  color: var(--color-text-primary);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.kredo-lab-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--lab-domain);
+}
+
+.kredo-lab-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 16px;
+}
+
+.kredo-lab-kpi {
+  position: relative;
+  overflow: hidden;
+  min-height: 112px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--lab-radius-md);
+  background: color-mix(in srgb, var(--color-surface-base) 96%, var(--lab-domain));
+  padding: 13px;
+}
+
+.kredo-lab-kpi::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 4px;
+  background: var(--lab-domain);
+}
+
+.kredo-lab-kpi-label {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.kredo-lab-kpi-value {
+  margin-top: 14px;
+  font-family: var(--font-heading);
+  font-size: 32px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.kredo-lab-kpi-delta {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-status-success);
+}
+
+.kredo-lab-kpi-delta[data-tone="warning"] {
+  color: var(--color-status-warning);
+}
+
+.kredo-lab-kpi-delta[data-tone="info"] {
+  color: var(--color-status-info);
+}
+
+.kredo-lab-card-stack {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.kredo-lab-card {
+  position: relative;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--lab-radius-md);
+  background: var(--color-surface-base);
+  padding: 14px;
+  transition:
+    transform var(--lab-duration-standard) var(--lab-ease-emphasis),
+    border-color var(--lab-duration-standard) var(--lab-ease),
+    background-color var(--lab-duration-standard) var(--lab-ease),
+    box-shadow var(--lab-duration-standard) var(--lab-ease);
+}
+
+.kredo-lab-card.lab-interactive {
+  cursor: pointer;
+}
+
+.kredo-identity-lab[data-interaction="hover"] .lab-interactive,
+.kredo-lab-card.lab-interactive:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--lab-domain) 46%, var(--color-border-default));
+  box-shadow: var(--lab-shadow-interactive);
+}
+
+.kredo-identity-lab[data-interaction="selected"] .lab-interactive,
+.kredo-lab-card.is-selected {
+  border-color: var(--lab-domain);
+  box-shadow: var(--lab-shadow-selected);
+}
+
+.kredo-identity-lab[data-interaction="active"] .lab-interactive {
+  transform: translateY(0) scale(0.99);
+  background: color-mix(in srgb, var(--lab-domain) 9%, var(--color-surface-base));
+}
+
+.kredo-identity-lab[data-interaction="disabled"] .lab-interactive {
+  pointer-events: none;
+  opacity: 0.48;
+  filter: grayscale(0.25);
+}
+
+.kredo-lab-card h3 {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.kredo-lab-card p {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.kredo-lab-ai-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-domain-ai) 18%, var(--color-surface-base));
+  color: var(--color-text-primary);
+  font-family: var(--font-heading);
+  font-weight: 900;
+}
+
+.kredo-lab-ai-orbit::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--color-surface-base), var(--color-surface-base)) padding-box,
+    conic-gradient(from 120deg, var(--color-domain-ai), var(--color-brand-brass), var(--color-domain-intelligence), var(--color-domain-ai)) border-box;
+  animation: kredo-lab-spin 3.6s linear infinite;
+  z-index: -1;
+}
+
+@keyframes kredo-lab-spin {
+  to { transform: rotate(360deg); }
+}
+
+.kredo-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.kredo-lab-table th,
+.kredo-lab-table td {
+  border-bottom: 1px solid var(--color-border-default);
+  padding: 11px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.kredo-lab-table th {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.kredo-lab-table tr[aria-selected="true"] td {
+  background: color-mix(in srgb, var(--lab-domain) 10%, transparent);
+}
+
+.kredo-lab-mini-bars {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 150px;
+  padding: 16px;
+}
+
+.kredo-lab-mini-bar {
+  display: grid;
+  align-content: end;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+.kredo-lab-mini-bar span:first-child {
+  display: block;
+  min-height: 8px;
+  border-radius: 999px 999px 3px 3px;
+  background: linear-gradient(180deg, var(--lab-domain), color-mix(in srgb, var(--lab-domain) 48%, var(--color-surface-raised)));
+}
+
+.kredo-lab-mini-bar span:last-child {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.kredo-lab-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  padding: 14px;
+}
+
+.kredo-lab-domain-chip {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--lab-radius-md);
+  background: var(--color-surface-base);
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.kredo-lab-domain-chip::before {
+  content: "";
+  height: 100%;
+  min-height: 24px;
+  border-radius: 999px;
+  background: var(--chip-color);
+}
+
+.kredo-lab-domain-chip span:last-child {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.kredo-lab-sidebar {
+  display: grid;
+  gap: 14px;
+}
+
+.kredo-lab-token-list {
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+  padding: 14px;
+}
+
+.kredo-lab-token-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.kredo-lab-token-swatch {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 999px;
+  background: var(--swatch);
+}
+
+.kredo-lab-token-row strong {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.kredo-lab-token-row span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.kredo-lab-mobile-cards {
+  display: none;
+}
+
+.kredo-lab-bottom-actions {
+  display: none;
+}
+
+.kredo-identity-lab[data-kredo-concept="b"] .kredo-lab-section,
+.kredo-identity-lab[data-kredo-concept="b"] .kredo-lab-card,
+.kredo-identity-lab[data-kredo-concept="b"] .kredo-lab-kpi {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.kredo-identity-lab[data-kredo-concept="b"] .kredo-lab-section {
+  border-inline: 0;
+}
+
+.kredo-identity-lab[data-kredo-concept="c"] .kredo-lab-device {
+  border-color: color-mix(in srgb, var(--lab-domain) 45%, var(--color-border-default));
+}
+
+.kredo-identity-lab[data-kredo-concept="c"] .kredo-lab-section {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--lab-domain) 12%, transparent),
+    0 24px 64px -38px #000;
+}
+
+.kredo-identity-lab[data-kredo-concept="c"] .kredo-lab-card::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lab-domain), transparent);
+  opacity: 0.72;
+}
+
+@media (max-width: 1180px) {
+  .kredo-lab-topbar,
+  .kredo-lab-main {
+    grid-template-columns: 1fr;
+  }
+
+  .kredo-lab-control-panel {
+    width: 100%;
+  }
+
+  .kredo-lab-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .kredo-lab-shell {
+    padding: 14px;
+  }
+
+  .kredo-lab-title {
+    font-size: 34px;
+  }
+
+  .kredo-lab-control-grid,
+  .kredo-lab-direction-tabs,
+  .kredo-lab-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .kredo-lab-device[data-viewport="desktop"] {
+    width: 100%;
+    min-height: 740px;
+  }
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-rail,
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-table-wrap,
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-desktop-only {
+  display: none;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-workspace {
+  padding: 14px;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-mobile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 18px;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-screen-grid,
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-kpi-grid {
+  grid-template-columns: 1fr;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-section {
+  border-radius: var(--lab-radius-lg);
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-kpi-grid {
+  padding: 12px;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-kpi {
+  min-height: 96px;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-mobile-cards {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.kredo-lab-app[data-viewport="mobile"] .kredo-lab-bottom-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px -14px -14px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--color-border-default);
+  background: color-mix(in srgb, var(--color-surface-base) 94%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-identity-lab *,
+  .kredo-identity-lab *::before,
+  .kredo-identity-lab *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Lato, Manrope } from "next/font/google";
 import "./globals.css";
+import "@/styles/design-lab/kredo-identity.css";
 
 // Graisses limitées à celles réellement utilisées dans le code (audit perf) :
 // font-light (300) et font-black (900) n'apparaissent nulle part → retirées
