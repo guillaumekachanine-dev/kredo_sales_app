@@ -18,6 +18,7 @@ interface MobileAgendaFeedProps {
   timezone: string
   now: string
   onItemClick: (item: AgendaItem, group: AgendaGroupedItem) => void
+  onToggleTaskStatus?: (taskId: string) => void
 }
 
 export function MobileAgendaFeed({
@@ -26,6 +27,7 @@ export function MobileAgendaFeed({
   timezone,
   now,
   onItemClick,
+  onToggleTaskStatus,
 }: MobileAgendaFeedProps) {
   const todayKey = useMemo(() => getTodayDateKey(now, timezone), [now, timezone])
   const next7DaysKey = useMemo(() => addDays(todayKey, 7), [todayKey])
@@ -87,6 +89,7 @@ export function MobileAgendaFeed({
             taskItem={taskItem}
             timezone={timezone}
             onClick={() => onItemClick(eventItem, group)}
+            onToggleStatus={onToggleTaskStatus ? () => onToggleTaskStatus(taskItem.sourceId) : undefined}
           />
         )
       }
@@ -111,6 +114,7 @@ export function MobileAgendaFeed({
               item={item as TaskItem}
               timezone={timezone}
               onClick={() => onItemClick(item, group)}
+              onToggleStatus={onToggleTaskStatus ? () => onToggleTaskStatus(item.sourceId) : undefined}
             />
           )
         case "deadline":

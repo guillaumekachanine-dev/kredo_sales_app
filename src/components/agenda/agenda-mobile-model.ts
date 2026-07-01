@@ -235,3 +235,58 @@ export function getMobileSourceLabel(source: string) {
   }
   return SOURCE_LABELS[source] ?? source
 }
+
+export function getPreFilledTaskFields(item: AgendaItem) {
+  let title = `Suivi : ${item.title}`
+  let entity_type: string | null = null
+  let entity_id: string | null = null
+  let calendar_event_id: string | null = null
+
+  if (item.type === "scheduled_event") {
+    calendar_event_id = item.sourceId
+    if (item.companyId) {
+      entity_type = "company"
+      entity_id = item.companyId
+    }
+  } else if (item.type === "deadline") {
+    if (item.sourceType === "opportunity") {
+      entity_type = "opportunity"
+      entity_id = item.sourceId
+    } else if (item.sourceType === "mission") {
+      entity_type = "mission"
+      entity_id = item.sourceId
+    } else if (item.sourceType === "candidate_hiring_milestone") {
+      entity_type = "candidate_hiring_milestone"
+      entity_id = item.sourceId
+    }
+  } else if (item.type === "alert") {
+    title = `Résolution : ${item.title}`
+    if (item.relatedItemIds && item.relatedItemIds.length > 0) {
+      // Find the first related item, e.g., "scheduled_event:calendar_event:<uuid>"
+      const firstRelated = item.relatedItemIds[0]
+      const parts = firstRelated.split(":")
+      const relType = parts[0]
+      const relSourceType = parts[1]
+      const relId = parts[2]
+
+      if (relType === "scheduled_event") {
+        calendar_event_id = relId
+      } else if (relType === "deadline") {
+        entity_type = relSourceType
+        entity_id = relId
+      } else if (relType === "task") {
+        entity_type = "task"
+        entity_id = relId
+      }
+    }
+  }
+
+  return {
+    title,
+    entity_type,
+    entity_id,
+    calendar_event_id,
+    priority: "normal" as const,
+    due_date: new Date().toISOString().split("T")[0],
+  }
+}

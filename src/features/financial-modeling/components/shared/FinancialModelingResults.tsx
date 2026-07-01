@@ -6,6 +6,7 @@ interface FinancialModelingResultsProps {
   result: FinancialModelResult | null
   loading?: boolean
   salesDailyRate?: number
+  hideKpis?: boolean
 }
 
 export function formatEuroWithCents(amount: number | null | undefined): string {
@@ -18,7 +19,17 @@ export function formatEuroWithCents(amount: number | null | undefined): string {
   }).format(amount)
 }
 
-export function FinancialModelingResults({ result, loading, salesDailyRate }: FinancialModelingResultsProps) {
+export function formatEuroInteger(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined) return "—"
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount))
+}
+
+export function FinancialModelingResults({ result, loading, salesDailyRate, hideKpis = false }: FinancialModelingResultsProps) {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -48,53 +59,54 @@ export function FinancialModelingResults({ result, loading, salesDailyRate }: Fi
   return (
     <div className="space-y-4">
       {/* KPIs Highlights */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-canvas border border-border/80 rounded-[var(--radius-medium)] p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Chiffre d&apos;Affaires</p>
-          <p className="text-lg font-bold text-heading mt-1">{formatEuroWithCents(result.periodRevenue)}</p>
-          <p className="text-[10px] text-muted mt-0.5">Sur la période</p>
-        </div>
+      {!hideKpis && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-canvas border-b border-border/80 rounded-[var(--radius-medium)] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Chiffre d&apos;Affaires</p>
+            <p className="text-lg font-bold text-heading mt-1">{formatEuroWithCents(result.periodRevenue)}</p>
+            <p className="text-[10px] text-muted mt-0.5">Sur la période</p>
+          </div>
 
-        <div className="bg-canvas border border-border/80 rounded-[var(--radius-medium)] p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Coûts Totaux</p>
-          <p className="text-lg font-bold text-heading mt-1">{formatEuroWithCents(result.totalCosts)}</p>
-          <p className="text-[10px] text-muted mt-0.5">Ressource + Frais</p>
-        </div>
+          <div className="bg-canvas border-b border-border/80 rounded-[var(--radius-medium)] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Coûts Totaux</p>
+            <p className="text-lg font-bold text-heading mt-1">{formatEuroWithCents(result.totalCosts)}</p>
+            <p className="text-[10px] text-muted mt-0.5">Ressource + Frais</p>
+          </div>
 
-        <div className="bg-canvas border border-border/80 rounded-[var(--radius-medium)] p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Marge Commerciale</p>
-          <p className={`text-lg font-bold mt-1 ${result.commercialMargin < 0 ? "text-danger" : "text-success"}`}>
-            {formatEuroWithCents(result.commercialMargin)}
-          </p>
-          <p className="text-[10px] text-muted mt-0.5">
-            {result.marginPerProducedDay !== null ? `${formatEuroWithCents(result.marginPerProducedDay)} / jr` : "—"}
-          </p>
-        </div>
+          <div className="bg-canvas border-b border-border/80 rounded-[var(--radius-medium)] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Marge Commerciale</p>
+            <p className={`text-lg font-bold mt-1 ${result.commercialMargin < 0 ? "text-danger" : "text-success"}`}>
+              {formatEuroWithCents(result.commercialMargin)}
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">
+              {result.marginPerProducedDay !== null ? `${formatEuroWithCents(result.marginPerProducedDay)} / jr` : "—"}
+            </p>
+          </div>
 
-        <div className={`border rounded-[var(--radius-medium)] p-3 ${
-          isMcoNegative ? "bg-danger/[0.03] border-danger/25" :
-          isMcoLow ? "bg-warning/[0.03] border-warning/25" :
-          "bg-canvas border-border/80"
-        }`}>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">MCO %</p>
-          <p className={`text-lg font-bold mt-1 ${
-            isMcoNegative ? "text-danger" :
-            isMcoLow ? "text-warning" :
-            "text-success"
+          <div className={`border rounded-[var(--radius-medium)] p-3 ${
+            isMcoNegative ? "bg-danger/[0.03] border-danger/25" :
+            isMcoLow ? "bg-warning/[0.03] border-warning/25" :
+            "bg-canvas border-border/80"
           }`}>
-            {formatPct(result.mcoPercent)}
-          </p>
-          <p className="text-[10px] text-muted mt-0.5">
-            {isMcoNegative ? "Marge négative !" : isMcoLow ? "Seuil < 15%" : "Taux de marge"}
-          </p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">MCO %</p>
+            <p className={`text-lg font-bold mt-1 ${
+              isMcoNegative ? "text-danger" :
+              isMcoLow ? "text-warning" :
+              "text-success"
+            }`}>
+              {formatPct(result.mcoPercent)}
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">
+              {isMcoNegative ? "Marge négative !" : isMcoLow ? "Seuil < 15%" : "Taux de marge"}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Detail Table */}
       <div className="border border-border/80 rounded-[var(--radius-large)] bg-surface overflow-hidden">
         <div className="border-b border-border/80 bg-canvas/30 px-4 py-2 flex items-center justify-between">
           <h4 className="text-[11px] font-bold uppercase tracking-wider text-heading">Détails financiers</h4>
-          <span className="text-[10px] text-muted">Moteur : {result.engineVersion}</span>
         </div>
         <div className="divide-y divide-border/60 text-xs">
           <div className="grid grid-cols-2 px-4 py-2 hover:bg-canvas/10">

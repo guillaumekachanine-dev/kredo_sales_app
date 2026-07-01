@@ -13,8 +13,10 @@ import {
   FinancialExpenseFields,
   FinancialModelingResults,
   FinancialModelingWarnings,
-  formatEuroWithCents
+  formatEuroWithCents,
+  formatEuroInteger
 } from "../shared"
+import { FinancialModelingFlashFields } from "./FinancialModelingFlashFields"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
 import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
@@ -62,7 +64,7 @@ function createDefaultFormState(): FinancialModelFormState {
       startDate: new Date().toISOString().split("T")[0],
       endDate: null,
       salesDailyRate: 0,
-      forecastActivityRate: 0.85,
+      forecastActivityRate: 0.90,
       expenses: [],
       currency: "EUR",
       calculationVersion: FINANCIAL_MODEL_ENGINE_VERSION
@@ -299,24 +301,24 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
       >
         {/* Persistent Floating Results Header Bar */}
         {clientResult && (
-          <div className="bg-canvas border-b border-border/80 px-5 py-3 grid grid-cols-4 divide-x divide-border/60 text-center shrink-0">
+          <div className="bg-slate-900 border-b border-slate-800 px-5 py-3 grid grid-cols-4 divide-x divide-slate-800 text-center shrink-0">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted">CA</p>
-              <p className="text-sm font-bold text-heading mt-0.5">{formatEuroWithCents(clientResult.periodRevenue)}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">CA</p>
+              <p className="text-sm font-bold text-white mt-0.5">{formatEuroInteger(clientResult.periodRevenue)}</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted">Coûts</p>
-              <p className="text-sm font-bold text-heading mt-0.5">{formatEuroWithCents(clientResult.totalCosts)}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Coûts</p>
+              <p className="text-sm font-bold text-white mt-0.5">{formatEuroInteger(clientResult.totalCosts)}</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted">Marge</p>
-              <p className={`text-sm font-bold mt-0.5 ${clientResult.commercialMargin < 0 ? "text-danger" : "text-success"}`}>
-                {formatEuroWithCents(clientResult.commercialMargin)}
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Marge</p>
+              <p className={`text-sm font-bold mt-0.5 ${clientResult.commercialMargin < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                {formatEuroInteger(clientResult.commercialMargin)}
               </p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted">MCO %</p>
-              <p className="text-sm font-bold text-heading mt-0.5">{clientResult.mcoPercent !== null ? `${clientResult.mcoPercent.toFixed(2)}%` : "—"}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">MCO %</p>
+              <p className="text-sm font-bold text-white mt-0.5">{clientResult.mcoPercent !== null ? `${clientResult.mcoPercent.toFixed(2)}%` : "—"}</p>
             </div>
           </div>
         )}
@@ -331,58 +333,65 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
             <div className="grid grid-cols-3 gap-6">
               {/* Form columns (2/3 width in Complet, full width in Flash) */}
               <div className={formState.input.mode === "full" ? "col-span-2 space-y-6" : "col-span-3 space-y-6"}>
-                
-                {/* Section Contexte (only in Complet) */}
-                {formState.input.mode === "full" && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Contexte de la simulation</h3>
-                    <Field label="Titre de la simulation" required>
-                      <Input
-                        value={formState.title}
-                        onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                      />
-                    </Field>
+                {formState.input.mode === "flash" ? (
+                  <div className="space-y-6">
+                    <FinancialModelingFlashFields
+                      value={formState}
+                      onChange={setFormState}
+                      bootstrap={bootstrap}
+                      clientResult={clientResult}
+                    />
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleModeChange("full")}
+                      className="w-full py-2.5 border border-dashed border-primary/45 rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-primary/[0.03] transition-all"
+                    >
+                      Passer en mode complet
+                    </button>
                   </div>
-                )}
-
-                {/* Section Ressource */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">
-                    {formState.input.mode === "full" ? "2. Paramètres Ressource" : "Ressource"}
-                  </h3>
-                  <FinancialResourceFields
-                    value={formState}
-                    onChange={setFormState}
-                    catalog={bootstrap.catalog}
-                    assumptions={bootstrap.assumptions}
-                  />
-                </div>
-
-                {/* Section Mission */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">
-                    {formState.input.mode === "full" ? "3. Paramètres Mission" : "Mission"}
-                  </h3>
-                  <FinancialPeriodFields value={formState} onChange={setFormState} />
-                </div>
-
-                {/* Section Pricing */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">
-                    {formState.input.mode === "full" ? "4. Tarification" : "Prix"}
-                  </h3>
-                  <FinancialPricingFields
-                    value={formState}
-                    onChange={setFormState}
-                    pricing={bootstrap.pricing}
-                    companies={bootstrap.companies}
-                    opportunities={bootstrap.opportunities}
-                  />
-                </div>
-
-                {/* Mode Complet Specifics */}
-                {formState.input.mode === "full" && (
+                ) : (
                   <>
+                    {/* Section Contexte (only in Complet) */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Contexte de la simulation</h3>
+                      <Field label="Titre de la simulation" required>
+                        <Input
+                          value={formState.title}
+                          onChange={(e) => setFormState({ ...formState, title: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+
+                    {/* Section Ressource */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">2. Paramètres Ressource</h3>
+                      <FinancialResourceFields
+                        value={formState}
+                        onChange={setFormState}
+                        catalog={bootstrap.catalog}
+                        assumptions={bootstrap.assumptions}
+                      />
+                    </div>
+
+                    {/* Section Mission */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">3. Paramètres Mission</h3>
+                      <FinancialPeriodFields value={formState} onChange={setFormState} />
+                    </div>
+
+                    {/* Section Pricing */}
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">4. Tarification</h3>
+                      <FinancialPricingFields
+                        value={formState}
+                        onChange={setFormState}
+                        pricing={bootstrap.pricing}
+                        companies={bootstrap.companies}
+                        opportunities={bootstrap.opportunities}
+                      />
+                    </div>
+
                     {/* Section Expenses */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">5. Frais</h3>
@@ -454,24 +463,6 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                       </div>
                     </div>
                   </>
-                )}
-
-                {/* Results Preview (only in Flash Mode) */}
-                {formState.input.mode === "flash" && (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-bold text-heading uppercase tracking-wider">Résultats immédiats</h3>
-                    <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} />
-                    {clientResult && clientResult.warnings.length > 0 && (
-                      <FinancialModelingWarnings warnings={clientResult.warnings} />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleModeChange("full")}
-                      className="w-full py-2 border border-dashed border-primary/45 rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-primary/[0.03] transition-all"
-                    >
-                      Passer en mode complet
-                    </button>
-                  </div>
                 )}
               </div>
 

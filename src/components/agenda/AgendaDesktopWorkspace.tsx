@@ -24,6 +24,8 @@ import {
   type AgendaDesktopPresentation,
   type AgendaScheduledPlacement,
 } from "./agenda-desktop-model"
+import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
+import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
 
 interface AgendaDesktopWorkspaceProps {
   snapshot: AgendaSnapshot
@@ -61,6 +63,65 @@ function filterPresentationForSession(
   }
 }
 
+function applyOptimisticStatusToPresentation(
+  presentation: AgendaDesktopPresentation,
+  optimisticStatus: Record<string, "completed" | "pending">
+) {
+  if (Object.keys(optimisticStatus).length === 0) return presentation
+
+  const updateItem = <T extends AgendaItem>(item: T): T => {
+    if (item.type === "task" && optimisticStatus[item.sourceId]) {
+      const nextStatus = optimisticStatus[item.sourceId]
+      return {
+        ...item,
+        businessStatus: nextStatus,
+        metadata: {
+          ...item.metadata,
+          completedAt: nextStatus === "completed" ? new Date().toISOString() : null,
+        },
+      } as unknown as T
+    }
+    return item
+  }
+
+  return {
+    ...presentation,
+    allDayPlacements: presentation.allDayPlacements.map((placement) => ({
+      ...placement,
+      item: updateItem(placement.item),
+    })),
+    scheduledColumns: presentation.scheduledColumns.map((column) => ({
+      ...column,
+      items: column.items.map((placement) => ({
+        ...placement,
+        item: updateItem(placement.item),
+      })),
+    })),
+    railSections: presentation.railSections.map((section) => ({
+      ...section,
+      items: section.items.map((group) => ({
+        ...group,
+        primaryItem: updateItem(group.primaryItem),
+        items: group.items.map(updateItem),
+      })),
+    })),
+    desktopViewModel: {
+      ...presentation.desktopViewModel,
+      itemsById: Object.fromEntries(
+        Object.entries(presentation.desktopViewModel.itemsById).map(([id, item]) => [
+          id,
+          updateItem(item),
+        ])
+      ),
+      relationGroups: presentation.desktopViewModel.relationGroups.map((group) => ({
+        ...group,
+        primaryItem: updateItem(group.primaryItem),
+        items: group.items.map(updateItem),
+      })),
+    },
+  }
+}
+
 export function AgendaDesktopWorkspace({
   snapshot,
   presentation,
@@ -68,13 +129,30 @@ export function AgendaDesktopWorkspace({
   const router = useRouter()
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
   const [isNavigating, startTransition] = useTransition()
-  const [hiddenItemIds, setHiddenItemIds] = useState<Set<string>>(() => new Set())
+  const [hiddenItemIds, setHiddenItemIds] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("kredo_agenda_hidden_items")
+        if (stored) return new Set(JSON.parse(stored))
+      } catch {
+        // ignore
+      }
+    }
+    return new Set()
+  })
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, "completed" | "pending">>({})
+  const [createTaskItem, setCreateTaskItem] = useState<AgendaItem | null>(null)
+
+  const optimisticPresentation = useMemo(
+    () => applyOptimisticStatusToPresentation(presentation, optimisticStatus),
+    [presentation, optimisticStatus]
+  )
 
   const displayedPresentation = useMemo(
-    () => filterPresentationForSession(presentation, hiddenItemIds),
-    [presentation, hiddenItemIds],
+    () => filterPresentationForSession(optimisticPresentation, hiddenItemIds),
+    [optimisticPresentation, hiddenItemIds],
   )
 
   const selectedItem = selectedItemId
@@ -112,9 +190,50 @@ export function AgendaDesktopWorkspace({
     setHiddenItemIds((current) => {
       const next = new Set(current)
       next.add(itemId)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("kredo_agenda_hidden_items", JSON.stringify(Array.from(next)))
+      }
       return next
     })
     setSelectedItemId((current) => (current === itemId ? null : current))
+  }
+
+  const handleCompleteTask = async (taskId: string) => {
+    setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+    try {
+      const res = await completeAgendaTask(taskId)
+      if (res && "error" in res && res.error) {
+        setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+        alert(res.error)
+      } else {
+        router.refresh()
+      }
+    } catch (err) {
+      setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+      console.error("completeAgendaTask error:", err)
+      alert("Une erreur réseau est survenue.")
+    }
+  }
+
+  const handleReopenTask = async (taskId: string) => {
+    setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+    try {
+      const res = await reopenAgendaTask(taskId)
+      if (res && "error" in res && res.error) {
+        setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+        alert(res.error)
+      } else {
+        router.refresh()
+      }
+    } catch (err) {
+      setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+      console.error("reopenAgendaTask error:", err)
+      alert("Une erreur réseau est survenue.")
+    }
+  }
+
+  const handleCreateTaskClick = (item: AgendaItem) => {
+    setCreateTaskItem(item)
   }
 
   const step = displayedPresentation.route.view === "day" ? 1 : 7
@@ -271,6 +390,9 @@ export function AgendaDesktopWorkspace({
           if (!open) setSelectedItemId(null)
         }}
         onHideForSession={handleHideForSession}
+        onCompleteTask={handleCompleteTask}
+        onReopenTask={handleReopenTask}
+        onCreateTaskClick={handleCreateTaskClick}
       />
 
       <AgendaEventDrawer
@@ -280,6 +402,21 @@ export function AgendaDesktopWorkspace({
         allowPreparatoryTask={false}
         onSaved={() => {
           setCreateDrawerOpen(false)
+          router.refresh()
+        }}
+      />
+
+      {/* Task creation drawer (lightweight form) */}
+      <AgendaTaskCreateDrawer
+        key={createTaskItem?.id || "empty"}
+        open={createTaskItem !== null}
+        item={createTaskItem}
+        side="right"
+        onOpenChange={(open) => {
+          if (!open) setCreateTaskItem(null)
+        }}
+        onSaved={() => {
+          setCreateTaskItem(null)
           router.refresh()
         }}
       />

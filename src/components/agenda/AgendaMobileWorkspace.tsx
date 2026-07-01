@@ -36,6 +36,8 @@ import { MobileEventTaskCard } from "./MobileEventTaskCard"
 import { MobileDeadlineCard } from "./MobileDeadlineCard"
 import { MobileAvailabilityCard } from "./MobileAvailabilityCard"
 import { MobileAlertCard } from "./MobileAlertCard"
+import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
+import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
 
 interface AgendaMobileWorkspaceProps {
   snapshot: AgendaSnapshot
@@ -58,7 +60,37 @@ export function AgendaMobileWorkspace({
   const [mode, setMode] = useState<AgendaMobileMode>(initialMode)
   const [selectedDate, setSelectedDate] = useState<string>(initialDate)
   const [filters, setFilters] = useState<AgendaMobileFilters>(initialFilters)
-  const [hiddenItemIds, setHiddenItemIds] = useState<Set<string>>(() => new Set())
+  const [hiddenItemIds, setHiddenItemIds] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("kredo_agenda_hidden_items")
+        if (stored) return new Set(JSON.parse(stored))
+      } catch {
+        // ignore
+      }
+    }
+    return new Set()
+  })
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, "completed" | "pending">>({})
+  const [createTaskItem, setCreateTaskItem] = useState<AgendaItem | null>(null)
+
+  // Apply optimistic status to snapshot items
+  const optimisticItems = useMemo(() => {
+    return snapshot.items.map((item) => {
+      if (item.type === "task" && optimisticStatus[item.sourceId]) {
+        const nextStatus = optimisticStatus[item.sourceId]
+        return {
+          ...item,
+          businessStatus: nextStatus,
+          metadata: {
+            ...item.metadata,
+            completedAt: nextStatus === "completed" ? new Date().toISOString() : null,
+          },
+        } as AgendaItem
+      }
+      return item
+    })
+  }, [snapshot.items, optimisticStatus])
 
   // Drawers open states
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
@@ -105,6 +137,9 @@ export function AgendaMobileWorkspace({
     setHiddenItemIds((prev) => {
       const next = new Set(prev)
       next.add(itemId)
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("kredo_agenda_hidden_items", JSON.stringify(Array.from(next)))
+      }
       return next
     })
   }
@@ -112,18 +147,18 @@ export function AgendaMobileWorkspace({
   // 3. Compute unique companies present in the snapshot
   const uniqueCompanies = useMemo(() => {
     const map = new Map<string, string>()
-    snapshot.items.forEach((item) => {
+    optimisticItems.forEach((item) => {
       if (item.companyId && item.companyLabel) {
         map.set(item.companyId, item.companyLabel)
       }
     })
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
-  }, [snapshot.items])
+  }, [optimisticItems])
 
   // 4. In-memory grouping & filtering
   const relationGroups = useMemo(() => {
-    return buildDisplayGroups(snapshot.items, snapshot.relationGroups)
-  }, [snapshot.items, snapshot.relationGroups])
+    return buildDisplayGroups(optimisticItems, snapshot.relationGroups)
+  }, [optimisticItems, snapshot.relationGroups])
 
   // Filter display groups based on current fast filters and session hidden state
   const filteredGroups = useMemo(() => {
@@ -181,15 +216,68 @@ export function AgendaMobileWorkspace({
   // Identify which days have items in the current snapshot
   const daysWithItems = useMemo(() => {
     const datesSet = new Set<string>()
-    snapshot.items.forEach((item) => {
+    optimisticItems.forEach((item) => {
       if (hiddenItemIds.has(item.id)) return
       const { startDate, endDate } = getAgendaTimeboxDateRange(item.timebox, snapshot.query.timezone)
       enumerateDateRange(startDate, endDate).forEach((date) => datesSet.add(date))
     })
     return datesSet
-  }, [snapshot.items, hiddenItemIds, snapshot.query.timezone])
+  }, [optimisticItems, hiddenItemIds, snapshot.query.timezone])
 
   // 7. Interactive actions
+  const handleCompleteTask = useCallback(async (taskId: string) => {
+    // 1. Optimistic update
+    setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+    // 2. Call Server Action with try-catch wrapper
+    try {
+      const res = await completeAgendaTask(taskId)
+      if (res && "error" in res && res.error) {
+        setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+        alert(res.error)
+      } else {
+        router.refresh()
+      }
+    } catch (err) {
+      setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+      console.error("completeAgendaTask error:", err)
+      alert("Une erreur réseau est survenue.")
+    }
+  }, [router])
+
+  const handleReopenTask = useCallback(async (taskId: string) => {
+    // 1. Optimistic update
+    setOptimisticStatus((prev) => ({ ...prev, [taskId]: "pending" }))
+    // 2. Call Server Action with try-catch wrapper
+    try {
+      const res = await reopenAgendaTask(taskId)
+      if (res && "error" in res && res.error) {
+        setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+        alert(res.error)
+      } else {
+        router.refresh()
+      }
+    } catch (err) {
+      setOptimisticStatus((prev) => ({ ...prev, [taskId]: "completed" }))
+      console.error("reopenAgendaTask error:", err)
+      alert("Une erreur réseau est survenue.")
+    }
+  }, [router])
+
+  const handleCreateTaskClick = useCallback((item: AgendaItem) => {
+    setCreateTaskItem(item)
+  }, [])
+
+  const handleToggleTaskStatus = useCallback((taskId: string) => {
+    const task = optimisticItems.find((i) => i.sourceId === taskId)
+    if (!task) return
+    const currentStatus = optimisticStatus[taskId] || task.businessStatus
+    if (currentStatus === "completed") {
+      void handleReopenTask(taskId)
+    } else {
+      void handleCompleteTask(taskId)
+    }
+  }, [optimisticItems, optimisticStatus, handleReopenTask, handleCompleteTask])
+
   const handleItemClick = (item: AgendaItem) => {
     if (item.type === "scheduled_event") {
       openEventDrawer(item.sourceId)
@@ -199,7 +287,7 @@ export function AgendaMobileWorkspace({
   }
 
   const selectedItem = selectedItemId
-    ? snapshot.items.find((i) => i.id === selectedItemId) || null
+    ? optimisticItems.find((i) => i.id === selectedItemId) || null
     : null
 
   const selectedGroup = selectedItemId
@@ -429,6 +517,7 @@ export function AgendaMobileWorkspace({
               timezone={snapshot.query.timezone}
               now={snapshot.query.now}
               onItemClick={handleItemClick}
+              onToggleTaskStatus={handleToggleTaskStatus}
             />
           ) : (
             <div className="flex flex-col gap-3 pb-8">
@@ -447,6 +536,7 @@ export function AgendaMobileWorkspace({
                           taskItem={taskItem}
                           timezone={snapshot.query.timezone}
                           onClick={() => handleItemClick(eventItem)}
+                          onToggleStatus={() => handleToggleTaskStatus(taskItem.sourceId)}
                         />
                       )
                     }
@@ -472,6 +562,7 @@ export function AgendaMobileWorkspace({
                             item={item}
                             timezone={snapshot.query.timezone}
                             onClick={() => handleItemClick(item)}
+                            onToggleStatus={() => handleToggleTaskStatus(item.sourceId)}
                           />
                         )
                       case "deadline":
@@ -561,6 +652,24 @@ export function AgendaMobileWorkspace({
           if (!open) setSelectedItemId(null)
         }}
         onHideForSession={handleItemHide}
+        onCompleteTask={handleCompleteTask}
+        onReopenTask={handleReopenTask}
+        onCreateTaskClick={handleCreateTaskClick}
+      />
+
+      {/* Task creation drawer (lightweight form) */}
+      <AgendaTaskCreateDrawer
+        key={createTaskItem?.id || "empty"}
+        open={createTaskItem !== null}
+        item={createTaskItem}
+        side="bottom"
+        onOpenChange={(open) => {
+          if (!open) setCreateTaskItem(null)
+        }}
+        onSaved={() => {
+          setCreateTaskItem(null)
+          router.refresh()
+        }}
       />
     </>
   )

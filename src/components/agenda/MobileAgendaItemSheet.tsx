@@ -23,6 +23,9 @@ interface MobileAgendaItemSheetProps {
   timezone: string
   onOpenChange: (open: boolean) => void
   onHideForSession: (itemId: string) => void
+  onCompleteTask?: (taskId: string) => Promise<void>
+  onReopenTask?: (taskId: string) => Promise<void>
+  onCreateTaskClick?: (item: AgendaItem) => void
 }
 
 export function MobileAgendaItemSheet({
@@ -32,6 +35,9 @@ export function MobileAgendaItemSheet({
   timezone,
   onOpenChange,
   onHideForSession,
+  onCompleteTask,
+  onReopenTask,
+  onCreateTaskClick,
 }: MobileAgendaItemSheetProps) {
   if (!item) {
     return (
@@ -52,6 +58,20 @@ export function MobileAgendaItemSheet({
   const handleHide = () => {
     onHideForSession(item.id)
     onOpenChange(false)
+  }
+
+  const handleToggleComplete = async () => {
+    if (item.businessStatus === "completed") {
+      await onReopenTask?.(item.sourceId)
+    } else {
+      await onCompleteTask?.(item.sourceId)
+    }
+    onOpenChange(false)
+  }
+
+  const handleCreateTask = () => {
+    onOpenChange(false)
+    onCreateTaskClick?.(item)
   }
 
   return (
@@ -164,14 +184,38 @@ export function MobileAgendaItemSheet({
 
         {/* Global actions */}
         <section className="pt-2 flex flex-col gap-2">
-          <Button
-            variant="ghost"
-            fullWidth
-            onClick={handleHide}
-            className="text-danger hover:text-danger-hover hover:bg-danger-muted/5 font-semibold text-xs h-11"
-          >
-            Masquer pour cette session
-          </Button>
+          {item.type === "task" && (
+            <Button
+              variant={item.businessStatus === "completed" ? "secondary" : "primary"}
+              fullWidth
+              onClick={handleToggleComplete}
+              className="font-bold text-xs h-11"
+            >
+              {item.businessStatus === "completed" ? "Rouvrir la tâche" : "Marquer comme terminée"}
+            </Button>
+          )}
+
+          {(item.type === "deadline" || item.type === "alert") && (
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleCreateTask}
+              className="font-bold text-xs h-11"
+            >
+              Créer une tâche
+            </Button>
+          )}
+
+          {item.type === "alert" && (
+            <Button
+              variant="ghost"
+              fullWidth
+              onClick={handleHide}
+              className="text-danger hover:text-danger-hover hover:bg-danger-muted/5 font-semibold text-xs h-11"
+            >
+              Masquer pour cette session
+            </Button>
+          )}
         </section>
       </div>
     </AppDrawer>

@@ -23,6 +23,9 @@ interface AgendaItemDrawerProps {
   timezone: string
   onOpenChange: (open: boolean) => void
   onHideForSession: (itemId: string) => void
+  onCompleteTask?: (taskId: string) => Promise<void>
+  onReopenTask?: (taskId: string) => Promise<void>
+  onCreateTaskClick?: (item: AgendaItem) => void
 }
 
 export function AgendaItemDrawer({
@@ -32,6 +35,9 @@ export function AgendaItemDrawer({
   timezone,
   onOpenChange,
   onHideForSession,
+  onCompleteTask,
+  onReopenTask,
+  onCreateTaskClick,
 }: AgendaItemDrawerProps) {
   if (!item) {
     return (
@@ -132,6 +138,39 @@ export function AgendaItemDrawer({
         ) : null}
 
         <section className="flex flex-wrap gap-2">
+          {item.type === "task" && (
+            item.businessStatus === "completed" ? (
+              <Button
+                key="reopen-task"
+                variant="secondary"
+                size="sm"
+                onClick={() => onReopenTask?.(item.sourceId)}
+              >
+                Rouvrir la tâche
+              </Button>
+            ) : (
+              <Button
+                key="complete-task"
+                variant="primary"
+                size="sm"
+                onClick={() => onCompleteTask?.(item.sourceId)}
+              >
+                Marquer comme terminée
+              </Button>
+            )
+          )}
+
+          {(item.type === "deadline" || item.type === "alert") && (
+            <Button
+              key="create-task"
+              variant="primary"
+              size="sm"
+              onClick={() => onCreateTaskClick?.(item)}
+            >
+              Créer une tâche
+            </Button>
+          )}
+
           {actions.map((action) => {
             if (action.key === "hide-session") {
               return (

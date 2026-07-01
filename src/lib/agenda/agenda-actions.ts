@@ -364,3 +364,258 @@ export async function getCandidatesForSelect() {
       a.full_name.localeCompare(b.full_name, "fr")
     )
 }
+
+export interface CreateTaskFromAgendaInput {
+  title: string
+  description?: string
+  due_date: string | null
+  priority: "low" | "normal" | "high" | "urgent"
+  assignee_id?: string | null
+  entity_type?: string | null
+  entity_id?: string | null
+  linked_entity_type?: string | null
+  linked_entity_id?: string | null
+  calendar_event_id?: string | null
+  bypassDuplicateCheck?: boolean
+}
+
+async function verifySourceAccess(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  workspaceId: string,
+  entityType?: string | null,
+  entityId?: string | null,
+  calendarEventId?: string | null
+): Promise<boolean> {
+  if (calendarEventId) {
+    const { data } = await supabase
+      .from("calendar_events")
+      .select("id, workspace_id")
+      .eq("id", calendarEventId)
+      .single()
+    if (!data || data.workspace_id !== workspaceId) return false
+  }
+
+  if (!entityType || !entityId) return true
+
+  let table = ""
+  switch (entityType) {
+    case "opportunity":
+      table = "opportunities"
+      break
+    case "mission":
+      table = "missions"
+      break
+    case "company":
+      table = "companies"
+      break
+    case "candidate":
+      table = "candidates"
+      break
+    case "candidate_hiring_milestone":
+      table = "candidate_hiring_milestones"
+      break
+    case "collaborator":
+    case "profile":
+      table = "profiles"
+      break
+    default:
+      return true
+  }
+
+  const { data } = await supabase
+    .from(table)
+    .select("id, workspace_id")
+    .eq("id", entityId)
+    .single()
+
+  if (!data || data.workspace_id !== workspaceId) return false
+  return true
+}
+
+export async function completeAgendaTask(taskId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { error: "Non authentifié" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.workspace_id) return { error: "Pas de profil de workspace" }
+
+  const { data: task, error: fetchError } = await supabase
+    .from("tasks")
+    .select("id, workspace_id")
+    .eq("id", taskId)
+    .single()
+
+  if (fetchError || !task) return { error: "Tâche introuvable" }
+  if (task.workspace_id !== profile.workspace_id) return { error: "Accès refusé" }
+
+  const { error: updateError } = await supabase
+    .from("tasks")
+    .update({
+      status: "completed",
+      completed_at: new Date().toISOString()
+    })
+    .eq("id", taskId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath("/agenda")
+  return { success: true }
+}
+
+export async function reopenAgendaTask(taskId: string) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { error: "Non authentifié" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.workspace_id) return { error: "Pas de profil de workspace" }
+
+  const { data: task, error: fetchError } = await supabase
+    .from("tasks")
+    .select("id, workspace_id")
+    .eq("id", taskId)
+    .single()
+
+  if (fetchError || !task) return { error: "Tâche introuvable" }
+  if (task.workspace_id !== profile.workspace_id) return { error: "Accès refusé" }
+
+  const { error: updateError } = await supabase
+    .from("tasks")
+    .update({
+      status: "open",
+      completed_at: null
+    })
+    .eq("id", taskId)
+
+  if (updateError) return { error: updateError.message }
+
+  revalidatePath("/agenda")
+  return { success: true }
+}
+
+export async function getWorkspaceMembers() {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return []
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.workspace_id) return []
+
+  const { data: members, error } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("workspace_id", profile.workspace_id)
+    .order("full_name", { ascending: true })
+
+  if (error) {
+    console.error("getWorkspaceMembers error:", error)
+    return []
+  }
+
+  return members || []
+}
+
+export async function createTaskFromAgendaItem(input: CreateTaskFromAgendaInput) {
+  if (!input.title || !input.title.trim()) {
+    return { error: "Le titre de la tâche est obligatoire." }
+  }
+
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { error: "Non authentifié" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.workspace_id) return { error: "Pas de profil de workspace" }
+
+  // 1. Verify access to source object
+  const hasAccess = await verifySourceAccess(
+    supabase,
+    profile.workspace_id,
+    input.entity_type,
+    input.entity_id,
+    input.calendar_event_id
+  )
+  if (!hasAccess) return { error: "Accès refusé à l'objet source." }
+
+  // 2. Check for duplicate open tasks
+  if (!input.bypassDuplicateCheck) {
+    let query = supabase
+      .from("tasks")
+      .select("id")
+      .eq("workspace_id", profile.workspace_id)
+      .is("completed_at", null)
+      .neq("status", "completed")
+
+    let hasCriteria = false
+    if (input.entity_type && input.entity_id) {
+      query = query.eq("entity_type", input.entity_type).eq("entity_id", input.entity_id)
+      hasCriteria = true
+    } else if (input.linked_entity_type && input.linked_entity_id) {
+      query = query.eq("linked_entity_type", input.linked_entity_type).eq("linked_entity_id", input.linked_entity_id)
+      hasCriteria = true
+    } else if (input.calendar_event_id) {
+      query = query.eq("calendar_event_id", input.calendar_event_id)
+      hasCriteria = true
+    }
+
+    if (hasCriteria) {
+      const { data: duplicates } = await query.limit(1)
+      if (duplicates && duplicates.length > 0) {
+        return {
+          warning: "DUPLICATE_EXISTS",
+          message: "Une tâche ouverte existe déjà pour cet objet source. Voulez-vous tout de même forcer la création ?"
+        }
+      }
+    }
+  }
+
+  // 3. Insert task
+  const { data, error: insertError } = await supabase
+    .from("tasks")
+    .insert({
+      workspace_id: profile.workspace_id,
+      title: input.title.trim(),
+      description: input.description || null,
+      due_date: input.due_date,
+      priority: input.priority || "normal",
+      status: "open",
+      assignee_id: input.assignee_id || null,
+      entity_type: input.entity_type || null,
+      entity_id: input.entity_id || null,
+      linked_entity_type: input.linked_entity_type || null,
+      linked_entity_id: input.linked_entity_id || null,
+      calendar_event_id: input.calendar_event_id || null,
+    })
+    .select("id")
+    .single()
+
+  if (insertError) {
+    console.error("createTaskFromAgendaItem error:", insertError)
+    return { error: insertError.message }
+  }
+
+  revalidatePath("/agenda")
+  return { success: true, taskId: data.id }
+}

@@ -10,6 +10,7 @@ interface MobileEventTaskCardProps {
   taskItem: TaskItem
   timezone: string
   onClick: () => void
+  onToggleStatus?: () => void
 }
 
 export function MobileEventTaskCard({
@@ -17,6 +18,7 @@ export function MobileEventTaskCard({
   taskItem,
   timezone,
   onClick,
+  onToggleStatus,
 }: MobileEventTaskCardProps) {
   const typeConfig = AGENDA_EVENT_TYPES[eventItem.eventType] || AGENDA_EVENT_TYPES.rdv_client_suivi
   const isTaskCompleted = taskItem.businessStatus === "completed"
@@ -113,21 +115,36 @@ export function MobileEventTaskCard({
 
       {/* Task Section */}
       <div className="flex items-center gap-3 w-full pt-0.5">
-        {/* Checkbox (Read-only status indicator) */}
-        <div
+        {/* Checkbox (Completion trigger with touch target >= 44px) */}
+        <button
+          type="button"
+          onClick={(e) => {
+            if (onToggleStatus) {
+              e.stopPropagation() // Prevent opening event drawer
+              onToggleStatus()
+            }
+          }}
           className={cn(
-            "size-4 rounded border flex items-center justify-center transition-colors cursor-not-allowed",
-            isTaskCompleted
-              ? "bg-success border-success text-success-fg"
-              : "border-muted/50 bg-canvas"
+            "p-3 -m-3 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            onToggleStatus ? "cursor-pointer" : "cursor-not-allowed"
           )}
+          aria-label={isTaskCompleted ? "Réouvrir la tâche" : "Compléter la tâche"}
         >
-          {isTaskCompleted && (
-            <svg className="size-3 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-          )}
-        </div>
+          <div
+            className={cn(
+              "size-4 rounded border flex items-center justify-center transition-colors",
+              isTaskCompleted
+                ? "bg-success border-success text-success-fg"
+                : "border-muted/50 bg-canvas"
+            )}
+          >
+            {isTaskCompleted && (
+              <svg className="size-3 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            )}
+          </div>
+        </button>
 
         {/* Task Title */}
         <div className="flex-1 min-w-0">

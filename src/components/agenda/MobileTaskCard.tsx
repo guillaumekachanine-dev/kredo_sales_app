@@ -8,12 +8,14 @@ interface MobileTaskCardProps {
   item: TaskItem
   timezone: string
   onClick: () => void
+  onToggleStatus?: () => void
 }
 
 export function MobileTaskCard({
   item,
   timezone,
   onClick,
+  onToggleStatus,
 }: MobileTaskCardProps) {
   const isCompleted = item.businessStatus === "completed"
 
@@ -50,11 +52,24 @@ export function MobileTaskCard({
       )}
       style={{ minHeight: "52px" }}
     >
-      {/* Checkbox (Read-only status indicator) */}
-      <div className="pt-0.5">
+      {/* Checkbox (Completion trigger with touch target >= 44px) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          if (onToggleStatus) {
+            e.stopPropagation() // Prevent opening detail drawer
+            onToggleStatus()
+          }
+        }}
+        className={cn(
+          "p-3 -m-3 flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          onToggleStatus ? "cursor-pointer" : "cursor-not-allowed"
+        )}
+        aria-label={isCompleted ? "Réouvrir la tâche" : "Compléter la tâche"}
+      >
         <div
           className={cn(
-            "size-5 rounded-md border flex items-center justify-center transition-colors cursor-not-allowed",
+            "size-5 rounded-md border flex items-center justify-center transition-colors",
             isCompleted
               ? "bg-success border-success text-success-fg"
               : "border-muted/50 bg-canvas"
@@ -66,7 +81,7 @@ export function MobileTaskCard({
             </svg>
           )}
         </div>
-      </div>
+      </button>
 
       <div className="flex-1 flex flex-col gap-1.5 w-full">
         {/* Title */}
