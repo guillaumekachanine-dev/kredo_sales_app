@@ -107,7 +107,7 @@ export function parseAgendaMobileRouteState(
 export function buildAgendaMobileRange(now: string, timezone: string = AGENDA_V1_TIMEZONE) {
   const todayKey = getTodayDateKey(now, timezone)
   const fromKey = addDays(todayKey, -30)
-  const toKey = addDays(todayKey, 62)
+  const toKey = addDays(todayKey, 30)
 
   const from = startOfLocalDay(fromKey, timezone).toISOString()
   const to = startOfLocalDay(addDays(toKey, 1), timezone).toISOString()

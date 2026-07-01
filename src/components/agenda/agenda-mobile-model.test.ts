@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { parseAgendaMobileRouteState, buildAgendaMobileRange, addDays } from "./agenda-mobile-model"
-import { getTodayDateKey, startOfLocalDay } from "@/lib/agenda/agenda-temporal"
+import { startOfLocalDay } from "@/lib/agenda/agenda-temporal"
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds"
 
 describe("agenda-mobile-model", () => {
@@ -89,10 +89,10 @@ describe("agenda-mobile-model", () => {
   })
 
   describe("buildAgendaMobileRange", () => {
-    it("should generate the J-30 to J+62 range relative to now", () => {
+    it("should generate the J-30 to J+30 range relative to now", () => {
       const range = buildAgendaMobileRange(now)
       const expectedFrom = startOfLocalDay(addDays(todayKey, -30), AGENDA_V1_TIMEZONE).toISOString()
-      const expectedTo = startOfLocalDay(addDays(todayKey, 63), AGENDA_V1_TIMEZONE).toISOString()
+      const expectedTo = startOfLocalDay(addDays(todayKey, 31), AGENDA_V1_TIMEZONE).toISOString()
 
       expect(range.from).toBe(expectedFrom)
       expect(range.to).toBe(expectedTo)
