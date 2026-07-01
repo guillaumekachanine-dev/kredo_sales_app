@@ -42,9 +42,16 @@ export function MobileTaskCard({
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
       className={cn(
         "w-full text-left bg-surface border border-border rounded-xl transition-all select-none cursor-pointer flex items-start gap-3 p-4 shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1",
@@ -119,6 +126,6 @@ export function MobileTaskCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
