@@ -12,7 +12,11 @@ export async function AgendaSection({ searchParams }: AgendaSectionProps) {
   const device = await getDashboardDevice()
 
   if (device === "mobile") {
-    return <AgendaMobilePage />
+    return (
+      <Suspense fallback={<AgendaDesktopSkeleton />}>
+        <AgendaMobilePage searchParams={searchParams} />
+      </Suspense>
+    )
   }
 
   return (
