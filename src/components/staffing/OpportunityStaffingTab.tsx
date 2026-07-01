@@ -145,22 +145,41 @@ export function OpportunityStaffingTab({
 
   return (
     <div className="space-y-4">
-      <section className="grid grid-cols-3 gap-2">
-        <div className="rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted">Profils</p>
-          <p className="mt-1 font-heading text-lg font-bold text-heading tabular-nums">
-            {opportunity.opportunity_candidates.length}
-          </p>
-        </div>
-        <div className="rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted">Envoyés</p>
-          <p className="mt-1 font-heading text-lg font-bold text-heading tabular-nums">{sent}</p>
-        </div>
-        <div className="rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted">Retenus</p>
-          <p className="mt-1 font-heading text-lg font-bold text-heading tabular-nums">
-            {retained} / {opportunity.required_headcount}
-          </p>
+      <section className="relative overflow-hidden px-1 py-1 sm:grid sm:grid-cols-3 sm:gap-2 sm:px-0 sm:py-0">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-1 top-1 h-10 w-14 -skew-x-[22deg] rounded-sm opacity-70 sm:hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(37,84,184,0.18) 0%, rgba(37,84,184,0.03) 100%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-6 top-2 h-7 w-8 -skew-x-[22deg] rounded-sm opacity-80 sm:hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(198,146,20,0.24) 0%, rgba(198,146,20,0.04) 100%)",
+          }}
+        />
+
+        <div className="grid grid-cols-3 gap-3 pt-1 sm:contents">
+          <div className="min-w-0 px-1 sm:rounded-[var(--radius-medium)] sm:border sm:border-border sm:bg-surface sm:px-3 sm:py-2.5">
+            <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-muted">Profils</p>
+            <p className="mt-1 font-heading text-[1.1rem] font-bold leading-none text-heading tabular-nums sm:text-lg">
+              {opportunity.opportunity_candidates.length}
+            </p>
+          </div>
+          <div className="min-w-0 border-l border-border/35 px-1.5 sm:rounded-[var(--radius-medium)] sm:border sm:border-border sm:bg-surface sm:px-3 sm:py-2.5">
+            <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-muted">Envoyés</p>
+            <p className="mt-1 font-heading text-[1.1rem] font-bold leading-none text-heading tabular-nums sm:text-lg">{sent}</p>
+          </div>
+          <div className="min-w-0 border-l border-border/35 px-1.5 sm:rounded-[var(--radius-medium)] sm:border sm:border-border sm:bg-surface sm:px-3 sm:py-2.5">
+            <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-muted">Retenus</p>
+            <p className="mt-1 font-heading text-[1.1rem] font-bold leading-none text-heading tabular-nums sm:text-lg">
+              {retained} / {opportunity.required_headcount}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -212,7 +231,7 @@ export function OpportunityStaffingTab({
                     variant="secondary"
                     size="sm"
                     onClick={() => onOpenCandidate(positioning)}
-                    className="h-7 rounded-[10px] px-2.5 text-[10px] hover:bg-[color:var(--color-candidate-accent)]/6 focus-visible:ring-[color:var(--color-candidate-accent)]"
+                    className="h-6 min-w-0 rounded-[9px] px-2 text-[9px] hover:bg-[color:var(--color-candidate-accent)]/6 focus-visible:ring-[color:var(--color-candidate-accent)]"
                     style={{
                       borderColor: CANDIDATE_ACCENT,
                       color: CANDIDATE_ACCENT,
@@ -224,24 +243,24 @@ export function OpportunityStaffingTab({
                   </Button>
                 </div>
 
-                <div className="mt-3 grid grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.7fr)] gap-x-3 gap-y-3 border-t border-border/70 pt-3 text-[10px]">
-                  <div>
+                <div className="mt-2.5 grid grid-cols-3 gap-x-3 gap-y-3 pl-[10px] text-[10px]">
+                  <div className="min-w-0">
                     <p className="font-bold uppercase tracking-wider text-muted">Disponibilité</p>
                     <p className="mt-1 font-semibold text-body">{getAvailability(positioning)}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-bold uppercase tracking-wider text-muted">Prétentions</p>
                     <p className="mt-1 font-semibold text-body">
                       {formatSalary(candidate.expected_salary)}
                     </p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-bold uppercase tracking-wider text-muted">MCO staffing</p>
                     <p className="mt-1 font-semibold text-body">{getMcoStaffing(positioning, opportunity)}</p>
                   </div>
                 </div>
 
-                <div className="mt-4.5 text-[10px]">
+                <div className="mt-4.5 pl-[10px] text-[10px]">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="font-bold uppercase tracking-wider text-muted">
                       Prochaine action

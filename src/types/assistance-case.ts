@@ -33,6 +33,13 @@ export interface AssistanceCasePositioning {
   candidate: StaffingDrawerCandidate
 }
 
+export interface AssistanceCaseClientContact {
+  id: string
+  full_name: string
+  job_title: string | null
+  role: string | null
+}
+
 export interface AssistanceCaseOpportunity {
   id: string
   title: string
@@ -58,8 +65,7 @@ export interface AssistanceCaseOpportunity {
   next_action_label: string | null
   next_action_at: string | null
   required_headcount: number
-  client_contact_name: string | null
-  client_contact_role: string | null
+  client_contacts: AssistanceCaseClientContact[]
   company: {
     id: string
     name: string

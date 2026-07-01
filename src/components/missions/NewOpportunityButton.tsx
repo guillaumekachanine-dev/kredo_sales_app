@@ -11,9 +11,11 @@ import { cn } from "@/lib/utils"
 export function NewOpportunityButton({
   fullWidth = false,
   className,
+  iconOnly = false,
 }: {
   fullWidth?: boolean
   className?: string
+  iconOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
 
@@ -25,11 +27,13 @@ export function NewOpportunityButton({
         className={cn(
           "inline-flex h-7 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-3.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 active:scale-[.98] transition-all",
           fullWidth && "w-full",
+          iconOnly && "w-7 px-0",
           className,
         )}
         title="Nouveau besoin"
+        aria-label="Nouveau besoin"
       >
-        <span className="whitespace-nowrap">+ Nouveau besoin</span>
+        <span className="whitespace-nowrap">{iconOnly ? "+" : "+ Nouveau besoin"}</span>
       </button>
 
       <NewOpportunityDrawer open={open} onOpenChange={setOpen} />

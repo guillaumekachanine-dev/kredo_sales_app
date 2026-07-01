@@ -5,6 +5,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Textarea } from "@/components/ui/Textarea"
+import { cn } from "@/lib/utils"
 import type {
   AssistanceCaseOpportunity,
   AssistanceCasePositioning,
@@ -18,6 +19,7 @@ interface RecruitmentInitiationButtonProps {
   size?: "sm" | "md"
   dashed?: boolean
   fullWidth?: boolean
+  className?: string
 }
 
 interface RecruitmentInitiationDialogProps {
@@ -136,6 +138,7 @@ export function RecruitmentInitiationButton({
   size = "sm",
   dashed = false,
   fullWidth = false,
+  className,
 }: RecruitmentInitiationButtonProps) {
   return (
     <Button
@@ -143,9 +146,12 @@ export function RecruitmentInitiationButton({
       size={size}
       onClick={onClick}
       fullWidth={fullWidth}
-      className={dashed
-        ? "rounded-[10px] border-2 border-dashed bg-transparent text-[11px] font-bold"
-        : "h-8 min-w-0 overflow-hidden rounded-[10px] border-[1.5px] bg-transparent px-3 text-[11px] font-bold shadow-none transition-[transform,box-shadow,background-color,border-color,color] duration-200 hover:-translate-y-0.5 hover:bg-transparent hover:shadow-[0_10px_18px_rgba(0,200,83,0.16)] before:absolute before:inset-y-0 before:left-[-30%] before:w-8 before:-skew-x-12 before:bg-white/55 before:opacity-0 before:transition-[transform,opacity] before:duration-500 before:ease-out hover:before:translate-x-[320%] hover:before:opacity-100 sm:h-8"}
+      className={cn(
+        dashed
+          ? "rounded-[10px] border-2 border-dashed bg-transparent text-[11px] font-bold"
+          : "h-8 min-w-0 overflow-hidden rounded-[10px] border-[1.5px] bg-transparent px-3 text-[11px] font-bold shadow-none transition-[transform,box-shadow,background-color,border-color,color] duration-200 hover:-translate-y-0.5 hover:bg-transparent hover:shadow-[0_10px_18px_rgba(0,200,83,0.16)] before:absolute before:inset-y-0 before:left-[-30%] before:w-8 before:-skew-x-12 before:bg-white/55 before:opacity-0 before:transition-[transform,opacity] before:duration-500 before:ease-out hover:before:translate-x-[320%] hover:before:opacity-100 sm:h-8",
+        className,
+      )}
       style={{
         borderColor: EMERALD_ACCENT,
         color: EMERALD_ACCENT,

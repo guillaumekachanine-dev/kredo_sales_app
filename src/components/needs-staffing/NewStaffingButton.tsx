@@ -18,6 +18,8 @@ export interface OpenNeedOption {
 interface NewStaffingButtonProps {
   openNeeds: OpenNeedOption[]
   fullWidth?: boolean
+  className?: string
+  iconOnly?: boolean
 }
 
 const INITIAL_STATUS_OPTIONS = [
@@ -30,6 +32,8 @@ const INITIAL_STATUS_OPTIONS = [
 export function NewStaffingButton({
   openNeeds,
   fullWidth = false,
+  className,
+  iconOnly = false,
 }: NewStaffingButtonProps) {
   const [open, setOpen] = useState(false)
   const [selectedNeedId, setSelectedNeedId] = useState("")
@@ -116,8 +120,16 @@ export function NewStaffingButton({
 
   return (
     <>
-      <Button variant="primary" size="sm" fullWidth={fullWidth} onClick={handleOpen}>
-        + Nouveau staffing
+      <Button
+        variant="primary"
+        size="sm"
+        fullWidth={fullWidth}
+        onClick={handleOpen}
+        className={cn(iconOnly && "min-w-7 w-7 px-0", className)}
+        aria-label="Nouveau staffing"
+        title="Nouveau staffing"
+      >
+        {iconOnly ? "+" : "+ Nouveau staffing"}
       </Button>
 
       <AppDialog

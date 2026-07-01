@@ -21,9 +21,34 @@ export interface UnlinkContactInput {
   contact_id: string
 }
 
+export interface SaveOpportunityClientContactsInput {
+  opportunity_id: string
+  contacts: Array<{
+    contact_id: string
+    role: ContactRole | null
+  }>
+}
+
 export type ContactActionResult =
   | { success: true; error?: never }
   | { success?: never; error: string }
+
+async function countOpportunityContacts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  opportunityId: string,
+) {
+  const { count, error } = await supabase
+    .from("opportunity_contacts")
+    .select("contact_id", { count: "exact", head: true })
+    .eq("opportunity_id", opportunityId)
+
+  if (error) {
+    console.error("Erreur lors du comptage des contacts liés :", error)
+    return null
+  }
+
+  return count ?? 0
+}
 
 export async function linkOpportunityContact(
   input: LinkContactInput
@@ -53,6 +78,11 @@ export async function linkOpportunityContact(
 
   if (existingLink) {
     return { error: "Ce contact est déjà lié à cette opportunité." }
+  }
+
+  const existingCount = await countOpportunityContacts(supabase, input.opportunity_id)
+  if (existingCount !== null && existingCount >= 2) {
+    return { error: "Deux contacts maximum peuvent être liés à cette opportunité." }
   }
 
   const { error } = await supabase
@@ -175,6 +205,11 @@ export async function createAndLinkOpportunityContact(
     return { error: "L'opportunité doit être associée à un client pour y lier un contact." }
   }
 
+  const existingCount = await countOpportunityContacts(supabase, input.opportunity_id)
+  if (existingCount !== null && existingCount >= 2) {
+    return { error: "Deux contacts maximum peuvent être liés à cette opportunité." }
+  }
+
   // 2. Étape 1 : Création de la personne
   const { data: person, error: personError } = await supabase
     .from("persons")
@@ -220,6 +255,108 @@ export async function createAndLinkOpportunityContact(
   if (linkError) {
     console.error("Erreur lors de la liaison du nouveau contact :", linkError)
     return { error: `Liaison à l'opportunité impossible : ${linkError.message}` }
+  }
+
+  revalidatePath("/missions/opps")
+  return { success: true }
+}
+
+export async function saveOpportunityClientContacts(
+  input: SaveOpportunityClientContactsInput,
+): Promise<ContactActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { error: "Non authentifié. Veuillez vous reconnecter." }
+  }
+
+  const sanitizedContacts = Array.from(
+    new Map(
+      input.contacts
+        .filter((contact) => contact.contact_id)
+        .map((contact) => [
+          contact.contact_id,
+          {
+            contact_id: contact.contact_id,
+            role: contact.role,
+          },
+        ]),
+    ).values(),
+  )
+
+  if (sanitizedContacts.length > 2) {
+    return { error: "Deux contacts maximum peuvent être enregistrés pour cette opportunité." }
+  }
+
+  const { data: opportunity, error: opportunityError } = await supabase
+    .from("opportunities")
+    .select("id, company_id")
+    .eq("id", input.opportunity_id)
+    .maybeSingle()
+
+  if (opportunityError) {
+    console.error("Erreur lors de la récupération de l'opportunité :", opportunityError)
+    return { error: `Impossible de récupérer l'opportunité : ${opportunityError.message}` }
+  }
+
+  if (!opportunity) {
+    return { error: "Opportunité introuvable." }
+  }
+
+  if (sanitizedContacts.length > 0) {
+    const companyId = opportunity.company_id
+    if (!companyId) {
+      return { error: "Cette opportunité n'est liée à aucun compte client." }
+    }
+
+    const contactIds = sanitizedContacts.map((contact) => contact.contact_id)
+    const { data: matchingContacts, error: contactsError } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("company_id", companyId)
+      .in("id", contactIds)
+
+    if (contactsError) {
+      console.error("Erreur lors de la validation des contacts :", contactsError)
+      return { error: `Impossible de valider les contacts : ${contactsError.message}` }
+    }
+
+    const validContactIds = new Set((matchingContacts ?? []).map((contact) => contact.id))
+    if (validContactIds.size !== contactIds.length) {
+      return { error: "Tous les contacts sélectionnés doivent appartenir au compte de l'opportunité." }
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from("opportunity_contacts")
+    .delete()
+    .eq("opportunity_id", input.opportunity_id)
+
+  if (deleteError) {
+    console.error("Erreur lors du nettoyage des contacts d'opportunité :", deleteError)
+    return { error: `Impossible de mettre à jour les contacts : ${deleteError.message}` }
+  }
+
+  if (sanitizedContacts.length > 0) {
+    const { error: insertError } = await supabase
+      .from("opportunity_contacts")
+      .insert(
+        sanitizedContacts.map((contact) => ({
+          opportunity_id: input.opportunity_id,
+          contact_id: contact.contact_id,
+          role: contact.role,
+        })),
+      )
+
+    if (insertError) {
+      console.error("Erreur lors de la sauvegarde des contacts d'opportunité :", insertError)
+      return { error: `Enregistrement impossible : ${insertError.message}` }
+    }
   }
 
   revalidatePath("/missions/opps")

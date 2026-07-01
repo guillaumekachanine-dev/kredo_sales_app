@@ -237,12 +237,13 @@ export function OpportunityRecruitmentTab({
                   <RecruitmentInitiationButton
                     label="Initier"
                     onClick={() => onInitiateRecruitment(positioning)}
+                    className="h-7 rounded-[9px] px-2.5 text-[10px] sm:h-7"
                   />
                 )}
               </div>
 
               {process ? (
-                <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/70 pt-3">
+                <div className="mt-2.5 grid grid-cols-3 gap-3 pt-3">
                   <DataBlock
                     label="Séniorité"
                     value={positioning.candidate.seniority ?? "—"}

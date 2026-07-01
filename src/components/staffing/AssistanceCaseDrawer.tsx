@@ -34,6 +34,7 @@ import {
 } from "./RecruitmentInitiationDialog"
 import { StaffingProcessStepper } from "./StaffingProcessStepper"
 import type {
+  AssistanceCaseClientContact,
   AssistanceCaseEvent,
   AssistanceCaseOpportunity,
   AssistanceCasePositioning,
@@ -47,6 +48,81 @@ import type {
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message
   return "Erreur de chargement du dossier assistance technique."
+}
+
+type RawOpportunityContactRow = {
+  role: string | null
+  contacts:
+    | {
+        id: string
+        job_title: string | null
+        persons:
+          | {
+              full_name: string | null
+              first_name: string | null
+              last_name: string | null
+            }
+          | Array<{
+              full_name: string | null
+              first_name: string | null
+              last_name: string | null
+            }>
+          | null
+      }
+    | Array<{
+        id: string
+        job_title: string | null
+        persons:
+          | {
+              full_name: string | null
+              first_name: string | null
+              last_name: string | null
+            }
+          | Array<{
+              full_name: string | null
+              first_name: string | null
+              last_name: string | null
+            }>
+          | null
+      }>
+    | null
+}
+
+function getSingleRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
+function formatClientContactName(person: {
+  full_name: string | null
+  first_name: string | null
+  last_name: string | null
+} | null) {
+  if (!person) return null
+  if (person.full_name?.trim()) return person.full_name.trim()
+  return [person.first_name, person.last_name].filter(Boolean).join(" ").trim() || null
+}
+
+function mapOpportunityClientContacts(
+  rows: RawOpportunityContactRow[] | undefined,
+): AssistanceCaseClientContact[] {
+  return (rows ?? [])
+    .map((row) => {
+      const contact = getSingleRelation(row.contacts)
+      if (!contact?.id) return null
+
+      const person = getSingleRelation(contact.persons)
+      const fullName = formatClientContactName(person)
+      if (!fullName) return null
+
+      return {
+        id: contact.id,
+        full_name: fullName,
+        job_title: contact.job_title,
+        role: row.role,
+      }
+    })
+    .filter((contact): contact is AssistanceCaseClientContact => contact !== null)
 }
 
 function DrawerSkeleton() {
@@ -115,21 +191,11 @@ export function AssistanceCaseDrawer() {
   const [editingMode, setEditingMode] = useState<"candidate" | "opportunity" | null>(null)
   const [dirty, setDirty] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(max-width: 640px)").matches : false,
-  )
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
   const [recruitmentDraftPositioning, setRecruitmentDraftPositioning] =
     useState<AssistanceCasePositioning | null>(null)
   const [, startTransition] = useTransition()
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 640px)")
-    const listener = (event: MediaQueryListEvent) => setIsMobile(event.matches)
-    media.addEventListener("change", listener)
-    return () => media.removeEventListener("change", listener)
-  }, [])
 
   useEffect(() => {
     if (!isOpen || (!opportunityId && !staffingId)) return
@@ -172,6 +238,14 @@ export function AssistanceCaseDrawer() {
               opened_at, start_date, target_close_date, next_action_label, next_action_at,
               required_headcount,
               company:companies ( id, name, website, metadata ),
+              opportunity_contacts (
+                role,
+                contacts (
+                  id,
+                  job_title,
+                  persons ( full_name, first_name, last_name )
+                )
+              ),
               opportunity_skills (
                 id, importance, min_level, min_years, weight, comment,
                 skill:skills ( id, name, category )
@@ -237,9 +311,12 @@ export function AssistanceCaseDrawer() {
         const practiceMap = new Map(
           (practicesResult.data ?? []).map((practice) => [practice.id, practice]),
         )
-        const rawOpportunity = opportunityResult.data as unknown as AssistanceCaseOpportunity
+        const rawOpportunity = opportunityResult.data as unknown as AssistanceCaseOpportunity & {
+          opportunity_contacts?: RawOpportunityContactRow[]
+        }
         const hydratedOpportunity: AssistanceCaseOpportunity = {
           ...rawOpportunity,
+          client_contacts: mapOpportunityClientContacts(rawOpportunity.opportunity_contacts),
           opportunity_candidates: (rawOpportunity.opportunity_candidates ?? []).map(
             (positioning) => ({
               ...positioning,
@@ -531,6 +608,7 @@ export function AssistanceCaseDrawer() {
             opportunity={opportunity}
             events={events}
             onCreateEvent={openCreateOpportunityEventDrawer}
+            onContactsSaved={() => setReloadKey((current) => current + 1)}
           />
         )
       case "staffing":
@@ -668,14 +746,16 @@ export function AssistanceCaseDrawer() {
         isCandidateEditing ? "Modification du dossier candidat" : undefined
       }
       eyebrow="Dossier assistance technique"
-      className={isMobile ? "w-full max-w-full" : "max-w-[720px]"}
+      className="w-screen max-w-screen overflow-x-hidden md:w-full md:max-w-[720px]"
+      hideMobileBackBtn={true}
+      showMobileCloseButton={true}
       loading={loading && !opportunity}
     >
       {loading && !opportunity && <DrawerSkeleton />}
 
       {!loading && opportunity && !isCandidateEditing && (
         <div
-          className="-mt-4 mb-4 flex items-center gap-0 border-b border-border select-none"
+          className="-mx-4 -mt-4 mb-5 flex min-h-11 sticky top-0 z-20 items-stretch gap-0 border-b border-border bg-surface px-4 select-none sm:static sm:mx-0 sm:min-h-0 sm:px-0"
           role="tablist"
         >
           {tabs.map(({ id, label }) => {
@@ -686,7 +766,7 @@ export function AssistanceCaseDrawer() {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveTab(id)}
-                className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none cursor-pointer"
+                className="min-h-11 px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline-none cursor-pointer sm:min-h-0 sm:py-2"
                 style={{
                   color: isActive ? "var(--color-primary)" : "var(--color-muted)",
                   borderBottom: isActive

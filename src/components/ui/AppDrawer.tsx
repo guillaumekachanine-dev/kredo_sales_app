@@ -52,6 +52,7 @@ export interface AppDrawerProps {
   onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
   closeLabel?: string
   hideMobileBackBtn?: boolean
+  showMobileCloseButton?: boolean
 }
 
 function DrawerLoadingState() {
@@ -108,6 +109,7 @@ export function AppDrawer({
   onRequestClose,
   closeLabel = "Fermer",
   hideMobileBackBtn = false,
+  showMobileCloseButton = false,
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -191,7 +193,7 @@ export function AppDrawer({
   const headerDescription = description ?? subtitle
   const headerDescriptionId = headerDescription ? descriptionId : undefined
   const titleContent = React.isValidElement(title) ? (
-    <div id={titleId} className="min-w-0">
+    <div id={titleId} className="min-w-0 max-w-full overflow-hidden">
       {title}
     </div>
   ) : (
@@ -298,7 +300,10 @@ export function AppDrawer({
                   variant="ghost"
                   size="sm"
                   onClick={() => requestClose("close-button")}
-                  className="hidden sm:inline-flex"
+                  className={cn(
+                    "self-start",
+                    showMobileCloseButton ? "inline-flex" : "hidden sm:inline-flex",
+                  )}
                 >
                   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

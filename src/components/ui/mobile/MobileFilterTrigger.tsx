@@ -25,6 +25,7 @@ export type MobileFilterTriggerProps = {
   onClick: () => void
   disabled?: boolean
   className?: string
+  compact?: boolean
 }
 
 export function MobileFilterTrigger({
@@ -33,6 +34,7 @@ export function MobileFilterTrigger({
   onClick,
   disabled,
   className,
+  compact = false,
 }: MobileFilterTriggerProps) {
   const ariaLabel =
     activeCount > 0
@@ -47,7 +49,12 @@ export function MobileFilterTrigger({
       onClick={onClick}
       leftIcon={<IconFilter />}
       aria-label={ariaLabel}
-      className={cn("relative min-h-[44px]", className)}
+      className={cn(
+        "relative min-h-[44px]",
+        compact && "px-2.5 text-xs",
+        className,
+      )}
+      style={compact ? { height: "1.75rem", minHeight: "1.75rem" } : undefined}
     >
       {label}
       {activeCount > 0 ? (

@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef, useTransition, useMemo, type KeyboardEvent, type PointerEvent } from "react"
-import Link from "next/link"
 import { curveCatmullRom, line } from "d3-shape"
+import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
 import { getContactsByCompany } from "@/lib/agenda/agenda-actions"
 import type { AgendaSelectContact } from "@/lib/agenda/agenda-types"
+import { saveOpportunityClientContacts } from "@/app/(app)/missions/_actions/opportunity-contacts"
 import {
   OPPORTUNITY_ACTIVE_STAGES,
   getOpportunityPipelineIndex,
@@ -12,11 +13,13 @@ import {
 import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
 import type { AssistanceCaseEvent, AssistanceCaseOpportunity } from "@/types/assistance-case"
 import type { Json } from "@/types/database"
+import type { ContactRole } from "@/types/database-domain"
 
 interface OpportunityNeedTabProps {
   opportunity: AssistanceCaseOpportunity
   events?: AssistanceCaseEvent[]
   onCreateEvent?: () => void
+  onContactsSaved?: () => void
 }
 
 const IMPORTANCE_LABELS: Record<string, string> = {
@@ -25,16 +28,19 @@ const IMPORTANCE_LABELS: Record<string, string> = {
   bonus: "Bonus",
 }
 
-const MISSION_ROLES = [
-  "Opérationnel",
-  "Manager technique",
-  "Responsable métier",
-  "Décideur achat",
-  "Facturation",
-  "RH / Recrutement",
-  "Prescripteur",
-  "Autre",
+const CLIENT_CONTACT_ROLE_OPTIONS: Array<{ value: ContactRole; label: string }> = [
+  { value: "manager_operationnel", label: "Manager opérationnel" },
+  { value: "contact_technique", label: "Contact technique" },
+  { value: "decideur", label: "Décisionnaire" },
+  { value: "sponsor", label: "Sponsor" },
+  { value: "acheteur", label: "Acheteur" },
+  { value: "rh", label: "RH" },
+  { value: "validateur_final", label: "Validateur final" },
 ]
+
+const CLIENT_CONTACT_ROLE_LABELS = Object.fromEntries(
+  CLIENT_CONTACT_ROLE_OPTIONS.map((option) => [option.value, option.label]),
+) as Record<ContactRole, string>
 
 // ── Timeline D3 constants ────────────────────────────────────────────────────
 
@@ -209,8 +215,8 @@ function getContextText(context: Json) {
 function DataItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <div className="mt-1 text-xs font-semibold leading-snug text-heading">{value}</div>
+      <p className="text-[10px] font-normal text-muted">{label}</p>
+      <div className="mt-0.5 text-xs font-semibold leading-relaxed text-heading">{value}</div>
     </div>
   )
 }
@@ -494,80 +500,249 @@ function OpportunityNeedTimeline({ stage }: { stage: string }) {
 
 // ── Client Contact Section ───────────────────────────────────────────────────
 
-function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOpportunity }) {
+type DraftClientContact = {
+  id: string
+  full_name: string
+  job_title: string | null
+  role: ContactRole | null
+}
+
+function buildDraftClientContacts(
+  clientContacts: AssistanceCaseOpportunity["client_contacts"],
+): DraftClientContact[] {
+  return clientContacts.map((contact) => ({
+    id: contact.id,
+    full_name: contact.full_name,
+    job_title: contact.job_title,
+    role: (contact.role as ContactRole | null) ?? null,
+  }))
+}
+
+function ClientContactSection({
+  opportunity,
+  onContactsSaved,
+}: {
+  opportunity: AssistanceCaseOpportunity
+  onContactsSaved?: () => void
+}) {
+  const companyId = opportunity.company?.id ?? null
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
+  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false)
   const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
   const [search, setSearch] = useState("")
-  const [selectedContact, setSelectedContact] = useState<AgendaSelectContact | null>(null)
-  const [selectedRole, setSelectedRole] = useState("")
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [isSearchActive, setIsSearchActive] = useState(false)
+  const savedContacts = useMemo(
+    () => buildDraftClientContacts(opportunity.client_contacts),
+    [opportunity.client_contacts],
+  )
+  const [optimisticSavedContacts, setOptimisticSavedContacts] = useState<{
+    opportunityId: string
+    contacts: DraftClientContact[]
+  } | null>(null)
+  const [draftContacts, setDraftContacts] = useState<DraftClientContact[]>([])
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const modalRef = useRef<HTMLDivElement>(null)
+  const comboboxRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const optimisticContactsForOpportunity =
+    optimisticSavedContacts?.opportunityId === opportunity.id
+      ? optimisticSavedContacts.contacts
+      : null
+  const displayedContacts =
+    optimisticContactsForOpportunity &&
+    optimisticContactsForOpportunity.length === savedContacts.length &&
+    optimisticContactsForOpportunity.every((contact, index) => (
+      contact.id === savedContacts[index]?.id &&
+      contact.role === savedContacts[index]?.role &&
+      contact.job_title === savedContacts[index]?.job_title &&
+      contact.full_name === savedContacts[index]?.full_name
+    ))
+      ? savedContacts
+      : optimisticContactsForOpportunity ?? savedContacts
 
   useEffect(() => {
-    if (!isOpen || !opportunity.company?.id) return
+    if (!isOpen || !companyId) return
     startTransition(async () => {
-      const result = await getContactsByCompany(opportunity.company!.id)
+      const result = await getContactsByCompany(companyId)
       setContacts(result)
     })
-  }, [isOpen, opportunity.company?.id])
+  }, [companyId, isOpen])
 
   useEffect(() => {
-    if (isOpen) setTimeout(() => searchRef.current?.focus(), 50)
+    if (!isOpen) return
+
+    const timeoutId = window.setTimeout(() => searchRef.current?.focus(), 50)
+    return () => window.clearTimeout(timeoutId)
   }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
     function handleClick(e: MouseEvent) {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (modalRef.current && !modalRef.current.contains(target)) {
         setIsOpen(false)
+        setIsSearchActive(false)
+        return
+      }
+
+      if (comboboxRef.current && !comboboxRef.current.contains(target)) {
+        setIsSearchActive(false)
       }
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
   }, [isOpen])
 
+  const selectedContactIds = new Set(draftContacts.map((contact) => contact.id))
+
   const filtered = contacts.filter((c) =>
+    !selectedContactIds.has(c.id) && (
     c.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    c.job_title?.toLowerCase().includes(search.toLowerCase()),
+    c.job_title?.toLowerCase().includes(search.toLowerCase())
+    ),
   )
 
-  function handleSave() {
-    // TODO: persist via server action
-    setIsOpen(false)
+  function handleAddContact(contact: AgendaSelectContact) {
+    if (draftContacts.length >= 2) return
+    setDraftContacts((current) => [
+      ...current,
+      {
+        id: contact.id,
+        full_name: contact.full_name,
+        job_title: contact.job_title || null,
+        role: null,
+      },
+    ])
+    setSearch("")
+    setIsSearchActive(false)
+    setErrorMsg(null)
   }
 
-  const hasContact = Boolean(opportunity.client_contact_name)
+  function handleDraftRoleChange(contactId: string, role: string) {
+    setDraftContacts((current) =>
+      current.map((contact) =>
+        contact.id === contactId
+          ? { ...contact, role: role === "" ? null : (role as ContactRole) }
+          : contact,
+      ),
+    )
+  }
+
+  function handleRemoveDraftContact(contactId: string) {
+    setDraftContacts((current) => current.filter((contact) => contact.id !== contactId))
+    setErrorMsg(null)
+  }
+
+  function handleSave() {
+    setErrorMsg(null)
+    startTransition(async () => {
+      const result = await saveOpportunityClientContacts({
+        opportunity_id: opportunity.id,
+        contacts: draftContacts.map((contact) => ({
+          contact_id: contact.id,
+          role: contact.role,
+        })),
+      })
+
+      if (result.error) {
+        setErrorMsg(result.error)
+        return
+      }
+
+      setOptimisticSavedContacts({
+        opportunityId: opportunity.id,
+        contacts: draftContacts,
+      })
+      onContactsSaved?.()
+      setIsOpen(false)
+    })
+  }
+
+  function openEditor() {
+    setDraftContacts(displayedContacts)
+    setSearch("")
+    setIsSearchActive(false)
+    setErrorMsg(null)
+    setIsOpen(true)
+  }
+
+  function openContactSheet(contactId: string) {
+    setSelectedContactId(contactId)
+    setIsContactDrawerOpen(true)
+  }
+
+  const hasContacts = displayedContacts.length > 0
 
   return (
     <section>
-      <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
-        Opérationnel client
-      </h3>
-
-      {hasContact ? (
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-semibold text-heading">
-              {opportunity.client_contact_name}
-            </p>
-            {opportunity.client_contact_role && (
-              <p className="text-[10px] text-muted">{opportunity.client_contact_role}</p>
-            )}
-          </div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
+          Opérationnel client
+        </h3>
+        {hasContacts ? (
           <button
             type="button"
-            onClick={() => setIsOpen(true)}
+            onClick={openEditor}
             className="shrink-0 text-[10px] font-medium text-muted underline-offset-2 hover:text-heading hover:underline focus-visible:outline-none"
           >
             Modifier
           </button>
+        ) : null}
+      </div>
+
+      {hasContacts ? (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-1">
+          {displayedContacts.map((contact) => (
+            <div key={contact.id} className="min-w-0">
+              <div className="flex items-start gap-2.5">
+                <span
+                  className="mt-0.5 inline-flex min-h-8 shrink-0 items-center justify-center text-muted"
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="size-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19a5 5 0 0 0-10 0" />
+                    <circle cx="10" cy="8" r="3.25" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h3m-1.5-1.5v3" />
+                  </svg>
+                </span>
+
+                <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                  <p className="text-[11px] font-semibold leading-[1.15] text-heading">
+                    {contact.full_name}
+                  </p>
+                  <p className="text-[9px] font-medium leading-[1.1] text-muted">
+                    {contact.role
+                      ? CLIENT_CONTACT_ROLE_LABELS[contact.role]
+                      : "Role sur la mission non renseigne"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => openContactSheet(contact.id)}
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold leading-none text-primary transition-opacity hover:opacity-80 focus-visible:outline-none"
+                  >
+                    Fiche contact
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.15}
+                      className="size-3"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 12h10M13 8l4 4-4 4" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={openEditor}
           className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-75 focus-visible:outline-none"
           style={{ color: "var(--color-brand-ember)" }}
         >
@@ -581,13 +756,18 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "color-mix(in srgb, var(--color-bg) 60%, transparent)" }}
+          style={{ background: "color-mix(in srgb, var(--color-brand-ember) 14%, rgba(22, 18, 15, 0.42))" }}
         >
           <div
             ref={modalRef}
-            className="w-full max-w-sm rounded-[var(--radius-large)] border border-border bg-surface p-5 shadow-xl"
+            className="w-full max-w-sm rounded-[var(--radius-large)] border p-5 shadow-xl"
+            style={{
+              borderColor: "color-mix(in srgb, var(--color-brand-ember) 14%, var(--color-border))",
+              background:
+                "linear-gradient(180deg, color-mix(in srgb, var(--color-brand-ember) 7%, var(--color-surface)) 0%, color-mix(in srgb, #f5efe5 54%, var(--color-surface)) 100%)",
+            }}
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-heading">Contact opérationnel client</p>
               <button
                 type="button"
@@ -601,26 +781,80 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
               </button>
             </div>
 
+            {errorMsg ? (
+              <div className="mb-3 rounded-[var(--radius-medium)] border border-danger/20 bg-danger/8 px-3 py-2 text-[10px] text-danger">
+                {errorMsg}
+              </div>
+            ) : null}
+
+            {draftContacts.length > 0 ? (
+              <div className="mb-4 space-y-2">
+                {draftContacts.map((contact) => (
+                  <div
+                    key={contact.id}
+                    className="rounded-[var(--radius-medium)] border border-border bg-bg px-3 py-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-semibold text-heading">
+                          {contact.full_name}
+                        </p>
+                        <p className="truncate text-[10px] text-muted">
+                          {contact.job_title?.trim() || "Fonction non renseignée"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDraftContact(contact.id)}
+                        className="shrink-0 text-[10px] font-medium text-muted underline-offset-2 hover:text-heading hover:underline focus-visible:outline-none"
+                      >
+                        Retirer
+                      </button>
+                    </div>
+
+                    <div className="mt-2">
+                      <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                        Rôle sur la mission
+                      </label>
+                      <select
+                        value={contact.role ?? ""}
+                        onChange={(e) => handleDraftRoleChange(contact.id, e.target.value)}
+                        className="w-full rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2 text-xs text-heading focus:border-[var(--color-brand-ember)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand-ember)_20%,transparent)]"
+                      >
+                        <option value="">— Aucun rôle spécifique —</option>
+                        {CLIENT_CONTACT_ROLE_OPTIONS.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             {/* Contact combobox */}
-            <div className="mb-3">
+            {draftContacts.length < 2 ? (
+            <div className="mb-5">
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                Contact du compte
+                Ajouter un contact du compte
               </label>
-              <div className="relative">
+              <div ref={comboboxRef} className="relative">
                 <input
                   ref={searchRef}
                   type="text"
-                  value={selectedContact ? selectedContact.full_name : search}
+                  value={search}
+                  onFocus={() => setIsSearchActive(true)}
+                  onClick={() => setIsSearchActive(true)}
                   onChange={(e) => {
                     setSearch(e.target.value)
-                    setSelectedContact(null)
-                    setShowDropdown(true)
+                    setIsSearchActive(true)
                   }}
-                  onFocus={() => setShowDropdown(true)}
                   placeholder={isPending ? "Chargement…" : "Rechercher un contact…"}
-                  className="w-full rounded-[var(--radius-medium)] border border-border bg-bg px-3 py-2 text-xs text-heading placeholder:text-muted focus:border-[var(--color-brand-ember)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand-ember)_20%,transparent)]"
+                  className="w-full rounded-[var(--radius-medium)] border border-border bg-[color-mix(in_srgb,var(--color-bg)_72%,white)] px-3 py-2 text-xs text-heading placeholder:text-muted focus:border-[var(--color-brand-ember)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand-ember)_20%,transparent)]"
                 />
-                {showDropdown && filtered.length > 0 && !selectedContact && (
+                {isSearchActive && filtered.length > 0 ? (
                   <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-surface shadow-lg">
                     {filtered.map((c) => (
                       <li key={c.id}>
@@ -628,9 +862,7 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
                           type="button"
                           className="w-full px-3 py-2 text-left text-xs hover:bg-border focus-visible:outline-none"
                           onClick={() => {
-                            setSelectedContact(c)
-                            setSearch("")
-                            setShowDropdown(false)
+                            handleAddContact(c)
                           }}
                         >
                           <span className="font-semibold text-heading">{c.full_name}</span>
@@ -641,31 +873,15 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
                       </li>
                     ))}
                   </ul>
-                )}
-                {showDropdown && !isPending && filtered.length === 0 && search && (
+                ) : null}
+                {isSearchActive && !isPending && filtered.length === 0 && search ? (
                   <div className="absolute z-10 mt-1 w-full rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2 text-xs text-muted shadow-lg">
                     Aucun contact trouvé pour « {search} »
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
-
-            {/* Rôle select */}
-            <div className="mb-5">
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                Rôle sur la mission
-              </label>
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full rounded-[var(--radius-medium)] border border-border bg-bg px-3 py-2 text-xs text-heading focus:border-[var(--color-brand-ember)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand-ember)_20%,transparent)]"
-              >
-                <option value="">— Sélectionner un rôle —</option>
-                {MISSION_ROLES.map((role) => (
-                  <option key={role} value={role}>{role}</option>
-                ))}
-              </select>
-            </div>
+            ) : null}
 
             <div className="flex items-center justify-end gap-2">
               <button
@@ -678,7 +894,7 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={!selectedContact || !selectedRole}
+                disabled={isPending}
                 className="rounded-[var(--radius-medium)] px-4 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
                 style={{ background: "var(--color-brand-ember)" }}
               >
@@ -688,13 +904,27 @@ function ClientContactSection({ opportunity }: { opportunity: AssistanceCaseOppo
           </div>
         </div>
       )}
+
+      <ContactIdentityDrawer
+        contactId={selectedContactId}
+        open={isContactDrawerOpen}
+        onOpenChange={(open) => {
+          setIsContactDrawerOpen(open)
+          if (!open) setSelectedContactId(null)
+        }}
+      />
     </section>
   )
 }
 
 // ── Main export ──────────────────────────────────────────────────────────────
 
-export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: OpportunityNeedTabProps) {
+export function OpportunityNeedTab({
+  opportunity,
+  events = [],
+  onCreateEvent,
+  onContactsSaved,
+}: OpportunityNeedTabProps) {
   const contextText = opportunity.need_summary ?? getContextText(opportunity.context)
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
   
@@ -711,12 +941,27 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
           style={{ background: "var(--color-brand-ember)" }}
         />
         <div className="min-w-0 flex-1">
-          <p
-            className="text-[9px] font-bold uppercase tracking-[0.14em]"
-            style={{ color: "var(--color-brand-ember)" }}
-          >
-            Next step
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p
+              className="text-[9px] font-bold uppercase tracking-[0.14em]"
+              style={{ color: "var(--color-brand-ember)" }}
+            >
+              Next step
+            </p>
+            {hasEvent ? (
+              <button
+                type="button"
+                onClick={() => firstEventId && openEventDrawer(firstEventId)}
+                aria-label="Ouvrir l’événement"
+                className="inline-flex shrink-0 items-center justify-center text-[10px] transition-opacity hover:opacity-75 focus-visible:outline-none"
+                style={{ color: "var(--color-brand-ember)" }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="size-3.5" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+                </svg>
+              </button>
+            ) : null}
+          </div>
           <p className="mt-1 text-sm font-semibold leading-snug text-heading">
             {opportunity.next_action_label ?? "Qualifier la prochaine action sur le besoin"}
           </p>
@@ -726,19 +971,7 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
               : "Aucune échéance renseignée"}
           </p>
           
-          {hasEvent ? (
-            <button
-              type="button"
-              onClick={() => firstEventId && openEventDrawer(firstEventId)}
-              className="mt-2 inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-75 focus-visible:outline-none"
-              style={{ color: "var(--color-brand-ember)" }}
-            >
-              Voir événement
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="size-3" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
-              </svg>
-            </button>
-          ) : (
+          {!hasEvent ? (
             <button
               type="button"
               onClick={onCreateEvent}
@@ -750,7 +983,7 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
               </svg>
             </button>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -768,7 +1001,7 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
       </section>
 
       {/* ── Opérationnel client (pleine largeur, avec mini modale) ── */}
-      <ClientContactSection opportunity={opportunity} />
+      <ClientContactSection opportunity={opportunity} onContactsSaved={onContactsSaved} />
 
       {/* ── Cadre du besoin (flat, 3 cols) ── */}
       <section>
@@ -776,17 +1009,17 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
           Cadre du besoin
         </h3>
         <div className="grid grid-cols-3 gap-x-4 gap-y-4">
-          <DataItem label="Practice" value={opportunity.practice ?? "—"} />
-          <DataItem label="Séniorité" value={opportunity.seniority ?? "—"} />
-          <DataItem label="Localisation" value={opportunity.location ?? "—"} />
-          <DataItem label="Télétravail" value={opportunity.remote_policy ?? "—"} />
-          <DataItem label="Démarrage" value={formatDate(opportunity.start_date)} />
+          <DataItem label="practice" value={opportunity.practice ?? "—"} />
+          <DataItem label="séniorité" value={opportunity.seniority ?? "—"} />
+          <DataItem label="localisation" value={opportunity.location ?? "—"} />
+          <DataItem label="télétravail" value={opportunity.remote_policy ?? "—"} />
+          <DataItem label="démarrage" value={formatDate(opportunity.start_date)} />
           <DataItem
-            label="Durée"
+            label="durée"
             value={opportunity.duration_days ? `${opportunity.duration_days} jours` : "—"}
           />
           <DataItem
-            label="TJM cible"
+            label="tjm cible"
             value={
               opportunity.target_daily_rate
                 ? `${Math.round(opportunity.target_daily_rate)} € / j`
@@ -794,14 +1027,14 @@ export function OpportunityNeedTab({ opportunity, events = [], onCreateEvent }: 
             }
           />
           <DataItem
-            label="Marge cible"
+            label="marge cible"
             value={
               opportunity.target_margin_pct !== null
                 ? `${opportunity.target_margin_pct} %`
                 : "—"
             }
           />
-          <DataItem label="Valeur estimée" value={formatCurrency(opportunity.acv ?? opportunity.estimated_gain)} />
+          <DataItem label="valeur estimée" value={formatCurrency(opportunity.acv ?? opportunity.estimated_gain)} />
         </div>
       </section>
 

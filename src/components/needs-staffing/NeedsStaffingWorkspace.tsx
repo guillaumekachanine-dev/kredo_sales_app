@@ -35,7 +35,7 @@ import { StaffingPlanningView } from "@/components/staffing/StaffingPlanningView
 import { UnifiedPlanningView } from "@/components/needs-staffing/UnifiedPlanningView"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { formatDateShort } from "@/lib/formatters"
+import { formatEuro } from "@/lib/formatters"
 
 const PRIORITY_OPTIONS = [
   { value: "all", label: "Priorité" },
@@ -58,6 +58,11 @@ const STAFFING_STAGE_OPTIONS = [
   { value: "refuse_candidat", label: "Refus candidat" },
   { value: "abandonne", label: "Abandonné" },
 ]
+
+const EMPTY_NEEDS_ROWS: MissionsListRow[] = []
+const EMPTY_NEEDS_PLANNING: OpportunityPlanningData[] = []
+const EMPTY_STAFFING_ROWS: StaffingListRow[] = []
+const EMPTY_STAFFING_PLANNING: StaffingPlanningData[] = []
 
 interface NeedsStaffingWorkspaceProps {
   device: DashboardDevice
@@ -114,11 +119,34 @@ function ScopeSwitcher({
   )
 }
 
-function MiniKpi({ label, value }: { label: string; value: React.ReactNode }) {
+function MiniKpi({
+  label,
+  value,
+  compact,
+}: {
+  label: string
+  value: React.ReactNode
+  compact: boolean
+}) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 py-1.5 min-w-[7rem]">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-muted leading-none">{label}</p>
-      <p className="mt-1 font-heading text-lg font-bold leading-none tracking-tight text-heading">{value}</p>
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface",
+        compact ? "min-w-0 px-2 py-1.5" : "min-w-[7rem] px-4 py-1.5",
+      )}
+    >
+      <p className={cn(
+        "font-medium uppercase tracking-wider text-muted leading-none",
+        compact ? "text-[8px]" : "text-[10px]",
+      )}>
+        {label}
+      </p>
+      <p className={cn(
+        "font-heading font-bold leading-none tracking-tight text-heading",
+        compact ? "mt-0.5 text-[15px]" : "mt-1 text-lg",
+      )}>
+        {value}
+      </p>
     </div>
   )
 }
@@ -131,28 +159,12 @@ function SharedKpis({
   compact: boolean
 }) {
   return (
-    <div className={cn("flex gap-2", compact ? "flex-col" : "flex-row")}>
-      <MiniKpi label="Besoins ouverts" value={sharedData.kpis.openNeedsCount} />
-      <MiniKpi label="Positionnements" value={sharedData.kpis.activePositioningsCount} />
-      <MiniKpi label="Couverture" value={`${sharedData.kpis.coverageRate}%`} />
+    <div className={cn(compact ? "grid grid-cols-3 gap-2" : "flex gap-2")}>
+      <MiniKpi label="Besoins ouverts" value={sharedData.kpis.openNeedsCount} compact={compact} />
+      <MiniKpi label="Positionnements" value={sharedData.kpis.activePositioningsCount} compact={compact} />
+      <MiniKpi label="Couverture" value={`${sharedData.kpis.coverageRate}%`} compact={compact} />
     </div>
   )
-}
-
-function renderNeedNextAction(row: MissionsListRow) {
-  if (row.nextActionLabel && row.nextActionAt) {
-    return `${row.nextActionLabel} · ${formatDateShort(row.nextActionAt)}`
-  }
-
-  if (row.nextActionLabel) {
-    return row.nextActionLabel
-  }
-
-  if (row.nextActionAt) {
-    return formatDateShort(row.nextActionAt)
-  }
-
-  return "À qualifier"
 }
 
 function NeedsMobileCards({
@@ -173,38 +185,41 @@ function NeedsMobileCards({
           key={row.entityId}
           type="button"
           onClick={() => openOpportunityDrawer(row.entityId, "besoin")}
-          className="flex min-h-[44px] flex-col gap-3 rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-left"
+          className="relative flex min-h-[44px] flex-col gap-2 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-3 py-2.5 text-left"
+          style={{
+            borderColor: "color-mix(in srgb, var(--color-brand-ember) 55%, var(--color-border))",
+          }}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 pr-10">
+              <span className="truncate text-[13px] font-bold text-heading">{row.client}</span>
+            </div>
+          </div>
+          <p className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-body">
+            {row.title}
+          </p>
+          <div className="flex items-center gap-2 pr-10 text-[10px] font-medium text-muted">
+            <span className="truncate text-heading">
+              {row.seniority ?? row.subtitle ?? row.practice ?? "Profil non renseigné"}
+            </span>
+            <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
+            <span className="shrink-0 text-heading">
+              {row.targetDailyRate !== null && row.targetDailyRate !== undefined
+                ? `${formatEuro(row.targetDailyRate)} / j`
+                : "TJM non renseigné"}
+            </span>
+            <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
+            <span className="shrink-0 text-heading">
+              {row.priority === "haute" ? "Haute" : row.priority === "basse" ? "Basse" : "Normale"}
+            </span>
+          </div>
+          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
             <CompanyLogo
               name={row.client || "Client"}
               logoPath={row.clientLogoPath}
               website={row.clientWebsite}
-              size="sm"
+              size="md"
             />
-            <span className="text-xs font-bold text-heading">{row.client}</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-body">{row.title}</p>
-            <p className="mt-1 text-xs text-muted">{row.practice ?? "Practice non renseignée"}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Priorité</p>
-              <p className="mt-1 text-body">{row.priority ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">ACV</p>
-              <p className="mt-1 text-body">{row.amount ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Effectif</p>
-              <p className="mt-1 text-body">{row.requiredHeadcount ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Action</p>
-              <p className="mt-1 line-clamp-2 text-body">{renderNeedNextAction(row)}</p>
-            </div>
           </div>
         </button>
       ))}
@@ -288,10 +303,10 @@ export function NeedsStaffingWorkspace({
   const [planningScale, setPlanningScale] = useState<"month" | "quarter" | "year" | "week">("month")
 
   const isNeedsScope = state.scope === "needs"
-  const needsRows = needsData?.rows ?? []
-  const needsPlanning = needsData?.planningData ?? []
-  const staffingRows = staffingData?.rows ?? []
-  const staffingPlanning = staffingData?.planningData ?? []
+  const needsRows = needsData?.rows ?? EMPTY_NEEDS_ROWS
+  const needsPlanning = needsData?.planningData ?? EMPTY_NEEDS_PLANNING
+  const staffingRows = staffingData?.rows ?? EMPTY_STAFFING_ROWS
+  const staffingPlanning = staffingData?.planningData ?? EMPTY_STAFFING_PLANNING
 
   const practiceOptions = useMemo(() => {
     const source = isNeedsScope ? needsRows : staffingRows
@@ -325,7 +340,7 @@ export function NeedsStaffingWorkspace({
       sort: null,
       direction: null,
     })
-  ), [needsPlanning, state.direction, state.practice, state.priority, state.sort, state.stage])
+  ), [needsPlanning, state.practice, state.priority, state.stage])
 
   const filteredStaffingRows = useMemo(() => (
     filterStaffingRows(staffingRows, state)
@@ -363,8 +378,21 @@ export function NeedsStaffingWorkspace({
   }
 
   const createAction = isNeedsScope
-    ? <NewOpportunityButton fullWidth={isMobile} />
-    : <NewStaffingButton openNeeds={sharedData.openNeeds} fullWidth={isMobile} />
+    ? (
+      <NewOpportunityButton
+        fullWidth={false}
+        iconOnly={isMobile}
+        className={isMobile ? "h-7 w-7 rounded-[var(--radius-medium)] px-0 text-sm" : undefined}
+      />
+    )
+    : (
+      <NewStaffingButton
+        openNeeds={sharedData.openNeeds}
+        fullWidth={false}
+        iconOnly={isMobile}
+        className={isMobile ? "h-7 w-7 rounded-[var(--radius-medium)] px-0 text-sm" : undefined}
+      />
+    )
 
   // Bouton flip kanban
   const kanbanFlipButton = (
@@ -488,8 +516,11 @@ export function NeedsStaffingWorkspace({
             <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
               Besoins & Staffing
             </h1>
-            <div className="mt-3">
+            <div className="mt-3 flex items-center justify-between gap-3">
               <ScopeSwitcher scope={state.scope} onChange={setScope} />
+              <div className="shrink-0">
+                {createAction}
+              </div>
             </div>
             <div className="mt-4">
               <SharedKpis sharedData={sharedData} compact={isMobile} />
@@ -524,6 +555,7 @@ export function NeedsStaffingWorkspace({
               <MobileFilterTrigger
                 activeCount={activeFilterCount}
                 onClick={() => setMobileFiltersOpen(true)}
+                compact={true}
               />
               <PageViewSelector
                 ariaLabel="Mode d'affichage Besoins & Staffing"
@@ -536,7 +568,6 @@ export function NeedsStaffingWorkspace({
                 onChange={(value) => setView(value as "list" | "kanban" | "planning")}
               />
             </div>
-            {createAction}
           </div>
 
           {isNeedsScope ? (
