@@ -2,6 +2,10 @@ import { AgendaSection } from "@/components/agenda/AgendaSection"
 
 export const dynamic = "force-dynamic"
 
-export default function AgendaPage() {
-  return <AgendaSection />
+interface AgendaPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default function AgendaPage({ searchParams }: AgendaPageProps) {
+  return <AgendaSection searchParams={searchParams} />
 }

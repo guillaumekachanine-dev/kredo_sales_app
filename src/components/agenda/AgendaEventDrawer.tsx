@@ -30,6 +30,7 @@ interface AgendaEventDrawerProps {
   event: AgendaEvent | null
   onSaved: () => void
   initialValues?: AgendaEventDrawerInitialValues
+  allowPreparatoryTask?: boolean
 }
 
 export interface AgendaEventDrawerInitialValues {
@@ -93,6 +94,7 @@ export function AgendaEventDrawer({
   event,
   onSaved,
   initialValues,
+  allowPreparatoryTask = true,
 }: AgendaEventDrawerProps) {
   const [mode, setMode] = useState<"create" | "view" | "edit">("create")
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
@@ -128,7 +130,7 @@ export function AgendaEventDrawer({
         task_priority: "normal",
       }
 
-      if (event.preparatory_task) {
+      if (allowPreparatoryTask && event.preparatory_task) {
         const taskDue = event.preparatory_task.due_date
           ? new Date(event.preparatory_task.due_date)
           : null
@@ -242,7 +244,7 @@ export function AgendaEventDrawer({
       if (end <= start) errs.end_time = "L'heure de fin doit être postérieure au début."
     }
 
-    if (form.create_task) {
+    if (allowPreparatoryTask && form.create_task) {
       if (!form.task_title.trim()) errs.task_title = "Le titre de la tâche est obligatoire."
       if (!form.task_date) errs.task_date = "La date d'échéance est obligatoire."
       if (!form.task_time) errs.task_time = "L'heure d'échéance est obligatoire."
@@ -267,7 +269,8 @@ export function AgendaEventDrawer({
     startTransition(async () => {
       const startsAt = new Date(`${form.date}T${form.start_time}`).toISOString()
       const endsAt = new Date(`${form.date}T${form.end_time}`).toISOString()
-      const taskDueIso = form.create_task
+      const shouldCreateTask = allowPreparatoryTask && form.create_task
+      const taskDueIso = shouldCreateTask
         ? new Date(`${form.task_date}T${form.task_time}`).toISOString()
         : ""
 
@@ -282,10 +285,10 @@ export function AgendaEventDrawer({
         contact_id: form.contact_id || null,
         opportunity_id: form.opportunity_id || null,
         candidate_id: form.candidate_id || null,
-        create_task: form.create_task,
-        task_title: form.task_title.trim(),
+        create_task: shouldCreateTask,
+        task_title: shouldCreateTask ? form.task_title.trim() : "",
         task_due_date: taskDueIso,
-        task_priority: form.task_priority,
+        task_priority: shouldCreateTask ? form.task_priority : "normal",
       }
 
       const res =
@@ -640,97 +643,101 @@ export function AgendaEventDrawer({
             </div>
           </section>
 
-          <div className="border-t border-border/40" />
+          {allowPreparatoryTask ? (
+            <>
+              <div className="border-t border-border/40" />
 
-          {/* ── SECTION 6: TÂCHE PRÉPARATOIRE ── */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="create_task_chk"
-                checked={form.create_task}
-                onChange={(e) => setField("create_task", e.target.checked)}
-                disabled={isView || isPending}
-                className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
-              />
-              <label
-                htmlFor="create_task_chk"
-                className="text-xs font-bold text-heading select-none cursor-pointer"
-              >
-                Activer une tâche préparatoire
-              </label>
-            </div>
-
-            {form.create_task && (
-              <div className="rounded-md border border-border/80 bg-canvas/30 p-3 flex flex-col gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-heading mb-1">
-                    Intitulé de la tâche&nbsp;<span className="text-danger">*</span>
-                  </label>
+              {/* ── SECTION 6: TÂCHE PRÉPARATOIRE ── */}
+              <section className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
                   <input
-                    type="text"
-                    value={form.task_title}
-                    onChange={(e) => setField("task_title", e.target.value)}
+                    type="checkbox"
+                    id="create_task_chk"
+                    checked={form.create_task}
+                    onChange={(e) => setField("create_task", e.target.checked)}
                     disabled={isView || isPending}
-                    placeholder="ex. Préparer le support de présentation"
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50"
+                    className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
                   />
-                  {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
+                  <label
+                    htmlFor="create_task_chk"
+                    className="text-xs font-bold text-heading select-none cursor-pointer"
+                  >
+                    Activer une tâche préparatoire
+                  </label>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-heading mb-1">
-                      Échéance date&nbsp;<span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={form.task_date}
-                      onChange={(e) => setField("task_date", e.target.value)}
-                      disabled={isView || isPending}
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
-                    />
-                    {errors.task_date && <p className="mt-1 text-[10px] text-danger">{errors.task_date}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-heading mb-1">
-                      Heure&nbsp;<span className="text-danger">*</span>
-                    </label>
-                    <AgendaQuarterHourTimeField
-                      value={form.task_time}
-                      onChange={(value) => setField("task_time", value)}
-                      disabled={isView || isPending}
-                      hourAriaLabel="Heure de la tâche"
-                      minuteAriaLabel="Minutes de la tâche"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-heading mb-1.5">Priorité</label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {PRIORITY_OPTIONS.map((p) => (
-                      <button
-                        key={p.value}
-                        type="button"
+                {form.create_task && (
+                  <div className="rounded-md border border-border/80 bg-canvas/30 p-3 flex flex-col gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-heading mb-1">
+                        Intitulé de la tâche&nbsp;<span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.task_title}
+                        onChange={(e) => setField("task_title", e.target.value)}
                         disabled={isView || isPending}
-                        onClick={() => setField("task_priority", p.value)}
-                        className={cn(
-                          "py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                          form.task_priority === p.value
-                            ? "bg-primary text-primary-fg border-primary"
-                            : "bg-canvas text-muted border-border hover:border-primary/30 hover:text-heading"
-                        )}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
+                        placeholder="ex. Préparer le support de présentation"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50"
+                      />
+                      {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-heading mb-1">
+                          Échéance date&nbsp;<span className="text-danger">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={form.task_date}
+                          onChange={(e) => setField("task_date", e.target.value)}
+                          disabled={isView || isPending}
+                          className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
+                        />
+                        {errors.task_date && <p className="mt-1 text-[10px] text-danger">{errors.task_date}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-heading mb-1">
+                          Heure&nbsp;<span className="text-danger">*</span>
+                        </label>
+                        <AgendaQuarterHourTimeField
+                          value={form.task_time}
+                          onChange={(value) => setField("task_time", value)}
+                          disabled={isView || isPending}
+                          hourAriaLabel="Heure de la tâche"
+                          minuteAriaLabel="Minutes de la tâche"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-heading mb-1.5">Priorité</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {PRIORITY_OPTIONS.map((p) => (
+                          <button
+                            key={p.value}
+                            type="button"
+                            disabled={isView || isPending}
+                            onClick={() => setField("task_priority", p.value)}
+                            className={cn(
+                              "py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
+                              form.task_priority === p.value
+                                ? "bg-primary text-primary-fg border-primary"
+                                : "bg-canvas text-muted border-border hover:border-primary/30 hover:text-heading"
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
-          </section>
+                )}
+              </section>
+            </>
+          ) : null}
         </div>
       </AppDrawer>
     </>
