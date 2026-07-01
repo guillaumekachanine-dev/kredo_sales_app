@@ -13,7 +13,7 @@ function getBaseUrl(): string {
 }
 
 // workflowPath = l'ID du workflow tel qu'il est nommé dans n8n
-// ex: "intel-020-pitch-mail" → POST sur {BASE}/webhook/intel-020-pitch-mail
+// ex: "intel-020-communication" → POST sur {BASE}/webhook/intel-020-communication
 export async function callN8nWebhook(
   workflowPath: string,
   payload: N8nTriggerPayload

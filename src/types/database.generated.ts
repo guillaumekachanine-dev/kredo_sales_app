@@ -368,10 +368,11 @@ export type Database = {
       }
       ai_intelligence_results: {
         Row: {
-          company_id: string
+          company_id: string | null
           completed_at: string | null
           content_json: Json
           content_text: string | null
+          context_snapshot: Json | null
           cost_estimate: number | null
           created_at: string
           duration_ms: number | null
@@ -382,8 +383,10 @@ export type Database = {
           needs_review: boolean
           owner_id: string
           phase: number
+          qa_flags: Json
           result_type: string
           run_id: string
+          source_refs: Json
           started_at: string | null
           status: Database["public"]["Enums"]["ai_result_status"]
           title: string | null
@@ -393,10 +396,11 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           completed_at?: string | null
           content_json?: Json
           content_text?: string | null
+          context_snapshot?: Json | null
           cost_estimate?: number | null
           created_at?: string
           duration_ms?: number | null
@@ -407,8 +411,10 @@ export type Database = {
           needs_review?: boolean
           owner_id?: string
           phase: number
+          qa_flags?: Json
           result_type: string
           run_id: string
+          source_refs?: Json
           started_at?: string | null
           status?: Database["public"]["Enums"]["ai_result_status"]
           title?: string | null
@@ -418,10 +424,11 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           completed_at?: string | null
           content_json?: Json
           content_text?: string | null
+          context_snapshot?: Json | null
           cost_estimate?: number | null
           created_at?: string
           duration_ms?: number | null
@@ -432,8 +439,10 @@ export type Database = {
           needs_review?: boolean
           owner_id?: string
           phase?: number
+          qa_flags?: Json
           result_type?: string
           run_id?: string
+          source_refs?: Json
           started_at?: string | null
           status?: Database["public"]["Enums"]["ai_result_status"]
           title?: string | null
@@ -475,7 +484,7 @@ export type Database = {
       }
       ai_intelligence_runs: {
         Row: {
-          company_id: string
+          company_id: string | null
           completed_at: string | null
           config: Json
           created_at: string
@@ -486,6 +495,8 @@ export type Database = {
           input_snapshot: Json
           needs_review: boolean
           owner_id: string
+          primary_entity_id: string | null
+          primary_entity_type: string | null
           run_type: string
           started_at: string | null
           status: Database["public"]["Enums"]["ai_run_status"]
@@ -497,7 +508,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           completed_at?: string | null
           config?: Json
           created_at?: string
@@ -508,6 +519,8 @@ export type Database = {
           input_snapshot?: Json
           needs_review?: boolean
           owner_id?: string
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
           run_type?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["ai_run_status"]
@@ -519,7 +532,7 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           completed_at?: string | null
           config?: Json
           created_at?: string
@@ -530,6 +543,8 @@ export type Database = {
           input_snapshot?: Json
           needs_review?: boolean
           owner_id?: string
+          primary_entity_id?: string | null
+          primary_entity_type?: string | null
           run_type?: string
           started_at?: string | null
           status?: Database["public"]["Enums"]["ai_run_status"]

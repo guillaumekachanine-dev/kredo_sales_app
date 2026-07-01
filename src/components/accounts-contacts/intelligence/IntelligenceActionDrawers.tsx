@@ -1,24 +1,26 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Select } from "@/components/ui/Select"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag } from "@/lib/n8n/types"
 import {
-  PitchDraftFormState,
   ClientSummaryFormState,
   CampaignFormState,
-  PitchMessageType,
-  PitchObjective,
-  PitchTone,
   ClientSummaryFormat,
 } from "./intelligence-action-types"
 import {
-  buildPitchDraftPayload,
   buildClientSummaryPayload,
   buildCampaignPayload,
   getAnalysisAvailabilityLabel,
   getSectorAvailabilityLabel,
   getRoadmapAvailabilityLabel,
 } from "./intelligence-action-utils"
+import { buildDefaultBrief, CHANNEL_OPTIONS } from "./communication-brief-options"
+import { CommunicationBriefForm } from "./CommunicationBriefForm"
+import { CommunicationResult } from "./CommunicationResult"
+
+type RunStatus = "idle" | "loading" | "done" | "error"
 
 export function PitchMailDrawerContent({
   data,
@@ -27,161 +29,181 @@ export function PitchMailDrawerContent({
   data: ClientIntelligenceData
   variant?: "desktop" | "mobile"
 }) {
-  const { company, client, contacts } = data
-
-  const [form, setForm] = useState<PitchDraftFormState>({
-    messageType: "email",
-    objective: "first_contact",
-    tone: "direct",
-    targetContactId: "",
-    additionalContext: "",
-  })
-
-  // Payload préparé pour le branchement futur n8n
-  buildPitchDraftPayload({ companyId: company.id, form, data })
-
+  const { company, contacts } = data
   const isMobile = variant === "mobile"
-  const selectCls = cn(
-    "w-full rounded border border-border bg-surface px-3 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50",
-    isMobile ? "h-11" : "h-9"
-  )
-  const textareaCls = "w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[80px]"
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
+  const supabase = createClient()
+
+  const [brief, setBrief] = useState<CommunicationBrief>(() => buildDefaultBrief(data, ""))
+
+  const [runStatus, setRunStatus] = useState<RunStatus>("idle")
+  const [runId, setRunId] = useState<string | null>(null)
+  const [result, setResult] = useState<CommunicationOutput | null>(null)
+  const [qaFlags, setQaFlags] = useState<CommunicationQaFlag[]>([])
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Émetteur dérivé du profil connecté — § 4.2, seul le rôle reste modifiable en UI
+  useEffect(() => {
+    let cancelled = false
+    async function loadSender() {
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) return
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", auth.user.id)
+        .single()
+      if (!cancelled && profile?.full_name) {
+        setBrief((b) => ({ ...b, who: { ...b.who, sender: { ...b.who.sender, name: profile.full_name as string } } }))
+      }
+    }
+    void loadSender()
+    return () => { cancelled = true }
+  }, [supabase])
+
+  // Abonnement Realtime : dès qu'on a un runId, on écoute le résultat
+  useEffect(() => {
+    if (!runId) return
+
+    const channel = supabase
+      .channel(`communication-result-${runId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ai_intelligence_results",
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const row = payload.new as { status: string; content_json: CommunicationOutput; qa_flags: CommunicationQaFlag[] }
+          if (row.status === "succeeded") {
+            setResult(row.content_json)
+            setQaFlags(row.qa_flags || [])
+            setRunStatus("done")
+          } else if (row.status === "failed") {
+            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            setRunStatus("error")
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { void supabase.removeChannel(channel) }
+  }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleGenerate() {
+    setRunStatus("loading")
+    setResult(null)
+    setQaFlags([])
+    setErrorMsg(null)
+
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-020-communication",
+          companyId: company.id,
+          input: brief,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+
+      const { runId: newRunId } = await res.json() as { runId: string }
+      setRunId(newRunId)
+      // runStatus reste "loading" → Realtime le passera à "done" ou "error"
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setRunStatus("error")
+    }
+  }
+
+  function handleReset() {
+    setRunStatus("idle")
+    setRunId(null)
+    setResult(null)
+    setQaFlags([])
+    setErrorMsg(null)
+  }
+
+  const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
+
+  // ── Résultat généré ──────────────────────────────────────────────────────────
+  if (runStatus === "done" && result) {
+    return (
+      <CommunicationResult
+        result={result}
+        qaFlags={qaFlags}
+        companyId={company.id}
+        companyName={company.name}
+        channelLabel={channelLabel}
+        brief={brief}
+        isMobile={isMobile}
+        onReset={handleReset}
+      />
+    )
+  }
 
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-heading text-base font-bold text-heading">Construire un pitch/mail</h2>
+        <h2 className="font-heading text-base font-bold text-heading">Rédaction assistée</h2>
         <p className="text-[11px] text-body mt-0.5 leading-relaxed">
           Préparer un message contextualisé à partir des données disponibles sur le compte.
         </p>
       </div>
 
-      {/* Formulaire contrôlé */}
-      <div className="space-y-4">
-        <div>
-          <label className={labelCls}>Type de message</label>
-          <Select
-            value={form.messageType}
-            onChange={(e) => setForm({ ...form, messageType: e.target.value as PitchMessageType })}
-            className={selectCls}
-          >
-            <option value="email">Email</option>
-            <option value="phone_pitch">Pitch téléphonique</option>
-            <option value="linkedin">LinkedIn</option>
-          </Select>
-        </div>
+      <CommunicationBriefForm
+        brief={brief}
+        onChange={setBrief}
+        contacts={contacts}
+        isMobile={isMobile}
+      />
 
-        <div>
-          <label className={labelCls}>Objectif</label>
-          <Select
-            value={form.objective}
-            onChange={(e) => setForm({ ...form, objective: e.target.value as PitchObjective })}
-            className={selectCls}
-          >
-            <option value="first_contact">Prise de contact</option>
-            <option value="follow_up">Relance</option>
-            <option value="meeting_request">Demande de rendez-vous</option>
-            <option value="proposal_intro">Introduction proposition</option>
-            <option value="event_invitation">Invitation événement</option>
-          </Select>
-        </div>
-
-        <div>
-          <label className={labelCls}>Ton</label>
-          <Select
-            value={form.tone}
-            onChange={(e) => setForm({ ...form, tone: e.target.value as PitchTone })}
-            className={selectCls}
-          >
-            <option value="direct">Direct</option>
-            <option value="expert">Expert</option>
-            <option value="pedagogical">Pédagogique</option>
-            <option value="executive">Exécutif</option>
-          </Select>
-        </div>
-
-        <div>
-          <label className={labelCls}>Contact cible</label>
-          <Select
-            value={form.targetContactId || ""}
-            onChange={(e) => setForm({ ...form, targetContactId: e.target.value || null })}
-            className={selectCls}
-          >
-            <option value="">Non spécifié</option>
-            {contacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {contact.fullName} {contact.jobTitle ? `(${contact.jobTitle})` : ""}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div>
-          <label className={labelCls}>Contexte complémentaire</label>
-          <textarea
-            value={form.additionalContext}
-            onChange={(e) => setForm({ ...form, additionalContext: e.target.value })}
-            placeholder="Ajoute un angle, une contrainte ou une information utile…"
-            className={textareaCls}
-          />
-        </div>
+      <div className="rounded-lg border border-border bg-canvas/30 p-3 text-[11px] text-muted">
+        Contexte automatique : compte, contacts, historique commercial, opportunités, missions et
+        actualité sectorielle sont résolus par n8n au moment de la génération.
       </div>
 
-      {/* Contexte disponible */}
-      <div className="rounded-lg border border-border bg-canvas/30 p-3.5 space-y-2">
-        <span className="block text-[9px] font-bold uppercase tracking-wider text-muted">
-          Contexte disponible
-        </span>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <span className="text-muted block text-[10px]">Compte :</span>
-            <span className="font-medium text-heading truncate block">{company.name}</span>
-          </div>
-          <div>
-            <span className="text-muted block text-[10px]">Secteur :</span>
-            <span className="font-medium text-heading truncate block">{company.sector || "—"}</span>
-          </div>
-          <div>
-            <span className="text-muted block text-[10px]">Score IA :</span>
-            <span className="font-medium text-heading">
-              {company.aiScore !== null ? company.aiScore : "—"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted block text-[10px]">Contacts :</span>
-            <span className="font-medium text-heading">{contacts.length}</span>
-          </div>
-          <div>
-            <span className="text-muted block text-[10px]">Analyse client :</span>
-            <span className="font-medium text-heading">
-              {client ? (client.source === "engine" ? "Disponible" : "FOLIO") : "Absente"}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted block text-[10px]">Analyse sectorielle :</span>
-            <span className="font-medium text-heading">
-              {data.sector ? (data.sector.source === "engine" ? "Disponible" : "FOLIO") : "Absente"}
-            </span>
-          </div>
+      {/* Erreur */}
+      {runStatus === "error" && errorMsg && (
+        <div className="rounded border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-danger">
+          {errorMsg}
         </div>
-      </div>
+      )}
 
-      {/* CTA section */}
+      {/* CTA */}
       <div className="pt-4 border-t border-border space-y-2">
         <button
           type="button"
-          disabled
+          onClick={handleGenerate}
+          disabled={runStatus === "loading"}
           className={cn(
-            "w-full inline-flex items-center justify-center rounded bg-primary/20 border border-primary/10 px-3 text-xs font-bold text-muted cursor-not-allowed opacity-60",
-            isMobile ? "min-h-[44px]" : "min-h-[36px]"
+            "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
+            isMobile ? "min-h-[44px]" : "min-h-[36px]",
+            runStatus === "loading"
+              ? "border-primary/20 bg-primary/5 text-primary/50 cursor-wait"
+              : "border-primary bg-primary text-primary-fg hover:bg-primary/90"
           )}
         >
-          Génération IA à connecter
+          {runStatus === "loading" ? (
+            <>
+              <span className="h-3 w-3 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              Génération en cours…
+            </>
+          ) : (
+            "Générer le message"
+          )}
         </button>
-        <p className="text-[10px] text-muted text-center leading-normal">
-          Ce formulaire préparera le payload envoyé à n8n.
-        </p>
+        {runStatus === "loading" && (
+          <p className="text-[10px] text-muted text-center leading-normal">
+            n8n travaille… le résultat apparaîtra automatiquement.
+          </p>
+        )}
       </div>
     </div>
   )

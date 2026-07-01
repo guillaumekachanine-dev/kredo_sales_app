@@ -24,9 +24,10 @@ Le Cockpit s'articule autour de 4 workflows cibles :
 - **Déclenché par :** L'action rapide **"Mettre à jour les données"** (Desktop et Mobile).
 - **Objectif :** Lancer la collecte de signaux faibles, l'analyse de l'actualité du compte, le scan de nouveaux contacts, et mettre à jour le score IA.
 
-### B. pitch_mail_generation
-- **Déclenché par :** Le drawer **"Construire un pitch/mail"** (soumission du formulaire).
-- **Objectif :** Produire une proposition d'accroche ou un message commercial (Email, LinkedIn ou Pitch Téléphonique) contextualisé et ciblé.
+### B. intel-020-communication (ex-pitch_mail_generation — voir INTEL-020-REDACTION-ASSISTEE-V1.md)
+- **Déclenché par :** Le drawer **"Rédaction assistée"** (`PitchMailDrawerContent`), soumission du brief QUOI/QUI/COMMENT/CONTEXTE.
+- **Objectif :** Produire un message commercial (Email, invitation LinkedIn, message LinkedIn ou note interne) contextualisé, sur l'un des 8 scénarios du cycle commercial ESN. Contrat détaillé, prompts par scénario et architecture des 13 nœuds n8n : `INTEL-020-REDACTION-ASSISTEE-V1.md` + `n8n/workflows/intel-020-communication.json`.
+- **Payload réel (CORE-001)** : passe par le contrat générique `N8nTriggerPayload` (`src/lib/n8n/types.ts`) — `input` porte l'objet `CommunicationBrief`, pas le format `form`/`context` ci-dessous (obsolète, conservé pour mémoire historique) :
 
 ### C. client_summary_generation
 - **Déclenché par :** Le drawer **"Synthèse client"** (soumission du formulaire).

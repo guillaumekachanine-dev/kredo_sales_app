@@ -1,28 +1,6 @@
-export type PitchMessageType =
-  | "email"
-  | "phone_pitch"
-  | "linkedin"
-
-export type PitchObjective =
-  | "first_contact"
-  | "follow_up"
-  | "meeting_request"
-  | "proposal_intro"
-  | "event_invitation"
-
-export type PitchTone =
-  | "direct"
-  | "expert"
-  | "pedagogical"
-  | "executive"
-
-export type PitchDraftFormState = {
-  messageType: PitchMessageType
-  objective: PitchObjective
-  tone: PitchTone
-  targetContactId: string | null
-  additionalContext: string
-}
+// Le formulaire "Rédaction assistée" (ex-pitch/mail) utilise désormais le
+// contrat CommunicationBrief (QUOI/QUI/COMMENT/CONTEXTE) — voir src/lib/n8n/types.ts
+// et ./communication-brief-options.ts. Les types Pitch* historiques ont été retirés.
 
 export type ClientSummaryFormat =
   | "executive_brief"

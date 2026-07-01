@@ -1,34 +1,9 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { PitchDraftFormState, ClientSummaryFormState, CampaignFormState } from "./intelligence-action-types"
+import type { ClientSummaryFormState, CampaignFormState } from "./intelligence-action-types"
 
 // ─── Payload Builders ────────────────────────────────────────────────────────
-
-export function buildPitchDraftPayload({
-  companyId,
-  form,
-  data,
-}: {
-  companyId: string
-  form: PitchDraftFormState
-  data: ClientIntelligenceData
-}) {
-  const { company, client, contacts, pitches, signals } = data
-  return {
-    companyId,
-    action: "pitch_draft",
-    form,
-    context: {
-      companyName: company.name,
-      sector: company.sector,
-      aiScore: company.aiScore,
-      contactsCount: contacts.length,
-      hasClientAnalysis: client ? client.source : "none",
-      hasSectorAnalysis: data.sector ? data.sector.source : "none",
-      signalsCount: signals.length,
-      pitchesCount: pitches.length,
-    },
-  }
-}
+// Le builder pour "Rédaction assistée" (INTEL-020) vit dans communication-brief-options.ts
+// — il retourne directement un CommunicationBrief, pas ce format form/context legacy.
 
 export function buildClientSummaryPayload({
   companyId,

@@ -25,7 +25,7 @@ function getServiceClient() {
 
 type CreateRunOptions = {
   workflowId: N8nWorkflowId
-  // company_id est requis par le schéma (tous les workflows V1 sont company-centric)
+  // company_id est nullable en base (INTEL-020) mais tous les scénarios V1 sont company-centric
   companyId: string
   workspaceId: string
   userId: string
@@ -89,7 +89,7 @@ export async function updateRunStatus(
 
 export async function saveResult(
   runId: string,
-  companyId: string,
+  companyId: string | null,
   workspaceId: string,
   ownerId: string,
   payload: N8nCallbackPayload
@@ -116,6 +116,9 @@ export async function saveResult(
         tokens_output: payload.tokensOutput ?? null,
         cost_estimate: payload.costEstimate ?? null,
         duration_ms: payload.durationMs ?? null,
+        context_snapshot: (payload.contextSnapshot ?? null) as Json,
+        source_refs: (payload.sourceRefs ?? []) as Json,
+        qa_flags: (payload.qaFlags ?? []) as Json,
         completed_at: new Date().toISOString(),
       },
       { onConflict: "run_id,phase", ignoreDuplicates: false }

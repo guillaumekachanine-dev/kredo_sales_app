@@ -326,6 +326,33 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
 - **Tokens dataviz** : `bg-dataviz-1/2/3/4` utilisés pour le graphique goulots (cobalt, brass, bleu, vert) — aucun HEX.
 - **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0 · `db:types` idempotent · 0 HEX · 0 shadow · 0 gradient · 0 DataTable Mobile.
 
+### Session 15 — INTEL-020 Rédaction assistée V1 (2026-07-01)
+Contrat de référence : `INTEL-020-REDACTION-ASSISTEE-V1.md` (16 sections, 8 scénarios, cadre QUOI/QUI/COMMENT/CONTEXTE). Le document fait foi ; les écarts d'implémentation ci-dessous sont documentés (le document ne connaissait pas encore l'état réel du schéma/code au moment de sa rédaction).
+
+**Lot 0 — Schéma + types :**
+- **Migration** (`supabase/migrations/20260701120000_communication_brief_schema.sql`, appliquée live) : `company_id` nullable sur `ai_intelligence_runs`/`ai_intelligence_results` (usages hors compte, V1.5+) ; `primary_entity_type`/`primary_entity_id` + index partiel sur `ai_intelligence_runs` ; `context_snapshot`/`source_refs`/`qa_flags` sur `ai_intelligence_results`. **Écart voulu vs le document** : pas de colonne `brief_json` dédiée — le `CommunicationBrief` est stocké dans `ai_intelligence_runs.input_snapshot` (colonne déjà existante, même rôle).
+- **`src/lib/n8n/types.ts`** : `N8nWorkflowId` — `intel-020-pitch-mail` renommé `intel-020-communication`. Nouveau contrat `CommunicationBrief` (what/who/how/context) + `CommunicationOutput` (subjects/body/key_points/source_refs/warnings) + `CommunicationSourceRef`/`CommunicationQaFlag`. `N8nCallbackPayload` étendu avec `contextSnapshot`/`sourceRefs`/`qaFlags`.
+- **`src/lib/n8n/runs.ts`** : `saveResult()` persiste les 3 nouvelles colonnes ; `companyId` devenu `string | null`.
+
+**Lot 1 — Workflow n8n (`n8n/workflows/intel-020-communication.json`, 13 nœuds, JSON validé + tout le JS syntax-checké) :**
+Webhook → Validate & Extract Brief (vérif HMAC) → Update Run Status → Hydrate Context (Supabase REST) → Resolve Sender Identity → Assemble Prompt (system prompt fixe + 8 templates scénario) → Call LLM (Claude Sonnet, `claude-sonnet-4-6`) → Parse & Validate Output → Quality Check (5 contrôles) → Prepare/Callback. Gestion d'erreur par sortie `onError: continueErrorOutput` sur les nœuds à risque → `Prepare Failure Callback` (au lieu d'un Error Trigger séparé qui perdrait `runId`/`callbackUrl`). Checklist d'import/config VPS : `n8n/workflows/intel-020-communication.SETUP.md`.
+**Corrections apportées au document original** (bugs qui auraient cassé le workflow à l'import) : table `engagements` → `missions` (n'existe pas) ; `interactions.date` → `occurred_at` ; `opportunities.status=eq.active` → `stage=not.in.(gagne,perdu,abandonne)` ; callback en camelCase (pas snake_case, pour matcher `N8nCallbackPayload`) ; auth webhook = HMAC-SHA256 `X-KREDO-Signature` (pas un Bearer statique) ; `signalRef` épinglé par UUID abandonné en V1 (aucune table de signaux adressable côté UI — `ClientIntelligenceData.signals` est un `string[]` extrait de JSON) → remplacé par une récupération auto des `sector_news` récentes via `companies.sector_id`.
+
+**Lot 2 — UI (`src/components/accounts-contacts/intelligence/`) :**
+- **`communication-brief-options.ts`** (nouveau) : taxonomies V1 (canal/scénario/longueur/rôle émetteur/type-persona-relation destinataire/objectif/ton) + `buildDefaultBrief()` (présélection depuis `company.lifecycleStatus`) + `personaFromRelationshipRole()`.
+- **`PillSelect.tsx`** (nouveau) : grille de boutons-pilules single-select générique, exports `ScenarioSelector`/`ToneSelector`.
+- **`ContactSelector.tsx`** (nouveau) : wrapper `<Select>` sur `data.contacts`, option "Non spécifié — « Madame, Monsieur »".
+- **`CommunicationBriefForm.tsx`** (nouveau) : desktop = 4 accordéons `<details>` QUOI/QUI/COMMENT/CONTEXTE (natif, cohérent avec la philosophie "primitives natives" du design system) ; mobile = 3 champs essentiels (scénario/destinataire/ton) + "Plus d'options" repliée.
+- **`CommunicationResult.tsx`** (nouveau) : objet/corps/points clés/sources/warnings, badge qualité (vert si `qaFlags` tous passés, orange sinon avec détail), Copier + **Enregistrer**.
+- **`save-communication-interaction.ts`** (nouveau, Server Action) : persiste le résultat dans `interactions` (`type` dérivé du canal/scénario — `envoi_cv` pour `profile_submission`, sinon `email`/`linkedin`/`note` ; `details` JSON avec body/subjects/key_points).
+- **`IntelligenceActionDrawers.tsx`** (`PitchMailDrawerContent` refondu) : ancien formulaire `messageType/objective/tone/targetContactId/additionalContext` remplacé par le `CommunicationBrief` complet. Émetteur résolu depuis `profiles.full_name` (pas de colonne `practice` sur `profiles` → practice devient un champ libre optionnel dans QUI). Realtime inchangé (branché sur `ai_intelligence_results`), juste retypé sur `CommunicationOutput`/`qa_flags`.
+- **Types legacy retirés** : `PitchMessageType`/`PitchObjective`/`PitchTone`/`PitchDraftFormState`/`buildPitchDraftPayload` supprimés (`intelligence-action-types.ts`/`intelligence-action-utils.ts`) — `SummaryDrawerContent`/`CampaignDrawerContent` non touchés (hors périmètre V1).
+- **`docs/client-intelligence-workflows.md`** : section B (`pitch_mail_generation`) marquée obsolète, pointe vers le nouveau contrat.
+
+**Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0 · `eslint` sur tous les fichiers touchés → 0 erreur, 0 warning.
+
+**Non fait dans cette session** (bloqué sur accès VPS, pas de MCP n8n) : import réel du workflow, configuration des variables d'environnement n8n, test de bout en bout des 8 scénarios avec données réelles, affinage des prompts sur retours qualité — voir checklist dans `n8n/workflows/intel-020-communication.SETUP.md`.
+
 ### Session 14 — Fiche Mission : refonte complète architecture + 5 onglets (2026-06-30)
 - **Migration 041** (`supabase/migrations/20260630000000_041_calendar_events_mission_id.sql`) : colonne `mission_id uuid NULL REFERENCES missions(id) ON DELETE SET NULL` sur `calendar_events`. Index partiel WHERE mission_id IS NOT NULL. Appliquée live.
 - **`database.generated.ts`** : Régénéré depuis Supabase (4681 lignes, `mission_id` dans calendar_events Row/Insert/Update).
@@ -434,7 +461,7 @@ SUPABASE_SERVICE_ROLE_KEY=        ← jamais en variable NEXT_PUBLIC_
   - **`handleMoveHiringStep`** : action kanban → `updateHiringStep(row.hiringProcessId, step)` avec rollback optimiste
 - **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0.
 
-**Prochain focus :** Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Migration des autres écrans (Staffing, Missions) sur le pattern Cockpit/Finance. Lot 3 — Scoring + Atelier IA, moteur de rédaction bi-grain, retrait routes orphelines. Branchement n8n sur les actions Intelligence (status `active`).
+**Prochain focus :** Import + activation du workflow `intel-020-communication` sur le VPS n8n (checklist `n8n/workflows/intel-020-communication.SETUP.md`), puis test des 8 scénarios avec données réelles et affinage des prompts (INTEL-020 Lot 3 restant). Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977` (onglet Comptes & contacts) — utiliser `useSearchParams()`. Migration des autres écrans (Staffing, Missions) sur le pattern Cockpit/Finance. Retrait routes orphelines. Branchement n8n sur les autres actions Intelligence (status `active`).
 
 ---
 

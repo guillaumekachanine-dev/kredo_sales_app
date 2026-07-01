@@ -8,7 +8,7 @@ export type N8nWorkflowId =
   // Intelligence commerciale
   | "intel-010-refresh"             // INTEL-010 : client_intelligence_refresh
   | "intel-011-sector"              // INTEL-011 : étude sectorielle mutualisée
-  | "intel-020-pitch-mail"          // INTEL-020 : génération pitch/mail
+  | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note) — 8 scénarios
   | "intel-021-client-summary"      // INTEL-021 : synthèse client
   | "intel-022-campaign"            // INTEL-022 : création campagne
   // Sales
@@ -55,6 +55,10 @@ export type N8nCallbackPayload = {
   durationMs?: number
   // En cas d'échec
   errorMessage?: string
+  // INTEL-020 — traçabilité et contrôle qualité (ai_intelligence_results)
+  contextSnapshot?: Record<string, unknown>
+  sourceRefs?: CommunicationSourceRef[]
+  qaFlags?: CommunicationQaFlag[]
 }
 
 // ─── Réponse de /api/n8n/trigger vers le front ───────────────────────────────
@@ -66,4 +70,140 @@ export type TriggerResponse = {
 
 export type TriggerErrorResponse = {
   error: string
+}
+
+// ─── INTEL-020 — Rédaction assistée (V1) ─────────────────────────────────────
+// Cadre QUOI/QUI/COMMENT/CONTEXTE — contrat canonique INTEL-020-REDACTION-ASSISTEE-V1.md § 5.5
+// Le brief est stocké tel quel dans ai_intelligence_runs.input_snapshot (pas de colonne dédiée).
+
+export type CommunicationChannel =
+  | "email"
+  | "linkedin_invitation"
+  | "linkedin_message"
+  | "internal_note"
+
+export type CommunicationScenario =
+  | "signal_outreach"
+  | "follow_up_no_reply"
+  | "post_meeting"
+  | "profile_submission"
+  | "cross_sell"
+  | "reactivation"
+  | "proposal_follow_up"
+  | "offer_introduction"
+
+export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
+
+export type CommunicationSenderRole =
+  | "business_manager"
+  | "agency_director"
+  | "practice_lead"
+  | "recruiter"
+  | "delivery_manager"
+  | "consultant"
+  | "general_management"
+
+export type CommunicationRecipientType =
+  | "prospect"
+  | "active_client"
+  | "former_client"
+  | "partner"
+  | "candidate"
+  | "internal"
+
+export type CommunicationPersona =
+  | "ceo"
+  | "cto_cio"
+  | "ciso"
+  | "business_director"
+  | "purchasing"
+  | "hr_talent"
+  | "technical"
+  | "operational"
+  | "other"
+
+export type CommunicationRelation =
+  | "unknown"
+  | "cold"
+  | "warm"
+  | "established"
+  | "active_client"
+  | "former"
+
+export type CommunicationObjective =
+  | "get_meeting"
+  | "get_reply"
+  | "get_feedback"
+  | "present_offer"
+  | "submit_profile"
+  | "accelerate_decision"
+  | "reactivate"
+  | "confirm_next_steps"
+
+export type CommunicationTone =
+  | "direct"
+  | "formal"
+  | "warm"
+  | "assertive"
+  | "pedagogical"
+  | "diplomatic"
+
+export interface CommunicationBrief {
+  what: {
+    channel: CommunicationChannel
+    scenario: CommunicationScenario
+    length: CommunicationLength
+  }
+  who: {
+    sender: {
+      role: CommunicationSenderRole
+      name: string        // Dérivé de profiles.full_name
+      practice?: string    // Saisi manuellement en V1 — profiles n'a pas de colonne practice
+    }
+    recipient: {
+      type: CommunicationRecipientType
+      persona: CommunicationPersona
+      relation: CommunicationRelation
+      contactId?: string
+      displayName?: string
+      companyName?: string
+    }
+    objective: CommunicationObjective
+  }
+  how: {
+    tone: CommunicationTone
+    formality: "vous" | "tu"
+    language: "fr" | "en"
+  }
+  context: {
+    mustInclude?: string
+    mustExclude?: string
+    signalRef?: string
+    opportunityRef?: string
+    missionRef?: string
+    profileRef?: string
+  }
+}
+
+// ─── Contrat de sortie (n8n → callback → UI) ─────────────────────────────────
+
+export type CommunicationSourceRef = {
+  entityType: string
+  entityId?: string
+  label: string
+  usedFor?: string
+}
+
+export type CommunicationQaFlag = {
+  check: string
+  passed: boolean
+  detail?: string
+}
+
+export interface CommunicationOutput {
+  subjects: string[]
+  body: string
+  key_points: string[]
+  source_refs: string[]
+  warnings: string[]
 }
