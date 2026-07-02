@@ -1,10 +1,11 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
 import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
 import { PanelActionsGrid } from "./PanelActionsGrid"
 import { PanelResources } from "./PanelResources"
@@ -181,6 +182,18 @@ export function IntelligencePanel() {
   const { isOpen, close } = useIntelligencePanel()
   const { entityContext } = useIntelligenceContext()
   const isAccountMode = entityContext?.entityType === "company"
+
+  // Les deux rails (navigation à gauche, Cockpit Intelligence à droite) ne
+  // peuvent pas être dépliés en même temps — maximise l'espace central.
+  // La sidebar ne se redéplie à la fermeture que si elle l'était déjà avant.
+  useEffect(() => {
+    const store = useSidebarCollapse.getState()
+    if (isOpen) {
+      store.requestCollapse()
+    } else {
+      store.requestRestore()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 

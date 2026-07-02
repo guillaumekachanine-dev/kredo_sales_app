@@ -3,12 +3,13 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useTransition, useState } from "react"
+import { useTransition, useState, useEffect } from "react"
 import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { signOut } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/ui/IconButton"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Cookie helpers
@@ -136,6 +137,25 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   const [isPending, startTransition] = useTransition()
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const activeModuleHref = getActiveModuleHref(pathname)
+  const pendingRequest = useSidebarCollapse((s) => s.pendingRequest)
+  const reportState = useSidebarCollapse((s) => s.reportState)
+  const consumeRequest = useSidebarCollapse((s) => s.consumeRequest)
+
+  // Reporte l'état réel de la sidebar au store partagé — sert de référence
+  // au panneau Cockpit Intelligence pour savoir si elle était dépliée avant
+  // son ouverture (et donc si elle doit se redéplier à sa fermeture).
+  useEffect(() => {
+    reportState(isCollapsed)
+  }, [isCollapsed, reportState])
+
+  // Applique une requête de repli/dépli émise par le panneau Cockpit
+  // Intelligence, sans jamais écraser un toggle manuel de l'utilisateur
+  // ni persister ce repli automatique dans le cookie (préférence durable).
+  useEffect(() => {
+    if (pendingRequest === null) return
+    setIsCollapsed(pendingRequest) // eslint-disable-line react-hooks/set-state-in-effect -- synchronise avec le store Zustand externe (bus de requêtes one-shot), pas un état dérivé
+    consumeRequest()
+  }, [pendingRequest, consumeRequest])
 
   const toggle = () => {
     const next = !isCollapsed
