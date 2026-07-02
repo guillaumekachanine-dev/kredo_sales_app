@@ -18,10 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ direction
 }
 
 export default async function Page({ params }: { params: Promise<{ direction: string }> }) {
-  if (process.env.VERCEL_ENV === "production") {
-    notFound()
-  }
-
   const { direction: slug } = await params
   const visualDirection = directions.find((item) => item.slug === slug)
 

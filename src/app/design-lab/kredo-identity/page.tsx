@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation"
 import { KredoIdentityLab } from "@/components/design-lab/kredo-identity/KredoIdentityLab"
 
 export const metadata = {
@@ -7,9 +6,5 @@ export const metadata = {
 }
 
 export default function Page() {
-  if (process.env.VERCEL_ENV === "production") {
-    notFound()
-  }
-
   return <KredoIdentityLab initialDirection="a" />
 }
