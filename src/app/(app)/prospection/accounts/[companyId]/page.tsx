@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation"
 import { ClientIntelligenceView } from "@/components/accounts-contacts/intelligence/ClientIntelligenceView"
 import { RegisterBreadcrumbLabel } from "@/components/layout/RegisterBreadcrumbLabel"
+import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
 import { getClientIntelligence } from "@/lib/intelligence/intelligence-data"
+import { getAccountIntelligencePanelData } from "@/lib/intelligence/account-panel-data"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
 export const dynamic = "force-dynamic"
 
-// Client Intelligence Hub — page BI par compte (ADR-0008).
-// Lecture seule sur le moteur 0007 + fallback metadata FOLIO. Deep-linkable.
 export default async function ClientIntelligencePage({
   params,
 }: {
@@ -15,9 +15,10 @@ export default async function ClientIntelligencePage({
 }) {
   const { companyId } = await params
 
-  const [device, result] = await Promise.all([
+  const [device, result, panelResult] = await Promise.all([
     getDashboardDevice(),
     getClientIntelligence(companyId),
+    getAccountIntelligencePanelData(companyId),
   ])
 
   if (!result.data) {
@@ -30,6 +31,14 @@ export default async function ClientIntelligencePage({
   return (
     <>
       <RegisterBreadcrumbLabel segment={companyId} label={result.data.company.name} />
+      {panelResult.data && (
+        <RegisterIntelligenceContext
+          entityType="company"
+          entityId={companyId}
+          label={result.data.company.name}
+          panelData={panelResult.data}
+        />
+      )}
       <ClientIntelligenceView data={result.data} device={device} />
     </>
   )

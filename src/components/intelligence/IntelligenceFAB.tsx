@@ -3,14 +3,13 @@
 import { useState, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
+import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
+import { PanelActionsGrid } from "./PanelActionsGrid"
+import { PanelResources } from "./PanelResources"
+import { PanelActivity } from "./PanelActivity"
+import { PanelKeyContacts } from "./PanelKeyContacts"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-
-const INLINE_INTELLIGENCE_ROUTES = ["/prospection/accounts/"]
-
-function hasInlineIntelligence(pathname: string): boolean {
-  return INLINE_INTELLIGENCE_ROUTES.some((r) => pathname.startsWith(r) && pathname !== r)
-}
 
 function SparkleIcon() {
   return (
@@ -24,28 +23,105 @@ function SparkleIcon() {
   )
 }
 
-function SectionHeading({ title }: { title: string }) {
+function MobileSectionHeading({ title, count }: { title: string; count?: number }) {
   return (
-    <div className="flex items-center gap-2 mb-3">
+    <div className="flex items-center gap-2 mb-2.5">
       <span className="h-px w-3 bg-primary" aria-hidden />
       <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
         {title}
       </h3>
+      {count !== undefined && (
+        <span className="ml-auto rounded-full bg-border px-1.5 py-px text-[10px] font-bold text-muted">
+          {count}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function AccountMobileContent() {
+  const { panelData } = useIntelligenceContext()
+  if (!panelData) return null
+
+  const { resources, sector, activity, contacts } = panelData
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <MobileSectionHeading title="Actions" />
+        <PanelActionsGrid
+          sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
+        />
+      </section>
+
+      <section>
+        <MobileSectionHeading title="Ressources" />
+        <PanelResources resources={resources} hasStructuredSector={sector.hasStructuredSector} />
+      </section>
+
+      {activity.length > 0 && (
+        <section>
+          <MobileSectionHeading title="Activité" count={activity.length} />
+          <PanelActivity activity={activity} />
+        </section>
+      )}
+
+      {contacts.length > 0 && (
+        <section>
+          <MobileSectionHeading title="Contacts clés" count={contacts.length} />
+          <PanelKeyContacts contacts={contacts} />
+        </section>
+      )}
+    </div>
+  )
+}
+
+function RegistryMobileContent() {
+  const pathname = usePathname()
+  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+
+  return (
+    <div className="space-y-6">
+      {resolved.contextualActions.length > 0 && (
+        <section>
+          <MobileSectionHeading title={`Contexte : ${resolved.label}`} />
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.contextualActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {resolved.commonActions.length > 0 && (
+        <section>
+          <MobileSectionHeading title="Socle commun" />
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.commonActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="pt-2 border-t border-border text-center">
+        <p className="text-[10px] text-muted leading-relaxed">
+          Propulsé par n8n + IA
+        </p>
+      </div>
     </div>
   )
 }
 
 export function IntelligenceFAB() {
   const [isOpen, setIsOpen] = useState(false)
-  const pathname = usePathname()
-  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
-  const isInlinePage = hasInlineIntelligence(pathname)
+  const { entityContext, panelData } = useIntelligenceContext()
+  const isAccountMode = entityContext?.entityType === "company" && panelData !== null
 
-  if (isInlinePage) return null
+  const eyebrow = isAccountMode ? panelData.company.name : undefined
 
   return (
     <>
-      {/* FAB button */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -55,51 +131,19 @@ export function IntelligenceFAB() {
         <SparkleIcon />
       </button>
 
-      {/* Bottom drawer */}
       <AppDrawer
         open={isOpen}
         onOpenChange={setIsOpen}
         title="Cockpit Intelligence"
         side="bottom"
-        eyebrow={resolved.label}
+        eyebrow={eyebrow}
         icon={
           <span className="inline-flex size-5 items-center justify-center text-primary">
             <SparkleIcon />
           </span>
         }
       >
-        <div className="space-y-6">
-          {/* Contextual actions */}
-          {resolved.contextualActions.length > 0 && (
-            <section>
-              <SectionHeading title={`Contexte : ${resolved.label}`} />
-              <div className="grid grid-cols-2 gap-2">
-                {resolved.contextualActions.map((action) => (
-                  <IntelligenceActionCard key={action.id} action={action} tone="light" />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Common actions */}
-          {resolved.commonActions.length > 0 && (
-            <section>
-              <SectionHeading title="Socle commun" />
-              <div className="grid grid-cols-2 gap-2">
-                {resolved.commonActions.map((action) => (
-                  <IntelligenceActionCard key={action.id} action={action} tone="light" />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Powered by */}
-          <div className="pt-2 border-t border-border text-center">
-            <p className="text-[10px] text-muted leading-relaxed">
-              Propulsé par n8n + IA
-            </p>
-          </div>
-        </div>
+        {isAccountMode ? <AccountMobileContent /> : <RegistryMobileContent />}
       </AppDrawer>
     </>
   )
