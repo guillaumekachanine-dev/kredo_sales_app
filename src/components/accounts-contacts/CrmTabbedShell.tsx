@@ -87,7 +87,7 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
             tab.id !== activeTabId && "hidden"
           )}
         >
-          <CrmEntityPanel tab={tab} />
+          <CrmEntityPanel tab={tab} isActive={tab.id === activeTabId} />
         </div>
       ))}
     </div>

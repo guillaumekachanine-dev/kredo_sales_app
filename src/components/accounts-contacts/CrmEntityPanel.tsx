@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import type { SectionTab } from "@/lib/tabs/tab-types"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import type { AccountIntelligencePanelData } from "@/lib/intelligence/account-panel-types"
+import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
 import { ClientIntelligenceDesktopView } from "./intelligence/ClientIntelligenceDesktopView"
 import { ClientIntelligenceMobileView } from "./intelligence/ClientIntelligenceMobileView"
 
@@ -36,15 +38,22 @@ function LoadingShell() {
 interface CrmEntityPanelProps {
   tab: SectionTab
   isMobile?: boolean
+  // Le shell desktop garde tous les onglets montés (masqués en CSS) pour
+  // préserver leur état. Un seul onglet à la fois doit piloter le panneau
+  // Intelligence global, sinon un onglet inactif écraserait le contexte
+  // de l'onglet actif dès que son propre fetch se termine.
+  isActive?: boolean
 }
 
-export function CrmEntityPanel({ tab, isMobile = false }: CrmEntityPanelProps) {
+export function CrmEntityPanel({ tab, isMobile = false, isActive = true }: CrmEntityPanelProps) {
   const [data, setData] = useState<ClientIntelligenceData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [panelData, setPanelData] = useState<AccountIntelligencePanelData | null>(null)
 
   useEffect(() => {
     setData(null)
     setError(null)
+    setPanelData(null)
     fetch(`/api/intelligence/${tab.entityId}`)
       .then((r) => {
         if (!r.ok) throw new Error("Compte introuvable")
@@ -52,6 +61,13 @@ export function CrmEntityPanel({ tab, isMobile = false }: CrmEntityPanelProps) {
       })
       .then(setData)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Erreur inconnue"))
+
+    // Contrat lean séparé pour le panneau Cockpit Intelligence global — n'affecte
+    // pas l'affichage de la page si cet appel échoue, juste le branchement du panneau.
+    fetch(`/api/intelligence-panel/${tab.entityId}`)
+      .then((r) => (r.ok ? (r.json() as Promise<AccountIntelligencePanelData>) : null))
+      .then(setPanelData)
+      .catch(() => setPanelData(null))
   }, [tab.entityId])
 
   if (error) {
@@ -65,6 +81,21 @@ export function CrmEntityPanel({ tab, isMobile = false }: CrmEntityPanelProps) {
 
   if (!data) return <LoadingShell />
 
-  if (isMobile) return <ClientIntelligenceMobileView data={data} />
-  return <ClientIntelligenceDesktopView data={data} />
+  return (
+    <>
+      {isActive && panelData && (
+        <RegisterIntelligenceContext
+          entityType="company"
+          entityId={tab.entityId}
+          label={data.company.name}
+          panelData={panelData}
+        />
+      )}
+      {isMobile ? (
+        <ClientIntelligenceMobileView data={data} />
+      ) : (
+        <ClientIntelligenceDesktopView data={data} />
+      )}
+    </>
+  )
 }
