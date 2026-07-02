@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Select } from "@/components/ui/Select"
-import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag } from "@/lib/n8n/types"
@@ -22,11 +22,24 @@ import { CommunicationResult } from "./CommunicationResult"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
 
+// Contrat minimal — satisfait aussi bien par ClientIntelligenceData (page compte)
+// que par AccountIntelligencePanelData (panneau global) : la génération pitch/mail
+// n'a jamais eu besoin des analyses/diagnostics complets, seulement du compte et
+// des contacts.
+export type PitchMailAccountContext = {
+  company: {
+    id: string
+    name: string
+    lifecycleStatus: string
+  }
+  contacts: ClientIntelligenceContact[]
+}
+
 export function PitchMailDrawerContent({
   data,
   variant = "desktop",
 }: {
-  data: ClientIntelligenceData
+  data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
 }) {
   const { company, contacts } = data

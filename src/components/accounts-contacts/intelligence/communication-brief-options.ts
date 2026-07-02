@@ -10,7 +10,6 @@ import type {
   CommunicationSenderRole,
   CommunicationTone,
 } from "@/lib/n8n/types"
-import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 
 // ─── Taxonomies V1 — INTEL-020-REDACTION-ASSISTEE-V1.md § 4 ─────────────────
 
@@ -161,7 +160,7 @@ export function personaFromRelationshipRole(relationshipRole: string | null): Co
 }
 
 export function buildDefaultBrief(
-  data: ClientIntelligenceData,
+  data: { company: { lifecycleStatus: string; name: string } },
   senderName: string
 ): CommunicationBrief {
   const { company } = data

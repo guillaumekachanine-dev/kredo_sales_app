@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
 import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
@@ -11,6 +11,9 @@ import { PanelResources } from "./PanelResources"
 import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { IconButton } from "@/components/ui/IconButton"
+import { PitchMailDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+
+type AccountPanelAction = "pitch" | null
 
 function SectionHeading({ title, count }: { title: string; count?: number }) {
   return (
@@ -30,10 +33,33 @@ function SectionHeading({ title, count }: { title: string; count?: number }) {
 
 function AccountPanelContent() {
   const { panelData, entityContext } = useIntelligenceContext()
+  const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
 
   if (!panelData || !entityContext) return null
 
   const { company, resources, sector, activity, contacts } = panelData
+
+  if (activeAction === "pitch") {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setActiveAction(null)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
+          <PitchMailDrawerContent
+            data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
+          />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -54,6 +80,9 @@ function AccountPanelContent() {
         <SectionHeading title="Actions" />
         <PanelActionsGrid
           sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
+          onActionClick={(actionId) => {
+            if (actionId === "generate_pitch") setActiveAction("pitch")
+          }}
         />
       </section>
 
@@ -176,7 +205,11 @@ export function IntelligencePanel() {
           </IconButton>
         </div>
 
-        {isAccountMode ? <AccountPanelContent /> : <RegistryPanelContent />}
+        {isAccountMode ? (
+          <AccountPanelContent key={entityContext?.entityId} />
+        ) : (
+          <RegistryPanelContent />
+        )}
 
         {/* Footer */}
         <div className="pt-2 border-t border-primary-fg/8 text-center">
