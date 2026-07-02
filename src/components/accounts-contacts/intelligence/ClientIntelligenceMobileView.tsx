@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect, Fragment } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
-import type { DashboardAction } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import {
@@ -16,7 +14,6 @@ import {
   FreshnessLine,
 } from "./intelligence-parts"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
-import { PitchMailDrawerContent, SummaryDrawerContent, CampaignDrawerContent } from "./IntelligenceActionDrawers"
 import {
   type TabKey,
   INTELLIGENCE_PROCESS_STEPS,
@@ -35,14 +32,12 @@ import {
   CollapseIcon,
 } from "./ClientIntelligenceDesktopView"
 
-type MobilePanelKey = TabKey | "pitch" | "summary" | "campaign"
-
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
   const { company, client, sector, diagnostic, diagnosticPdfUrl, signals } = data
 
-  const [activePanel, setActivePanel] = useState<MobilePanelKey>("accueil")
+  const [activePanel, setActivePanel] = useState<TabKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [veilleMessage, setVeilleMessage] = useState<string | null>(null)
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
@@ -56,65 +51,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
       if (dialog.open) dialog.close()
     }
   }, [pdfDialogOpen, diagnosticPdfUrl])
-
-  const quickActions: DashboardAction[] = [
-    {
-      id: "scan-contacts",
-      label: "Scan contacts",
-      onClick: () => setMessage("Scan des contacts à connecter"),
-      icon: <ScanContactsIcon className="h-4 w-4" />,
-      variant: "secondary",
-    },
-    {
-      id: "campaign",
-      label: "+ campagne",
-      onClick: () => {
-        setActivePanel("campaign")
-        setMessage(null)
-      },
-      icon: <CampaignIcon className="h-4 w-4" />,
-      variant: "secondary",
-    },
-    {
-      id: "summary",
-      label: "Synthèse",
-      onClick: () => {
-        setActivePanel("summary")
-        setMessage(null)
-      },
-      icon: <SummaryIcon className="h-4 w-4" />,
-      variant: "secondary",
-    },
-    {
-      id: "pitch",
-      label: "Pitch/mail",
-      onClick: () => {
-        setActivePanel("pitch")
-        setMessage(null)
-      },
-      icon: (
-        <svg className="h-4 w-4" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <mask id="brain-cutout">
-              <rect width="200" height="200" fill="white" />
-              <rect x="96" y="0" width="8" height="200" fill="black" />
-              <rect x="65" y="65" width="70" height="70" rx="10" fill="black" />
-              <path d="M 65 65 Q 45 55 40 75" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 65 135 Q 45 145 40 125" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 135 65 Q 155 55 160 75" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 135 135 Q 155 145 160 125" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-            </mask>
-          </defs>
-          <g mask="url(#brain-cutout)" fill="currentColor">
-            <path d="M 96 25 C 70 20 45 40 40 60 C 20 65 15 85 20 100 C 10 115 15 140 35 145 C 45 170 75 180 96 170 Z" />
-            <path d="M 104 25 C 130 20 155 40 160 60 C 180 65 185 85 180 100 C 190 115 185 140 165 145 C 155 170 125 180 104 170 Z" />
-          </g>
-          <text x="100" y="113" fontFamily="Arial, Helvetica, sans-serif" fontSize="38" fontWeight="bold" fill="currentColor" textAnchor="middle">AI</text>
-        </svg>
-      ),
-      variant: "secondary",
-    },
-  ]
 
   if (activePanel !== "accueil") {
     const stepDetails = {
@@ -138,18 +74,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         title: "Roadmap commerciale",
         description: "Convertir la stratégie en prochaines actions.",
       },
-      pitch: {
-        title: "Construire un pitch/mail",
-        description: "Préparer un message commercial contextualisé.",
-      },
-      summary: {
-        title: "Synthèse client",
-        description: "Créer une fiche de synthèse consolidée.",
-      },
-      campaign: {
-        title: "Créer une campagne",
-        description: "Configurer une campagne de prospection multi-canal.",
-      },
     }[activePanel]
 
     return (
@@ -158,10 +82,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           <div className="flex items-center gap-1.5 -ml-1">
             <button
               type="button"
-              onClick={() => {
-                setActivePanel("accueil")
-                setMessage(null)
-              }}
+              onClick={() => setActivePanel("accueil")}
               className="inline-flex items-center justify-center text-white hover:text-white/80 transition-colors rounded p-1 min-h-[44px] cursor-pointer"
               aria-label="Retour à l'accueil"
             >
@@ -415,17 +336,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             </div>
           )}
 
-          {activePanel === "pitch" && (
-            <PitchMailDrawerContent data={data} variant="mobile" />
-          )}
-
-          {activePanel === "summary" && (
-            <SummaryDrawerContent data={data} variant="mobile" />
-          )}
-
-          {activePanel === "campaign" && (
-            <CampaignDrawerContent data={data} variant="mobile" />
-          )}
         </div>
       </div>
     )
@@ -527,7 +437,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             <div className="mt-3 pt-3 border-t border-border/30">
               <button
                 type="button"
-                onClick={() => setMessage("Veille IA en cours de chargement...")}
+                onClick={() => setVeilleMessage("Veille IA en cours de chargement...")}
                 className="w-full flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors active:scale-98 cursor-pointer"
               >
                 <div className="flex items-center gap-2">
@@ -536,39 +446,13 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 </div>
                 <ChevronRightIcon className="h-3.5 w-3.5 text-primary" />
               </button>
+              {veilleMessage && (
+                <p className="text-[11px] text-muted text-center font-medium mt-2">
+                  {veilleMessage}
+                </p>
+              )}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Actions rapides mobile */}
-      <div className="flex flex-col gap-2 border-t border-b border-border/50 py-3">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-          Actions rapides
-        </span>
-        <div className="grid grid-cols-2 gap-2 mt-1">
-          {quickActions.map((action, idx) => {
-            const isLastOdd = idx === quickActions.length - 1 && quickActions.length % 2 !== 0
-            const baseClasses = "inline-flex items-center justify-center w-full min-h-[44px] px-3 py-2 text-xs font-semibold rounded transition-all duration-150 active:scale-98 border bg-white text-brand-blue border-border hover:bg-surface-hover"
-            return (
-              <button
-                key={action.id}
-                type="button"
-                onClick={action.onClick}
-                className={cn(baseClasses, isLastOdd && "col-span-2")}
-              >
-                <span className="flex items-center gap-2">
-                  {action.icon}
-                  {action.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        {message && (
-          <p className="text-[11px] text-muted text-center font-medium mt-1">
-            {message}
-          </p>
         )}
       </div>
 
@@ -631,41 +515,6 @@ function RefreshIcon({ className }: { className?: string }) {
       <path d="M3 3v5h5" />
       <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
       <path d="M16 16h5v5" />
-    </svg>
-  )
-}
-
-function CampaignIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 11 18-5v12L3 13v-2z" />
-      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-    </svg>
-  )
-}
-
-
-
-function SummaryIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-      <path d="M10 9H8" />
-      <path d="M16 13H8" />
-      <path d="M16 17H8" />
-    </svg>
-  )
-}
-
-function ScanContactsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      <line x1="2" y1="12" x2="22" y2="12" strokeDasharray="3 3" />
     </svg>
   )
 }

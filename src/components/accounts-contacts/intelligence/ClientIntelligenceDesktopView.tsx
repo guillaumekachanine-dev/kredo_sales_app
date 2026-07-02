@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect, Fragment, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { DashboardQuickActions } from "@/components/dashboard/layout/DashboardQuickActions"
-import type { DashboardAction } from "@/lib/dashboard/dashboard-types"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
@@ -12,14 +10,11 @@ import {
   ComingSoon,
   Field,
   lifecycleLabel,
-  ProvenanceBadge,
   ScorePill,
   SectionBlock,
   SignalList,
   TagList,
 } from "./intelligence-parts"
-import { IntelligenceRightRail } from "./IntelligenceRightRail"
-import { PitchMailDrawerContent, SummaryDrawerContent, CampaignDrawerContent } from "./IntelligenceActionDrawers"
 import {
   type TabKey,
   type ProcessStepKey,
@@ -38,11 +33,9 @@ const TABS: { key: TabKey; label: string; lot?: string }[] = [
 
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
-  const [activeAction, setActiveAction] = useState<"pitch" | "summary" | "campaign" | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [expandedViewer, setExpandedViewer] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
-  const { company, client, freshness, presence, contacts } = data
+  const { company } = data
   const { diagnosticPdfUrl } = data
 
   useEffect(() => {
@@ -54,66 +47,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
       if (dialog.open) dialog.close()
     }
   }, [expandedViewer, diagnosticPdfUrl])
-
-  const quickActions: DashboardAction[] = [
-    {
-      id: "scan-contacts",
-      label: "Scan contacts",
-      onClick: () => setMessage("Scan des contacts à connecter"),
-      icon: <ScanContactsIcon className="h-3.5 w-3.5" />,
-      variant: "secondary",
-    },
-    {
-      id: "campaign",
-      label: "+ campagne",
-      onClick: () => {
-        setActiveAction("campaign")
-        setMessage(null)
-      },
-      icon: <CampaignIcon className="h-3.5 w-3.5" />,
-      variant: "secondary",
-    },
-    {
-      id: "summary",
-      label: "Synthèse client",
-      onClick: () => {
-        setActiveAction("summary")
-        setMessage(null)
-      },
-      icon: <SummaryIcon className="h-3.5 w-3.5" />,
-      variant: "secondary",
-    },
-    {
-      id: "pitch",
-      label: "Pitch/mail",
-      onClick: () => {
-        setActiveAction("pitch")
-        setMessage(null)
-      },
-      icon: (
-        <svg className="h-3.5 w-3.5" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <mask id="brain-cutout">
-              <rect width="200" height="200" fill="white" />
-              <rect x="96" y="0" width="8" height="200" fill="black" />
-              <rect x="65" y="65" width="70" height="70" rx="10" fill="black" />
-              <path d="M 65 65 Q 45 55 40 75" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 65 135 Q 45 145 40 125" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 135 65 Q 155 55 160 75" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-              <path d="M 135 135 Q 155 145 160 125" stroke="black" strokeWidth="8" strokeLinecap="round" fill="none" />
-            </mask>
-          </defs>
-          <g mask="url(#brain-cutout)" fill="currentColor">
-            <path d="M 96 25 C 70 20 45 40 40 60 C 20 65 15 85 20 100 C 10 115 15 140 35 145 C 45 170 75 180 96 170 Z" />
-            <path d="M 104 25 C 130 20 155 40 160 60 C 180 65 185 85 180 100 C 190 115 185 140 165 145 C 155 170 125 180 104 170 Z" />
-          </g>
-          <text x="100" y="113" fontFamily="Arial, Helvetica, sans-serif" fontSize="38" fontWeight="bold" fill="currentColor" textAnchor="middle">AI</text>
-        </svg>
-      ),
-      variant: "secondary",
-    },
-  ]
-  const analysisSource: IntelligenceSource = client?.source ?? "none"
 
   return (
     <div data-theme="cockpit" className="flex h-full overflow-hidden bg-canvas">
@@ -198,7 +131,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           {activeTab === "analyses" && (
             <AnalyseTab
               data={data}
-              setMessage={setMessage}
               isExpandedViewer={expandedViewer}
               onExpandViewer={setExpandedViewer}
             />
@@ -225,42 +157,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           )}
         </main>
       </div>
-
-      {/* Drawer Action IA */}
-      {!expandedViewer && activeAction && (
-        <div className="w-[460px] shrink-0 border-l border-border bg-surface flex flex-col h-full overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
-              Assistant IA
-            </span>
-            <button
-              type="button"
-              onClick={() => setActiveAction(null)}
-              aria-label="Fermer le panneau"
-              className="text-xs font-semibold text-muted hover:text-body cursor-pointer p-1 rounded hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
-            >
-              Fermer ×
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {activeAction === "pitch" && <PitchMailDrawerContent data={data} />}
-            {activeAction === "summary" && <SummaryDrawerContent data={data} />}
-            {activeAction === "campaign" && <CampaignDrawerContent data={data} />}
-          </div>
-        </div>
-      )}
-
-      {/* ── Tour de contrôle : masqué en mode lecteur plein écran ── */}
-      {!expandedViewer && (
-        <IntelligenceRightRail
-          freshness={freshness}
-          presence={presence}
-          contacts={contacts}
-          analysisSource={analysisSource}
-          quickActions={quickActions}
-          message={message}
-        />
-      )}
 
       {/* ── Lecteur PDF plein écran (dialog native) ─────────────────────────── */}
       {diagnosticPdfUrl && (
@@ -421,16 +317,15 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
 
 function AnalyseTab({
   data,
-  setMessage,
   isExpandedViewer,
   onExpandViewer,
 }: {
   data: ClientIntelligenceData
-  setMessage: (msg: string | null) => void
   isExpandedViewer: boolean
   onExpandViewer: (v: boolean) => void
 }) {
   const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
   const { client, sector, diagnostic, diagnosticPdfUrl, company } = data
 
   function isAvailable(key: AnalysisTypeKey) {
@@ -508,14 +403,19 @@ function AnalyseTab({
           </div>
 
           {/* Bouton Lancer/actualiser une analyse */}
-          <button
-            type="button"
-            onClick={() => setMessage("Lancement de l'analyse en cours...")}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer ml-auto min-h-[38px]"
-          >
-            <RefreshIcon className="h-3.5 w-3.5" />
-            Lancer/actualiser une analyse
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            {message && (
+              <p className="text-[11px] font-medium text-muted">{message}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setMessage("Lancement de l'analyse en cours...")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px]"
+            >
+              <RefreshIcon className="h-3.5 w-3.5" />
+              Lancer/actualiser une analyse
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1262,27 +1162,6 @@ function RefreshIcon({ className }: { className?: string }) {
   )
 }
 
-function CampaignIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m3 11 18-5v12L3 13v-2z" />
-      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-    </svg>
-  )
-}
-
-function SummaryIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
-      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-      <path d="M10 9H8" />
-      <path d="M16 13H8" />
-      <path d="M16 17H8" />
-    </svg>
-  )
-}
-
 export function CollapseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1305,17 +1184,6 @@ export function ExpandIcon({ className }: { className?: string }) {
   )
 }
 
-function ScanContactsIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      <line x1="2" y1="12" x2="22" y2="12" strokeDasharray="3 3" />
-    </svg>
-  )
-}
 
 
 
