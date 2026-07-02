@@ -10,12 +10,15 @@ const ROLE_LABELS: Record<string, string> = {
 
 interface PanelKeyContactsProps {
   contacts: PanelContact[]
+  tone?: "dark" | "light"
 }
 
-export function PanelKeyContacts({ contacts }: PanelKeyContactsProps) {
+export function PanelKeyContacts({ contacts, tone = "dark" }: PanelKeyContactsProps) {
+  const isDark = tone === "dark"
+
   if (contacts.length === 0) {
     return (
-      <p className="text-[11px] italic text-primary-fg/35">
+      <p className={isDark ? "text-[11px] italic text-primary-fg/35" : "text-[11px] italic text-muted"}>
         Aucun contact clé identifié.
       </p>
     )
@@ -26,16 +29,20 @@ export function PanelKeyContacts({ contacts }: PanelKeyContactsProps) {
       {contacts.map((contact) => (
         <li
           key={contact.id}
-          className="flex items-center gap-3 rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-2.5 transition-colors hover:bg-primary-fg/[0.08]"
+          className={
+            isDark
+              ? "flex items-center gap-3 rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-2.5 transition-colors hover:bg-primary-fg/[0.08]"
+              : "flex items-center gap-3 rounded-lg border border-border bg-surface p-2.5 transition-colors hover:bg-surface-hover"
+          }
         >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/25 text-[10px] font-bold text-primary-fg">
+          <span className={isDark ? "flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/25 text-[10px] font-bold text-primary-fg" : "flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary"}>
             {contact.initials}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-primary-fg">
+            <p className={isDark ? "truncate text-xs font-semibold text-primary-fg" : "truncate text-xs font-semibold text-heading"}>
               {contact.fullName}
             </p>
-            <p className="truncate text-[11px] text-primary-fg/45">
+            <p className={isDark ? "truncate text-[11px] text-primary-fg/45" : "truncate text-[11px] text-muted"}>
               {contact.jobTitle ?? ROLE_LABELS[contact.relationshipRole] ?? "—"}
             </p>
           </div>

@@ -5,6 +5,7 @@ import type { PanelResourceCounts } from "@/lib/intelligence/account-panel-types
 interface PanelResourcesProps {
   resources: PanelResourceCounts
   hasStructuredSector: boolean
+  tone?: "dark" | "light"
 }
 
 type ResourceLine = {
@@ -56,26 +57,31 @@ function buildLines(resources: PanelResourceCounts, hasStructuredSector: boolean
   ]
 }
 
-export function PanelResources({ resources, hasStructuredSector }: PanelResourcesProps) {
+export function PanelResources({ resources, hasStructuredSector, tone = "dark" }: PanelResourcesProps) {
+  const isDark = tone === "dark"
   const lines = buildLines(resources, hasStructuredSector)
+  const rowCls = isDark
+    ? "flex items-center justify-between border-b border-primary-fg/6 px-0.5 py-2 last:border-b-0"
+    : "flex items-center justify-between border-b border-border px-0.5 py-2 last:border-b-0"
+  const labelCls = isDark ? "text-[11px] text-primary-fg/60" : "text-[11px] text-muted"
+  const dimValueCls = isDark ? "text-[11px] font-semibold text-primary-fg/35" : "text-[11px] font-semibold text-muted"
+  const strongValueCls = isDark ? "text-[11px] font-semibold text-primary-fg/80" : "text-[11px] font-semibold text-heading"
+  const positiveValueCls = isDark ? "text-[11px] font-semibold text-emerald-400" : "text-[11px] font-semibold text-success"
 
   return (
     <ul className="space-y-0">
       {lines.map((line) => (
-        <li
-          key={line.label}
-          className="flex items-center justify-between border-b border-primary-fg/6 px-0.5 py-2 last:border-b-0"
-        >
-          <span className="text-[11px] text-primary-fg/60">{line.label}</span>
+        <li key={line.label} className={rowCls}>
+          <span className={labelCls}>{line.label}</span>
           <span
             className={
               line.tone === "boolean"
                 ? line.value === "Oui"
-                  ? "text-[11px] font-semibold text-emerald-400"
-                  : "text-[11px] font-semibold text-primary-fg/35"
+                  ? positiveValueCls
+                  : dimValueCls
                 : line.value === "—"
-                  ? "text-[11px] font-semibold text-primary-fg/35"
-                  : "text-[11px] font-semibold text-primary-fg/80"
+                  ? dimValueCls
+                  : strongValueCls
             }
           >
             {line.value}

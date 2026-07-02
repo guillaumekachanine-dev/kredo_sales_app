@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
@@ -81,25 +82,26 @@ function AccountMobileContent() {
           onActionClick={(actionId) => {
             if (actionId === "generate_pitch") setActiveAction("pitch")
           }}
+          tone="light"
         />
       </section>
 
       <section>
         <MobileSectionHeading title="Ressources" />
-        <PanelResources resources={resources} hasStructuredSector={sector.hasStructuredSector} />
+        <PanelResources resources={resources} hasStructuredSector={sector.hasStructuredSector} tone="light" />
       </section>
 
       {activity.length > 0 && (
         <section>
           <MobileSectionHeading title="Activité" count={activity.length} />
-          <PanelActivity activity={activity} />
+          <PanelActivity activity={activity} tone="light" />
         </section>
       )}
 
       {contacts.length > 0 && (
         <section>
           <MobileSectionHeading title="Contacts clés" count={contacts.length} />
-          <PanelKeyContacts contacts={contacts} />
+          <PanelKeyContacts contacts={contacts} tone="light" />
         </section>
       )}
     </div>
@@ -156,7 +158,12 @@ export function IntelligenceFAB() {
         type="button"
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le cockpit intelligence"
-        className="fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full bg-primary text-primary-fg shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90"
+        className={cn(
+          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90",
+          isAccountMode
+            ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
+            : "bg-primary text-primary-fg",
+        )}
       >
         <SparkleIcon />
       </button>

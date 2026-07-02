@@ -485,6 +485,48 @@ dialog.kredo-drawer-bottom {
   z-index: 2;
 }
 
+/* ── FAB Intelligence — bordure bariolée animée quand la page Cockpit
+ *  Intelligence d'un compte (fond cobalt) est affichée : le FAB en
+ *  bg-primary (cobalt) s'y fondait, devenant quasi invisible. Même
+ *  technique que .kredo-intelligence-toggle, sans toucher à `position`
+ *  (le FAB porte déjà `fixed` via Tailwind).
+ * ──────────────────────────────────────────────────────────────────── */
+.kredo-fab-cockpit-active {
+  overflow: visible;
+}
+
+.kredo-fab-cockpit-active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    135deg,
+    #5b57f5,
+    #7c4fff,
+    #b84dff,
+    #ff004d,
+    #ff7a00,
+    #ffb700,
+    #33d17a,
+    #00c2ff,
+    #4f6bff,
+    #5b57f5,
+    #b84dff,
+    #5b57f5
+  );
+  background-size: 400% 400%;
+  -webkit-mask:
+     linear-gradient(#fff 0 0) content-box,
+     linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  animation: kredo-ready-gradient-flow 3s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* ── Intelligence Action Card — dark panel (hover: lift + glow + sweep) ──
  *  ::before  = bordure gradient statique cobalt→brass
  *  ::after   = lumière diagonale qui balaye à l'entrée du survol

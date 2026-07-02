@@ -25,15 +25,28 @@ const ACCOUNT_ACTIONS: PanelAction[] = [
 interface PanelActionsGridProps {
   sectorSlug?: string | null
   onActionClick?: (actionId: string) => void
+  tone?: "dark" | "light"
 }
 
-export function PanelActionsGrid({ sectorSlug, onActionClick }: PanelActionsGridProps) {
+export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: PanelActionsGridProps) {
+  const isDark = tone === "dark"
   const actions = ACCOUNT_ACTIONS.map((action) => {
     if (action.id === "sector_playbook" && sectorSlug) {
       return { ...action, active: true, href: `/ressources/playbook/${sectorSlug}` }
     }
     return action
   })
+
+  const activeCls = isDark
+    ? "inline-flex items-center gap-2 rounded border border-primary-fg/10 bg-primary-fg/[0.04] px-2.5 py-2 text-xs font-semibold text-primary-fg transition-all hover:bg-primary-fg/[0.08] active:scale-95 min-h-[40px]"
+    : "inline-flex items-center gap-2 rounded border border-border bg-surface px-2.5 py-2 text-xs font-semibold text-heading transition-all hover:bg-surface-hover active:scale-95 min-h-[44px]"
+  const disabledCls = isDark
+    ? "inline-flex items-center gap-2 rounded border border-primary-fg/8 bg-primary-fg/[0.02] px-2.5 py-2 text-xs font-semibold text-primary-fg/35 min-h-[40px] cursor-default"
+    : "inline-flex items-center gap-2 rounded border border-border/60 bg-canvas px-2.5 py-2 text-xs font-semibold text-muted min-h-[44px] cursor-default opacity-70"
+  const iconCls = isDark ? "size-4 shrink-0 text-primary-fg/70" : "size-4 shrink-0 text-primary"
+  const badgeCls = isDark
+    ? "ml-auto shrink-0 rounded-full bg-primary-fg/8 px-1 py-px text-[7px] font-bold uppercase tracking-wider text-primary-fg/40"
+    : "ml-auto shrink-0 rounded-full border border-border bg-canvas px-1 py-px text-[7px] font-bold uppercase tracking-wider text-muted"
 
   return (
     <div className="grid grid-cols-2 gap-1.5">
@@ -42,12 +55,8 @@ export function PanelActionsGrid({ sectorSlug, onActionClick }: PanelActionsGrid
 
         if (action.href && action.active) {
           return (
-            <a
-              key={action.id}
-              href={action.href}
-              className="inline-flex items-center gap-2 rounded border border-primary-fg/10 bg-primary-fg/[0.04] px-2.5 py-2 text-xs font-semibold text-primary-fg transition-all hover:bg-primary-fg/[0.08] active:scale-95 min-h-[40px]"
-            >
-              <IntelligenceIcon name={action.icon} className="size-4 shrink-0 text-primary-fg/70" />
+            <a key={action.id} href={action.href} className={activeCls}>
+              <IntelligenceIcon name={action.icon} className={iconCls} />
               <span className="truncate">{action.label}</span>
             </a>
           )
@@ -59,19 +68,11 @@ export function PanelActionsGrid({ sectorSlug, onActionClick }: PanelActionsGrid
             type="button"
             disabled={isDisabled}
             onClick={action.active ? () => onActionClick?.(action.id) : undefined}
-            className={
-              isDisabled
-                ? "inline-flex items-center gap-2 rounded border border-primary-fg/8 bg-primary-fg/[0.02] px-2.5 py-2 text-xs font-semibold text-primary-fg/35 min-h-[40px] cursor-default"
-                : "inline-flex items-center gap-2 rounded border border-primary-fg/10 bg-primary-fg/[0.04] px-2.5 py-2 text-xs font-semibold text-primary-fg transition-all hover:bg-primary-fg/[0.08] active:scale-95 min-h-[40px] cursor-pointer"
-            }
+            className={isDisabled ? disabledCls : activeCls}
           >
-            <IntelligenceIcon name={action.icon} className="size-4 shrink-0" />
+            <IntelligenceIcon name={action.icon} className={isDisabled ? (isDark ? "size-4 shrink-0 text-primary-fg/35" : "size-4 shrink-0 text-muted") : iconCls} />
             <span className="truncate">{action.label}</span>
-            {isDisabled && (
-              <span className="ml-auto shrink-0 rounded-full bg-primary-fg/8 px-1 py-px text-[7px] font-bold uppercase tracking-wider text-primary-fg/40">
-                Bientôt
-              </span>
-            )}
+            {isDisabled && <span className={badgeCls}>Bientôt</span>}
           </button>
         )
       })}

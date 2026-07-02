@@ -450,6 +450,7 @@ export function CompanyIdentityDrawer({
               <div className="pt-2 border-t border-border/40">
                 <Link
                   href={`/prospection/accounts/${companyId}`}
+                  onClick={() => onOpenChange(false)}
                   className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-[var(--radius-medium)] bg-primary w-full py-2 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95"
                 >
                   <span>Ouvrir le cockpit Intelligence</span>
