@@ -498,7 +498,7 @@ dialog.kredo-drawer-bottom {
 }
 
 .kredo-account-badge:hover::after {
-  animation: kredo-account-badge-reflect 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: kredo-account-badge-reflect 3.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes kredo-account-badge-reflect {
