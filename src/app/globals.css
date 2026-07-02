@@ -457,6 +457,36 @@ dialog.kredo-drawer-bottom {
   -webkit-mask-composite: xor;
           mask-composite: exclude;
   pointer-events: none;
+  opacity: 0.75;
+  transition: opacity 0.25s ease;
+}
+
+.kredo-account-badge:hover::before {
+  opacity: 1;
+}
+
+/* Reflet glassmorphism — sweep diagonal déclenché au survol, one-shot
+   (pas de boucle : forwards + rejoué uniquement à une nouvelle entrée). */
+.kredo-account-badge::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -60%;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.24) 50%,
+    rgba(255, 255, 255, 0) 65%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.kredo-account-badge:hover::after {
+  animation: kredo-action-shine-sweep 0.65s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* ── Intelligence Toggle — bordure bariolée animée, fond transparent ──
@@ -669,6 +699,9 @@ dialog.kredo-drawer-bottom {
   .kredo-action-card-dark:not(:disabled):hover {
     transform: none;
   }
+  .kredo-account-badge::after {
+    display: none;
+  }
 }
 
 body {
@@ -794,7 +827,7 @@ html {
   --layout-header-height: 3.5rem;
   --layout-bottom-nav-height: 5rem;
   --layout-drawer-width: 28rem;
-  --layout-intelligence-width: 20rem;
+  --layout-intelligence-width: var(--layout-drawer-width);
   --layout-mobile-tap-target: 2.75rem;
 
   /* ── Safe area ──────────────────────────────────────────── */
