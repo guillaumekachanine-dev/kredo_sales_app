@@ -12,6 +12,7 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
 import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
+import { RegisterIntelligenceEntity } from "@/components/intelligence/RegisterIntelligenceEntity"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -423,6 +424,9 @@ export function ContactIdentityDrawer({
       subtitle={contact ? fullName : undefined}
       className="max-w-2xl"
     >
+      {open && contactId && person && (
+        <RegisterIntelligenceEntity entityType="contact" entityId={contactId} label={fullName} />
+      )}
       {loading ? (
         <div className="flex flex-col gap-6 p-2">
           {/* Header Skeleton */}

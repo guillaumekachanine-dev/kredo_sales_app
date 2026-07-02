@@ -5,6 +5,7 @@ import { AppDrawer } from '@/components/ui/AppDrawer'
 import { StatusPill } from '@/components/ui/StatusPill'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { RegisterIntelligenceEntity } from '@/components/intelligence/RegisterIntelligenceEntity'
 import {
   computeMetrics,
   type DrawerAbsence,
@@ -705,6 +706,13 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
       subtitle={subtitle}
       className="max-w-[480px]"
     >
+      {open && collaboratorId && drawerData && (
+        <RegisterIntelligenceEntity
+          entityType="collaborator"
+          entityId={collaboratorId}
+          label={name}
+        />
+      )}
       {/* ── Barre d'onglets ──────────────────────────────────────────── */}
       {!loading && drawerData && (
         <div

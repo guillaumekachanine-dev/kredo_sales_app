@@ -1,13 +1,27 @@
-import { SectionTab } from "@/lib/tabs/tab-types"
+import { SectionTab, TabEntityType } from "@/lib/tabs/tab-types"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { OpportunityDetailPanel } from "./opportunity-detail/OpportunityDetailPanel"
 import { MissionDetailPanel } from "./mission-detail/MissionDetailPanel"
 import { ProjectDetailPanel } from "./project-detail/ProjectDetailPanel"
+import { RegisterIntelligenceEntity } from "@/components/intelligence/RegisterIntelligenceEntity"
+import type { IntelligenceEntityType } from "@/lib/intelligence/intelligence-registry"
 
 interface MissionsEntityPanelProps {
   tab: SectionTab
   isMobile?: boolean
+  // Les onglets sont tous montés simultanément (masqués en CSS, cf.
+  // MissionsTabbedShell) — seul l'onglet actif doit s'enregistrer auprès du
+  // Cockpit Intelligence. Par défaut true (rendu mobile : un seul onglet monté).
+  isActive?: boolean
+}
+
+// mission/opportunite/project seuls ont un contexte Intelligence branché —
+// planning-item/staffing/company-intelligence restent au stade skeleton.
+const INTELLIGENCE_ENTITY_TYPE: Partial<Record<TabEntityType, Exclude<IntelligenceEntityType, "company">>> = {
+  mission: "mission",
+  opportunite: "opportunity",
+  project: "project",
 }
 
 const entityLabels: Record<SectionTab["entityType"], string> = {
@@ -32,15 +46,40 @@ function SkeletonRow({ width }: { width: string }) {
   return <div className={cn("h-3 bg-border/40 rounded animate-pulse", width)} />
 }
 
-export function MissionsEntityPanel({ tab, isMobile = false }: MissionsEntityPanelProps) {
+export function MissionsEntityPanel({ tab, isMobile = false, isActive = true }: MissionsEntityPanelProps) {
+  const intelligenceEntityType = INTELLIGENCE_ENTITY_TYPE[tab.entityType]
+  const intelligenceRegistration = intelligenceEntityType && (
+    <RegisterIntelligenceEntity
+      entityType={intelligenceEntityType}
+      entityId={tab.entityId}
+      label={tab.title}
+      active={isActive}
+    />
+  )
+
   if (tab.entityType === "opportunite") {
-    return <OpportunityDetailPanel tab={tab} />
+    return (
+      <>
+        {intelligenceRegistration}
+        <OpportunityDetailPanel tab={tab} />
+      </>
+    )
   }
   if (tab.entityType === "mission") {
-    return <MissionDetailPanel tab={tab} isMobile={isMobile} />
+    return (
+      <>
+        {intelligenceRegistration}
+        <MissionDetailPanel tab={tab} isMobile={isMobile} />
+      </>
+    )
   }
   if (tab.entityType === "project") {
-    return <ProjectDetailPanel tab={tab} />
+    return (
+      <>
+        {intelligenceRegistration}
+        <ProjectDetailPanel tab={tab} />
+      </>
+    )
   }
 
   const label = entityLabels[tab.entityType]

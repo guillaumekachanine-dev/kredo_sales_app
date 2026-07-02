@@ -95,7 +95,7 @@ export function MissionsTabbedShell({
             tab.id !== activeTabId && "hidden"
           )}
         >
-          <MissionsEntityPanel tab={tab} />
+          <MissionsEntityPanel tab={tab} isActive={tab.id === activeTabId} />
         </div>
       ))}
     </div>

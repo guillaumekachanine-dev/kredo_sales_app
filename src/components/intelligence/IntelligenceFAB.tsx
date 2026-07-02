@@ -3,7 +3,12 @@
 import { useState, useMemo } from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
+import {
+  resolveIntelligenceActions,
+  resolveEntityActions,
+  ENTITY_TYPE_LABELS,
+  type IntelligenceEntityType,
+} from "@/lib/intelligence/intelligence-registry"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { IntelligenceActionCard } from "./IntelligenceActionCard"
 import { PanelActionsGrid } from "./PanelActionsGrid"
@@ -108,15 +113,32 @@ function AccountMobileContent() {
   )
 }
 
-function RegistryMobileContent() {
-  const pathname = usePathname()
-  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+function GenericEntityMobileContent() {
+  const { entityContext } = useIntelligenceContext()
+  const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
+    entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
+
+  const resolved = useMemo(
+    () => (nonCompanyType ? resolveEntityActions(nonCompanyType) : null),
+    [nonCompanyType],
+  )
+
+  if (!entityContext || !resolved || !nonCompanyType) return null
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-border bg-surface p-3">
+        <p className="truncate text-xs font-bold text-heading leading-tight">
+          {entityContext.label}
+        </p>
+        <p className="mt-1 text-[10px] uppercase tracking-wider text-muted">
+          {ENTITY_TYPE_LABELS[nonCompanyType]}
+        </p>
+      </div>
+
       {resolved.contextualActions.length > 0 && (
         <section>
-          <MobileSectionHeading title={`Contexte : ${resolved.label}`} />
+          <MobileSectionHeading title="Actions" />
           <div className="grid grid-cols-2 gap-2">
             {resolved.contextualActions.map((action) => (
               <IntelligenceActionCard key={action.id} action={action} tone="light" />
@@ -126,14 +148,64 @@ function RegistryMobileContent() {
       )}
 
       {resolved.commonActions.length > 0 && (
-        <section>
-          <MobileSectionHeading title="Socle commun" />
+        <details className="group">
+          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="h-px w-3 bg-primary" aria-hidden />
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+              Plus d&apos;actions
+            </h3>
+            <span className="ml-auto text-[10px] text-muted/60 transition-transform group-open:rotate-180">▾</span>
+          </summary>
           <div className="grid grid-cols-2 gap-2">
             {resolved.commonActions.map((action) => (
               <IntelligenceActionCard key={action.id} action={action} tone="light" />
             ))}
           </div>
+        </details>
+      )}
+    </div>
+  )
+}
+
+function RegistryMobileContent() {
+  const pathname = usePathname()
+  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+
+  return (
+    <div className="space-y-6">
+      {resolved.contextualActions.length > 0 ? (
+        <section>
+          <MobileSectionHeading title={resolved.label} />
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.contextualActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+            ))}
+          </div>
         </section>
+      ) : (
+        <section>
+          <MobileSectionHeading title={resolved.label} />
+          <p className="text-[11px] italic text-muted">
+            Aucune donnée à contextualiser sur cette page pour l&apos;instant.
+          </p>
+        </section>
+      )}
+
+      {resolved.commonActions.length > 0 && (
+        <details className="group">
+          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="h-px w-3 bg-primary" aria-hidden />
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+              Plus d&apos;actions
+            </h3>
+            <span className="ml-auto text-[10px] text-muted/60 transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.commonActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+            ))}
+          </div>
+        </details>
       )}
 
       <div className="pt-2 border-t border-border text-center">
@@ -149,8 +221,14 @@ export function IntelligenceFAB() {
   const [isOpen, setIsOpen] = useState(false)
   const { entityContext, panelData } = useIntelligenceContext()
   const isAccountMode = entityContext?.entityType === "company" && panelData !== null
+  const isGenericEntityMode = !!entityContext && entityContext.entityType !== "company"
+  const hasEntityFocus = isAccountMode || isGenericEntityMode
 
-  const eyebrow = isAccountMode ? panelData.company.name : undefined
+  const eyebrow = isAccountMode
+    ? panelData.company.name
+    : isGenericEntityMode
+      ? entityContext.label
+      : undefined
 
   return (
     <>
@@ -160,7 +238,7 @@ export function IntelligenceFAB() {
         aria-label="Ouvrir le cockpit intelligence"
         className={cn(
           "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90",
-          isAccountMode
+          hasEntityFocus
             ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
             : "bg-primary text-primary-fg",
         )}
@@ -182,6 +260,8 @@ export function IntelligenceFAB() {
       >
         {isAccountMode ? (
           <AccountMobileContent key={`${entityContext?.entityId}-${isOpen}`} />
+        ) : isGenericEntityMode ? (
+          <GenericEntityMobileContent key={`${entityContext.entityType}:${entityContext.entityId}-${isOpen}`} />
         ) : (
           <RegistryMobileContent />
         )}

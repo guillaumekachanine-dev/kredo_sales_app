@@ -2,9 +2,10 @@
 
 import { create } from "zustand"
 import type { AccountIntelligencePanelData } from "@/lib/intelligence/account-panel-types"
+import type { IntelligenceEntityType } from "@/lib/intelligence/intelligence-registry"
 
 export type IntelligenceEntityContext = {
-  entityType: "company"
+  entityType: IntelligenceEntityType
   entityId: string
   label: string
   pathname: string
