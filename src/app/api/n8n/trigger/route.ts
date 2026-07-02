@@ -85,12 +85,21 @@ export async function POST(request: Request) {
     )
   }
 
-  // ── 5. Appel n8n en background ─────────────────────────────────────────────
-  // On ne await PAS ici → réponse 202 immédiate.
-  // En cas d'échec, le run reste "queued" et pourra être relancé (OPS-004).
-  const appBaseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  // ── 5. Déclenchement du webhook n8n ─────────────────────────────────────────
+  // On attend uniquement l'accusé de réception immédiat de n8n (mode "Immediately",
+  // ~100-300ms) — pas la fin du workflow (LLM, etc., 10-20s), qui arrive plus tard
+  // via /api/n8n/callback. Sans ce await, Vercel peut geler l'instance serverless
+  // juste après le retour de la réponse, avant même que la requête vers n8n parte.
+  // VERCEL_URL pointe vers l'URL unique du déploiement (protégée par le SSO Vercel
+  // par défaut) — VERCEL_PROJECT_PRODUCTION_URL pointe vers le domaine de prod
+  // stable (non protégé), c'est celui qu'il faut utiliser pour que n8n puisse
+  // atteindre le callback sans authentification Vercel.
+  const appBaseUrl =
+    process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000")
 
   const payload: N8nTriggerPayload = {
     runId,
@@ -103,13 +112,20 @@ export async function POST(request: Request) {
     callbackUrl: `${appBaseUrl}/api/n8n/callback`,
   }
 
-  void callN8nWebhook(workflowId, payload).catch(async (err) => {
+  try {
+    await callN8nWebhook(workflowId, payload)
+  } catch (err) {
     console.error("[trigger] callN8nWebhook failed:", err)
     // On passe le run en "failed" si n8n n'est pas joignable
     await updateRunStatus(runId, "failed", {
       errorMessage: `Webhook call failed: ${err instanceof Error ? err.message : String(err)}`,
     }).catch(console.error)
-  })
+
+    return NextResponse.json<TriggerErrorResponse>(
+      { error: "n8n injoignable — le run a été marqué en échec" },
+      { status: 502 }
+    )
+  }
 
   // ── 6. Réponse immédiate ───────────────────────────────────────────────────
   return NextResponse.json<TriggerResponse>(

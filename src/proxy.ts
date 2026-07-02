@@ -43,10 +43,12 @@ export async function proxy(request: NextRequest) {
   const { data: claimsData } = await supabase.auth.getClaims()
   const user = claimsData?.claims ?? null
 
-  // Routes publiques : login + callback
+  // Routes publiques : login + callback + callback n8n (appelé par n8n, pas de
+  // session Supabase — sécurisé par sa propre vérification HMAC, pas le middleware)
   const isPublic =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/callback")
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/api/n8n/callback")
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
