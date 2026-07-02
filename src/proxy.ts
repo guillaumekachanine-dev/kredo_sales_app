@@ -4,8 +4,25 @@ import { NextResponse, type NextRequest } from "next/server"
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (pathname.startsWith("/design-lab")) {
+  const isDesignLabPath =
+    pathname === "/design-lab" || pathname.startsWith("/design-lab/")
+  const isPreviewDesignLab =
+    isDesignLabPath && process.env.VERCEL_ENV === "preview"
+  const isLocalDesignLab =
+    isDesignLabPath &&
+    process.env.NODE_ENV === "development" &&
+    !process.env.VERCEL_ENV
+  const isBlockedDesignLab =
+    isDesignLabPath &&
+    (process.env.VERCEL_ENV === "production" ||
+      process.env.NODE_ENV === "production")
+
+  if (isPreviewDesignLab || isLocalDesignLab) {
     return NextResponse.next({ request })
+  }
+
+  if (isBlockedDesignLab) {
+    return new NextResponse(null, { status: 404 })
   }
 
   let supabaseResponse = NextResponse.next({ request })
