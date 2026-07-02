@@ -2,7 +2,12 @@
 
 import { usePathname } from "next/navigation"
 import { useMemo, useState, useEffect } from "react"
-import { resolveIntelligenceActions } from "@/lib/intelligence/intelligence-registry"
+import {
+  resolveIntelligenceActions,
+  resolveEntityActions,
+  ENTITY_TYPE_LABELS,
+  type IntelligenceEntityType,
+} from "@/lib/intelligence/intelligence-registry"
 import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
@@ -69,7 +74,7 @@ function AccountPanelContent() {
       <div className="kredo-account-badge rounded-lg p-3">
         <div className="relative z-10 flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-primary-fg leading-tight">
+            <p className="truncate text-base font-bold text-primary-fg leading-tight">
               {company.name}
             </p>
             <div className="mt-1 flex items-center gap-2 text-[10px] text-primary-fg/55">
@@ -123,15 +128,35 @@ function AccountPanelContent() {
   )
 }
 
-function RegistryPanelContent() {
-  const pathname = usePathname()
-  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+function GenericEntityPanelContent() {
+  const { entityContext } = useIntelligenceContext()
+  const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
+    entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
+
+  const resolved = useMemo(
+    () => (nonCompanyType ? resolveEntityActions(nonCompanyType) : null),
+    [nonCompanyType],
+  )
+
+  if (!entityContext || !resolved || !nonCompanyType) return null
 
   return (
     <>
+      {/* Entity badge */}
+      <div className="kredo-account-badge rounded-lg p-3">
+        <div className="relative z-10 min-w-0">
+          <p className="truncate text-xs font-bold text-primary-fg leading-tight">
+            {entityContext.label}
+          </p>
+          <p className="mt-1 text-[10px] uppercase tracking-wider text-primary-fg/55">
+            {ENTITY_TYPE_LABELS[nonCompanyType]}
+          </p>
+        </div>
+      </div>
+
       {resolved.contextualActions.length > 0 && (
         <section>
-          <SectionHeading title={`Contexte : ${resolved.label}`} />
+          <SectionHeading title="Actions" />
           <div className="grid grid-cols-2 gap-2">
             {resolved.contextualActions.map((action) => (
               <IntelligenceActionCard key={action.id} action={action} tone="dark" />
@@ -141,14 +166,64 @@ function RegistryPanelContent() {
       )}
 
       {resolved.commonActions.length > 0 && (
-        <section>
-          <SectionHeading title="Socle commun" />
+        <details className="group">
+          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
+              Plus d&apos;actions
+            </h3>
+            <span className="ml-auto text-[10px] text-primary-fg/40 transition-transform group-open:rotate-180">▾</span>
+          </summary>
           <div className="grid grid-cols-2 gap-2">
             {resolved.commonActions.map((action) => (
               <IntelligenceActionCard key={action.id} action={action} tone="dark" />
             ))}
           </div>
+        </details>
+      )}
+    </>
+  )
+}
+
+function RegistryPanelContent() {
+  const pathname = usePathname()
+  const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+
+  return (
+    <>
+      {resolved.contextualActions.length > 0 ? (
+        <section>
+          <SectionHeading title={resolved.label} />
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.contextualActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+            ))}
+          </div>
         </section>
+      ) : (
+        <section>
+          <SectionHeading title={resolved.label} />
+          <p className="text-[11px] italic text-primary-fg/35">
+            Aucune donnée à contextualiser sur cette page pour l&apos;instant.
+          </p>
+        </section>
+      )}
+
+      {resolved.commonActions.length > 0 && (
+        <details className="group">
+          <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
+            <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
+              Plus d&apos;actions
+            </h3>
+            <span className="ml-auto text-[10px] text-primary-fg/40 transition-transform group-open:rotate-180">▾</span>
+          </summary>
+          <div className="grid grid-cols-2 gap-2">
+            {resolved.commonActions.map((action) => (
+              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+            ))}
+          </div>
+        </details>
       )}
 
       <section>
@@ -199,6 +274,7 @@ export function IntelligencePanel() {
 
   return (
     <aside
+      data-theme="cockpit"
       className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-rail kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
@@ -232,16 +308,11 @@ export function IntelligencePanel() {
 
         {isAccountMode ? (
           <AccountPanelContent key={entityContext?.entityId} />
+        ) : entityContext ? (
+          <GenericEntityPanelContent key={`${entityContext.entityType}:${entityContext.entityId}`} />
         ) : (
           <RegistryPanelContent />
         )}
-
-        {/* Footer */}
-        <div className="pt-2 border-t border-primary-fg/8 text-center">
-          <p className="text-[10px] text-primary-fg/30 leading-relaxed">
-            Propulsé par n8n + IA
-          </p>
-        </div>
       </div>
     </aside>
   )

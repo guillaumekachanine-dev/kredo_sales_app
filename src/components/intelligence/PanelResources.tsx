@@ -63,31 +63,35 @@ export function PanelResources({ resources, hasStructuredSector, tone = "dark" }
   const rowCls = isDark
     ? "flex items-center justify-between border-b border-primary-fg/6 px-0.5 py-2 last:border-b-0"
     : "flex items-center justify-between border-b border-border px-0.5 py-2 last:border-b-0"
-  const labelCls = isDark ? "text-[11px] text-primary-fg/60" : "text-[11px] text-muted"
+  const labelDimCls = isDark ? "text-[11px] text-primary-fg/60" : "text-[11px] text-muted"
+  const labelFilledCls = isDark ? "text-[11px] text-primary-fg/90" : "text-[11px] text-heading"
   const dimValueCls = isDark ? "text-[11px] font-semibold text-primary-fg/35" : "text-[11px] font-semibold text-muted"
   const strongValueCls = isDark ? "text-[11px] font-semibold text-primary-fg/80" : "text-[11px] font-semibold text-heading"
   const positiveValueCls = isDark ? "text-[11px] font-semibold text-emerald-400" : "text-[11px] font-semibold text-success"
 
   return (
     <ul className="space-y-0">
-      {lines.map((line) => (
-        <li key={line.label} className={rowCls}>
-          <span className={labelCls}>{line.label}</span>
-          <span
-            className={
-              line.tone === "boolean"
-                ? line.value === "Oui"
-                  ? positiveValueCls
-                  : dimValueCls
-                : line.value === "—"
-                  ? dimValueCls
-                  : strongValueCls
-            }
-          >
-            {line.value}
-          </span>
-        </li>
-      ))}
+      {lines.map((line) => {
+        const isFilled = line.tone === "boolean" ? line.value === "Oui" : line.value !== "—"
+        return (
+          <li key={line.label} className={rowCls}>
+            <span className={isFilled ? labelFilledCls : labelDimCls}>{line.label}</span>
+            <span
+              className={
+                line.tone === "boolean"
+                  ? line.value === "Oui"
+                    ? positiveValueCls
+                    : dimValueCls
+                  : line.value === "—"
+                    ? dimValueCls
+                    : strongValueCls
+              }
+            >
+              {line.value}
+            </span>
+          </li>
+        )
+      })}
     </ul>
   )
 }
