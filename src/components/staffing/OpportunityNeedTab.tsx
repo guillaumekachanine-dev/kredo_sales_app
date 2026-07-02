@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition, useMemo, type KeyboardEvent, type PointerEvent } from "react"
 import { curveCatmullRom, line } from "d3-shape"
-import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
+import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { getContactsByCompany } from "@/lib/agenda/agenda-actions"
 import type { AgendaSelectContact } from "@/lib/agenda/agenda-types"
 import { saveOpportunityClientContacts } from "@/app/(app)/missions/_actions/opportunity-contacts"
@@ -527,8 +527,7 @@ function ClientContactSection({
 }) {
   const companyId = opportunity.company?.id ?? null
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
-  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false)
+  const { openContact: openContactDrawer } = useCrmDrawer()
   const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
   const [search, setSearch] = useState("")
   const [isSearchActive, setIsSearchActive] = useState(false)
@@ -669,8 +668,7 @@ function ClientContactSection({
   }
 
   function openContactSheet(contactId: string) {
-    setSelectedContactId(contactId)
-    setIsContactDrawerOpen(true)
+    openContactDrawer(contactId)
   }
 
   const hasContacts = displayedContacts.length > 0
@@ -905,14 +903,6 @@ function ClientContactSection({
         </div>
       )}
 
-      <ContactIdentityDrawer
-        contactId={selectedContactId}
-        open={isContactDrawerOpen}
-        onOpenChange={(open) => {
-          setIsContactDrawerOpen(open)
-          if (!open) setSelectedContactId(null)
-        }}
-      />
     </section>
   )
 }

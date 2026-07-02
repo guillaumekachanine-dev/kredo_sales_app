@@ -4,8 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
-import { CompanyIdentityDrawer } from "@/components/accounts-contacts/CompanyIdentityDrawer"
-import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
+import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
 
 import { buildCockpitMobileViewModel } from "./mobile/cockpit-mobile-view-model"
@@ -66,12 +65,7 @@ export function CockpitMobileDashboard({
     label: string
   }>({ kind: null, label: "" })
 
-  // Native drawers
-  const [activeDrawer, setActiveDrawer] = useState<{
-    kind: "company" | "contact"
-    id: string | null
-    label: string
-  } | null>(null)
+  const { openCompany: openCompanyDrawer, openContact: openContactDrawer } = useCrmDrawer()
 
   // Clear toast after timeout
   useEffect(() => {
@@ -166,7 +160,7 @@ export function CockpitMobileDashboard({
         triggerToast("Création tâche: À RÉSOUDRE (seam tâches)")
       } else if (cleanLabel.includes("contacter le client")) {
         if (need && need.companyId) {
-          setActiveDrawer({ kind: "company", id: need.companyId, label: need.client })
+          openCompanyDrawer(need.companyId)
         } else {
           triggerToast("Redirection vers comptes de prospection")
           router.push("/prospection/accounts")
@@ -223,17 +217,17 @@ export function CockpitMobileDashboard({
   }
 
   // Drawers trigger helpers
-  const handleCompanyDrawerOpen = (companyId: string | null, label: string) => {
+  const handleCompanyDrawerOpen = (companyId: string | null, _label: string) => {
     if (companyId) {
-      setActiveDrawer({ kind: "company", id: companyId, label })
+      openCompanyDrawer(companyId)
     } else {
       triggerToast("Fiche entreprise: Aucun ID réel associé")
     }
   }
 
-  const handleContactDrawerOpen = (contactId: string | null, label: string) => {
+  const handleContactDrawerOpen = (contactId: string | null, _label: string) => {
     if (contactId) {
-      setActiveDrawer({ kind: "contact", id: contactId, label })
+      openContactDrawer(contactId)
     } else {
       triggerToast("Fiche contact : Aucun ID réel associé (seam contact)")
     }
@@ -457,28 +451,7 @@ export function CockpitMobileDashboard({
         onActionSelect={handleContextActionSelect}
       />
 
-      <CompanyIdentityDrawer
-        companyId={activeDrawer?.kind === "company" ? activeDrawer.id : null}
-        open={activeDrawer?.kind === "company"}
-        onOpenChange={(open) => {
-          if (!open) setActiveDrawer(null)
-        }}
-        onOpenContactIdentity={(contactId) =>
-          setActiveDrawer({ kind: "contact", id: contactId, label: "Fiche contact" })
-        }
-      />
-
-      <ContactIdentityDrawer
-        contactId={activeDrawer?.kind === "contact" ? activeDrawer.id : null}
-        open={activeDrawer?.kind === "contact"}
-        onOpenChange={(open) => {
-          if (!open) setActiveDrawer(null)
-        }}
-        onOpenCompanyIdentity={(companyId) =>
-          setActiveDrawer({ kind: "company", id: companyId, label: "Fiche entreprise" })
-        }
-        device="mobile"
-      />
+      {/* CRM drawers moved to global CrmIdentityDrawerHost in AppLayout */}
 
       {/* Create New Opportunity Drawer */}
       <NewOpportunityDrawer

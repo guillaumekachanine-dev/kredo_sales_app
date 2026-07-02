@@ -1,7 +1,7 @@
 "use client"
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
-import dynamic from "next/dynamic"
+
 import { useRouter } from "next/navigation"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
@@ -35,14 +35,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-const CompanyIdentityDrawer = dynamic(
-  () => import("@/components/accounts-contacts/CompanyIdentityDrawer").then((m) => ({ default: m.CompanyIdentityDrawer })),
-  { ssr: false }
-)
-const ContactIdentityDrawer = dynamic(
-  () => import("@/components/accounts-contacts/ContactIdentityDrawer").then((m) => ({ default: m.ContactIdentityDrawer })),
-  { ssr: false }
-)
+import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
 
@@ -1061,9 +1054,7 @@ export function ProspectionAccountsView({
   const router = useRouter()
   const { searchParams, setParam, toggleListValue, clearAll } = useUrlFilters()
   const { openTab: openCrmTab } = useCrmTabStore()
-  const [selectedCompanyIdForIdentity, setSelectedCompanyIdForIdentity] = useState<string | null>(null)
-  const [selectedContactIdForIdentity, setSelectedContactIdForIdentity] = useState<string | null>(null)
-  const [companyDrawerReturnToContactId, setCompanyDrawerReturnToContactId] = useState<string | null>(null)
+  const { openCompany: openCompanyDrawer, openContact: openContactDrawer } = useCrmDrawer()
 
   const processedDrawerRef = useRef<string | null>(null)
 
@@ -1071,7 +1062,7 @@ export function ProspectionAccountsView({
     const drawerId = searchParams.get("drawer")
     if (drawerId && processedDrawerRef.current !== drawerId) {
       processedDrawerRef.current = drawerId
-      setSelectedCompanyIdForIdentity(drawerId)
+      openCompanyDrawer(drawerId)
       setParam("drawer", null)
       
       setTimeout(() => {
@@ -1168,7 +1159,6 @@ export function ProspectionAccountsView({
   // Contact modal
   const [contactModal, setContactModal] = useState<{ open: boolean; editing?: ContactRow }>({ open: false })
   const [editContactReturnToIdentityId, setEditContactReturnToIdentityId] = useState<string | null>(null)
-  const [contactDrawerReturnToCompanyId, setContactDrawerReturnToCompanyId] = useState<string | null>(null)
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
@@ -1360,13 +1350,13 @@ export function ProspectionAccountsView({
         device === "mobile" ? (
           <AccountsMobile
             accounts={displayAccounts}
-            onOpenIdentity={setSelectedCompanyIdForIdentity}
+            onOpenIdentity={openCompanyDrawer}
           />
         ) : (
           <AccountsDesktop
             accounts={displayAccounts}
             studies={data.studies}
-            onOpenIdentity={setSelectedCompanyIdForIdentity}
+            onOpenIdentity={openCompanyDrawer}
             onOpenIntelligence={(account) =>
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
             }
@@ -1380,20 +1370,18 @@ export function ProspectionAccountsView({
         device === "mobile" ? (
           <ContactsMobile
             contacts={displayContacts}
-            onOpenIdentity={setSelectedContactIdForIdentity}
+            onOpenIdentity={openContactDrawer}
             onOpenCompanyIdentity={(companyId) => {
-              setCompanyDrawerReturnToContactId(null)
-              setSelectedCompanyIdForIdentity(companyId)
+              openCompanyDrawer(companyId)
             }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
           />
         ) : (
           <ContactsDesktop
             contacts={displayContacts}
-            onOpenIdentity={setSelectedContactIdForIdentity}
+            onOpenIdentity={openContactDrawer}
             onOpenCompanyIdentity={(companyId) => {
-              setCompanyDrawerReturnToContactId(null)
-              setSelectedCompanyIdForIdentity(companyId)
+              openCompanyDrawer(companyId)
             }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
             onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
@@ -1422,14 +1410,14 @@ export function ProspectionAccountsView({
           onClose={() => {
             setContactModal({ open: false })
             if (editContactReturnToIdentityId) {
-              setSelectedContactIdForIdentity(editContactReturnToIdentityId)
+              openContactDrawer(editContactReturnToIdentityId)
               setEditContactReturnToIdentityId(null)
             }
           }}
           onSuccess={() => {
             refreshData()
             if (editContactReturnToIdentityId) {
-              setSelectedContactIdForIdentity(editContactReturnToIdentityId)
+              openContactDrawer(editContactReturnToIdentityId)
               setEditContactReturnToIdentityId(null)
             }
           }}
@@ -1447,53 +1435,7 @@ export function ProspectionAccountsView({
 
 
 
-      <CompanyIdentityDrawer
-        companyId={selectedCompanyIdForIdentity}
-        open={!!selectedCompanyIdForIdentity}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedCompanyIdForIdentity(null)
-            if (companyDrawerReturnToContactId) {
-              setSelectedContactIdForIdentity(companyDrawerReturnToContactId)
-              setCompanyDrawerReturnToContactId(null)
-            }
-          }
-        }}
-        onOpenContactIdentity={(contactId) => {
-          setContactDrawerReturnToCompanyId(selectedCompanyIdForIdentity)
-          setSelectedCompanyIdForIdentity(null)
-          setSelectedContactIdForIdentity(contactId)
-        }}
-      />
-
-      <ContactIdentityDrawer
-        contactId={selectedContactIdForIdentity}
-        open={!!selectedContactIdForIdentity}
-        device={device}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedContactIdForIdentity(null)
-            if (contactDrawerReturnToCompanyId) {
-              setSelectedCompanyIdForIdentity(contactDrawerReturnToCompanyId)
-              setContactDrawerReturnToCompanyId(null)
-            }
-          }
-        }}
-        onOpenCompanyIdentity={(companyId) => {
-          setCompanyDrawerReturnToContactId(selectedContactIdForIdentity)
-          setSelectedContactIdForIdentity(null)
-          setSelectedCompanyIdForIdentity(companyId)
-        }}
-        onOpenContactIdentity={setSelectedContactIdForIdentity}
-        onEditContact={(contactId) => {
-          const c = data.contacts.find((x) => x.id === contactId)
-          if (c) {
-            setEditContactReturnToIdentityId(contactId)
-            setSelectedContactIdForIdentity(null)
-            setContactModal({ open: true, editing: c })
-          }
-        }}
-      />
+      {/* CRM drawers moved to global CrmIdentityDrawerHost in AppLayout */}
 
       {device === "desktop" && (
         <div className="flex items-center justify-between rounded border border-border bg-surface px-5 py-4 text-xs text-muted mt-2">

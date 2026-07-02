@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AppDialog } from "@/components/ui/AppDialog"
-import { ContactIdentityDrawer } from "@/components/accounts-contacts/ContactIdentityDrawer"
+import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { formatDate, formatEuro, formatDateNumeric } from "@/lib/formatters"
 import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
 import { cn } from "@/lib/utils"
@@ -115,8 +115,7 @@ export function MissionSynthesisTab({ vm, onRefresh }: MissionSynthesisTabProps)
   }
 
   // ─── Contact drawer ──────────────────────────────────────────────────────────
-  const [selectedContactId, setSelectedContactId] = useState<string | null>(null)
-  const [showContactDrawer, setShowContactDrawer] = useState(false)
+  const { openContact: openContactDrawer } = useCrmDrawer()
 
   return (
     <>
@@ -313,10 +312,7 @@ export function MissionSynthesisTab({ vm, onRefresh }: MissionSynthesisTabProps)
                     <div className="flex-1 min-w-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedContactId(contact.id)
-                          setShowContactDrawer(true)
-                        }}
+                        onClick={() => openContactDrawer(contact.id)}
                         className="text-sm font-semibold text-heading hover:text-primary transition-colors text-left"
                       >
                         {contact.fullName}
@@ -649,15 +645,7 @@ export function MissionSynthesisTab({ vm, onRefresh }: MissionSynthesisTabProps)
         </div>
       </AppDialog>
 
-      {/* Contact drawer */}
-      <ContactIdentityDrawer
-        contactId={selectedContactId}
-        open={showContactDrawer}
-        onOpenChange={(open) => {
-          setShowContactDrawer(open)
-          if (!open) setSelectedContactId(null)
-        }}
-      />
+      {/* CRM drawers moved to global CrmIdentityDrawerHost in AppLayout */}
     </>
   )
 }
