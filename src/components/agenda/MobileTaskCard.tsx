@@ -4,6 +4,17 @@ import type { TaskItem } from "@/lib/agenda/agenda-types"
 import { formatMobileTimeLabel } from "./agenda-mobile-model"
 import { StatusPill } from "@/components/ui/StatusPill"
 
+import type { AgendaDomain } from "@/lib/agenda/agenda-types"
+
+const DOMAIN_BG_CLASSES: Record<AgendaDomain, string> = {
+  agenda: "bg-primary",
+  missions: "bg-domain-mission-at",
+  commerce: "bg-domain-account",
+  recruitment: "bg-domain-recruitment",
+  staffing: "bg-domain-need",
+  consultants: "bg-domain-collaborator",
+}
+
 interface MobileTaskCardProps {
   item: TaskItem
   timezone: string
@@ -53,12 +64,21 @@ export function MobileTaskCard({
         }
       }}
       className={cn(
-        "w-full text-left bg-surface border border-border rounded-xl transition-all select-none cursor-pointer flex items-start gap-3 p-4 shadow-sm",
+        "w-full text-left bg-surface border border-border rounded-lg transition-all select-none cursor-pointer flex items-start gap-3 p-4 pl-5 relative shadow-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1",
-        "active:scale-[0.99] active:bg-surface-hover/70 duration-200"
+        "active:scale-[0.99] active:bg-surface-hover/70 duration-[150ms] ease-in-out"
       )}
       style={{ minHeight: "52px" }}
     >
+      {/* Left domain rail */}
+      {!isCompleted && (
+        <span
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+            DOMAIN_BG_CLASSES[item.domain]
+          )}
+        />
+      )}
       {/* Checkbox (Completion trigger with touch target >= 44px) */}
       <button
         type="button"

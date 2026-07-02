@@ -368,10 +368,10 @@ export function AgendaMobileWorkspace({
                 type="button"
                 onClick={() => handleModeChange("feed")}
                 className={cn(
-                  "py-2 text-xs font-bold rounded-md transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 h-9",
+                  "py-2 text-xs font-bold rounded-md transition-all duration-[150ms] ease-in-out select-none cursor-pointer flex items-center justify-center gap-1.5 h-9",
                   mode === "feed"
-                    ? "bg-surface text-heading shadow-sm"
-                    : "text-muted hover:text-heading"
+                    ? "bg-surface text-heading shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : "text-muted hover:text-heading hover:bg-surface/30"
                 )}
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -383,10 +383,10 @@ export function AgendaMobileWorkspace({
                 type="button"
                 onClick={() => handleModeChange("calendar")}
                 className={cn(
-                  "py-2 text-xs font-bold rounded-md transition-all select-none cursor-pointer flex items-center justify-center gap-1.5 h-9",
+                  "py-2 text-xs font-bold rounded-md transition-all duration-[150ms] ease-in-out select-none cursor-pointer flex items-center justify-center gap-1.5 h-9",
                   mode === "calendar"
-                    ? "bg-surface text-heading shadow-sm"
-                    : "text-muted hover:text-heading"
+                    ? "bg-surface text-heading shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : "text-muted hover:text-heading hover:bg-surface/30"
                 )}
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -189,8 +189,6 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "Rapports",
         href: "/reports",
         icon: "reports",
-        comingSoon: true,
-        disabled: true,
       },
       {
         label: "Veille & Actualités",

@@ -22,9 +22,9 @@ export function MobileAvailabilityCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left bg-canvas/40 border border-border rounded-xl transition-all select-none cursor-pointer flex flex-col gap-2.5 p-4 shadow-sm",
+        "w-full text-left bg-canvas/40 border border-border rounded-lg transition-all select-none cursor-pointer flex flex-col gap-2.5 p-4 shadow-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1",
-        "active:scale-[0.99] active:bg-surface-hover/70 duration-200"
+        "active:scale-[0.99] active:bg-surface-hover/70 duration-[150ms] ease-in-out"
       )}
       style={{ minHeight: "52px" }}
     >

@@ -35,9 +35,9 @@ export function MobileAlertCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left bg-danger-muted/5 border border-danger/20 rounded-xl transition-all select-none cursor-pointer flex flex-col gap-2 p-4 shadow-sm",
+        "w-full text-left bg-danger/[0.05] border border-danger/20 rounded-lg transition-all select-none cursor-pointer flex flex-col gap-2 p-4 shadow-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/50 focus-visible:ring-offset-1",
-        "active:scale-[0.99] active:bg-danger-muted/10 duration-200"
+        "active:scale-[0.99] active:bg-danger/[0.1] duration-[150ms] ease-in-out"
       )}
       style={{ minHeight: "52px" }}
     >
@@ -48,7 +48,7 @@ export function MobileAlertCard({
         <Badge
           variant="danger"
           size="sm"
-          className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0 border-danger/30 bg-danger-muted/10 text-danger"
+          className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0 border-danger/30 bg-danger/[0.1] text-danger"
         >
           {getAlertKindLabel()}
         </Badge>

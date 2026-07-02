@@ -33,7 +33,7 @@ export function AgendaTimeGrid({
   const hasScheduledItems = scheduledColumns.some((column) => column.items.length > 0)
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-surface">
+    <section className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="grid grid-cols-[5rem_minmax(0,1fr)] border-b border-border bg-canvas/60">
         <div className="border-r border-border px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           Heure

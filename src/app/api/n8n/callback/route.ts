@@ -15,6 +15,7 @@ import { NextResponse } from "next/server"
 import { verifyHmac } from "@/lib/n8n/hmac"
 import { saveResult, updateRunStatus } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
+import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import type { Database } from "@/types/database"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
 
@@ -23,6 +24,17 @@ function getServiceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
+}
+
+function isEligibleDocumentResult(resultType: string) {
+  return [
+    "communication",
+    "client_summary",
+    "commercial_pitch",
+    "campaign",
+    "pitch",
+    "pitch_mail",
+  ].includes(resultType)
 }
 
 export async function POST(request: Request) {
@@ -67,8 +79,9 @@ export async function POST(request: Request) {
   }
 
   // ── 5. Sauvegarde du résultat (upsert idempotent) ─────────────────────────
+  let resultId: string
   try {
-    await saveResult(
+    resultId = await saveResult(
       runId,
       run.company_id,
       run.workspace_id,
@@ -90,6 +103,14 @@ export async function POST(request: Request) {
   } catch (err) {
     // Non bloquant : le résultat est déjà sauvé, on log et on continue
     console.error("[callback] updateRunStatus failed:", err)
+  }
+
+  if (status === "succeeded" && isEligibleDocumentResult(resultType)) {
+    const documentResult = await saveResultAsDocumentWithSupabaseClient(supabase, resultId)
+    if (!documentResult.success) {
+      console.error("[callback] auto saveResultAsDocument failed:", documentResult.error)
+      return NextResponse.json({ error: "Erreur création document" }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ ok: true, runId, phase })

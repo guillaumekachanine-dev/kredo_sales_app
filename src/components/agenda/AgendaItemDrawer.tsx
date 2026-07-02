@@ -81,7 +81,7 @@ export function AgendaItemDrawer({
           </Badge>
         </div>
 
-        <section className="rounded-[var(--radius-large)] border border-border bg-canvas/40 p-4">
+        <section className="rounded-lg border border-border bg-canvas/40 p-4">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             Temporalité
           </h3>
@@ -92,7 +92,7 @@ export function AgendaItemDrawer({
         </section>
 
         {(item.companyLabel || item.ownerLabel || item.personLabel) ? (
-          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+          <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
               Contexte
             </h3>
@@ -104,7 +104,7 @@ export function AgendaItemDrawer({
           </section>
         ) : null}
 
-        <section className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+        <section className="rounded-lg border border-border bg-surface p-4">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             Liens
           </h3>
@@ -122,7 +122,7 @@ export function AgendaItemDrawer({
         </section>
 
         {relatedItems.length > 0 ? (
-          <section className="rounded-[var(--radius-large)] border border-border bg-surface p-4">
+          <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
               Objets liés
             </h3>

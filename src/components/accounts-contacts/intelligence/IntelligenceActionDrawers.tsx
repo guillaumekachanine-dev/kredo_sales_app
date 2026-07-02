@@ -50,6 +50,7 @@ export function PitchMailDrawerContent({
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
+  const [resultId, setResultId] = useState<string | null>(null)
   const [result, setResult] = useState<CommunicationOutput | null>(null)
   const [qaFlags, setQaFlags] = useState<CommunicationQaFlag[]>([])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -88,8 +89,14 @@ export function PitchMailDrawerContent({
           filter: `run_id=eq.${runId}`,
         },
         (payload) => {
-          const row = payload.new as { status: string; content_json: CommunicationOutput; qa_flags: CommunicationQaFlag[] }
+          const row = payload.new as {
+            id: string
+            status: string
+            content_json: CommunicationOutput
+            qa_flags: CommunicationQaFlag[]
+          }
           if (row.status === "succeeded") {
+            setResultId(row.id)
             setResult(row.content_json)
             setQaFlags(row.qa_flags || [])
             setRunStatus("done")
@@ -107,6 +114,7 @@ export function PitchMailDrawerContent({
   async function handleGenerate() {
     setRunStatus("loading")
     setResult(null)
+    setResultId(null)
     setQaFlags([])
     setErrorMsg(null)
 
@@ -138,6 +146,7 @@ export function PitchMailDrawerContent({
   function handleReset() {
     setRunStatus("idle")
     setRunId(null)
+    setResultId(null)
     setResult(null)
     setQaFlags([])
     setErrorMsg(null)
@@ -155,6 +164,7 @@ export function PitchMailDrawerContent({
         companyName={company.name}
         channelLabel={channelLabel}
         brief={brief}
+        resultId={resultId}
         isMobile={isMobile}
         onReset={handleReset}
       />

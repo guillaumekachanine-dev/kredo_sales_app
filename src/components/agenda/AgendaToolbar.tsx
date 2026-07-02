@@ -46,7 +46,7 @@ export function AgendaToolbar({
   const activeCount = activeFilterChips.length
 
   return (
-    <div className="rounded-[var(--radius-large)] border border-border bg-surface px-4 py-3">
+    <div className="rounded-lg border border-border bg-surface px-4 py-3">
       <PageFilterBar
         activeCount={activeCount}
         onReset={
@@ -70,10 +70,10 @@ export function AgendaToolbar({
                 type="button"
                 onClick={() => navigate(buildAgendaToolbarHref(route, { view }))}
                 className={cn(
-                  "rounded-[calc(var(--radius-medium)-4px)] px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                  "rounded-[calc(var(--radius-medium)-4px)] px-3 py-1.5 text-[11px] font-semibold transition-all duration-150 ease-in-out cursor-pointer",
                   route.view === view
-                    ? "bg-surface text-heading"
-                    : "text-muted hover:text-heading",
+                    ? "bg-surface text-heading shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                    : "text-muted hover:text-heading hover:bg-surface/30",
                 )}
                 aria-pressed={route.view === view}
               >

@@ -135,7 +135,20 @@
   --color-dataviz-5: #7B6BB2;
   --color-dataviz-6: #D4B26A;
   --color-dataviz-7: #B37D53;  /* Ocre / Terre — palette fondatrice */
+
+  /* ── Domaines Kredo (Cobalt Stratifié) ────────────────────── */
+  --color-domain-need:              #E5A600;
+  --color-domain-candidate:         #8E3FA7;
+  --color-domain-collaborator:      #5F8750;
+  --color-domain-account:           #247B8D;
+  --color-domain-recruitment:       #A33C78;
+  --color-domain-mission-at:        #3F6FA7;
+  --color-domain-fixed-project:     #5A58A8;
+  --color-domain-finance:           #6B7D2F;
+  --color-domain-intelligence:      #173D89;
+  --color-domain-ai:                #6B5CF6;
 }
+
 
 :root {
   --color-case-need: #FFC107;

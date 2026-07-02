@@ -30,7 +30,7 @@ export function AgendaMobileDateStrip({
   }, [events])
 
   return (
-    <div className="grid grid-cols-5 gap-1.5 bg-surface border border-border rounded-[var(--radius-large)] p-2 shadow-sm">
+    <div className="grid grid-cols-5 gap-1.5 bg-surface border border-border rounded-lg p-2 shadow-sm">
       {days.map((day) => {
         const isSelected = isSameDay(day, referenceDate)
         const isToday = isSameDay(day, new Date())

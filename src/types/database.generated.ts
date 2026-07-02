@@ -2493,6 +2493,222 @@ export type Database = {
           },
         ]
       }
+      intelligence_document_links: {
+        Row: {
+          created_at: string
+          document_id: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["intelligence_entity_type"]
+          id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["intelligence_entity_type"]
+          id?: string
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["intelligence_entity_type"]
+          id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_document_links_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_document_links_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_document_versions: {
+        Row: {
+          brief_json: Json | null
+          change_note: string | null
+          content_json: Json
+          content_text: string | null
+          created_at: string
+          created_by: string | null
+          document_id: string
+          id: string
+          origin: Database["public"]["Enums"]["intelligence_document_version_origin"]
+          qa_flags: Json
+          source_refs: Json
+          source_result_id: string | null
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          brief_json?: Json | null
+          change_note?: string | null
+          content_json?: Json
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id: string
+          id?: string
+          origin: Database["public"]["Enums"]["intelligence_document_version_origin"]
+          qa_flags?: Json
+          source_refs?: Json
+          source_result_id?: string | null
+          version_number: number
+          workspace_id?: string
+        }
+        Update: {
+          brief_json?: Json | null
+          change_note?: string | null
+          content_json?: Json
+          content_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          origin?: Database["public"]["Enums"]["intelligence_document_version_origin"]
+          qa_flags?: Json
+          source_refs?: Json
+          source_result_id?: string | null
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_document_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_document_versions_source_result_id_fkey"
+            columns: ["source_result_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_document_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intelligence_documents: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          current_content_json: Json
+          current_content_text: string | null
+          document_type: Database["public"]["Enums"]["intelligence_document_type"]
+          id: string
+          is_favorite: boolean
+          last_used_at: string | null
+          owner_id: string
+          primary_entity_id: string | null
+          primary_entity_type:
+            | Database["public"]["Enums"]["intelligence_entity_type"]
+            | null
+          search_vector: unknown
+          source_result_id: string | null
+          status: Database["public"]["Enums"]["intelligence_document_status"]
+          tags: string[]
+          title: string
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          current_content_json?: Json
+          current_content_text?: string | null
+          document_type: Database["public"]["Enums"]["intelligence_document_type"]
+          id?: string
+          is_favorite?: boolean
+          last_used_at?: string | null
+          owner_id: string
+          primary_entity_id?: string | null
+          primary_entity_type?:
+            | Database["public"]["Enums"]["intelligence_entity_type"]
+            | null
+          search_vector?: unknown
+          source_result_id?: string | null
+          status?: Database["public"]["Enums"]["intelligence_document_status"]
+          tags?: string[]
+          title: string
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          current_content_json?: Json
+          current_content_text?: string | null
+          document_type?: Database["public"]["Enums"]["intelligence_document_type"]
+          id?: string
+          is_favorite?: boolean
+          last_used_at?: string | null
+          owner_id?: string
+          primary_entity_id?: string | null
+          primary_entity_type?:
+            | Database["public"]["Enums"]["intelligence_entity_type"]
+            | null
+          search_vector?: unknown
+          source_result_id?: string | null
+          status?: Database["public"]["Enums"]["intelligence_document_status"]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intelligence_documents_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_documents_source_result_id_fkey"
+            columns: ["source_result_id"]
+            isOneToOne: false
+            referencedRelation: "ai_intelligence_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intelligence_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intelligence_source_links: {
         Row: {
           created_at: string
@@ -5317,6 +5533,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_communication_context: {
+        Args: {
+          p_company_id?: string
+          p_contact_id?: string
+          p_mission_id?: string
+          p_opportunity_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       save_candidate_reference_profile: {
         Args: {
           p_candidate?: Json
@@ -5376,6 +5602,29 @@ export type Database = {
         | "failed"
         | "cancelled"
       ai_run_status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+      intelligence_document_status: "draft" | "ready" | "used" | "archived"
+      intelligence_document_type:
+        | "communication"
+        | "client_summary"
+        | "commercial_pitch"
+        | "campaign"
+        | "internal_note"
+      intelligence_document_version_origin:
+        | "generated"
+        | "regenerated"
+        | "manual_edit"
+        | "duplicated"
+        | "imported"
+      intelligence_entity_type:
+        | "company"
+        | "contact"
+        | "opportunity"
+        | "mission"
+        | "project"
+        | "collaborator"
+        | "candidate"
+        | "sector"
+        | "calendar_event"
       project_phase_status: "planned" | "in_progress" | "completed" | "blocked"
       project_ref_status: "not_reference" | "draft" | "approved" | "archived"
       project_ref_visibility: "named" | "anonymized" | "confidential"
@@ -5537,6 +5786,32 @@ export const Constants = {
         "cancelled",
       ],
       ai_run_status: ["queued", "running", "succeeded", "failed", "cancelled"],
+      intelligence_document_status: ["draft", "ready", "used", "archived"],
+      intelligence_document_type: [
+        "communication",
+        "client_summary",
+        "commercial_pitch",
+        "campaign",
+        "internal_note",
+      ],
+      intelligence_document_version_origin: [
+        "generated",
+        "regenerated",
+        "manual_edit",
+        "duplicated",
+        "imported",
+      ],
+      intelligence_entity_type: [
+        "company",
+        "contact",
+        "opportunity",
+        "mission",
+        "project",
+        "collaborator",
+        "candidate",
+        "sector",
+        "calendar_event",
+      ],
       project_phase_status: ["planned", "in_progress", "completed", "blocked"],
       project_ref_status: ["not_reference", "draft", "approved", "archived"],
       project_ref_visibility: ["named", "anonymized", "confidential"],

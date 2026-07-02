@@ -69,6 +69,8 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | 023 | 023_missions_billing_description (billing_condition + description sur missions) |
 | 024 | 024_pnl_monthly (P&L mensuel consolidé + seed 12 mois) |
 | 025 | 025_activity_absences_profitability (absences datées, fermetures client, compensation C17-C19, 3 vues analytiques) |
+| 20260702220731 | 042_intelligence_documents (bibliothèque documentaire IA) |
+
 
 ### Architecture multi-tenant (ACTIF)
 
@@ -154,6 +156,10 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 | `ai_intelligence_runs` | — | Une exécution d'analyse / compte (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`) |
 | `ai_intelligence_results` | — | Un résultat **par phase** (`UNIQUE(run_id,phase)`, phase 1–10) — **`content_json` = source unique** (pas de html) |
 | `ai_intelligence_logs` | — | Append-only (coûts, erreurs, retries) — pas de policy update/delete client |
+| `intelligence_documents` | 0 | Couche documentaire exploitable — distincte de ai_intelligence_results |
+| `intelligence_document_versions` | 0 | Historique append-only des versions d'un document |
+| `intelligence_document_links` | 0 | Relation N:M polymorphe entre un document et les entités métier Kredo |
+
 
 **Vue `v_ai_intelligence_summary`** (`security_invoker`) : par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches` sur `companies.metadata`), dernier run, compteurs.
 
@@ -482,6 +488,14 @@ Webhook → Validate & Extract Brief (vérif HMAC) → Update Run Status → Hyd
   - **Header** : `PeriodSelector` sous le titre (S26 · du JJ/MM au JJ/MM + dropdown invisible) — remplace le filtre période retiré
   - **`handleMoveHiringStep`** : action kanban → `updateHiringStep(row.hiringProcessId, step)` avec rollback optimiste
 - **Validation** : `tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0.
+
+### Session 18 — Reports & Rédaction : data layer Lot 1 (2026-07-03)
+- **`src/app/(app)/reports/_data/reports-types.ts`** (nouveau) : contrat front exact `DocumentListItem` / `DocumentDetail` / `DocumentVersion` / `ReportsFilterState` / `ReportsKpis` + résultats de loaders et inputs de mutations (`saveAsDocument`, `updateDocument`) pour figer les noms/types attendus par les lots UI.
+- **`get-reports-list.ts`** (nouveau) : liste paginée `intelligence_documents` avec filtres `search/documentType/status/entityType/entityId/ownerId/favoritesOnly/periodFrom/periodTo`, FTS via `textSearch("search_vector", ..., { config: "french", type: "websearch" })`, KPIs calculés en parallèle, résolution des labels polymorphes (`company/contact/opportunity/mission/project/collaborator/candidate/sector/calendar_event`) et `qualityOk` dérivé de la dernière ligne `intelligence_document_versions.qa_flags`.
+- **`get-document-detail.ts`** (nouveau) : chargement strict d'un document + versions triées `version_number DESC` + liens enrichis avec labels métier. `current_content_*` lu depuis `intelligence_documents`, historique append-only lu depuis `_versions`.
+- **`reports-actions.ts`** (nouveau) : `saveAsDocument` atomique sur `intelligence_documents` + `_versions` + `_links` avec rollback explicite si l'une des étapes échoue ; `updateDocument` crée toujours une nouvelle version `manual_edit` puis met à jour le document courant ; actions utilitaires `setDocumentFavorite` et `setDocumentStatus`. Helpers bas niveau `*WithClient()` ajoutés pour tests/service-role, avec `workspaceId` optionnel uniquement pour les scripts hors session auth.
+- **Décisions non-triviales prises** : le filtre `entityType/entityId` passe par `intelligence_document_links` (pas seulement `primary_entity_*`) pour couvrir tous les rattachements ; les KPIs respectent les filtres actifs sauf `status` afin de rester informatifs quand l'utilisateur segmente déjà la liste par statut ; si `primaryEntity` est fournie mais absente des liens, elle est injectée en tête et devient la source de vérité dénormalisée du document.
+- **Validation** : `npx tsc --noEmit` → EXIT 0 ; `npm run build` → EXIT 0 ; `eslint src/app/(app)/reports/_data/*.ts` → 0 erreur ; test ponctuel service-role via `saveAsDocumentWithClient()` validé (`documents=1`, `versions=1`, `links=1`) + rollback validé sur `entity_type` invalide (`rollbackCount=0`). Note locale Next 16 : `tsc --noEmit` nécessitait un shim `.next/types/routes.js` car le validateur généré importait `./routes.js` alors que Next n'émettait ici que `routes.d.ts`.
 
 **Prochain focus :** QA visuelle desktop + mobile de la contextualisation Session 17 (13 pages + 4 entités) — pas de Chrome DevTools MCP disponible, à faire par Guillaume. Compléter le contexte d'entité sur `candidate` (`CandidateDrawer`), `sector` (`/prospection/approche-sectorielle/[slug]`), `calendar_event` (`EventDrawer` agenda) — mêmes primitives (`RegisterIntelligenceEntity` + `ENTITY_ACTION_IDS`), pas de nouveau design nécessaire. **Réconciliation CLAUDE.md ↔ Supabase live** : le audit Session 17 a trouvé 58 tables live vs 35 documentées ici (`projects`, `financial_models`, `candidate_hiring_processes`/`milestones`, `account_facts`/`account_signals`, `offer_*`, `job_profiles`, `performance_plans/criteria`, `workforce_monthly_snapshots`, `intelligence_sources`, etc. absentes de la doc) — mettre à jour le schéma documenté avant la prochaine session touchant la base, le drift est maintenant plus large que ce que `project-migration-drift.md` décrit. Route orpheline `/staffing` (page+layout encore présents, plus dans `main-menu.config.ts`, `AssistanceCaseDrawer`/`financial_models` y restent accrochés) — décider suppression ou réintégration. Lot 5 QA panneau global (Session 16) toujours en attente. Import + activation du workflow `intel-020-communication` sur le VPS n8n. Bug pré-existant `searchParams is not defined` dans `AccountsContactsViews.tsx:977`.
 

@@ -12,7 +12,16 @@ import {
   getAgendaTemporalStateLabel,
   type AgendaDesktopRailSection,
 } from "./agenda-desktop-model"
-import type { AgendaGroupedItem } from "@/lib/agenda/agenda-types"
+import type { AgendaGroupedItem, AgendaDomain } from "@/lib/agenda/agenda-types"
+
+const DOMAIN_BG_CLASSES: Record<AgendaDomain, string> = {
+  agenda: "bg-primary",
+  missions: "bg-domain-mission-at",
+  commerce: "bg-domain-account",
+  recruitment: "bg-domain-recruitment",
+  staffing: "bg-domain-need",
+  consultants: "bg-domain-collaborator",
+}
 
 interface AgendaActionRailProps {
   sections: AgendaDesktopRailSection[]
@@ -31,21 +40,33 @@ function GroupPreview({
 }) {
   const primary = group.primaryItem
   const secondary = group.items.filter((item) => item.id !== primary.id)
+  const isSpecial = primary.type === "alert" || primary.temporalState === "overdue"
 
   return (
-    <button type="button" onClick={onSelect} className="w-full cursor-pointer text-left">
+    <button type="button" onClick={onSelect} className="w-full cursor-pointer text-left focus:outline-none">
       <SurfaceCard
         interactive
         radius="lg"
         className={cn(
-          "p-3",
+          "p-3 relative shadow-none border-border bg-surface transition-all duration-150 ease-in-out hover:bg-surface-hover hover:border-border",
+          "motion-safe:hover:-translate-y-0.5 hover:shadow-[var(--shadow-overlay-sm)]",
+          !isSpecial && "pl-4",
           primary.type === "alert"
-            ? "border-warning/25 bg-warning/[0.05]"
+            ? "border-warning/30 bg-warning/[0.04]"
             : primary.temporalState === "overdue"
               ? "border-danger/25 bg-danger/[0.03]"
-              : "border-border bg-surface",
+              : "",
         )}
       >
+        {/* Left domain rail */}
+        {!isSpecial && (
+          <span
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+              DOMAIN_BG_CLASSES[primary.domain]
+            )}
+          />
+        )}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-heading">
@@ -133,12 +154,12 @@ export function AgendaActionRail({
         return (
           <section
             key={section.key}
-            className="rounded-[var(--radius-large)] border border-border bg-surface"
+            className="rounded-lg border border-border bg-surface"
           >
             <button
               type="button"
               onClick={() => toggleSection(section.key)}
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left focus:outline-none"
               aria-expanded={isOpen}
             >
               <div className="flex items-center gap-2">

@@ -49,7 +49,7 @@ export function AgendaMobileHeader({
   }
 
   return (
-    <header className="flex flex-col gap-2 bg-surface border border-border rounded-[var(--radius-large)] p-4 shadow-sm">
+    <header className="flex flex-col gap-2 bg-surface border border-border rounded-lg p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Agenda</span>

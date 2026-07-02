@@ -5,6 +5,17 @@ import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import { formatMobileTimeLabel } from "./agenda-mobile-model"
 import { StatusPill } from "@/components/ui/StatusPill"
 
+import type { AgendaDomain } from "@/lib/agenda/agenda-types"
+
+const DOMAIN_BG_CLASSES: Record<AgendaDomain, string> = {
+  agenda: "bg-primary",
+  missions: "bg-domain-mission-at",
+  commerce: "bg-domain-account",
+  recruitment: "bg-domain-recruitment",
+  staffing: "bg-domain-need",
+  consultants: "bg-domain-collaborator",
+}
+
 interface MobileEventTaskCardProps {
   eventItem: ScheduledEventItem
   taskItem: TaskItem
@@ -58,12 +69,20 @@ export function MobileEventTaskCard({
         }
       }}
       className={cn(
-        "w-full text-left bg-surface border border-border rounded-xl transition-all select-none cursor-pointer flex flex-col gap-3 p-4 shadow-sm",
+        "w-full text-left bg-surface border border-border rounded-lg transition-all select-none cursor-pointer flex flex-col gap-3 p-4 pl-5 relative shadow-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1",
-        "active:scale-[0.99] active:bg-surface-hover/70 duration-200",
-        typeConfig.borderClasses
+        "active:scale-[0.99] active:bg-surface-hover/70 duration-[150ms] ease-in-out"
       )}
     >
+      {/* Left domain rail */}
+      {eventItem.businessStatus !== "cancelled" && (
+        <span
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+            DOMAIN_BG_CLASSES[eventItem.domain]
+          )}
+        />
+      )}
       {/* Event Section */}
       <div className="flex flex-col gap-2 w-full">
         {/* Time and category */}

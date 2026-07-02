@@ -282,7 +282,7 @@ export function AgendaDesktopWorkspace({
                 <button
                   type="button"
                   onClick={() => navigate(buildAgendaToolbarHref(displayedPresentation.route, { date: today }))}
-                  className="border-r border-border px-3 py-2 text-[12px] font-semibold text-heading transition-colors hover:bg-surface-hover"
+                  className="border-r border-border px-3 py-2 text-[12px] font-semibold text-heading transition-all duration-150 ease-in-out hover:bg-surface-hover active:bg-surface-hover/80 cursor-pointer"
                   disabled={isNavigating}
                 >
                   Aujourd&apos;hui
@@ -294,7 +294,7 @@ export function AgendaDesktopWorkspace({
                   onClick={() => navigate(buildAgendaToolbarHref(displayedPresentation.route, {
                     date: addDays(displayedPresentation.route.date, step),
                   }))}
-                  className="rounded-none"
+                  className="rounded-none cursor-pointer"
                   disabled={isNavigating}
                 >
                   <svg className="size-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.75}>
@@ -307,7 +307,7 @@ export function AgendaDesktopWorkspace({
                 variant="primary"
                 size="sm"
                 onClick={() => setCreateDrawerOpen(true)}
-                className="shadow-none"
+                className="shadow-none cursor-pointer"
               >
                 Créer un événement
               </Button>
@@ -348,7 +348,7 @@ export function AgendaDesktopWorkspace({
               />
 
               {displayedPresentation.emptyState === "empty" ? (
-                <div className="rounded-[var(--radius-large)] border border-dashed border-border bg-surface px-6 py-8 text-center">
+                <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center">
                   <p className="text-base font-semibold text-heading">
                     Aucun élément Agenda sur cette période.
                   </p>
@@ -359,7 +359,7 @@ export function AgendaDesktopWorkspace({
               ) : null}
 
               {displayedPresentation.emptyState === "filtered" ? (
-                <div className="rounded-[var(--radius-large)] border border-dashed border-border bg-surface px-6 py-8 text-center">
+                <div className="rounded-lg border border-dashed border-border bg-surface px-6 py-8 text-center">
                   <p className="text-base font-semibold text-heading">
                     Aucun résultat pour les filtres actifs.
                   </p>

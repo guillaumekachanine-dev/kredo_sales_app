@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag } from "@/lib/n8n/types"
+import { saveResultAsDocument } from "./save-as-document"
 import { saveCommunicationInteraction } from "./save-communication-interaction"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
@@ -14,6 +15,7 @@ export function CommunicationResult({
   companyName,
   channelLabel,
   brief,
+  resultId,
   isMobile = false,
   onReset,
 }: {
@@ -23,11 +25,13 @@ export function CommunicationResult({
   companyName: string
   channelLabel: string
   brief: CommunicationBrief
+  resultId: string | null
   isMobile?: boolean
   onReset: () => void
 }) {
   const [copied, setCopied] = useState(false)
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
+  const [documentStatus, setDocumentStatus] = useState<SaveStatus>("idle")
+  const [interactionStatus, setInteractionStatus] = useState<SaveStatus>("idle")
   const failedFlags = qaFlags.filter((f) => !f.passed)
   const allPassed = failedFlags.length === 0
 
@@ -40,10 +44,21 @@ export function CommunicationResult({
     })
   }
 
-  async function handleSave() {
-    setSaveStatus("saving")
+  async function handleSaveAsDocument() {
+    if (!resultId) {
+      setDocumentStatus("error")
+      return
+    }
+
+    setDocumentStatus("saving")
+    const res = await saveResultAsDocument({ resultId })
+    setDocumentStatus(res.error ? "error" : "saved")
+  }
+
+  async function handleSaveInteraction() {
+    setInteractionStatus("saving")
     const res = await saveCommunicationInteraction({ companyId, brief, result })
-    setSaveStatus(res.error ? "error" : "saved")
+    setInteractionStatus(res.error ? "error" : "saved")
   }
 
   return (
@@ -144,22 +159,41 @@ export function CommunicationResult({
         </button>
         <button
           type="button"
-          onClick={handleSave}
-          disabled={saveStatus === "saving" || saveStatus === "saved"}
+          onClick={handleSaveAsDocument}
+          disabled={!resultId || documentStatus === "saving" || documentStatus === "saved"}
           className={cn(
             "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
             isMobile ? "min-h-[44px]" : "min-h-[36px]",
-            saveStatus === "saved"
+            documentStatus === "saved"
               ? "border-success/30 bg-success/10 text-success cursor-default"
-              : saveStatus === "error"
+              : documentStatus === "error"
                 ? "border-danger/30 bg-danger/5 text-danger"
                 : "border-border bg-surface text-body hover:bg-canvas"
           )}
         >
-          {saveStatus === "saving" && "Enregistrement…"}
-          {saveStatus === "saved" && "✓ Enregistré dans l'historique du compte"}
-          {saveStatus === "error" && "Échec — réessayer"}
-          {saveStatus === "idle" && "Enregistrer dans l'historique du compte"}
+          {documentStatus === "saving" && "Enregistrement…"}
+          {documentStatus === "saved" && "✓ Enregistré dans la bibliothèque"}
+          {documentStatus === "error" && "Échec — réessayer"}
+          {documentStatus === "idle" && "Enregistrer dans la bibliothèque"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveInteraction}
+          disabled={interactionStatus === "saving" || interactionStatus === "saved"}
+          className={cn(
+            "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
+            isMobile ? "min-h-[44px]" : "min-h-[36px]",
+            interactionStatus === "saved"
+              ? "border-success/30 bg-success/10 text-success cursor-default"
+              : interactionStatus === "error"
+                ? "border-danger/30 bg-danger/5 text-danger"
+                : "border-border bg-surface text-body hover:bg-canvas"
+          )}
+        >
+          {interactionStatus === "saving" && "Journalisation…"}
+          {interactionStatus === "saved" && "✓ Interaction journalisée"}
+          {interactionStatus === "error" && "Échec — réessayer"}
+          {interactionStatus === "idle" && "Journaliser comme interaction"}
         </button>
       </div>
     </div>

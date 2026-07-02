@@ -6,6 +6,16 @@ import {
   getAgendaTemporalStateLabel,
   type AgendaScheduledPlacement,
 } from "./agenda-desktop-model"
+import type { AgendaDomain } from "@/lib/agenda/agenda-types"
+
+const DOMAIN_BG_CLASSES: Record<AgendaDomain, string> = {
+  agenda: "bg-primary",
+  missions: "bg-domain-mission-at",
+  commerce: "bg-domain-account",
+  recruitment: "bg-domain-recruitment",
+  staffing: "bg-domain-need",
+  consultants: "bg-domain-collaborator",
+}
 
 interface AgendaScheduledEventBlockProps {
   placement: AgendaScheduledPlacement
@@ -25,14 +35,15 @@ export function AgendaScheduledEventBlock({
       type="button"
       onClick={onClick}
       className={cn(
-        "absolute overflow-hidden rounded-[var(--radius-medium)] border px-2.5 py-2 text-left",
-        "bg-surface shadow-none transition-colors hover:bg-surface-hover",
+        "absolute overflow-hidden rounded-lg border pl-3.5 pr-2.5 py-2 text-left",
+        "bg-surface shadow-none transition-all duration-150 ease-in-out hover:bg-surface-hover hover:border-border",
+        "motion-safe:hover:-translate-y-0.5 hover:shadow-[var(--shadow-overlay-sm)]",
         "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]",
         placement.hasConflict
           ? "border-danger/35 bg-danger/[0.05]"
           : item.businessStatus === "cancelled"
-            ? "border-border bg-canvas/80"
-            : "border-primary/20 bg-primary/[0.04]",
+            ? "border-border bg-canvas/80 text-muted"
+            : "border-border bg-surface",
       )}
       style={{
         top: `${placement.topPct}%`,
@@ -42,6 +53,15 @@ export function AgendaScheduledEventBlock({
       }}
       aria-label={`${item.title}, ${formatAgendaTimeLabel(item, timezone)}`}
     >
+      {/* Left domain rail */}
+      {item.businessStatus !== "cancelled" && (
+        <span
+          className={cn(
+            "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+            placement.hasConflict ? "bg-danger" : DOMAIN_BG_CLASSES[item.domain]
+          )}
+        />
+      )}
       <div className="flex min-h-full flex-col gap-1.5">
         <div className="flex items-start justify-between gap-2">
           <p className="line-clamp-2 text-[12px] font-semibold leading-4 text-heading">

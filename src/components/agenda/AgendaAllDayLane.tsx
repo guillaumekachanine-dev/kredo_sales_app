@@ -7,6 +7,16 @@ import {
   type AgendaAllDayPlacement,
   type AgendaDesktopVisibleDay,
 } from "./agenda-desktop-model"
+import type { AgendaDomain } from "@/lib/agenda/agenda-types"
+
+const DOMAIN_BG_CLASSES: Record<AgendaDomain, string> = {
+  agenda: "bg-primary",
+  missions: "bg-domain-mission-at",
+  commerce: "bg-domain-account",
+  recruitment: "bg-domain-recruitment",
+  staffing: "bg-domain-need",
+  consultants: "bg-domain-collaborator",
+}
 
 interface AgendaAllDayLaneProps {
   visibleDays: AgendaDesktopVisibleDay[]
@@ -14,14 +24,6 @@ interface AgendaAllDayLaneProps {
   overflowByDay: Record<string, number>
   timezone: string
   onItemClick: (placement: AgendaAllDayPlacement) => void
-}
-
-function getAccent(placement: AgendaAllDayPlacement) {
-  if (placement.item.type === "availability_block") {
-    return placement.item.blockKind === "absence" ? "warning" : "danger"
-  }
-
-  return placement.item.businessStatus === "cancelled" ? "none" : "primary"
 }
 
 export function AgendaAllDayLane({
@@ -35,7 +37,7 @@ export function AgendaAllDayLane({
   const rowCount = Math.max(1, Math.min(3, visiblePlacements.reduce((max, placement) => Math.max(max, placement.row + 1), 1)))
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-surface">
+    <section className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="grid grid-cols-[5rem_minmax(0,1fr)] border-b border-border bg-canvas/60">
         <div className="border-r border-border px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
           All-day
@@ -80,7 +82,7 @@ export function AgendaAllDayLane({
               <div
                 key={`bg-${day.date}`}
                 className={cn(
-                  "rounded-[var(--radius-medium)] bg-canvas/40",
+                  "rounded-md bg-canvas/40",
                   day.isToday && "bg-primary/[0.05]",
                 )}
               />
@@ -91,22 +93,32 @@ export function AgendaAllDayLane({
                 key={placement.id}
                 type="button"
                 onClick={() => onItemClick(placement)}
-                className="z-10 cursor-pointer text-left"
+                className="z-10 cursor-pointer text-left focus:outline-none"
                 style={{
                   gridColumn: `${placement.startColumn + 1} / ${placement.endColumn + 2}`,
                   gridRow: `${placement.row + 1}`,
                 }}
               >
                 <SurfaceCard
-                  accent={getAccent(placement)}
                   interactive
                   radius="md"
                   className={cn(
-                    "h-8 border px-2.5 py-1.5",
-                    placement.item.businessStatus === "cancelled" && "border-border bg-canvas",
+                    "h-8 border pl-4 pr-2.5 py-1.5 flex items-center relative shadow-none border-border bg-surface",
+                    "transition-all duration-150 ease-in-out hover:bg-surface-hover hover:border-border",
+                    "motion-safe:hover:-translate-y-0.5 hover:shadow-[var(--shadow-overlay-sm)]",
+                    placement.item.businessStatus === "cancelled" && "border-border bg-canvas/80 text-muted",
                   )}
                   title={`${placement.item.title} · ${formatAgendaDateLabel(placement.item, timezone)}`}
                 >
+                  {/* Left domain rail */}
+                  {placement.item.businessStatus !== "cancelled" && (
+                    <span
+                      className={cn(
+                        "absolute left-0 top-0 bottom-0 w-1 rounded-l-md",
+                        DOMAIN_BG_CLASSES[placement.item.domain]
+                      )}
+                    />
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="truncate text-[12px] font-medium text-heading">
                       {placement.item.title}

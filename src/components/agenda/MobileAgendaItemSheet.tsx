@@ -103,7 +103,7 @@ export function MobileAgendaItemSheet({
         </div>
 
         {/* Temporal details */}
-        <section className="rounded-xl border border-border bg-canvas/40 p-4">
+        <section className="rounded-lg border border-border bg-canvas/40 p-4">
           <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
             Temporalité
           </h3>
@@ -115,7 +115,7 @@ export function MobileAgendaItemSheet({
 
         {/* Context details */}
         {(item.companyLabel || item.ownerLabel || item.personLabel) && (
-          <section className="rounded-xl border border-border bg-surface p-4">
+          <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
               Contexte
             </h3>
@@ -144,7 +144,7 @@ export function MobileAgendaItemSheet({
 
         {/* Quick Links */}
         {links.length > 0 && (
-          <section className="rounded-xl border border-border bg-surface p-4">
+          <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2.5">
               Liens associés
             </h3>
@@ -167,7 +167,7 @@ export function MobileAgendaItemSheet({
 
         {/* Linked Objects */}
         {relatedItems.length > 0 && (
-          <section className="rounded-xl border border-border bg-surface p-4">
+          <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted">
               Objets liés
             </h3>
@@ -211,7 +211,7 @@ export function MobileAgendaItemSheet({
               variant="ghost"
               fullWidth
               onClick={handleHide}
-              className="text-danger hover:text-danger-hover hover:bg-danger-muted/5 font-semibold text-xs h-11"
+              className="text-danger hover:text-danger-hover hover:bg-danger/[0.05] font-semibold text-xs h-11"
             >
               Masquer pour cette session
             </Button>
