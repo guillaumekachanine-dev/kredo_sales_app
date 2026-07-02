@@ -422,6 +422,43 @@ dialog.kredo-drawer-bottom {
   animation: kredo-intelligence-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ── Account Badge — masthead du panneau Intelligence (mode compte) ──
+ *  Distincte des cartes plates du panneau (Ressources/Activité/Contacts,
+ *  toutes en bg-primary-fg/[0.04] neutre) : fond dégradé ambre → pétrole
+ *  → cobalt + bordure dégradée statique, pour donner au nom de compte le
+ *  statut de repère visuel en tête de panneau.
+ * ──────────────────────────────────────────────────────────────────── */
+.kredo-account-badge {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    rgba(200, 154, 43, 0.20) 0%,
+    rgba(54, 136, 170, 0.16) 55%,
+    rgba(37, 84, 184, 0.20) 100%
+  );
+}
+
+.kredo-account-badge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.55) 0%,
+    rgba(54, 136, 170, 0.40) 50%,
+    rgba(200, 154, 43, 0.55) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
 /* ── Intelligence Toggle — bordure bariolée animée, fond transparent ──
  *  Technique : ::before avec mask-composite:exclude expose le gradient
  *  uniquement sur la zone de padding (= l'épaisseur de bordure).

@@ -11,6 +11,7 @@ import { PanelResources } from "./PanelResources"
 import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { IconButton } from "@/components/ui/IconButton"
+import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { PitchMailDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 
 type AccountPanelAction = "pitch" | null
@@ -64,14 +65,25 @@ function AccountPanelContent() {
   return (
     <>
       {/* Account badge */}
-      <div className="rounded-lg border border-primary-fg/10 bg-primary-fg/[0.05] p-3">
-        <p className="text-xs font-bold text-primary-fg leading-tight">
-          {company.name}
-        </p>
-        <div className="mt-1 flex items-center gap-2 text-[10px] text-primary-fg/50">
-          {company.sector && <span>{company.sector}</span>}
-          {company.sector && company.lifecycleStatus && <span>·</span>}
-          <span className="capitalize">{company.lifecycleStatus?.replace(/_/g, " ")}</span>
+      <div className="kredo-account-badge rounded-lg p-3">
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold text-primary-fg leading-tight">
+              {company.name}
+            </p>
+            <div className="mt-1 flex items-center gap-2 text-[10px] text-primary-fg/55">
+              {company.sector && <span className="truncate">{company.sector}</span>}
+              {company.sector && company.lifecycleStatus && <span className="shrink-0">·</span>}
+              <span className="shrink-0 capitalize">{company.lifecycleStatus?.replace(/_/g, " ")}</span>
+            </div>
+          </div>
+          <CompanyLogo
+            name={company.name}
+            logoPath={company.logoPath}
+            website={company.website}
+            size="lg"
+            className="bg-white p-1 shrink-0"
+          />
         </div>
       </div>
 
