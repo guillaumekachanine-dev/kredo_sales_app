@@ -16,9 +16,9 @@ import { PanelResources } from "./PanelResources"
 import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { PitchMailDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 
-type AccountPanelAction = "pitch" | null
+type AccountPanelAction = "pitch" | "summary" | null
 
 function SparkleIcon() {
   return (
@@ -55,7 +55,7 @@ function AccountMobileContent() {
 
   const { company, resources, sector, activity, contacts } = panelData
 
-  if (activeAction === "pitch") {
+  if (activeAction === "pitch" || activeAction === "summary") {
     return (
       <div className="space-y-4">
         <button
@@ -69,10 +69,17 @@ function AccountMobileContent() {
           Retour
         </button>
         <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-          <PitchMailDrawerContent
-            data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
-            variant="mobile"
-          />
+          {activeAction === "pitch" ? (
+            <PitchMailDrawerContent
+              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
+              variant="mobile"
+            />
+          ) : (
+            <SummaryDrawerContent
+              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
+              variant="mobile"
+            />
+          )}
         </div>
       </div>
     )
@@ -86,6 +93,7 @@ function AccountMobileContent() {
           sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
           onActionClick={(actionId) => {
             if (actionId === "generate_pitch") setActiveAction("pitch")
+            if (actionId === "generate_report") setActiveAction("summary")
           }}
           tone="light"
         />

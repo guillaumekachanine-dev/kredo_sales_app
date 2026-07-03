@@ -15,6 +15,15 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   commercial_pitch: "Pitch commercial",
   campaign: "Campagne",
   internal_note: "Note interne",
+  activity_commercial: "Activité commerciale",
+  activity_recruitment: "Activité recrutement",
+  weekly_manager: "Rapport hebdo manager",
+  planning_deadlines: "Planning & échéances",
+  financial: "Rapport financier",
+  quarterly_review: "Business review trimestrielle",
+  staffing_capacity: "Staffing & capacité",
+  delivery_profitability: "Delivery & rentabilité",
+  account_portfolio: "Revue de portefeuille comptes",
 }
 
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {

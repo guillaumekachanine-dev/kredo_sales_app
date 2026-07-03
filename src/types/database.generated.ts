@@ -2617,19 +2617,25 @@ export type Database = {
       }
       intelligence_documents: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           archived_at: string | null
           created_at: string
           current_content_json: Json
           current_content_text: string | null
+          data_cutoff_at: string | null
           document_type: Database["public"]["Enums"]["intelligence_document_type"]
           id: string
           is_favorite: boolean
           last_used_at: string | null
           owner_id: string
+          period_end: string | null
+          period_start: string | null
           primary_entity_id: string | null
           primary_entity_type:
             | Database["public"]["Enums"]["intelligence_entity_type"]
             | null
+          scope_json: Json | null
           search_vector: unknown
           source_result_id: string | null
           status: Database["public"]["Enums"]["intelligence_document_status"]
@@ -2640,19 +2646,25 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           created_at?: string
           current_content_json?: Json
           current_content_text?: string | null
+          data_cutoff_at?: string | null
           document_type: Database["public"]["Enums"]["intelligence_document_type"]
           id?: string
           is_favorite?: boolean
           last_used_at?: string | null
           owner_id: string
+          period_end?: string | null
+          period_start?: string | null
           primary_entity_id?: string | null
           primary_entity_type?:
             | Database["public"]["Enums"]["intelligence_entity_type"]
             | null
+          scope_json?: Json | null
           search_vector?: unknown
           source_result_id?: string | null
           status?: Database["public"]["Enums"]["intelligence_document_status"]
@@ -2663,19 +2675,25 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           archived_at?: string | null
           created_at?: string
           current_content_json?: Json
           current_content_text?: string | null
+          data_cutoff_at?: string | null
           document_type?: Database["public"]["Enums"]["intelligence_document_type"]
           id?: string
           is_favorite?: boolean
           last_used_at?: string | null
           owner_id?: string
+          period_end?: string | null
+          period_start?: string | null
           primary_entity_id?: string | null
           primary_entity_type?:
             | Database["public"]["Enums"]["intelligence_entity_type"]
             | null
+          scope_json?: Json | null
           search_vector?: unknown
           source_result_id?: string | null
           status?: Database["public"]["Enums"]["intelligence_document_status"]
@@ -2686,6 +2704,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "intelligence_documents_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "intelligence_documents_owner_id_fkey"
             columns: ["owner_id"]
@@ -5502,6 +5527,14 @@ export type Database = {
           updated_at: string
         }[]
       }
+      compute_conviction_score_v1: {
+        Args: { p_company_id: string }
+        Returns: number
+      }
+      compute_investment_score_v1: {
+        Args: { p_company_id: string }
+        Returns: number
+      }
       create_calendar_event: {
         Args: {
           p_all_day?: boolean
@@ -5532,6 +5565,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_account_summary_facts: {
+        Args: { p_company_id: string; p_workspace_id: string }
+        Returns: Json
       }
       get_communication_context: {
         Args: {
@@ -5609,6 +5646,15 @@ export type Database = {
         | "commercial_pitch"
         | "campaign"
         | "internal_note"
+        | "activity_commercial"
+        | "activity_recruitment"
+        | "weekly_manager"
+        | "planning_deadlines"
+        | "financial"
+        | "quarterly_review"
+        | "staffing_capacity"
+        | "delivery_profitability"
+        | "account_portfolio"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -5793,6 +5839,15 @@ export const Constants = {
         "commercial_pitch",
         "campaign",
         "internal_note",
+        "activity_commercial",
+        "activity_recruitment",
+        "weekly_manager",
+        "planning_deadlines",
+        "financial",
+        "quarterly_review",
+        "staffing_capacity",
+        "delivery_profitability",
+        "account_portfolio",
       ],
       intelligence_document_version_origin: [
         "generated",

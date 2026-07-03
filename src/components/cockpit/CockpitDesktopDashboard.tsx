@@ -1,4 +1,8 @@
+"use client"
+
+import Image from "next/image"
 import Link from "next/link"
+import { useState } from "react"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -6,6 +10,10 @@ import { InsightCard } from "@/components/ui/InsightCard"
 import { AlertBlock } from "@/components/ui/AlertBlock"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { CockpitFlowCanvas } from "@/components/cockpit/CockpitFlowCanvas"
+import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
+import { CockpitPitchMailDrawer } from "./CockpitPitchMailDrawer"
+import "./cockpit-desktop.css"
+
 import type {
   CockpitAttentionItem,
   CockpitDashboardData,
@@ -32,27 +40,44 @@ function euroTick(value: number) {
   return `${Math.round(value / 1_000)} k€`
 }
 
-function HeaderActionLink({
-  href,
+function CockpitHeaderActionButton({
   label,
-  tone = "default",
+  iconSrc,
+  amber = false,
+  href,
+  onClick,
 }: {
-  href: string
   label: string
-  tone?: "default" | "primary"
+  iconSrc: string
+  amber?: boolean
+  href?: string
+  onClick?: () => void
 }) {
+  const className = amber
+    ? "kredo-cockpit-header-action kredo-cockpit-header-action-amber"
+    : "kredo-cockpit-header-action"
+
+  const content = (
+    <>
+      <span className="kredo-cockpit-header-action__icon-shell" aria-hidden="true">
+        <Image src={iconSrc} alt="" width={22} height={22} className="h-[22px] w-[22px] object-contain" />
+      </span>
+      <span>{label}</span>
+    </>
+  )
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    )
+  }
+
   return (
-    <Link
-      href={href}
-      className={[
-        "inline-flex h-10 items-center rounded-[var(--radius-medium)] border px-4 text-sm font-semibold transition-colors",
-        tone === "primary"
-          ? "border-transparent bg-primary text-primary-fg hover:bg-primary-deep"
-          : "border-border bg-surface text-heading hover:bg-surface-hover",
-      ].join(" ")}
-    >
-      {label}
-    </Link>
+    <button type="button" onClick={onClick} className={className}>
+      {content}
+    </button>
   )
 }
 
@@ -394,22 +419,38 @@ function AttentionStack({ items }: { items: CockpitAttentionItem[] }) {
         </div>
 
         <div className="flex flex-col gap-3">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-heading">{item.title}</p>
-                  <p className="mt-1 text-sm text-body">{item.subtitle}</p>
+          {items.map((item) => {
+            const railClass =
+              item.href === "/finance"
+                ? "kredo-rail-finance"
+                : item.href === "/staffing"
+                  ? "kredo-rail-need"
+                  : item.href.startsWith("/prospection")
+                    ? "kredo-rail-account"
+                    : item.href.startsWith("/missions")
+                      ? "kredo-rail-mission"
+                      : ""
+
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={[
+                  "rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover",
+                  railClass,
+                ].filter(Boolean).join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-heading">{item.title}</p>
+                    <p className="mt-1 text-sm text-body">{item.subtitle}</p>
+                  </div>
+                  <StatusPill label={item.actionLabel} variant={pillVariant(item.status)} />
                 </div>
-                <StatusPill label={item.actionLabel} variant={pillVariant(item.status)} />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-body">{item.detail}</p>
-            </Link>
-          ))}
+                <p className="mt-3 text-sm leading-6 text-body">{item.detail}</p>
+              </Link>
+            )
+          })}
         </div>
       </div>
     </SurfaceCard>
@@ -433,7 +474,7 @@ function RenewalWatch({ renewals }: { renewals: CockpitRenewalItem[] }) {
           {renewals.map((item) => (
             <div
               key={item.id}
-              className="grid items-center gap-3 rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto]"
+              className="grid items-center gap-3 rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto] kredo-rail-mission"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-heading">{item.company}</p>
@@ -465,6 +506,7 @@ function RailSummary({
   return (
     <div className="flex flex-col gap-4">
       <InsightCard
+        className="kredo-ai-insight-card"
         eyebrow="Lecture IA"
         title="Ce qui compte maintenant"
         summary={headline}
@@ -487,7 +529,7 @@ function RailSummary({
               <Link
                 key={item.id}
                 href={`/prospection/accounts/${item.id}`}
-                className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover"
+                className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover kredo-rail-account"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -520,62 +562,97 @@ export function CockpitDesktopDashboard({
 }: {
   data: CockpitDashboardData
 }) {
-  return (
-    <DesktopAnalyticalPage
-      eyebrow="Centre de profit"
-      title="Cockpit"
-      maxWidth="full"
-      railWidth="wide"
-      actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <HeaderActionLink href="/missions" label="Voir les missions" />
-          <HeaderActionLink href="/staffing" label="Arbitrer le staffing" />
-          <HeaderActionLink href="/prospection" label="Animer le pipe" />
-          <HeaderActionLink href="/finance" label="Ouvrir la finance" tone="primary" />
-        </div>
-      }
-      kpis={
-        <div className="grid gap-4 xl:grid-cols-4">
-          {data.kpis.map((kpi) => (
-            <KpiCard
-              key={kpi.id}
-              label={kpi.label}
-              value={kpi.value}
-              context={kpi.detail}
-              delta={kpi.trendBadge}
-              deltaTone={deltaTone(kpi.status)}
-              accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
-            />
-          ))}
-        </div>
-      }
-      rail={
-        <RailSummary
-          headline={data.headline}
-          recommendation={data.recommendation}
-          accounts={data.accounts}
-          financeWatch={data.financeWatch}
-        />
-      }
-      lowerContent={
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <RenewalWatch renewals={data.renewals} />
-          <AttentionStack items={data.attentionItems} />
-        </div>
-      }
-    >
-      <div className="grid gap-6">
-        <HealthConstellation axes={data.healthAxes} />
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
+  const [isPitchMailOpen, setIsPitchMailOpen] = useState(false)
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <RevenueTrajectory {...data.trajectory} />
-          <SurfaceCard className="h-full">
-            <div className="p-6">
-              <CockpitFlowCanvas flow={data.flow} />
-            </div>
-          </SurfaceCard>
+  return (
+    <>
+      <DesktopAnalyticalPage
+        className="kredo-cockpit-desktop"
+        eyebrow="Centre de profit"
+        title="Cockpit"
+        maxWidth="full"
+        railWidth="wide"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/missions"
+              className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
+            >
+              Voir les missions
+            </Link>
+            <Link
+              href="/prospection/accounts"
+              className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
+            >
+              Voir les comptes
+            </Link>
+            <CockpitHeaderActionButton
+              label="Simulation financière"
+              iconSrc="/icons_set/conditions_financieres_3.png"
+              amber
+              onClick={() => setIsSimulationOpen(true)}
+            />
+            <CockpitHeaderActionButton
+              label="Rédaction mail/pitch"
+              iconSrc="/icons_set/intel_mailing.png"
+              onClick={() => setIsPitchMailOpen(true)}
+            />
+          </div>
+        }
+        kpis={
+          <div className="grid gap-4 xl:grid-cols-4">
+            {data.kpis.map((kpi) => (
+              <KpiCard
+                key={kpi.id}
+                label={kpi.label}
+                value={kpi.value}
+                context={kpi.detail}
+                delta={kpi.trendBadge}
+                deltaTone={deltaTone(kpi.status)}
+                accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
+              />
+            ))}
+          </div>
+        }
+        rail={
+          <RailSummary
+            headline={data.headline}
+            recommendation={data.recommendation}
+            accounts={data.accounts}
+            financeWatch={data.financeWatch}
+          />
+        }
+        lowerContent={
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <RenewalWatch renewals={data.renewals} />
+            <AttentionStack items={data.attentionItems} />
+          </div>
+        }
+      >
+        <div className="grid gap-6">
+          <HealthConstellation axes={data.healthAxes} />
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <RevenueTrajectory {...data.trajectory} />
+            <SurfaceCard className="h-full">
+              <div className="p-6">
+                <CockpitFlowCanvas flow={data.flow} />
+              </div>
+            </SurfaceCard>
+          </div>
         </div>
-      </div>
-    </DesktopAnalyticalPage>
+      </DesktopAnalyticalPage>
+
+      <FinancialModelingDesktopDialog
+        open={isSimulationOpen}
+        onOpenChange={setIsSimulationOpen}
+      />
+
+      <CockpitPitchMailDrawer
+        open={isPitchMailOpen}
+        onOpenChange={setIsPitchMailOpen}
+      />
+    </>
   )
 }

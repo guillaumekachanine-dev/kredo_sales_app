@@ -1,20 +1,16 @@
 import { useState, useEffect } from "react"
-import { Select } from "@/components/ui/Select"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag } from "@/lib/n8n/types"
+import type { AccountSummaryContent, ReportBrief } from "@/app/(app)/reports/_data/reports-types"
+import { AccountSummaryReportView } from "@/components/reports/AccountSummaryReportView"
+import { saveResultAsDocument } from "./save-as-document"
 import {
-  ClientSummaryFormState,
   CampaignFormState,
-  ClientSummaryFormat,
 } from "./intelligence-action-types"
 import {
-  buildClientSummaryPayload,
   buildCampaignPayload,
-  getAnalysisAvailabilityLabel,
-  getSectorAvailabilityLabel,
-  getRoadmapAvailabilityLabel,
 } from "./intelligence-action-utils"
 import { buildDefaultBrief, CHANNEL_OPTIONS } from "./communication-brief-options"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
@@ -175,9 +171,6 @@ export function PitchMailDrawerContent({
     <div className="space-y-5">
       <div>
         <h2 className="font-heading text-base font-bold text-heading">Rédaction assistée</h2>
-        <p className="text-[11px] text-body mt-0.5 leading-relaxed">
-          Préparer un message contextualisé à partir des données disponibles sur le compte.
-        </p>
       </div>
 
       <CommunicationBriefForm
@@ -185,12 +178,8 @@ export function PitchMailDrawerContent({
         onChange={setBrief}
         contacts={contacts}
         isMobile={isMobile}
+        contextMetaLabel="(résolu automatiquement)"
       />
-
-      <div className="rounded-lg border border-border bg-canvas/30 p-3 text-[11px] text-muted">
-        Contexte automatique : compte, contacts, historique commercial, opportunités, missions et
-        actualité sectorielle sont résolus par n8n au moment de la génération.
-      </div>
 
       {/* Erreur */}
       {runStatus === "error" && errorMsg && (
@@ -200,6 +189,241 @@ export function PitchMailDrawerContent({
       )}
 
       {/* CTA */}
+      <div className="pt-4 border-t border-border space-y-2">
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={runStatus === "loading"}
+          className={cn(
+            "kredo-ready-spectrum-button w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-medium)] px-3 text-xs font-bold text-[#151515] transition-transform",
+            isMobile ? "min-h-[44px]" : "min-h-[36px]",
+            runStatus === "loading"
+              ? "cursor-wait opacity-80"
+              : "hover:-translate-y-[1px]"
+          )}
+        >
+          {runStatus === "loading" ? (
+            <>
+              <span className="h-3 w-3 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+              Génération en cours…
+            </>
+          ) : (
+            "Générer le message"
+          )}
+        </button>
+        {runStatus === "loading" && (
+          <p className="text-[10px] text-muted text-center leading-normal">
+            n8n travaille… le résultat apparaîtra automatiquement.
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Contrat minimal — satisfait aussi bien par ClientIntelligenceData (page compte)
+// que par AccountIntelligencePanelData.company (panneau global) : la génération
+// de la fiche compte ne nécessite que company.id côté front, tout le reste est
+// résolu par la RPC get_account_summary_facts (REPORT-001 Lot 1).
+export type AccountSummaryAccountContext = {
+  company: { id: string; name: string; lifecycleStatus: string }
+}
+
+function buildAccountSummaryBrief(instructions: string): ReportBrief {
+  const today = new Date().toISOString().slice(0, 10)
+  return {
+    reportType: "client_summary",
+    period: { startDate: today, endDate: today, asOfDate: today },
+    scope: {},
+    audience: "self",
+    detailLevel: "standard",
+    outputFormats: ["web"],
+    options: {},
+    additionalInstructions: instructions.trim() || undefined,
+  }
+}
+
+export function SummaryDrawerContent({
+  data,
+  variant = "desktop",
+}: {
+  data: AccountSummaryAccountContext
+  variant?: "desktop" | "mobile"
+}) {
+  const { company } = data
+  const isMobile = variant === "mobile"
+  const supabase = createClient()
+
+  const [additionalInstructions, setAdditionalInstructions] = useState("")
+  const [runStatus, setRunStatus] = useState<RunStatus>("idle")
+  const [runId, setRunId] = useState<string | null>(null)
+  const [resultId, setResultId] = useState<string | null>(null)
+  const [content, setContent] = useState<AccountSummaryContent | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
+
+  // Abonnement Realtime : dès qu'on a un runId, on écoute le résultat
+  useEffect(() => {
+    if (!runId) return
+
+    const channel = supabase
+      .channel(`account-summary-result-${runId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "ai_intelligence_results",
+          filter: `run_id=eq.${runId}`,
+        },
+        (payload) => {
+          const row = payload.new as {
+            id: string
+            status: string
+            content_json: AccountSummaryContent
+          }
+          if (row.status === "succeeded") {
+            setResultId(row.id)
+            setContent(row.content_json)
+            setRunStatus("done")
+          } else if (row.status === "failed") {
+            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            setRunStatus("error")
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { void supabase.removeChannel(channel) }
+  }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleGenerate() {
+    setRunStatus("loading")
+    setContent(null)
+    setResultId(null)
+    setErrorMsg(null)
+
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "report-account-summary",
+          entityType: "company",
+          entityId: company.id,
+          input: buildAccountSummaryBrief(additionalInstructions),
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+
+      const { runId: newRunId } = await res.json() as { runId: string }
+      setRunId(newRunId)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setRunStatus("error")
+    }
+  }
+
+  function handleReset() {
+    setRunStatus("idle")
+    setRunId(null)
+    setResultId(null)
+    setContent(null)
+    setErrorMsg(null)
+    setSaveStatus("idle")
+  }
+
+  async function handleSaveAsDocument() {
+    if (!resultId) {
+      setSaveStatus("error")
+      return
+    }
+    setSaveStatus("saving")
+    const res = await saveResultAsDocument({ resultId })
+    setSaveStatus(res.error ? "error" : "saved")
+  }
+
+  if (runStatus === "done" && content) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-heading text-base font-bold text-heading">Fiche de synthèse compte</h2>
+            <p className="text-[11px] text-muted mt-0.5">{company.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted hover:text-body border border-border rounded px-2 py-1"
+          >
+            Refaire
+          </button>
+        </div>
+
+        <AccountSummaryReportView content={content} isMobile={isMobile} />
+
+        <div className="pt-3 border-t border-border">
+          <button
+            type="button"
+            onClick={handleSaveAsDocument}
+            disabled={!resultId || saveStatus === "saving" || saveStatus === "saved"}
+            className={cn(
+              "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
+              isMobile ? "min-h-[44px]" : "min-h-[36px]",
+              saveStatus === "saved"
+                ? "border-success/30 bg-success/10 text-success cursor-default"
+                : saveStatus === "error"
+                  ? "border-danger/30 bg-danger/5 text-danger"
+                  : "border-border bg-surface text-body hover:bg-canvas"
+            )}
+          >
+            {saveStatus === "saving" && "Enregistrement…"}
+            {saveStatus === "saved" && "✓ Enregistré dans la bibliothèque"}
+            {saveStatus === "error" && "Échec — réessayer"}
+            {saveStatus === "idle" && "Enregistrer dans la bibliothèque"}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-heading text-base font-bold text-heading">Fiche de synthèse compte</h2>
+        <p className="text-[11px] text-body mt-0.5 leading-relaxed">
+          Générer une fiche 1 page consolidant identité, potentiel, activité commerciale, signaux et
+          conviction sur {company.name}.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+          Instructions complémentaires
+        </label>
+        <textarea
+          value={additionalInstructions}
+          onChange={(e) => setAdditionalInstructions(e.target.value)}
+          placeholder="Ex : insiste sur le potentiel de foisonnement, le staffing en cours…"
+          className="w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[80px]"
+        />
+      </div>
+
+      <div className="rounded-lg border border-border bg-canvas/30 p-3 text-[11px] text-muted">
+        Faits calculés automatiquement (pipe, CA produit, marge, contacts, signaux) — le LLM ne fait
+        que rédiger la synthèse et l&apos;approche recommandée à partir de ces faits.
+      </div>
+
+      {runStatus === "error" && errorMsg && (
+        <div className="rounded border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-danger">
+          {errorMsg}
+        </div>
+      )}
+
       <div className="pt-4 border-t border-border space-y-2">
         <button
           type="button"
@@ -219,7 +443,7 @@ export function PitchMailDrawerContent({
               Génération en cours…
             </>
           ) : (
-            "Générer le message"
+            "Générer la fiche"
           )}
         </button>
         {runStatus === "loading" && (
@@ -227,188 +451,6 @@ export function PitchMailDrawerContent({
             n8n travaille… le résultat apparaîtra automatiquement.
           </p>
         )}
-      </div>
-    </div>
-  )
-}
-
-export function SummaryDrawerContent({
-  data,
-  variant = "desktop",
-}: {
-  data: ClientIntelligenceData
-  variant?: "desktop" | "mobile"
-}) {
-  const { company, contacts, pitches, signals } = data
-
-  const [form, setForm] = useState<ClientSummaryFormState>({
-    format: "executive_brief",
-    includeSectorAnalysis: true,
-    includeSignals: true,
-    includeContacts: true,
-    includePitches: true,
-    additionalInstructions: "",
-  })
-
-  // Payload préparé pour le branchement futur n8n
-  buildClientSummaryPayload({ companyId: company.id, form, data })
-
-  const isMobile = variant === "mobile"
-  const selectCls = cn(
-    "w-full rounded border border-border bg-surface px-3 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50",
-    isMobile ? "h-11" : "h-9"
-  )
-  const textareaCls = "w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[80px]"
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
-
-  const clientAvailability = getAnalysisAvailabilityLabel(data)
-  const sectorAvailability = getSectorAvailabilityLabel(data)
-  const roadmapAvailability = getRoadmapAvailabilityLabel(data)
-
-  const clientTone = {
-    success: "text-success",
-    warning: "text-warning",
-    neutral: "text-muted",
-  }[clientAvailability.tone]
-
-  const sectorTone = {
-    success: "text-success",
-    warning: "text-warning",
-    neutral: "text-muted",
-  }[sectorAvailability.tone]
-
-  const roadmapTone = {
-    success: "text-success",
-    neutral: "text-muted",
-  }[roadmapAvailability.tone]
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="font-heading text-base font-bold text-heading">Synthèse client</h2>
-        <p className="text-[11px] text-body mt-0.5 leading-relaxed">
-          Créer une fiche de synthèse consolidée à partir des analyses, signaux, contacts et éléments commerciaux.
-        </p>
-      </div>
-
-      {/* Formulaire contrôlé */}
-      <div className="space-y-4">
-        <div>
-          <label className={labelCls}>Format de sortie</label>
-          <Select
-            value={form.format}
-            onChange={(e) => setForm({ ...form, format: e.target.value as ClientSummaryFormat })}
-            className={selectCls}
-          >
-            <option value="executive_brief">Brief exécutif</option>
-            <option value="sales_sheet">Fiche commerciale</option>
-            <option value="account_memo">Mémo compte</option>
-          </Select>
-        </div>
-
-        <div>
-          <span className={labelCls}>Sources à inclure</span>
-          <div className="space-y-2 mt-2">
-            <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.includeSectorAnalysis}
-                onChange={(e) => setForm({ ...form, includeSectorAnalysis: e.target.checked })}
-                className="rounded border-border text-primary focus:ring-primary/50"
-              />
-              <span>Analyse sectorielle</span>
-            </label>
-            <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.includeSignals}
-                onChange={(e) => setForm({ ...form, includeSignals: e.target.checked })}
-                className="rounded border-border text-primary focus:ring-primary/50"
-              />
-              <span>Signaux récents</span>
-            </label>
-            <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.includeContacts}
-                onChange={(e) => setForm({ ...form, includeContacts: e.target.checked })}
-                className="rounded border-border text-primary focus:ring-primary/50"
-              />
-              <span>Contacts clés</span>
-            </label>
-            <label className="flex items-center gap-2 text-xs text-body cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.includePitches}
-                onChange={(e) => setForm({ ...form, includePitches: e.target.checked })}
-                className="rounded border-border text-primary focus:ring-primary/50"
-              />
-              <span>Pitchs existants</span>
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Instructions complémentaires</label>
-          <textarea
-            value={form.additionalInstructions}
-            onChange={(e) => setForm({ ...form, additionalInstructions: e.target.value })}
-            placeholder="Ex : insiste sur les enjeux cloud, cybersécurité, staffing…"
-            className={textareaCls}
-          />
-        </div>
-      </div>
-
-      {/* Sources détectées */}
-      <div className="rounded-lg border border-border bg-canvas/30 p-4 space-y-3">
-        <span className="block text-[9px] font-bold uppercase tracking-wider text-muted border-b border-border/50 pb-1.5">
-          Sources détectées
-        </span>
-        <ul className="space-y-2 text-xs">
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Analyse client :</span>
-            <span className={cn("font-semibold", clientTone)}>{clientAvailability.label}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Analyse sectorielle :</span>
-            <span className={cn("font-semibold", sectorTone)}>{sectorAvailability.label}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Signaux :</span>
-            <span className="font-semibold text-heading">{signals.length}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Contacts :</span>
-            <span className="font-semibold text-heading">{contacts.length}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Pitchs :</span>
-            <span className="font-semibold text-heading">{pitches.length}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-muted">Roadmap :</span>
-            <span className={cn("font-semibold", roadmapTone)}>
-              {roadmapAvailability.label}
-            </span>
-          </li>
-        </ul>
-      </div>
-
-      {/* CTA section */}
-      <div className="pt-4 border-t border-border space-y-2">
-        <button
-          type="button"
-          disabled
-          className={cn(
-            "w-full inline-flex items-center justify-center rounded bg-primary/20 border border-primary/10 px-3 text-xs font-bold text-muted cursor-not-allowed opacity-60",
-            isMobile ? "min-h-[44px]" : "min-h-[36px]"
-          )}
-        >
-          Synthèse IA à connecter
-        </button>
-        <p className="text-[10px] text-muted text-center leading-normal">
-          La génération sera exécutée par n8n pour éviter les timeouts Vercel.
-        </p>
       </div>
     </div>
   )

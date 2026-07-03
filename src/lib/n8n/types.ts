@@ -9,8 +9,9 @@ export type N8nWorkflowId =
   | "intel-010-refresh"             // INTEL-010 : client_intelligence_refresh
   | "intel-011-sector"              // INTEL-011 : étude sectorielle mutualisée
   | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note) — 8 scénarios
-  | "intel-021-client-summary"      // INTEL-021 : synthèse client
   | "intel-022-campaign"            // INTEL-022 : création campagne
+  // Rapports (REPORT-001)
+  | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   // Sales
   | "sales-001-interaction-enrich"  // SALES-001 : enrichissement interaction (preuve E2E)
   // Recrutement
@@ -19,13 +20,29 @@ export type N8nWorkflowId =
   | "rec-003-matching"              // REC-003 : matching IA scoring
 
 // ─── Payload envoyé par Next.js vers n8n (CORE-001) ─────────────────────────
+// entityType élargi pour REPORT-001 (Lot 0) : les rapports transverses
+// (activité commerciale, hebdo manager...) n'ont pas de compte pivot unique.
+// entityType="workspace" + entityId=workspaceId signale un run sans compte —
+// company_id reste NULL sur ai_intelligence_runs (nullable depuis INTEL-020).
+// Les workflows n8n dérivent déjà company_id eux-mêmes via
+// `entityType === 'company' ? entityId : null` (voir intel-020-communication.json).
+
+export type N8nEntityType =
+  | "workspace"
+  | "company"
+  | "sector"
+  | "opportunity"
+  | "candidate"
+  | "interaction"
+  | "mission"
+  | "project"
 
 export type N8nTriggerPayload = {
   // Traçabilité — permet à n8n de mettre à jour le bon run
   runId: string
   workflowId: N8nWorkflowId
   // Contexte de l'entité concernée
-  entityType: "company" | "opportunity" | "candidate" | "interaction"
+  entityType: N8nEntityType
   entityId: string
   workspaceId: string
   userId: string

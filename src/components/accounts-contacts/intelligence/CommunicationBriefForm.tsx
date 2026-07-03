@@ -27,7 +27,6 @@ import {
   TONE_OPTIONS,
   personaFromRelationshipRole,
 } from "./communication-brief-options"
-import { ScenarioSelector, ToneSelector } from "./PillSelect"
 import { ContactSelector } from "./ContactSelector"
 
 function useFieldClasses(isMobile: boolean) {
@@ -41,11 +40,26 @@ function useFieldClasses(isMobile: boolean) {
   return { selectCls, textareaCls, labelCls }
 }
 
-function SectionHeading({ title }: { title: string }) {
+function SectionHeading({
+  title,
+  meta,
+}: {
+  title: string
+  meta?: string
+}) {
   return (
-    <summary className="cursor-pointer select-none list-none flex items-center justify-between py-1 text-[10px] font-bold uppercase tracking-wider text-muted marker:content-none [&::-webkit-details-marker]:hidden">
-      {title}
-      <span className="text-muted/60 transition-transform group-open:rotate-180">▾</span>
+    <summary className="cursor-pointer select-none list-none marker:content-none [&::-webkit-details-marker]:hidden">
+      <div className="flex items-center justify-between gap-3 py-1">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="inline-flex min-h-7 items-center rounded-full border border-primary/20 bg-primary/12 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-primary"
+          >
+            {title}
+          </span>
+          {meta ? <span className="truncate text-[11px] text-muted">{meta}</span> : null}
+        </div>
+        <span className="text-muted/60 transition-transform group-open:rotate-180">▾</span>
+      </div>
     </summary>
   )
 }
@@ -55,11 +69,13 @@ export function CommunicationBriefForm({
   onChange,
   contacts,
   isMobile = false,
+  contextMetaLabel,
 }: {
   brief: CommunicationBrief
   onChange: (brief: CommunicationBrief) => void
   contacts: ClientIntelligenceContact[]
   isMobile?: boolean
+  contextMetaLabel?: string
 }) {
   const { selectCls, textareaCls, labelCls } = useFieldClasses(isMobile)
 
@@ -115,12 +131,17 @@ export function CommunicationBriefForm({
   const fieldScenario = (
     <div>
       <label className={labelCls}>Scénario</label>
-      <ScenarioSelector
-        options={SCENARIO_OPTIONS}
+      <Select
         value={brief.what.scenario}
-        onChange={handleScenarioChange}
-        isMobile={isMobile}
-      />
+        onChange={(e) => handleScenarioChange(e.target.value)}
+        className={selectCls}
+      >
+        {SCENARIO_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
     </div>
   )
 
@@ -253,20 +274,25 @@ export function CommunicationBriefForm({
   const fieldTone = (
     <div>
       <label className={labelCls}>Ton</label>
-      <ToneSelector
-        options={TONE_OPTIONS}
+      <Select
         value={brief.how.tone}
-        onChange={(tone) => updateHow({ tone: tone as CommunicationTone })}
-        isMobile={isMobile}
-      />
+        onChange={(e) => updateHow({ tone: e.target.value as CommunicationTone })}
+        className={selectCls}
+      >
+        {TONE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
     </div>
   )
 
-  const fieldFormalityAndLanguage = (
-    <div className="grid grid-cols-2 gap-3">
+  const fieldFormality = (
+    <div>
       <div>
         <span className={labelCls}>Formalité</span>
-        <div className="flex gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {(["vous", "tu"] as const).map((f) => (
             <button
               key={f}
@@ -276,25 +302,38 @@ export function CommunicationBriefForm({
                 "flex-1 rounded border px-3 text-xs font-semibold transition-colors",
                 isMobile ? "min-h-[44px]" : "h-9",
                 brief.how.formality === f
-                  ? "border-primary bg-primary text-primary-fg"
+                  ? "border-primary bg-primary text-[#151515]"
                   : "border-border bg-surface text-body hover:bg-canvas"
               )}
             >
-              {f === "vous" ? "Vouvoiement" : "Tutoiement"}
+              {f}
             </button>
           ))}
         </div>
       </div>
+    </div>
+  )
+
+  const fieldLanguage = (
+    <div>
+      <label className={labelCls}>Langue</label>
+      <Select
+        value={brief.how.language}
+        onChange={(e) => updateHow({ language: e.target.value as "fr" | "en" })}
+        className={selectCls}
+      >
+        <option value="fr">🇫🇷 Français</option>
+        <option value="en">🇬🇧 Anglais</option>
+      </Select>
+    </div>
+  )
+
+  const fieldToneFormalityAndLanguage = (
+    <div className="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+      {fieldTone}
+      {fieldFormality}
       <div>
-        <label className={labelCls}>Langue</label>
-        <Select
-          value={brief.how.language}
-          onChange={(e) => updateHow({ language: e.target.value as "fr" | "en" })}
-          className={selectCls}
-        >
-          <option value="fr">🇫🇷 Français</option>
-          <option value="en">🇬🇧 Anglais</option>
-        </Select>
+        {fieldLanguage}
       </div>
     </div>
   )
@@ -341,7 +380,9 @@ export function CommunicationBriefForm({
             {fieldSenderAndPractice}
             {fieldRecipientTypeAndPersona}
             {fieldRelationAndObjective}
-            {fieldFormalityAndLanguage}
+            {fieldTone}
+            {fieldFormality}
+            {fieldLanguage}
             {fieldMustExclude}
           </div>
         </details>
@@ -351,7 +392,7 @@ export function CommunicationBriefForm({
 
   return (
     <div className="space-y-3">
-      <details open className="group rounded-lg border border-border p-3.5">
+      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <SectionHeading title="Quoi" />
         <div className="pt-3 space-y-4">
           {fieldScenario}
@@ -359,7 +400,7 @@ export function CommunicationBriefForm({
         </div>
       </details>
 
-      <details open className="group rounded-lg border border-border p-3.5">
+      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <SectionHeading title="Qui" />
         <div className="pt-3 space-y-4">
           {fieldSenderAndPractice}
@@ -369,16 +410,15 @@ export function CommunicationBriefForm({
         </div>
       </details>
 
-      <details open className="group rounded-lg border border-border p-3.5">
+      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <SectionHeading title="Comment" />
         <div className="pt-3 space-y-4">
-          {fieldTone}
-          {fieldFormalityAndLanguage}
+          {fieldToneFormalityAndLanguage}
         </div>
       </details>
 
-      <details open className="group rounded-lg border border-border p-3.5">
-        <SectionHeading title="Contexte" />
+      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <SectionHeading title="Contexte" meta={contextMetaLabel} />
         <div className="pt-3 space-y-4">
           {fieldMustInclude}
           {fieldMustExclude}

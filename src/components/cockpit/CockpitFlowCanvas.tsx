@@ -264,7 +264,7 @@ export function CockpitFlowCanvas({ flow }: { flow: CockpitFlowNode[] }) {
       background.addColorStop(0, "rgba(252,251,247,0.98)")
       background.addColorStop(0.5, "rgba(244,242,237,0.92)")
       background.addColorStop(1, "rgba(248,246,240,0.98)")
-      roundedRectPath(ctx, 0, 0, size.width, size.height, 28)
+      roundedRectPath(ctx, 0, 0, size.width, size.height, 8)
       ctx.fillStyle = background
       ctx.fill()
 
@@ -322,7 +322,7 @@ export function CockpitFlowCanvas({ flow }: { flow: CockpitFlowNode[] }) {
 
       <div
         ref={containerRef}
-        className="relative overflow-hidden rounded-[28px] border border-border bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,242,237,0.94))] p-4"
+        className="relative overflow-hidden rounded-[var(--radius-large)] border border-border bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,242,237,0.94))] p-4"
       >
         <canvas
           ref={canvasRef}
@@ -362,7 +362,7 @@ export function CockpitFlowCanvas({ flow }: { flow: CockpitFlowNode[] }) {
             onMouseLeave={() => setHoveredId(null)}
             onFocus={() => setHoveredId(node.id)}
             onBlur={() => setHoveredId(null)}
-            className="rounded-[22px] border border-border bg-surface/75 px-4 py-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="rounded-[var(--radius-large)] border border-border bg-surface/75 px-4 py-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

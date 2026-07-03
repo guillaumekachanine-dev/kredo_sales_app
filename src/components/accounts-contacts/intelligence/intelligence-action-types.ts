@@ -2,20 +2,6 @@
 // contrat CommunicationBrief (QUOI/QUI/COMMENT/CONTEXTE) — voir src/lib/n8n/types.ts
 // et ./communication-brief-options.ts. Les types Pitch* historiques ont été retirés.
 
-export type ClientSummaryFormat =
-  | "executive_brief"
-  | "sales_sheet"
-  | "account_memo"
-
-export type ClientSummaryFormState = {
-  format: ClientSummaryFormat
-  includeSectorAnalysis: boolean
-  includeSignals: boolean
-  includeContacts: boolean
-  includePitches: boolean
-  additionalInstructions: string
-}
-
 export type CampaignFormState = {
   campaignName: string
   channels: {

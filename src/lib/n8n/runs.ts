@@ -10,7 +10,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import type { Database, Json } from "@/types/database"
-import type { N8nCallbackPayload, N8nWorkflowId } from "./types"
+import type { N8nCallbackPayload, N8nEntityType, N8nWorkflowId } from "./types"
 
 function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -25,8 +25,12 @@ function getServiceClient() {
 
 type CreateRunOptions = {
   workflowId: N8nWorkflowId
-  // company_id est nullable en base (INTEL-020) mais tous les scénarios V1 sont company-centric
-  companyId: string
+  // Entité pivot du run — "workspace" pour les rapports transverses sans compte
+  // unique (REPORT-001 Lot 0). companyId reste la dénormalisation historique
+  // utilisée par les runs company-centric (INTEL-010/011/020/021/022).
+  entityType: N8nEntityType
+  entityId: string
+  companyId?: string | null
   workspaceId: string
   userId: string
   input: Record<string, unknown>
@@ -38,7 +42,9 @@ export async function createRun(opts: CreateRunOptions): Promise<string> {
   const { data, error } = await supabase
     .from("ai_intelligence_runs")
     .insert({
-      company_id: opts.companyId,
+      company_id: opts.companyId ?? null,
+      primary_entity_type: opts.entityType,
+      primary_entity_id: opts.entityId,
       run_type: opts.workflowId,
       trigger_source: "ui",
       status: "queued",

@@ -1172,6 +1172,135 @@ canvas {
   }
 }
 
+.kredo-cockpit-header-action {
+  position: relative;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-medium);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #234ca9 0%, #1d428f 100%);
+  padding: 0 14px;
+  color: #f8faff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition:
+    transform var(--motion-duration-fast) ease,
+    box-shadow var(--motion-duration-fast) ease,
+    background-color var(--motion-duration-fast) ease;
+}
+
+.kredo-cockpit-header-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(19, 36, 75, 0.22);
+}
+
+.kredo-cockpit-header-action__icon-shell {
+  display: inline-flex;
+  height: 28px;
+  width: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 0 0 1px rgba(19, 36, 75, 0.06);
+}
+
+.kredo-cockpit-header-action-amber {
+  border-color: rgba(201, 154, 46, 0.28);
+  background: linear-gradient(180deg, #f0bf4a 0%, #d8a12f 100%);
+  color: #151515;
+}
+
+.kredo-cockpit-header-action-amber:hover {
+  box-shadow: 0 10px 18px rgba(201, 154, 46, 0.24);
+}
+
+.kredo-ready-spectrum-button {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#ffc107, #ffc107) padding-box,
+    linear-gradient(
+      135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5
+    ) border-box;
+  background-size: auto, 400% 400%;
+  animation:
+    kredo-ready-gradient-flow 3s linear infinite,
+    kredo-ready-pulse 1.7s ease-in-out infinite;
+  box-shadow: 0 8px 24px rgba(201, 154, 46, 0.22);
+}
+
+.kredo-ready-spectrum-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 74%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  animation: kredo-spectrum-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes kredo-spectrum-sweep {
+  0%,
+  18% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  62% {
+    transform: translateX(120%);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-cockpit-header-action:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .kredo-ready-spectrum-button {
+    animation: none;
+  }
+
+  .kredo-ready-spectrum-button::after {
+    animation: none;
+    transform: none;
+    opacity: 0;
+  }
+}
+
 
 /* ── Nested Ready Action Circle (Smaller version of ReadyActionButton) ── */
 .kredo-ready-action-circle {

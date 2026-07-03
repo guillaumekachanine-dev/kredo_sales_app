@@ -20,7 +20,7 @@ const ACCOUNT_ACTIONS: PanelAction[] = [
   { id: "deep_analysis", label: "Analyse", icon: "deep_analysis", active: false },
   { id: "build_roadmap", label: "Roadmap", icon: "build_roadmap", active: false },
   { id: "create_campaign", label: "Campagne", icon: "create_campaign", active: false },
-  { id: "generate_report", label: "Rapport", icon: "report", active: false },
+  { id: "generate_report", label: "Fiche compte", icon: "report", active: true },
   { id: "scan_contacts", label: "Scan contacts", icon: "scan_contact", active: false },
 ]
 

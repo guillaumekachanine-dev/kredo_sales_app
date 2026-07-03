@@ -98,6 +98,10 @@ function buildFallbackTitle(documentType: DocumentType) {
       return "Campagne IA"
     case "internal_note":
       return "Note IA"
+    default:
+      // Types de rapports REPORT-001 (Lot 1+) — pas encore générés via ce
+      // chemin (saveResultAsDocumentWithSupabaseClient sert INTEL-020/021/022).
+      return "Rapport IA"
   }
 }
 

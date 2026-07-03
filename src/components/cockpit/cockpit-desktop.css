@@ -1,0 +1,195 @@
+/* ============================================================
+   KREDO — Refonte Cockpit Desktop · Palette "Cobalt Stratifié"
+   Contient les variables de la Direction A et les styles de motion.
+   ============================================================ */
+
+.kredo-cockpit-desktop {
+  /* ── Direction A : Cobalt Stratifié Color Overrides ── */
+  --color-primary:            #244FB3; /* Cobalt directeur */
+  --color-primary-deep:       #1E4596;
+  --color-brand-primary:      #244FB3;
+  --color-brand-primary-deep: #13244B; /* Navy conseil */
+  --color-brand-brass:        #C99A2E; /* Brass franc */
+  --color-brand-brass-hover:  #A67A1E;
+  
+  --color-canvas:             #F4F1EA; /* Canvas lin */
+  --color-bg-canvas:          #F4F1EA;
+  --color-surface:            #FFFDF8; /* Surface ivoire */
+  --color-bg-surface:         #FFFDF8;
+  --color-surface-hover:      #EDF0F7; /* Surface hover */
+  --color-bg-surface-hover:   #EDF0F7;
+  
+  --color-border:             #D8DFEA; /* Bord graphite */
+  --color-border-default:     #D8DFEA;
+  --color-border-strong:      #B9C5D9;
+  
+  --color-heading:            #18223A; /* Navy conseil text */
+  --color-text-primary:       #18223A;
+  --color-body:               #506078;
+  --color-text-secondary:     #506078;
+  --color-muted:              #8390A3;
+  --color-text-muted:         #8390A3;
+  
+  --color-success:            #287657; /* Succès forêt */
+  --color-status-success:     #287657;
+  --color-warning:            #B57B18; /* Warning ocre */
+  --color-status-warning:     #B57B18;
+  --color-danger:             #B64242; /* Danger brique */
+  --color-status-danger:      #B64242;
+  --color-info:               #257C8C; /* Compte cyan petrol / info */
+  --color-status-info:        #257C8C;
+
+  /* ── Domaines Kredo ── */
+  --color-domain-need:              #E5A600; /* Besoin ambre */
+  --color-domain-candidate:         #8E3FA7; /* Candidat pourpre */
+  --color-domain-collaborator:      #5F8750; /* Collaborateur sauge */
+  --color-domain-account:           #247B8D; /* Compte cyan petrol */
+  --color-domain-recruitment:       #A33C78; /* Recrutement magenta froid */
+  --color-domain-mission-at:        #3F6FA7; /* Mission AT bleu acier */
+  --color-domain-fixed-project:     #5A58A8; /* Forfait indigo */
+  --color-domain-finance:           #6B7D2F; /* Finance olive */
+  --color-domain-intelligence:      #173D89; /* Intelligence cobalt nuit */
+  --color-domain-ai:                #6B5CF6; /* AI prisme */
+
+  /* ── Motion & Profondeur Tokens ── */
+  --motion-duration-fast: 120ms;
+  --motion-duration-standard: 180ms;
+  --motion-duration-emphasis: 280ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  
+  --shadow-interactive: 0 10px 26px -18px rgba(19, 36, 75, 0.42);
+  --shadow-panel: 0 20px 46px -28px rgba(19, 36, 75, 0.50);
+
+  --radius-small: 6px;
+  --radius-medium: 6px;
+  --radius-large: 8px;
+  --radius-xlarge: 8px;
+}
+
+/* ── Global Page Overrides (Only under desktop cockpit wrapper) ── */
+
+.kredo-cockpit-desktop {
+  min-height: 100%;
+  background-color: var(--color-canvas);
+}
+
+/* ── Interactive Elements Transition & Hover ── */
+
+.kredo-cockpit-desktop .kredo-interactive-card,
+.kredo-cockpit-desktop a[href],
+.kredo-cockpit-desktop button:not(:disabled) {
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-standard) var(--motion-ease-standard),
+              background-color var(--motion-duration-standard) var(--motion-ease-standard),
+              border-color var(--motion-duration-standard) var(--motion-ease-standard);
+  outline: none;
+}
+
+/* Focus Clavier Visible */
+.kredo-cockpit-desktop a[href]:focus-visible,
+.kredo-cockpit-desktop button:not(:disabled):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent), 0 0 0 5px var(--color-canvas);
+  border-color: var(--color-primary);
+}
+
+/* Hover Lift Effect */
+.kredo-cockpit-desktop .kredo-interactive-card:hover,
+.kredo-cockpit-desktop a[href]:hover,
+.kredo-cockpit-desktop button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-interactive);
+}
+
+/* Active pressed state */
+.kredo-cockpit-desktop .kredo-interactive-card:active,
+.kredo-cockpit-desktop a[href]:active,
+.kredo-cockpit-desktop button:not(:disabled):active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* ── Domain Left Rails (Cobalt Stratifié) ── */
+
+.kredo-cockpit-desktop .kredo-rail-need {
+  border-left: 4px solid var(--color-domain-need) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-candidate {
+  border-left: 4px solid var(--color-domain-candidate) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-collaborator {
+  border-left: 4px solid var(--color-domain-collaborator) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-account {
+  border-left: 4px solid var(--color-domain-account) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-mission {
+  border-left: 4px solid var(--color-domain-mission-at) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-finance {
+  border-left: 4px solid var(--color-domain-finance) !important;
+}
+
+.kredo-cockpit-desktop .kredo-rail-ai {
+  border-left: 4px solid var(--color-domain-ai) !important;
+}
+
+/* Special AI Insight Card Outline */
+.kredo-cockpit-desktop .kredo-ai-insight-card {
+  border-left: 4px solid var(--color-domain-ai) !important;
+  position: relative;
+}
+
+/* ── Fine border adjustments ── */
+.kredo-cockpit-desktop border-border,
+.kredo-cockpit-desktop .border {
+  border-color: var(--color-border);
+}
+
+/* ── Icon containers slightly rounded square ── */
+.kredo-cockpit-desktop .kredo-icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-large);
+  background-color: var(--color-canvas);
+  color: var(--color-primary);
+}
+
+/* ── Disable permanent shadows ── */
+.kredo-cockpit-desktop .shadow-sm,
+.kredo-cockpit-desktop .shadow,
+.kredo-cockpit-desktop .shadow-md,
+.kredo-cockpit-desktop .shadow-lg {
+  box-shadow: none !important;
+}
+
+/* ── Tables Custom Hover & Left Rail ── */
+.kredo-cockpit-desktop tr {
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
+              background-color var(--motion-duration-standard) var(--motion-ease-standard);
+}
+
+.kredo-cockpit-desktop tr:hover {
+  background-color: var(--color-surface-hover) !important;
+  transform: translateX(2px);
+}
+
+/* Reduced Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .kredo-cockpit-desktop *,
+  .kredo-cockpit-desktop .kredo-interactive-card,
+  .kredo-cockpit-desktop a[href],
+  .kredo-cockpit-desktop button:not(:disabled) {
+    animation: none !important;
+    transition-duration: 0ms !important;
+    transform: none !important;
+    scroll-behavior: auto !important;
+  }
+}

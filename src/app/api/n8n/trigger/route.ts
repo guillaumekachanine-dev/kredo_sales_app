@@ -13,11 +13,23 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createRun, updateRunStatus } from "@/lib/n8n/runs"
 import { callN8nWebhook } from "@/lib/n8n/client"
-import type { N8nWorkflowId, N8nTriggerPayload, TriggerResponse, TriggerErrorResponse } from "@/lib/n8n/types"
+import type {
+  N8nEntityType,
+  N8nWorkflowId,
+  N8nTriggerPayload,
+  TriggerResponse,
+  TriggerErrorResponse,
+} from "@/lib/n8n/types"
 
+// entityType/entityId généralisés (REPORT-001 Lot 0) : companyId reste accepté
+// pour compatibilité et n'est utilisé que quand entityType === "company".
+// Pour un rapport transverse (ex. activité commerciale du mois), le front
+// envoie entityType: "workspace", entityId: workspaceId, companyId omis.
 type TriggerBody = {
   workflowId: N8nWorkflowId
-  companyId: string
+  entityType?: N8nEntityType
+  entityId?: string
+  companyId?: string
   input: Record<string, unknown>
 }
 
@@ -60,9 +72,24 @@ export async function POST(request: Request) {
 
   const { workflowId, companyId, input } = body
 
-  if (!workflowId || !companyId || typeof input !== "object") {
+  if (!workflowId || typeof input !== "object") {
     return NextResponse.json<TriggerErrorResponse>(
-      { error: "workflowId, companyId et input sont requis" },
+      { error: "workflowId et input sont requis" },
+      { status: 400 }
+    )
+  }
+
+  // Rétrocompatibilité : les appelants existants (INTEL-020/021/022) envoient
+  // uniquement companyId, sans entityType/entityId — on déduit entityType="company"
+  // dans ce cas. Les nouveaux appelants (REPORT-001) envoient entityType/entityId
+  // explicitement, y compris entityType="workspace" pour les rapports transverses.
+  const entityType: N8nEntityType = body.entityType ?? (companyId ? "company" : "workspace")
+  const entityId = body.entityId ?? companyId ?? profile.workspace_id
+  const resolvedCompanyId = entityType === "company" ? (companyId ?? entityId) : null
+
+  if (entityType !== "workspace" && !entityId) {
+    return NextResponse.json<TriggerErrorResponse>(
+      { error: "entityId est requis pour entityType !== \"workspace\"" },
       { status: 400 }
     )
   }
@@ -72,7 +99,9 @@ export async function POST(request: Request) {
   try {
     runId = await createRun({
       workflowId,
-      companyId,
+      entityType,
+      entityId,
+      companyId: resolvedCompanyId,
       workspaceId: profile.workspace_id,
       userId: user.id,
       input,
@@ -104,8 +133,8 @@ export async function POST(request: Request) {
   const payload: N8nTriggerPayload = {
     runId,
     workflowId,
-    entityType: "company",
-    entityId: companyId,
+    entityType,
+    entityId,
     workspaceId: profile.workspace_id,
     userId: user.id,
     input,

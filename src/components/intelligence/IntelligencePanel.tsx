@@ -18,9 +18,9 @@ import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { IconButton } from "@/components/ui/IconButton"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { PitchMailDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 
-type AccountPanelAction = "pitch" | null
+type AccountPanelAction = "pitch" | "summary" | null
 
 function SectionHeading({ title, count }: { title: string; count?: number }) {
   return (
@@ -46,7 +46,7 @@ function AccountPanelContent() {
 
   const { company, resources, sector, activity, contacts } = panelData
 
-  if (activeAction === "pitch") {
+  if (activeAction === "pitch" || activeAction === "summary") {
     return (
       <>
         <button
@@ -60,9 +60,15 @@ function AccountPanelContent() {
           Retour
         </button>
         <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
-          <PitchMailDrawerContent
-            data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
-          />
+          {activeAction === "pitch" ? (
+            <PitchMailDrawerContent
+              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
+            />
+          ) : (
+            <SummaryDrawerContent
+              data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus } }}
+            />
+          )}
         </div>
       </>
     )
@@ -100,6 +106,7 @@ function AccountPanelContent() {
           sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
           onActionClick={(actionId) => {
             if (actionId === "generate_pitch") setActiveAction("pitch")
+            if (actionId === "generate_report") setActiveAction("summary")
           }}
         />
       </section>

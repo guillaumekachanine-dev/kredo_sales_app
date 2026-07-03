@@ -1,37 +1,12 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { ClientSummaryFormState, CampaignFormState } from "./intelligence-action-types"
+import type { CampaignFormState } from "./intelligence-action-types"
 
 // ─── Payload Builders ────────────────────────────────────────────────────────
 // Le builder pour "Rédaction assistée" (INTEL-020) vit dans communication-brief-options.ts
 // — il retourne directement un CommunicationBrief, pas ce format form/context legacy.
-
-export function buildClientSummaryPayload({
-  companyId,
-  form,
-  data,
-}: {
-  companyId: string
-  form: ClientSummaryFormState
-  data: ClientIntelligenceData
-}) {
-  const { company, client, contacts, pitches, signals, presence } = data
-  return {
-    companyId,
-    action: "client_summary",
-    form,
-    context: {
-      companyName: company.name,
-      sector: company.sector,
-      aiScore: company.aiScore,
-      contactsCount: contacts.length,
-      hasClientAnalysis: client ? client.source : "none",
-      hasSectorAnalysis: data.sector ? data.sector.source : "none",
-      signalsCount: signals.length,
-      pitchesCount: pitches.length,
-      hasRoadmap: presence.hasRoadmap,
-    },
-  }
-}
+// Le builder pour la fiche de synthèse compte (REPORT-001) vit directement dans
+// IntelligenceActionDrawers.tsx (buildAccountSummaryBrief) — pas de dépendance à
+// ClientIntelligenceData, toute la donnée est résolue par get_account_summary_facts.
 
 export function buildCampaignPayload({
   companyId,
@@ -53,35 +28,4 @@ export function buildCampaignPayload({
       contactsCount: contacts.length,
     },
   }
-}
-
-// ─── Statut Helpers ──────────────────────────────────────────────────────────
-
-export function getAnalysisAvailabilityLabel(data: ClientIntelligenceData): {
-  label: string
-  tone: "success" | "warning" | "neutral"
-} {
-  const { client } = data
-  if (!client) return { label: "Absente", tone: "neutral" }
-  if (client.source === "engine") return { label: "Disponible", tone: "success" }
-  return { label: "FOLIO", tone: "warning" }
-}
-
-export function getSectorAvailabilityLabel(data: ClientIntelligenceData): {
-  label: string
-  tone: "success" | "warning" | "neutral"
-} {
-  const { sector } = data
-  if (!sector) return { label: "Absente", tone: "neutral" }
-  if (sector.source === "engine") return { label: "Disponible", tone: "success" }
-  return { label: "FOLIO", tone: "warning" }
-}
-
-export function getRoadmapAvailabilityLabel(data: ClientIntelligenceData): {
-  label: string
-  tone: "success" | "neutral"
-} {
-  const { presence } = data
-  if (presence.hasRoadmap) return { label: "Disponible", tone: "success" }
-  return { label: "Absente", tone: "neutral" }
 }
