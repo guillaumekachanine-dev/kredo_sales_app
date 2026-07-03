@@ -19,6 +19,10 @@ import { PanelKeyContacts } from "./PanelKeyContacts"
 import { IconButton } from "@/components/ui/IconButton"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+import {
+  applyCommunicationEntryPoint,
+  buildDefaultBrief,
+} from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
 type AccountPanelAction = "pitch" | "summary" | null
 
@@ -41,6 +45,23 @@ function SectionHeading({ title, count }: { title: string; count?: number }) {
 function AccountPanelContent() {
   const { panelData, entityContext } = useIntelligenceContext()
   const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
+  const accountPitchBrief = useMemo(() => {
+    if (!panelData) return null
+    const base = buildDefaultBrief(
+      {
+        company: {
+          lifecycleStatus: panelData.company.lifecycleStatus,
+          name: panelData.company.name,
+        },
+      },
+      ""
+    )
+
+    return applyCommunicationEntryPoint(
+      base,
+      panelData.company.lifecycleStatus === "ancien_client" ? "former_client" : "account_row"
+    )
+  }, [panelData])
 
   if (!panelData || !entityContext) return null
 
@@ -63,6 +84,7 @@ function AccountPanelContent() {
           {activeAction === "pitch" ? (
             <PitchMailDrawerContent
               data={{ company: { id: company.id, name: company.name, lifecycleStatus: company.lifecycleStatus }, contacts }}
+              initialBrief={accountPitchBrief ?? undefined}
             />
           ) : (
             <SummaryDrawerContent

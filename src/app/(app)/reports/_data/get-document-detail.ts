@@ -53,6 +53,7 @@ type DocumentRow = {
 
 type VersionRow = {
   id: string
+  source_result_id: string | null
   version_number: number
   origin: Database["public"]["Enums"]["intelligence_document_version_origin"]
   content_text: string | null
@@ -63,6 +64,16 @@ type VersionRow = {
   change_note: string | null
   created_at: string
   creator: OwnerRelation
+}
+
+type ResultRunRow = {
+  id: string
+  run_id: string | null
+}
+
+type RunInputRow = {
+  id: string
+  input_snapshot: unknown | null
 }
 
 type LinkRow = {
@@ -345,16 +356,24 @@ function buildDocumentListItem(
   }
 }
 
-function buildVersions(rows: VersionRow[]): DocumentVersion[] {
+function buildVersions(
+  rows: VersionRow[],
+  sourceRunByResultId: Map<string, { runId: string | null; inputSnapshot: unknown | null }>
+): DocumentVersion[] {
   return [...rows]
     .sort((a, b) => b.version_number - a.version_number)
     .map((row) => ({
       id: row.id,
+      sourceResultId: row.source_result_id,
+      sourceRunId: row.source_result_id ? (sourceRunByResultId.get(row.source_result_id)?.runId ?? null) : null,
       versionNumber: row.version_number,
       origin: row.origin,
       contentText: row.content_text,
       contentJson: row.content_json,
       briefJson: row.brief_json,
+      sourceRunInputSnapshot: row.source_result_id
+        ? (sourceRunByResultId.get(row.source_result_id)?.inputSnapshot ?? null)
+        : null,
       sourceRefs: normalizeUnknownArray(row.source_refs),
       qaFlags: normalizeUnknownArray(row.qa_flags),
       changeNote: row.change_note,
@@ -411,6 +430,7 @@ export async function getDocumentDetail(documentId: string): Promise<DocumentDet
         .select<VersionRow>(
           `
             id,
+            source_result_id,
             version_number,
             origin,
             content_text,
@@ -437,6 +457,9 @@ export async function getDocumentDetail(documentId: string): Promise<DocumentDet
     const versionRows = versionsResult.data ?? []
     const linkRows = linksResult.data ?? []
     const latestVersion = versionRows[0] ?? null
+    const sourceResultIds = Array.from(new Set(
+      versionRows.map((row) => row.source_result_id).filter((id): id is string => Boolean(id))
+    ))
 
     const refs: EntityReference[] = [
       ...linkRows.map((row) => ({
@@ -452,14 +475,50 @@ export async function getDocumentDetail(documentId: string): Promise<DocumentDet
       })
     }
 
-    const labelMap = await resolveEntityLabels(supabase, refs)
+    const [labelMap, sourceResultRowsResult] = await Promise.all([
+      resolveEntityLabels(supabase, refs),
+      sourceResultIds.length
+        ? supabase
+            .from("ai_intelligence_results")
+            .select<ResultRunRow>("id, run_id")
+            .in("id", sourceResultIds)
+        : Promise.resolve({ data: [] as ResultRunRow[], error: null, count: null }),
+    ])
+
+    if (sourceResultRowsResult.error) return { error: sourceResultRowsResult.error.message }
+
+    const runIds = Array.from(new Set(
+      (sourceResultRowsResult.data ?? []).map((row) => row.run_id).filter((id): id is string => Boolean(id))
+    ))
+
+    const runInputResult = runIds.length
+      ? await supabase
+          .from("ai_intelligence_runs")
+          .select<RunInputRow>("id, input_snapshot")
+          .in("id", runIds)
+      : { data: [] as RunInputRow[], error: null, count: null }
+
+    if (runInputResult.error) return { error: runInputResult.error.message }
+
+    const runInputById = new Map(
+      (runInputResult.data ?? []).map((row) => [row.id, row.input_snapshot] as const)
+    )
+
+    const sourceRunByResultId = new Map<string, { runId: string | null; inputSnapshot: unknown | null }>()
+    for (const row of sourceResultRowsResult.data ?? []) {
+      sourceRunByResultId.set(row.id, {
+        runId: row.run_id,
+        inputSnapshot: row.run_id ? (runInputById.get(row.run_id) ?? null) : null,
+      })
+    }
+
     const base = buildDocumentListItem(documentResult.data, latestVersion, labelMap)
     const detail: DocumentDetail = {
       ...base,
       currentContentText: documentResult.data.current_content_text,
       currentContentJson: documentResult.data.current_content_json,
       links: buildLinks(linkRows, labelMap),
-      versions: buildVersions(versionRows),
+      versions: buildVersions(versionRows, sourceRunByResultId),
     }
 
     return { data: detail }

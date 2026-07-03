@@ -8,7 +8,7 @@ export type N8nWorkflowId =
   // Intelligence commerciale
   | "intel-010-refresh"             // INTEL-010 : client_intelligence_refresh
   | "intel-011-sector"              // INTEL-011 : étude sectorielle mutualisée
-  | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note) — 8 scénarios
+  | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note)
   | "intel-022-campaign"            // INTEL-022 : création campagne
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
@@ -32,9 +32,11 @@ export type N8nWorkflowId =
 export type N8nEntityType =
   | "workspace"
   | "company"
+  | "contact"
   | "sector"
   | "opportunity"
   | "candidate"
+  | "collaborator"
   | "interaction"
   | "mission"
   | "project"
@@ -110,6 +112,16 @@ export type CommunicationScenario =
   | "reactivation"
   | "proposal_follow_up"
   | "offer_introduction"
+  | "candidate_interview_invitation"
+  | "candidate_follow_up"
+  | "candidate_offer"
+  | "candidate_rejection"
+  | "appointment_confirmation"
+  | "manager_collaborator_internal"
+  | "cra_absence_reminder"
+  | "invoice_follow_up"
+  | "project_alert_escalation"
+  | "steering_committee_minutes"
 
 export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
 
@@ -158,6 +170,14 @@ export type CommunicationObjective =
   | "accelerate_decision"
   | "reactivate"
   | "confirm_next_steps"
+  | "invite_to_interview"
+  | "send_offer"
+  | "reject_candidate"
+  | "align_internal"
+  | "request_action"
+  | "secure_payment"
+  | "escalate_issue"
+  | "summarize_decisions"
 
 export type CommunicationTone =
   | "direct"
@@ -199,8 +219,14 @@ export interface CommunicationBrief {
     mustExclude?: string
     signalRef?: string
     opportunityRef?: string
+    interactionRef?: string
     missionRef?: string
     profileRef?: string
+    sourceDocumentId?: string
+    sourceRunId?: string
+    previousMessage?: string
+    reuseMode?: "variant" | "adapt_contact" | "reuse_account" | "follow_up"
+    angle?: string
   }
 }
 

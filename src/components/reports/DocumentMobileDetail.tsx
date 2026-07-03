@@ -6,6 +6,7 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
@@ -161,6 +162,7 @@ export function DocumentMobileDetail({
     [document?.versions]
   )
   const failedFlags = qaFlags.filter((flag) => !flag.passed)
+  const appliedBrief = document?.versions[0]?.sourceRunInputSnapshot ?? document?.versions[0]?.briefJson ?? null
   const drawerError = loadState.status === "error"
     ? {
         title: "Impossible de charger le document",
@@ -367,8 +369,10 @@ export function DocumentMobileDetail({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                   Paramètres appliqués
                 </h3>
-                <DocumentAppliedParameters briefJson={document.versions[0]?.briefJson ?? null} />
+                <DocumentAppliedParameters briefJson={appliedBrief} />
               </section>
+
+              <DocumentCommunicationActions document={document} layout="stack" />
 
               <section className="space-y-2">
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">

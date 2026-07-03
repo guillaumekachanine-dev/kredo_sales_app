@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag } from "@/lib/n8n/types"
+import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, N8nEntityType } from "@/lib/n8n/types"
 import type { AccountSummaryContent, ReportBrief } from "@/app/(app)/reports/_data/reports-types"
 import { AccountSummaryReportView } from "@/components/reports/AccountSummaryReportView"
 import { saveResultAsDocument } from "./save-as-document"
@@ -34,15 +34,23 @@ export type PitchMailAccountContext = {
 export function PitchMailDrawerContent({
   data,
   variant = "desktop",
+  initialBrief,
+  entityType = "company",
+  entityId,
+  contextMetaLabel = "(résolu automatiquement)",
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
+  initialBrief?: CommunicationBrief
+  entityType?: N8nEntityType
+  entityId?: string
+  contextMetaLabel?: string
 }) {
   const { company, contacts } = data
   const isMobile = variant === "mobile"
   const supabase = createClient()
 
-  const [brief, setBrief] = useState<CommunicationBrief>(() => buildDefaultBrief(data, ""))
+  const [brief, setBrief] = useState<CommunicationBrief>(() => initialBrief ?? buildDefaultBrief(data, ""))
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
@@ -120,7 +128,9 @@ export function PitchMailDrawerContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workflowId: "intel-020-communication",
-          companyId: company.id,
+          entityType,
+          entityId: entityId ?? company.id,
+          companyId: entityType === "company" ? company.id : undefined,
           input: brief,
         }),
       })
@@ -178,7 +188,7 @@ export function PitchMailDrawerContent({
         onChange={setBrief}
         contacts={contacts}
         isMobile={isMobile}
-        contextMetaLabel="(résolu automatiquement)"
+        contextMetaLabel={contextMetaLabel}
       />
 
       {/* Erreur */}

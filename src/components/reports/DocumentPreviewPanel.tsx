@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
@@ -147,6 +148,7 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
   const [actionLoading, setActionLoading] = useState<PendingAction>(null)
 
   const latestVersion = document.versions[0] ?? null
+  const appliedBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
   const qaFlags = useMemo(
     () => buildQaFlags(latestVersion?.qaFlags ?? []),
     [latestVersion?.qaFlags]
@@ -331,8 +333,10 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                 Paramètres appliqués
               </h3>
-              <DocumentAppliedParameters briefJson={latestVersion?.briefJson ?? null} />
+              <DocumentAppliedParameters briefJson={appliedBrief} />
             </section>
+
+            <DocumentCommunicationActions document={document} />
 
             <section className="space-y-3 border-t border-border pt-4">
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">

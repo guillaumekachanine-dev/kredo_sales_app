@@ -4,8 +4,12 @@ import { createClient as createSupabaseClient, type SupabaseClient } from "@supa
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import type { Database, Json } from "@/types/database"
+import type { CommunicationBrief } from "@/lib/n8n/types"
+import { buildDefaultBrief } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { getDocumentDetail } from "./get-document-detail"
 import type {
+  CommunicationReuseMode,
+  CommunicationReusePreparationResult,
   DocumentDetailResult,
   DocumentMutationResult,
   ReportLinkInput,
@@ -46,6 +50,24 @@ type LatestVersionRow = {
   content_text: string | null
   qa_flags: Json
   source_refs: Json
+}
+
+type CompanyContextRow = {
+  id: string
+  name: string
+  lifecycle_status: string
+}
+
+type ContactPersonRelation =
+  | { full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null }
+  | Array<{ full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null }>
+  | null
+
+type ContactContextRow = {
+  id: string
+  job_title: string | null
+  relationship_role: string | null
+  person: ContactPersonRelation
 }
 
 type DuplicateSourceDocumentRow = {
@@ -97,6 +119,120 @@ function asNullableJson(value: unknown | null | undefined): Json | null {
 
 function asJsonArray(value: unknown[] | undefined): Json {
   return (Array.isArray(value) ? value : []) as Json
+}
+
+function pickOne<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null
+  return Array.isArray(value) ? (value[0] ?? null) : value
+}
+
+function formatPersonName(person: ContactPersonRelation): string {
+  const resolved = pickOne(person)
+  if (!resolved) return "Contact"
+  return (
+    resolved.full_name?.trim() ||
+    `${resolved.first_name ?? ""} ${resolved.last_name ?? ""}`.trim() ||
+    "Contact"
+  )
+}
+
+function isCommunicationBrief(value: unknown): value is CommunicationBrief {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false
+  const record = value as Partial<CommunicationBrief>
+  return Boolean(record.what?.scenario && record.who?.recipient && record.how?.language && record.context)
+}
+
+function appendInstruction(brief: CommunicationBrief, instruction: string): CommunicationBrief {
+  const existing = brief.context.mustInclude?.trim()
+  return {
+    ...brief,
+    context: {
+      ...brief.context,
+      mustInclude: [instruction, existing].filter(Boolean).join("\n\n"),
+    },
+  }
+}
+
+function prepareReuseBrief(
+  baseBrief: CommunicationBrief,
+  mode: CommunicationReuseMode,
+  opts: {
+    documentId: string
+    sourceRunId: string | null
+    previousMessage: string
+  }
+): CommunicationBrief {
+  const commonContext = {
+    sourceDocumentId: opts.documentId,
+    sourceRunId: opts.sourceRunId ?? undefined,
+    previousMessage: opts.previousMessage,
+    reuseMode: mode,
+  } satisfies Partial<CommunicationBrief["context"]>
+
+  if (mode === "variant") {
+    return appendInstruction({
+      ...baseBrief,
+      context: {
+        ...baseBrief.context,
+        ...commonContext,
+      },
+    }, "Créer une variante du message précédent: conserver l'intention et les faits utiles, mais modifier l'angle, l'accroche et la formulation. Ne pas recopier le texte source.")
+  }
+
+  if (mode === "adapt_contact") {
+    return appendInstruction({
+      ...baseBrief,
+      who: {
+        ...baseBrief.who,
+        recipient: {
+          ...baseBrief.who.recipient,
+          contactId: undefined,
+          displayName: undefined,
+          persona: "other",
+        },
+      },
+      context: {
+        ...baseBrief.context,
+        ...commonContext,
+      },
+    }, "Adapter ce message à un autre contact du même compte: recalibrer persona, relation et angle avant de rédiger. Le texte précédent sert de comparaison, pas de modèle à recopier.")
+  }
+
+  if (mode === "reuse_account") {
+    return appendInstruction({
+      ...baseBrief,
+      who: {
+        ...baseBrief.who,
+        recipient: {
+          ...baseBrief.who.recipient,
+          contactId: undefined,
+          displayName: undefined,
+        },
+      },
+      context: {
+        ...baseBrief.context,
+        ...commonContext,
+      },
+    }, "Réutiliser l'intention pour ce compte: repartir du brief d'origine et du contexte compte actuel. Comparer avec le texte précédent sans le recopier.")
+  }
+
+  return appendInstruction({
+    ...baseBrief,
+    what: {
+      ...baseBrief.what,
+      scenario: "follow_up_no_reply",
+      channel: "email",
+      length: baseBrief.what.length === "ultra_short" ? "concise" : baseBrief.what.length,
+    },
+    who: {
+      ...baseBrief.who,
+      objective: "get_reply",
+    },
+    context: {
+      ...baseBrief.context,
+      ...commonContext,
+    },
+  }, "Rédiger une relance à partir du message précédent: rappeler le contexte avec sobriété, proposer une prochaine étape claire et éviter de recopier le message source.")
 }
 
 function linkKey(link: { entityType: string; entityId: string }) {
@@ -494,6 +630,139 @@ export async function fetchDocumentDetail(
   documentId: string
 ): Promise<DocumentDetailResult> {
   return getDocumentDetail(documentId)
+}
+
+export async function prepareCommunicationReuse(
+  documentId: string,
+  mode: CommunicationReuseMode
+): Promise<CommunicationReusePreparationResult> {
+  const auth = await requireAuthenticatedClient()
+  if ("error" in auth) return { error: auth.error ?? "Non authentifié" }
+
+  const detailResult = await getDocumentDetail(documentId)
+  if ("error" in detailResult) return { error: detailResult.error ?? "Document introuvable" }
+
+  const document = detailResult.data
+  if (!["communication", "commercial_pitch", "campaign", "internal_note"].includes(document.documentType)) {
+    return { error: "Cette action est disponible uniquement sur les communications enregistrées" }
+  }
+
+  const latestVersion = document.versions[0] ?? null
+  const sourceBrief = isCommunicationBrief(latestVersion?.sourceRunInputSnapshot)
+    ? latestVersion.sourceRunInputSnapshot
+    : isCommunicationBrief(latestVersion?.briefJson)
+      ? latestVersion.briefJson
+      : null
+
+  let companyId =
+    document.primaryEntity?.type === "company"
+      ? document.primaryEntity.id
+      : document.links.find((link) => link.entityType === "company")?.entityId ?? null
+
+  if (!companyId) {
+    const contactId =
+      document.primaryEntity?.type === "contact"
+        ? document.primaryEntity.id
+        : document.links.find((link) => link.entityType === "contact")?.entityId ?? null
+
+    if (contactId) {
+      const { data: contactRow, error: contactError } = await auth.supabase
+        .from("contacts")
+        .select("company_id")
+        .eq("id", contactId)
+        .maybeSingle()
+
+      if (contactError) return { error: contactError.message }
+      companyId = contactRow?.company_id ?? null
+    }
+  }
+
+  if (!companyId) {
+    return { error: "Aucun compte lié ne permet de contextualiser cette reprise" }
+  }
+
+  const [{ data: companyRow, error: companyError }, { data: contactsRows, error: contactsError }, { data: profileRow }] =
+    await Promise.all([
+      auth.supabase
+        .from("companies")
+        .select("id, name, lifecycle_status")
+        .eq("id", companyId)
+        .maybeSingle(),
+      auth.supabase
+        .from("contacts")
+        .select("id, job_title, relationship_role, person:persons(full_name, first_name, last_name, primary_email)")
+        .eq("company_id", companyId)
+        .order("is_priority", { ascending: false, nullsFirst: false }),
+      auth.supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", auth.userId)
+        .maybeSingle(),
+    ])
+
+  if (companyError) return { error: companyError.message }
+  if (contactsError) return { error: contactsError.message }
+  if (!companyRow) return { error: "Compte introuvable" }
+
+  const company = companyRow as CompanyContextRow
+  const baseBrief = sourceBrief ?? buildDefaultBrief(
+    { company: { lifecycleStatus: company.lifecycle_status, name: company.name } },
+    typeof profileRow?.full_name === "string" ? profileRow.full_name : ""
+  )
+
+  const previousMessage =
+    normalizeText(document.currentContentText) ??
+    normalizeText(latestVersion?.contentText) ??
+    ""
+
+  const initialBrief = prepareReuseBrief(baseBrief, mode, {
+    documentId: document.id,
+    sourceRunId: latestVersion?.sourceRunId ?? null,
+    previousMessage,
+  })
+
+  const labels: Record<CommunicationReuseMode, { title: string; description: string }> = {
+    variant: {
+      title: "Créer une variante",
+      description: "Le brief d'origine est repris; le texte précédent sert de comparaison.",
+    },
+    adapt_contact: {
+      title: "Adapter à un autre contact",
+      description: "Choisissez le nouveau destinataire avant de générer.",
+    },
+    reuse_account: {
+      title: "Réutiliser pour ce compte",
+      description: "Le contexte compte est conservé, le message est reconstruit.",
+    },
+    follow_up: {
+      title: "Relancer à partir de ce message",
+      description: "La relance repart du brief source sans recopier le message initial.",
+    },
+  }
+
+  return {
+    data: {
+      data: {
+        company: {
+          id: company.id,
+          name: company.name,
+          lifecycleStatus: company.lifecycle_status,
+        },
+        contacts: ((contactsRows ?? []) as ContactContextRow[]).map((contact) => {
+          const person = pickOne(contact.person)
+          return {
+            id: contact.id,
+            fullName: formatPersonName(contact.person),
+            jobTitle: contact.job_title,
+            relationshipRole: contact.relationship_role,
+            email: person?.primary_email ?? null,
+          }
+        }),
+      },
+      initialBrief,
+      ...labels[mode],
+    },
+  }
 }
 
 export async function setDocumentFavorite(

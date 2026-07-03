@@ -1,4 +1,5 @@
 import type { Database } from "@/types/database"
+import type { CommunicationBrief } from "@/lib/n8n/types"
 
 export type DocumentListItem = {
   id: string
@@ -17,11 +18,14 @@ export type DocumentListItem = {
 
 export type DocumentVersion = {
   id: string
+  sourceResultId: string | null
+  sourceRunId: string | null
   versionNumber: number
   origin: Database["public"]["Enums"]["intelligence_document_version_origin"]
   contentText: string | null
   contentJson: unknown
   briefJson: unknown | null
+  sourceRunInputSnapshot: unknown | null
   sourceRefs: unknown[]
   qaFlags: unknown[]
   changeNote: string | null
@@ -115,6 +119,34 @@ export type UpdateDocumentInput = {
 export type DocumentMutationResult =
   | { success: true; documentId: string; error?: never }
   | { success?: never; documentId?: never; error: string }
+
+export type CommunicationReuseMode = "variant" | "adapt_contact" | "reuse_account" | "follow_up"
+
+export type CommunicationAccountContext = {
+  company: {
+    id: string
+    name: string
+    lifecycleStatus: string
+  }
+  contacts: Array<{
+    id: string
+    fullName: string
+    jobTitle: string | null
+    relationshipRole: string | null
+    email: string | null
+  }>
+}
+
+export type CommunicationReusePreparation = {
+  data: CommunicationAccountContext
+  initialBrief: CommunicationBrief
+  title: string
+  description: string
+}
+
+export type CommunicationReusePreparationResult =
+  | { data: CommunicationReusePreparation; error?: never }
+  | { data?: never; error: string }
 
 export const REPORTS_DEFAULT_PAGE_SIZE = 24
 
