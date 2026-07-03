@@ -6,6 +6,8 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { PitchDocumentDialog } from "./PitchDocumentDialog"
 import {
   ComingSoon,
   Field,
@@ -147,7 +149,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           )}
           {activeTab === "strategie" && (
             <div className="pt-6">
-              <ComingSoon lot="lot H">Stratégie commerciale : angles d’approche, interlocuteurs, messages clés</ComingSoon>
+              <StrategieTab data={data} />
             </div>
           )}
           {activeTab === "roadmap" && (
@@ -256,6 +258,73 @@ function AccueilTab({
           <SignalList signals={signals} companyId={data.company.id} companyName={data.company.name} />
         </SectionBlock>
       )}
+    </div>
+  )
+}
+
+// ─── Onglet Stratégie — génération de pitch (ADR-0009, lot H) ────────────────
+
+const PITCH_KIND_LABEL: Record<string, string> = {
+  spoken_pitch: "Pitch oral 30 s",
+  meeting_briefing: "Fiche de préparation RDV",
+}
+
+function formatPitchDate(value: string) {
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function StrategieTab({ data }: { data: ClientIntelligenceData }) {
+  const { company, pitchDocuments } = data
+  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Angle d&apos;approche</p>
+          <h2 className="mt-1 font-heading text-2xl font-bold text-heading">Générer un pitch pour {company.name}</h2>
+          <p className="mt-1 max-w-xl text-xs text-body">
+            Script d&apos;appel de 30 secondes ou fiche de préparation de rendez-vous, ancrés sur le catalogue
+            d&apos;offres Kredo et le contexte réel du compte.
+          </p>
+        </div>
+        <ContextualCommunicationButton
+          entryPoint="account_pitch"
+          label="Générer un pitch"
+          variant="brass"
+          companyId={company.id}
+          companyName={company.name}
+        />
+      </div>
+
+      <SectionBlock title="Pitchs déjà générés">
+        {pitchDocuments.length === 0 ? (
+          <p className="text-xs text-muted">Aucun pitch généré pour ce compte pour l&apos;instant.</p>
+        ) : (
+          <div className="space-y-2">
+            {pitchDocuments.map((doc) => (
+              <button
+                key={doc.id}
+                type="button"
+                onClick={() => setOpenDocumentId(doc.id)}
+                className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-left text-sm transition-colors hover:border-primary hover:bg-surface-hover"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-heading">{doc.title}</p>
+                  <p className="text-[11px] text-muted">
+                    {doc.kind ? PITCH_KIND_LABEL[doc.kind] : "Pitch"} · {formatPitchDate(doc.createdAt)}
+                  </p>
+                </div>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-muted">
+                  {doc.status === "ready" ? "Prêt" : doc.status}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </SectionBlock>
+
+      <PitchDocumentDialog documentId={openDocumentId} onOpenChange={(open) => !open && setOpenDocumentId(null)} />
     </div>
   )
 }

@@ -32,6 +32,7 @@ import {
   CollapseIcon,
 } from "./ClientIntelligenceDesktopView"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { PitchDocumentDialog } from "./PitchDocumentDialog"
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
   const { company, client, sector, diagnostic, diagnosticPdfUrl, signals } = data
@@ -41,6 +42,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [veilleMessage, setVeilleMessage] = useState<string | null>(null)
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -320,11 +322,46 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
           {activePanel === "strategie" && (
-            <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                Stratégie commerciale et messages clés à connecter.
-              </span>
-              <span className="text-[11px] text-muted/70">Disponible au lot H</span>
+            <div className="space-y-4">
+              <p className="text-xs text-body">
+                Script d&apos;appel de 30 secondes ou fiche de préparation de rendez-vous, ancrés sur le catalogue
+                d&apos;offres Kredo et le contexte réel du compte.
+              </p>
+              <ContextualCommunicationButton
+                entryPoint="account_pitch"
+                label="Générer un pitch"
+                variant="brass"
+                companyId={company.id}
+                companyName={company.name}
+                className="w-full min-h-[44px]"
+              />
+              <SectionBlock title="Pitchs déjà générés">
+                {data.pitchDocuments.length === 0 ? (
+                  <p className="text-xs text-muted">Aucun pitch généré pour ce compte pour l&apos;instant.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.pitchDocuments.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => setOpenPitchDocumentId(doc.id)}
+                        className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-left text-sm min-h-[44px]"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-heading">{doc.title}</p>
+                          <p className="text-[11px] text-muted">
+                            {doc.kind === "spoken_pitch" ? "Pitch oral 30 s" : doc.kind === "meeting_briefing" ? "Fiche de préparation RDV" : "Pitch"}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </SectionBlock>
+              <PitchDocumentDialog
+                documentId={openPitchDocumentId}
+                onOpenChange={(open) => !open && setOpenPitchDocumentId(null)}
+              />
             </div>
           )}
 

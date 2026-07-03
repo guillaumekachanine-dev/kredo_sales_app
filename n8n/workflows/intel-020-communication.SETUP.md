@@ -50,3 +50,13 @@ Ce workflow utilise à la place la sortie d'erreur native des nœuds (`onError: 
 ## 7. Activation
 
 Une fois le test §6 validé de bout en bout : activer le workflow (toggle en haut à droite de l'écran n8n).
+
+## 8. Extension ADR-0009 — génération de pitch (canaux `spoken_pitch_30s`/`meeting_briefing`)
+
+Ce même workflow porte désormais aussi la génération de pitch (onglet "Stratégie" de la fiche compte). Rien de nouveau à importer/activer séparément — c'est le fichier `intel-020-communication.json` déjà présent qui a été étendu, réimporter la version à jour suffit.
+
+- **Nœud "Hydrate Context"** : bascule automatiquement sur `get_pitch_context` (au lieu de `get_communication_context`) quand `brief.what.channel` est `spoken_pitch_30s` ou `meeting_briefing`. Cette RPC est déjà appliquée en base (migration `20260704180000_pitch_context_rpc.sql`) — rien à faire côté VPS.
+- **`brief.context.offerRef` est obligatoire** pour ces deux canaux — le nœud "Validate Brief" rejette la requête sinon (no-go ADR-0009 : jamais de pitch sans offre catalogue confirmée).
+- **Sortie** : `result_type: "commercial_pitch"` (déjà éligible à l'auto-sauvegarde bibliothèque côté `api/n8n/callback/route.ts`, aucun changement requis là non plus). `content_json.kind` vaut `spoken_pitch` ou `meeting_briefing` selon le canal.
+- **QA flags additionnels** propres au pitch : `has_offer_ref`, `word_count_in_target` (spoken uniquement), `has_call_to_action`, `no_price_commitment`, `arguments_have_evidence` (briefing uniquement). Le check `no_price_commitment` est une heuristique de texte (montant en €, avec ou sans formulation d'ordre de grandeur) — pas une garantie absolue, un `needs_review` reste possible en faux positif/négatif occasionnel.
+- **Test recommandé avant activation** (en plus du §6) : déclencher un pitch `cold_call_pitch` sur un prospect réel (ex. ACRI-ST) et un `meeting_prep_cross_sell` sur un client actif à missions multiples (ex. Voyage Privé) — vérifier que l'offre citée correspond bien à `context.offerRef` et qu'aucun TJM n'est présenté comme un prix ferme.

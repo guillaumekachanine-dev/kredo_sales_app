@@ -20,7 +20,18 @@ export const CHANNEL_OPTIONS: { value: CommunicationChannel; label: string }[] =
   { value: "linkedin_invitation", label: "Invitation LinkedIn" },
   { value: "linkedin_message", label: "Message LinkedIn" },
   { value: "internal_note", label: "Note interne" },
+  { value: "spoken_pitch_30s", label: "Pitch oral 30 s" },
+  { value: "meeting_briefing", label: "Fiche de préparation RDV" },
 ]
+
+// ADR-0009 — canaux dont la sortie est structurée (PitchOutput), pas un texte
+// libre CommunicationOutput. Sert à brancher le bon composant de rendu résultat
+// et à rendre OfferPicker obligatoire dans le formulaire.
+export const PITCH_CHANNELS: CommunicationChannel[] = ["spoken_pitch_30s", "meeting_briefing"]
+
+export function isPitchChannel(channel: CommunicationChannel): boolean {
+  return PITCH_CHANNELS.includes(channel)
+}
 
 export const SCENARIO_OPTIONS: {
   value: CommunicationScenario
@@ -47,6 +58,10 @@ export const SCENARIO_OPTIONS: {
   { value: "invoice_follow_up", label: "Relance de facture", family: "sales", defaultChannel: "email", defaultObjective: "secure_payment" },
   { value: "project_alert_escalation", label: "Alerte projet / escalade client", family: "delivery", defaultChannel: "email", defaultObjective: "escalate_issue" },
   { value: "steering_committee_minutes", label: "Compte-rendu de comité de pilotage", family: "delivery", defaultChannel: "email", defaultObjective: "summarize_decisions" },
+  // ADR-0009 — génération de pitch (onglet Stratégie, fiche compte)
+  { value: "cold_call_pitch", label: "Cold call prospect", family: "sales", defaultChannel: "spoken_pitch_30s", defaultObjective: "get_meeting" },
+  { value: "meeting_prep_discovery", label: "Préparation RDV découverte", family: "sales", defaultChannel: "meeting_briefing", defaultObjective: "get_meeting" },
+  { value: "meeting_prep_cross_sell", label: "Préparation RDV cross-sell", family: "sales", defaultChannel: "meeting_briefing", defaultObjective: "present_offer" },
 ]
 
 export const LENGTH_OPTIONS: { value: CommunicationLength; label: string; hint: string }[] = [
@@ -246,6 +261,7 @@ export type CommunicationEntryPoint =
   | "active_mission"
   | "former_client"
   | "sector_offer"
+  | "account_pitch"
 
 const ENTRY_POINT_SCENARIOS: Record<CommunicationEntryPoint, {
   label: string
@@ -321,6 +337,11 @@ const ENTRY_POINT_SCENARIOS: Record<CommunicationEntryPoint, {
     scenario: "offer_introduction",
     objective: "present_offer",
     contextHint: "Présente l'offre avec un angle sectoriel clair et une invitation à échanger.",
+  },
+  account_pitch: {
+    label: "Générer un pitch",
+    scenario: "meeting_prep_discovery",
+    contextHint: "Ancre le pitch sur une offre précise du catalogue Kredo — jamais une offre hors catalogue.",
   },
 }
 

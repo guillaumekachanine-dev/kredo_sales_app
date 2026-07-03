@@ -25,9 +25,12 @@ import {
   SCENARIO_OPTIONS,
   SENDER_ROLE_OPTIONS,
   TONE_OPTIONS,
+  isPitchChannel,
   personaFromRelationshipRole,
 } from "./communication-brief-options"
 import { ContactSelector } from "./ContactSelector"
+import { OfferPicker } from "./OfferPicker"
+import type { SuggestedOffer } from "./get-suggested-offers"
 
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
@@ -70,14 +73,21 @@ export function CommunicationBriefForm({
   contacts,
   isMobile = false,
   contextMetaLabel,
+  offers,
+  suggestedPracticeSlugs,
+  offersLoading = false,
 }: {
   brief: CommunicationBrief
   onChange: (brief: CommunicationBrief) => void
   contacts: ClientIntelligenceContact[]
   isMobile?: boolean
   contextMetaLabel?: string
+  offers?: SuggestedOffer[]
+  suggestedPracticeSlugs?: string[]
+  offersLoading?: boolean
 }) {
   const { selectCls, textareaCls, labelCls } = useFieldClasses(isMobile)
+  const isPitch = isPitchChannel(brief.what.channel)
 
   function updateWhat(patch: Partial<CommunicationBrief["what"]>) {
     onChange({ ...brief, what: { ...brief.what, ...patch } })
@@ -338,6 +348,17 @@ export function CommunicationBriefForm({
     </div>
   )
 
+  const fieldOfferPicker = isPitch ? (
+    <OfferPicker
+      offers={offers ?? []}
+      suggestedPracticeSlugs={suggestedPracticeSlugs ?? []}
+      value={brief.context.offerRef}
+      onChange={(offerId) => updateContext({ offerRef: offerId })}
+      loading={offersLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
   const fieldMustInclude = (
     <div>
       <label className={labelCls}>À intégrer impérativement</label>
@@ -369,6 +390,7 @@ export function CommunicationBriefForm({
       <div className="space-y-5">
         <div className="space-y-4">
           {fieldScenario}
+          {fieldOfferPicker}
           {fieldRecipient}
           {fieldTone}
           {fieldMustInclude}
@@ -397,6 +419,7 @@ export function CommunicationBriefForm({
         <div className="pt-3 space-y-4">
           {fieldScenario}
           {fieldChannelAndLength}
+          {fieldOfferPicker}
         </div>
       </details>
 

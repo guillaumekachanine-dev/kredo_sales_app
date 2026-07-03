@@ -10,6 +10,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
+import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -22,6 +23,7 @@ import {
   DOCUMENT_OBJECT_LABELS,
   getDocumentCategory,
   getDocumentTypeLabel,
+  getPitchBriefLabel,
 } from "./document-display"
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {
@@ -149,6 +151,8 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
 
   const latestVersion = document.versions[0] ?? null
   const appliedBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
+  const isPitch = document.documentType === "commercial_pitch"
+  const pitchLabel = isPitch ? getPitchBriefLabel(appliedBrief) : null
   const qaFlags = useMemo(
     () => buildQaFlags(latestVersion?.qaFlags ?? []),
     [latestVersion?.qaFlags]
@@ -243,8 +247,8 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
                   className="size-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: categoryColor }}
                 />
-                <h2 className="font-heading text-lg font-bold text-heading">
-                  {document.title}
+                <h2 className={cn("font-heading font-bold text-heading", pitchLabel ? "text-sm" : "text-lg")}>
+                  {pitchLabel ?? document.title}
                 </h2>
               </div>
               <p className="mt-1 text-xs text-muted">
@@ -302,6 +306,11 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
               </h3>
               {document.documentType === "client_summary" ? (
                 <ClientSummaryDocumentContent
+                  contentJson={document.currentContentJson}
+                  contentText={document.currentContentText}
+                />
+              ) : isPitch ? (
+                <PitchDocumentContent
                   contentJson={document.currentContentJson}
                   contentText={document.currentContentText}
                 />

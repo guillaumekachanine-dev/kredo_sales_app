@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, N8nEntityType } from "@/lib/n8n/types"
+import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, N8nEntityType, PitchOutput } from "@/lib/n8n/types"
 import type { AccountSummaryContent, ReportBrief } from "@/app/(app)/reports/_data/reports-types"
 import { AccountSummaryReportView } from "@/components/reports/AccountSummaryReportView"
 import { saveResultAsDocument } from "./save-as-document"
@@ -12,9 +12,11 @@ import {
 import {
   buildCampaignPayload,
 } from "./intelligence-action-utils"
-import { buildDefaultBrief, CHANNEL_OPTIONS } from "./communication-brief-options"
+import { buildDefaultBrief, CHANNEL_OPTIONS, SCENARIO_OPTIONS, isPitchChannel } from "./communication-brief-options"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
+import { PitchResult } from "./PitchResult"
+import { getSuggestedOffers, type SuggestedOffer } from "./get-suggested-offers"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
 
@@ -55,9 +57,29 @@ export function PitchMailDrawerContent({
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
   const [resultId, setResultId] = useState<string | null>(null)
-  const [result, setResult] = useState<CommunicationOutput | null>(null)
+  const [result, setResult] = useState<CommunicationOutput | PitchOutput | null>(null)
   const [qaFlags, setQaFlags] = useState<CommunicationQaFlag[]>([])
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // ADR-0009 — catalogue d'offres pour l'OfferPicker, chargé une fois par compte
+  const [offers, setOffers] = useState<SuggestedOffer[]>([])
+  const [suggestedPracticeSlugs, setSuggestedPracticeSlugs] = useState<string[]>([])
+  const [offersLoading, setOffersLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadOffers() {
+      setOffersLoading(true)
+      const res = await getSuggestedOffers(company.id)
+      if (!cancelled) {
+        setOffers(res.offers)
+        setSuggestedPracticeSlugs(res.suggestedPracticeSlugs)
+        setOffersLoading(false)
+      }
+    }
+    void loadOffers()
+    return () => { cancelled = true }
+  }, [company.id])
 
   // Émetteur dérivé du profil connecté — § 4.2, seul le rôle reste modifiable en UI
   useEffect(() => {
@@ -96,7 +118,7 @@ export function PitchMailDrawerContent({
           const row = payload.new as {
             id: string
             status: string
-            content_json: CommunicationOutput
+            content_json: CommunicationOutput | PitchOutput
             qa_flags: CommunicationQaFlag[]
           }
           if (row.status === "succeeded") {
@@ -159,9 +181,25 @@ export function PitchMailDrawerContent({
   }
 
   const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
+  const scenarioLabel = SCENARIO_OPTIONS.find((o) => o.value === brief.what.scenario)?.label ?? brief.what.scenario
+  const isPitch = isPitchChannel(brief.what.channel)
+  const missingOfferRef = isPitch && !brief.context.offerRef
 
   // ── Résultat généré ──────────────────────────────────────────────────────────
   if (runStatus === "done" && result) {
+    if ("kind" in result) {
+      return (
+        <PitchResult
+          result={result}
+          qaFlags={qaFlags}
+          companyName={company.name}
+          scenarioLabel={scenarioLabel}
+          resultId={resultId}
+          isMobile={isMobile}
+          onReset={handleReset}
+        />
+      )
+    }
     return (
       <CommunicationResult
         result={result}
@@ -180,7 +218,9 @@ export function PitchMailDrawerContent({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-heading text-base font-bold text-heading">Rédaction assistée</h2>
+        <h2 className="font-heading text-base font-bold text-heading">
+          {isPitch ? "Génération de pitch" : "Rédaction assistée"}
+        </h2>
       </div>
 
       <CommunicationBriefForm
@@ -189,6 +229,9 @@ export function PitchMailDrawerContent({
         contacts={contacts}
         isMobile={isMobile}
         contextMetaLabel={contextMetaLabel}
+        offers={offers}
+        suggestedPracticeSlugs={suggestedPracticeSlugs}
+        offersLoading={offersLoading}
       />
 
       {/* Erreur */}
@@ -203,12 +246,12 @@ export function PitchMailDrawerContent({
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={runStatus === "loading"}
+          disabled={runStatus === "loading" || missingOfferRef}
           className={cn(
             "kredo-ready-spectrum-button w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-medium)] px-3 text-xs font-bold text-[#151515] transition-transform",
             isMobile ? "min-h-[44px]" : "min-h-[36px]",
-            runStatus === "loading"
-              ? "cursor-wait opacity-80"
+            runStatus === "loading" || missingOfferRef
+              ? "cursor-not-allowed opacity-80"
               : "hover:-translate-y-[1px]"
           )}
         >
@@ -217,6 +260,8 @@ export function PitchMailDrawerContent({
               <span className="h-3 w-3 rounded-full border-2 border-black/20 border-t-black animate-spin" />
               Génération en cours…
             </>
+          ) : isPitch ? (
+            "Générer le pitch"
           ) : (
             "Générer le message"
           )}

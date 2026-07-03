@@ -115,6 +115,19 @@ export type ClientIntelligenceData = {
   signals: string[]
   contacts: ClientIntelligenceContact[]
   pitches: LegacyPitch[]
+  pitchDocuments: PitchDocumentSummary[]
+}
+
+// ADR-0009 — historique des générations de pitch moteur (onglet Stratégie).
+// Distinct de `pitches` (LegacyPitch, import FOLIO en lecture seule) : ce sont
+// les vrais résultats `commercial_pitch` déjà auto-sauvegardés en bibliothèque
+// (intelligence_documents) par api/n8n/callback/route.ts.
+export type PitchDocumentSummary = {
+  id: string
+  title: string
+  status: string
+  kind: "spoken_pitch" | "meeting_briefing" | null
+  createdAt: string
 }
 
 // ─── Loose client (cohérent avec accounts-contacts-data.ts : évite la friction
@@ -307,6 +320,14 @@ type ContactRow = {
     | null
 }
 
+type PitchDocumentRow = {
+  id: string
+  title: string
+  status: string
+  current_content_json: unknown
+  created_at: string
+}
+
 function firstRelation<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
   return value
@@ -331,7 +352,7 @@ export async function getClientIntelligence(
   const supabaseReal = await createClient()
   const supabase = supabaseReal as unknown as LooseClient
 
-  const [companyResult, summaryResult, resultsResult, contactsResult] = await Promise.all([
+  const [companyResult, summaryResult, resultsResult, contactsResult, pitchDocumentsResult] = await Promise.all([
     supabase
       .from("companies")
       .select<CompanyRow>(
@@ -358,6 +379,14 @@ export async function getClientIntelligence(
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(6),
+    supabase
+      .from("intelligence_documents")
+      .select<PitchDocumentRow>("id,title,status,current_content_json,created_at")
+      .eq("document_type", "commercial_pitch")
+      .eq("primary_entity_type", "company")
+      .eq("primary_entity_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
@@ -460,6 +489,17 @@ export async function getClientIntelligence(
       signals: client?.data.signaux.actualitesRecentes ?? [],
       contacts,
       pitches: parsePitches(metadata.pitches),
+      pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
+        const content = asRecord(row.current_content_json)
+        const kind = content.kind === "spoken_pitch" || content.kind === "meeting_briefing" ? content.kind : null
+        return {
+          id: row.id,
+          title: row.title,
+          status: row.status,
+          kind,
+          createdAt: row.created_at,
+        }
+      }),
     },
   }
 }

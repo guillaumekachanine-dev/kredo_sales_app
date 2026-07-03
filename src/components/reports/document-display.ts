@@ -1,4 +1,5 @@
 import type { DocumentDetail, DocumentListItem } from "@/app/(app)/reports/_data/reports-types"
+import { CHANNEL_OPTIONS, OBJECTIVE_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
 type ReportDocumentType =
   | "client_summary"
@@ -75,4 +76,19 @@ export function getDocumentCategory(documentType: DocumentType): DocumentCategor
 
 export function getDocumentTypeLabel(documentType: DocumentType) {
   return DOCUMENT_TYPE_LABELS[documentType]
+}
+
+// ADR-0009 — le titre stocké d'un pitch (`n10-prepare-callback`) part de l'accroche
+// générée, ce qui donne une phrase entière en guise de titre. Ce libellé concis,
+// dérivé du brief plutôt que du contenu, remplace l'affichage partout où un
+// document commercial_pitch est montré (dialog, panneau, drawer mobile).
+export function getPitchBriefLabel(briefJson: unknown): string | null {
+  if (!briefJson || typeof briefJson !== "object") return null
+  const brief = briefJson as { what?: { channel?: string }; who?: { objective?: string } }
+  const channel = brief.what?.channel
+  if (!channel) return null
+  const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === channel)?.label ?? channel
+  const objective = brief.who?.objective
+  const objectiveLabel = objective ? OBJECTIVE_OPTIONS.find((o) => o.value === objective)?.label : null
+  return objectiveLabel ? `${channelLabel} · ${objectiveLabel}` : channelLabel
 }

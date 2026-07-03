@@ -102,6 +102,9 @@ export type CommunicationChannel =
   | "linkedin_invitation"
   | "linkedin_message"
   | "internal_note"
+  // ADR-0009 — génération de pitch : sortie structurée, pas un texte à lire tel quel
+  | "spoken_pitch_30s"
+  | "meeting_briefing"
 
 export type CommunicationScenario =
   | "signal_outreach"
@@ -122,6 +125,10 @@ export type CommunicationScenario =
   | "invoice_follow_up"
   | "project_alert_escalation"
   | "steering_committee_minutes"
+  // ADR-0009 — génération de pitch
+  | "cold_call_pitch"
+  | "meeting_prep_discovery"
+  | "meeting_prep_cross_sell"
 
 export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
 
@@ -227,6 +234,10 @@ export interface CommunicationBrief {
     previousMessage?: string
     reuseMode?: "variant" | "adapt_contact" | "reuse_account" | "follow_up"
     angle?: string
+    // ADR-0009 — offre catalogue ancrant le pitch (offers.id). Requis pour les
+    // scénarios cold_call_pitch/meeting_prep_discovery/meeting_prep_cross_sell —
+    // le LLM ne peut jamais inventer une offre hors catalogue (no-go ADR-0009 §6).
+    offerRef?: string
   }
 }
 
@@ -252,3 +263,46 @@ export interface CommunicationOutput {
   source_refs: string[]
   warnings: string[]
 }
+
+// ─── ADR-0009 — Génération de pitch ───────────────────────────────────────────
+// Sortie structurée, distincte de CommunicationOutput (pas de subjects/body à
+// envoyer tel quel). Persistée avec result_type="commercial_pitch" (déjà éligible
+// à l'auto-sauvegarde bibliothèque, voir api/n8n/callback/route.ts). `kind`
+// discrimine le rendu UI (script minuté vs sections de briefing).
+
+export interface SpokenPitchOutput {
+  kind: "spoken_pitch"
+  hook: string
+  problem_recognition: string
+  offer_link: string
+  ask: string
+  alt_close: string
+  word_count: number
+  tone_notes: string[]
+  source_refs: string[]
+  warnings: string[]
+}
+
+export interface MeetingBriefingOutput {
+  kind: "meeting_briefing"
+  objective: string
+  key_message: string
+  arguments: Array<{
+    title: string
+    evidence: string
+    source_ref?: string
+  }>
+  expected_objections: Array<{
+    objection: string
+    response: string
+    fallback?: string
+  }>
+  cross_sell_hypotheses: string[]
+  data_points_to_mention: string[]
+  close_options: string[]
+  do_not_say: string[]
+  source_refs: string[]
+  warnings: string[]
+}
+
+export type PitchOutput = SpokenPitchOutput | MeetingBriefingOutput

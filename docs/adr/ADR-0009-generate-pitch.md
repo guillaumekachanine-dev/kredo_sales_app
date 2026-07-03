@@ -315,7 +315,50 @@ Séquence proposée, chaque lot livrable indépendamment.
 
 ---
 
-## 9. Ce que je n'ai pas fait (transparence)
+## 9bis. Addendum — architecture unifiée compte-centrée (2026-07-04, suite brainstorming)
+
+Suite à une session de cadrage avec Guillaume, trois décisions structurantes remplacent des points ouverts du corps de l'ADR ci-dessus. Le corps du document reste la référence pour le contrat de sortie (§2.3), les QA flags (§2.6) et les no-go's (§6) — seuls l'emplacement UI, la priorité secteur/compte et le périmètre schéma changent.
+
+### Ce qui a été tranché
+
+1. **Le compte prime sur le secteur.** Le playbook sectoriel (prototype `PlaybookPage.tsx`, Session en cours) reste utile mais **descend en source de contexte**, pas en produit de premier plan. Il conserve ce qui bouge lentement : chaîne de valeur, cartographie concurrentielle, position de chaque compte dans la matrice, réglementation transverse au secteur. Son contenu actuel (`sector_intelligence.playbook.{personas,objections,roi_arguments,entry_points}`) **n'est pas raboté maintenant** — décision explicite (Q3) : on ajustera une fois la génération de pitch compte-centrée éprouvée en usage réel, pas avant.
+2. **`generate_pitch` est la vue tactique, légère et versatile ; les Phases 4-5 du cockpit compte (roadmap + stratégie) sont l'aboutissement stratégique.** Les deux poursuivent le même but (la meilleure approche compte compte tenu des offres ESN) à deux altitudes différentes. Le pitch peut fonctionner en mode dégradé sans roadmap ; il s'enrichit quand elle existe.
+3. **Le cadrage quick-win (mission de 3-6 semaines) est un objet séparé**, pas un canal de `generate_pitch` (Q2). Sa structure (livrables, jalons, budget, profils, ancrage `offer_engagement_types`/`offer_pricing_grids` fort) est trop différente d'un pitch conversationnel. Traité comme un chantier v2, hors scope immédiat.
+
+### Découverte qui change le plan d'exécution — les emplacements existent déjà
+
+L'audit de `ClientIntelligenceDesktopView.tsx` (fiche compte, `/prospection/accounts/[companyId]`) révèle que la barre à 6 onglets du cockpit compte réserve **déjà** les bons emplacements, vides (`ComingSoon`), avec les bonnes descriptions :
+
+| Onglet (clé `TabKey`) | Lot | Description déjà écrite dans le code | Rôle dans l'architecture pitch |
+|---|---|---|---|
+| `analyses` | — | Phases 1-3 (client/secteur/process) — déjà livré | Source de contexte |
+| `enjeux` | F | *"Cartographie enjeux × offres ESN"* | **Devient le matching offre↔compte (§2.4)** — la donnée que consomme le pitch |
+| `scoring` | E | Score déterministe expliqué | Source de contexte (`compute_conviction_score_v1`) |
+| `strategie` | H | *"Angle d'approche, messages clés, interlocuteurs prioritaires"* | **Devient le chez-soi de `generate_pitch`** — c'est littéralement sa description |
+| `roadmap` | G | Phase 4 — *"prochaines actions, jalons, relances"* | Le grand frère stratégique, hors scope immédiat |
+
+Conséquence directe : **pas de nouvel onglet "Génération" à inventer.** L'onglet `strategie` (lot H) devient la surface d'accès principale, conformément à la réponse Q1 (onglet dédié sur la fiche compte) mais sur l'emplacement qui existait déjà plutôt qu'un nouveau nom concurrent.
+
+`getProcessStepStatus("strategie", data)` (dans `intelligence-process.ts`) est déjà écrit pour lire `data.pitches` (fallback FOLIO, `companies.metadata.pitches`) et afficher un badge "FOLIO" tant qu'aucune génération moteur n'existe. Le statut "Disponible" viendra naturellement une fois qu'un vrai résultat `commercial_pitch` existe pour le compte.
+
+### Découverte qui réduit le Lot 0 à (presque) zéro migration
+
+Vérification en base (`information_schema.columns`, `pg_constraint`) :
+
+- `ai_intelligence_runs.run_type` et `ai_intelligence_results.result_type` sont des colonnes **`text` libres, sans CHECK constraint**. Seul `ai_intelligence_results.phase` a une contrainte (`BETWEEN 1 AND 10`). **Aucune migration requise** pour introduire de nouvelles valeurs de `run_type`/`result_type`.
+- `intelligence_document_type` (enum) contient **déjà** `commercial_pitch` — et il est câblé bout en bout : `save-as-document.ts` (`mapResultTypeToDocumentType` reconnaît déjà `"commercial_pitch" | "pitch" | "pitch_mail"` → `commercial_pitch`), `api/n8n/callback/route.ts` (déjà dans la liste d'éligibilité auto-save), `document-display.ts`, `DocumentCard.tsx`, `DocumentMobileDetail.tsx`, `DocumentCommunicationActions.tsx`. Ce type a été anticipé et jamais nourri de contenu réel.
+
+**Le Lot 0 de la section 8 est donc annulé** dans sa partie migration. Il ne reste que des ajouts TypeScript (types + options), sans toucher Supabase.
+
+### Plan d'exécution révisé
+
+- **Lot 0 (types uniquement, fait dans cette session)** : `src/lib/n8n/types.ts` — `CommunicationChannel` += `spoken_pitch_30s`/`meeting_briefing` ; `CommunicationScenario` += `cold_call_pitch`/`meeting_prep_discovery`/`meeting_prep_cross_sell` ; `CommunicationBrief.context` += `offerRef` ; nouveaux types `SpokenPitchOutput`/`MeetingBriefingOutput` (discriminés par `kind`). `communication-brief-options.ts` — nouvelles entrées `CHANNEL_OPTIONS`/`SCENARIO_OPTIONS`.
+- **Lot 1 — RPC `get_pitch_context`** : inchangé par rapport au corps de l'ADR (§2.5), avec en plus la lecture de `offer_practices` déjà consommées par les missions actives (matching §2.4).
+- **Lot 2 — Extension workflow n8n** : inchangé (§ Lot 2 original) — `intel-020-communication.json` branche sur `channel`, produit `result_type: "commercial_pitch"` (déjà éligible, pas de nouveau type à faire accepter côté callback).
+- **Lot 3 — UI** : remplace le `ComingSoon` de l'onglet `strategie` (desktop + mobile) par : historique des générations passées pour ce compte (via `intelligence_documents` filtré `documentType=commercial_pitch` + `primary_entity_id=companyId`) + bouton "Nouvelle génération" → chooser (`PitchChannelPicker`) → `CommunicationBriefForm` adapté + `OfferPicker` + `PitchResult`. L'onglet `enjeux` (lot F) devient, dans la foulée ou en lot séparé, la vue qui expose le matching offre↔compte utilisé en contexte par le pitch — pas strictement bloquant pour livrer `strategie` en premier.
+- **Lot 4 — Test bout-en-bout** : inchangé.
+
+## 10. Ce que je n'ai pas fait (transparence)
 
 - Je n'ai pas vérifié que **tous** les 41 offres ont bien `keywords`/`typical_deliverables` peuplés (spot-check sur 5 offres OK). À vérifier avant Lot 2 sinon le RPC renverra du vide sur certaines pratiques.
 - Je n'ai pas relu le nœud "Assemble Prompt" du workflow n8n dans le détail (juste la structure) — la densité réelle du switch case pourrait me faire réviser mon "pas de nouveau workflow".

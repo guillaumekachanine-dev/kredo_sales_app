@@ -38,6 +38,7 @@ const DEFAULT_ORIGIN_BY_ENTRY_POINT: Record<CommunicationEntryPoint, Communicati
   active_mission: "mission",
   former_client: "account",
   sector_offer: "account",
+  account_pitch: "account",
 }
 
 export function ContextualCommunicationButton({

@@ -8,6 +8,7 @@ import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
+import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -16,6 +17,7 @@ import {
   setDocumentStatus,
 } from "@/app/(app)/reports/_data/reports-actions"
 import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
+import { getPitchBriefLabel } from "@/components/reports/document-display"
 
 type DocumentMobileDetailProps = {
   documentId: string
@@ -163,6 +165,8 @@ export function DocumentMobileDetail({
   )
   const failedFlags = qaFlags.filter((flag) => !flag.passed)
   const appliedBrief = document?.versions[0]?.sourceRunInputSnapshot ?? document?.versions[0]?.briefJson ?? null
+  const isPitch = document?.documentType === "commercial_pitch"
+  const pitchLabel = isPitch ? getPitchBriefLabel(appliedBrief) : null
   const drawerError = loadState.status === "error"
     ? {
         title: "Impossible de charger le document",
@@ -243,7 +247,7 @@ export function DocumentMobileDetail({
         }
       }}
       side="bottom"
-      title={document?.title ?? "Chargement du document"}
+      title={pitchLabel ?? document?.title ?? "Chargement du document"}
       loading={loadState.status === "loading"}
       error={drawerError}
       showMobileCloseButton
@@ -325,6 +329,12 @@ export function DocumentMobileDetail({
                     contentJson={document.currentContentJson}
                     contentText={document.currentContentText}
                     isMobile
+                    fallbackClassName="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
+                  />
+                ) : isPitch ? (
+                  <PitchDocumentContent
+                    contentJson={document.currentContentJson}
+                    contentText={document.currentContentText}
                     fallbackClassName="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
                   />
                 ) : document.currentContentText ? (
