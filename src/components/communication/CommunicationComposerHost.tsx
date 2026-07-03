@@ -48,6 +48,10 @@ type ComposerAccountContext = PitchMailAccountContext & {
   communicationPreset?: CommunicationComposerPreset
 }
 
+const MAIL_DRAWER_CHROME_CLASS = "bg-primary-deep text-primary-fg"
+const MAIL_DRAWER_HEADER_CLASS = "bg-primary-deep [&_h2]:text-primary-fg [&_p]:text-primary-fg/65"
+const MAIL_DRAWER_CONTENT_CLASS = "bg-primary-deep [--drawer-header-fade-start:rgba(30,69,150,0.95)] [--drawer-header-fade-end:rgba(30,69,150,0)]"
+
 function enrichFromActiveIntelligenceContext(
   request: CommunicationComposerRequest,
 ): CommunicationComposerRequest {
@@ -116,19 +120,23 @@ function ComposerAccountSelector({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-[var(--radius-medium)] border border-border bg-canvas/50 p-4">
-        <p className="text-sm font-semibold text-heading">Sélectionne le compte concerné</p>
-        <p className="mt-1 text-xs leading-5 text-muted">
-          Le compte sert de point d’entrée pour récupérer les contacts, les interactions,
-          les opportunités et les analyses disponibles.
-        </p>
-        <div className="mt-4">
-          <AccountCombobox value={value} onChange={onChange} />
+      <div className="rounded-[var(--radius-medium)] border border-primary-fg/15 bg-primary-fg/[0.07] p-4">
+        <p className="text-sm font-semibold text-primary-fg">Sélectionne le compte concerné</p>
+        <div className="mt-3">
+          <AccountCombobox
+            value={value}
+            onChange={onChange}
+            allowCreate={false}
+            openOnFocus
+            minSearchLength={0}
+            searchLimit={16}
+            className="border-primary-fg/25 bg-primary-fg text-heading placeholder:text-muted focus:border-primary-fg/60"
+          />
         </div>
       </div>
 
       {error ? (
-        <div className="rounded-[var(--radius-medium)] border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-danger">
+        <div className="rounded-[var(--radius-medium)] border border-danger/30 bg-danger/10 px-3 py-2.5 text-xs text-primary-fg">
           {error}
         </div>
       ) : null}
@@ -189,9 +197,11 @@ function DesktopCommunicationDrawer({
       title="Rédiger un email"
       eyebrow="Assistance IA contextuelle"
       subtitle={context?.company.name}
-      width="wide"
+      width="default"
       loading={loading}
-      contentClassName="bg-canvas/30"
+      className={MAIL_DRAWER_CHROME_CLASS}
+      headerClassName={MAIL_DRAWER_HEADER_CLASS}
+      contentClassName={MAIL_DRAWER_CONTENT_CLASS}
     >
       <ComposerContent
         context={context}
@@ -225,8 +235,9 @@ function MobileCommunicationDrawer({
       side="bottom"
       loading={loading}
       showMobileCloseButton
-      className="h-[92vh] max-h-[92vh]"
-      contentClassName="bg-canvas/30 px-4"
+      className={`h-[92vh] max-h-[92vh] ${MAIL_DRAWER_CHROME_CLASS}`}
+      headerClassName={MAIL_DRAWER_HEADER_CLASS}
+      contentClassName={`${MAIL_DRAWER_CONTENT_CLASS} px-4`}
     >
       <ComposerContent
         context={context}
