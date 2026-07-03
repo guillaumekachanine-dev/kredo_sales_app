@@ -10,6 +10,8 @@ import type {
   CommunicationSenderRole,
   CommunicationTone,
 } from "@/lib/n8n/types"
+import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
+import type { CommunicationComposerPreset } from "@/lib/communication/communication-composer"
 
 // ─── Taxonomies V1 — INTEL-020-REDACTION-ASSISTEE-V1.md § 4 ─────────────────
 
@@ -159,18 +161,30 @@ export function personaFromRelationshipRole(relationshipRole: string | null): Co
   }
 }
 
+type DefaultBriefData = {
+  company: { lifecycleStatus: string; name: string }
+  contacts?: ClientIntelligenceContact[]
+  communicationPreset?: CommunicationComposerPreset
+}
+
 export function buildDefaultBrief(
-  data: { company: { lifecycleStatus: string; name: string } },
+  data: DefaultBriefData,
   senderName: string
 ): CommunicationBrief {
   const { company } = data
-  const scenario = SCENARIO_OPTIONS[0]
+  const preset = data.communicationPreset
+  const scenario =
+    SCENARIO_OPTIONS.find((option) => option.value === preset?.scenario) ??
+    SCENARIO_OPTIONS[0]
+  const selectedContact = preset?.contactId
+    ? data.contacts?.find((contact) => contact.id === preset.contactId)
+    : undefined
 
   return {
     what: {
-      channel: scenario.defaultChannel,
+      channel: preset?.channel ?? scenario.defaultChannel,
       scenario: scenario.value,
-      length: "standard",
+      length: preset?.length ?? "standard",
     },
     who: {
       sender: {
@@ -179,17 +193,25 @@ export function buildDefaultBrief(
       },
       recipient: {
         type: recipientTypeFromLifecycle(company.lifecycleStatus),
-        persona: "other",
+        persona: selectedContact
+          ? personaFromRelationshipRole(selectedContact.relationshipRole)
+          : "other",
         relation: relationFromLifecycle(company.lifecycleStatus),
+        contactId: selectedContact?.id,
+        displayName: selectedContact?.fullName,
         companyName: company.name,
       },
-      objective: scenario.defaultObjective,
+      objective: preset?.objective ?? scenario.defaultObjective,
     },
     how: {
-      tone: "direct",
+      tone: preset?.tone ?? "direct",
       formality: "vous",
       language: "fr",
     },
-    context: {},
+    context: {
+      ...(preset?.refs ?? {}),
+      ...(preset?.mustInclude ? { mustInclude: preset.mustInclude } : {}),
+      ...(preset?.mustExclude ? { mustExclude: preset.mustExclude } : {}),
+    },
   }
 }

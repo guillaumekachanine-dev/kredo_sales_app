@@ -3,6 +3,7 @@
 import type { ReactNode } from "react"
 import { IntelligenceIcon } from "./intelligence-icons"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { cn } from "@/lib/utils"
 
 type PanelAction = {
@@ -14,7 +15,7 @@ type PanelAction = {
 }
 
 const ACCOUNT_ACTIONS: PanelAction[] = [
-  { id: "generate_pitch", label: "Pitch / mail", icon: "generate_pitch", active: true },
+  { id: "write_email", label: "Rédiger un email", icon: "write_email", active: true },
   { id: "search_news", label: "Signaux", icon: "search_news", active: false },
   { id: "sector_playbook", label: "Playbook", icon: "sector_analysis", active: false },
   { id: "deep_analysis", label: "Analyse", icon: "deep_analysis", active: false },
@@ -83,7 +84,13 @@ export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: P
             key={action.id}
             type="button"
             disabled={isDisabled}
-            onClick={action.active ? () => onActionClick?.(action.id) : undefined}
+            onClick={action.active ? () => {
+              if (action.id === "write_email") {
+                openCommunicationComposer({ origin: "account_panel" })
+                return
+              }
+              onActionClick?.(action.id)
+            } : undefined}
             className={isDisabled ? disabledCls : activeCls}
           >
             <Row>

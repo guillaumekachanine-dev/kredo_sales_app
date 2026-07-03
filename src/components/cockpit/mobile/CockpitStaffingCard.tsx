@@ -1,12 +1,37 @@
 import React from "react"
 import { StaffingNeedVm } from "./cockpit-mobile-view-model"
 import { IconStage } from "./icons"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
 interface CockpitStaffingCardProps {
   items: StaffingNeedVm[]
   onPrimaryClick: (actionLabel: string, needId: string) => void
   onActionClick: (title: string, client: string) => void
   onBack?: () => void
+}
+
+function shouldOpenComposer(label: string) {
+  const value = label.toLowerCase()
+  return value.includes("envoyer") || value.includes("relancer") || value.includes("accélérer")
+}
+
+function composeForNeed(need: StaffingNeedVm) {
+  const value = need.primaryAction.toLowerCase()
+  const submission = value.includes("envoyer")
+  const followUp = value.includes("relancer")
+
+  openCommunicationComposer({
+    origin: "staffing_primary_action",
+    companyId: need.companyId,
+    companyName: need.client,
+    primaryEntity: { type: "opportunity", id: need.id },
+    preset: {
+      scenario: submission ? "profile_submission" : followUp ? "follow_up_no_reply" : "offer_introduction",
+      objective: submission ? "submit_profile" : followUp ? "get_feedback" : "get_reply",
+      mustInclude: `Besoin : ${need.title}. Étape : ${need.step}. Profils : ${need.positioned}. Échéance : ${need.due}.`,
+      refs: { opportunityRef: need.id },
+    },
+  })
 }
 
 export function CockpitStaffingCard({
@@ -17,7 +42,6 @@ export function CockpitStaffingCard({
 }: CockpitStaffingCardProps) {
   return (
     <section className="flex flex-col gap-4 py-2">
-      {/* Header */}
       <div className="flex items-center gap-2 px-1">
         <span className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-500 text-white shadow-sm shadow-emerald-500/20 shrink-0">
           <IconStage />
@@ -48,7 +72,6 @@ export function CockpitStaffingCard({
               key={need.id}
               className="bg-surface border border-border/50 rounded-xl p-3.5 flex flex-col gap-3 relative overflow-hidden"
             >
-              {/* Top-right compact due date */}
               <span className="absolute top-3 right-3 text-[10px] font-bold text-muted bg-canvas border border-border/40 px-2 py-0.5 rounded-md">
                 {need.dueCompact}
               </span>
@@ -78,7 +101,13 @@ export function CockpitStaffingCard({
                 <button
                   type="button"
                   className="py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-[10px] font-bold transition-all cursor-pointer text-center focus:outline-none"
-                  onClick={() => onPrimaryClick(need.primaryAction, need.id)}
+                  onClick={() => {
+                    if (shouldOpenComposer(need.primaryAction)) {
+                      composeForNeed(need)
+                    } else {
+                      onPrimaryClick(need.primaryAction, need.id)
+                    }
+                  }}
                 >
                   {need.primaryAction}
                 </button>

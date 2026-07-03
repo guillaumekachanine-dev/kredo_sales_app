@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell"
 import { EventDrawer } from "@/components/events/EventDrawer"
 import { StaffingDrawer } from "@/components/staffing"
 import { CrmIdentityDrawerHost } from "@/components/accounts-contacts/CrmIdentityDrawerHost"
+import { CommunicationComposerHost } from "@/components/communication/CommunicationComposerHost"
 
 export default async function AppLayout({
   children,
@@ -17,7 +18,7 @@ export default async function AppLayout({
       <EventDrawer />
       <StaffingDrawer />
       <CrmIdentityDrawerHost />
+      <CommunicationComposerHost device={device} />
     </AppShell>
   )
 }
-

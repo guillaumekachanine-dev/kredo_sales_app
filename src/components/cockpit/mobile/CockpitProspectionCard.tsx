@@ -1,6 +1,7 @@
 import React from "react"
 import { ProspectionMetricVm, ProspectionPriorityVm } from "./cockpit-mobile-view-model"
 import { IconRadar } from "./icons"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
 interface CockpitProspectionCardProps {
   metrics: ProspectionMetricVm[]
@@ -13,13 +14,11 @@ interface CockpitProspectionCardProps {
 export function CockpitProspectionCard({
   metrics,
   priorities,
-  onPitchClick,
   onActionClick,
   onBack,
 }: CockpitProspectionCardProps) {
   return (
     <section className="flex flex-col gap-4 py-2">
-      {/* Header */}
       <div className="flex items-center gap-2 px-1">
         <span className="flex items-center justify-center w-7 h-7 rounded-full bg-violet-500 text-white shadow-sm shadow-violet-500/20 shrink-0">
           <IconRadar />
@@ -38,7 +37,6 @@ export function CockpitProspectionCard({
         )}
       </div>
 
-      {/* Metrics Row */}
       <div className="grid grid-cols-4 gap-2" aria-label="Métriques prospection">
         {metrics.map((metric) => (
           <div
@@ -58,7 +56,6 @@ export function CockpitProspectionCard({
         ))}
       </div>
 
-      {/* Priorities List */}
       {priorities.length === 0 ? (
         <div className="text-center py-6 text-muted bg-surface border border-border/50 rounded-xl">
           <strong className="text-xs font-bold text-heading">Aucune priorité de prospection</strong>
@@ -85,9 +82,18 @@ export function CockpitProspectionCard({
                 <button
                   type="button"
                   className="py-2 px-3 rounded-lg bg-violet-500 hover:bg-violet-600 active:bg-violet-700 text-white text-[10px] font-bold transition-all cursor-pointer text-center focus:outline-none shadow-sm shadow-violet-500/10"
-                  onClick={() => onPitchClick(priority.company, priority.companyId || null)}
+                  onClick={() => openCommunicationComposer({
+                    origin: "prospection_priority",
+                    companyId: priority.companyId,
+                    companyName: priority.company,
+                    preset: {
+                      scenario: "signal_outreach",
+                      objective: "get_meeting",
+                      mustInclude: `${priority.reason}. Prochaine action recommandée : ${priority.nextMove}`,
+                    },
+                  })}
                 >
-                  Pitch IA
+                  Rédiger email
                 </button>
                 <button
                   type="button"

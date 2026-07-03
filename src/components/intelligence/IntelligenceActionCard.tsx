@@ -1,4 +1,5 @@
 import type { IntelligenceAction } from "@/lib/intelligence/intelligence-registry"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { IntelligenceIcon } from "./intelligence-icons"
 import { cn } from "@/lib/utils"
 
@@ -9,18 +10,22 @@ interface IntelligenceActionCardProps {
 
 export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceActionCardProps) {
   const isDark = tone === "dark"
-  const isComingSoon = action.status === "coming_soon"
+  const isWriteEmail = action.id === "common_write_email"
+  const isComingSoon = action.status === "coming_soon" && !isWriteEmail
+
+  function handleClick() {
+    if (isWriteEmail) {
+      openCommunicationComposer({ origin: "intelligence_common" })
+    }
+  }
 
   if (isDark) {
     return (
       <button
         type="button"
-        onClick={isComingSoon ? undefined : undefined}
-        className={cn(
-          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer",
-        )}
+        onClick={isWriteEmail ? handleClick : undefined}
+        className="kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer"
       >
-        {/* Badge "Bientôt" discret en superposition */}
         {isComingSoon && (
           <span className="absolute top-2 right-2 z-20 rounded-full bg-white/10 px-1.5 py-px text-[7px] font-bold uppercase tracking-widest text-white/50">
             Bientôt
@@ -28,7 +33,7 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
         )}
 
         <div className="relative z-10">
-          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white/20 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25),inset_0_1px_0_rgba(255,255,255,0.30)]">
+          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white/20 text-white">
             <IntelligenceIcon name={action.icon} className="size-5 text-white" />
           </span>
         </div>
@@ -46,6 +51,7 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     <button
       type="button"
       disabled={isComingSoon}
+      onClick={isWriteEmail ? handleClick : undefined}
       className={cn(
         "group relative flex items-center gap-2.5 rounded-xl border border-slate-600/35 bg-slate-800/45 px-3 py-2 h-11 text-left transition-all w-full select-none",
         isComingSoon
@@ -55,7 +61,7 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     >
       <span className={cn(
         "inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-100",
-        isComingSoon ? "text-slate-100/40" : "text-slate-100"
+        isComingSoon ? "text-slate-100/40" : "text-slate-100",
       )}>
         <IntelligenceIcon name={action.icon} className="size-4" />
       </span>

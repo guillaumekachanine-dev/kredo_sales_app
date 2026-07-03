@@ -10,6 +10,7 @@ import {
   IconSparkStack,
   IconChevron,
 } from "./icons"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
 export type ContextSheetKind = "staffing" | "meeting" | "prospect"
 
@@ -38,6 +39,7 @@ const SHEET_LIBRARY = {
     eyebrow: "Rendez-vous clients",
     actions: [
       { label: "Élaborer un pitch", icon: IconBolt },
+      { label: "Rédiger le mail de suivi", icon: IconContact },
       { label: "Consulter l'actualité du client", icon: IconRadar },
       { label: "Générer une synthèse des échanges avec Next Steps IA", icon: IconSparkStack },
       { label: "Créer ou modifier une tâche", icon: IconTask },
@@ -47,7 +49,7 @@ const SHEET_LIBRARY = {
     title: "Actions prospection",
     eyebrow: "Prospection",
     actions: [
-      { label: "Créer un pitch ou rédiger un email avec l'IA", icon: IconBolt },
+      { label: "Rédiger un email avec l'IA", icon: IconBolt },
       { label: "Appeler le prospect", icon: IconContact },
       { label: "Consulter ses analyses", icon: IconRadar },
       { label: "Créer ou modifier une tâche", icon: IconTask },
@@ -78,7 +80,6 @@ export function CockpitContextSheet({
   const definition = SHEET_LIBRARY[kind]
   if (!definition) return null
 
-  // Special meeting summary formatting
   const isMeeting = kind === "meeting"
   const meetingParts = isMeeting ? label.split(" · ") : null
   const meetingClient = meetingParts ? meetingParts[0] ?? "" : ""
@@ -91,15 +92,59 @@ export function CockpitContextSheet({
 
   const displaySubtitle = isMeeting ? undefined : label
 
+  function handleMailAction(actionLabel: string) {
+    if (kind === "prospect" && actionLabel === "Rédiger un email avec l'IA") {
+      openCommunicationComposer({
+        origin: "prospection_priority",
+        companyName: label,
+        preset: {
+          scenario: "signal_outreach",
+          objective: "get_meeting",
+        },
+      })
+      return true
+    }
+
+    if (kind === "meeting" && actionLabel === "Rédiger le mail de suivi") {
+      openCommunicationComposer({
+        origin: "meeting_follow_up",
+        companyName: meetingClient,
+        preset: {
+          scenario: "post_meeting",
+          objective: "confirm_next_steps",
+          mustInclude: `Rendez-vous ${meetingDate} à ${meetingTime}. Confirmer les décisions et les prochaines étapes.`,
+        },
+      })
+      return true
+    }
+
+    if (kind === "staffing" && actionLabel === "Contacter le client") {
+      const parts = label.split(" · ")
+      const companyName = parts.at(-1) ?? label
+      const needTitle = parts[0] ?? "Besoin de staffing"
+      openCommunicationComposer({
+        origin: "staffing_context",
+        companyName,
+        preset: {
+          scenario: "offer_introduction",
+          objective: "get_reply",
+          mustInclude: `Contexte du besoin : ${needTitle}.`,
+        },
+      })
+      return true
+    }
+
+    return false
+  }
+
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 m-auto w-[90%] max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl backdrop:bg-black/60 outline-none z-50 flex flex-col gap-4 outline-none focus:outline-none"
-      onClick={(e) => {
-        if (e.target === dialogRef.current) onOpenChange(false)
+      className="fixed inset-0 m-auto w-[90%] max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl backdrop:bg-black/60 outline-none z-50 flex flex-col gap-4 focus:outline-none"
+      onClick={(event) => {
+        if (event.target === dialogRef.current) onOpenChange(false)
       }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="text-[9px] font-bold uppercase tracking-widest text-muted block mb-0.5">
@@ -112,7 +157,6 @@ export function CockpitContextSheet({
             <p className="text-xs text-body mt-1 leading-relaxed">{displaySubtitle}</p>
           )}
         </div>
-        {/* Close Button */}
         <button
           type="button"
           onClick={() => onOpenChange(false)}
@@ -125,7 +169,6 @@ export function CockpitContextSheet({
         </button>
       </div>
 
-      {/* Actions list */}
       <div className="flex flex-col gap-1.5 mt-2">
         {definition.actions.map((action) => {
           const Icon = action.icon
@@ -135,7 +178,9 @@ export function CockpitContextSheet({
               type="button"
               className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-canvas/50 active:bg-canvas transition-all text-left group"
               onClick={() => {
-                onActionSelect(action.label)
+                if (!handleMailAction(action.label)) {
+                  onActionSelect(action.label)
+                }
                 onOpenChange(false)
               }}
             >
