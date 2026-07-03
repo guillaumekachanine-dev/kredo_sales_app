@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react"
-import { IconMic, IconTask, IconStage, IconFinance, IconContact, IconChevron } from "./icons"
+import { IconStage, IconCalendar, IconContact, IconMic } from "./icons"
+import { cn } from "@/lib/utils"
 
 interface CockpitQuickActionsSheetProps {
   open: boolean
@@ -25,11 +26,10 @@ export function CockpitQuickActionsSheet({
   }, [open])
 
   const actions = [
-    { label: "Enregistrer une note vocale", icon: IconMic },
-    { label: "Créer ou mettre à jour une tâche", icon: IconTask },
-    { label: "Créer ou mettre à jour un besoin", icon: IconStage },
-    { label: "Accéder au simulateur financier", icon: IconFinance },
-    { label: "Créer ou mettre à jour un contact", icon: IconContact },
+    { label: "Créer un besoin", icon: IconStage },
+    { label: "Créer un contact", icon: IconContact },
+    { label: "Créer un événement", icon: IconCalendar },
+    { label: "Créer note vocale", icon: IconMic, disabled: true },
   ]
 
   return (
@@ -43,9 +43,6 @@ export function CockpitQuickActionsSheet({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted block mb-0.5">
-            Commandes transverses
-          </span>
           <h2 className="font-heading text-base font-bold text-heading">
             Actions rapides
           </h2>
@@ -63,27 +60,37 @@ export function CockpitQuickActionsSheet({
         </button>
       </div>
 
-      {/* Actions list */}
-      <div className="flex flex-col gap-1.5 mt-2">
+      {/* Actions list as square cards grid */}
+      <div className="grid grid-cols-2 gap-3 mt-2">
         {actions.map((action) => {
           const Icon = action.icon
+          const isDisabled = action.disabled
+          
           return (
             <button
               key={action.label}
               type="button"
-              className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-canvas/50 active:bg-canvas transition-all text-left group"
+              disabled={isDisabled}
+              className={cn(
+                "flex flex-col items-center justify-center text-center p-4 rounded-2xl border border-border/60 bg-canvas/30 transition-all aspect-square gap-3 select-none active:scale-95 focus:outline-none",
+                isDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-canvas/50 hover:border-border active:bg-canvas border-border/40 group"
+              )}
               onClick={() => {
-                onActionSelect(action.label)
-                onOpenChange(false)
+                if (!isDisabled) {
+                  onActionSelect(action.label)
+                  onOpenChange(false)
+                }
               }}
             >
-              <span className="flex items-center gap-3">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0 transition-colors group-hover:bg-primary group-hover:text-white">
-                  <Icon />
-                </span>
-                <span className="text-xs font-semibold text-heading leading-tight">{action.label}</span>
+              <span className={cn(
+                "flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 transition-colors",
+                !isDisabled && "group-hover:bg-primary group-hover:text-white"
+              )}>
+                <Icon />
               </span>
-              <IconChevron />
+              <span className="text-[11px] font-bold text-heading leading-tight">{action.label}</span>
             </button>
           )
         })}

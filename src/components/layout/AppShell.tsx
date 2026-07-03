@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { DesktopSidebar } from "./DesktopSidebar"
 import { AppHeader } from "./AppHeader"
 import { MobileNav } from "./MobileNav"
+import { MobileNavigationMenu } from "./MobileNavigationMenu"
 import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
 import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
@@ -23,6 +24,7 @@ export async function AppShell({ device, children }: AppShellProps) {
           {children}
         </main>
 
+        <MobileNavigationMenu />
         <IntelligenceFAB />
         <MobileNav />
       </div>

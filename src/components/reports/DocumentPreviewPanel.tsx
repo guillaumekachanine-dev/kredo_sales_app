@@ -17,23 +17,11 @@ import {
   setDocumentStatus,
 } from "@/app/(app)/reports/_data/reports-actions"
 import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
-
-const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
-  communication: "Communication",
-  client_summary: "Synthèse client",
-  commercial_pitch: "Pitch commercial",
-  campaign: "Campagne",
-  internal_note: "Note interne",
-  activity_commercial: "Activité commerciale",
-  activity_recruitment: "Activité recrutement",
-  weekly_manager: "Rapport hebdo manager",
-  planning_deadlines: "Planning & échéances",
-  financial: "Rapport financier",
-  quarterly_review: "Business review trimestrielle",
-  staffing_capacity: "Staffing & capacité",
-  delivery_profitability: "Delivery & rentabilité",
-  account_portfolio: "Revue de portefeuille comptes",
-}
+import {
+  DOCUMENT_OBJECT_LABELS,
+  getDocumentCategory,
+  getDocumentTypeLabel,
+} from "./document-display"
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {
   draft: "Brouillon",
@@ -165,6 +153,15 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
   )
   const failedFlags = qaFlags.filter((flag) => !flag.passed)
   const allPassed = qaFlags.length > 0 && failedFlags.length === 0
+  const documentCategory = getDocumentCategory(document.documentType)
+  const categoryColor =
+    documentCategory === "report"
+      ? "var(--color-document-report)"
+      : "var(--color-document-communication)"
+  const categoryTintClass =
+    documentCategory === "report"
+      ? "bg-[color-mix(in_srgb,var(--color-document-report)_10%,var(--color-surface))]"
+      : "bg-[color-mix(in_srgb,var(--color-document-communication)_12%,var(--color-surface))]"
 
   const runAction = (
     action: Exclude<PendingAction, "copy">,
@@ -235,12 +232,22 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
   return (
     <SurfaceCard padding="default" className="sticky top-6">
       <div className="space-y-5">
-        <header className="space-y-3">
+        <header className={cn("space-y-3 rounded-[var(--radius-medium)] border border-border px-4 py-4", categoryTintClass)}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="font-heading text-lg font-bold text-heading">
-                {document.title}
-              </h2>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: categoryColor }}
+                />
+                <h2 className="font-heading text-lg font-bold text-heading">
+                  {document.title}
+                </h2>
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {getDocumentTypeLabel(document.documentType)} · {DOCUMENT_OBJECT_LABELS[document.documentType]}
+              </p>
               <p className="mt-1 text-xs text-muted">
                 Mis à jour le {formatDate(document.updatedAt)} par {document.ownerName}
               </p>
@@ -249,8 +256,22 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
 
           <div className="flex flex-wrap gap-2">
             <StatusPill
-              label={DOCUMENT_TYPE_LABELS[document.documentType]}
-              variant="info"
+              label={DOCUMENT_OBJECT_LABELS[document.documentType]}
+              dot={false}
+              className="border-transparent text-[var(--color-heading)]"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${categoryColor} 16%, var(--color-surface))`,
+                color: categoryColor,
+              }}
+            />
+            <StatusPill
+              label={getDocumentTypeLabel(document.documentType)}
+              dot={false}
+              className="border-transparent capitalize"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${categoryColor} 12%, var(--color-surface))`,
+                color: categoryColor,
+              }}
             />
             <StatusPill
               label={STATUS_LABELS[document.status]}

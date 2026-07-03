@@ -42,38 +42,33 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     )
   }
 
-  // Light tone (mobile drawer)
   return (
     <button
       type="button"
       disabled={isComingSoon}
       className={cn(
-        "group relative flex flex-col items-start gap-2 rounded-lg border border-border bg-surface p-3 text-left transition-all",
+        "group relative flex items-center gap-2.5 rounded-xl border border-slate-600/35 bg-slate-800/45 px-3 py-2 h-11 text-left transition-all w-full select-none",
         isComingSoon
-          ? "cursor-default opacity-60"
-          : "cursor-pointer hover:bg-surface-hover active:scale-[0.97]",
+          ? "cursor-default opacity-50"
+          : "cursor-pointer hover:bg-slate-700/60 active:scale-[0.97]",
       )}
     >
-      <div className="flex w-full items-start justify-between gap-2">
-        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-          <IntelligenceIcon name={action.icon} className="size-4" />
+      <span className={cn(
+        "inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-100",
+        isComingSoon ? "text-slate-100/40" : "text-slate-100"
+      )}>
+        <IntelligenceIcon name={action.icon} className="size-4" />
+      </span>
+
+      <span className="min-w-0 flex-1 truncate text-[11px] font-bold leading-tight text-slate-100">
+        {action.label}
+      </span>
+
+      {isComingSoon && (
+        <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white/50">
+          Bientôt
         </span>
-
-        {isComingSoon && (
-          <span className="shrink-0 rounded-full border border-border bg-canvas px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">
-            Bientôt
-          </span>
-        )}
-      </div>
-
-      <div className="min-w-0">
-        <p className="text-xs font-semibold leading-tight text-heading">
-          {action.label}
-        </p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted">
-          {action.description}
-        </p>
-      </div>
+      )}
     </button>
   )
 }

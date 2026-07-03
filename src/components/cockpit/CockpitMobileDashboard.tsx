@@ -2,10 +2,14 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
+import { AgendaMobileEventDrawer } from "@/components/agenda/AgendaMobileEventDrawer"
+import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
+import { NewContactDrawer } from "@/components/accounts-contacts/NewContactDrawer"
 
 import { buildCockpitMobileViewModel } from "./mobile/cockpit-mobile-view-model"
 import { CockpitMobileHeader } from "./mobile/CockpitMobileHeader"
@@ -21,7 +25,7 @@ import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
-import { IconStage, IconContact, IconRadar, IconContactCard } from "./mobile/icons"
+import { IconStage, IconContact, IconRadar, IconContactCard, IconCalendar } from "./mobile/icons"
 import { cn } from "@/lib/utils"
 
 import "./mobile/cockpit-mobile.css"
@@ -55,6 +59,9 @@ export function CockpitMobileDashboard({
   // Modals / Drawers States
   const [isQuickActionsOpen, setQuickActionsOpen] = useState(false)
   const [isNewOpportunityOpen, setNewOpportunityOpen] = useState(false)
+  const [isNewContactOpen, setNewContactOpen] = useState(false)
+  const [isNewEventOpen, setNewEventOpen] = useState(false)
+  const [isFinancialSimulationOpen, setIsFinancialSimulationOpen] = useState(false)
   
   // Custom expandable dashboard modules state
   const [activeModule, setActiveModule] = useState<"staffing" | "meetings" | "prospection" | "recrutement" | null>(null)
@@ -127,15 +134,12 @@ export function CockpitMobileDashboard({
 
   // Action Select Handlers
   const handleQuickActionSelect = (actionLabel: string) => {
-    if (actionLabel === "Créer ou mettre à jour un besoin") {
+    if (actionLabel === "Créer un besoin" || actionLabel === "Créer ou mettre à jour un besoin") {
       setNewOpportunityOpen(true)
-    } else if (actionLabel === "Créer ou mettre à jour un contact") {
-      triggerToast("Redirection vers la création de contact")
-      router.push("/prospection/accounts")
-    } else if (actionLabel === "Enregistrer une note vocale") {
-      triggerToast("Note vocale : À RÉSOUDRE (seam d'enregistrement vocale)")
-    } else if (actionLabel === "Accéder au simulateur financier") {
-      triggerToast("Simulateur financier : À RÉSOUDRE (seam simulateur)")
+    } else if (actionLabel === "Créer un contact") {
+      setNewContactOpen(true)
+    } else if (actionLabel === "Créer un événement") {
+      setNewEventOpen(true)
     } else {
       triggerToast(`Commande: ${actionLabel}`)
     }
@@ -238,9 +242,8 @@ export function CockpitMobileDashboard({
       <MobileActionPage
         header={
           <CockpitMobileHeader
-            alertCount={vm.header.alertCount}
             onQuickActionsOpen={() => setQuickActionsOpen(true)}
-            onNotificationsOpen={() => triggerToast("Notifications: SEAM temporaire de cloche")}
+            onFinancialSimulationOpen={() => setIsFinancialSimulationOpen(true)}
           />
         }
       >
@@ -457,6 +460,33 @@ export function CockpitMobileDashboard({
       <NewOpportunityDrawer
         open={isNewOpportunityOpen}
         onOpenChange={setNewOpportunityOpen}
+      />
+
+      {/* Create New Contact Drawer */}
+      <NewContactDrawer
+        open={isNewContactOpen}
+        onOpenChange={setNewContactOpen}
+        onCreated={() => {
+          triggerToast("Contact créé avec succès")
+          router.refresh()
+        }}
+      />
+
+      {/* Create New Agenda Event Drawer */}
+      <AgendaMobileEventDrawer
+        open={isNewEventOpen}
+        onOpenChange={setNewEventOpen}
+        event={null}
+        onSaved={() => {
+          setNewEventOpen(false)
+          router.refresh()
+        }}
+      />
+
+      {/* Financial simulation modal */}
+      <FinancialModelingMobileFlow
+        open={isFinancialSimulationOpen}
+        onOpenChange={setIsFinancialSimulationOpen}
       />
     </>
   )

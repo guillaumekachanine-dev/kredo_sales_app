@@ -83,6 +83,7 @@ export function AppDialog({
         "fixed inset-0 m-auto max-h-[min(100dvh-2rem,42rem)] w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-heading sm:max-h-[calc(100dvh-4rem)] sm:w-full sm:max-w-lg sm:p-6",
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
+        "z-[var(--z-modal)]",
         className
       )}
     >

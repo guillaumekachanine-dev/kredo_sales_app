@@ -22,6 +22,11 @@ import type {
   ReportsKpis,
   ReportsListData,
 } from "@/app/(app)/reports/_data/reports-types"
+import {
+  DOCUMENT_OBJECT_LABELS,
+  getDocumentCategory,
+  getDocumentTypeLabel,
+} from "./document-display"
 import { DocumentPreviewPanel } from "./DocumentPreviewPanel"
 
 type ReportsDesktopViewProps = {
@@ -32,23 +37,6 @@ type ReportsDesktopViewProps = {
   selectedDocument: DocumentDetail | null
   selectedDocumentError?: string | null
   listError?: string | null
-}
-
-const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
-  communication: "Communication",
-  client_summary: "Synthèse client",
-  commercial_pitch: "Pitch commercial",
-  campaign: "Campagne",
-  internal_note: "Note interne",
-  activity_commercial: "Activité commerciale",
-  activity_recruitment: "Activité recrutement",
-  weekly_manager: "Rapport hebdo manager",
-  planning_deadlines: "Planning & échéances",
-  financial: "Rapport financier",
-  quarterly_review: "Business review trimestrielle",
-  staffing_capacity: "Staffing & capacité",
-  delivery_profitability: "Delivery & rentabilité",
-  account_portfolio: "Revue de portefeuille comptes",
 }
 
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {
@@ -194,10 +182,31 @@ export function ReportsDesktopView({
 
   const columns: DataTableColumn<DocumentListItem>[] = [
     {
+      id: "type",
+      header: "Type",
+      accessor: (row) => getDocumentTypeLabel(row.documentType),
+      width: "6.5rem",
+      minWidth: "6.5rem",
+      align: "right",
+      headerClassName: "whitespace-nowrap",
+      className: "whitespace-nowrap text-right",
+      cell: (row) => (
+        <span
+          className={`inline-flex rounded-[8px] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+            getDocumentCategory(row.documentType) === "report"
+              ? "bg-[color-mix(in_srgb,var(--color-document-report)_14%,transparent)] text-[var(--color-document-report)]"
+              : "bg-[color-mix(in_srgb,var(--color-document-communication)_16%,transparent)] text-[var(--color-document-communication)]"
+          }`}
+        >
+          {getDocumentTypeLabel(row.documentType)}
+        </span>
+      ),
+    },
+    {
       id: "title",
       header: "Titre",
       accessor: (row) => row.title,
-      width: "41%",
+      width: "55.5%",
       minWidth: "0",
       className: "max-w-0",
       cell: (row) => (
@@ -219,53 +228,24 @@ export function ReportsDesktopView({
       ),
     },
     {
-      id: "documentType",
-      header: "Type",
-      accessor: (row) => DOCUMENT_TYPE_LABELS[row.documentType],
-      width: "17%",
-      minWidth: "8rem",
-      headerClassName: "whitespace-nowrap",
-      className: "whitespace-nowrap",
-      cell: (row) => (
-        <span className="block truncate">
-          {DOCUMENT_TYPE_LABELS[row.documentType]}
-        </span>
-      ),
-    },
-    {
-      id: "primaryEntity",
-      header: "Lié à",
-      accessor: (row) => row.primaryEntity?.label ?? "",
-      width: "23%",
+      id: "object",
+      header: "Objet",
+      accessor: (row) => DOCUMENT_OBJECT_LABELS[row.documentType],
+      width: "25%",
       minWidth: "0",
       className: "max-w-0",
-      cell: (row) => (
-        <span className="block truncate">
-          {row.primaryEntity?.label ?? "—"}
-        </span>
-      ),
+      cell: (row) => <span className="block truncate">{DOCUMENT_OBJECT_LABELS[row.documentType]}</span>,
     },
     {
       id: "createdAt",
       header: "Créé le",
       accessor: (row) => row.createdAt,
-      width: "9.5%",
-      minWidth: "4.25rem",
+      width: "13%",
+      minWidth: "5rem",
       align: "right",
       headerClassName: "whitespace-nowrap",
       className: "whitespace-nowrap text-right",
       cell: (row) => formatShortDate(row.createdAt),
-    },
-    {
-      id: "updatedAt",
-      header: "Modifié le",
-      accessor: (row) => row.updatedAt,
-      width: "9.5%",
-      minWidth: "4.25rem",
-      align: "right",
-      headerClassName: "whitespace-nowrap",
-      className: "whitespace-nowrap text-right",
-      cell: (row) => formatShortDate(row.updatedAt),
     },
   ]
 
@@ -316,7 +296,7 @@ export function ReportsDesktopView({
           onChange={(value) => handleFilterChange("documentType", value)}
           options={[
             { value: "all", label: "Type" },
-            ...Object.entries(DOCUMENT_TYPE_LABELS).map(([value, label]) => ({ value, label })),
+            ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label })),
           ]}
         />
 
