@@ -1,5 +1,6 @@
 import type { IntelligenceAction } from "@/lib/intelligence/intelligence-registry"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import { IntelligenceIcon } from "./intelligence-icons"
 import { cn } from "@/lib/utils"
 
@@ -11,11 +12,25 @@ interface IntelligenceActionCardProps {
 export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceActionCardProps) {
   const isDark = tone === "dark"
   const isWriteEmail = action.id === "common_write_email"
-  const isComingSoon = action.status === "coming_soon" && !isWriteEmail
+  const isCommonReport = action.id === "common_report"
+  const isActivityReport = action.id === "activity_report"
+  const isSupportedReportAction = isCommonReport || isActivityReport
+  const isInteractive = isWriteEmail || isSupportedReportAction
+  const isComingSoon = action.status === "coming_soon" && !isInteractive
 
   function handleClick() {
     if (isWriteEmail) {
       openCommunicationComposer({ origin: "intelligence_common" })
+      return
+    }
+
+    if (isActivityReport) {
+      openReportGeneration({ origin: "commercial_activity", reportType: "activity_commercial" })
+      return
+    }
+
+    if (isCommonReport) {
+      openReportGeneration({ origin: "intelligence_common" })
     }
   }
 
@@ -23,8 +38,12 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     return (
       <button
         type="button"
-        onClick={isWriteEmail ? handleClick : undefined}
-        className="kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer"
+        disabled={isComingSoon}
+        onClick={isInteractive ? handleClick : undefined}
+        className={cn(
+          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer",
+          isComingSoon && "cursor-default",
+        )}
       >
         {isComingSoon && (
           <span className="absolute top-2 right-2 z-20 rounded-full bg-white/10 px-1.5 py-px text-[7px] font-bold uppercase tracking-widest text-white/50">
@@ -51,7 +70,7 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     <button
       type="button"
       disabled={isComingSoon}
-      onClick={isWriteEmail ? handleClick : undefined}
+      onClick={isInteractive ? handleClick : undefined}
       className={cn(
         "group relative flex items-center gap-2.5 rounded-xl border border-slate-600/35 bg-slate-800/45 px-3 py-2 h-11 text-left transition-all w-full select-none",
         isComingSoon
