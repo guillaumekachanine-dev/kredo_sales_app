@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
-import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import type { ReportsFilterState, ReportsListData } from "@/app/(app)/reports/_data/reports-types"
 
 type ReportsMobileViewProps = {
@@ -30,11 +30,7 @@ const SearchIcon = () => (
   </svg>
 )
 
-export function ReportsMobileView({
-  reportsData,
-  filters,
-  listError,
-}: ReportsMobileViewProps) {
+export function ReportsMobileView({ reportsData, filters, listError }: ReportsMobileViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -62,8 +58,8 @@ export function ReportsMobileView({
             eyebrow="Intelligence"
             title="Rapports & Rédaction"
             actions={(
-              <Button size="sm" onClick={() => useIntelligencePanel.getState().open()}>
-                Nouvelle rédaction
+              <Button size="sm" onClick={() => openReportGeneration({ origin: "reports_library" })}>
+                Produire un rapport
               </Button>
             )}
           />
@@ -126,10 +122,7 @@ export function ReportsMobileView({
         </div>
 
         {listError ? (
-          <ErrorState
-            title="Impossible de charger les documents"
-            message={listError}
-          />
+          <ErrorState title="Impossible de charger les documents" message={listError} />
         ) : reportsData.items.length === 0 ? (
           <div className="flex min-h-40 items-center justify-center rounded-[var(--radius-large)] border border-dashed border-border bg-surface px-6 text-center text-sm text-muted">
             Aucun document ne correspond à cette vue.
@@ -137,11 +130,7 @@ export function ReportsMobileView({
         ) : (
           <div className="flex flex-col gap-3">
             {reportsData.items.map((document) => (
-              <DocumentCard
-                key={document.id}
-                document={document}
-                onClick={() => setSelectedDocumentId(document.id)}
-              />
+              <DocumentCard key={document.id} document={document} onClick={() => setSelectedDocumentId(document.id)} />
             ))}
           </div>
         )}
