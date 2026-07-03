@@ -14,6 +14,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
+import { ActivityReportModal } from "@/components/reports/ActivityReportModal"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
 import { updateRecruitmentStatus } from "@/app/(app)/recruitment/_actions/update-recruitment-status"
@@ -324,6 +325,7 @@ export function RecruitmentWorkspace({
   const [planningScale, setPlanningScale] = useState<PlanningScale>("month")
   const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidates" | "opportunities">("candidates")
   const [newCandidateDrawerOpen, setNewCandidateDrawerOpen] = useState(false)
+  const [reportModalOpen, setReportModalOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
 
@@ -575,7 +577,10 @@ export function RecruitmentWorkspace({
           />
 
           <div className="flex flex-col gap-4">
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setReportModalOpen(true)}>
+                Nouveau rapport
+              </Button>
               <Button
                 variant="primary"
                 size="sm"
@@ -626,6 +631,11 @@ export function RecruitmentWorkspace({
           initialValues={eventInitialValues}
         />
         <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
+        <ActivityReportModal
+          open={reportModalOpen}
+          onOpenChange={setReportModalOpen}
+          reportType="activity_recruitment"
+        />
         <StaffingDrawer />
       </>
     )
@@ -646,18 +656,23 @@ export function RecruitmentWorkspace({
           </>
         }
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setNewCandidateDrawerOpen(true)}
-            leftIcon={
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            }
-          >
-            Nouveau candidat
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setReportModalOpen(true)}>
+              Nouveau rapport
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setNewCandidateDrawerOpen(true)}
+              leftIcon={
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              }
+            >
+              Nouveau candidat
+            </Button>
+          </div>
         }
         viewMode={viewMode}
         onViewModeChange={(mode) => setViewMode(mode as RecruitmentViewMode)}
@@ -693,6 +708,11 @@ export function RecruitmentWorkspace({
         initialValues={eventInitialValues}
       />
       <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
+      <ActivityReportModal
+        open={reportModalOpen}
+        onOpenChange={setReportModalOpen}
+        reportType="activity_recruitment"
+      />
       <StaffingDrawer />
     </>
   )

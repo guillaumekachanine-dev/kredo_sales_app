@@ -32,8 +32,8 @@ type ReadTable = {
 type LooseSupabaseClient = { from(table: string): ReadTable }
 
 type OwnerRelation =
-  | { full_name: string | null }
-  | Array<{ full_name: string | null }>
+  | { full_name: string | null; email: string | null }
+  | Array<{ full_name: string | null; email: string | null }>
   | null
 
 type DocumentRow = {
@@ -46,6 +46,7 @@ type DocumentRow = {
   tags: string[]
   primary_entity_type: Database["public"]["Enums"]["intelligence_entity_type"] | null
   primary_entity_id: string | null
+  created_at: string
   updated_at: string
   owner: OwnerRelation
 }
@@ -163,7 +164,8 @@ function computeQualityOk(qaFlags: unknown): boolean | null {
 }
 
 function getOwnerName(owner: OwnerRelation): string {
-  return pickOne(owner)?.full_name?.trim() || "Utilisateur inconnu"
+  const resolved = pickOne(owner)
+  return resolved?.full_name?.trim() || resolved?.email?.trim() || "Utilisateur inconnu"
 }
 
 function applyDocumentFilters<T>(
@@ -414,6 +416,7 @@ function buildListItem(
     primaryEntity,
     qualityOk: computeQualityOk(latestVersionByDocumentId.get(row.id)?.qa_flags),
     ownerName: getOwnerName(row.owner),
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
 }
@@ -490,8 +493,9 @@ export async function getReportsList(input?: {
             tags,
             primary_entity_type,
             primary_entity_id,
+            created_at,
             updated_at,
-            owner:profiles!intelligence_documents_owner_id_fkey(full_name)
+            owner:profiles!intelligence_documents_owner_id_fkey(full_name, email)
           `,
           { count: "exact" }
         )

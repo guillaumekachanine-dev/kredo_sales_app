@@ -48,6 +48,21 @@ type LatestVersionRow = {
   source_refs: Json
 }
 
+type DuplicateSourceDocumentRow = {
+  id: string
+  title: string
+  document_type: Database["public"]["Enums"]["intelligence_document_type"]
+  tags: string[]
+  current_content_text: string | null
+  current_content_json: Json
+  data_cutoff_at: string | null
+  period_end: string | null
+  period_start: string | null
+  primary_entity_type: EntityType | null
+  primary_entity_id: string | null
+  scope_json: Json | null
+}
+
 export type DuplicateDocumentInput = { documentId: string }
 
 const REPORTS_REVALIDATE_PATH = "/reports"
@@ -238,6 +253,10 @@ export async function saveAsDocumentWithClient(
     status: "draft",
     current_content_text: normalizeText(input.contentText),
     current_content_json: asJson(input.contentJson),
+    data_cutoff_at: input.dataCutoffAt ?? null,
+    period_end: input.periodEnd ?? null,
+    period_start: input.periodStart ?? null,
+    scope_json: asNullableJson(input.scopeJson),
     tags,
     is_favorite: input.isFavorite ?? false,
     source_result_id: input.sourceResultId ?? null,
@@ -504,7 +523,7 @@ export async function duplicateDocument(
     auth.supabase
       .from("intelligence_documents")
       .select(
-        "id, title, document_type, tags, current_content_text, current_content_json, primary_entity_type, primary_entity_id"
+        "id, title, document_type, tags, current_content_text, current_content_json, data_cutoff_at, period_end, period_start, primary_entity_type, primary_entity_id, scope_json"
       )
       .eq("id", input.documentId)
       .maybeSingle(),
@@ -527,7 +546,7 @@ export async function duplicateDocument(
   if (!versionResult.data) return { error: "Version source introuvable" }
   if (linksResult.error) return { error: linksResult.error.message }
 
-  const document = documentResult.data
+  const document = documentResult.data as DuplicateSourceDocumentRow
   const latestVersion = versionResult.data as LatestVersionRow
   const links = (linksResult.data ?? []).map((link) => ({
     entityType: link.entity_type,
@@ -540,6 +559,10 @@ export async function duplicateDocument(
     origin: "duplicated",
     contentText: document.current_content_text,
     contentJson: document.current_content_json,
+    scopeJson: document.scope_json,
+    dataCutoffAt: document.data_cutoff_at,
+    periodStart: document.period_start,
+    periodEnd: document.period_end,
     briefJson: latestVersion.brief_json,
     sourceRefs: Array.isArray(latestVersion.source_refs) ? latestVersion.source_refs : [],
     qaFlags: Array.isArray(latestVersion.qa_flags) ? latestVersion.qa_flags : [],

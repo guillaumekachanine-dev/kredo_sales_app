@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -275,7 +277,12 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                 Contenu
               </h3>
-              {document.currentContentText ? (
+              {document.documentType === "client_summary" ? (
+                <ClientSummaryDocumentContent
+                  contentJson={document.currentContentJson}
+                  contentText={document.currentContentText}
+                />
+              ) : document.currentContentText ? (
                 <div className="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
                   {document.currentContentText}
                 </div>
@@ -297,6 +304,13 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
               ) : (
                 <p className="text-sm text-muted">Aucune source enregistrée.</p>
               )}
+            </section>
+
+            <section className="space-y-2 border-t border-border pt-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                Paramètres appliqués
+              </h3>
+              <DocumentAppliedParameters briefJson={latestVersion?.briefJson ?? null} />
             </section>
 
             <section className="space-y-3 border-t border-border pt-4">

@@ -5570,6 +5570,24 @@ export type Database = {
         Args: { p_company_id: string; p_workspace_id: string }
         Returns: Json
       }
+      get_activity_commercial_facts: {
+        Args: {
+          p_as_of_date?: string
+          p_period_end: string
+          p_period_start: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      get_activity_recruitment_facts: {
+        Args: {
+          p_as_of_date?: string
+          p_period_end: string
+          p_period_start: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
       get_communication_context: {
         Args: {
           p_company_id?: string

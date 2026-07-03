@@ -11,7 +11,8 @@
 
 CREATE OR REPLACE FUNCTION public.get_account_summary_facts(
   p_workspace_id uuid,
-  p_company_id uuid
+  p_company_id uuid,
+  p_as_of_date date DEFAULT current_date
 )
 RETURNS jsonb
 LANGUAGE sql
@@ -80,7 +81,7 @@ AS $$
           WHERE o.company_id = p_company_id AND o.workspace_id = p_workspace_id
         ),
         'meetingsRealizedLast12m', (
-          SELECT count(*) FROM public.interactions i
+            SELECT count(*) FROM public.interactions i
           WHERE i.company_id = p_company_id AND i.workspace_id = p_workspace_id
             AND i.occurred_at >= now() - interval '12 months'
         ),
@@ -88,7 +89,8 @@ AS $$
           SELECT coalesce(jsonb_agg(jsonb_build_object(
             'opportunityId', o.id,
             'label', o.next_action_label,
-            'at', o.next_action_at
+            'at', o.next_action_at,
+            'isOverdue', (o.next_action_at::date < p_as_of_date)
           ) ORDER BY o.next_action_at ASC), '[]'::jsonb)
           FROM (
             SELECT id, next_action_label, next_action_at FROM public.opportunities
@@ -149,8 +151,8 @@ AS $$
   )
 $$;
 
-REVOKE ALL ON FUNCTION public.get_account_summary_facts(uuid, uuid) FROM public;
-GRANT EXECUTE ON FUNCTION public.get_account_summary_facts(uuid, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.get_account_summary_facts(uuid, uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.get_account_summary_facts(uuid, uuid, date) TO service_role;
 
-COMMENT ON FUNCTION public.get_account_summary_facts(uuid, uuid) IS
+COMMENT ON FUNCTION public.get_account_summary_facts(uuid, uuid, date) IS
   'Hydratation déterministe pour le workflow n8n report-account-summary (REPORT-001 Lot 1). Un seul appel POST /rest/v1/rpc/get_account_summary_facts (service_role, filtrage workspace explicite car hors RLS) remplace 8+ requêtes REST séparées. Le LLM ne reçoit que ce JSON et ne peut citer que les valeurs qui y figurent.';

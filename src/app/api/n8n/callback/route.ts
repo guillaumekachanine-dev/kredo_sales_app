@@ -34,6 +34,8 @@ function isEligibleDocumentResult(resultType: string) {
     "campaign",
     "pitch",
     "pitch_mail",
+    "activity_commercial",
+    "activity_recruitment",
   ].includes(resultType)
 }
 

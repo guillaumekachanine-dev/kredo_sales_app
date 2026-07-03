@@ -11,6 +11,7 @@ export type DocumentListItem = {
   primaryEntity: { type: string; id: string; label: string } | null
   qualityOk: boolean | null
   ownerName: string
+  createdAt: string
   updatedAt: string
 }
 
@@ -80,6 +81,10 @@ export type SaveAsDocumentInput = {
   origin: Database["public"]["Enums"]["intelligence_document_version_origin"]
   contentText: string | null
   contentJson: unknown
+  scopeJson?: unknown | null
+  dataCutoffAt?: string | null
+  periodStart?: string | null
+  periodEnd?: string | null
   briefJson?: unknown | null
   sourceRefs?: unknown[]
   qaFlags?: unknown[]
@@ -231,7 +236,12 @@ export type AccountSummaryFacts = {
   activity: {
     needsTreatedCount: number
     meetingsRealizedLast12m: number
-    nextActions: Array<{ opportunityId: string; label: string | null; at: string | null }>
+    nextActions: Array<{
+      opportunityId: string
+      label: string | null
+      at: string | null
+      isOverdue: boolean
+    }>
   }
   signals: {
     news: { title: string; summary: string | null; publishedAt: string; isTriggerEvent: boolean } | null
@@ -261,11 +271,119 @@ export type AccountSummaryNarrative = {
     argument: string
   }
   nextBestAction: string
+  warnings?: string[]
 }
 
 export type AccountSummaryContent = {
   facts: AccountSummaryFacts
   narrative: AccountSummaryNarrative
+  sourceRefs: Array<{ entityType: string; entityId?: string; label: string; usedFor?: string }>
+  qaFlags: Array<{ check: string; passed: boolean; detail?: string }>
+}
+
+// ============================================================
+// REPORT-001 — Lot 2 : Rapport d'activité commerciale
+// ============================================================
+// Miroir exact du JSONB retourné par get_activity_commercial_facts
+// (supabase/migrations/20260704120000_report_activity_facts_rpc.sql).
+// Anti-double-comptage interactions/calendar_events par construction
+// temporelle (réalisé = passé, planifié = futur) — pas de déduplication
+// explicite nécessaire sur calendar_event_id.
+
+export type ActivityCommercialFacts = {
+  period: { startDate: string; endDate: string; asOfDate: string }
+  activity: {
+    realizedMeetingsCount: number
+    plannedMeetingsCount: number
+  }
+  pipeMovements: {
+    opportunitiesCreatedCount: number
+    opportunitiesWonCount: number
+    opportunitiesLostCount: number
+    wonWeightedValue: number
+  }
+  pipeSnapshot: {
+    openOpportunitiesCount: number
+    openPipeWeighted: number
+  }
+  staleOpportunities: Array<{
+    opportunityId: string
+    title: string
+    companyName: string | null
+    stage: string
+    daysSinceLastAction: number
+  }>
+  upcomingNextActions: Array<{
+    opportunityId: string
+    title: string
+    companyName: string | null
+    label: string | null
+    at: string | null
+  }>
+  byOwner: Array<{ ownerId: string; ownerName: string | null; openCount: number; openPipeWeighted: number }>
+  bySector: Array<{ sectorId: string; sectorName: string | null; openCount: number; openPipeWeighted: number }>
+  dataCutoffAt: string
+  caveats: string[]
+}
+
+// Section rédigée par le LLM — n'a le droit de citer que des valeurs
+// présentes dans `facts` (même contrôle qualité que AccountSummaryNarrative).
+export type ActivityCommercialNarrative = {
+  summary: string // 3-5 lignes de synthèse sur l'activité de la période
+  priorities: string[] // sujets prioritaires à traiter
+  risks: string[] // opportunités/actions à risque
+  warnings?: string[]
+}
+
+export type ActivityCommercialContent = {
+  facts: ActivityCommercialFacts
+  narrative: ActivityCommercialNarrative
+  sourceRefs: Array<{ entityType: string; entityId?: string; label: string; usedFor?: string }>
+  qaFlags: Array<{ check: string; passed: boolean; detail?: string }>
+}
+
+// ============================================================
+// REPORT-001 — Lot 2 : Rapport d'activité recrutement
+// ============================================================
+// Miroir exact du JSONB retourné par get_activity_recruitment_facts.
+// Deux funnels distincts : recrutement interne (candidate_hiring_processes)
+// et positionnement sur besoin (opportunity_candidates) — jamais fusionnés.
+
+export type ActivityRecruitmentFacts = {
+  period: { startDate: string; endDate: string; asOfDate: string }
+  hiringFunnel: {
+    byStep: Array<{ step: string; count: number }>
+    closedThisPeriod: Array<{ closeReason: string | null; count: number }>
+    integratedThisPeriod: number
+  }
+  positioningFunnel: {
+    byStatus: Array<{ status: string; count: number }>
+    sentToClientThisPeriod: number
+    proposedThisPeriod: number
+  }
+  pendingOffers: Array<{
+    candidateId: string
+    candidateName: string | null
+    offerStatus: string | null
+    deadline: string | null
+  }>
+  availableSoon: Array<{ candidateId: string; candidateName: string | null; availableFrom: string | null }>
+  byPractice: Array<{ practiceId: string | null; practiceName: string | null; activeCandidatesCount: number }>
+  byOrigin: Array<{ source: string | null; count: number }>
+  dataCutoffAt: string
+  caveats: string[]
+}
+
+export type ActivityRecruitmentNarrative = {
+  summary: string
+  priorities: string[]
+  risks: string[]
+  warnings?: string[]
+}
+
+export type ActivityRecruitmentContent = {
+  facts: ActivityRecruitmentFacts
+  narrative: ActivityRecruitmentNarrative
   sourceRefs: Array<{ entityType: string; entityId?: string; label: string; usedFor?: string }>
   qaFlags: Array<{ check: string; passed: boolean; detail?: string }>
 }

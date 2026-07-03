@@ -21,7 +21,7 @@ function ScoreDots({ score, label }: { score: number; label: string }) {
           />
         ))}
       </span>
-      <span className="text-xs font-bold font-mono text-heading">{score.toFixed(1)}</span>
+      <span className="text-xs font-bold font-mono text-heading">{score.toFixed(1)} / 5</span>
       <span className="text-[10px] text-muted">{label}</span>
     </div>
   )
@@ -48,6 +48,19 @@ function Metric({ label, value, hint }: { label: string; value: string; hint?: s
   )
 }
 
+function isActionOverdue(actionAt: string | null, actionFlag: boolean | undefined, asOfDate: string) {
+  if (typeof actionFlag === "boolean") return actionFlag
+  if (!actionAt) return false
+
+  const actionDate = new Date(actionAt)
+  const referenceDate = new Date(asOfDate)
+  if (Number.isNaN(actionDate.getTime()) || Number.isNaN(referenceDate.getTime())) {
+    return false
+  }
+
+  return actionDate.getTime() < referenceDate.getTime()
+}
+
 export function AccountSummaryReportView({
   content,
   isMobile = false,
@@ -58,6 +71,9 @@ export function AccountSummaryReportView({
   const { facts, narrative, qaFlags } = content
   const failedFlags = qaFlags.filter((f) => !f.passed)
   const allPassed = failedFlags.length === 0
+  const narrativeWarnings = Array.isArray(narrative.warnings)
+    ? narrative.warnings.filter((warning): warning is string => typeof warning === "string" && warning.trim().length > 0)
+    : []
 
   return (
     <div className="space-y-5">
@@ -130,12 +146,17 @@ export function AccountSummaryReportView({
         </div>
         {facts.activity.nextActions.length > 0 && (
           <ul className="space-y-1 text-xs text-body">
-            {facts.activity.nextActions.map((action) => (
-              <li key={action.opportunityId}>
-                ▸ {action.label ?? "Action à définir"}
-                {action.at && <span className="text-muted"> — {formatDate(action.at)}</span>}
-              </li>
-            ))}
+            {facts.activity.nextActions.map((action) => {
+              const overdue = isActionOverdue(action.at, action.isOverdue, facts.dataCutoffAt)
+
+              return (
+                <li key={action.opportunityId} className={overdue ? "text-danger" : undefined}>
+                  ▸ {action.label ?? "Action à définir"}
+                  {action.at && <span className="text-muted"> — {formatDate(action.at)}</span>}
+                  {overdue ? <span className="font-semibold"> · En retard</span> : null}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -207,6 +228,14 @@ export function AccountSummaryReportView({
         <div className="rounded border border-warning/25 bg-warning/5 px-3 py-2.5 text-[11px] text-[var(--color-status-warning-ink)] space-y-1">
           {facts.caveats.map((caveat, i) => (
             <p key={i}>⚠ {caveat}</p>
+          ))}
+        </div>
+      )}
+
+      {narrativeWarnings.length > 0 && (
+        <div className="rounded border border-warning/25 bg-warning/5 px-3 py-2.5 text-[11px] text-[var(--color-status-warning-ink)] space-y-1">
+          {narrativeWarnings.map((warning, i) => (
+            <p key={i}>⚠ {warning}</p>
           ))}
         </div>
       )}

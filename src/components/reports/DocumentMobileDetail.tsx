@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
+import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -55,6 +57,44 @@ type LoadState =
   | { status: "loading"; data: null; error: null }
   | { status: "error"; data: null; error: string }
   | { status: "ready"; data: DocumentDetail; error: null }
+
+type QaFlagViewModel = {
+  check: string
+  detail: string | null
+  passed: boolean
+}
+
+function formatSourceRef(value: unknown): string {
+  if (typeof value === "string") return value
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>
+    const label = record.label
+    if (typeof label === "string" && label.trim()) return label.trim()
+    const name = record.name
+    if (typeof name === "string" && name.trim()) return name.trim()
+    const title = record.title
+    if (typeof title === "string" && title.trim()) return title.trim()
+  }
+
+  return JSON.stringify(value) ?? "Source structurée"
+}
+
+function buildQaFlags(values: unknown[]): QaFlagViewModel[] {
+  return values.flatMap((value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return []
+    const record = value as Record<string, unknown>
+    return [{
+      check: typeof record.check === "string" ? record.check : "Contrôle",
+      detail:
+        typeof record.detail === "string"
+          ? record.detail
+          : typeof record.reason === "string"
+            ? record.reason
+            : null,
+      passed: record.passed === true,
+    }]
+  })
+}
 
 function buildQualityState(document: DocumentDetail | null) {
   const flags = document?.versions[0]?.qaFlags
@@ -116,6 +156,11 @@ export function DocumentMobileDetail({
 
   const document = loadState.status === "ready" ? loadState.data : null
   const qualityOk = useMemo(() => buildQualityState(document), [document])
+  const qaFlags = useMemo(
+    () => buildQaFlags(document?.versions[0]?.qaFlags ?? []),
+    [document?.versions]
+  )
+  const failedFlags = qaFlags.filter((flag) => !flag.passed)
   const drawerError = loadState.status === "error"
     ? {
         title: "Impossible de charger le document",
@@ -273,7 +318,14 @@ export function DocumentMobileDetail({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                   Contenu
                 </h3>
-                {document.currentContentText ? (
+                {document.documentType === "client_summary" ? (
+                  <ClientSummaryDocumentContent
+                    contentJson={document.currentContentJson}
+                    contentText={document.currentContentText}
+                    isMobile
+                    fallbackClassName="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
+                  />
+                ) : document.currentContentText ? (
                   <div className="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
                     {document.currentContentText}
                   </div>
@@ -293,6 +345,45 @@ export function DocumentMobileDetail({
                     label={qualityOk ? "Qualité OK" : "À vérifier"}
                     variant={qualityOk ? "success" : "warning"}
                   />
+                )}
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  Sources
+                </h3>
+                {document.versions[0]?.sourceRefs.length ? (
+                  <ul className="space-y-1 text-xs text-body">
+                    {document.versions[0].sourceRefs.map((ref, index) => (
+                      <li key={`${document.id}-source-${index}`}>• {formatSourceRef(ref)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">Aucune source enregistrée.</p>
+                )}
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  Paramètres appliqués
+                </h3>
+                <DocumentAppliedParameters briefJson={document.versions[0]?.briefJson ?? null} />
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  Contrôles qualité
+                </h3>
+                {qaFlags.length === 0 ? (
+                  <p className="text-sm text-muted">Aucun contrôle QA enregistré.</p>
+                ) : failedFlags.length > 0 ? (
+                  <ul className="space-y-1 text-xs text-warning">
+                    {failedFlags.map((flag, index) => (
+                      <li key={`${document.id}-qa-${index}`}>• {flag.detail || flag.check}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">Tous les contrôles enregistrés sont passés.</p>
                 )}
               </section>
 

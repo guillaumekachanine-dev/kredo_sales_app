@@ -52,8 +52,34 @@ function mapResultTypeToDocumentType(resultType: string): DocumentType | null {
       return "commercial_pitch"
     case "campaign":
       return "campaign"
+    case "activity_commercial":
+      return "activity_commercial"
+    case "activity_recruitment":
+      return "activity_recruitment"
     default:
       return null
+  }
+}
+
+// Rapports périodiques REPORT-001 (Lot 2+) : facts.period.{startDate,endDate}
+// est calculé en base (RPC get_activity_*_facts) — jamais par le LLM. Les
+// rapports non périodiques (ex. client_summary) n'ont pas ce champ.
+function getContentPeriod(contentJson: Json): { start: string | null; end: string | null } {
+  if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
+    return { start: null, end: null }
+  }
+  const facts = (contentJson as Record<string, unknown>).facts
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) {
+    return { start: null, end: null }
+  }
+  const period = (facts as Record<string, unknown>).period
+  if (!period || typeof period !== "object" || Array.isArray(period)) {
+    return { start: null, end: null }
+  }
+  const { startDate, endDate } = period as Record<string, unknown>
+  return {
+    start: typeof startDate === "string" ? startDate : null,
+    end: typeof endDate === "string" ? endDate : null,
   }
 }
 
@@ -86,6 +112,31 @@ function getFirstSubject(contentJson: Json): string | null {
   return first?.trim() ?? null
 }
 
+function getContentDataCutoffAt(contentJson: Json): string | null {
+  if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
+    return null
+  }
+
+  const facts = (contentJson as Record<string, unknown>).facts
+  if (!facts || typeof facts !== "object" || Array.isArray(facts)) {
+    return null
+  }
+
+  const dataCutoffAt = (facts as Record<string, unknown>).dataCutoffAt
+  return typeof dataCutoffAt === "string" && dataCutoffAt.trim() ? dataCutoffAt : null
+}
+
+function getBriefScope(inputSnapshot: Json): Json | null {
+  if (!inputSnapshot || typeof inputSnapshot !== "object" || Array.isArray(inputSnapshot)) {
+    return null
+  }
+
+  const scope = (inputSnapshot as Record<string, unknown>).scope
+  return scope && typeof scope === "object" && !Array.isArray(scope)
+    ? (scope as Json)
+    : null
+}
+
 function buildFallbackTitle(documentType: DocumentType) {
   switch (documentType) {
     case "communication":
@@ -98,6 +149,10 @@ function buildFallbackTitle(documentType: DocumentType) {
       return "Campagne IA"
     case "internal_note":
       return "Note IA"
+    case "activity_commercial":
+      return "Rapport d'activité commerciale"
+    case "activity_recruitment":
+      return "Rapport d'activité recrutement"
     default:
       // Types de rapports REPORT-001 (Lot 1+) — pas encore générés via ce
       // chemin (saveResultAsDocumentWithSupabaseClient sert INTEL-020/021/022).
@@ -195,6 +250,8 @@ export async function saveResultAsDocumentWithSupabaseClient(
   const run = runRecord as RunRow
   const documentOwnerId = actorUserId ?? result.owner_id ?? run.owner_id
   const contentText = normalizeText(result.content_text) ?? getBodyText(result.content_json)
+  const isClientSummary = documentType === "client_summary"
+  const contentPeriod = getContentPeriod(result.content_json)
 
   const creation = await saveAsDocumentWithClient(
     supabase,
@@ -205,6 +262,10 @@ export async function saveResultAsDocumentWithSupabaseClient(
       origin: "generated",
       contentText,
       contentJson: result.content_json,
+      scopeJson: getBriefScope(run.input_snapshot),
+      dataCutoffAt: getContentDataCutoffAt(result.content_json),
+      periodStart: isClientSummary ? null : contentPeriod.start,
+      periodEnd: isClientSummary ? null : contentPeriod.end,
       briefJson: run.input_snapshot,
       sourceRefs: asArray(result.source_refs),
       qaFlags: asArray(result.qa_flags),

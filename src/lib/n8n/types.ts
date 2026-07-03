@@ -12,6 +12,8 @@ export type N8nWorkflowId =
   | "intel-022-campaign"            // INTEL-022 : création campagne
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
+  | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale
+  | "report-activity-recruitment"   // REPORT-001 Lot 2 : rapport d'activité recrutement
   // Sales
   | "sales-001-interaction-enrich"  // SALES-001 : enrichissement interaction (preuve E2E)
   // Recrutement

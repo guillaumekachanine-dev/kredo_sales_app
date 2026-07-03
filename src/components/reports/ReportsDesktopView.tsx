@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/Input"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
-import { StatusPill } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table/DataTable"
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination"
@@ -71,8 +70,11 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   calendar_event: "Événement",
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("fr-FR")
+function formatShortDate(value: string) {
+  const date = new Date(value)
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  return `${day}/${month}`
 }
 
 function countActiveFilters(filters: ReportsFilterState) {
@@ -195,7 +197,9 @@ export function ReportsDesktopView({
       id: "title",
       header: "Titre",
       accessor: (row) => row.title,
-      minWidth: "15rem",
+      width: "41%",
+      minWidth: "0",
+      className: "max-w-0",
       cell: (row) => (
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
@@ -218,65 +222,50 @@ export function ReportsDesktopView({
       id: "documentType",
       header: "Type",
       accessor: (row) => DOCUMENT_TYPE_LABELS[row.documentType],
-      minWidth: "9rem",
-      cell: (row) => DOCUMENT_TYPE_LABELS[row.documentType],
+      width: "17%",
+      minWidth: "8rem",
+      headerClassName: "whitespace-nowrap",
+      className: "whitespace-nowrap",
+      cell: (row) => (
+        <span className="block truncate">
+          {DOCUMENT_TYPE_LABELS[row.documentType]}
+        </span>
+      ),
     },
     {
       id: "primaryEntity",
       header: "Lié à",
       accessor: (row) => row.primaryEntity?.label ?? "",
-      minWidth: "10rem",
-      cell: (row) => row.primaryEntity?.label ?? "—",
-    },
-    {
-      id: "status",
-      header: "Statut",
-      accessor: (row) => STATUS_LABELS[row.status],
-      minWidth: "8rem",
+      width: "23%",
+      minWidth: "0",
+      className: "max-w-0",
       cell: (row) => (
-        <StatusPill
-          label={STATUS_LABELS[row.status]}
-          variant={
-            row.status === "draft"
-              ? "draft"
-              : row.status === "ready"
-                ? "inProgress"
-                : row.status === "used"
-                  ? "success"
-                  : "neutral"
-          }
-        />
+        <span className="block truncate">
+          {row.primaryEntity?.label ?? "—"}
+        </span>
       ),
     },
     {
-      id: "versionNumber",
-      header: "Version",
-      accessor: (row) => row.versionNumber,
-      align: "center",
-      minWidth: "6rem",
-      cell: (row) => row.versionNumber,
-    },
-    {
-      id: "qualityOk",
-      header: "Qualité",
-      align: "center",
-      minWidth: "7rem",
-      cell: (row) => {
-        if (row.qualityOk == null) return null
-        return (
-          <StatusPill
-            label={row.qualityOk ? "OK" : "À vérifier"}
-            variant={row.qualityOk ? "success" : "warning"}
-          />
-        )
-      },
+      id: "createdAt",
+      header: "Créé le",
+      accessor: (row) => row.createdAt,
+      width: "9.5%",
+      minWidth: "4.25rem",
+      align: "right",
+      headerClassName: "whitespace-nowrap",
+      className: "whitespace-nowrap text-right",
+      cell: (row) => formatShortDate(row.createdAt),
     },
     {
       id: "updatedAt",
       header: "Modifié le",
       accessor: (row) => row.updatedAt,
-      minWidth: "7.5rem",
-      cell: (row) => formatDate(row.updatedAt),
+      width: "9.5%",
+      minWidth: "4.25rem",
+      align: "right",
+      headerClassName: "whitespace-nowrap",
+      className: "whitespace-nowrap text-right",
+      cell: (row) => formatShortDate(row.updatedAt),
     },
   ]
 
@@ -370,6 +359,8 @@ export function ReportsDesktopView({
             columns={columns}
             getRowId={(row) => row.id}
             ariaLabel="Liste des documents"
+            tableClassName="table-fixed"
+            containerClassName="overflow-x-hidden"
             selectedRowId={selectedDocumentId}
             onRowClick={(row) => handleSelectDocument(row.id)}
             stickyHeader
@@ -418,7 +409,7 @@ export function ReportsDesktopView({
                   Sélectionnez un document
                 </h2>
                 <p className="mt-2 max-w-sm text-sm text-body">
-                  La prévisualisation, les sources, la qualité et l’historique
+                  La prévisualisation, les sources, les paramètres appliqués et l’historique
                   s’affichent ici dès qu’un document est ouvert.
                 </p>
               </div>

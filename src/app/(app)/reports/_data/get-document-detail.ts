@@ -26,8 +26,8 @@ type ReadTable = {
 type LooseSupabaseClient = { from(table: string): ReadTable }
 
 type OwnerRelation =
-  | { full_name: string | null }
-  | Array<{ full_name: string | null }>
+  | { full_name: string | null; email: string | null }
+  | Array<{ full_name: string | null; email: string | null }>
   | null
 type PersonRelation =
   | { full_name: string | null; first_name: string | null; last_name: string | null }
@@ -46,6 +46,7 @@ type DocumentRow = {
   primary_entity_id: string | null
   current_content_text: string | null
   current_content_json: unknown
+  created_at: string
   updated_at: string
   owner: OwnerRelation
 }
@@ -126,7 +127,8 @@ function fallbackEntityLabel(entityType: string): string {
 }
 
 function getOwnerName(owner: OwnerRelation): string {
-  return pickOne(owner)?.full_name?.trim() || "Utilisateur inconnu"
+  const resolved = pickOne(owner)
+  return resolved?.full_name?.trim() || resolved?.email?.trim() || "Utilisateur inconnu"
 }
 
 function computeQualityOk(qaFlags: unknown): boolean | null {
@@ -338,6 +340,7 @@ function buildDocumentListItem(
     primaryEntity,
     qualityOk: computeQualityOk(latestVersion?.qa_flags ?? null),
     ownerName: getOwnerName(row.owner),
+    createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
 }
@@ -355,7 +358,7 @@ function buildVersions(rows: VersionRow[]): DocumentVersion[] {
       sourceRefs: normalizeUnknownArray(row.source_refs),
       qaFlags: normalizeUnknownArray(row.qa_flags),
       changeNote: row.change_note,
-      createdByName: pickOne(row.creator)?.full_name?.trim() || null,
+      createdByName: getOwnerName(row.creator),
       createdAt: row.created_at,
     }))
 }
@@ -391,8 +394,9 @@ export async function getDocumentDetail(documentId: string): Promise<DocumentDet
           primary_entity_id,
           current_content_text,
           current_content_json,
+          created_at,
           updated_at,
-          owner:profiles!intelligence_documents_owner_id_fkey(full_name)
+          owner:profiles!intelligence_documents_owner_id_fkey(full_name, email)
         `
       )
       .eq("id", documentId)
@@ -416,7 +420,7 @@ export async function getDocumentDetail(documentId: string): Promise<DocumentDet
             qa_flags,
             change_note,
             created_at,
-            creator:profiles!intelligence_document_versions_created_by_fkey(full_name)
+            creator:profiles!intelligence_document_versions_created_by_fkey(full_name, email)
           `
         )
         .eq("document_id", documentId)
