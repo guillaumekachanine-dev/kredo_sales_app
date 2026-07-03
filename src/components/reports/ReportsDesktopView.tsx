@@ -14,7 +14,8 @@ import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table/DataTable"
 import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination"
-import { useIntelligencePanel } from "@/hooks/use-intelligence-panel"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import type {
   DocumentDetail,
   DocumentListItem,
@@ -262,9 +263,14 @@ export function ReportsDesktopView({
           </>
         )}
         actions={(
-          <Button onClick={() => useIntelligencePanel.getState().open()}>
-            Nouvelle rédaction
-          </Button>
+          <div className="flex flex-col items-stretch gap-2">
+            <Button onClick={() => openCommunicationComposer({ origin: "global" })}>
+              Rédiger un mail
+            </Button>
+            <Button variant="secondary" onClick={() => openReportGeneration({ origin: "reports_library" })}>
+              Générer un rapport
+            </Button>
+          </div>
         )}
       />
 
