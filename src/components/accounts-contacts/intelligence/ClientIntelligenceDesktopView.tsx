@@ -253,7 +253,7 @@ function AccueilTab({
       {/* ── Signaux récents ── */}
       {signals && signals.length > 0 && (
         <SectionBlock title="Signaux récents">
-          <SignalList signals={signals} />
+          <SignalList signals={signals} companyId={data.company.id} companyName={data.company.name} />
         </SectionBlock>
       )}
     </div>
@@ -1183,7 +1183,6 @@ export function ExpandIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
 
 
 

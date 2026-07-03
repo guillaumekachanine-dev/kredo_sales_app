@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { formatDate, formatEuro } from "@/lib/formatters"
 import type { OpportunityStandingProfile } from "@/types/database-domain"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 interface OpportunityStandingPanelProps {
   profiles: OpportunityStandingProfile[]
@@ -20,6 +21,10 @@ interface OpportunityStandingPanelProps {
   onSave: () => void
   onPracticeChange: (value: string) => void
   onRequiresStaffingChange: (value: boolean) => void
+  opportunityId: string
+  companyId?: string | null
+  companyName?: string | null
+  opportunityTitle?: string
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -76,9 +81,17 @@ const PRACTICE_OPTIONS = [
 function StandingProfileList({
   profiles,
   emptyLabel,
+  opportunityId,
+  companyId,
+  companyName,
+  opportunityTitle,
 }: {
   profiles: OpportunityStandingProfile[]
   emptyLabel: string
+  opportunityId: string
+  companyId?: string | null
+  companyName?: string | null
+  opportunityTitle?: string
 }) {
   const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
 
@@ -91,52 +104,72 @@ function StandingProfileList({
       {profiles.map((profile) => (
         <div
           key={profile.id}
-          onClick={() => openStaffingDrawer(profile.id)}
-          className="rounded border border-border/50 bg-canvas/30 p-2.5 flex flex-col gap-1.5 cursor-pointer hover:border-primary/50 hover:bg-canvas/40 transition-all select-none text-left outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault()
-              openStaffingDrawer(profile.id)
-            }
-          }}
+          className="rounded border border-border/50 bg-canvas/30 p-2.5 flex flex-col gap-1.5 transition-all select-none"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-heading truncate">{profile.full_name}</p>
-              <p className="text-[10px] text-muted capitalize">
-                {[profile.currentTitle, profile.seniority, profile.availability].filter(Boolean).map(normalizeLabel).join(" · ") || "Profil candidat"}
-              </p>
+          <button
+            type="button"
+            onClick={() => openStaffingDrawer(profile.id)}
+            className="flex flex-col gap-1.5 rounded text-left outline-none transition-colors hover:text-primary focus-visible:ring-1 focus-visible:ring-primary/50"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-heading truncate">{profile.full_name}</p>
+                <p className="text-[10px] text-muted capitalize">
+                  {[profile.currentTitle, profile.seniority, profile.availability].filter(Boolean).map(normalizeLabel).join(" · ") || "Profil candidat"}
+                </p>
+              </div>
+              {profile.internal_score !== null && (
+                <span className="shrink-0 rounded border border-success/20 bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success">
+                  {Math.round(Number(profile.internal_score))}%
+                </span>
+              )}
             </div>
-            {profile.internal_score !== null && (
-              <span className="shrink-0 rounded border border-success/20 bg-success/10 px-1.5 py-0.5 text-[9px] font-bold text-success">
-                {Math.round(Number(profile.internal_score))}%
-              </span>
-            )}
-          </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
-              {getStatusLabel(profile.opportunity_status)}
-            </span>
-            {profile.expected_daily_rate !== null && (
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
-                {formatEuro(profile.expected_daily_rate)}
+                {getStatusLabel(profile.opportunity_status)}
               </span>
-            )}
-            {profile.proposed_at && (
-              <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
-                Proposé le {formatDate(profile.proposed_at)}
-              </span>
-            )}
-          </div>
+              {profile.expected_daily_rate !== null && (
+                <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
+                  {formatEuro(profile.expected_daily_rate)}
+                </span>
+              )}
+              {profile.proposed_at && (
+                <span className="rounded border border-border bg-surface px-1.5 py-0.5 text-[9px] font-semibold text-muted">
+                  Proposé le {formatDate(profile.proposed_at)}
+                </span>
+              )}
+            </div>
 
-          {(profile.summary || profile.comment || profile.next_action) && (
-            <p className="text-[10px] leading-relaxed text-body line-clamp-2">
-              {profile.comment || profile.next_action || profile.summary}
-            </p>
-          )}
+            {(profile.summary || profile.comment || profile.next_action) && (
+              <p className="text-[10px] leading-relaxed text-body line-clamp-2">
+                {profile.comment || profile.next_action || profile.summary}
+              </p>
+            )}
+          </button>
+
+          <div className="flex justify-end border-t border-border/30 pt-2">
+            <ContextualCommunicationButton
+              entryPoint="candidate_positioning"
+              companyId={companyId}
+              companyName={companyName}
+              primaryEntity={{ type: "opportunity", id: opportunityId }}
+              label="Envoyer le profil"
+              className="h-8 min-h-8 px-2.5 text-[11px]"
+              aria-label={`Envoyer le profil ${profile.full_name}`}
+              refs={{
+                opportunityRef: opportunityId,
+                profileRef: profile.id,
+                angle: [
+                  opportunityTitle ? `Opportunité: ${opportunityTitle}` : null,
+                  `Profil: ${profile.full_name}`,
+                  profile.currentTitle ? `Poste actuel: ${profile.currentTitle}` : null,
+                  profile.summary ? `Synthèse: ${profile.summary}` : null,
+                  profile.next_action ? `Prochaine étape: ${profile.next_action}` : null,
+                ].filter(Boolean).join("\n") || undefined,
+              }}
+            />
+          </div>
         </div>
       ))}
     </div>
@@ -156,6 +189,10 @@ export function OpportunityStandingPanel({
   onSave,
   onPracticeChange,
   onRequiresStaffingChange,
+  opportunityId,
+  companyId,
+  companyName,
+  opportunityTitle,
 }: OpportunityStandingPanelProps) {
   const selectedProfiles = profiles.filter((profile) => profile.origin === "pressenti")
   const aiProfiles = profiles.filter((profile) => profile.origin === "ia")
@@ -250,6 +287,10 @@ export function OpportunityStandingPanel({
           <StandingProfileList
             profiles={selectedProfiles}
             emptyLabel="Aucun profil pressenti."
+            opportunityId={opportunityId}
+            companyId={companyId}
+            companyName={companyName}
+            opportunityTitle={opportunityTitle}
           />
         </section>
 
@@ -263,6 +304,10 @@ export function OpportunityStandingPanel({
           <StandingProfileList
             profiles={aiProfiles}
             emptyLabel="Aucune proposition IA."
+            opportunityId={opportunityId}
+            companyId={companyId}
+            companyName={companyName}
+            opportunityTitle={opportunityTitle}
           />
         </section>
       </div>

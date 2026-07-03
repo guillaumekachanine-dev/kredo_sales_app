@@ -31,6 +31,7 @@ import {
   ExpandIcon,
   CollapseIcon,
 } from "./ClientIntelligenceDesktopView"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
   const { company, client, sector, diagnostic, diagnosticPdfUrl, signals } = data
@@ -408,26 +409,40 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             ) : (
               <ul className="space-y-3 mt-1">
                 {signals.map((signal, i) => (
-                  <li key={i} className="flex items-start justify-between gap-3 text-xs py-1.5 border-b border-border/10 last:border-0">
-                    <div className="flex gap-2.5 items-start flex-1 min-w-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                      <span className="text-xs leading-relaxed text-body">{signal}</span>
+                  <li key={i} className="flex flex-col gap-2 py-1.5 text-xs border-b border-border/10 last:border-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-2.5 items-start flex-1 min-w-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                        <span className="text-xs leading-relaxed text-body">{signal}</span>
+                      </div>
+                      <a
+                        href={
+                          signal.match(/(https?:\/\/[^\s]+)/)?.[0] ||
+                          `https://www.google.com/search?q=${encodeURIComponent(`${company.name} ${signal}`)}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2 py-1 rounded transition-colors shrink-0"
+                        title="Accéder à la source"
+                      >
+                        <span>Source</span>
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                      </a>
                     </div>
-                    <a
-                      href={
-                        signal.match(/(https?:\/\/[^\s]+)/)?.[0] ||
-                        `https://www.google.com/search?q=${encodeURIComponent(`${company.name} ${signal}`)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2 py-1 rounded transition-colors shrink-0"
-                      title="Accéder à la source"
-                    >
-                      <span>Source</span>
-                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                      </svg>
-                    </a>
+                    <div className="flex justify-end">
+                      <ContextualCommunicationButton
+                        entryPoint="signal_card"
+                        companyId={company.id}
+                        companyName={company.name}
+                        primaryEntity={{ type: "company", id: company.id }}
+                        label="Contacter sur ce signal"
+                        className="h-8 min-h-8 px-2.5 text-[11px]"
+                        aria-label={`Contacter ${company.name} sur le signal ${i + 1}`}
+                        refs={{ signalRef: signal }}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -536,4 +551,3 @@ function VeilleIaIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-

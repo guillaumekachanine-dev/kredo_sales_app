@@ -9,6 +9,7 @@ import { formatDateNumeric } from "@/lib/formatters"
 import { getPracticeByName } from "@/lib/config/practices"
 import { updateMissionRisk } from "@/app/(app)/missions/_actions/update-mission-risk"
 import { cn } from "@/lib/utils"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type { MissionSummary, MissionCompany, RiskLevel } from "./mission-detail-types"
 import { getMissionDurationMonths, isEndingSoon } from "./mission-detail-utils"
 
@@ -228,21 +229,43 @@ export function MissionDetailHeader({
         </div>
 
         {/* RIGHT: client identity box */}
-        <div className="flex items-center gap-4 bg-canvas/30 px-4 py-3 rounded-[var(--radius-medium)] border border-border/40 shrink-0 self-start min-w-[18rem]">
-          <CompanyLogo
-            name={companyName}
-            logoPath={logoPath}
-            website={company?.website ?? null}
-            size="xl"
-          />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-[0.22em] leading-none mb-1.5">
-              Client
-            </span>
-            <span className="font-bold text-heading text-xl md:text-2xl leading-tight">
-              {companyName}
-            </span>
+        <div className="flex flex-col gap-3 bg-canvas/30 px-4 py-3 rounded-[var(--radius-medium)] border border-border/40 shrink-0 self-start min-w-[18rem]">
+          <div className="flex items-center gap-4">
+            <CompanyLogo
+              name={companyName}
+              logoPath={logoPath}
+              website={company?.website ?? null}
+              size="xl"
+            />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-[0.22em] leading-none mb-1.5">
+                Client
+              </span>
+              <span className="font-bold text-heading text-xl md:text-2xl leading-tight">
+                {companyName}
+              </span>
+            </div>
           </div>
+          {mission.status === "active" ? (
+            <ContextualCommunicationButton
+              entryPoint="active_mission"
+              companyId={company?.id}
+              companyName={company?.name}
+              primaryEntity={{ type: "mission", id: mission.id }}
+              label="Proposer une extension"
+              variant="primary"
+              fullWidth
+              aria-label={`Proposer une extension pour la mission ${mission.title}`}
+              refs={{
+                missionRef: mission.id,
+                angle: [
+                  `Mission active: ${mission.title}`,
+                  mission.role_title ? `Rôle: ${mission.role_title}` : null,
+                  mission.end_date ? `Fin prévue: ${formatDateNumeric(mission.end_date)}` : null,
+                ].filter(Boolean).join("\n") || undefined,
+              }}
+            />
+          ) : null}
         </div>
       </div>
 

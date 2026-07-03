@@ -13,6 +13,7 @@ import { formatEuro, formatDate } from "@/lib/formatters"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
 import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
 import { RegisterIntelligenceEntity } from "@/components/intelligence/RegisterIntelligenceEntity"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -521,6 +522,26 @@ export function ContactIdentityDrawer({
                     )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {company && (
+                      <ContextualCommunicationButton
+                        entryPoint="contact_drawer"
+                        companyId={company.id}
+                        companyName={company.name}
+                        contactId={contact.id}
+                        primaryEntity={{ type: "contact", id: contact.id }}
+                        label="Rédiger un email"
+                        variant="secondary"
+                        className="h-8 min-h-8 border-white/20 bg-white/10 px-2.5 text-[11px] text-white hover:bg-white/20"
+                        aria-label={`Rédiger un email pour ${fullName}`}
+                        refs={{
+                          angle: [
+                            contact.job_title ? `Fonction: ${contact.job_title}` : null,
+                            contact.relationship_role ? `Rôle relationnel: ${contact.relationship_role}` : null,
+                            contact.relationship_level ? `Niveau de relation: ${contact.relationship_level}` : null,
+                          ].filter(Boolean).join(" · ") || undefined,
+                        }}
+                      />
+                    )}
                     {onEditContact && (
                       <button
                         onClick={() => onEditContact(contact.id)}
@@ -1005,6 +1026,29 @@ export function ContactIdentityDrawer({
                               {it.next_action && (
                                 <div className="mt-2.5 pt-2 border-t border-border/30 text-[10px] text-muted font-normal">
                                   Prochaine étape : <strong className="text-primary font-medium">{it.next_action}</strong>
+                                </div>
+                              )}
+
+                              {company && (
+                                <div className="mt-3 flex justify-end border-t border-border/30 pt-2.5">
+                                  <ContextualCommunicationButton
+                                    entryPoint="meeting_interaction"
+                                    companyId={company.id}
+                                    companyName={company.name}
+                                    contactId={contact.id}
+                                    primaryEntity={{ type: "contact", id: contact.id }}
+                                    label="Rédiger le suivi"
+                                    className="h-8 min-h-8 px-2.5 text-[11px]"
+                                    aria-label={`Rédiger le suivi de l'interaction du ${formatDate(it.occurred_at)} avec ${fullName}`}
+                                    refs={{
+                                      interactionRef: it.id,
+                                      angle: [
+                                        `Type interaction: ${it.type}`,
+                                        it.summary ? `Résumé: ${it.summary}` : null,
+                                        it.next_action ? `Prochaine étape: ${it.next_action}` : null,
+                                      ].filter(Boolean).join("\n") || undefined,
+                                    }}
+                                  />
                                 </div>
                               )}
                             </div>

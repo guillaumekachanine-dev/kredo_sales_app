@@ -7,6 +7,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { SearchToolbar } from "@/components/search/SearchToolbar"
 import { cn } from "@/lib/utils"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import {
   type ProspectionPeriod,
   type ProspectionPortfolioAccount,
@@ -247,16 +248,24 @@ export function AccountsToActivateTable({
                                 </Link>
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onSelectAccount(account.id)
-                                    setDialogState({ kind: "pitch-mail", account })
-                                  }}
+                                <ContextualCommunicationButton
+                                  entryPoint="missed_follow_up"
+                                  companyId={account.id}
+                                  companyName={account.name}
+                                  primaryEntity={{ type: "company", id: account.id }}
+                                  label="Préparer la relance"
+                                  variant="primary"
                                   className={ACTION_BUTTON_CLASS}
-                                >
-                                  Pitch/mail
-                                </button>
+                                  aria-label={`Préparer la relance pour ${account.name}`}
+                                  refs={{
+                                    angle: [
+                                      `Action recommandée: ${recommendation.actionLabel}`,
+                                      `Priorité: ${getPriorityLabel(account.priority)}`,
+                                      `Dernière activité: ${formatDateLabel(account.latestCommercialActivityAt)}`,
+                                      account.sector ? `Secteur: ${account.sector}` : null,
+                                    ].filter(Boolean).join("\n") || undefined,
+                                  }}
+                                />
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <button

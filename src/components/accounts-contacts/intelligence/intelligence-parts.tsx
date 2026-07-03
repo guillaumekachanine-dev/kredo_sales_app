@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import type { IntelligenceSource } from "@/lib/intelligence/intelligence-data"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Pièces présentationnelles partagées Desktop / Mobile (ADR-0008).
@@ -117,18 +118,42 @@ export function TagList({ items }: { items: string[] }) {
 }
 
 /** Liste « actualités & signaux faibles ». */
-export function SignalList({ signals }: { signals: string[] }) {
+export function SignalList({
+  signals,
+  companyId,
+  companyName,
+}: {
+  signals: string[]
+  companyId?: string
+  companyName?: string
+}) {
   if (signals.length === 0) {
     return <p className="text-xs italic text-muted">Aucun signal récent capté pour l&apos;instant.</p>
   }
   return (
     <ul className="space-y-2">
       {signals.map((signal, i) => (
-        <li key={i} className="flex gap-2.5 rounded border border-border/60 bg-canvas/40 p-2.5">
-          <svg className="mt-1 h-2 w-2 text-heading shrink-0" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
-            <polygon points="20,10 80,50 20,90" />
-          </svg>
-          <span className="text-xs leading-relaxed text-body">{signal}</span>
+        <li key={i} className="flex flex-col gap-2 rounded border border-border/60 bg-canvas/40 p-2.5">
+          <div className="flex gap-2.5">
+            <svg className="mt-1 h-2 w-2 text-heading shrink-0" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+              <polygon points="20,10 80,50 20,90" />
+            </svg>
+            <span className="text-xs leading-relaxed text-body">{signal}</span>
+          </div>
+          {companyId ? (
+            <div className="flex justify-end">
+              <ContextualCommunicationButton
+                entryPoint="signal_card"
+                companyId={companyId}
+                companyName={companyName}
+                primaryEntity={{ type: "company", id: companyId }}
+                label="Contacter sur ce signal"
+                className="h-8 min-h-8 px-2.5 text-[11px]"
+                aria-label={`Contacter ${companyName ?? "ce compte"} sur le signal ${i + 1}`}
+                refs={{ signalRef: signal }}
+              />
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>

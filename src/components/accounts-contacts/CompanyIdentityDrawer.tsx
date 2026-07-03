@@ -11,6 +11,7 @@ import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/oppo
 import { RatingIndicator } from "@/components/ui/RatingIndicator"
 import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 import { formatEuro, formatDate } from "@/lib/formatters"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -239,6 +240,11 @@ function formatManagerName(name: string): string {
   return clean.trim()
 }
 
+function isProposalFollowUpStage(stage: string) {
+  const normalized = stage.toLowerCase()
+  return normalized.includes("proposition") || normalized.includes("cv_envoyes") || normalized.includes("offre")
+}
+
 export function CompanyIdentityDrawer({
   companyId,
   open,
@@ -439,25 +445,43 @@ export function CompanyIdentityDrawer({
                     )}
                   </div>
                   
-                  {/* Cockpit link button on the far right - matching the Intelligence Toggle styling (round shape) */}
                   {companyId && (
-                    <Link
-                      href={`/prospection/accounts/${companyId}`}
-                      onClick={() => onOpenChange(false)}
-                      className="kredo-intelligence-toggle bg-primary flex shrink-0 items-center justify-center rounded-full w-11 h-11 min-w-11 min-h-11 transition-opacity hover:opacity-90 active:opacity-70"
-                      title="Accéder au cockpit"
-                    >
-                      <svg
-                        className="w-5 h-5 relative z-10 shrink-0"
-                        style={{ color: "var(--color-secondary)" }}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={1.75}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <ContextualCommunicationButton
+                        entryPoint={data.company.lifecycle_status === "ancien_client" ? "former_client" : "account_row"}
+                        companyId={data.company.id}
+                        companyName={data.company.name}
+                        primaryEntity={{ type: "company", id: data.company.id }}
+                        label={data.company.lifecycle_status === "ancien_client" ? "Réactiver" : "Rédiger"}
+                        variant="secondary"
+                        className="h-9 min-h-9 border-white/20 bg-white/10 px-3 text-[11px] text-white hover:bg-white/20"
+                        aria-label={`${data.company.lifecycle_status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${data.company.name}`}
+                        refs={{
+                          angle: [
+                            data.company.sector ? `Secteur: ${data.company.sector}` : null,
+                            data.company.segment ? `Segment: ${data.company.segment}` : null,
+                            data.company.lifecycle_status ? `Cycle de vie: ${data.company.lifecycle_status}` : null,
+                          ].filter(Boolean).join(" · ") || undefined,
+                        }}
+                      />
+                      <Link
+                        href={`/prospection/accounts/${companyId}`}
+                        onClick={() => onOpenChange(false)}
+                        className="kredo-intelligence-toggle bg-primary flex shrink-0 items-center justify-center rounded-full w-11 h-11 min-w-11 min-h-11 transition-opacity hover:opacity-90 active:opacity-70"
+                        title="Accéder au cockpit"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                      </svg>
-                    </Link>
+                        <svg
+                          className="w-5 h-5 relative z-10 shrink-0"
+                          style={{ color: "var(--color-secondary)" }}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.75}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                        </svg>
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -942,6 +966,25 @@ export function CompanyIdentityDrawer({
                                     <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
                                   )}
                                 </div>
+                                <div className="flex justify-end border-t border-border/30 pt-2">
+                                  <ContextualCommunicationButton
+                                    entryPoint="active_mission"
+                                    companyId={data.company.id}
+                                    companyName={data.company.name}
+                                    primaryEntity={{ type: "mission", id: mission.id }}
+                                    label="Proposer une extension"
+                                    className="h-8 min-h-8 px-2.5 text-[11px]"
+                                    aria-label={`Proposer une extension pour la mission ${mission.title}`}
+                                    refs={{
+                                      missionRef: mission.id,
+                                      angle: [
+                                        `Mission active: ${mission.title}`,
+                                        `Consultant: ${collabName}`,
+                                        mission.end_date ? `Fin prévue: ${formatDate(mission.end_date)}` : null,
+                                      ].filter(Boolean).join("\n") || undefined,
+                                    }}
+                                  />
+                                </div>
                               </div>
                             )
                           })}
@@ -981,6 +1024,27 @@ export function CompanyIdentityDrawer({
                                   Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
                                 </div>
                               ) : null}
+                              {isProposalFollowUpStage(opp.stage) ? (
+                                <div className="flex justify-end border-t border-border/30 pt-2">
+                                  <ContextualCommunicationButton
+                                    entryPoint="proposal_sent"
+                                    companyId={data.company.id}
+                                    companyName={data.company.name}
+                                    primaryEntity={{ type: "opportunity", id: opp.id }}
+                                    label="Relancer la proposition"
+                                    className="h-8 min-h-8 px-2.5 text-[11px]"
+                                    aria-label={`Relancer la proposition pour ${opp.title}`}
+                                    refs={{
+                                      opportunityRef: opp.id,
+                                      angle: [
+                                        `Opportunité: ${opp.title}`,
+                                        `Stade: ${getOpportunityStageLabel(opp.stage)}`,
+                                        opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
+                                      ].filter(Boolean).join("\n") || undefined,
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
@@ -1006,6 +1070,25 @@ export function CompanyIdentityDrawer({
                                   <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
                                     {data.lastInteraction.summary || "Pas de résumé disponible."}
                                   </p>
+                                  <div className="mt-3 flex justify-end border-t border-border/30 pt-2">
+                                    <ContextualCommunicationButton
+                                      entryPoint="meeting_interaction"
+                                      companyId={data.company.id}
+                                      companyName={data.company.name}
+                                      primaryEntity={{ type: "company", id: data.company.id }}
+                                      label="Rédiger le suivi"
+                                      className="h-8 min-h-8 px-2.5 text-[11px]"
+                                      aria-label={`Rédiger le suivi de la dernière interaction avec ${data.company.name}`}
+                                      refs={{
+                                        interactionRef: data.lastInteraction.id,
+                                        angle: [
+                                          `Type interaction: ${data.lastInteraction.type}`,
+                                          data.lastInteraction.summary ? `Résumé: ${data.lastInteraction.summary}` : null,
+                                          data.lastInteraction.next_action ? `Prochaine étape: ${data.lastInteraction.next_action}` : null,
+                                        ].filter(Boolean).join("\n") || undefined,
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="text-xs">
@@ -1139,6 +1222,27 @@ export function CompanyIdentityDrawer({
                                   Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
                                 </div>
                               ) : null}
+                              {isProposalFollowUpStage(opp.stage) ? (
+                                <div className="flex justify-end border-t border-border/30 pt-2">
+                                  <ContextualCommunicationButton
+                                    entryPoint="proposal_sent"
+                                    companyId={data.company.id}
+                                    companyName={data.company.name}
+                                    primaryEntity={{ type: "opportunity", id: opp.id }}
+                                    label="Relancer la proposition"
+                                    className="h-8 min-h-8 px-2.5 text-[11px]"
+                                    aria-label={`Relancer la proposition pour ${opp.title}`}
+                                    refs={{
+                                      opportunityRef: opp.id,
+                                      angle: [
+                                        `Opportunité: ${opp.title}`,
+                                        `Stade: ${getOpportunityStageLabel(opp.stage)}`,
+                                        opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
+                                      ].filter(Boolean).join("\n") || undefined,
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
@@ -1164,6 +1268,25 @@ export function CompanyIdentityDrawer({
                                   <p className="text-body font-normal mt-1 leading-normal line-clamp-3">
                                     {data.lastInteraction.summary || "Pas de résumé disponible."}
                                   </p>
+                                  <div className="mt-3 flex justify-end border-t border-border/30 pt-2">
+                                    <ContextualCommunicationButton
+                                      entryPoint="meeting_interaction"
+                                      companyId={data.company.id}
+                                      companyName={data.company.name}
+                                      primaryEntity={{ type: "company", id: data.company.id }}
+                                      label="Rédiger le suivi"
+                                      className="h-8 min-h-8 px-2.5 text-[11px]"
+                                      aria-label={`Rédiger le suivi de la dernière interaction avec ${data.company.name}`}
+                                      refs={{
+                                        interactionRef: data.lastInteraction.id,
+                                        angle: [
+                                          `Type interaction: ${data.lastInteraction.type}`,
+                                          data.lastInteraction.summary ? `Résumé: ${data.lastInteraction.summary}` : null,
+                                          data.lastInteraction.next_action ? `Prochaine étape: ${data.lastInteraction.next_action}` : null,
+                                        ].filter(Boolean).join("\n") || undefined,
+                                      }}
+                                    />
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="text-xs">
@@ -1248,6 +1371,27 @@ export function CompanyIdentityDrawer({
                                 Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
                               </div>
                             ) : null}
+                            {isProposalFollowUpStage(opp.stage) ? (
+                              <div className="flex justify-end border-t border-border/30 pt-2">
+                                <ContextualCommunicationButton
+                                  entryPoint="proposal_sent"
+                                  companyId={data.company.id}
+                                  companyName={data.company.name}
+                                  primaryEntity={{ type: "opportunity", id: opp.id }}
+                                  label="Relancer la proposition"
+                                  className="h-8 min-h-8 px-2.5 text-[11px]"
+                                  aria-label={`Relancer la proposition pour ${opp.title}`}
+                                  refs={{
+                                    opportunityRef: opp.id,
+                                    angle: [
+                                      `Opportunité: ${opp.title}`,
+                                      `Stade: ${getOpportunityStageLabel(opp.stage)}`,
+                                      opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
+                                    ].filter(Boolean).join("\n") || undefined,
+                                  }}
+                                />
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -1296,6 +1440,27 @@ export function CompanyIdentityDrawer({
                                   <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
                                 )}
                               </div>
+                              {mission.status === "active" ? (
+                                <div className="flex justify-end border-t border-border/30 pt-2">
+                                  <ContextualCommunicationButton
+                                    entryPoint="active_mission"
+                                    companyId={data.company.id}
+                                    companyName={data.company.name}
+                                    primaryEntity={{ type: "mission", id: mission.id }}
+                                    label="Proposer une extension"
+                                    className="h-8 min-h-8 px-2.5 text-[11px]"
+                                    aria-label={`Proposer une extension pour la mission ${mission.title}`}
+                                    refs={{
+                                      missionRef: mission.id,
+                                      angle: [
+                                        `Mission active: ${mission.title}`,
+                                        `Consultant: ${name}`,
+                                        mission.end_date ? `Fin prévue: ${formatDate(mission.end_date)}` : null,
+                                      ].filter(Boolean).join("\n") || undefined,
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
                             </div>
                           )
                         })}
@@ -1316,9 +1481,26 @@ export function CompanyIdentityDrawer({
                     </h4>
                     <ul className="space-y-2 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
                       {signaux.actualites_recentes.map((item: string, idx: number) => (
-                        <li key={idx} className="flex gap-2 items-start text-xs text-heading leading-relaxed">
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
-                          <span>{item}</span>
+                        <li key={idx} className="flex flex-col gap-2 border-b border-border/20 pb-2 text-xs text-heading last:border-b-0 last:pb-0">
+                          <div className="flex gap-2 items-start leading-relaxed">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                            <span>{item}</span>
+                          </div>
+                          <div className="flex justify-end">
+                            <ContextualCommunicationButton
+                              entryPoint="signal_card"
+                              companyId={data.company.id}
+                              companyName={data.company.name}
+                              primaryEntity={{ type: "company", id: data.company.id }}
+                              label="Contacter sur ce signal"
+                              className="h-8 min-h-8 px-2.5 text-[11px]"
+                              aria-label={`Contacter ${data.company.name} sur le signal ${idx + 1}`}
+                              refs={{
+                                signalRef: item,
+                                angle: data.company.sector ? `Angle sectoriel: ${data.company.sector}` : undefined,
+                              }}
+                            />
+                          </div>
                         </li>
                       ))}
                     </ul>

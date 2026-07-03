@@ -6,6 +6,7 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type {
   PracticeKey,
   SectorPainPoint,
@@ -221,6 +222,15 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
   const urgentRegulatoryCount = sector.regulatory_items.filter(
     (item) => item.urgency === "critical" || item.urgency === "high",
   ).length
+  const primaryCompany = sector.companies[0] ?? null
+  const sectorOfferRefs = {
+    angle: [
+      `Secteur: ${sector.name}`,
+      primaryPain?.title ? `Douleur prioritaire: ${primaryPain.title}` : null,
+      primaryRegulatory?.commercial_angle ? `Angle commercial: ${primaryRegulatory.commercial_angle}` : null,
+      topPractice ? `Practice recommandée: ${getPracticeLabel(topPractice[0])}` : null,
+    ].filter(Boolean).join("\n") || undefined,
+  }
 
   function handleCopyAction(action: PreparedAction) {
     void navigator.clipboard.writeText(action.prompt).then(() => {
@@ -294,9 +304,16 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
               <Button variant="brass" size="sm" onClick={() => setActiveSection("pitch")}>
                 Ouvrir le pitch
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setSelectedAction(preparedActions[0])}>
-                Préparer un email
-              </Button>
+              <ContextualCommunicationButton
+                entryPoint="sector_offer"
+                companyId={primaryCompany?.id}
+                companyName={primaryCompany?.name}
+                primaryEntity={primaryCompany ? { type: "company", id: primaryCompany.id } : { type: "sector", id: sector.id }}
+                label="Présenter cette offre"
+                variant="secondary"
+                refs={sectorOfferRefs}
+                aria-label={`Présenter l'offre ${sector.name}`}
+              />
             </div>
           </div>
         </section>
@@ -538,15 +555,36 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
 
                 <div className="grid gap-3 md:grid-cols-2">
                   {preparedActions.map((action) => (
-                    <button
+                    <div
                       key={action.key}
-                      type="button"
-                      onClick={() => setSelectedAction(action)}
-                      className="rounded-[var(--radius-medium)] border border-border bg-surface px-4 py-4 text-left transition-colors hover:border-primary hover:bg-surface-hover"
+                      className="rounded-[var(--radius-medium)] border border-border bg-surface px-4 py-4 transition-colors hover:border-primary hover:bg-surface-hover"
                     >
-                      <span className="text-sm font-bold text-heading">{action.title}</span>
-                      <span className="mt-2 block text-xs leading-5 text-body">{action.prompt}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedAction(action)}
+                        className="w-full text-left"
+                      >
+                        <span className="text-sm font-bold text-heading">{action.title}</span>
+                        <span className="mt-2 block text-xs leading-5 text-body">{action.prompt}</span>
+                      </button>
+                      <div className="mt-4 flex justify-end border-t border-border pt-3">
+                        <ContextualCommunicationButton
+                          entryPoint="sector_offer"
+                          companyId={primaryCompany?.id}
+                          companyName={primaryCompany?.name}
+                          primaryEntity={primaryCompany ? { type: "company", id: primaryCompany.id } : { type: "sector", id: sector.id }}
+                          label="Présenter cette offre"
+                          refs={{
+                            angle: [
+                              sectorOfferRefs.angle,
+                              `Action préparée: ${action.title}`,
+                              action.prompt,
+                            ].filter(Boolean).join("\n\n") || undefined,
+                          }}
+                          aria-label={`Présenter l'offre ${sector.name} avec l'action ${action.title}`}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

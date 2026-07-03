@@ -35,6 +35,7 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
@@ -736,7 +737,8 @@ function AccountsDesktop({
               <th className="px-3 py-3 text-center w-[8%]">Contacts</th>
               <th className="px-3 py-3 text-center w-[8%]">Score</th>
               <th className="px-3 py-3 text-center w-[10%]">Priorité</th>
-              <th className="px-3 py-3 text-center w-[17%]">Business Intelligence</th>
+              <th className="px-3 py-3 text-center w-[15%]">Business Intelligence</th>
+              <th className="px-3 py-3 text-center w-[13%]">Rédaction</th>
               <th className="px-5 py-3 text-right w-[4%]"></th>
             </tr>
           </thead>
@@ -789,6 +791,23 @@ function AccountsDesktop({
                       <span className="text-muted text-[11px] italic">—</span>
                     )}
                   </td>
+                  <td className="px-3 py-3 text-center">
+                    <ContextualCommunicationButton
+                      entryPoint={account.status === "ancien_client" ? "former_client" : "account_row"}
+                      companyId={account.id}
+                      companyName={account.name}
+                      primaryEntity={{ type: "company", id: account.id }}
+                      label={account.status === "ancien_client" ? "Réactiver la relation" : undefined}
+                      className="h-8 min-h-8 px-2.5 text-[11px]"
+                      aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
+                      refs={{
+                        angle: [
+                          account.sector ? `Secteur: ${account.sector}` : null,
+                          account.segment ? `Segment: ${account.segment}` : null,
+                        ].filter(Boolean).join(" · ") || undefined,
+                      }}
+                    />
+                  </td>
                   <td className="pl-1 pr-5 py-3">
                     <div className="flex items-center justify-end">
                       <button onClick={() => onEdit(account)} className="rounded p-1 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
@@ -816,31 +835,52 @@ function AccountsMobile({
   return (
     <div className="grid grid-cols-2 gap-3">
       {accounts.map((account) => (
-        <button
+        <div
           key={account.id}
           id={`account-row-${account.id}`}
-          type="button"
-          onClick={() => onOpenIdentity(account.id)}
-          className="flex flex-col items-stretch rounded-xl border border-border bg-surface text-left overflow-hidden active:opacity-75 transition-opacity"
+          className="flex flex-col items-stretch overflow-hidden rounded-xl border border-border bg-surface text-left"
         >
-          {/* Logo — fond blanc, sans cadre, dimensions inchangées */}
-          <div className="w-full aspect-square overflow-hidden bg-white p-3">
-            <CompanyLogo
-              name={account.name}
-              logoPath={account.logoPath}
-              website={account.website}
-              size="md"
-              fill
-              className="!border-0"
+          <button
+            type="button"
+            onClick={() => onOpenIdentity(account.id)}
+            className="flex flex-col items-stretch text-left active:opacity-75 transition-opacity"
+          >
+            {/* Logo — fond blanc, sans cadre, dimensions inchangées */}
+            <div className="w-full aspect-square overflow-hidden bg-white p-3">
+              <CompanyLogo
+                name={account.name}
+                logoPath={account.logoPath}
+                website={account.website}
+                size="md"
+                fill
+                className="!border-0"
+              />
+            </div>
+            {/* Bande bleue — nom abrégé en blanc gras */}
+            <div className="bg-primary px-2 py-2.5 w-full">
+              <span className="block text-xs font-bold text-white leading-snug text-center line-clamp-2">
+                {abbreviateForCard(account.name)}
+              </span>
+            </div>
+          </button>
+          <div className="border-t border-border bg-surface p-2">
+            <ContextualCommunicationButton
+              entryPoint={account.status === "ancien_client" ? "former_client" : "account_row"}
+              companyId={account.id}
+              companyName={account.name}
+              primaryEntity={{ type: "company", id: account.id }}
+              label={account.status === "ancien_client" ? "Réactiver" : "Rédiger"}
+              className="h-9 min-h-9 w-full px-2 text-[11px]"
+              aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
+              refs={{
+                angle: [
+                  account.sector ? `Secteur: ${account.sector}` : null,
+                  account.segment ? `Segment: ${account.segment}` : null,
+                ].filter(Boolean).join(" · ") || undefined,
+              }}
             />
           </div>
-          {/* Bande bleue — nom abrégé en blanc gras */}
-          <div className="bg-primary px-2 py-2.5 w-full">
-            <span className="block text-xs font-bold text-white leading-snug text-center line-clamp-2">
-              {abbreviateForCard(account.name)}
-            </span>
-          </div>
-        </button>
+        </div>
       ))}
     </div>
   )

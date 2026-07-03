@@ -37,6 +37,7 @@ import {
   formatDateTime,
 } from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import {
   TYPE_OPTIONS,
   SOURCE_OPTIONS,
@@ -229,6 +230,11 @@ function getEngagementTypeValue(opportunity: Opportunity): string {
   if (typeLabel !== "—") return typeLabel
   if (opportunity.requires_staffing) return "Staffing"
   return "—"
+}
+
+function isProposalFollowUpStage(stage: string | null | undefined) {
+  const normalized = (stage ?? "").toLowerCase()
+  return normalized.includes("proposition") || normalized.includes("cv_envoyes") || normalized.includes("offre")
 }
 
 export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProps) {
@@ -1922,6 +1928,29 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
               {errorMsg}
             </div>
           )}
+          {editingSection === null && isProposalFollowUpStage(form.stage) ? (
+            <div className="mt-3">
+              <ContextualCommunicationButton
+                entryPoint="proposal_sent"
+                companyId={account?.id}
+                companyName={account?.name}
+                primaryEntity={{ type: "opportunity", id: opportunity.id }}
+                label="Relancer la proposition"
+                variant="primary"
+                fullWidth
+                aria-label={`Relancer la proposition pour ${opportunity.title}`}
+                refs={{
+                  opportunityRef: opportunity.id,
+                  angle: [
+                    `Opportunité: ${opportunity.title}`,
+                    `Stade: ${getOpportunityStageLabel(form.stage)}`,
+                    estimatedAcv ? `Valeur estimée: ${formatEuro(estimatedAcv)}` : null,
+                    form.next_action_label ? `Prochaine action: ${form.next_action_label}` : null,
+                  ].filter(Boolean).join("\n") || undefined,
+                }}
+              />
+            </div>
+          ) : null}
 
           {editingSection === "identite" ? (
             <div className="mt-2 flex flex-col gap-3">
@@ -1991,6 +2020,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           onSave={() => handleSave("staffing")}
           onPracticeChange={(value) => setForm({ ...form, practice: value })}
           onRequiresStaffingChange={(value) => setForm({ ...form, requires_staffing: value })}
+          opportunityId={opportunity.id}
+          opportunityTitle={opportunity.title}
+          companyId={account?.id}
+          companyName={account?.name}
         />
         {renderFinancialEquationSection()}
       </div>
@@ -2148,6 +2181,26 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           )}
 
           {editingSection === "identite" && renderSectionEditControls("identite")}
+          {editingSection === null && isProposalFollowUpStage(form.stage) ? (
+            <ContextualCommunicationButton
+              entryPoint="proposal_sent"
+              companyId={account?.id}
+              companyName={account?.name}
+              primaryEntity={{ type: "opportunity", id: opportunity.id }}
+              label="Relancer la proposition"
+              variant="primary"
+              aria-label={`Relancer la proposition pour ${opportunity.title}`}
+              refs={{
+                opportunityRef: opportunity.id,
+                angle: [
+                  `Opportunité: ${opportunity.title}`,
+                  `Stade: ${getOpportunityStageLabel(form.stage)}`,
+                  estimatedAcv ? `Valeur estimée: ${formatEuro(estimatedAcv)}` : null,
+                  form.next_action_label ? `Prochaine action: ${form.next_action_label}` : null,
+                ].filter(Boolean).join("\n") || undefined,
+              }}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -2181,6 +2234,10 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             onSave={() => handleSave("staffing")}
             onPracticeChange={(value) => setForm({ ...form, practice: value })}
             onRequiresStaffingChange={(value) => setForm({ ...form, requires_staffing: value })}
+            opportunityId={opportunity.id}
+            opportunityTitle={opportunity.title}
+            companyId={account?.id}
+            companyName={account?.name}
           />
           {renderFinancialEquationSection()}
         </div>
