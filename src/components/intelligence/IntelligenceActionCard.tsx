@@ -23,12 +23,8 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
     return (
       <button
         type="button"
-        disabled={isComingSoon}
         onClick={isWriteEmail ? handleClick : undefined}
-        className={cn(
-          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left",
-          isComingSoon ? "cursor-default opacity-55" : "cursor-pointer",
-        )}
+        className="kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer"
       >
         {isComingSoon && (
           <span className="absolute top-2 right-2 z-20 rounded-full bg-white/10 px-1.5 py-px text-[7px] font-bold uppercase tracking-widest text-white/50">
