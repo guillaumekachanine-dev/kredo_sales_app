@@ -52,6 +52,7 @@ export interface AppDrawerProps {
   onRequestClose?: (reason: AppDrawerCloseReason) => boolean | void
   closeLabel?: string
   showMobileCloseButton?: boolean
+  hideHeaderOnDesktop?: boolean
 }
 
 function DrawerLoadingState() {
@@ -108,6 +109,7 @@ export function AppDrawer({
   onRequestClose,
   closeLabel = "Fermer",
   showMobileCloseButton = false,
+  hideHeaderOnDesktop = false,
 }: AppDrawerProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -235,7 +237,11 @@ export function AppDrawer({
       <div className="flex flex-col h-full w-full overflow-hidden">
         <div className="grid min-h-0 h-full grid-rows-[auto_minmax(0,1fr)_auto]">
           <header
-            className={cn("shrink-0 px-4 py-4 transition-colors sm:px-6", headerClassName)}
+            className={cn(
+              "shrink-0 px-4 py-4 transition-colors sm:px-6",
+              hideHeaderOnDesktop && "sm:hidden",
+              headerClassName,
+            )}
             style={headerStyle}
           >
             <div className="flex items-start justify-between gap-3">
@@ -301,7 +307,10 @@ export function AppDrawer({
 
           <div className={cn("relative min-h-0 overflow-y-auto px-4 py-4 sm:px-6", contentClassName)}>
             <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-12"
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 h-12",
+                hideHeaderOnDesktop && "sm:hidden",
+              )}
               aria-hidden="true"
               style={{
                 background:

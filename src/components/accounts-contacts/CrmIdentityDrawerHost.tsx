@@ -1,11 +1,19 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { CompanyIdentityDrawer } from "./CompanyIdentityDrawer"
 import { ContactIdentityDrawer } from "./ContactIdentityDrawer"
 
 export function CrmIdentityDrawerHost() {
   const { target, openCompany, openContact, close } = useCrmDrawer()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <>

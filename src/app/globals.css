@@ -10,71 +10,93 @@
 @theme {
 
   /* ── Brand · legacy operational tokens kept intact ─────── */
-  --color-primary:      #2554B8;  /* bg-primary  text-primary  */
-  --color-brand-blue:   #2554B8;  /* bg-brand-blue text-brand-blue */
-  --color-primary-deep: #1E4596;  /* bg-primary-deep — cobalt recessed (surfaces secondaires sous la nav) */
-  --color-primary-fg:   #F2F5FB;  /* bg-primary-fg  text-primary-fg */
+  --color-primary: #2554B8;
+  /* bg-primary  text-primary  */
+  --color-brand-blue: #2554B8;
+  /* bg-brand-blue text-brand-blue */
+  --color-primary-deep: #1E4596;
+  /* bg-primary-deep — cobalt recessed (surfaces secondaires sous la nav) */
+  --color-primary-fg: #F2F5FB;
+  /* bg-primary-fg  text-primary-fg */
 
   /* ── Brand · semantic source-of-truth aliases ──────────── */
-  --color-brand-primary:      #2554B8;
+  --color-brand-primary: #2554B8;
   --color-brand-primary-deep: #1E4596;
-  --color-brand-brass:        #C89A2B;  /* bg-brand-brass — jaune-or de marque */
-  --color-brand-brass-hover:  #A67A1E;  /* bg-brand-brass-hover — pressed / hover du brass */
-  --color-brand-ember:        #D97020;
-  --color-brand-ink:          #1A2540;
+  --color-brand-brass: #C89A2B;
+  /* bg-brand-brass — jaune-or de marque */
+  --color-brand-brass-hover: #A67A1E;
+  /* bg-brand-brass-hover — pressed / hover du brass */
+  --color-brand-ember: #D97020;
+  --color-brand-ink: #1A2540;
 
   /* ── Navigation · navy sidebar ─────────────────────────── */
-  --color-sidebar-bg:   #162650;  /* fond sidebar Desktop — navy profond, distinct du cobalt CTA */
+  --color-sidebar-bg: #162650;
+  /* fond sidebar Desktop — navy profond, distinct du cobalt CTA */
 
   /* ── Structure ──────────────────────────────────────────── */
-  --color-canvas:        #F4F2ED; /* bg-canvas   — fond de l'app   */
-  --color-surface:       #FDFCFA; /* bg-surface  — cartes, panneaux */
-  --color-surface-hover: #EDF0F7; /* hover:bg-surface-hover          */
-  --color-border:        #DBE0EB; /* border-border                   */
-  --color-surface-raised:#F8F6F0; /* alt surface — mobile groups / neutral raised */
+  --color-canvas: #F4F2ED;
+  /* bg-canvas   — fond de l'app   */
+  --color-surface: #FDFCFA;
+  /* bg-surface  — cartes, panneaux */
+  --color-surface-hover: #EDF0F7;
+  /* hover:bg-surface-hover          */
+  --color-border: #DBE0EB;
+  /* border-border                   */
+  --color-surface-raised: #F8F6F0;
+  /* alt surface — mobile groups / neutral raised */
 
   /* ── Structure · semantic aliases for future primitives ── */
-  --color-bg-canvas:        var(--color-canvas);
-  --color-bg-surface:       var(--color-surface);
+  --color-bg-canvas: var(--color-canvas);
+  --color-bg-surface: var(--color-surface);
   --color-bg-surface-hover: var(--color-surface-hover);
-  --color-bg-surface-raised:var(--color-surface-raised);
-  --color-bg-sidebar:       var(--color-sidebar-bg);
-  --color-bg-mobile-nav:    var(--color-brand-primary);
-  --color-border-default:   var(--color-border);
-  --color-border-strong:    #C6CFDF;
+  --color-bg-surface-raised: var(--color-surface-raised);
+  --color-bg-sidebar: var(--color-sidebar-bg);
+  --color-bg-mobile-nav: var(--color-brand-primary);
+  --color-border-default: var(--color-border);
+  --color-border-strong: #C6CFDF;
 
   /* ── Typographie ────────────────────────────────────────── */
-  --color-heading:   #1A2540;     /* text-heading   — titres, chiffres clés */
-  --color-body:      #526074;     /* text-body      — texte courant         */
-  --color-muted:     #93A0B0;     /* text-muted     — labels, métadonnées   */
-  --color-text-primary:   var(--color-heading);
+  --color-heading: #1A2540;
+  /* text-heading   — titres, chiffres clés */
+  --color-body: #526074;
+  /* text-body      — texte courant         */
+  --color-muted: #93A0B0;
+  /* text-muted     — labels, métadonnées   */
+  --color-text-primary: var(--color-heading);
   --color-text-secondary: var(--color-body);
-  --color-text-muted:     var(--color-muted);
-  --color-text-inverse:   var(--color-primary-fg);
+  --color-text-muted: var(--color-muted);
+  --color-text-inverse: var(--color-primary-fg);
 
   /* ── Polices ────────────────────────────────────────────── */
-  --font-sans:       var(--font-sans), sans-serif;
-  --font-heading:    var(--font-heading), sans-serif;
-  --font-mono:       var(--font-sans), sans-serif;
+  --font-sans: var(--font-sans), sans-serif;
+  --font-heading: var(--font-heading), sans-serif;
+  --font-mono: var(--font-sans), sans-serif;
 
   /* ── États fonctionnels ─────────────────────────────────── */
-  --color-success:     #2C7D5C;   /* bg-success  text-success  */
-  --color-warning:     #C08A20;   /* bg-warning  text-warning  */
-  --color-danger:      #BE3E3E;   /* bg-danger   text-danger   */
-  --color-accent:      #D97020;   /* bg-accent   text-accent   */
-  --color-info:        #2E7D8C;   /* bg-info     text-info     */
+  --color-success: #2C7D5C;
+  /* bg-success  text-success  */
+  --color-warning: #C08A20;
+  /* bg-warning  text-warning  */
+  --color-danger: #BE3E3E;
+  /* bg-danger   text-danger   */
+  --color-accent: #D97020;
+  /* bg-accent   text-accent   */
+  --color-info: #2E7D8C;
+  /* bg-info     text-info     */
   --color-status-success: #2C7D5C;
   --color-status-warning: #C08A20;
-  --color-status-danger:  #BE3E3E;
-  --color-status-info:    #2E7D8C;
+  --color-status-danger: #BE3E3E;
+  --color-status-info: #2E7D8C;
   --color-status-neutral: #6E7A8A;
 
   /* ── Secondary — Sunshine Gold ──────────────────────────────
      Couleur de personnalité. Brille sur fond cobalt (cockpit),
      interdite en encre sur fond clair (contraste ~1,7:1).
      Sur aplat gold → texte foncé (--color-secondary-fg). */
-  --color-secondary:    #FFB812;  /* bg-secondary */
-  --color-secondary-fg: #3A2A02;  /* texte foncé sur aplat gold */
+  --color-secondary: #FFB812;
+  /* bg-secondary */
+  --color-secondary-fg: #3A2A02;
+  /* texte foncé sur aplat gold */
 
   /* ── Couleurs catégorielles ────────────────────────────────────
      Usage : étiquettes, badges, catégorisation visuelle.
@@ -86,46 +108,47 @@
      Contraste vérifié AA minimum sur chaque paire. */
 
   /* Vert Émeraude Vif — Validations · Succès */
-  --color-cat-success:    #00C853;
+  --color-cat-success: #00C853;
   --color-cat-success-fg: #FFFFFF;
 
   /* Orange Mandarine — Actif · Progression */
-  --color-cat-active:    #FF9800;
+  --color-cat-active: #FF9800;
   --color-cat-active-fg: #FFFFFF;
 
   /* Rouge Corail — Erreur · Alerte · Priorité Haute */
-  --color-cat-urgent:    #FF5252;
+  --color-cat-urgent: #FF5252;
   --color-cat-urgent-fg: #FFFFFF;
 
   /* Jaune Ambre — Avertissement · Important
      ⚠️ Texte FONCÉ obligatoire : contraste blanc sur jaune < 2:1. */
-  --color-cat-warning:    #FFC107;
+  --color-cat-warning: #FFC107;
   --color-cat-warning-fg: #3A2A02;
 
   /* Violet Pourpre — Innovation · Projet · Note */
-  --color-cat-idea:    #9C27B0;
+  --color-cat-idea: #9C27B0;
   --color-cat-idea-fg: #FFFFFF;
 
   /* ── Assistance case perspectives ───────────────────────── */
-  --color-case-need:           #FFC107;
-  --color-case-need-fg:        #3A2A02;
-  --color-case-need-muted:     #6C5300;
-  --color-case-need-border:    #D8A400;
-  --color-case-candidate:      #9C27B0;
-  --color-case-candidate-fg:   #FFFFFF;
-  --color-case-candidate-muted:#E6C8ED;
-  --color-case-candidate-border:#7E1F8E;
+  --color-case-need: #FFC107;
+  --color-case-need-fg: #3A2A02;
+  --color-case-need-muted: #6C5300;
+  --color-case-need-border: #D8A400;
+  --color-case-candidate: #9C27B0;
+  --color-case-candidate-fg: #FFFFFF;
+  --color-case-candidate-muted: #E6C8ED;
+  --color-case-candidate-border: #7E1F8E;
 
   /* Bleu Turquoise — Information · Note · Général
      Texte FONCÉ : contraste blanc sur turquoise ~3,7:1 (borderline AA). */
-  --color-cat-info:    #00BCD4;
+  --color-cat-info: #00BCD4;
   --color-cat-info-fg: #0A2C33;
 
   /* ── Rail (panneau « Tour de contrôle », ADR-0008) ──────────
      Token de SURFACE dédié — auparavant `bg-heading` réutilisait
      le token de texte (surcharge). Séparé pour permettre l'inversion
      cockpit sans casser le rail. */
-  --color-rail:         #2A6B8A;  /* bg-rail — bleu pétrole cockpit */
+  --color-rail: #2A6B8A;
+  /* bg-rail — bleu pétrole cockpit */
 
   /* ── Data visualization ─────────────────────────────────── */
   --color-dataviz-1: var(--color-brand-primary);
@@ -134,21 +157,22 @@
   --color-dataviz-4: #719A5A;
   --color-dataviz-5: #7B6BB2;
   --color-dataviz-6: #D4B26A;
-  --color-dataviz-7: #B37D53;  /* Ocre / Terre — palette fondatrice */
+  --color-dataviz-7: #B37D53;
+  /* Ocre / Terre — palette fondatrice */
 
   /* ── Domaines Kredo (Cobalt Stratifié) ────────────────────── */
-  --color-domain-need:              #E5A600;
-  --color-domain-candidate:         #8E3FA7;
-  --color-domain-collaborator:      #5F8750;
-  --color-domain-account:           #247B8D;
-  --color-domain-recruitment:       #A33C78;
-  --color-domain-mission-at:        #3F6FA7;
-  --color-domain-fixed-project:     #5A58A8;
-  --color-domain-finance:           #6B7D2F;
-  --color-domain-intelligence:      #173D89;
-  --color-domain-ai:                #6B5CF6;
-  --color-document-report:          #9E5E73;
-  --color-document-communication:   #3F798B;
+  --color-domain-need: #E5A600;
+  --color-domain-candidate: #8E3FA7;
+  --color-domain-collaborator: #5F8750;
+  --color-domain-account: #247B8D;
+  --color-domain-recruitment: #A33C78;
+  --color-domain-mission-at: #3F6FA7;
+  --color-domain-fixed-project: #5A58A8;
+  --color-domain-finance: #6B7D2F;
+  --color-domain-intelligence: #173D89;
+  --color-domain-ai: #6B5CF6;
+  --color-document-report: #9E5E73;
+  --color-document-communication: #3F798B;
 }
 
 
@@ -168,6 +192,7 @@
     opacity: 0.06;
     stroke-dashoffset: 1;
   }
+
   100% {
     opacity: 1;
     stroke-dashoffset: 0;
@@ -176,11 +201,28 @@
 
 /* Pipeline progression bar — cold-to-warm shine sweep (7 s cycle) */
 @keyframes pipeline-shine-kf {
-  0%   { left: -38%; opacity: 0; }
-  5%   { opacity: 0.85; }
-  27%  { left: 118%; opacity: 0.85; }
-  30%  { opacity: 0; }
-  100% { left: 118%; opacity: 0; }
+  0% {
+    left: -38%;
+    opacity: 0;
+  }
+
+  5% {
+    opacity: 0.85;
+  }
+
+  27% {
+    left: 118%;
+    opacity: 0.85;
+  }
+
+  30% {
+    opacity: 0;
+  }
+
+  100% {
+    left: 118%;
+    opacity: 0;
+  }
 }
 
 .pipeline-shine-beam {
@@ -189,12 +231,10 @@
   bottom: 0;
   left: -38%;
   width: 26%;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 255, 255, 0.72),
-    transparent
-  );
+  background: linear-gradient(to right,
+      transparent,
+      rgba(255, 255, 255, 0.72),
+      transparent);
   border-radius: 6px;
   animation: pipeline-shine-kf 7s ease-in-out infinite;
   pointer-events: none;
@@ -206,6 +246,7 @@
     opacity: 0;
     transform: translateY(12px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -225,29 +266,47 @@
    Le gris du chrome (sidebar/header/onglets) reste clair → seuil net.
    ────────────────────────────────────────────────────────────── */
 [data-theme="cockpit"] {
-  --color-canvas:        #2554B8; /* le fond de la zone devient cobalt */
-  --color-surface:       #1E4596; /* cartes / header : cobalt enfoncé   */
+  --color-canvas: #2554B8;
+  /* le fond de la zone devient cobalt */
+  --color-surface: #1E4596;
+  /* cartes / header : cobalt enfoncé   */
   --color-surface-hover: #22489D;
-  --color-border:        #3A60B5; /* liseré clair sur cobalt            */
-  --color-heading:       #FFC107; /* titres + chiffres-clés — jaune ambre */
-  --color-body:          #D6E1F4; /* texte courant clair                */
-  --color-muted:         #A9BDE6; /* labels / métadonnées               */
-  --color-primary:       #FFC107; /* liens, soulignement onglet, accents → ambre */
-  --color-rail:          #3688AA; /* Tour de contrôle : bleu pétrole */
+  --color-border: #3A60B5;
+  /* liseré clair sur cobalt            */
+  --color-heading: #FFC107;
+  /* titres + chiffres-clés — jaune ambre */
+  --color-body: #D6E1F4;
+  /* texte courant clair                */
+  --color-muted: #A9BDE6;
+  /* labels / métadonnées               */
+  --color-primary: #FFC107;
+  /* liens, soulignement onglet, accents → ambre */
+  --color-rail: #3688AA;
+  /* Tour de contrôle : bleu pétrole */
 }
 
 /* Redéfinition des couleurs à l'intérieur du rail d'intelligence (fond bleu pétrole #3688AA) */
 [data-theme="cockpit"] aside.bg-rail {
-  --color-primary-fg:    #FFFFFF;          /* texte principal → blanc franc sur pétrole */
-  --color-primary:       #FFC107;          /* primary → jaune ambre */
-  --color-heading:       #FFC107;          /* titres section → jaune ambre */
-  --color-body:          rgba(255,255,255,0.82); /* texte courant clair sur pétrole */
-  --color-muted:         rgba(255,255,255,0.50); /* métadonnées atténuées */
-  --color-border:        rgba(255,255,255,0.14); /* bordures légères sur pétrole */
-  --color-surface:       rgba(255,255,255,0.07); /* surfaces cartes sur pétrole */
-  --color-surface-hover: rgba(255,255,255,0.13); /* hover cartes */
-  --color-brand-brass:   #FFC107;          /* brass → ambre dans ce contexte */
-  --color-secondary:     #FFC107;          /* secondary → ambre */
+  --color-primary-fg: #FFFFFF;
+  /* texte principal → blanc franc sur pétrole */
+  --color-primary: #FFC107;
+  /* primary → jaune ambre */
+  --color-heading: #FFC107;
+  /* titres section → jaune ambre */
+  --color-body: rgba(255, 255, 255, 0.82);
+  /* texte courant clair sur pétrole */
+  --color-muted: rgba(255, 255, 255, 0.50);
+  /* métadonnées atténuées */
+  --color-border: rgba(255, 255, 255, 0.14);
+  /* bordures légères sur pétrole */
+  --color-surface: rgba(255, 255, 255, 0.07);
+  /* surfaces cartes sur pétrole */
+  --color-surface-hover: rgba(255, 255, 255, 0.13);
+  /* hover cartes */
+  --color-brand-brass: #FFC107;
+  /* brass → ambre dans ce contexte */
+  --color-secondary: #FFC107;
+  /* secondary → ambre */
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
@@ -261,20 +320,22 @@
   border-color: #E7E4DC;
   /* Tokens texte hérités par les descendants. */
   --color-heading: #1A2540;
-  --color-body:    #3E4A5E;
-  --color-muted:   #7C879A;
+  --color-body: #3E4A5E;
+  --color-muted: #7C879A;
   /* Tokens structuraux — évite que bg-canvas/bg-surface/border-border renvoient
      du cobalt sur la surface de lecture claire. */
-  --color-canvas:        #F4F2ED;
-  --color-surface:       #FDFCFA;
+  --color-canvas: #F4F2ED;
+  --color-surface: #FDFCFA;
   --color-surface-hover: #EDF0F7;
-  --color-border:        #DBE0EB;
+  --color-border: #DBE0EB;
   /* Primary repassé en cobalt standard pour les liens dans la prose. */
   --color-primary: #2554B8;
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -304,23 +365,51 @@ dialog:not([open]) {
  * ──────────────────────────────────────────────────────────── */
 
 @keyframes kredo-drawer-in-right {
-  from { transform: translateX(36px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from {
+    transform: translateX(36px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes kredo-drawer-out-right {
-  from { transform: translateX(0);    opacity: 1; }
-  to   { transform: translateX(36px); opacity: 0; }
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(36px);
+    opacity: 0;
+  }
 }
 
 @keyframes kredo-drawer-in-bottom {
-  from { transform: translateY(24px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes kredo-drawer-out-bottom {
-  from { transform: translateY(0);    opacity: 1; }
-  to   { transform: translateY(24px); opacity: 0; }
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(24px);
+    opacity: 0;
+  }
 }
 
 /* Entrée — droite */
@@ -364,6 +453,7 @@ dialog.kredo-drawer-bottom {
 }
 
 @media (max-width: 767px) {
+
   dialog.kredo-drawer-right,
   dialog.kredo-drawer-bottom {
     top: 7vh !important;
@@ -387,7 +477,8 @@ dialog.kredo-drawer-bottom {
   /* Compress header height on mobile drawers */
   dialog.kredo-drawer-right header,
   dialog.kredo-drawer-bottom header {
-    padding-top: 0.625rem !important; /* 10px instead of 16px */
+    padding-top: 0.625rem !important;
+    /* 10px instead of 16px */
     padding-bottom: 0.625rem !important;
   }
 
@@ -400,7 +491,8 @@ dialog.kredo-drawer-bottom {
   /* Raise contents by reducing top padding */
   dialog.kredo-drawer-right div.overflow-y-auto,
   dialog.kredo-drawer-bottom div.overflow-y-auto {
-    padding-top: 0.75rem !important; /* 12px instead of 16px */
+    padding-top: 0.75rem !important;
+    /* 12px instead of 16px */
     padding-bottom: 0.75rem !important;
   }
 
@@ -414,10 +506,29 @@ dialog.kredo-drawer-bottom {
   }
 }
 
+/* Custom right drawer positioning for account and contact identity in desktop */
+@media (min-width: 768px) {
+  dialog.kredo-drawer-right.kredo-identity-drawer {
+    top: calc(var(--layout-header-height) + 5rem) !important;
+    inset-block-start: calc(var(--layout-header-height) + 5rem) !important;
+    height: calc(100vh - (var(--layout-header-height) + 5rem)) !important;
+    bottom: 0 !important;
+    inset-block-end: 0 !important;
+    border-top: 1px solid var(--color-border) !important;
+  }
+}
+
 /* ── MobileSectionRail — déploiement du rail d'onglets au-dessus de la nav ──── */
 @keyframes kredo-rail-in {
-  from { transform: translateY(8px); opacity: 0; }
-  to   { transform: translateY(0);   opacity: 1; }
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .kredo-rail-in {
@@ -429,8 +540,15 @@ dialog.kredo-drawer-bottom {
  *  est déclenchée par la classe ajoutée au mount React.
  * ──────────────────────────────────────────────────────────────────── */
 @keyframes kredo-intelligence-in {
-  from { transform: translateX(24px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .kredo-intelligence-panel {
@@ -446,12 +564,10 @@ dialog.kredo-drawer-bottom {
 .kredo-account-badge {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    rgba(200, 154, 43, 0.20) 0%,
-    rgba(54, 136, 170, 0.16) 55%,
-    rgba(37, 84, 184, 0.20) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(200, 154, 43, 0.20) 0%,
+      rgba(54, 136, 170, 0.16) 55%,
+      rgba(37, 84, 184, 0.20) 100%);
   /* Le survol ravive les teintes propres du cadre (ambre → pétrole) plutôt
      que de les recouvrir — la carte elle-même « respire » plus de couleur. */
   filter: saturate(1) brightness(1);
@@ -468,17 +584,15 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 193, 7, 0.55) 0%,
-    rgba(54, 136, 170, 0.40) 50%,
-    rgba(200, 154, 43, 0.55) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 193, 7, 0.55) 0%,
+      rgba(54, 136, 170, 0.40) 50%,
+      rgba(200, 154, 43, 0.55) 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   pointer-events: none;
   opacity: 0.75;
   transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1);
@@ -496,16 +610,14 @@ dialog.kredo-drawer-bottom {
   position: absolute;
   inset-block: 0;
   inset-inline: -70%;
-  background: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgba(255, 210, 110, 0) 32%,
-    rgba(255, 210, 110, 0.22) 45%,
-    rgba(255, 250, 235, 0.32) 50%,
-    rgba(130, 200, 225, 0.22) 55%,
-    rgba(130, 200, 225, 0) 68%,
-    transparent 100%
-  );
+  background: linear-gradient(100deg,
+      transparent 0%,
+      rgba(255, 210, 110, 0) 32%,
+      rgba(255, 210, 110, 0.22) 45%,
+      rgba(255, 250, 235, 0.32) 50%,
+      rgba(130, 200, 225, 0.22) 55%,
+      rgba(130, 200, 225, 0) 68%,
+      transparent 100%);
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -517,10 +629,23 @@ dialog.kredo-drawer-bottom {
 }
 
 @keyframes kredo-account-badge-reflect {
-  0%   { transform: translateX(-160%) skewX(-9deg); opacity: 0; }
-  4%   { opacity: 1; }
-  60%  { opacity: 0.85; }
-  100% { transform: translateX(160%) skewX(-9deg); opacity: 0; }
+  0% {
+    transform: translateX(-160%) skewX(-9deg);
+    opacity: 0;
+  }
+
+  4% {
+    opacity: 1;
+  }
+
+  60% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translateX(160%) skewX(-9deg);
+    opacity: 0;
+  }
 }
 
 /* ── Intelligence Toggle — bordure bariolée animée, fond transparent ──
@@ -541,27 +666,25 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   padding: 1.5px;
-  background: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  background: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
   -webkit-mask:
-     linear-gradient(#fff 0 0) content-box,
-     linear-gradient(#fff 0 0);
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   animation: kredo-ready-gradient-flow 3s linear infinite;
   pointer-events: none;
   z-index: -1;
@@ -573,14 +696,12 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 20%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0) 80%,
+      transparent 100%);
   animation: kredo-ready-shine 3s ease-in-out infinite;
   animation-delay: 0.5s;
   z-index: 2;
@@ -602,27 +723,25 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  background: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
   -webkit-mask:
-     linear-gradient(#fff 0 0) content-box,
-     linear-gradient(#fff 0 0);
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   animation: kredo-ready-gradient-flow 3s linear infinite;
   pointer-events: none;
   z-index: -1;
@@ -633,10 +752,23 @@ dialog.kredo-drawer-bottom {
  *  ::after   = lumière diagonale qui balaye à l'entrée du survol
  * ──────────────────────────────────────────────────────────────────────── */
 @keyframes kredo-action-shine-sweep {
-  0%   { transform: translateX(-140%) skewX(-12deg); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateX(140%) skewX(-12deg); opacity: 0; }
+  0% {
+    transform: translateX(-140%) skewX(-12deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(140%) skewX(-12deg);
+    opacity: 0;
+  }
 }
 
 .kredo-action-card-dark {
@@ -657,17 +789,15 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(54, 136, 170, 0.70) 0%,
-    rgba(179, 125, 83, 0.55) 50%,
-    rgba(255, 193, 7, 0.45) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(54, 136, 170, 0.70) 0%,
+      rgba(179, 125, 83, 0.55) 50%,
+      rgba(255, 193, 7, 0.45) 100%);
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   pointer-events: none;
   z-index: 1;
   opacity: 0.65;
@@ -680,14 +810,12 @@ dialog.kredo-drawer-bottom {
   position: absolute;
   inset-block: 0;
   inset-inline: -60%;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0) 65%,
-    transparent 100%
-  );
+  background: linear-gradient(105deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0) 65%,
+      transparent 100%);
   pointer-events: none;
   z-index: 2;
   opacity: 0;
@@ -723,16 +851,20 @@ dialog.kredo-drawer-bottom {
   .kredo-intelligence-toggle::before {
     animation: none;
   }
+
   .kredo-intelligence-toggle::after {
     animation: none;
     opacity: 0;
   }
+
   .kredo-action-card-dark::after {
     display: none;
   }
+
   .kredo-action-card-dark:not(:disabled):hover {
     transform: none;
   }
+
   .kredo-account-badge::after {
     display: none;
   }
@@ -772,9 +904,11 @@ html {
   --line-height-title-desktop-lg: 2.5rem;
   --font-size-title-desktop-md: 1.75rem;
   --line-height-title-desktop-md: 2.125rem;
-  --font-size-title-mobile-lg: 2rem;   /* 32 / 38 */
+  --font-size-title-mobile-lg: 2rem;
+  /* 32 / 38 */
   --line-height-title-mobile-lg: 2.375rem;
-  --font-size-title-mobile-md: 1.75rem; /* 28 / 34 */
+  --font-size-title-mobile-md: 1.75rem;
+  /* 28 / 34 */
   --line-height-title-mobile-md: 2.125rem;
   --font-size-body-md: 0.9375rem;
   --line-height-body-md: 1.5rem;
@@ -857,7 +991,8 @@ html {
 
   /* ── Layout ─────────────────────────────────────────────── */
   --layout-sidebar-width-collapsed: 4rem;
-  --layout-sidebar-width-expanded: 14rem;   /* "Prospection Intelligence" = label le plus long → 224px */
+  --layout-sidebar-width-expanded: 14rem;
+  /* "Prospection Intelligence" = label le plus long → 224px */
   --layout-header-height: 3.5rem;
   --layout-bottom-nav-height: 5rem;
   --layout-drawer-width: 28rem;
@@ -873,7 +1008,7 @@ html {
 }
 
 #__next,
-body > div:first-child {
+body>div:first-child {
   width: 100%;
   max-width: 100%;
 }
@@ -892,12 +1027,11 @@ canvas {
 }
 
 @media (max-width: 767px) {
-  :is(
-    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+
+  :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
     textarea,
     select,
-    [contenteditable="true"]
-  ) {
+    [contenteditable="true"]) {
     font-size: 16px !important;
     line-height: 1.5 !important;
   }
@@ -908,29 +1042,89 @@ canvas {
 }
 
 @keyframes kredo-ready-gradient-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 @keyframes kredo-ready-pulse {
-  0%    { scale: 1;    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28); }
-  5%    { scale: 1.12; box-shadow: 0 14px 42px rgba(91, 87, 245, 0.62), 0 0 0 9px rgba(100, 80, 255, 0.16); }
-  11%   { scale: 0.96; box-shadow: 0 2px 10px rgba(91, 87, 245, 0.18); }
-  19%   { scale: 1.03; box-shadow: 0 7px 24px rgba(91, 87, 245, 0.34); }
-  40%   { scale: 1.05; box-shadow: 0 9px 28px rgba(91, 87, 245, 0.40); }
-  60%   { scale: 1.01; box-shadow: 0 5px 20px rgba(91, 87, 245, 0.28); }
-  80%   { scale: 1.04; box-shadow: 0 8px 26px rgba(91, 87, 245, 0.36); }
-  100%  { scale: 1;    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28); }
+  0% {
+    scale: 1;
+    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28);
+  }
+
+  5% {
+    scale: 1.12;
+    box-shadow: 0 14px 42px rgba(91, 87, 245, 0.62), 0 0 0 9px rgba(100, 80, 255, 0.16);
+  }
+
+  11% {
+    scale: 0.96;
+    box-shadow: 0 2px 10px rgba(91, 87, 245, 0.18);
+  }
+
+  19% {
+    scale: 1.03;
+    box-shadow: 0 7px 24px rgba(91, 87, 245, 0.34);
+  }
+
+  40% {
+    scale: 1.05;
+    box-shadow: 0 9px 28px rgba(91, 87, 245, 0.40);
+  }
+
+  60% {
+    scale: 1.01;
+    box-shadow: 0 5px 20px rgba(91, 87, 245, 0.28);
+  }
+
+  80% {
+    scale: 1.04;
+    box-shadow: 0 8px 26px rgba(91, 87, 245, 0.36);
+  }
+
+  100% {
+    scale: 1;
+    box-shadow: 0 4px 18px rgba(91, 87, 245, 0.28);
+  }
 }
 
 @keyframes kredo-ready-shine {
-  0%    { transform: translateY(120%);  opacity: 0; }
-  6%    { opacity: 1; }
-  52%   { transform: translateY(-120%); opacity: 0.85; }
-  62%   { opacity: 0; }
-  63%   { transform: translateY(120%);  opacity: 0; }
-  100%  { transform: translateY(120%);  opacity: 0; }
+  0% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+
+  6% {
+    opacity: 1;
+  }
+
+  52% {
+    transform: translateY(-120%);
+    opacity: 0.85;
+  }
+
+  62% {
+    opacity: 0;
+  }
+
+  63% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
 }
 
 .kredo-ready-action-button {
@@ -950,21 +1144,19 @@ canvas {
   z-index: 10;
   padding: 0;
   overflow: hidden;
-  background-image: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  background-image: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
   animation:
     kredo-ready-gradient-flow 3s linear infinite,
@@ -977,14 +1169,12 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 20%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0) 80%,
+      transparent 100%);
   animation: kredo-ready-shine 3s ease-in-out infinite;
   animation-delay: 0.5s;
 }
@@ -1006,11 +1196,9 @@ canvas {
 .pipeline-gagne-node {
   background-image:
     linear-gradient(#ffffff, #ffffff),
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #5b57f5, #7c4fff, #b84dff, #ff004d, #ff7a00, #ffb700,
-      #33d17a, #00c2ff, #4f6bff, #5b57f5, #b84dff, #5b57f5
-    );
+      #33d17a, #00c2ff, #4f6bff, #5b57f5, #b84dff, #5b57f5);
   background-origin: padding-box, border-box;
   background-clip: padding-box, border-box;
   background-size: auto, 400% 400%;
@@ -1027,14 +1215,12 @@ canvas {
   border-radius: inherit;
   pointer-events: none;
   mix-blend-mode: screen;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 15%,
-    rgba(255, 255, 255, 0.72) 50%,
-    rgba(255, 255, 255, 0) 85%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 15%,
+      rgba(255, 255, 255, 0.72) 50%,
+      rgba(255, 255, 255, 0) 85%,
+      transparent 100%);
   animation: kredo-ready-shine 4s ease-in-out infinite;
   animation-delay: 0.5s;
 }
@@ -1065,28 +1251,27 @@ canvas {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1.5px; /* border thickness */
-  background: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  padding: 1.5px;
+  /* border thickness */
+  background: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
-  -webkit-mask: 
-     linear-gradient(#fff 0 0) content-box, 
-     linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   animation: kredo-ready-gradient-flow 3s linear infinite;
   pointer-events: none;
   z-index: -1;
@@ -1098,14 +1283,12 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 20%,
-    rgba(255, 255, 255, 0.25) 50%,
-    rgba(255, 255, 255, 0) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0) 80%,
+      transparent 100%);
   animation: kredo-ready-shine 3s ease-in-out infinite;
   animation-delay: 0.5s;
   z-index: 2;
@@ -1122,6 +1305,7 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .kredo-ai-analysis-button::before,
   .kredo-ai-analysis-button::after {
     animation: none;
@@ -1141,28 +1325,27 @@ canvas {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 2px; /* border thickness */
-  background: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  padding: 2px;
+  /* border thickness */
+  background: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
-  -webkit-mask: 
-     linear-gradient(#fff 0 0) content-box, 
-     linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   animation: kredo-ready-gradient-flow 3s linear infinite;
   pointer-events: none;
   z-index: 2;
@@ -1226,8 +1409,7 @@ canvas {
   border: 1px solid transparent;
   background:
     linear-gradient(#ffc107, #ffc107) padding-box,
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #5b57f5,
       #7c4fff,
       #b84dff,
@@ -1237,8 +1419,7 @@ canvas {
       #33d17a,
       #00c2ff,
       #4f6bff,
-      #5b57f5
-    ) border-box;
+      #5b57f5) border-box;
   background-size: auto, 400% 400%;
   animation:
     kredo-ready-gradient-flow 3s linear infinite,
@@ -1252,19 +1433,18 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 26%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0) 74%,
-    transparent 100%
-  );
+  background: linear-gradient(110deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 26%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 74%,
+      transparent 100%);
   transform: translateX(-120%);
   animation: kredo-spectrum-sweep 2.8s ease-in-out infinite;
 }
 
 @keyframes kredo-spectrum-sweep {
+
   0%,
   18% {
     transform: translateX(-120%);
@@ -1321,21 +1501,19 @@ canvas {
   z-index: 10;
   padding: 0;
   overflow: hidden;
-  background-image: linear-gradient(
-    135deg,
-    #5b57f5,
-    #7c4fff,
-    #b84dff,
-    #ff004d,
-    #ff7a00,
-    #ffb700,
-    #33d17a,
-    #00c2ff,
-    #4f6bff,
-    #5b57f5,
-    #b84dff,
-    #5b57f5
-  );
+  background-image: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
   background-size: 400% 400%;
   animation: kredo-ready-gradient-flow 3s linear infinite;
 }
@@ -1346,14 +1524,12 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 20%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0) 80%,
+      transparent 100%);
   animation: kredo-ready-shine 3s ease-in-out infinite;
   animation-delay: 0.5s;
 }
@@ -1386,7 +1562,8 @@ canvas {
   z-index: 10;
   padding: 0;
   overflow: hidden;
-  background-color: #2563EB; /* Static electric blue */
+  background-color: #2563EB;
+  /* Static electric blue */
 }
 
 .kredo-rating-level5-blue::after {
@@ -1395,14 +1572,12 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 20%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0) 80%,
-    transparent 100%
-  );
+  background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0) 80%,
+      transparent 100%);
   animation: kredo-ready-shine 3s ease-in-out infinite;
   animation-delay: 0.5s;
 }
@@ -1420,10 +1595,9 @@ canvas {
   border: 2px solid transparent !important;
   background-clip: padding-box, border-box !important;
   background-origin: padding-box, border-box !important;
-  background-image: 
+  background-image:
     linear-gradient(var(--color-surface, #FDFCFA), var(--color-surface, #FDFCFA)),
-    linear-gradient(
-      135deg,
+    linear-gradient(135deg,
       #5b57f5,
       #7c4fff,
       #b84dff,
@@ -1435,8 +1609,7 @@ canvas {
       #4f6bff,
       #5b57f5,
       #b84dff,
-      #5b57f5
-    ) !important;
+      #5b57f5) !important;
   background-size: 100% 100%, 400% 400% !important;
   animation: kredo-ready-gradient-flow 3s linear infinite !important;
 }
@@ -1450,8 +1623,15 @@ canvas {
 
 /* ── Custom Fade-In Animation ── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .animate-fade-in {
@@ -1505,6 +1685,7 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .kredo-hover-reference,
   .kredo-quick-action-button,
   .kredo-quick-action-icon {
@@ -1520,23 +1701,23 @@ canvas {
 }
 
 @keyframes opportunity-skill-cloud-drift {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
 
   50% {
-    transform: translate3d(
-      var(--drift-x-amplitude, var(--cloud-drift-x, 0px)),
-      var(--drift-y-amplitude, var(--cloud-drift-y, 0px)),
-      0
-    ) scale(var(--drift-scale, var(--cloud-drift-scale, 1.01)));
+    transform: translate3d(var(--drift-x-amplitude, var(--cloud-drift-x, 0px)),
+        var(--drift-y-amplitude, var(--cloud-drift-y, 0px)),
+        0) scale(var(--drift-scale, var(--cloud-drift-scale, 1.01)));
   }
 }
 
 /* Animation styles for the skills cloud */
 .skills-cloud-pill {
-  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1), 
-              opacity 0.5s ease;
+  transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.5s ease;
 }
 
 .skills-cloud-container:hover .skills-cloud-pill {
@@ -1559,36 +1740,48 @@ canvas {
 
 /* SVG background cloud elements animations */
 @keyframes skills-wire-drift-1 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(-3px, 4px) scale(1.03);
   }
 }
 
 @keyframes skills-wire-drift-2 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(4px, -3px) scale(0.97);
   }
 }
 
 @keyframes skills-circle-drift-1 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(3px, 3px) scale(1.06);
   }
 }
 
 @keyframes skills-circle-drift-2 {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
+
   50% {
     transform: translate(-4px, -2px) scale(0.94);
   }
@@ -1645,6 +1838,7 @@ canvas {
 
 /* Accessibility: respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
+
   .skills-cloud-pill,
   .skills-cloud-wire-1,
   .skills-cloud-wire-2,
@@ -1660,13 +1854,16 @@ canvas {
 .perspective-1000 {
   perspective: 1000px;
 }
+
 .transform-style-3d {
   transform-style: preserve-3d;
 }
+
 .backface-hidden {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+
 .rotate-y-180 {
   transform: rotateY(180deg);
 }

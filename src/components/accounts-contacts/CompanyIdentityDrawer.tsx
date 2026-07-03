@@ -349,7 +349,8 @@ export function CompanyIdentityDrawer({
       onOpenChange={onOpenChange}
       title={data?.company?.name || "Chargement..."}
       subtitle="Fiche d'identité"
-      className="max-w-2xl"
+      hideHeaderOnDesktop
+      className="max-w-2xl kredo-identity-drawer"
     >
       {loading ? (
         <div className="flex flex-col gap-6 p-2">
@@ -386,35 +387,36 @@ export function CompanyIdentityDrawer({
         </div>
       ) : data ? (
         <div className="flex flex-col h-full gap-5">
-          {/* Company identity card summary */}
-          <div className="flex flex-col gap-4 bg-canvas/30 rounded-[var(--radius-medium)] border border-border/50 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                {/* Mobile back arrow button */}
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="sm:hidden flex items-center justify-center text-muted hover:text-heading transition-colors cursor-pointer mr-0.5"
-                  aria-label="Retour"
-                >
-                  <svg className="h-4 w-4 fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <polygon points="16,5 7,12 16,19" />
-                  </svg>
-                </button>
+          {/* Company identity card summary - exact styling match to Contact card with petroleum blue background & top white gradient fade */}
+          <div className="relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all bg-[#257A8E] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.15)_0%,transparent_100%)] text-white border-[#257A8E]/20">
+            {/* Close button in top right, no background, smaller cross */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute top-2.5 right-2.5 text-white/70 hover:text-white transition-colors p-1"
+              title="Fermer"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
 
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                {/* Logo de l'entreprise */}
                 {data.company.website ? (
                   <a
                     href={data.company.website.startsWith("http") ? data.company.website : `https://${data.company.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity shrink-0"
+                    className="hover:scale-105 active:scale-95 transition-transform shrink-0"
                     title={`Visiter le site de ${data.company.name}`}
                   >
                     <CompanyLogo
                       name={data.company.name}
                       logoPath={(data.company.metadata?.logo_path as string) || null}
                       website={data.company.website}
-                      size="md"
+                      size="xl"
+                      className="rounded-full w-14 h-14 border-white/20"
                     />
                   </a>
                 ) : (
@@ -422,64 +424,63 @@ export function CompanyIdentityDrawer({
                     name={data.company.name}
                     logoPath={(data.company.metadata?.logo_path as string) || null}
                     website={data.company.website}
-                    size="md"
+                    size="xl"
+                    className="rounded-full w-14 h-14 border-white/20"
                   />
                 )}
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-bold text-heading leading-tight">{data.company.name}</h3>
+
+                <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-bold text-white leading-tight truncate">{data.company.name}</h3>
+                    {(data.company.sector || data.company.segment) && (
+                      <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
+                        {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
+                      </span>
+                    )}
                   </div>
-                  {(data.company.sector || data.company.segment) && (
-                    <span className="text-[11px] text-muted font-medium block mt-0.5">
-                      {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
-                    </span>
+                  
+                  {/* Cockpit link button on the far right - matching the Intelligence Toggle styling (round shape) */}
+                  {companyId && (
+                    <Link
+                      href={`/prospection/accounts/${companyId}`}
+                      onClick={() => onOpenChange(false)}
+                      className="kredo-intelligence-toggle bg-primary flex shrink-0 items-center justify-center rounded-full w-11 h-11 min-w-11 min-h-11 transition-opacity hover:opacity-90 active:opacity-70"
+                      title="Accéder au cockpit"
+                    >
+                      <svg
+                        className="w-5 h-5 relative z-10 shrink-0"
+                        style={{ color: "var(--color-secondary)" }}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.75}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                      </svg>
+                    </Link>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* AI Score Badge */}
-              <div className="flex shrink-0">
-                <span className="inline-flex items-center justify-center text-sm font-extrabold text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded">
+            {/* Pastilles : Statut (Amber Yellow) / Score IA / Priorité */}
+            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 text-[11px] w-full text-center border-t border-white/12">
+              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
+                <span className="font-extrabold truncate capitalize text-[#FFB812] block">
+                  {lifecycleLabel(data.company.lifecycle_status)}
+                </span>
+              </div>
+              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
+                <span className="font-extrabold truncate text-white block">
                   {formatScore(data.company.ai_score)}
                 </span>
               </div>
-            </div>
-
-            {/* Cockpit CTA Button in Footer */}
-            {companyId && (
-              <div className="pt-2 border-t border-border/40">
-                <Link
-                  href={`/prospection/accounts/${companyId}`}
-                  onClick={() => onOpenChange(false)}
-                  className="kredo-cockpit-cta-button relative flex items-center justify-center rounded-[var(--radius-medium)] bg-primary w-full py-2 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/95"
-                >
-                  <span>Ouvrir le cockpit Intelligence</span>
-                  <span
-                    className="kredo-ready-action-circle"
-                    style={{
-                      position: "absolute",
-                      right: "8px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      width: "18px",
-                      height: "18px",
-                      minWidth: "18px",
-                      minHeight: "18px",
-                    }}
-                  >
-                    <svg
-                      className="w-2.5 h-2.5 relative z-10 text-white shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={4}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                    </svg>
-                  </span>
-                </Link>
+              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
+                <span className="font-extrabold truncate capitalize text-white block">
+                  {data.company.priority || "normale"}
+                </span>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Navigation Tabs */}
