@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { searchAccounts } from "@/app/(app)/missions/_actions/search-accounts"
 import { cn } from "@/lib/utils"
 import { Combobox, ComboboxOption } from "@/components/ui/Combobox"
@@ -16,32 +16,57 @@ interface AccountComboboxProps {
   value: AccountValue | null
   onChange: (value: AccountValue | null) => void
   className?: string
+  allowCreate?: boolean
+  openOnFocus?: boolean
+  minSearchLength?: number
+  searchLimit?: number
 }
 
-export function AccountCombobox({ value, onChange, className }: AccountComboboxProps) {
+export function AccountCombobox({
+  value,
+  onChange,
+  className,
+  allowCreate = true,
+  openOnFocus = false,
+  minSearchLength = 2,
+  searchLimit = 8,
+}: AccountComboboxProps) {
   const [query, setQuery] = useState(value?.name ?? "")
   const [results, setResults] = useState<Array<{ id: string; name: string }>>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const searchSequenceRef = useRef(0)
 
-  // Recherche avec debounce
+  const canSearch = useCallback((input: string) => {
+    return openOnFocus || input.trim().length >= minSearchLength
+  }, [minSearchLength, openOnFocus])
+
+  // Recherche instantanée. En mode openOnFocus, une requête vide remonte les premiers comptes.
   useEffect(() => {
-    clearTimeout(debounceRef.current)
-
-    const trimmed = query.trim()
-    if (trimmed.length < 2) {
+    if (!canSearch(query)) {
+      setResults([])
+      setIsLoading(false)
       return
     }
 
-    debounceRef.current = setTimeout(async () => {
-      const found = await searchAccounts(trimmed)
-      setResults(found)
-      setIsLoading(false)
-    }, 280)
+    const sequence = searchSequenceRef.current + 1
+    searchSequenceRef.current = sequence
+    setIsLoading(true)
 
-    return () => clearTimeout(debounceRef.current)
-  }, [query])
+    void searchAccounts(query, { limit: searchLimit })
+      .then((found) => {
+        if (searchSequenceRef.current !== sequence) return
+        setResults(found)
+      })
+      .finally(() => {
+        if (searchSequenceRef.current === sequence) setIsLoading(false)
+      })
+  }, [canSearch, query, searchLimit])
+
+  useEffect(() => {
+    if (!value) return
+    setQuery(value.name)
+  }, [value])
 
   const handleSelect = (account: { id: string; name: string }) => {
     setQuery(account.name)
@@ -50,6 +75,7 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
   }
 
   const handleCreateNew = () => {
+    if (!allowCreate) return
     setQuery(query.trim())
     setResults([])
     onChange({ id: null, name: query.trim(), isNew: true })
@@ -61,20 +87,20 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
     if (value && val !== value.name) {
       onChange(null)
     }
-    if (val.trim().length < 2) {
+    if (!canSearch(val)) {
       setResults([])
       setIsLoading(false)
-    } else {
-      setIsLoading(true)
     }
   }
 
   // Affiche l'option "Créer" si la saisie ne correspond à aucun résultat exact
   const showCreateOption =
+    allowCreate &&
     query.trim().length >= 2 &&
     !results.some((r) => r.name.toLowerCase() === query.trim().toLowerCase())
 
   const isConfirmed = value !== null
+  const canOpen = openOnFocus || query.trim().length >= minSearchLength
 
   const options = useMemo<ComboboxOption[]>(() => {
     const accountOptions = results.map((account) => ({
@@ -113,7 +139,7 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
       type="text"
       value={query}
       onValueChange={updateQuery}
-      options={query.trim().length >= 2 ? options : []}
+      options={canOpen ? options : []}
       onSelect={(option) => {
         if (option.id === "__create__") {
           handleCreateNew()
@@ -124,9 +150,9 @@ export function AccountCombobox({ value, onChange, className }: AccountComboboxP
       placeholder="Tapez le nom du client…"
       autoComplete="off"
       loading={isLoading}
-      canOpen={query.trim().length >= 2}
+      canOpen={canOpen}
       loadingMessage="Recherche…"
-      emptyMessage="Aucun résultat"
+      emptyMessage="Aucun compte trouvé"
       clearable={Boolean(query || value)}
       onClear={() => {
         setQuery("")
