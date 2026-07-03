@@ -24,19 +24,27 @@ type LooseSupabaseClient = {
  * Utilisé par AccountCombobox pour la recherche en temps réel.
  */
 export async function searchAccounts(
-  query: string
+  query: string,
+  options?: { limit?: number },
 ): Promise<AccountSearchResult[]> {
   const trimmed = query.trim()
-  if (trimmed.length < 2) return []
+  const limit = Math.min(Math.max(options?.limit ?? 8, 1), 25)
 
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
-  const { data, error } = await supabase
+  let request = supabase
     .from("companies")
     .select("id, name")
-    .ilike("name", `%${trimmed}%`)
+
+  if (trimmed.length >= 2) {
+    request = request.ilike("name", `%${trimmed}%`)
+  } else if (trimmed.length === 1) {
+    request = request.ilike("name", `${trimmed}%`)
+  }
+
+  const { data, error } = await request
     .order("name", { ascending: true })
-    .limit(8)
+    .limit(limit)
 
   if (error) return []
   return data ?? []
