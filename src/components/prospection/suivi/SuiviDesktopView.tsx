@@ -5,13 +5,8 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
-import { ActivityReportModal } from "@/components/reports/ActivityReportModal"
 import type { SuiviData } from "@/lib/prospection/suivi-data"
-import {
-  ImpulsionKpiCard,
-  ActionCritiqueCard,
-  RelanceIACard,
-} from "./suivi-parts"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import { getCalendarEventsForSuivi, CalendarEventItem } from "@/lib/prospection/suivi-actions"
 import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
@@ -103,10 +98,7 @@ const getEventCategory = (event: { event_type: string; opportunity_id?: string |
 // ── Suivi des Actions — Vue Desktop ──────────────────────────────────────────
 export function SuiviDesktopView({ data }: { data: SuiviData }) {
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
-  const { impulsionKpis, actionsCritiques, relancesIA } = data
-
-  const [filterCollab, setFilterCollab] = useState("all")
-  const [filterSecteur, setFilterSecteur] = useState("all")
+  void data
 
   // Filtres d'en-tête (période & événements)
   const [selectedPeriod, setSelectedPeriod] = useState<"semaine" | "mois" | "trimestre" | "année">("semaine")
@@ -193,46 +185,12 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
     }
   }, [selectedPeriod, selectedOptions])
 
-  // Modale nouveau rapport — REPORT-001 Lot 2 (report-activity-commercial)
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
-
   const periodLabels = {
     semaine: "Semaine",
     mois: "Mois",
     trimestre: "Trimestre",
     année: "Année"
   }
-
-  // Formatage de la date en français
-  const formatEventDate = (isoString: string) => {
-    try {
-      const d = new Date(isoString)
-      return d.toLocaleString("fr-FR", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit"
-      })
-    } catch {
-      return isoString
-    }
-  }
-
-  // Filtres dynamiques (seront branchés sur des vraies valeurs en Lot 2)
-  const filteredCritiques = actionsCritiques.filter((a) => {
-    if (filterCollab === "all") return true
-    return a.consultantName.toLowerCase().includes(filterCollab.toLowerCase())
-  })
-
-  const filteredRelances = relancesIA.filter((r) => {
-    if (filterSecteur === "all") return true
-    return r.sector.toLowerCase().includes(filterSecteur.toLowerCase())
-  })
-
-  // Unique collaborateurs pour le filtre
-  const collabs = Array.from(new Set(actionsCritiques.map((a) => a.consultantName)))
-  const secteurs = Array.from(new Set(relancesIA.map((r) => r.sector)))
 
   // Calculs pour les 4 KPIs
   const totalEvents = dbEvents.length
@@ -450,7 +408,7 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setIsReportModalOpen(true)}
+            onClick={() => openReportGeneration({ origin: "commercial_activity" })}
             className="bg-primary hover:bg-primary-deep text-white cursor-pointer font-semibold"
             leftIcon={
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -729,12 +687,6 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
         </div>
       </div>
 
-      <ActivityReportModal
-        open={isReportModalOpen}
-        onOpenChange={setIsReportModalOpen}
-        reportType="activity_commercial"
-      />
-
       {/* ── Section : Détails des Événements ───────────────────────────────── */}
       <section className="mt-2 px-6 pb-6">
         <SurfaceCard className="p-0 overflow-hidden">
@@ -919,19 +871,6 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
           </div>
         </SurfaceCard>
       </section>
-    </div>
-  )
-}
-
-// ── Composant interne : état vide ─────────────────────────────────────────────
-
-function EmptyActions({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <svg className="w-8 h-8 text-muted/40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-      </svg>
-      <p className="text-xs text-muted">{message}</p>
     </div>
   )
 }

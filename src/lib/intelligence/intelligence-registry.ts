@@ -254,10 +254,10 @@ const ACTIONS: Record<string, IntelligenceAction> = {
   weekly_brief: {
     id: "weekly_brief",
     label: "Brief hebdomadaire",
-    description: "Synthèse de la semaine : faits marquants, alertes, prochaines étapes.",
+    description: "Priorités de la semaine, alertes à traiter et actions recommandées — calculées, pas devinées.",
     icon: "weekly_brief",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   action_priorities: {
     id: "action_priorities",
@@ -353,7 +353,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
   {
     pattern: "/agenda",
     label: "Agenda",
-    actionIds: ["prepare_day", "action_priorities", "flag_unprepared_meetings"],
+    actionIds: ["weekly_brief", "prepare_day", "action_priorities", "flag_unprepared_meetings"],
   },
 
   // ── CRM & Prospection ─────────────────────────────────────────────────

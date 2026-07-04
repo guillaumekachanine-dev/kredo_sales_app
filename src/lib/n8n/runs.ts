@@ -34,6 +34,12 @@ type CreateRunOptions = {
   workspaceId: string
   userId: string
   input: Record<string, unknown>
+  // "ui" (défaut) = déclenché par un clic utilisateur · "cron" = déclenché
+  // par report-weekly-manager-cron (ADR-0010 Lot 4) — /api/n8n/callback lit
+  // cette valeur pour décider de créer ou non une notification in-app (un
+  // run "ui" est déjà visible en Realtime dans le drawer, une notification
+  // serait redondante ; un run "cron" n'a aucune UI ouverte à prévenir).
+  triggerSource?: string
 }
 
 export async function createRun(opts: CreateRunOptions): Promise<string> {
@@ -46,7 +52,7 @@ export async function createRun(opts: CreateRunOptions): Promise<string> {
       primary_entity_type: opts.entityType,
       primary_entity_id: opts.entityId,
       run_type: opts.workflowId,
-      trigger_source: "ui",
+      trigger_source: opts.triggerSource ?? "ui",
       status: "queued",
       input_snapshot: opts.input as Json,
       config: { workflowId: opts.workflowId } as Json,

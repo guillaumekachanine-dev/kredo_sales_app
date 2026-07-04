@@ -26,6 +26,7 @@ import {
 } from "./agenda-desktop-model"
 import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
 import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 
 interface AgendaDesktopWorkspaceProps {
   snapshot: AgendaSnapshot
@@ -302,6 +303,15 @@ export function AgendaDesktopWorkspace({
                   </svg>
                 </IconButton>
               </div>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => openReportGeneration({ origin: "agenda", reportType: "weekly_manager" })}
+                className="shadow-none cursor-pointer"
+              >
+                Brief hebdomadaire
+              </Button>
 
               <Button
                 variant="primary"

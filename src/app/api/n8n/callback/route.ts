@@ -36,6 +36,7 @@ function isEligibleDocumentResult(resultType: string) {
     "pitch_mail",
     "activity_commercial",
     "activity_recruitment",
+    "weekly_manager",
   ].includes(resultType)
 }
 
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
   const supabase = getServiceClient()
   const { data: run, error: runError } = await supabase
     .from("ai_intelligence_runs")
-    .select("company_id, workspace_id, owner_id")
+    .select("company_id, workspace_id, owner_id, trigger_source")
     .eq("id", runId)
     .single()
 
@@ -112,6 +113,26 @@ export async function POST(request: Request) {
     if (!documentResult.success) {
       console.error("[callback] auto saveResultAsDocument failed:", documentResult.error)
       return NextResponse.json({ error: "Erreur création document" }, { status: 500 })
+    }
+
+    // ADR-0010 Lot 4 : uniquement pour les runs déclenchés par le cron du
+    // lundi — un run "ui" est déjà visible en Realtime dans le drawer
+    // ouvert par l'utilisateur, une notification serait redondante.
+    if (resultType === "weekly_manager" && run.trigger_source === "cron") {
+      const { error: notificationError } = await supabase.from("user_notifications").insert({
+        workspace_id: run.workspace_id,
+        user_id: run.owner_id,
+        notification_type: "weekly_brief_ready",
+        title: "Votre brief hebdomadaire est prêt",
+        body: payload.title ?? null,
+        deep_link: `/reports?doc=${documentResult.documentId}`,
+        related_document_id: documentResult.documentId,
+      })
+      if (notificationError) {
+        // Non bloquant : le document existe déjà, la notification n'est qu'un
+        // confort d'accès — on log et on continue.
+        console.error("[callback] user_notifications insert failed:", notificationError.message)
+      }
     }
   }
 

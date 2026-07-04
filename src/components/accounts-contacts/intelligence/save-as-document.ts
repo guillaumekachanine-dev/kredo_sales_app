@@ -56,6 +56,8 @@ function mapResultTypeToDocumentType(resultType: string): DocumentType | null {
       return "activity_commercial"
     case "activity_recruitment":
       return "activity_recruitment"
+    case "weekly_manager":
+      return "weekly_manager"
     default:
       return null
   }
@@ -153,6 +155,8 @@ function buildFallbackTitle(documentType: DocumentType) {
       return "Rapport d'activité commerciale"
     case "activity_recruitment":
       return "Rapport d'activité recrutement"
+    case "weekly_manager":
+      return "Brief hebdomadaire"
     default:
       // Types de rapports REPORT-001 (Lot 1+) — pas encore générés via ce
       // chemin (saveResultAsDocumentWithSupabaseClient sert INTEL-020/021/022).

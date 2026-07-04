@@ -14,6 +14,8 @@ export type N8nWorkflowId =
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale
   | "report-activity-recruitment"   // REPORT-001 Lot 2 : rapport d'activité recrutement
+  | "report-weekly-manager"         // ADR-0010 Lot 2 : brief hebdomadaire (déclenchement manuel)
+  | "report-weekly-manager-cron"    // ADR-0010 Lot 4 : brief hebdomadaire (cron lundi 07:00)
   // Sales
   | "sales-001-interaction-enrich"  // SALES-001 : enrichissement interaction (preuve E2E)
   // Recrutement

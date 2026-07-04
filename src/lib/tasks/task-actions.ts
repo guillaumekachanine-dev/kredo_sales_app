@@ -7,6 +7,7 @@ export type TaskPriority = "low" | "normal" | "high" | "urgent"
 
 export type CreateTaskInput = {
   title: string
+  description?: string | null
   due_date?: string | null
   priority: TaskPriority
   entity_type: string
@@ -33,6 +34,7 @@ export async function createTask(
     .from("tasks")
     .insert({
       title: input.title.trim(),
+      description: input.description?.trim() || null,
       due_date: input.due_date || null,
       priority: input.priority,
       entity_type: input.entity_type,

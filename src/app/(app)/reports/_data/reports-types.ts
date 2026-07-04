@@ -419,3 +419,164 @@ export type ActivityRecruitmentContent = {
   sourceRefs: Array<{ entityType: string; entityId?: string; label: string; usedFor?: string }>
   qaFlags: Array<{ check: string; passed: boolean; detail?: string }>
 }
+
+// ============================================================
+// REPORT-001 — Brief hebdomadaire (ADR-0010)
+// ============================================================
+// Contrairement aux autres rapports REPORT-001, "facts" n'est PAS le miroir
+// d'une seule RPC : il combine loadAgendaSnapshot() (source unique de vérité
+// "quoi cette semaine" — src/lib/agenda/aggregate-agenda-snapshot.ts, jamais
+// recalculée en SQL) et get_weekly_business_facts (Lot 1, uniquement les
+// faits que l'agenda ne peut structurellement pas produire : montants
+// monétaires agrégés, comptes sans aucune trace agenda, indicateurs
+// financiers CRA). L'assemblage se fait côté TS dans computeWeeklyBrief()
+// (Lot 1), jamais dans n8n — le LLM ne reçoit que le résultat déjà calculé
+// et ne peut rédiger que la narrative.
+//
+// Périmètre volontairement retiré de get_weekly_business_facts car déjà
+// couvert par l'agrégateur agenda (vérifié dans missions-resolver.ts,
+// opportunities-resolver.ts, recruitment-resolver.ts) — recalculer ici
+// dupliquerait une source déjà unique :
+//   - débuts/fins de mission (missionBoundaries)
+//   - prochaines actions commerciales datées (opportunityDeadlines)
+//   - jalons recrutement datés (recruitmentMilestones)
+// Ces comptages sont dérivés en TS depuis AgendaSnapshot.items, pas depuis
+// une nouvelle requête SQL.
+
+export type WeeklyManagerPriorityTier = "critical" | "high" | "normal"
+
+export type WeeklyManagerPriorityItem = {
+  rank: number
+  sourceType: string // AgendaSourceType | "business_fact"
+  sourceId: string
+  title: string
+  reason: string
+  tier: WeeklyManagerPriorityTier
+  recommendedAction: string
+  entityType?: string
+  entityId?: string
+  scoringVersion: string // ex. "weekly-scoring-v1" — voir src/lib/reports/weekly-manager/scoring.ts
+}
+
+// Miroir exact du JSONB retourné par get_weekly_business_facts
+// (supabase/migrations/20260704210000_weekly_business_facts_rpc_lists.sql).
+// Chaque *Count est accompagné d'une liste bornée (LIMIT 5) portant les
+// identités nécessaires à computeWeeklyBrief() pour construire des
+// WeeklyManagerPriorityItem individuels (deep-link + dismiss) — un compteur
+// seul ne suffit pas à produire une action "1-clic".
+export type WeeklyBusinessFacts = {
+  commercial: {
+    weightedPipeThisWeek: number
+    staleOpportunitiesCount: number
+    staleOpportunities: Array<{
+      id: string
+      title: string
+      companyId: string | null
+      companyName: string | null
+      daysSinceLastAction: number
+      weightedGain: number | null
+    }>
+    quietTargetAccountsCount: number
+    quietTargetAccounts: Array<{ id: string; name: string; lastContactAt: string | null }>
+  }
+  delivery: {
+    lowMarginMissionsCount: number
+    lowMarginMissions: Array<{
+      id: string
+      title: string
+      companyId: string | null
+      companyName: string | null
+      grossMarginPct: number | null
+    }>
+    lowActivityCollaboratorsCount: number
+    lowActivityCollaborators: Array<{ id: string; fullName: string | null; activityRatePercent: number | null }>
+  }
+  recruitment: {
+    openPositioningCount: number
+    pendingOffersCount: number
+    pendingOffers: Array<{
+      id: string
+      candidateName: string | null
+      offerStatus: string | null
+      deadline: string | null
+    }>
+  }
+  dataCutoffAt: string
+  caveats: string[]
+}
+
+// Superset assemblé par computeWeeklyBrief() : period/scope/workload/
+// agendaByDay viennent de AgendaSnapshot, commercial/delivery/recruitment
+// viennent de WeeklyBusinessFacts, priorities est calculé par le scoring
+// déterministe (weekly-scoring-v1) à partir des deux.
+export type WeeklyManagerFacts = {
+  period: { startDate: string; endDate: string; asOfDate: string; weekIso: string }
+  scope: { ownerId: string | null; isWorkspaceWide: boolean }
+  workload: {
+    calendarEventsCount: number
+    tasksDueCount: number
+    overdueOpenTasksCount: number
+    actionableItemsCount: number
+    conflictCount: number
+    denseDaysCount: number
+  }
+  agendaByDay: Array<{
+    date: string
+    eventsCount: number
+    tasksCount: number
+    deadlinesCount: number
+    topItemIds: string[]
+  }>
+  commercial: WeeklyBusinessFacts["commercial"] & { nextActionsCount: number }
+  delivery: WeeklyBusinessFacts["delivery"] & { missionStartsCount: number; missionEndsCount: number }
+  recruitment: WeeklyBusinessFacts["recruitment"] & { milestonesCount: number }
+  priorities: WeeklyManagerPriorityItem[]
+  dataCutoffAt: string
+  caveats: string[]
+}
+
+// Section rédigée par le LLM — n'a le droit de citer que des valeurs
+// présentes dans `facts` (même contrôle qualité que les autres narratives
+// REPORT-001).
+export type WeeklyManagerNarrative = {
+  executiveSummary: string
+  weeklyFocus: string[]
+  topPriorities: Array<{
+    title: string
+    whyNow: string
+    recommendedAction: string
+    expectedImpact: string
+  }>
+  risks: string[]
+  suggestedTasks: Array<{
+    title: string
+    description: string
+    dueAt: string | null
+    priority: "urgent" | "high" | "normal" | "low"
+    entityType?: string
+    entityId?: string
+  }>
+  warnings?: string[]
+}
+
+export type WeeklyManagerContent = {
+  facts: WeeklyManagerFacts
+  narrative: WeeklyManagerNarrative
+  sourceRefs: Array<{ entityType: string; entityId?: string; label: string; usedFor?: string }>
+  qaFlags: Array<{ check: string; passed: boolean; detail?: string }>
+}
+
+// Enveloppe envoyée dans N8nTriggerPayload.input par
+// /api/reports/weekly-manager/trigger (ADR-0010 Lot 2). Contrairement à
+// ReportBrief (activity_commercial/activity_recruitment), "facts" est déjà
+// entièrement calculé côté Next.js avant l'appel n8n — le workflow
+// report-weekly-manager n'a donc PAS de nœud "Hydrate Facts" : il lit
+// input.facts directement et ne fait que rédiger la narrative + QA.
+export type WeeklyManagerTriggerInput = {
+  reportType: "weekly_manager"
+  period: WeeklyManagerFacts["period"]
+  scope: WeeklyManagerFacts["scope"]
+  facts: WeeklyManagerFacts
+  detailLevel?: ReportDetailLevel
+  additionalInstructions?: string
+}

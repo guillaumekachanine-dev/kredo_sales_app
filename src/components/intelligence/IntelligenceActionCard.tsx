@@ -14,7 +14,8 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
   const isWriteEmail = action.id === "common_write_email"
   const isCommonReport = action.id === "common_report"
   const isActivityReport = action.id === "activity_report"
-  const isSupportedReportAction = isCommonReport || isActivityReport
+  const isWeeklyBrief = action.id === "weekly_brief"
+  const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
   const isInteractive = isWriteEmail || isSupportedReportAction
   const isComingSoon = action.status === "coming_soon" && !isInteractive
 
@@ -26,6 +27,11 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
 
     if (isActivityReport) {
       openReportGeneration({ origin: "commercial_activity", reportType: "activity_commercial" })
+      return
+    }
+
+    if (isWeeklyBrief) {
+      openReportGeneration({ origin: "agenda", reportType: "weekly_manager" })
       return
     }
 

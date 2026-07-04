@@ -38,6 +38,7 @@ import { MobileAvailabilityCard } from "./MobileAvailabilityCard"
 import { MobileAlertCard } from "./MobileAlertCard"
 import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
 import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 
 interface AgendaMobileWorkspaceProps {
   snapshot: AgendaSnapshot
@@ -465,6 +466,19 @@ export function AgendaMobileWorkspace({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
                 Créer un événement
+              </Button>
+            }
+            secondaryAction={
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => openReportGeneration({ origin: "agenda", reportType: "weekly_manager" })}
+                className="font-bold flex items-center justify-center gap-1.5 h-11"
+              >
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15M4.5 9h15m-15 6h15" />
+                </svg>
+                Préparer ma semaine
               </Button>
             }
           />

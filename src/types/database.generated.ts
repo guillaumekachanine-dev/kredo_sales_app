@@ -5077,6 +5077,115 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          deep_link: string | null
+          id: string
+          notification_type: string
+          read_at: string | null
+          related_document_id: string | null
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          deep_link?: string | null
+          id?: string
+          notification_type: string
+          read_at?: string | null
+          related_document_id?: string | null
+          title: string
+          user_id: string
+          workspace_id?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          deep_link?: string | null
+          id?: string
+          notification_type?: string
+          read_at?: string | null
+          related_document_id?: string | null
+          title?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_related_document_id_fkey"
+            columns: ["related_document_id"]
+            isOneToOne: false
+            referencedRelation: "intelligence_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_brief_dismissals: {
+        Row: {
+          created_at: string
+          dismissed_at: string
+          id: string
+          item_source_id: string
+          item_source_type: string
+          owner_id: string
+          week_iso: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed_at?: string
+          id?: string
+          item_source_id: string
+          item_source_type: string
+          owner_id: string
+          week_iso: string
+          workspace_id?: string
+        }
+        Update: {
+          created_at?: string
+          dismissed_at?: string
+          id?: string
+          item_source_id?: string
+          item_source_type?: string
+          owner_id?: string
+          week_iso?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_brief_dismissals_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weekly_brief_dismissals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workforce_monthly_snapshots: {
         Row: {
           active_consultants_count: number
@@ -5598,6 +5707,16 @@ export type Database = {
           p_mission_id?: string
           p_offer_id?: string
           p_opportunity_id?: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      get_weekly_business_facts: {
+        Args: {
+          p_as_of_date?: string
+          p_owner_id?: string
+          p_period_end: string
+          p_period_start: string
           p_workspace_id: string
         }
         Returns: Json

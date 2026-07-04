@@ -4,11 +4,10 @@ import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
-import { ActivityReportModal } from "@/components/reports/ActivityReportModal"
 import type { SuiviData } from "@/lib/prospection/suivi-data"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import {
   ChannelIconCircle,
-  CHANNEL_LABEL,
   AiSparkBars,
   StatusDot,
 } from "./suivi-parts"
@@ -24,10 +23,6 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
   const { dashboardPersonnel, fluxActions, prospectsUrgents, actionsCritiques, relancesIA } = data
 
   const [relancerOpen, setRelancerOpen] = useState(false)
-  const [sheetProspect, setSheetProspect] = useState<string | null>(null)
-
-  // Modale nouveau rapport — REPORT-001 Lot 2 (report-activity-commercial)
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
   const urgentsPct = dashboardPersonnel.actionsUrgentesTotal > 0
     ? Math.round((dashboardPersonnel.actionsUrgentesCount / dashboardPersonnel.actionsUrgentesTotal) * 100)
@@ -57,7 +52,7 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
         <Button
           variant="primary"
           size="sm"
-          onClick={() => setIsReportModalOpen(true)}
+          onClick={() => openReportGeneration({ origin: "commercial_activity" })}
           className="bg-primary hover:bg-primary-deep text-white cursor-pointer font-semibold py-1 h-8 min-h-8 text-[11px] px-2.5 rounded-md"
         >
           + rapport
@@ -283,12 +278,6 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
           </div>
         </div>
       )}
-
-      <ActivityReportModal
-        open={isReportModalOpen}
-        onOpenChange={setIsReportModalOpen}
-        reportType="activity_commercial"
-      />
     </div>
   )
 }

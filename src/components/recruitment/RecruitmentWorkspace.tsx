@@ -14,22 +14,18 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
 import { NewCandidateDrawer } from "@/components/recruitment/NewCandidateDrawer"
-import { ActivityReportModal } from "@/components/reports/ActivityReportModal"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
-import { updateRecruitmentStatus } from "@/app/(app)/recruitment/_actions/update-recruitment-status"
 import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import { RecruitmentListView } from "./RecruitmentListView"
 import { RecruitmentKanbanView } from "./RecruitmentKanbanView"
 import { RecruitmentPlanningView, type PlanningScale } from "./RecruitmentPlanningView"
 import {
   HIRING_KANBAN_STAGES,
-  RECRUITMENT_STAGES,
   RECRUITMENT_TERMINAL_STATUSES,
   type HiringKanbanStageKey,
-  type RecruitmentStageKey,
 } from "@/lib/recruitment/recruitment-stages"
-import { cn } from "@/lib/utils"
 
 type RecruitmentViewMode = "list" | "kanban" | "planning"
 type PeriodDisplay = "week" | "month" | "quarter" | "year"
@@ -325,7 +321,6 @@ export function RecruitmentWorkspace({
   const [planningScale, setPlanningScale] = useState<PlanningScale>("month")
   const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"candidates" | "opportunities">("candidates")
   const [newCandidateDrawerOpen, setNewCandidateDrawerOpen] = useState(false)
-  const [reportModalOpen, setReportModalOpen] = useState(false)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
 
@@ -393,29 +388,6 @@ export function RecruitmentWorkspace({
         : null,
     })
     setEventDrawerOpen(true)
-  }
-
-  // ── Kanban move: staffing stage (legacy list kanban, not used in hiring kanban) ──
-  const handleMoveRow = async (itemId: string, nextStage: RecruitmentStageKey) => {
-    const previousRows = rows
-    setRows((current) =>
-      current.map((row) =>
-        row.id === itemId
-          ? {
-              ...row,
-              stageKey: nextStage,
-              positioningStatus:
-                RECRUITMENT_STAGES.find((stage) => stage.key === nextStage)?.statuses[0] ??
-                row.positioningStatus,
-            }
-          : row,
-      ),
-    )
-    const result = await updateRecruitmentStatus({ id: itemId, stage: nextStage })
-    if (result.error) {
-      console.error("[recruitment] Failed to update stage:", result.error)
-      setRows(previousRows)
-    }
   }
 
   // ── Kanban move: hiring step ──────────────────────────────────────────────────
@@ -578,7 +550,11 @@ export function RecruitmentWorkspace({
 
           <div className="flex flex-col gap-4">
             <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setReportModalOpen(true)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => openReportGeneration({ origin: "recruitment" })}
+              >
                 Nouveau rapport
               </Button>
               <Button
@@ -631,11 +607,6 @@ export function RecruitmentWorkspace({
           initialValues={eventInitialValues}
         />
         <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
-        <ActivityReportModal
-          open={reportModalOpen}
-          onOpenChange={setReportModalOpen}
-          reportType="activity_recruitment"
-        />
         <StaffingDrawer />
       </>
     )
@@ -657,7 +628,11 @@ export function RecruitmentWorkspace({
         }
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setReportModalOpen(true)}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => openReportGeneration({ origin: "recruitment" })}
+            >
               Nouveau rapport
             </Button>
             <Button
@@ -708,11 +683,6 @@ export function RecruitmentWorkspace({
         initialValues={eventInitialValues}
       />
       <NewCandidateDrawer open={newCandidateDrawerOpen} onOpenChange={setNewCandidateDrawerOpen} />
-      <ActivityReportModal
-        open={reportModalOpen}
-        onOpenChange={setReportModalOpen}
-        reportType="activity_recruitment"
-      />
       <StaffingDrawer />
     </>
   )
