@@ -53,6 +53,22 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
       <div className="flex items-stretch gap-1 overflow-x-auto scrollbar-none px-3 h-11">
         {tabs.map((tab) => {
           const isActive = pathname === tab.href
+          const isUnavailable = tab.disabled || tab.comingSoon
+
+          if (isUnavailable) {
+            return (
+              <div
+                key={tab.href}
+                className="flex shrink-0 items-center justify-center px-3.5 text-xs whitespace-nowrap text-primary-fg/30 cursor-not-allowed select-none gap-1.5"
+              >
+                <span>{tab.shortLabel ?? tab.label}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-primary-fg/40">
+                  Bientôt
+                </span>
+              </div>
+            )
+          }
+
           return (
             <Link
               key={tab.href}
