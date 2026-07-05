@@ -416,11 +416,7 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     label: "Activité & congés",
     actionIds: ["analyze_activity", "detect_anomalies", "forecast_availability"],
   },
-  {
-    pattern: "/consultants/suivi-manager",
-    label: "Suivi manager",
-    actionIds: [], // onglet non implémenté (aucune donnée réelle branchée)
-  },
+
   {
     pattern: "/consultants",
     label: "Équipe",

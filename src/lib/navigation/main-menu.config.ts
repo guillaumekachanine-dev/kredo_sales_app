@@ -214,7 +214,6 @@ export const mainMenuItems: MainMenuItem[] = [
           { label: "Synthèse",            shortLabel: "Synthèse",    href: "/consultants" },
           { label: "Pool de compétences", shortLabel: "Compétences", href: "/consultants/pool-competences" },
           { label: "Activité & congés",   shortLabel: "Activité",    href: "/consultants/activite-conges" },
-          { label: "Suivi manager",       shortLabel: "Suivi mgr",   href: "/consultants/suivi-manager" },
         ],
       },
       {

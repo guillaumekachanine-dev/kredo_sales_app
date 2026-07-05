@@ -46,7 +46,7 @@ export function AgendaToolbar({
   const activeCount = activeFilterChips.length
 
   return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-3">
+    <>
       <PageFilterBar
         activeCount={activeCount}
         onReset={
@@ -61,7 +61,6 @@ export function AgendaToolbar({
             }))
             : undefined
         }
-        summary={`${summary.totalItems} éléments · ${summary.totalActionable} actionnables`}
         viewSelector={(
           <div className="inline-flex rounded-[var(--radius-medium)] border border-border bg-canvas p-0.5">
             {(["day", "week"] as const).map((view) => (
@@ -131,32 +130,6 @@ export function AgendaToolbar({
           ]}
         />
 
-        <PageFilterSelect
-          id="agenda-filter-owner"
-          label="Propriétaire"
-          value={route.filters.ownerId ?? "all"}
-          onChange={(value) => navigate(buildAgendaToolbarHref(route, {
-            ownerId: value === "all" ? null : value,
-          }))}
-          options={[
-            { value: "all", label: "Tous les propriétaires" },
-            ...filterOptions.owners,
-          ]}
-        />
-
-        <PageFilterSelect
-          id="agenda-filter-company"
-          label="Compte"
-          value={route.filters.companyId ?? "all"}
-          onChange={(value) => navigate(buildAgendaToolbarHref(route, {
-            companyId: value === "all" ? null : value,
-          }))}
-          options={[
-            { value: "all", label: "Tous les comptes" },
-            ...filterOptions.companies,
-          ]}
-        />
-
         <Button
           variant={route.filters.actionable ? "secondary" : "ghost"}
           size="sm"
@@ -195,6 +168,6 @@ export function AgendaToolbar({
           ))}
         </div>
       ) : null}
-    </div>
+    </>
   )
 }

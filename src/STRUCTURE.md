@@ -24,8 +24,7 @@ src/
 │   │   │   └── (tabbed)/             Onglets secondaires
 │   │   │       ├── layout.tsx          Shell onglets (neutre, extensible)
 │   │   │       ├── pool-competences/   Cartographie compétences & passerelles
-│   │   │       ├── activite-conges/    CRA & absences planifiées
-│   │   │       └── suivi-manager/      Formulaires & échanges managériaux
+│   │   │       └── activite-conges/    CRA & absences planifiées
 │   │   ├── prospection/            Module Prospection Intelligence
 │   │   ├── proposals/              Module Proposal Intelligence
 │   │   ├── finance/                Module Finance

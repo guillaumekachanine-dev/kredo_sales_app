@@ -4,7 +4,6 @@ import { SectionNavBarSlot } from "@/components/layout/SectionNavBarSlot"
 //   /consultants                  → Synthèse
 //   /consultants/pool-competences → Pool de compétences
 //   /consultants/activite-conges  → Activité & congés
-//   /consultants/suivi-manager    → Suivi manager
 
 export default function ConsultantsLayout({
   children,
