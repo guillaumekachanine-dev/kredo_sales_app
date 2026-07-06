@@ -13,6 +13,7 @@ import type { PageQuickAction } from "@/components/ui/page-quick-actions"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { formatEuroCompact } from "@/lib/formatters"
 import { PnlBarChart } from "./PnlBarChart"
+import Link from "next/link"
 
 // Nouveaux composants de la refonte
 import { FinanceTabs, type FinanceTabId } from "./FinanceTabs"
@@ -95,25 +96,28 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
 
   // Sidebar Rail : Liste des alertes calculées
   const railContent = (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mt-[60px]">
       <InsightCard
-        eyebrow="Cockpit — Analyse des Risques"
+        eyebrow={
+          <span className="normal-case font-semibold text-primary">
+            Analyse des Risques
+          </span>
+        }
         title={
-          alerts.length > 0
-            ? `${alerts.length} point${alerts.length > 1 ? "s" : ""} d'arbitrage`
-            : "Aucune alerte"
+          <div className="flex items-center justify-between w-full">
+            <span>
+              {alerts.length > 0
+                ? `${alerts.length} point${alerts.length > 1 ? "s" : ""} d'arbitrage`
+                : "Aucune alerte"}
+            </span>
+            <img
+              src="/icons_set/cockpit_intelligence/arbitrage.png"
+              className="size-12 object-contain ml-3 shrink-0"
+              alt=""
+            />
+          </div>
         }
-        summary={
-          alerts.length > 0
-            ? "Indicateurs financiers sous vigilance (marge, staffing ou activité)."
-            : "Tous les indicateurs opérationnels sont dans les cibles."
-        }
-        recommendation={
-          alerts.length > 0
-            ? "Veuillez examiner les alertes ci-dessous et simuler des arbitrages."
-            : undefined
-        }
-        sourceLabel="kredo · cockpit audit"
+        summary={null}
       />
 
       {alerts.map((alert) => (
@@ -122,11 +126,43 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           variant={alert.level === "critical" ? "danger" : "warning"}
           title={alert.title}
           description={alert.message}
-          icon={<IconAlert />}
+          icon={
+            <img
+              src="/icons_set/cockpit_intelligence/attention_alerte.png"
+              className="size-full object-contain"
+              alt=""
+            />
+          }
           action={
-            <Button variant="ghost" size="sm" onClick={() => handleAlertAction(alert)}>
-              {alert.actionLabel}
-            </Button>
+            <div className="flex items-center justify-between w-full">
+              {/* Premier bouton d'action dans un cadre jaune/orange */}
+              <div className="inline-flex items-center border border-warning/40 bg-warning/[0.04] rounded-lg px-3 py-1 hover:bg-warning/[0.08] transition-colors cursor-pointer">
+                <button
+                  onClick={() => handleAlertAction(alert)}
+                  className="text-xs font-semibold text-warning cursor-pointer focus:outline-none"
+                >
+                  {alert.actionLabel}
+                </button>
+              </div>
+
+              {/* Second bouton d'action contextuel à droite */}
+              {alert.type === "ending" && (
+                <Link
+                  href={`/missions/actives?id=${alert.metadata?.missionId}`}
+                  className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  fiche mission
+                </Link>
+              )}
+              {alert.type === "activity" && (
+                <Link
+                  href="/consultants/activite-conges"
+                  className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  voir activité
+                </Link>
+              )}
+            </div>
           }
         />
       ))}
