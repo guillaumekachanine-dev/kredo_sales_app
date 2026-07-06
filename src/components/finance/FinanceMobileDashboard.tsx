@@ -9,97 +9,47 @@ import { Button } from "@/components/ui/Button"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { FinanceDashboardData, LateBilling, BillingAnomaly } from "@/lib/finance/finance-data"
-import { openReportGeneration } from "@/lib/reports/report-generation"
 import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
-
-type SheetType = "dunning" | "bench"
-
-type SheetContent = {
-  type: SheetType
-  title: string
-  description: string
-  primaryBtn: string
-  targetId: string
-}
-
-type ActiveSheet = SheetContent | null
-
-const MONTHS_FR = [
-  "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
-  "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
-]
-
-function fmtMonthShort(iso: string): string {
-  const d = new Date(iso)
-  return MONTHS_FR[d.getMonth()]
-}
-
-const IconClock = () => (
-  <svg className="size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
+import { formatEuroCompact, formatPct } from "@/lib/formatters"
+import { openReportGeneration } from "@/lib/reports/report-generation"
+import type { FinanceDashboardData, FinanceAlert } from "@/lib/finance/finance-data"
 
 const IconAlert = () => (
-  <svg className="size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+  <svg className="size-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
   </svg>
 )
 
+const IconSummary = () => (
+  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M7 4.75h7.5L19 9.25v10A1.75 1.75 0 0117.25 21h-10.5A1.75 1.75 0 015 19.25V6.5A1.75 1.75 0 016.75 4.75H7z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M14 4.75v4.5h4.5M8 12h8M8 15.5h5" />
+  </svg>
+)
+
 export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData }) {
-  const { kpis, pnlRows, lateBillings, anomalies } = data
+  const { executive, monthlyPnl, practiceContribution, pipelineForecast, alerts } = data
 
-  const margeKpi = kpis.find((k) => k.id === "f-marge-brute")
   const [isSimulationOpen, setIsSimulationOpen] = useState(false)
-  const opKpi = kpis.find((k) => k.id === "f-resultat-op")
+  const [activeModal, setActiveModal] = useState<"risks" | "pipe" | null>(null)
 
-  const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null)
-  const [billingRows, setBillingRows] = useState<LateBilling[]>(lateBillings)
-  const [anomalyRows, setAnomalyRows] = useState<BillingAnomaly[]>(anomalies)
-
-  const urgentBilling = billingRows[0] ?? null
-  const firstAnomaly = anomalyRows[0] ?? null
-  const noAlerts = !urgentBilling && !firstAnomaly
-
+  const margePct = executive.grossMarginPctYtd
   const heroTone =
-    margeKpi?.deltaTone === "negative"
+    executive.messageTone === "danger"
       ? "danger"
-      : margeKpi?.deltaTone === "positive"
-        ? "success"
+      : executive.messageTone === "warning"
+        ? "warning"
         : "brand"
 
-  const openSheet = (type: SheetType, target: LateBilling | BillingAnomaly) => {
-    if (type === "dunning") {
-      const bill = target as LateBilling
-      setActiveSheet({
-        type,
-        title: `Relance — ${bill.clientName}`,
-        description: `Déclencher la relance n8n pour ${bill.clientName} (${bill.bcNumber}). Retard : ${bill.delayDays} jours. Montant : ${bill.valueAmount}.`,
-        primaryBtn: "Envoyer la relance",
-        targetId: bill.id,
-      })
-    } else {
-      const a = target as BillingAnomaly
-      setActiveSheet({
-        type,
-        title: `${a.actionLabel} — ${a.consultantName}`,
-        description: `${a.anomalyText}. TJM : ${a.tjm}.`,
-        primaryBtn: a.actionLabel === "Gérer Bench" ? "Régulariser" : "Lancer le match",
-        targetId: a.id,
-      })
-    }
-  }
-
-  const confirmSheetAction = (type: SheetType, targetId: string) => {
-    if (type === "dunning") setBillingRows((prev) => prev.filter((b) => b.id !== targetId))
-    else setAnomalyRows((prev) => prev.filter((a) => a.id !== targetId))
-    setActiveSheet(null)
-  }
-
-  // Last 3 months for the mini trend bars
-  const trendRows = pnlRows.slice(-3)
+  // 4 derniers mois pour le mini graphique CA
+  const trendRows = monthlyPnl.slice(-4)
   const trendMax = Math.max(...trendRows.map((r) => r.revenue_total), 1)
+
+  // Top practices (max 2)
+  const topPractices = practiceContribution.slice(0, 2)
+
+  // Risques de marge
+  const marginRisks = alerts.filter((a) => a.type === "margin" || a.type === "activity")
 
   return (
     <>
@@ -110,215 +60,198 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
           />
         }
         hero={
-          margeKpi ? (
-            <MobileHeroInsight
-              eyebrow="Marge brute"
-              title="Trajectoire financière"
-              value={margeKpi.value}
-              summary={
-                margeKpi.delta
-                  ? `Variation : ${margeKpi.delta} vs période précédente.`
-                  : "Taux de marge brute de la dernière période disponible."
-              }
-              confidence={
-                margeKpi.deltaTone === "positive"
-                  ? "En progression"
-                  : margeKpi.deltaTone === "negative"
-                    ? "En recul"
-                    : "Stable"
-              }
-              sourceLabel="pnl_monthly"
-              tone={heroTone}
-            />
-          ) : undefined
+          <MobileHeroInsight
+            eyebrow="Atterrissage projeté"
+            title="Trajectoire financière"
+            value={formatEuroCompact(executive.projectedLanding)}
+            summary={executive.message}
+            confidence={`Marge YTD : ${formatPct(margePct, 1)}`}
+            sourceLabel="pnl_monthly"
+            tone={heroTone}
+          />
         }
       >
-        {/* Actions prioritaires de simulation et rapport */}
+        {/* Actions principales tactiles (Targets >= 44px) */}
         <div className="shrink-0 space-y-2">
+          {/* Action 1 : Simuler une mission */}
           <Button
             variant="primary"
             size="md"
             fullWidth
             onClick={() => setIsSimulationOpen(true)}
-            className="h-11 rounded-[var(--radius-large)] flex items-center justify-center gap-2"
+            className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
           >
             <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 19h14M7 16V9M12 16V5M17 16v-7" />
             </svg>
             <span>Simuler une mission</span>
           </Button>
+
+          {/* Action 2 : Voir les risques de marge */}
+          <Button
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={() => setActiveModal("risks")}
+            className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
+          >
+            <svg className="size-4 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>Voir les risques marge ({marginRisks.length})</span>
+          </Button>
+
+          {/* Action 3 : Analyser le pipe */}
+          <Button
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={() => setActiveModal("pipe")}
+            className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
+          >
+            <svg className="size-4 text-brand-brass" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18.75" />
+            </svg>
+            <span>Analyser le pipe commercial</span>
+          </Button>
+        </div>
+
+        {/* Tendance CA (Mini barres de tendance) */}
+        <SurfaceCard padding="default" radius="xl" className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-3">CA mensuel — 4 dernières périodes</p>
+          <div className="flex items-end gap-3 h-12" style={{ height: "48px" }}>
+            {trendRows.map((r) => {
+              const pct = Math.max(15, (r.revenue_total / trendMax) * 100)
+              const formattedMonth = new Date(r.period_month).toLocaleDateString("fr-FR", { month: "short" })
+              return (
+                <div key={r.period_month} className="flex-1 flex flex-col items-center gap-1 h-full">
+                  <div className="w-full flex-1 flex flex-col justify-end">
+                    <div
+                      className="w-full rounded-t bg-primary opacity-85"
+                      style={{ height: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-medium text-muted uppercase">
+                    {formattedMonth.slice(0, 3)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </SurfaceCard>
+
+        {/* Jauge Couverture / Pipe vs Target */}
+        <SurfaceCard padding="default" radius="xl" className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Couverture Objectif Annuel</p>
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xl font-bold text-heading">
+              {((executive.projectedLanding / 2_400_000) * 100).toFixed(0)}%
+            </span>
+            <span className="text-xs text-muted">
+              {formatEuroCompact(executive.projectedLanding)} / 2.4 M€
+            </span>
+          </div>
+          <div className="h-2 w-full bg-border rounded-full overflow-hidden mt-2">
+            <div
+              className="h-full bg-success rounded-full"
+              style={{ width: `${Math.min(100, (executive.projectedLanding / 2_400_000) * 100)}%` }}
+            />
+          </div>
+        </SurfaceCard>
+
+        {/* Top Practices */}
+        <SurfaceCard padding="default" radius="xl" className="mt-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Top Practices par CA</p>
+          <div className="space-y-3">
+            {topPractices.map((practice) => (
+              <div key={practice.practice} className="flex justify-between items-center border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                <div>
+                  <h4 className="text-xs font-bold text-heading">{practice.practice}</h4>
+                  <span className="text-[10px] text-muted">Marge : {formatPct(practice.grossMarginPct)}</span>
+                </div>
+                <span className="text-xs font-semibold text-heading">{formatEuroCompact(practice.revenue)}</span>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+
+        {/* Action secondaire : Rapport Financier */}
+        <div className="mt-4">
           <Button
             variant="secondary"
             size="md"
             fullWidth
             onClick={() => openReportGeneration({ origin: "global", reportType: "financial" })}
-            className="h-11 rounded-[var(--radius-large)] flex items-center justify-center gap-2"
+            className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
           >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 4.75h7.5L19 9.25v10A1.75 1.75 0 0117.25 21h-10.5A1.75 1.75 0 015 19.25V6.5A1.75 1.75 0 016.75 4.75H7z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 4.75v4.5h4.5M8 12h8M8 15.5h5" />
-            </svg>
-            <span>Rapport financier</span>
+            <IconSummary />
+            <span>Rapport financier global</span>
           </Button>
         </div>
-
-        {/* Facturation urgente */}
-        {urgentBilling && (
-          <MobileActionCard
-            title={urgentBilling.clientName}
-            description={`${urgentBilling.bcNumber} — ${urgentBilling.valueAmount}`}
-            icon={<IconClock />}
-            status={
-              <StatusPill
-                label={`${urgentBilling.delayDays} j`}
-                variant={urgentBilling.delayDays > 90 ? "danger" : "warning"}
-              />
-            }
-            primaryAction={
-              <Button
-                variant="primary"
-                size="md"
-                fullWidth
-                onClick={() => openSheet("dunning", urgentBilling)}
-              >
-                Relancer
-              </Button>
-            }
-          />
-        )}
-
-        {/* Anomalie bench */}
-        {firstAnomaly && (
-          <MobileActionCard
-            title={firstAnomaly.consultantName}
-            description={firstAnomaly.anomalyText}
-            icon={<IconAlert />}
-            status={
-              <StatusPill
-                label={firstAnomaly.badgeText ?? "Anomalie"}
-                variant="warning"
-              />
-            }
-            primaryAction={
-              <Button
-                variant="secondary"
-                size="md"
-                fullWidth
-                onClick={() => openSheet("bench", firstAnomaly)}
-              >
-                {firstAnomaly.actionLabel}
-              </Button>
-            }
-          />
-        )}
-
-        {/* Résultat opérationnel + mini tendance CA */}
-        {opKpi && (
-          <SurfaceCard padding="default" radius="xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-widest text-muted">
-                  Résultat opérationnel
-                </p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight text-heading">
-                  {opKpi.value}
-                </p>
-                {opKpi.context && (
-                  <p className="mt-0.5 text-xs text-body">{opKpi.context}</p>
-                )}
-              </div>
-              <StatusPill
-                label={
-                  opKpi.deltaTone === "positive"
-                    ? "Bénéficiaire"
-                    : opKpi.deltaTone === "negative"
-                      ? "Déficitaire"
-                      : "Neutre"
-                }
-                variant={
-                  opKpi.deltaTone === "positive"
-                    ? "success"
-                    : opKpi.deltaTone === "negative"
-                      ? "danger"
-                      : "neutral"
-                }
-              />
-            </div>
-
-            {/* Mini barre tendance CA — 3 derniers mois, HTML/Tailwind pur */}
-            {trendRows.length > 0 && (
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="mb-3 text-xs text-muted">CA — 3 dernières périodes</p>
-                <div className="flex items-end gap-2" style={{ height: "40px" }}>
-                  {trendRows.map((r) => {
-                    const pct = Math.max(12, (r.revenue_total / trendMax) * 100)
-                    return (
-                      <div
-                        key={r.period_month}
-                        className="flex flex-1 flex-col items-center gap-1"
-                        style={{ height: "100%" }}
-                      >
-                        <div className="w-full flex-1 flex flex-col justify-end">
-                          <div
-                            className="w-full rounded-sm bg-dataviz-1 opacity-80"
-                            style={{ height: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-[9px] font-medium text-muted">
-                          {fmtMonthShort(r.period_month)}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </SurfaceCard>
-        )}
-
-        {/* État vide */}
-        {noAlerts && !opKpi && (
-          <div className="flex flex-col items-center justify-center rounded-[var(--radius-xl)] border border-border bg-surface py-10 text-center">
-            <p className="text-sm font-semibold text-heading">Aucune action requise</p>
-            <p className="mt-1 text-xs text-body">
-              Toutes les alertes ont été traitées.
-            </p>
-          </div>
-        )}
       </MobileActionPage>
 
+      {/* Dialogues tactiles pour les actions de risques et d'analyse */}
+
+      {/* 1. Modal Risques Marge */}
       <AppDialog
-        open={Boolean(activeSheet)}
+        open={activeModal === "risks"}
         onOpenChange={(open) => {
-          if (!open) setActiveSheet(null)
+          if (!open) setActiveModal(null)
         }}
-        title={activeSheet?.title ?? ""}
+        title="Risques Marge & Staffing"
         footer={
-          activeSheet ? (
-            <>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setActiveSheet(null)}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() =>
-                  confirmSheetAction(activeSheet.type, activeSheet.targetId)
-                }
-              >
-                {activeSheet.primaryBtn}
-              </Button>
-            </>
-          ) : null
+          <Button variant="secondary" size="md" fullWidth onClick={() => setActiveModal(null)}>
+            Fermer
+          </Button>
         }
       >
-        <p className="leading-relaxed">{activeSheet?.description ?? ""}</p>
+        <div className="space-y-3 max-h-[300px] overflow-y-auto">
+          {marginRisks.length > 0 ? (
+            marginRisks.map((alert) => (
+              <div key={alert.id} className="p-3 bg-surface border border-border rounded-lg flex items-start gap-3">
+                <div className="mt-0.5"><IconAlert /></div>
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-heading">{alert.title}</h4>
+                  <p className="text-[11px] text-body mt-0.5 leading-relaxed">{alert.message}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-xs text-muted py-6">Aucun risque de marge détecté.</p>
+          )}
+        </div>
       </AppDialog>
 
+      {/* 2. Modal Analyse Pipe */}
+      <AppDialog
+        open={activeModal === "pipe"}
+        onOpenChange={(open) => {
+          if (!open) setActiveModal(null)
+        }}
+        title="Analyse du Pipe CRM"
+        footer={
+          <Button variant="secondary" size="md" fullWidth onClick={() => setActiveModal(null)}>
+            Fermer
+          </Button>
+        }
+      >
+        <div className="space-y-3 max-h-[300px] overflow-y-auto">
+          {pipelineForecast.map((stage) => (
+            <div key={stage.stage} className="p-3 bg-surface border border-border rounded-lg">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-xs font-bold text-heading">{stage.stageLabel}</span>
+                <StatusPill label={`${stage.count} opp.`} variant="neutral" />
+              </div>
+              <div className="flex justify-between text-[11px] text-muted">
+                <span>Brut : {formatEuroCompact(stage.estimatedTotal)}</span>
+                <span className="font-semibold text-heading">Pondéré : {formatEuroCompact(stage.weightedTotal)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </AppDialog>
+
+      {/* Simulation flow existant */}
       <FinancialModelingMobileFlow
         open={isSimulationOpen}
         onOpenChange={setIsSimulationOpen}
