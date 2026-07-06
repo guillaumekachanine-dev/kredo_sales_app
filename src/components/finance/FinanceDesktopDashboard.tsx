@@ -175,14 +175,21 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       <InsightCard
         eyebrow={
           <span className="normal-case font-semibold text-primary">
-            simulation financière
+            Simulation financière
           </span>
         }
         title={
           <div className="flex items-start justify-between w-full">
-            <span className="text-body text-sm font-normal">
-              ajuster les hypothèses
-            </span>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsSimulationOpen(true)}
+                className="cursor-pointer"
+              >
+                Lancer une simulation
+              </Button>
+            </div>
             <img
               src="/icons_set/cockpit_intelligence/simulation_financière_ai.png"
               className="size-16 object-contain ml-3 shrink-0 -mt-6"
@@ -374,12 +381,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
               </div>
             </SurfaceCard>
 
-            {/* Cartes de scénarios et bouton de simulation */}
-            <FinanceScenarioCards
-              revenueYtd={executive.revenueYtd}
-              weightedPipe={executive.weightedPipe}
-              onSimulate={() => setIsSimulationOpen(true)}
-            />
+
           </div>
         )}
       </DesktopAnalyticalPage>
