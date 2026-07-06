@@ -94,8 +94,8 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
     }
   }
 
-  // Sidebar Rail : Liste des alertes calculées
-  const railContent = (
+  // Sidebar Rail pour Synthèse : Liste des alertes calculées
+  const synthesisRailContent = (
     <div className="flex flex-col gap-4 mt-[60px]">
       <InsightCard
         eyebrow={
@@ -169,13 +169,53 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
     </div>
   )
 
+  // Sidebar Rail pour Prévision & Simulation : Outil de simulation financière
+  const forecastRailContent = (
+    <div className="flex flex-col gap-4 mt-[60px]">
+      <InsightCard
+        eyebrow={
+          <span className="normal-case font-semibold text-primary">
+            simulation financière
+          </span>
+        }
+        title={
+          <div className="flex items-start justify-between w-full">
+            <span className="text-body text-sm font-normal">
+              ajuster les hypothèses
+            </span>
+            <img
+              src="/icons_set/cockpit_intelligence/simulation_financière_ai.png"
+              className="size-16 object-contain ml-3 shrink-0 -mt-6"
+              alt=""
+            />
+          </div>
+        }
+        summary={null}
+      />
+
+      {/* Surface fusionnée vide pour la simulation avancée future */}
+      <SurfaceCard
+        padding="default"
+        className="border border-dashed border-border/85 h-96 flex items-center justify-center bg-surface-raised/10"
+      >
+        <span className="text-xs text-muted italic">Simulation avancée (Bientôt disponible)</span>
+      </SurfaceCard>
+    </div>
+  )
+
   return (
     <>
       <DesktopAnalyticalPage
         title="Cockpit Financier & Rentabilité"
         maxWidth="wide"
         actions={<PageQuickActions actions={quickActions} />}
-        rail={activeTab === "profitability" ? null : railContent}
+        rail={
+          activeTab === "profitability"
+            ? null
+            : activeTab === "forecast"
+            ? forecastRailContent
+            : synthesisRailContent
+        }
       >
         {/* En-tête : Onglets de navigation */}
         <FinanceTabs activeTab={activeTab} onChange={setActiveTab} />
