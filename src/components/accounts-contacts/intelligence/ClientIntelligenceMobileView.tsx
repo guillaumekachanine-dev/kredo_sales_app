@@ -14,6 +14,7 @@ import {
 } from "./intelligence-parts"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
+import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import {
   type TabKey,
@@ -46,6 +47,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
   const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
   const [scoreModalOpen, setScoreModalOpen] = useState(false)
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -423,6 +425,19 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} className="shrink-0" />
       </div>
 
+      {/* Bouton Consulter les documents (Mobile style) */}
+      <button
+        onClick={() => setIsDocsModalOpen(true)}
+        className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-white/[0.08] border border-white/10 py-3 text-white hover:bg-white/[0.14] transition-all cursor-pointer shadow-sm active:scale-98"
+      >
+        <img
+          src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+          alt=""
+          className="size-6 object-contain"
+        />
+        <span className="text-xs font-bold">Consulter les documents</span>
+      </button>
+
       {/* Signaux Récents (Collapsible Frame) */}
       <div className="rounded-lg border border-border bg-surface overflow-hidden">
         <button
@@ -560,6 +575,14 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         companyId={company.id}
         summary={scoreSummary}
         onRecomputed={setScoreSummary}
+      />
+
+      <CompanyDocumentsModal
+        open={isDocsModalOpen}
+        onClose={() => setIsDocsModalOpen(false)}
+        companyId={company.id}
+        companyName={company.name}
+        isMobile={true}
       />
     </div>
   )

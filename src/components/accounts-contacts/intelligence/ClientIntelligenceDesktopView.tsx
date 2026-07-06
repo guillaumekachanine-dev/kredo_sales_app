@@ -18,6 +18,7 @@ import {
 } from "./intelligence-parts"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
+import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
 import {
   type TabKey,
   type ProcessStepKey,
@@ -39,6 +40,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
   const [expandedViewer, setExpandedViewer] = useState(false)
   const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
   const [scoreModalOpen, setScoreModalOpen] = useState(false)
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const { company } = data
   const { diagnosticPdfUrl } = data
@@ -97,8 +99,19 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 </div>
               </div>
 
-              {/* Côté droit : Score de Priorité Commerciale (ADR-0011 Lot 4) */}
-              <div className="flex flex-col items-end gap-2 shrink-0">
+              {/* Côté droit : Documents + Score de Priorité Commerciale */}
+              <div className="flex items-center gap-4 shrink-0">
+                <button
+                  onClick={() => setIsDocsModalOpen(true)}
+                  className="flex items-center gap-2 rounded-xl bg-white/[0.08] border border-white/10 px-4 py-2 text-white hover:bg-white/[0.14] transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <img
+                    src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+                    alt=""
+                    className="size-7 object-contain"
+                  />
+                  <span className="text-sm font-semibold">Consulter les documents</span>
+                </button>
                 <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
               </div>
             </div>
@@ -199,6 +212,14 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         companyId={company.id}
         summary={scoreSummary}
         onRecomputed={setScoreSummary}
+      />
+
+      <CompanyDocumentsModal
+        open={isDocsModalOpen}
+        onClose={() => setIsDocsModalOpen(false)}
+        companyId={company.id}
+        companyName={company.name}
+        isMobile={false}
       />
     </div>
   )
