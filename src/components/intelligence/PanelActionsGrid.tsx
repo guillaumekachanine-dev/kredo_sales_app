@@ -1,10 +1,11 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { IntelligenceIcon } from "./intelligence-icons"
+import Image from "next/image"
 import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { cn } from "@/lib/utils"
+import { cockpitIconForAction } from "./cockpit-action-icons"
 
 type PanelAction = {
   id: string
@@ -43,21 +44,17 @@ export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: P
   // Dark tone : même carte "relief + bordure ambre + shine" que les actions
   // contextuelles du panneau registre (IntelligenceActionCard / .kredo-action-card-dark),
   // rejouée ici sur la rangée compacte au lieu de la carte pleine hauteur.
-  const cardBaseDark = "kredo-action-card-dark rounded px-2.5 py-2 min-h-[40px] cursor-pointer"
+  const cardBaseDark = "kredo-action-card-dark group rounded-xl px-3 py-3 min-h-[82px] cursor-pointer overflow-hidden"
   const activeCls = isDark
     ? cn(cardBaseDark, "text-primary-fg")
-    : "inline-flex items-center gap-2 rounded border border-border bg-surface px-2.5 py-2 text-xs font-semibold text-heading transition-all hover:bg-surface-hover active:scale-95 min-h-[44px]"
+    : "group relative flex min-h-[76px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.14] px-3 py-3 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.20] active:scale-[0.97]"
   const disabledCls = isDark
-    ? cn(cardBaseDark, "text-primary-fg/35 cursor-default")
-    : "inline-flex items-center gap-2 rounded border border-border/60 bg-canvas px-2.5 py-2 text-xs font-semibold text-muted min-h-[44px] cursor-default opacity-70"
-  const iconCls = isDark ? "size-4 shrink-0 text-primary-fg/70" : "size-4 shrink-0 text-primary"
-  const badgeCls = isDark
-    ? "ml-auto shrink-0 rounded-full bg-primary-fg/8 px-1 py-px text-[7px] font-bold uppercase tracking-wider text-primary-fg/40"
-    : "ml-auto shrink-0 rounded-full border border-border bg-canvas px-1 py-px text-[7px] font-bold uppercase tracking-wider text-muted"
+    ? cn(cardBaseDark, "text-primary-fg/35 cursor-default opacity-55")
+    : "group relative flex min-h-[76px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.09] px-3 py-3 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] cursor-default opacity-55"
 
   function Row({ children }: { children: ReactNode }) {
     return isDark ? (
-      <span className="relative z-10 flex w-full items-center gap-2 text-xs font-semibold">{children}</span>
+      <span className="relative z-10 flex min-h-full w-full flex-col justify-between gap-2 text-xs font-semibold">{children}</span>
     ) : (
       <>{children}</>
     )
@@ -72,8 +69,15 @@ export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: P
           return (
             <a key={action.id} href={action.href} className={activeCls}>
               <Row>
-                <IntelligenceIcon name={action.icon} className={iconCls} />
-                <span className="truncate">{action.label}</span>
+                <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/10 blur-2xl" />
+                <Image
+                  src={cockpitIconForAction(action.id, action.icon)}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="relative z-10 size-10 object-contain drop-shadow-[0_10px_16px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
+                />
+                <span className="relative z-10 text-[11px] font-bold leading-tight">{action.label}</span>
               </Row>
             </a>
           )
@@ -94,9 +98,15 @@ export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: P
             className={isDisabled ? disabledCls : activeCls}
           >
             <Row>
-              <IntelligenceIcon name={action.icon} className={isDisabled ? (isDark ? "size-4 shrink-0 text-primary-fg/35" : "size-4 shrink-0 text-muted") : iconCls} />
-              <span className="truncate">{action.label}</span>
-              {isDisabled && <span className={badgeCls}>Bientôt</span>}
+              <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/10 blur-2xl" />
+              <Image
+                src={cockpitIconForAction(action.id, action.icon)}
+                alt=""
+                width={64}
+                height={64}
+                className="relative z-10 size-10 object-contain drop-shadow-[0_10px_16px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
+              />
+              <span className="relative z-10 text-[11px] font-bold leading-tight">{action.label}</span>
             </Row>
           </button>
         )

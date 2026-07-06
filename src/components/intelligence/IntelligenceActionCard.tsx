@@ -1,8 +1,9 @@
 import type { IntelligenceAction } from "@/lib/intelligence/intelligence-registry"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
-import { IntelligenceIcon } from "./intelligence-icons"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { cockpitIconForAction } from "./cockpit-action-icons"
 
 interface IntelligenceActionCardProps {
   action: IntelligenceAction
@@ -18,6 +19,7 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
   const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
   const isInteractive = isWriteEmail || isSupportedReportAction
   const isComingSoon = action.status === "coming_soon" && !isInteractive
+  const iconSrc = cockpitIconForAction(action.id, action.icon)
 
   function handleClick() {
     if (isWriteEmail) {
@@ -47,23 +49,21 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
         disabled={isComingSoon}
         onClick={isInteractive ? handleClick : undefined}
         className={cn(
-          "kredo-action-card-dark group relative flex flex-col items-start gap-2 rounded-lg p-3 text-left cursor-pointer",
-          isComingSoon && "cursor-default",
+          "kredo-action-card-dark group relative flex min-h-[88px] flex-col justify-between overflow-hidden rounded-xl p-3 text-left cursor-pointer",
+          isComingSoon && "cursor-default opacity-60",
         )}
       >
-        {isComingSoon && (
-          <span className="absolute top-2 right-2 z-20 rounded-full bg-white/10 px-1.5 py-px text-[7px] font-bold uppercase tracking-widest text-white/50">
-            Bientôt
-          </span>
-        )}
+        <span className="pointer-events-none absolute -right-5 -top-5 size-20 rounded-full bg-white/10 blur-xl" />
 
-        <div className="relative z-10">
-          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-white/20 text-white">
-            <IntelligenceIcon name={action.icon} className="size-5 text-white" />
-          </span>
-        </div>
+        <Image
+          src={iconSrc}
+          alt=""
+          width={68}
+          height={68}
+          className="relative z-10 size-12 object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)] transition-transform duration-200 group-hover:scale-105"
+        />
 
-        <div className="relative z-10 min-w-0">
+        <div className="relative z-10 mt-2 min-w-0">
           <p className="text-xs font-semibold leading-tight text-white">
             {action.label}
           </p>
@@ -78,28 +78,25 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
       disabled={isComingSoon}
       onClick={isInteractive ? handleClick : undefined}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-xl border border-slate-600/35 bg-slate-800/45 px-3 py-2 h-11 text-left transition-all w-full select-none",
+        "group relative flex min-h-[76px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.14] px-3 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all w-full select-none",
         isComingSoon
-          ? "cursor-default opacity-50"
-          : "cursor-pointer hover:bg-slate-700/60 active:scale-[0.97]",
+          ? "cursor-default opacity-45"
+          : "cursor-pointer hover:bg-white/[0.20] active:scale-[0.97]",
       )}
     >
-      <span className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-100",
-        isComingSoon ? "text-slate-100/40" : "text-slate-100",
-      )}>
-        <IntelligenceIcon name={action.icon} className="size-4" />
-      </span>
+      <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/10 blur-2xl" />
 
-      <span className="min-w-0 flex-1 truncate text-[11px] font-bold leading-tight text-slate-100">
+      <Image
+        src={iconSrc}
+        alt=""
+        width={64}
+        height={64}
+        className="relative z-10 size-10 object-contain drop-shadow-[0_10px_16px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
+      />
+
+      <span className="relative z-10 min-w-0 text-[11px] font-bold leading-tight text-white">
         {action.label}
       </span>
-
-      {isComingSoon && (
-        <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wider text-white/50">
-          Bientôt
-        </span>
-      )}
     </button>
   )
 }

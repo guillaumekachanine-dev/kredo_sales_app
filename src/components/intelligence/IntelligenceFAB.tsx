@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
@@ -16,6 +17,7 @@ import { PanelResources } from "./PanelResources"
 import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { COCKPIT_PANEL_INDIGO, cockpitActionIcons } from "./cockpit-action-icons"
 import {
   PitchMailDrawerContent,
   SummaryDrawerContent,
@@ -26,18 +28,21 @@ import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-confi
 
 type AccountPanelAction = "pitch" | "summary" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
+type RegistryButtonAction = {
+  id: RegistryActionId
+  label: string
+  iconSrc: string
+}
 type RegistryAction =
-  | {
-      id: RegistryActionId
-      label: string
-      icon: typeof IconBrief
-    }
+  | RegistryButtonAction
   | {
       id: "base_doc"
       label: string
-      icon: typeof IconBrief
+      iconSrc: string
       href: string
     }
+
+const COCKPIT_PANEL_STYLE: CSSProperties = { backgroundColor: COCKPIT_PANEL_INDIGO }
 
 function SparkleIcon() {
   return (
@@ -53,13 +58,13 @@ function SparkleIcon() {
 
 function MobileSectionHeading({ title, count }: { title: string; count?: number }) {
   return (
-    <div className="flex items-center gap-2 mb-2.5">
-      <span className="h-px w-3 bg-[#FFC107]" aria-hidden />
-      <h3 className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#FFC107]">
+    <div className="mb-3 flex items-center gap-2">
+      <span className="h-px w-4 bg-white/50" aria-hidden />
+      <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/80">
         {title}
       </h3>
       {count !== undefined && (
-        <span className="ml-auto rounded-full bg-white/10 px-1.5 py-px text-[10px] font-bold text-slate-200">
+        <span className="ml-auto rounded-full bg-white/14 px-1.5 py-px text-[10px] font-bold text-white/80">
           {count}
         </span>
       )}
@@ -67,52 +72,87 @@ function MobileSectionHeading({ title, count }: { title: string; count?: number 
   )
 }
 
-// Icons for the cockpit actions grid
-function IconBrief() {
+function CockpitActionButton({
+  label,
+  iconSrc,
+  onClick,
+}: {
+  label: string
+  iconSrc: string
+  onClick: () => void
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-    </svg>
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative flex min-h-[84px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.14] px-3 py-3 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.20] active:scale-[0.97]"
+    >
+      <span className="pointer-events-none absolute -right-7 -top-8 size-24 rounded-full bg-white/10 blur-2xl" />
+      <Image
+        src={iconSrc}
+        alt=""
+        width={72}
+        height={72}
+        className="relative z-10 size-12 object-contain drop-shadow-[0_12px_20px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
+      />
+      <span className="relative z-10 text-[11px] font-bold leading-tight">{label}</span>
+    </button>
   )
 }
 
-function IconRdv() {
+function CockpitActionLink({
+  label,
+  iconSrc,
+  href,
+}: {
+  label: string
+  iconSrc: string
+  href: string
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-    </svg>
+    <Link
+      href={href}
+      className="group relative flex min-h-[84px] flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.14] px-3 py-3 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.20] active:scale-[0.97]"
+    >
+      <span className="pointer-events-none absolute -right-7 -top-8 size-24 rounded-full bg-white/10 blur-2xl" />
+      <Image
+        src={iconSrc}
+        alt=""
+        width={72}
+        height={72}
+        className="relative z-10 size-12 object-contain drop-shadow-[0_12px_20px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
+      />
+      <span className="relative z-10 text-[11px] font-bold leading-tight">{label}</span>
+    </Link>
   )
 }
 
-function IconMail() {
+function QuickAccessLink({
+  label,
+  iconSrc,
+  href,
+}: {
+  label: string
+  iconSrc: string
+  href: string
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  )
-}
-
-function IconAnalyse() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-    </svg>
-  )
-}
-
-function IconPlaybook() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  )
-}
-
-function IconDocBase() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-4 shrink-0">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-    </svg>
+    <Link
+      href={href}
+      className="group flex items-center gap-3 rounded-2xl bg-white/[0.18] px-3 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.24] active:scale-[0.98]"
+    >
+      <Image
+        src={iconSrc}
+        alt=""
+        width={48}
+        height={48}
+        className="size-8 shrink-0 object-contain drop-shadow-[0_8px_14px_rgba(18,24,61,0.24)]"
+      />
+      <span className="min-w-0 flex-1 truncate text-[12px] font-bold">{label}</span>
+      <svg className="size-3.5 shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </Link>
   )
 }
 
@@ -203,11 +243,11 @@ function GenericEntityMobileContent() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-white/10 bg-slate-800/40 p-3">
-        <p className="truncate text-xs font-bold text-slate-100 leading-tight">
+      <div className="rounded-2xl bg-white/[0.14] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]">
+        <p className="truncate text-xs font-bold text-white leading-tight">
           {entityContext.label}
         </p>
-        <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-300">
+        <p className="mt-1 text-[10px] uppercase tracking-wider text-white/60">
           {ENTITY_TYPE_LABELS[nonCompanyType]}
         </p>
       </div>
@@ -242,89 +282,82 @@ interface RegistryMobileContentProps {
 }
 
 function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
-  const actions: RegistryAction[] = [
-    { id: "brief", label: "Brief hebdomadaire", icon: IconBrief },
-    { id: "rdv", label: "Préparer un RDV", icon: IconRdv },
-    { id: "pitch", label: "Rédiger un mail/pitch", icon: IconMail },
-    { id: "analyse", label: "Lancer une analyse", icon: IconAnalyse },
-    { id: "playbook", label: "Playbooks commerciaux", icon: IconPlaybook },
-    { id: "base_doc", label: "Base documentaire", icon: IconDocBase, href: "/reports" },
+  const primaryActions: RegistryButtonAction[] = [
+    { id: "brief", label: "Brief hebdomadaire", iconSrc: cockpitActionIcons.brief },
+    { id: "pitch", label: "Rédiger un mail", iconSrc: cockpitActionIcons.message },
+  ]
+  const moreActions: RegistryAction[] = [
+    { id: "analyse", label: "Lancer une analyse", iconSrc: cockpitActionIcons.recommendations },
+    { id: "rdv", label: "Préparer un RDV", iconSrc: cockpitActionIcons.tasks },
+    { id: "playbook", label: "Playbooks commerciaux", iconSrc: cockpitActionIcons.sectorAnalysis },
+    { id: "base_doc", label: "Base documentaire", iconSrc: cockpitActionIcons.generatedReport, href: "/reports" },
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <section>
-        <MobileSectionHeading title="Actions" />
+        <MobileSectionHeading title="Actions prioritaires" />
         <div className="grid grid-cols-2 gap-2.5">
-          {actions.map((action) => {
-            const Icon = action.icon
+          {primaryActions.map((action) => (
+            <CockpitActionButton
+              key={action.id}
+              label={action.label}
+              iconSrc={action.iconSrc}
+              onClick={() => onActionClick(action.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <MobileSectionHeading title="Plus d'actions" />
+        <div className="grid grid-cols-2 gap-2.5">
+          {moreActions.map((action) => {
             if ("href" in action) {
               return (
-                <Link
+                <CockpitActionLink
                   key={action.id}
                   href={action.href}
-                  className="h-11 px-3 py-2 flex items-center gap-2.5 rounded-xl bg-slate-800/45 border border-slate-600/35 text-slate-100 hover:bg-slate-700/60 active:scale-98 transition-all select-none"
-                >
-                  <Icon />
-                  <span className="text-[11px] font-bold leading-tight truncate">{action.label}</span>
-                </Link>
+                  label={action.label}
+                  iconSrc={action.iconSrc}
+                />
               )
             }
             return (
-              <button
+              <CockpitActionButton
                 key={action.id}
-                type="button"
+                label={action.label}
+                iconSrc={action.iconSrc}
                 onClick={() => onActionClick(action.id)}
-                className="h-11 px-3 py-2 flex items-center gap-2.5 rounded-xl bg-slate-800/45 border border-slate-600/35 text-slate-100 hover:bg-slate-700/60 active:scale-98 transition-all text-left select-none"
-              >
-                <Icon />
-                <span className="text-[11px] font-bold leading-tight truncate">{action.label}</span>
-              </button>
+              />
             )
           })}
         </div>
       </section>
 
-      {/* Liens rapides in replacement of "Plus d'actions" */}
-      <section className="space-y-2.5 border-t border-white/10 pt-5">
-        <MobileSectionHeading title="Liens rapides" />
-        <div className="grid grid-cols-2 gap-2.5">
-          <Link
+      <section>
+        <MobileSectionHeading title="Accès rapides" />
+        <div className="grid grid-cols-1 gap-2">
+          <QuickAccessLink
             href="/prospection/accounts"
-            className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-slate-800/40 text-[11px] font-semibold text-white/90 hover:bg-slate-800/60 transition-colors"
-          >
-            <span>Accéder aux comptes</span>
-            <svg className="size-3.5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <Link
+            label="Accéder aux comptes"
+            iconSrc={cockpitActionIcons.prioritizeAccounts}
+          />
+          <QuickAccessLink
             href="/prospection/suivi"
-            className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-slate-800/40 text-[11px] font-semibold text-white/90 hover:bg-slate-800/60 transition-colors"
-          >
-            <span>Priorités du jour</span>
-            <svg className="size-3.5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <Link
+            label="Priorités du jour"
+            iconSrc={cockpitActionIcons.priorities}
+          />
+          <QuickAccessLink
             href="/missions/actives"
-            className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-slate-800/40 text-[11px] font-semibold text-white/90 hover:bg-slate-800/60 transition-colors"
-          >
-            <span>Accéder aux missions</span>
-            <svg className="size-3.5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-          <Link
+            label="Accéder aux missions"
+            iconSrc={cockpitActionIcons.valid}
+          />
+          <QuickAccessLink
             href="/staffing"
-            className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-slate-800/40 text-[11px] font-semibold text-white/90 hover:bg-slate-800/60 transition-colors"
-          >
-            <span>Accéder aux staffings</span>
-            <svg className="size-3.5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+            label="Accéder aux staffings"
+            iconSrc={cockpitActionIcons.recruitmentReport}
+          />
         </div>
       </section>
     </div>
@@ -399,11 +432,12 @@ export function IntelligenceFAB() {
         title="Cockpit Intelligence"
         side="bottom"
         eyebrow={eyebrow}
-        className="sm:hidden bg-[#3688AA] text-slate-100 border-t border-white/10 [--color-heading:#FFC107] [--color-muted:rgba(255,255,255,0.6)] [--color-border:rgba(255,255,255,0.15)] [--color-surface:rgba(255,255,255,0.08)]"
-        headerClassName="bg-[#3688AA] text-slate-100 border-b border-white/10 [&_button]:text-white/70 [&_button]:hover:text-white"
-        contentClassName="bg-[#3688AA] text-slate-100"
+        className="sm:hidden border-t border-white/15 bg-[#484DF5] text-white [--color-heading:#FFFFFF] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
+        headerClassName="border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
+        headerStyle={COCKPIT_PANEL_STYLE}
+        contentClassName="bg-[#484DF5] text-white [--drawer-header-fade-start:rgba(72,77,245,0.96)] [--drawer-header-fade-end:rgba(72,77,245,0)]"
         icon={
-          <span className="inline-flex size-5 items-center justify-center text-[#FFC107]">
+          <span className="inline-flex size-5 items-center justify-center text-white">
             <SparkleIcon />
           </span>
         }

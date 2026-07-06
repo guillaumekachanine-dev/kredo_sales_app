@@ -37,6 +37,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { cockpitActionIcons } from "@/components/intelligence/cockpit-action-icons"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
@@ -800,7 +801,7 @@ function AccountsDesktop({
                       aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
                       rightIcon={
                         <Image
-                          src="/icons_set/cockpit_intelligence/rediger_mail_ia.png"
+                          src={cockpitActionIcons.message}
                           alt=""
                           width={14}
                           height={14}
@@ -828,7 +829,7 @@ function AccountsDesktop({
                       aria-label={`Générer un pitch pour ${account.name}`}
                       rightIcon={
                         <Image
-                          src="/icons_set/cockpit_intelligence/generer_pitch_ia.png"
+                          src={cockpitActionIcons.pitch}
                           alt=""
                           width={14}
                           height={14}

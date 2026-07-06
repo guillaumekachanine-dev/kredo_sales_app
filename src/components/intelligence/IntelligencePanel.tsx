@@ -195,7 +195,7 @@ function GenericEntityPanelContent() {
       )}
 
       {resolved.commonActions.length > 0 && (
-        <details className="group">
+        <details open className="group">
           <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
             <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
             <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
@@ -239,7 +239,7 @@ function RegistryPanelContent() {
       )}
 
       {resolved.commonActions.length > 0 && (
-        <details className="group">
+        <details open className="group">
           <summary className="mb-2.5 flex cursor-pointer select-none list-none items-center gap-2 marker:content-none [&::-webkit-details-marker]:hidden">
             <span className="h-px w-3 bg-brand-brass/60" aria-hidden />
             <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-brass">
@@ -304,7 +304,7 @@ export function IntelligencePanel() {
   return (
     <aside
       data-theme="cockpit"
-      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-rail kredo-intelligence-panel"
+      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-[#484DF5] kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
       <div className="relative space-y-5 p-5">
