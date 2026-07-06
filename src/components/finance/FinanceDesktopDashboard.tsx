@@ -111,7 +111,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                 : "Aucune alerte"}
             </span>
             <img
-              src="/icons_set/cockpit_intelligence/suggestion_taches_&_evenements.png"
+              src="/icons_set/cockpit_intelligence/arbitrer.png"
               className="size-16 object-contain ml-3 shrink-0 -mt-6"
               alt=""
             />
