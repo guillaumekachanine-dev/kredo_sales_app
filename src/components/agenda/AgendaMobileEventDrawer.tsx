@@ -370,7 +370,7 @@ export function AgendaMobileEventDrawer({
               : "Étape 2 : Contexte & Tâches"
         }
         footer={
-          <div className="flex w-full items-center justify-between gap-3 pb-[var(--safe-area-bottom)]">
+          <div className="flex w-full items-center justify-between gap-3">
             {isView ? (
               event && !isPending && (
                 <button

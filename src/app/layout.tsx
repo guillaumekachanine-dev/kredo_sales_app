@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Lato, Manrope } from "next/font/google";
+import { PwaRegistrar } from "@/components/pwa/PwaRegistrar";
 import "./globals.css";
 
 // Graisses limitées à celles réellement utilisées dans le code (audit perf) :
@@ -21,7 +22,6 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   interactiveWidget: "resizes-content",
-  viewportFit: "cover",
   themeColor: "#2554B8",
 };
 
@@ -62,7 +62,10 @@ export default function RootLayout({
           href="/apple-touch-startup-image-1170x2532.png"
         />
       </head>
-      <body className="flex min-h-full w-full flex-col">{children}</body>
+      <body className="flex min-h-full w-full flex-col">
+        <PwaRegistrar />
+        {children}
+      </body>
     </html>
   );
 }

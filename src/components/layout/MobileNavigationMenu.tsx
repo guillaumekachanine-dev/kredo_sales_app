@@ -18,6 +18,8 @@ type MenuItemId =
   | "finance"
   | "consultants"
 
+type TabAlignment = "start" | "end"
+
 type MenuItem = {
   id: MenuItemId
   label: string
@@ -39,7 +41,7 @@ const mainItems: MenuItem[] = [
   { id: "agenda", label: "Agenda", icon: "calendar", tone: "brass", href: "/agenda" },
   {
     id: "crm",
-    label: "CRM & prospection",
+    label: "CRM",
     icon: "crm",
     tone: "teal",
     tabs: [
@@ -51,7 +53,7 @@ const mainItems: MenuItem[] = [
   },
   {
     id: "besoins",
-    label: "Besoins & Staffing",
+    label: "Opportunités",
     icon: "sales",
     tone: "amber",
     tabs: [
@@ -156,12 +158,14 @@ function ModuleCard({
   item,
   expanded,
   active,
+  focusActive,
   onToggle,
   onNavigate,
 }: {
   item: MenuItem
   expanded: boolean
   active: boolean
+  focusActive: boolean
   onToggle: (id: MenuItemId) => void
   onNavigate: () => void
 }) {
@@ -170,7 +174,8 @@ function ModuleCard({
     styles.moduleCard,
     styles[`tone_${item.tone}`],
     active && styles.activeCard,
-    expanded && styles.expandedCard
+    expanded && styles.expandedCard,
+    focusActive && styles.focusActiveCard
   )
 
   const content = (
@@ -209,18 +214,25 @@ function ModuleCard({
 
 function ExpandedTabs({
   item,
+  align,
   pathname,
   onNavigate,
 }: {
   item: MenuItem
+  align: TabAlignment
   pathname: string
   onNavigate: () => void
 }) {
   if (!item.tabs?.length) return null
 
   return (
-    <div className={styles.expandedTabs} aria-label={`Onglets ${item.label}`}>
-      <div className={styles.expandedConnector} aria-hidden="true" />
+    <div
+      className={cn(
+        styles.expandedTabs,
+        align === "end" ? styles.expandedTabsEnd : styles.expandedTabsStart
+      )}
+      aria-label={`Onglets ${item.label}`}
+    >
       <div className={styles.tabGrid}>
         {item.tabs.map((tab) => {
           const isUnavailable = tab.disabled || tab.comingSoon
@@ -256,6 +268,7 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
   const pathname = usePathname()
   const rows = useMemo(() => chunkRows(mainItems), [])
   const [expandedId, setExpandedId] = useState<MenuItemId | null>(null)
+  const isFocusMode = expandedId !== null
 
   useEffect(() => {
     if (!isOpen) return
@@ -284,9 +297,10 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
       icon={undefined}
       side="bottom"
       headerClassName="!hidden"
-      className="!bg-transparent !border-0 !shadow-none [--drawer-header-fade-start:transparent] max-h-[85vh] overflow-y-auto"
+      className="!border-0 !shadow-none [--drawer-header-fade-start:rgba(249,247,241,0.96)] [--drawer-header-fade-end:rgba(249,247,241,0)] max-h-[85vh] overflow-y-auto"
     >
-      <div className={styles.menuShell}>
+      <div className={cn(styles.menuShell, isFocusMode && styles.focusMode)}>
+        <div className={styles.focusOverlay} aria-hidden="true" />
         <header className={styles.menuHeader}>
           <h2>Navigation</h2>
           <button type="button" className={styles.closeButton} aria-label="Fermer" onClick={closeMenu}>
@@ -297,9 +311,14 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
         <div className={styles.moduleGrid}>
           {rows.map((row) => {
             const rowExpandedItem = row.find((item) => item.id === expandedId && item.tabs?.length)
+            const expandedIndex = rowExpandedItem ? row.findIndex((item) => item.id === rowExpandedItem.id) : -1
+            const tabAlignment: TabAlignment = expandedIndex === 1 ? "end" : "start"
 
             return (
-              <div key={row.map((item) => item.id).join("-")} className={styles.moduleRow}>
+              <div
+                key={row.map((item) => item.id).join("-")}
+                className={styles.moduleRow}
+              >
                 <div className={styles.modulePair}>
                   {row.map((item) => (
                     <ModuleCard
@@ -307,13 +326,19 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
                       item={item}
                       expanded={item.id === expandedId}
                       active={isItemActive(item, pathname)}
+                      focusActive={item.id === expandedId}
                       onToggle={handleToggle}
                       onNavigate={closeMenu}
                     />
                   ))}
                 </div>
                 {rowExpandedItem ? (
-                  <ExpandedTabs item={rowExpandedItem} pathname={pathname} onNavigate={closeMenu} />
+                  <ExpandedTabs
+                    item={rowExpandedItem}
+                    align={tabAlignment}
+                    pathname={pathname}
+                    onNavigate={closeMenu}
+                  />
                 ) : null}
               </div>
             )

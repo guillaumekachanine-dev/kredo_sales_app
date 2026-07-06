@@ -1020,12 +1020,8 @@ html {
   --layout-intelligence-width: var(--layout-drawer-width);
   --layout-mobile-tap-target: 2.75rem;
 
-  /* ── Safe area ──────────────────────────────────────────── */
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --safe-area-right: env(safe-area-inset-right, 0px);
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-left: env(safe-area-inset-left, 0px);
-  --layout-mobile-content-bottom-offset: calc(var(--layout-bottom-nav-height) + var(--safe-area-bottom));
+  /* ── Mobile chrome offsets ──────────────────────────────── */
+  --layout-mobile-content-bottom-offset: var(--layout-bottom-nav-height);
 }
 
 #__next,

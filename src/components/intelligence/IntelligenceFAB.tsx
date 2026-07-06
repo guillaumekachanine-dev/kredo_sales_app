@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
-  resolveIntelligenceActions,
   resolveEntityActions,
   ENTITY_TYPE_LABELS,
   type IntelligenceEntityType,
@@ -17,11 +16,28 @@ import { PanelResources } from "./PanelResources"
 import { PanelActivity } from "./PanelActivity"
 import { PanelKeyContacts } from "./PanelKeyContacts"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+import {
+  PitchMailDrawerContent,
+  SummaryDrawerContent,
+  type PitchMailAccountContext,
+} from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
 
 type AccountPanelAction = "pitch" | "summary" | null
+type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
+type RegistryAction =
+  | {
+      id: RegistryActionId
+      label: string
+      icon: typeof IconBrief
+    }
+  | {
+      id: "base_doc"
+      label: string
+      icon: typeof IconBrief
+      href: string
+    }
 
 function SparkleIcon() {
   return (
@@ -222,11 +238,11 @@ function GenericEntityMobileContent() {
 }
 
 interface RegistryMobileContentProps {
-  onActionClick: (actionId: "pitch" | "analyse" | "playbook" | "brief" | "rdv") => void
+  onActionClick: (actionId: RegistryActionId) => void
 }
 
 function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
-  const actions = [
+  const actions: RegistryAction[] = [
     { id: "brief", label: "Brief hebdomadaire", icon: IconBrief },
     { id: "rdv", label: "Préparer un RDV", icon: IconRdv },
     { id: "pitch", label: "Rédiger un mail/pitch", icon: IconMail },
@@ -242,7 +258,7 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
         <div className="grid grid-cols-2 gap-2.5">
           {actions.map((action) => {
             const Icon = action.icon
-            if (action.href) {
+            if ("href" in action) {
               return (
                 <Link
                   key={action.id}
@@ -258,7 +274,7 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
               <button
                 key={action.id}
                 type="button"
-                onClick={() => onActionClick(action.id as any)}
+                onClick={() => onActionClick(action.id)}
                 className="h-11 px-3 py-2 flex items-center gap-2.5 rounded-xl bg-slate-800/45 border border-slate-600/35 text-slate-100 hover:bg-slate-700/60 active:scale-98 transition-all text-left select-none"
               >
                 <Icon />
@@ -334,7 +350,7 @@ export function IntelligenceFAB() {
   const [isSectorSelectorOpen, setIsSectorSelectorOpen] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState<AccountValue | null>(null)
   const [selectorSource, setSelectorSource] = useState<"pitch" | "analyse" | null>(null)
-  const [pitchContext, setPitchContext] = useState<any>(null)
+  const [pitchContext, setPitchContext] = useState<PitchMailAccountContext | null>(null)
   const [activeAction, setActiveAction] = useState<"pitch" | null>(null)
 
   const handleCompanyActionSelected = (val: AccountValue) => {
@@ -362,7 +378,7 @@ export function IntelligenceFAB() {
         onClick={() => setIsOpen(true)}
         aria-label="Ouvrir le cockpit intelligence"
         className={cn(
-          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+var(--safe-area-bottom)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90",
+          "fixed z-[var(--z-fab)] right-4 bottom-[calc(var(--layout-bottom-nav-height)+0.75rem)] inline-flex size-14 items-center justify-center rounded-full shadow-[0_2px_12px_rgba(37,84,184,0.35)] transition-transform active:scale-90",
           hasEntityFocus
             ? "kredo-fab-cockpit-active bg-brand-brass text-secondary-fg"
             : "bg-secondary text-secondary-fg",

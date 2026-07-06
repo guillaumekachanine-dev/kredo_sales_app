@@ -7,6 +7,23 @@ const nextConfig: NextConfig = {
     // pattern : ajouter ici toute future lib volumineuse (icônes, date, ui-kit).
     optimizePackageImports: ["zustand"],
   },
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+          {
+            key: "Cache-Control",
+            value: "no-cache, no-store, must-revalidate",
+          },
+        ],
+      },
+    ];
+  },
   turbopack: {},
 };
 
