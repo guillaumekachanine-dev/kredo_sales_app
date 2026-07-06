@@ -7,6 +7,19 @@ import { formatEuroCompact, formatPct } from "@/lib/formatters"
 import type { MissionProfitabilityRow } from "@/lib/finance/finance-data"
 import type { DataTableColumn, DataTableSort } from "@/components/ui/data-table/DataTable"
 
+function getPracticeIcon(practice: string | null | undefined): string | null {
+  if (!practice) return null
+  const p = practice.toLowerCase().trim()
+  if (p.includes("cloud")) return "/images/practice_icons/practice_cloud_engineering.png"
+  if (p.includes("cyber")) return "/images/practice_icons/practice_cybersecurity.png"
+  if (p.includes("data") || p.includes("ia")) return "/images/practice_icons/practice_data_ia.png"
+  if (p.includes("digital") || p.includes("business")) return "/images/practice_icons/practice_digital_business_solutions.png"
+  if (p.includes("legacy") || p.includes("mainframe")) return "/images/practice_icons/practice_legacy_mainframe.png"
+  if (p.includes("project") || p.includes("agile")) return "/images/practice_icons/practice_project_agile_delivery.png"
+  if (p.includes("qa") || p.includes("test")) return "/images/practice_icons/practice_QA_testing.png"
+  return null
+}
+
 interface MissionProfitabilityTableProps {
   rows: MissionProfitabilityRow[]
   onAction?: (row: MissionProfitabilityRow) => void
@@ -40,7 +53,21 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
     {
       id: "practice",
       header: "Practice",
-      cell: (row) => <span className="text-xs text-muted">{row.practice || "—"}</span>,
+      cell: (row) => {
+        const iconPath = getPracticeIcon(row.practice)
+        return (
+          <span className="flex items-center gap-1.5 text-xs text-muted font-medium">
+            {iconPath ? (
+              <img
+                src={iconPath}
+                alt=""
+                className="size-4 shrink-0 object-contain rounded-sm"
+              />
+            ) : null}
+            <span>{row.practice || "—"}</span>
+          </span>
+        )
+      },
       accessor: (row) => row.practice || "",
       sortable: true,
     },
