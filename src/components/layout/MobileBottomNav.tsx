@@ -5,13 +5,14 @@ import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  MobileBottomNav — Barre de navigation mobile fixe (4 boutons principaux)
+//  MobileBottomNav — Barre de navigation mobile fixe (menu central)
 //
 //  Affiche en permanence dans l'ordre exact :
-//    1. Navigation  (ouvre le menu complet)
-//    2. CRM         (vers /prospection)
-//    3. Staffing    (vers /missions/opps)
-//    4. Intelligence (vers /reports)
+//    1. Cockpit
+//    2. CRM
+//    3. Menu        (ouvre le menu complet)
+//    4. Staffing
+//    5. Intelligence
 //
 //  Sémantique du tap :
 //    · Navigation                → toggle le menu complet via callback
@@ -39,12 +40,12 @@ export function MobileBottomNav({
 }: MobileBottomNavProps) {
   const buttons = [
     {
-      id: "navigation",
-      label: "Navigation",
-      icon: "navigation",
-      isActive: isMenuOpen,
-      onClick: onMenuToggle,
-      type: "button" as const,
+      id: "cockpit",
+      label: "Cockpit",
+      icon: "cockpit",
+      isActive: pathname.startsWith("/cockpit"),
+      href: "/cockpit",
+      type: "link" as const,
     },
     {
       id: "crm",
@@ -53,6 +54,14 @@ export function MobileBottomNav({
       isActive: pathname.startsWith("/prospection"),
       href: "/prospection",
       type: "link" as const,
+    },
+    {
+      id: "menu",
+      label: "Menu",
+      icon: "navigation",
+      isActive: isMenuOpen,
+      onClick: onMenuToggle,
+      type: "button" as const,
     },
     {
       id: "staffing",
@@ -80,13 +89,18 @@ export function MobileBottomNav({
       {buttons.map((btn) => {
         const isActive = btn.isActive
         const togglesRail = btn.type === "link" && isActive && activeHasRail
+        const isMenuButton = btn.id === "menu"
 
         const inner = (
           <>
             <div
               className={cn(
-                "rounded-[var(--radius-medium)] p-1.5 transition-[background-color,color] duration-[var(--motion-duration-fast)]",
-                isActive ? "bg-white/14 text-primary-fg" : "text-primary-fg/72"
+                "inline-flex size-7 items-center justify-center rounded-[var(--radius-medium)] transition-[background-color,color] duration-[var(--motion-duration-fast)]",
+                isMenuButton
+                  ? "text-primary"
+                  : isActive
+                    ? "text-primary-fg"
+                    : "text-primary-fg/72"
               )}
             >
               {getNavigationIcon(btn.icon)}
@@ -98,10 +112,13 @@ export function MobileBottomNav({
         )
 
         const className = cn(
-          "flex h-full min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-1 px-1 text-center select-none",
-          "transition-[color,opacity] duration-[var(--motion-duration-fast)]",
+          "flex min-h-[var(--layout-mobile-tap-target)] flex-1 flex-col items-center justify-center gap-1 px-1 text-center select-none",
+          "transition-[color,opacity,transform,background-color,box-shadow] duration-[var(--motion-duration-fast)]",
           "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
-          isActive ? "font-semibold text-primary-fg" : "text-primary-fg/72 hover:text-primary-fg"
+          isMenuButton
+            ? "relative -mt-5 h-[4.125rem] max-w-[4.375rem] rounded-[var(--radius-medium)] bg-gradient-to-b from-surface to-surface-hover font-semibold text-primary shadow-[0_16px_30px_-18px_rgba(0,0,0,0.48)] [box-shadow:0_16px_30px_-18px_rgba(0,0,0,0.48),inset_0_-3px_0_rgba(200,154,43,0.74)]"
+            : "h-full",
+          !isMenuButton && (isActive ? "font-semibold text-primary-fg" : "text-primary-fg/72 hover:text-primary-fg")
         )
 
         if (btn.type === "button") {
