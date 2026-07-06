@@ -254,25 +254,76 @@ export function ReportsDesktopView({
     <EntityWorkspacePage>
       <EntityWorkspaceHeader
         title="Rapports & Rédaction"
-        kpis={(
-          <>
-            <KpiCard label="Documents" value={kpis.total} size="compact" compactLayout className="min-w-[10rem]" />
-            <KpiCard label="Brouillons" value={kpis.drafts} size="compact" compactLayout className="min-w-[10rem]" />
-            <KpiCard label="Prêts" value={kpis.ready} size="compact" compactLayout className="min-w-[10rem]" />
-            <KpiCard label="Utilisés ce mois" value={kpis.usedThisMonth} size="compact" compactLayout className="min-w-[10rem]" />
-          </>
-        )}
-        actions={(
-          <div className="flex flex-col items-stretch gap-2">
-            <Button onClick={() => openCommunicationComposer({ origin: "global" })}>
-              Rédiger un mail
-            </Button>
-            <Button variant="secondary" onClick={() => openReportGeneration({ origin: "reports_library" })}>
-              Générer un rapport
-            </Button>
-          </div>
-        )}
       />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 max-w-4xl mt-3 mb-6">
+        {/* Raccourci 1 : Mails */}
+        <button
+          onClick={() => openCommunicationComposer({ origin: "global" })}
+          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
+          <img
+            src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
+            alt=""
+            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="relative z-10 text-[11px] font-bold leading-tight">Rédiger un email</span>
+        </button>
+
+        {/* Raccourci 2 : Rapports */}
+        <button
+          onClick={() => openReportGeneration({ origin: "reports_library" })}
+          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
+          <img
+            src="/icons_set/cockpit_intelligence/generer_rapport.png"
+            alt=""
+            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="relative z-10 text-[11px] font-bold leading-tight">Générer un rapport</span>
+        </button>
+
+        {/* Raccourci 3 : Pitchs */}
+        <button
+          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
+          <img
+            src="/icons_set/cockpit_intelligence/dossier_pitchs.png"
+            alt=""
+            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="relative z-10 text-[11px] font-bold leading-tight">Pitchs</span>
+        </button>
+
+        {/* Raccourci 4 : Devis */}
+        <button
+          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
+          <img
+            src="/icons_set/cockpit_intelligence/rapport_financier_ai.png"
+            alt=""
+            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="relative z-10 text-[11px] font-bold leading-tight">Devis</span>
+        </button>
+
+        {/* Raccourci 5 : Menu complet */}
+        <button
+          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+        >
+          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
+          <img
+            src="/icons_set/cockpit_intelligence/dossier.png"
+            alt=""
+            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
+          />
+          <span className="relative z-10 text-[11px] font-bold leading-tight">Plus de catégories</span>
+        </button>
+      </div>
 
       <PageFilterBar
         activeCount={activeFilterCount}
