@@ -57,13 +57,17 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
       sortable: true,
       align: "center",
     },
+    
+    // Groupe "TJM/CJM/% MCO" (Léger contraste gris/surface-raised)
     {
       id: "tjm",
       header: "TJM",
-      cell: (row) => <span className="font-mono text-xs">{row.tjm} €</span>,
+      cell: (row) => <span className="font-mono text-xs font-semibold">{row.tjm} €</span>,
       accessor: (row) => row.tjm,
       sortable: true,
       align: "right",
+      className: "bg-surface-raised/50",
+      headerClassName: "bg-surface-raised/50 font-bold",
     },
     {
       id: "cjm",
@@ -72,34 +76,12 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
       accessor: (row) => row.cjm,
       sortable: true,
       align: "right",
-    },
-    {
-      id: "billableDays",
-      header: "Jours",
-      cell: (row) => <span className="font-mono text-xs">{row.billableDays} j</span>,
-      accessor: (row) => row.billableDays,
-      sortable: true,
-      align: "right",
-    },
-    {
-      id: "revenue",
-      header: "CA YTD",
-      cell: (row) => <span className="font-semibold text-heading">{formatEuroCompact(row.revenue)}</span>,
-      accessor: (row) => row.revenue,
-      sortable: true,
-      align: "right",
-    },
-    {
-      id: "marginValue",
-      header: "Marge €",
-      cell: (row) => <span className="text-body font-medium">{formatEuroCompact(row.marginValue)}</span>,
-      accessor: (row) => row.marginValue,
-      sortable: true,
-      align: "right",
+      className: "bg-surface-raised/50",
+      headerClassName: "bg-surface-raised/50 font-bold",
     },
     {
       id: "marginPct",
-      header: "Marge %",
+      header: "% MCO",
       cell: (row) => {
         const isLow = row.marginPct < 25
         return (
@@ -111,7 +93,42 @@ export function MissionProfitabilityTable({ rows, onAction }: MissionProfitabili
       accessor: (row) => row.marginPct,
       sortable: true,
       align: "right",
+      className: "bg-surface-raised/50",
+      headerClassName: "bg-surface-raised/50 font-bold",
     },
+
+    // Groupe "jours/CA YTD/MCO YTD" (Léger contraste bleu/primary ultra-clair)
+    {
+      id: "billableDays",
+      header: "Jours",
+      cell: (row) => <span className="font-mono text-xs">{row.billableDays} j</span>,
+      accessor: (row) => row.billableDays,
+      sortable: true,
+      align: "right",
+      className: "bg-primary/[0.02]",
+      headerClassName: "bg-primary/[0.02] font-bold",
+    },
+    {
+      id: "revenue",
+      header: "CA YTD",
+      cell: (row) => <span className="font-semibold text-heading">{formatEuroCompact(row.revenue)}</span>,
+      accessor: (row) => row.revenue,
+      sortable: true,
+      align: "right",
+      className: "bg-primary/[0.02]",
+      headerClassName: "bg-primary/[0.02] font-bold",
+    },
+    {
+      id: "marginValue",
+      header: "MCO YTD",
+      cell: (row) => <span className="text-body font-semibold">{formatEuroCompact(row.marginValue)}</span>,
+      accessor: (row) => row.marginValue,
+      sortable: true,
+      align: "right",
+      className: "bg-primary/[0.02]",
+      headerClassName: "bg-primary/[0.02] font-bold",
+    },
+
     {
       id: "endDate",
       header: "Fin",

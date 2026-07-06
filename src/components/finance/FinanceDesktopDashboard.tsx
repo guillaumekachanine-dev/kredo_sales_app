@@ -175,7 +175,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
         title="Cockpit Financier & Rentabilité"
         maxWidth="wide"
         actions={<PageQuickActions actions={quickActions} />}
-        rail={railContent}
+        rail={activeTab === "profitability" ? null : railContent}
       >
         {/* En-tête : Onglets de navigation */}
         <FinanceTabs activeTab={activeTab} onChange={setActiveTab} />
