@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import type { RefCallback } from "react"
 import type { PracticeTone, SkillCategory } from "@/lib/consultants/pool-competences-data"
 import { cn } from "@/lib/utils"
@@ -42,13 +43,13 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
   const tone = toneClasses[selectedTone]
 
   return (
-    <div
-      className="relative z-10 grid gap-4"
-      style={{ gridTemplateColumns: `repeat(${groups.length}, minmax(0, 1fr))` }}
-    >
+    <div className="relative z-10 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
       {groups.map((group, index) => {
         const focused = !activeCategory || activeCategory === group.category
         const pinned = pinnedCategory === group.category
+        const supplyCount = group.skills.reduce((sum, skill) => sum + skill.supplyCount, 0)
+        const demandCount = group.skills.reduce((sum, skill) => sum + skill.demandCount, 0)
+        const iconSrc = categoryIcons[group.category]
 
         return (
           <article
@@ -59,7 +60,7 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
             onFocus={() => onCategoryFocus(group.category)}
             onBlur={() => onCategoryFocus(null)}
             className={cn(
-              "min-h-[264px] rounded-[24px] border px-4 py-4 transition-[border-color,opacity,transform,background-color] duration-200",
+              "min-h-[238px] rounded-[18px] border px-4 py-4 transition-[border-color,opacity,transform,background-color] duration-200",
               focused
                 ? cn("border-border bg-surface", pinned && tone.border)
                 : "border-border/80 bg-surface/68 opacity-45"
@@ -86,12 +87,14 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
                       focused ? tone.fill : "bg-canvas text-muted"
                     )}
                   >
-                    {categoryIcons[group.category] ? (
-                      <img
-                        src={categoryIcons[group.category]}
+                    {iconSrc ? (
+                      <Image
+                        src={iconSrc}
                         alt=""
                         aria-hidden
-                        className="w-8 h-8 object-contain"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 object-contain"
                         style={{
                           filter: focused
                             ? tone.iconFilterFocused
@@ -107,7 +110,7 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
                       {categoryLabels[group.category]}
                     </span>
                     <span className="mt-1 block text-[11px] text-body">
-                      {group.skills.length} competences visibles
+                      {group.skills.length} competences - {supplyCount} portees - {demandCount} demandees
                     </span>
                   </span>
                 </span>
@@ -126,11 +129,11 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-border/70">
               <div
                 className={cn("h-full rounded-full", focused ? tone.fill : "bg-border")}
-                style={{ width: `${Math.min(100, 18 + group.skills.length * 9)}%` }}
+                style={{ width: `${Math.min(100, 16 + group.skills.length * 5 + supplyCount * 3 + demandCount * 4)}%` }}
               />
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-1.5">
+            <div className="mt-4 flex max-h-[168px] flex-wrap gap-1.5 overflow-y-auto pr-1">
               {group.skills.map((skill) => {
                 const description = skill.skillDescription?.trim()
                 const hasDescription = Boolean(description)
@@ -175,7 +178,13 @@ export function PoolCompetencesSkillCardsRow(props: PoolCompetencesSkillCardsRow
                       hasDescription && "cursor-help focus:ring-2 focus:ring-primary/30"
                     )}
                   >
-                    {skill.name}
+                    <span>{skill.name}</span>
+                    {(skill.supplyCount > 0 || skill.demandCount > 0) && (
+                      <span className="ml-1 text-[10px] text-muted">
+                        {skill.supplyCount > 0 ? `+${skill.supplyCount}` : ""}
+                        {skill.demandCount > 0 ? `/${skill.demandCount}` : ""}
+                      </span>
+                    )}
                   </span>
                 )
               })}

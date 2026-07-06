@@ -2,6 +2,7 @@ import type { SkillCategory } from "@/lib/consultants/pool-competences-data"
 
 export type PracticeCollaborator = {
   id: string
+  person_id: string | null
   status: string
   current_title: string | null
   seniority: string | null

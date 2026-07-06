@@ -1,4 +1,7 @@
+import type { Database } from "@/types/database"
+
 export type SkillCategory =
+  | "certification"
   | "cloud"
   | "data"
   | "devops"
@@ -6,9 +9,31 @@ export type SkillCategory =
   | "framework"
   | "langage"
   | "methode"
+  | "secteur"
   | "soft_skill"
+  | "autre"
 
-export type PracticeTone = "primary" | "success" | "warning" | "danger" | "accent"
+export type PracticeTone = "primary" | "success" | "warning" | "danger" | "accent" | "info" | "idea" | "neutral"
+
+export type OfferNode = {
+  id: string
+  name: string
+  slug: string
+  shortDescription: string | null
+  keywords: string[]
+  typicalDeliverables: string[]
+  typicalProfiles: string[]
+  useCases: string[]
+}
+
+export type JobProfileNode = {
+  id: string
+  title: string
+  mainMission: string
+  techStack: string[]
+  responsibilities: string[]
+  kpis: string[]
+}
 
 export type PracticeTerritory = {
   id: string
@@ -18,11 +43,11 @@ export type PracticeTerritory = {
   perimeter: string
   stackTags: string[]
   tone: PracticeTone
-  x: number
-  y: number
-  rx: number
-  ry: number
+  colorHex: string | null
   skillNames: string[]
+  offers: OfferNode[]
+  profiles: JobProfileNode[]
+  updatedAt: string
 }
 
 export type SkillNode = {
@@ -30,214 +55,367 @@ export type SkillNode = {
   name: string
   category: SkillCategory
   skillDescription?: string | null
+  aliases: string[]
+  supplyCount: number
+  demandCount: number
+  averageLevel: number | null
 }
 
-export const practices: PracticeTerritory[] = [
-  {
-    id: "9cfc4f83-7e66-4c68-a83f-b9410758e244",
-    name: "Data Intelligence & Artificial Intelligence",
-    slug: "data-ia",
-    description:
-      "Cadrage strategique IA, architectures RAG, traitement semantique, MLOps, automatisation cognitive des processus business.",
-    perimeter:
-      "Cadrage strategique, architectures RAG, traitement semantique, MLOps, automatisation cognitive des processus business.",
-    stackTags: ["pgvector", "n8n", "Python", "Databricks", "LangChain"],
-    tone: "primary",
-    x: 39,
-    y: 30,
-    rx: 20,
-    ry: 15,
-    skillNames: [
-      "Data Engineer",
-      "Python",
-      "Python API",
-      "Machine Learning",
-      "TensorFlow",
-      "SQL",
-      "PostgreSQL",
-      "ETL/ELT",
-      "Apache Airflow",
-      "Data Viz",
-      "Data Viz (Matplotlib/Seaborn)",
-      "GCP (BigQuery, Dataflow)",
-    ],
-  },
-  {
-    id: "a66653ab-e46a-4dad-a32c-0841596860c4",
-    name: "Digital & Cloud Engineering",
-    slug: "digital-cloud",
-    description:
-      "Conception d'applications web denses a fort trafic, APIs serverless haute performance, architectures Cloud natives securisees.",
-    perimeter:
-      "Conception d'applications web denses a fort trafic, APIs serverless haute performance, architectures Cloud natives securisees.",
-    stackTags: ["Next.js 15", "React", "Supabase", "TypeScript", "AWS", "Azure"],
-    tone: "success",
-    x: 73,
-    y: 61,
-    rx: 18,
-    ry: 14,
-    skillNames: [
-      "Next.js",
-      "React",
-      "React.js",
-      "TypeScript",
-      "JavaScript",
-      "Node.js",
-      "FastAPI",
-      "Microservices",
-      "System Architecture",
-      "AWS",
-      "Azure",
-      "Cloud Architect",
-      "Tailwind CSS",
-      "Tailwind",
-      "SASS/CSS",
-    ],
-  },
-  {
-    id: "96ca89cf-f142-421f-8e38-9c16eafd1330",
-    name: "Agile Product Management",
-    slug: "agile-pm",
-    description:
-      "Cadrage de produits B2B complexes, design system flat & premium, direction de projets au forfait, conduite du changement.",
-    perimeter:
-      "Cadrage de produits B2B complexes, design system flat & premium, direction de projets au forfait, conduite du changement.",
-    stackTags: ["Product Owner", "Scrum", "UX/UI Design", "Figma"],
-    tone: "warning",
-    x: 34,
-    y: 75,
-    rx: 18,
-    ry: 13,
-    skillNames: [
-      "Agile/Scrum",
-      "Kanban",
-      "Roadmapping",
-      "User Stories",
-      "User Research",
-      "Design Thinking",
-      "Design System",
-      "Figma",
-      "Figma (Lecture)",
-      "Prototyping",
-      "Facilitation",
-      "Mentoring",
-      "Conflict Resolution",
-    ],
-  },
-  {
-    id: "d9054732-626f-4de8-8deb-8d1449715b36",
-    name: "Cybersecurity & SecOps",
-    slug: "cybersecurity",
-    description:
-      "Gouvernance SecOps, audit de code, durcissement des bases Supabase / PostgreSQL, architectures Cloud souveraines.",
-    perimeter:
-      "Gouvernance SecOps, audit de code, durcissement des bases Supabase / PostgreSQL, architectures Cloud souveraines.",
-    stackTags: ["RLS Active", "Terraform", "SecNumCloud", "CI/CD"],
-    tone: "danger",
-    x: 76,
-    y: 25,
-    rx: 17,
-    ry: 12,
-    skillNames: [
-      "Cybersécurité",
-      "Cybersecurity",
-      "SecOps",
-      "Cloud Security",
-      "Cloud Security (AWS/Azure)",
-      "Penetration Testing",
-      "SIEM",
-      "Terraform",
-      "CI/CD",
-      "Docker",
-      "Kubernetes",
-      "Linux",
-      "Git",
-    ],
-  },
-  {
-    id: "434f5796-0385-4935-a5aa-86454cf6ff66",
-    name: "QA & Testing",
-    slug: "qa-testing",
-    description:
-      "Assurance qualite, automatisation des tests fonctionnels et de performance, controle de la non-regression tout au long du cycle de developpement.",
-    perimeter:
-      "Automatisation des tests, tests de performance, controle qualite, reporting.",
-    stackTags: ["Selenium", "Cypress", "JMeter", "Postman", "k6"],
-    tone: "accent",
-    x: 17,
-    y: 48,
-    rx: 15,
-    ry: 12,
-    skillNames: [
-      "Test Strategy",
-      "Selenium",
-      "Cypress",
-      "Jira",
-      "CI/CD",
-      "Docker",
-      "Git",
-      "Agile/Scrum",
-    ],
-  },
-]
+export type PoolCompetencesDataset = {
+  practices: PracticeTerritory[]
+  skills: SkillNode[]
+  lastUpdatedAt: string | null
+}
 
-export const skills: SkillNode[] = [
-  { id: "0211ac1b-520d-48fe-8014-b95eee14f32c", name: "Data Engineer", category: "data" },
-  { id: "0548981f-e568-4099-b591-fed8a527c25d", name: "Linux", category: "devops" },
-  { id: "05a87b80-9eb5-44be-b6c5-fb1e28efe029", name: "Design Thinking", category: "methode" },
-  { id: "06cee7b2-1ab6-4591-a7e7-a93eddededdf", name: "React.js", category: "framework" },
-  { id: "1684562f-55ae-46af-95ad-6dfd9e9d5160", name: "JavaScript", category: "langage" },
-  { id: "20774b8c-374a-497e-af89-2f50220f6998", name: "Kubernetes", category: "devops" },
-  { id: "22d522eb-4e2c-42d1-9f85-1e4566dde1f0", name: "Azure", category: "cloud" },
-  { id: "26f8900b-ac30-4da1-ba7c-4fc98dcd1b47", name: "SecOps", category: "devops" },
-  { id: "27382e98-6458-45dc-9a2a-daad6467ba94", name: "Machine Learning", category: "data" },
-  { id: "30a6f9cc-fa52-46a3-8c4d-8c0c19b474ad", name: "Data Viz (Matplotlib/Seaborn)", category: "data" },
-  { id: "318df965-7e82-4c3d-8e49-588cb2f3b650", name: "SASS/CSS", category: "langage" },
-  { id: "37c1118e-a533-476b-847f-f882b7f677a9", name: "Python", category: "langage" },
-  { id: "42cc6634-e0f4-4105-8ea0-ed8a10be0e9c", name: "Data Viz", category: "data" },
-  { id: "44139f2d-43ec-4b4e-9fec-d16215f45cb4", name: "Cybersécurité", category: "cloud" },
-  { id: "451f216d-e0da-4927-869d-6097e0d5dabf", name: "ETL/ELT", category: "data" },
-  { id: "4e851263-0866-4f83-90bf-e35d1271c657", name: "FastAPI", category: "framework" },
-  { id: "4ef1d4cc-fb57-4907-86b1-cba35c7fc100", name: "Microservices", category: "fonctionnel" },
-  { id: "4fec9002-7b29-441f-b6a8-b971785e88a0", name: "Next.js", category: "framework" },
-  { id: "516b1cfa-f382-4504-9e00-9317ebd852b2", name: "CI/CD", category: "devops" },
-  { id: "539210b9-7ec7-4dd0-a57a-e6af0e6d42a2", name: "Tailwind CSS", category: "framework" },
-  { id: "55b57413-e93b-4700-b0b8-7b45943d00a3", name: "Roadmapping", category: "fonctionnel" },
-  { id: "5744c7f7-acf8-409f-97b7-2dca13211024", name: "Apache Airflow", category: "devops" },
-  { id: "574d4df7-9d54-42cb-8874-33e577f5d68a", name: "Facilitation", category: "soft_skill" },
-  { id: "5d37ca29-de94-49b5-85d7-3265c05986c7", name: "Cybersecurity", category: "fonctionnel" },
-  { id: "60dde2a5-e53d-4669-bd6e-28c1d3e80430", name: "TensorFlow", category: "framework" },
-  { id: "66ad3ff4-c6de-4c67-b6af-85641ebea94f", name: "Docker", category: "devops" },
-  { id: "6c09ec39-363e-4945-aeaa-6470bd75ea0b", name: "Agile/Scrum", category: "methode" },
-  { id: "7b352572-b941-44a8-99d9-6f852cfbe063", name: "Jira", category: "devops" },
-  { id: "7dc2c478-e2ad-44eb-8b24-c7399226cbc8", name: "Cloud Security", category: "cloud" },
-  { id: "7e19f32b-a489-4bf9-b453-c30aad211b48", name: "DevOps", category: "devops" },
-  { id: "816bd54a-676d-4dbc-aa0f-bcb609bd6c0a", name: "Node.js", category: "framework" },
-  { id: "82cc4c1f-5e5a-4473-8f26-3da4918ad189", name: "Lead Full-Stack", category: "fonctionnel" },
-  { id: "87aec773-4c3b-4b64-89e9-76622fa471b9", name: "Mentoring", category: "soft_skill" },
-  { id: "8b373c7f-e4d6-4d40-807c-053157d984ff", name: "Terraform", category: "devops" },
-  { id: "8d7110b9-4468-4597-85b8-7f3a6d3debc8", name: "Kanban", category: "methode" },
-  { id: "8e94cf28-2336-4dfb-b435-45a8fb893ea2", name: "Cypress", category: "devops" },
-  { id: "946e4d7b-f575-4c3b-8fc9-fe1f6d93908e", name: "Cloud Architect", category: "cloud" },
-  { id: "97356463-2bbc-4c13-abe7-eae463cbe564", name: "Cloud Security (AWS/Azure)", category: "cloud" },
-  { id: "9aa6379c-df66-4740-93be-f4ad731302aa", name: "Design System", category: "fonctionnel" },
-  { id: "9e6d2a79-c098-4f86-aead-f2792c73e137", name: "TypeScript", category: "langage" },
-  { id: "9ed2f83b-404a-4262-8367-45825cab5e3e", name: "Figma (Lecture)", category: "devops" },
-  { id: "a6157eec-93d9-4146-afdb-d3156c6ac6a2", name: "User Stories", category: "fonctionnel" },
-  { id: "a908ad6f-6dc8-40cd-aab6-f641459e1f2b", name: "Selenium", category: "devops" },
-  { id: "ae81820c-9f8b-4e05-93fb-f6a76fbfbcbf", name: "Git", category: "devops" },
-  { id: "afc6656e-9eba-45ab-b314-5f2dfcd96081", name: "Prototyping", category: "fonctionnel" },
-  { id: "b6b1e51b-825b-4fea-a882-09a015c56b61", name: "Test Strategy", category: "fonctionnel" },
-  { id: "c3bbbd48-42d4-4268-a161-debd1313039c", name: "System Architecture", category: "fonctionnel" },
-  { id: "c3ce3b7f-09de-4a92-ac70-49fde6c2d163", name: "AWS", category: "cloud" },
-  { id: "c624d386-6a0f-41ec-aa52-b0636e45bfa5", name: "Figma", category: "devops" },
-  { id: "c7eef783-24f0-401a-938c-3a30c52b21d4", name: "User Research", category: "fonctionnel" },
-  { id: "cd906948-5c5d-4642-a590-95891f17c7a5", name: "Penetration Testing", category: "fonctionnel" },
-  { id: "d1672bbb-40d0-4d8d-a81f-0fe1cdc4ca76", name: "PostgreSQL", category: "data" },
-  { id: "d664bd7c-e755-4156-a70f-c819ea7720ce", name: "React", category: "framework" },
-  { id: "d91fdbac-6f11-4bb5-8b5c-0fe3027d345f", name: "GCP (BigQuery, Dataflow)", category: "cloud" },
-  { id: "e1f19f33-603a-47cd-a4aa-e354507b1642", name: "Python API", category: "data" },
-  { id: "e2487e0c-ca15-4f42-80b2-37338c19b993", name: "Tailwind", category: "langage" },
-  { id: "fa4aba83-6931-4eb1-b078-f6eeab09f531", name: "SQL", category: "data" },
-  { id: "ff734dfe-f8d2-4283-9c1a-c6a631be1e21", name: "SIEM", category: "devops" },
-] as const
+type PracticeRow = Database["public"]["Tables"]["offer_practices"]["Row"]
+type OfferRow = Database["public"]["Tables"]["offers"]["Row"]
+type SkillRow = Database["public"]["Tables"]["skills"]["Row"]
+type JobProfileRow = Database["public"]["Tables"]["job_profiles"]["Row"]
+type SkillReference = Pick<SkillRow, "id" | "name" | "category" | "skill_description" | "aliases">
+type OpportunityReference = {
+  practice: string | null
+  stage: string
+}
+
+export type PersonSkillRow = {
+  person_id: string
+  level: number | null
+  years: number | null
+  skill: SkillReference | SkillReference[] | null
+}
+
+export type OpportunitySkillDemandRow = {
+  opportunity: OpportunityReference | OpportunityReference[] | null
+  skill: SkillReference | SkillReference[] | null
+  weight: number
+}
+
+type BuildPoolCompetencesDatasetInput = {
+  practices: PracticeRow[]
+  offers: OfferRow[]
+  skills: SkillRow[]
+  jobProfiles: JobProfileRow[]
+  personSkills: PersonSkillRow[]
+  opportunitySkillDemand: OpportunitySkillDemandRow[]
+  collaboratorPracticeByPersonId: Map<string, string>
+  collaboratorTitleByPersonId: Map<string, string>
+}
+
+const toneBySlug: Record<string, PracticeTone> = {
+  "data-ai": "primary",
+  "cloud-engineering": "success",
+  "digital-business-solutions": "info",
+  "digital-experience": "accent",
+  cybersecurity: "danger",
+  "legacy-systems-mainframe": "idea",
+  "project-agile-delivery": "warning",
+  "quality-engineering-testing": "neutral",
+}
+
+const categoryAliases: Record<string, SkillCategory> = {
+  certification: "certification",
+  cloud: "cloud",
+  data: "data",
+  devops: "devops",
+  fonctionnel: "fonctionnel",
+  functional: "fonctionnel",
+  framework: "framework",
+  frameworks: "framework",
+  langage: "langage",
+  language: "langage",
+  methode: "methode",
+  method: "methode",
+  methods: "methode",
+  secteur: "secteur",
+  sector: "secteur",
+  soft_skill: "soft_skill",
+  "soft skill": "soft_skill",
+  softskills: "soft_skill",
+}
+
+const practiceAliases: Record<string, string[]> = {
+  "data-ai": [
+    "data",
+    "data ai",
+    "data & ai",
+    "data ia",
+    "data intelligence",
+    "artificial intelligence",
+    "ia",
+  ],
+  "cloud-engineering": ["cloud", "cloud engineering", "digital cloud engineering"],
+  "digital-business-solutions": [
+    "digital",
+    "digital business",
+    "business solutions",
+    "software",
+    "application",
+    "fullstack",
+    "full-stack",
+  ],
+  "digital-experience": ["design", "mobile", "product management", "digital experience", "ux", "ui"],
+  cybersecurity: ["cybersecurity", "cyber", "secops", "security", "cybersecurity secops"],
+  "legacy-systems-mainframe": ["legacy", "mainframe", "cobol", "ibm z"],
+  "project-agile-delivery": ["project management", "agile", "delivery", "scrum master", "pmo"],
+  "quality-engineering-testing": ["qa", "testing", "quality", "quality engineering", "test"],
+}
+
+const weakSkillTokens = new Set([
+  "and",
+  "api",
+  "app",
+  "de",
+  "des",
+  "du",
+  "for",
+  "ia",
+  "it",
+  "la",
+  "le",
+  "les",
+  "of",
+  "the",
+  "to",
+])
+
+export function buildPoolCompetencesDataset(input: BuildPoolCompetencesDatasetInput): PoolCompetencesDataset {
+  const activePractices = input.practices
+    .filter((practice) => practice.is_active)
+    .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
+
+  const offersByPracticeId = groupBy(input.offers.filter((offer) => offer.is_active), (offer) => offer.practice_id)
+  const profilesByPracticeId = groupBy(input.jobProfiles.filter((profile) => profile.is_active), (profile) => profile.practice_id)
+  const skillScoresByPractice = new Map<string, Map<string, number>>()
+  const supplyCountsBySkill = new Map<string, number>()
+  const demandCountsBySkill = new Map<string, number>()
+  const levelsBySkill = new Map<string, number[]>()
+
+  for (const practice of activePractices) {
+    const practiceOffers = offersByPracticeId.get(practice.id) ?? []
+    const practiceProfiles = profilesByPracticeId.get(practice.id) ?? []
+    const corpus = normalize([
+      practice.name,
+      practice.slug,
+      practice.description,
+      practice.perimeter,
+      ...practice.stack_tags,
+      ...practiceOffers.flatMap((offer) => [
+        offer.name,
+        offer.short_description,
+        offer.full_description,
+        ...offer.keywords,
+        ...offer.typical_deliverables,
+        ...offer.typical_profiles,
+        ...offer.use_cases,
+      ]),
+      ...practiceProfiles.flatMap((profile) => [
+        profile.title,
+        profile.main_mission,
+        ...profile.tech_stack,
+        ...profile.responsibilities,
+        ...profile.kpis,
+      ]),
+    ].filter(Boolean).join(" "))
+
+    const scores = ensureScoreMap(skillScoresByPractice, practice.slug)
+
+    for (const skill of input.skills) {
+      const score = scoreSkillAgainstCorpus(skill, corpus)
+      if (score > 0) scores.set(skill.name, score)
+    }
+  }
+
+  for (const personSkill of input.personSkills) {
+    const skill = firstRelation(personSkill.skill)
+    if (!skill) continue
+
+    increment(supplyCountsBySkill, skill.name, 1)
+    if (typeof personSkill.level === "number") {
+      const levels = levelsBySkill.get(skill.name) ?? []
+      levels.push(personSkill.level)
+      levelsBySkill.set(skill.name, levels)
+    }
+
+    const practiceSlug = resolvePracticeSlug(
+      [
+        input.collaboratorPracticeByPersonId.get(personSkill.person_id),
+        input.collaboratorTitleByPersonId.get(personSkill.person_id),
+      ].filter(Boolean).join(" "),
+      activePractices
+    )
+    if (!practiceSlug) continue
+
+    const score = 7 + (personSkill.level ?? 0)
+    increment(ensureScoreMap(skillScoresByPractice, practiceSlug), skill.name, score)
+  }
+
+  for (const demand of input.opportunitySkillDemand) {
+    const skill = firstRelation(demand.skill)
+    const opportunity = firstRelation(demand.opportunity)
+    if (!skill) continue
+    if (["won", "lost", "abandoned"].includes(opportunity?.stage ?? "")) continue
+
+    const amount = Math.max(1, Math.round(demand.weight || 1))
+    increment(demandCountsBySkill, skill.name, amount)
+
+    const practiceSlug = resolvePracticeSlug(opportunity?.practice, activePractices)
+    if (!practiceSlug) continue
+    increment(ensureScoreMap(skillScoresByPractice, practiceSlug), skill.name, 8 + amount)
+  }
+
+  const skills: SkillNode[] = input.skills
+    .map((skill) => {
+      const levels = levelsBySkill.get(skill.name) ?? []
+      const averageLevel =
+        levels.length > 0
+          ? Math.round((levels.reduce((sum, value) => sum + value, 0) / levels.length) * 10) / 10
+          : null
+
+      return {
+        id: skill.id,
+        name: skill.name,
+        category: normalizeSkillCategory(skill.category),
+        skillDescription: skill.skill_description,
+        aliases: skill.aliases ?? [],
+        supplyCount: supplyCountsBySkill.get(skill.name) ?? 0,
+        demandCount: demandCountsBySkill.get(skill.name) ?? 0,
+        averageLevel,
+      }
+    })
+    .sort((left, right) => left.name.localeCompare(right.name))
+
+  const skillLookup = new Set(skills.map((skill) => skill.name))
+  const practices: PracticeTerritory[] = activePractices.map((practice) => {
+    const scoredSkills = Array.from((skillScoresByPractice.get(practice.slug) ?? new Map()).entries())
+      .filter(([name]) => skillLookup.has(name))
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .map(([name]) => name)
+
+    return {
+      id: practice.id,
+      name: practice.name,
+      slug: practice.slug,
+      description: practice.description ?? "Practice sans description renseignee.",
+      perimeter: practice.perimeter ?? practice.description ?? "Perimetre a completer.",
+      stackTags: practice.stack_tags ?? [],
+      tone: toneBySlug[practice.slug] ?? "neutral",
+      colorHex: practice.color_hex,
+      skillNames: Array.from(new Set(scoredSkills)),
+      offers: (offersByPracticeId.get(practice.id) ?? [])
+        .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
+        .map(mapOffer),
+      profiles: (profilesByPracticeId.get(practice.id) ?? [])
+        .sort((left, right) => left.title.localeCompare(right.title))
+        .map(mapJobProfile),
+      updatedAt: practice.updated_at,
+    }
+  })
+
+  const lastUpdatedAt = activePractices
+    .map((practice) => practice.updated_at)
+    .sort()
+    .at(-1) ?? null
+
+  return { practices, skills, lastUpdatedAt }
+}
+
+export function resolvePracticeSlug(value: string | null | undefined, practices: PracticeTerritory[] | PracticeRow[]): string | null {
+  const normalized = normalize(value)
+  if (!normalized) return null
+
+  for (const practice of practices) {
+    if (normalize(practice.slug) === normalized || normalize(practice.name) === normalized) {
+      return practice.slug
+    }
+
+    const aliases = practiceAliases[practice.slug] ?? []
+    if (aliases.some((alias) => normalized.includes(normalize(alias)))) {
+      return practice.slug
+    }
+  }
+
+  return null
+}
+
+export function normalize(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+}
+
+function normalizeSkillCategory(category: string | null): SkillCategory {
+  const normalized = normalize(category).replace(/[-_]+/g, " ").trim()
+  return categoryAliases[normalized] ?? "autre"
+}
+
+function mapOffer(offer: OfferRow): OfferNode {
+  return {
+    id: offer.id,
+    name: offer.name,
+    slug: offer.slug,
+    shortDescription: offer.short_description,
+    keywords: offer.keywords ?? [],
+    typicalDeliverables: offer.typical_deliverables ?? [],
+    typicalProfiles: offer.typical_profiles ?? [],
+    useCases: offer.use_cases ?? [],
+  }
+}
+
+function mapJobProfile(profile: JobProfileRow): JobProfileNode {
+  return {
+    id: profile.id,
+    title: profile.title,
+    mainMission: profile.main_mission,
+    techStack: profile.tech_stack ?? [],
+    responsibilities: profile.responsibilities ?? [],
+    kpis: profile.kpis ?? [],
+  }
+}
+
+function groupBy<T>(items: T[], getKey: (item: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>()
+  for (const item of items) {
+    const key = getKey(item)
+    const current = groups.get(key) ?? []
+    current.push(item)
+    groups.set(key, current)
+  }
+  return groups
+}
+
+function ensureScoreMap(map: Map<string, Map<string, number>>, slug: string): Map<string, number> {
+  const current = map.get(slug)
+  if (current) return current
+  const next = new Map<string, number>()
+  map.set(slug, next)
+  return next
+}
+
+function increment(map: Map<string, number>, key: string, amount: number) {
+  map.set(key, (map.get(key) ?? 0) + amount)
+}
+
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
+function scoreSkillAgainstCorpus(skill: SkillRow | Pick<SkillRow, "name" | "aliases">, corpus: string): number {
+  const candidates = [skill.name, ...(skill.aliases ?? [])].map(normalize).filter(Boolean)
+  let score = 0
+
+  for (const candidate of candidates) {
+    if (corpus.includes(candidate)) score += candidate.length > 8 ? 6 : 4
+  }
+
+  const tokens = normalize(skill.name)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2 && !weakSkillTokens.has(token))
+
+  for (const token of tokens) {
+    if (corpus.includes(token)) score += 1
+  }
+
+  return score
+}

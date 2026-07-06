@@ -16,10 +16,7 @@ export function PoolCompetencesPracticeRow(props: PoolCompetencesPracticeRowProp
   const { bindPracticeRef, onSelectPractice, practices, selectedSlug } = props
 
   return (
-    <div
-      className="relative z-20 grid gap-4"
-      style={{ gridTemplateColumns: `repeat(${practices.length}, minmax(0, 1fr))` }}
-    >
+    <div className="relative z-20 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {practices.map((practice) => {
         const tone = toneClasses[practice.tone]
         const active = practice.slug === selectedSlug
@@ -32,9 +29,9 @@ export function PoolCompetencesPracticeRow(props: PoolCompetencesPracticeRowProp
             onClick={() => onSelectPractice(practice.slug)}
             aria-pressed={active}
             className={cn(
-              "group relative min-h-[192px] overflow-hidden rounded-[28px] border px-5 py-5 text-left transition-[border-color,background-color,transform] duration-300 focus:outline-none focus:ring-2 focus:ring-primary/35",
+              "group relative min-h-[172px] overflow-hidden rounded-[18px] border px-4 py-4 text-left transition-[border-color,background-color,transform] duration-300 focus:outline-none focus:ring-2 focus:ring-primary/35",
               active
-                ? cn("bg-surface", tone.border)
+                ? cn("bg-surface shadow-sm", tone.border)
                 : "border-border bg-surface/82 hover:border-heading/10 hover:bg-surface"
             )}
           >
@@ -71,20 +68,20 @@ export function PoolCompetencesPracticeRow(props: PoolCompetencesPracticeRowProp
                   {active ? "Active" : "Practice"}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
-                  {practice.skillNames.length} competences
+                  {practice.offers.length} offres
                 </span>
               </span>
 
-              <span className="mt-5 block">
-                <span className="block text-[18px] font-bold leading-[1.15] tracking-tight text-heading">
+              <span className="mt-4 block">
+                <span className="block text-[16px] font-bold leading-[1.15] tracking-tight text-heading">
                   {practice.name}
                 </span>
-                <span className="mt-3 block text-sm leading-5 text-body">
+                <span className="mt-2 line-clamp-3 block text-xs leading-5 text-body">
                   {practice.description}
                 </span>
               </span>
 
-              <span className="mt-5 flex flex-wrap gap-2">
+              <span className="mt-4 flex flex-wrap gap-1.5">
                 {practice.stackTags.slice(0, 3).map((tag) => (
                   <span
                     key={tag}

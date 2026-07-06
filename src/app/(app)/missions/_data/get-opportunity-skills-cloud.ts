@@ -1,9 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { skills as poolSkills } from "@/lib/consultants/pool-competences-data"
-
-const poolSkillsByName = new Map(
-  poolSkills.map((skill) => [normalizeSkillName(skill.name), skill.category]),
-)
 
 type SkillRelation = {
   id: string | null
@@ -142,7 +137,7 @@ export async function getOpportunitySkillsCloud(
     if (!skill?.name) continue
 
     const normalized = normalizeSkillName(skill.name)
-    const fallbackCategory = poolSkillsByName.get(normalized) ?? null
+    const category = typeof skill.category === "string" ? skill.category : null
     const skillId = skill.id ?? normalized
     const current = aggregates.get(skillId)
 
@@ -156,8 +151,8 @@ export async function getOpportunitySkillsCloud(
       if (!current.description && skill.skill_description) {
         current.description = skill.skill_description
       }
-      if (!current.category && (skill.category ?? fallbackCategory)) {
-        current.category = skill.category ?? fallbackCategory
+      if (!current.category && category) {
+        current.category = category
       }
       continue
     }
@@ -166,7 +161,7 @@ export async function getOpportunitySkillsCloud(
       id: skillId,
       name: skill.name,
       description: skill.skill_description,
-      category: skill.category ?? fallbackCategory,
+      category,
       count: 1,
       importanceScore: getImportanceScore(row.importance),
       weightScore: row.weight ?? 0,

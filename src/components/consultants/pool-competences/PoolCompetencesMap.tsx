@@ -12,9 +12,9 @@ import {
 import { ConsultantDrawer } from "@/components/consultants/ConsultantDrawer"
 import { useDrawerState } from "@/hooks/use-drawer-state"
 import type {
+  PoolCompetencesDataset,
   PracticeTerritory,
   SkillCategory,
-  SkillNode,
 } from "@/lib/consultants/pool-competences-data"
 import { cn } from "@/lib/utils"
 import { PoolCompetencesConnections } from "./PoolCompetencesConnections"
@@ -23,6 +23,7 @@ import { PoolCompetencesSkillCardsRow } from "./PoolCompetencesSkillCardsRow"
 import { SkillDescriptionTooltip } from "./SkillDescriptionTooltip"
 import {
   buildPracticeConnections,
+  categoryLabels,
   getActiveMission,
   getCollaboratorName,
   getInitials,
@@ -39,8 +40,7 @@ import type {
 } from "./types"
 
 type PoolCompetencesMapProps = {
-  practices: PracticeTerritory[]
-  skills: readonly SkillNode[]
+  dataset: PoolCompetencesDataset
   collaborators: PracticeCollaborator[]
 }
 
@@ -51,11 +51,18 @@ type SceneLayout = {
   width: number
 }
 
+type MetricItem = {
+  label: string
+  value: number | string
+  detail: string
+  progress: number
+}
+
 export function PoolCompetencesMap({
-  practices,
-  skills,
+  dataset,
   collaborators,
 }: PoolCompetencesMapProps) {
+  const { practices, skills, lastUpdatedAt } = dataset
   const [selectedSlug, setSelectedSlug] = useState(practices[0]?.slug ?? "")
   const { open: drawerOpen, selectedId, openDrawer, setOpen: setDrawerOpen } = useDrawerState()
   const [hoveredCategory, setHoveredCategory] = useState<SkillCategory | null>(null)
@@ -75,25 +82,38 @@ export function PoolCompetencesMap({
 
   const selectedPractice =
     practices.find((practice) => practice.slug === selectedSlug) ?? practices[0]
-  const selectedTone = toneClasses[selectedPractice.tone]
+  const selectedTone = toneClasses[selectedPractice?.tone ?? "neutral"]
   const skillGroups = useMemo(
-    () => groupPracticeSkills(selectedPractice, skills),
+    () => (selectedPractice ? groupPracticeSkills(selectedPractice, skills) : []),
     [selectedPractice, skills]
   )
   const activeCategory = hoveredCategory ?? pinnedCategory
-  const totalSkills = skillGroups.reduce((sum, group) => sum + group.skills.length, 0)
-  const activeCategories = skillGroups.length
-  const activeCoverage = skills.length > 0 ? Math.round((totalSkills / skills.length) * 100) : 0
+  const selectedSkills = skillGroups.flatMap((group) => group.skills)
+  const totalSelectedSkills = selectedSkills.length
+  const suppliedSelectedSkills = selectedSkills.filter((skill) => skill.supplyCount > 0).length
+  const selectedDemandCount = selectedSkills.reduce((sum, skill) => sum + skill.demandCount, 0)
+  const coverageRate =
+    totalSelectedSkills > 0 ? Math.round((suppliedSelectedSkills / totalSelectedSkills) * 100) : 0
 
   const attachedCollaborators = useMemo(
     () =>
-      collaborators
-        .filter((collaborator) => isAttachedToPractice(collaborator, selectedPractice))
-        .sort((a, b) => getCollaboratorName(a).localeCompare(getCollaboratorName(b))),
+      selectedPractice
+        ? collaborators
+            .filter((collaborator) => isAttachedToPractice(collaborator, selectedPractice))
+            .sort((a, b) => getCollaboratorName(a).localeCompare(getCollaboratorName(b)))
+        : [],
     [collaborators, selectedPractice]
   )
 
-  const kpis = [
+  const topSkills = [...selectedSkills]
+    .sort(
+      (left, right) =>
+        right.supplyCount + right.demandCount * 2 - (left.supplyCount + left.demandCount * 2) ||
+        left.name.localeCompare(right.name)
+    )
+    .slice(0, 12)
+
+  const metrics: MetricItem[] = [
     {
       label: "Practices",
       value: practices.length,
@@ -101,25 +121,22 @@ export function PoolCompetencesMap({
       progress: 100,
     },
     {
-      label: "Referentiel",
-      value: skills.length,
-      detail: "competences suivies",
+      label: "Offres",
+      value: practices.reduce((sum, practice) => sum + practice.offers.length, 0),
+      detail: "offres catalogue branchees",
       progress: 100,
     },
     {
-      label: "Practice active",
-      value: totalSkills,
-      detail: `${activeCategories} familles, ${activeCoverage}% du pool`,
-      progress: activeCoverage,
+      label: "Referentiel",
+      value: skills.length,
+      detail: "competences de la base",
+      progress: 100,
     },
     {
-      label: "Rattachement",
-      value: attachedCollaborators.length,
-      detail: "consultants identifies",
-      progress:
-        collaborators.length > 0
-          ? Math.round((attachedCollaborators.length / collaborators.length) * 100)
-          : 0,
+      label: "Couverture active",
+      value: `${coverageRate}%`,
+      detail: `${suppliedSelectedSkills}/${totalSelectedSkills} competences portees`,
+      progress: coverageRate,
     },
   ]
 
@@ -133,7 +150,7 @@ export function PoolCompetencesMap({
 
   useEffect(() => {
     const stage = stageRef.current
-    if (!stage) return
+    if (!stage || !selectedPractice) return
 
     const measure = () => {
       const stageRect = stage.getBoundingClientRect()
@@ -143,7 +160,7 @@ export function PoolCompetencesMap({
       const sourceRect = sourceElement.getBoundingClientRect()
       const source = {
         x: sourceRect.left - stageRect.left + sourceRect.width / 2,
-        y: sourceRect.bottom - stageRect.top + 18,
+        y: sourceRect.bottom - stageRect.top + 14,
       }
 
       const targets = skillGroups
@@ -170,12 +187,9 @@ export function PoolCompetencesMap({
       })
     }
 
-    const observer = new ResizeObserver(() => {
-      measure()
-    })
+    const observer = new ResizeObserver(measure)
 
     observer.observe(stage)
-
     const sourceElement = practiceRefs.current.get(selectedPractice.slug)
     if (sourceElement) observer.observe(sourceElement)
 
@@ -189,7 +203,7 @@ export function PoolCompetencesMap({
       observer.disconnect()
       window.cancelAnimationFrame(frame)
     }
-  }, [selectedPractice.slug, skillGroups])
+  }, [selectedPractice, skillGroups])
 
   const bindPracticeRef = (slug: string): RefCallback<HTMLButtonElement> => {
     return (node) => {
@@ -211,24 +225,40 @@ export function PoolCompetencesMap({
     }
   }
 
+  if (!selectedPractice) {
+    return (
+      <div className="mx-auto w-full max-w-[1480px] px-6 py-6">
+        <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-surface px-5 py-6 text-sm text-muted">
+          Aucune practice active disponible dans la base.
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-6 py-6">
-      <header className="grid gap-4 border-b border-border pb-5 lg:grid-cols-[minmax(220px,0.4fr)_minmax(0,1fr)] lg:items-end">
+    <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6">
+      <header className="grid gap-4 border-b border-border pb-5 xl:grid-cols-[minmax(260px,0.42fr)_minmax(0,1fr)] xl:items-end">
         <div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-            Pool de competences
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
+            Equipe / Pool de competences
+          </p>
+          <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-heading">
+            Catalogue vivant practices, offres et competences
           </h1>
+          <p className="mt-2 text-sm leading-6 text-body">
+            Derniere mise a jour base : {formatDate(lastUpdatedAt)}
+          </p>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((kpi, index) => (
+          {metrics.map((metric, index) => (
             <Metric
-              key={kpi.label}
-              label={kpi.label}
-              value={kpi.value}
-              detail={kpi.detail}
-              progress={kpi.progress}
-              featured={index === 2}
+              key={metric.label}
+              label={metric.label}
+              value={metric.value}
+              detail={metric.detail}
+              progress={metric.progress}
+              featured={index === 3}
               tone={selectedPractice.tone}
             />
           ))}
@@ -237,37 +267,33 @@ export function PoolCompetencesMap({
 
       <main className="flex flex-col gap-5">
         <section className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
-          <div className="relative px-6 py-6">
+          <div className="relative px-4 py-5 sm:px-6">
             <div
-              className="absolute inset-0 opacity-35"
+              className="absolute inset-0 opacity-30"
               style={{
                 backgroundImage:
                   "linear-gradient(to right, var(--color-border) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border) 1px, transparent 1px)",
-                backgroundSize: "54px 54px",
+                backgroundSize: "48px 48px",
               }}
               aria-hidden="true"
             />
 
-            <div
-              className="absolute inset-x-6 top-6 h-64 rounded-[28px] border border-border/50 bg-canvas/28"
-              aria-hidden="true"
-            />
-
-            <div className="relative z-20 mb-5 flex items-end justify-between gap-6">
+            <div className="relative z-20 mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", selectedTone.text)}>
-                  Practices
+                  Navigation modulaire
                 </p>
                 <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
-                  Selection verticale continue
+                  Practices actives depuis Supabase
                 </h2>
               </div>
-              <div className="text-right text-xs text-muted">
-                <p>Une practice active, connexions D3 derivees du conteneur reel, cartes de competences plein axe.</p>
-              </div>
+              <p className="max-w-xl text-xs leading-5 text-muted lg:text-right">
+                Selectionnez une practice pour recalculer les familles de competences, les offres,
+                les profils et le rattachement consultants.
+              </p>
             </div>
 
-            <div ref={stageRef} className="relative min-h-[620px]">
+            <div ref={stageRef} className="relative z-10 min-h-[620px]">
               <PoolCompetencesPracticeRow
                 bindPracticeRef={bindPracticeRef}
                 onSelectPractice={(slug) => {
@@ -281,7 +307,7 @@ export function PoolCompetencesMap({
                 selectedSlug={selectedPractice.slug}
               />
 
-              <div className="pointer-events-none absolute left-1/2 top-[236px] z-10 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full border border-heading/10 bg-heading">
+              <div className="pointer-events-none absolute left-1/2 top-[calc(50%_-_40px)] z-10 hidden h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full border border-heading/10 bg-heading md:flex">
                 <Image
                   src="/logo_app.png"
                   alt="Kredo"
@@ -303,8 +329,8 @@ export function PoolCompetencesMap({
                 width={sceneLayout.width}
               />
 
-              <div className="relative z-10 mt-32">
-                <div className="mb-4 flex items-end justify-between gap-6">
+              <div className="relative z-10 mt-12">
+                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", selectedTone.text)}>
                       Competences
@@ -313,38 +339,39 @@ export function PoolCompetencesMap({
                       {selectedPractice.name}
                     </h3>
                   </div>
-                  <div className="text-right text-xs text-muted">
-                    <p>
-                      {activeCategory
-                        ? "Branche isolee sur la famille survolee ou epinglee."
-                        : "Survolez une carte pour isoler sa branche, cliquez pour la figer."}
-                    </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <StatusPill label={`${selectedPractice.offers.length} offres`} tone={selectedPractice.tone} />
+                    <StatusPill label={`${selectedPractice.profiles.length} profils`} tone={selectedPractice.tone} />
+                    <StatusPill label={`${selectedDemandCount} demandes`} tone={selectedPractice.tone} />
                   </div>
                 </div>
 
-                <PoolCompetencesSkillCardsRow
-                  activeCategory={activeCategory}
-                  bindSkillCardRef={bindSkillCardRef}
-                  groups={skillGroups}
-                  onCategoryFocus={setHoveredCategory}
-                  onTogglePinnedCategory={(category) =>
-                    setPinnedCategory((current) => (current === category ? null : category))
-                  }
-                  onTooltipChange={setTooltipState}
-                  pinnedCategory={pinnedCategory}
-                  reducedMotion={reducedMotion}
-                  selectedTone={selectedPractice.tone}
-                  tooltipState={tooltipState}
-                />
+                {skillGroups.length === 0 ? (
+                  <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
+                    Aucune competence rattachee a cette practice dans les donnees actuelles.
+                  </div>
+                ) : (
+                  <PoolCompetencesSkillCardsRow
+                    activeCategory={activeCategory}
+                    bindSkillCardRef={bindSkillCardRef}
+                    groups={skillGroups}
+                    onCategoryFocus={setHoveredCategory}
+                    onTogglePinnedCategory={(category) =>
+                      setPinnedCategory((current) => (current === category ? null : category))
+                    }
+                    onTooltipChange={setTooltipState}
+                    pinnedCategory={pinnedCategory}
+                    reducedMotion={reducedMotion}
+                    selectedTone={selectedPractice.tone}
+                    tooltipState={tooltipState}
+                  />
+                )}
 
-                <div className="mt-4 flex items-center justify-between gap-3 text-xs">
-                  <p className="truncate text-muted">
+                <div className="mt-4 flex flex-col gap-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-muted">
                     {activeCategory
-                      ? `${skillGroups
-                          .find((group) => group.category === activeCategory)
-                          ?.skills.map((skill) => skill.name)
-                          .join(", ")}`
-                      : "Les pastilles ayant une description sont inspectables au survol et au focus clavier."}
+                      ? `${categoryLabels[activeCategory]} isolee dans la scene.`
+                      : "Survolez une famille pour isoler sa branche, cliquez pour la figer."}
                   </p>
                   <button
                     type="button"
@@ -352,7 +379,7 @@ export function PoolCompetencesMap({
                       setPinnedCategory(null)
                       setHoveredCategory(null)
                     }}
-                    className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted focus:outline-none focus:ring-2 focus:ring-primary/35"
+                    className="w-fit rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted focus:outline-none focus:ring-2 focus:ring-primary/35"
                   >
                     Reinitialiser
                   </button>
@@ -362,103 +389,21 @@ export function PoolCompetencesMap({
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
-          <div className={cn("relative overflow-hidden border-b border-border px-6 py-5", selectedTone.soft)}>
-            {practiceImages[selectedPractice.slug] && (
-              <div
-                className="pointer-events-none absolute inset-0 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(${practiceImages[selectedPractice.slug]})`,
-                  opacity: 0.12,
-                }}
-                aria-hidden="true"
-              />
-            )}
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.45fr)]">
+          <PracticeDetail
+            practice={selectedPractice}
+            topSkills={topSkills}
+          />
+          <CollaboratorPanel
+            collaborators={attachedCollaborators}
+            onOpenCollaborator={openDrawer}
+            practice={selectedPractice}
+          />
+        </section>
 
-            <div className="relative">
-              <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", selectedTone.text)}>
-                Practice active
-              </p>
-              <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
-                {selectedPractice.name}
-              </h2>
-              <p className="mt-2 max-w-[980px] text-sm leading-6 text-body">
-                {selectedPractice.perimeter}
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selectedPractice.stackTags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-body"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="px-6 py-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-heading">
-                  Collaborateurs
-                </h3>
-                <p className="mt-1 text-xs text-muted">
-                  {attachedCollaborators.length} rattaches a cette practice
-                </p>
-              </div>
-              <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", selectedTone.fill)}>
-                {attachedCollaborators.length}
-              </span>
-            </div>
-
-            {attachedCollaborators.length === 0 ? (
-              <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
-                Aucun collaborateur rattache dans les donnees actuelles.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {attachedCollaborators.map((collaborator) => {
-                  const name = getCollaboratorName(collaborator)
-                  const mission = getActiveMission(collaborator)
-
-                  return (
-                    <button
-                      key={collaborator.id}
-                      type="button"
-                      onClick={() => openDrawer(collaborator.id)}
-                      className="kredo-hover-reference flex w-full items-center gap-3 rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/35"
-                    >
-                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", selectedTone.fill)}>
-                        {getInitials(name)}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-heading">
-                          {name}
-                        </span>
-                        <span className="block truncate text-[11px] text-body">
-                          {collaborator.current_title ||
-                            collaborator.seniority ||
-                            collaborator.practice ||
-                            "Profil non renseigne"}
-                        </span>
-                      </span>
-                      <span className="min-w-24 shrink-0 text-right">
-                        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-                          {mission ? "En mission" : "Disponible"}
-                        </span>
-                        <span className="block truncate text-[11px] text-body">
-                          {mission?.company?.name ?? collaborator.practice ?? "-"}
-                        </span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.42fr)]">
+          <OffersPanel practice={selectedPractice} />
+          <ProfilesPanel practice={selectedPractice} />
         </section>
       </main>
 
@@ -473,6 +418,244 @@ export function PoolCompetencesMap({
   )
 }
 
+function PracticeDetail({
+  practice,
+  topSkills,
+}: {
+  practice: PracticeTerritory
+  topSkills: Array<PoolCompetencesDataset["skills"][number]>
+}) {
+  const tone = toneClasses[practice.tone]
+
+  return (
+    <section className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
+      <div className={cn("relative overflow-hidden border-b border-border px-5 py-5", tone.soft)}>
+        {practiceImages[practice.slug] && (
+          <div
+            className="pointer-events-none absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${practiceImages[practice.slug]})`,
+              opacity: 0.12,
+            }}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className="relative">
+          <p className={cn("text-[10px] font-bold uppercase tracking-[0.2em]", tone.text)}>
+            Practice active
+          </p>
+          <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
+            {practice.name}
+          </h2>
+          <p className="mt-2 max-w-[980px] text-sm leading-6 text-body">
+            {practice.perimeter}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {practice.stackTags.slice(0, 14).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-body"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 py-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-heading">
+              Signaux competences
+            </h3>
+            <p className="mt-1 text-xs text-muted">
+              Competences priorisees par couverture consultants et demande opportunites.
+            </p>
+          </div>
+          <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", tone.fill)}>
+            {practice.skillNames.length}
+          </span>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {topSkills.map((skill) => (
+            <div key={skill.id} className="rounded-[var(--radius-medium)] border border-border bg-canvas/45 px-3 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-heading">{skill.name}</p>
+                <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted">
+                  {categoryLabels[skill.category]}
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+                <MiniStat label="Pool" value={skill.supplyCount} />
+                <MiniStat label="Demande" value={skill.demandCount} />
+                <MiniStat label="Niv." value={skill.averageLevel ?? "-"} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CollaboratorPanel({
+  collaborators,
+  onOpenCollaborator,
+  practice,
+}: {
+  collaborators: PracticeCollaborator[]
+  onOpenCollaborator: (id: string) => void
+  practice: PracticeTerritory
+}) {
+  const tone = toneClasses[practice.tone]
+
+  return (
+    <section className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface">
+      <div className="border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-heading">
+              Collaborateurs rattaches
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Rattachement calcule depuis la practice et le titre courant.
+            </p>
+          </div>
+          <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", tone.fill)}>
+            {collaborators.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="max-h-[520px] overflow-y-auto px-5 py-4">
+        {collaborators.length === 0 ? (
+          <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
+            Aucun collaborateur rattache dans les donnees actuelles.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {collaborators.map((collaborator) => {
+              const name = getCollaboratorName(collaborator)
+              const mission = getActiveMission(collaborator)
+
+              return (
+                <button
+                  key={collaborator.id}
+                  type="button"
+                  onClick={() => onOpenCollaborator(collaborator.id)}
+                  className="kredo-hover-reference flex w-full items-center gap-3 rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/35"
+                >
+                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", tone.fill)}>
+                    {getInitials(name)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-heading">
+                      {name}
+                    </span>
+                    <span className="block truncate text-[11px] text-body">
+                      {collaborator.current_title ||
+                        collaborator.seniority ||
+                        collaborator.practice ||
+                        "Profil non renseigne"}
+                    </span>
+                  </span>
+                  <span className="min-w-24 shrink-0 text-right">
+                    <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                      {mission ? "En mission" : "Disponible"}
+                    </span>
+                    <span className="block truncate text-[11px] text-body">
+                      {mission?.company?.name ?? collaborator.practice ?? "-"}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function OffersPanel({ practice }: { practice: PracticeTerritory }) {
+  const tone = toneClasses[practice.tone]
+
+  return (
+    <section className="rounded-[var(--radius-medium)] border border-border bg-surface px-5 py-5">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className={cn("text-[10px] font-bold uppercase tracking-[0.18em]", tone.text)}>
+            Offres
+          </p>
+          <h2 className="mt-2 font-heading text-xl font-bold tracking-tight text-heading">
+            Catalogue actif
+          </h2>
+        </div>
+        <span className="text-xs text-muted">{practice.offers.length} offres rattachees</span>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        {practice.offers.map((offer) => (
+          <article key={offer.id} className="rounded-[var(--radius-medium)] border border-border bg-canvas/45 px-4 py-4">
+            <h3 className="text-sm font-bold leading-5 text-heading">{offer.name}</h3>
+            <p className="mt-2 text-xs leading-5 text-body">
+              {offer.shortDescription ?? "Description courte a completer."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {offer.typicalProfiles.slice(0, 3).map((profile) => (
+                <span key={profile} className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
+                  {profile}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ProfilesPanel({ practice }: { practice: PracticeTerritory }) {
+  return (
+    <section className="rounded-[var(--radius-medium)] border border-border bg-surface px-5 py-5">
+      <div className="mb-4">
+        <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-heading">
+          Profils reperes
+        </h2>
+        <p className="mt-1 text-xs text-muted">
+          Roles et stacks issus de `job_profiles`.
+        </p>
+      </div>
+
+      {practice.profiles.length === 0 ? (
+        <div className="rounded-[var(--radius-medium)] border border-dashed border-border bg-canvas/45 px-4 py-5 text-sm text-muted">
+          Aucun profil type actif pour cette practice.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {practice.profiles.slice(0, 6).map((profile) => (
+            <article key={profile.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+              <h3 className="text-sm font-bold text-heading">{profile.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-body">{profile.mainMission}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {profile.techStack.slice(0, 5).map((tag) => (
+                  <span key={tag} className="rounded-full bg-canvas px-2 py-0.5 text-[10px] font-semibold text-muted">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function Metric({
   label,
   value,
@@ -482,7 +665,7 @@ function Metric({
   tone,
 }: {
   label: string
-  value: number
+  value: number | string
   detail: string
   progress: number
   featured?: boolean
@@ -493,7 +676,7 @@ function Metric({
   return (
     <div
       className={cn(
-        "kredo-hover-reference group relative min-h-28 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-4 py-3.5",
+        "kredo-hover-reference group relative min-h-24 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-4 py-3.5",
         featured ? cn("border-primary/35", toneStyle.soft) : "border-border"
       )}
     >
@@ -509,11 +692,11 @@ function Metric({
           aria-hidden="true"
         />
       </div>
-      <p className="mt-3 font-heading text-3xl font-bold leading-none tracking-tight text-heading">
+      <p className="mt-3 font-heading text-2xl font-bold leading-none tracking-tight text-heading">
         {value}
       </p>
       <p className="mt-2 min-h-8 text-xs leading-4 text-body">{detail}</p>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/70">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border/70">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-500",
@@ -524,4 +707,35 @@ function Metric({
       </div>
     </div>
   )
+}
+
+function StatusPill({ label, tone }: { label: string; tone: PracticeTerritory["tone"] }) {
+  return (
+    <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]", toneClasses[tone].fill)}>
+      {label}
+    </span>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-md bg-surface px-2 py-1">
+      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="mt-0.5 font-heading text-sm font-bold text-heading">{value}</p>
+    </div>
+  )
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "non renseignee"
+
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(value))
+  } catch {
+    return value
+  }
 }

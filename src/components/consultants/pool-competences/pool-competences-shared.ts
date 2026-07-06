@@ -5,6 +5,7 @@ import type {
   SkillCategory,
   SkillNode,
 } from "@/lib/consultants/pool-competences-data"
+import { resolvePracticeSlug } from "@/lib/consultants/pool-competences-data"
 import type { PracticeCollaborator, SceneConnection, SceneSource } from "./types"
 
 export type SkillGroup = {
@@ -96,17 +97,57 @@ export const toneClasses: Record<
     // white on orange bg
     iconFilterFocused: "brightness(0) invert(1)",
   },
+  info: {
+    fill: "bg-info text-primary-fg",
+    border: "border-info/30",
+    text: "text-info",
+    soft: "bg-info/10",
+    line: "border-info/30",
+    svgFill: "fill-info/10",
+    svgStroke: "stroke-info/35",
+    iconFilter: "brightness(0) saturate(100%) invert(38%) sepia(41%) saturate(653%) hue-rotate(143deg) brightness(88%) contrast(90%)",
+    iconFilterFocused: "brightness(0) invert(1)",
+  },
+  idea: {
+    fill: "bg-cat-idea text-cat-idea-fg",
+    border: "border-cat-idea/30",
+    text: "text-cat-idea",
+    soft: "bg-cat-idea/10",
+    line: "border-cat-idea/30",
+    svgFill: "fill-cat-idea/10",
+    svgStroke: "stroke-cat-idea/35",
+    iconFilter: "brightness(0) saturate(100%) invert(23%) sepia(77%) saturate(1973%) hue-rotate(276deg) brightness(89%) contrast(90%)",
+    iconFilterFocused: "brightness(0) invert(1)",
+  },
+  neutral: {
+    fill: "bg-status-neutral text-primary-fg",
+    border: "border-status-neutral/30",
+    text: "text-status-neutral",
+    soft: "bg-status-neutral/10",
+    line: "border-status-neutral/30",
+    svgFill: "fill-status-neutral/10",
+    svgStroke: "stroke-status-neutral/35",
+    iconFilter: "brightness(0) saturate(100%) invert(46%) sepia(10%) saturate(549%) hue-rotate(175deg) brightness(94%) contrast(83%)",
+    iconFilterFocused: "brightness(0) invert(1)",
+  },
 }
 
 export const practiceImages: Record<string, string> = {
   "data-ia": "/images/practices/data-ia.jpg",
+  "data-ai": "/images/practices/data-ia.jpg",
   "digital-cloud": "/images/practices/digital-cloud.jpg",
+  "cloud-engineering": "/images/practices/digital-cloud.jpg",
+  "digital-business-solutions": "/images/practices/digital-cloud.jpg",
+  "digital-experience": "/images/practices/agile-pm.jpg",
   "agile-pm": "/images/practices/agile-pm.jpg",
+  "project-agile-delivery": "/images/practices/agile-pm.jpg",
   cybersecurity: "/images/practices/cybersecurity.jpg",
   "qa-testing": "/images/practices/qa-testing.jpg",
+  "quality-engineering-testing": "/images/practices/qa-testing.jpg",
 }
 
 export const categoryLabels: Record<SkillCategory, string> = {
+  certification: "Certifications",
   cloud: "Cloud",
   data: "Data",
   devops: "DevOps",
@@ -114,10 +155,13 @@ export const categoryLabels: Record<SkillCategory, string> = {
   framework: "Frameworks",
   langage: "Langages",
   methode: "Methodes",
+  secteur: "Secteurs",
   soft_skill: "Soft skills",
+  autre: "Autres",
 }
 
 export const categoryGlyphs: Record<SkillCategory, string> = {
+  certification: "CE",
   cloud: "CL",
   data: "DA",
   devops: "DO",
@@ -125,7 +169,9 @@ export const categoryGlyphs: Record<SkillCategory, string> = {
   framework: "FW",
   langage: "LG",
   methode: "MT",
+  secteur: "SE",
   soft_skill: "SS",
+  autre: "AU",
 }
 
 export const categoryIcons: Partial<Record<SkillCategory, string>> = {
@@ -147,16 +193,11 @@ const categoryOrder: SkillCategory[] = [
   "devops",
   "fonctionnel",
   "methode",
+  "certification",
+  "secteur",
   "soft_skill",
+  "autre",
 ]
-
-const practiceMatchers: Record<string, string[]> = {
-  "data-ia": ["data", "ai", "ia", "intelligence", "artificial", "machine"],
-  "digital-cloud": ["digital", "cloud", "engineering", "full-stack", "frontend", "backend"],
-  "agile-pm": ["agile", "product", "owner", "pm", "design", "ux"],
-  cybersecurity: ["cyber", "security", "secops", "securite", "sécurité"],
-  "qa-testing": ["qa", "test", "testing", "quality", "qualite", "qualité"],
-}
 
 const verticalLink = linkVertical<TreeLinkDatum, [number, number]>()
   .x((point) => point[0])
@@ -220,7 +261,6 @@ export function isAttachedToPractice(
   collaborator: PracticeCollaborator,
   practice: PracticeTerritory
 ): boolean {
-  const terms = practiceMatchers[practice.slug] ?? [practice.slug]
   const haystack = normalize(
     [
       collaborator.practice,
@@ -232,7 +272,7 @@ export function isAttachedToPractice(
       .join(" ")
   )
 
-  return terms.some((term) => haystack.includes(normalize(term)))
+  return resolvePracticeSlug(haystack, [practice]) === practice.slug
 }
 
 export function buildPracticeConnections(
