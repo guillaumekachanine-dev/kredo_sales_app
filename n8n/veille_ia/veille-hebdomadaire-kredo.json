@@ -1,0 +1,686 @@
+{
+  "name": "KREDO — Veille Hebdomadaire IA & Marché",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "lundi_6h_europe_paris",
+      "name": "Lundi 6h Europe Paris",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/sector_intelligence",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "name"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "recuperer_secteurs_actifs",
+      "name": "Récupérer Secteurs Actifs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        250,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst secteurs = items.map(i => i.json.name).filter(Boolean);\nconst secteursActifs = secteurs.length ? secteurs.join(', ') : 'transverse';\n\nconst blocContexteKredo = `# CONTEXTE — Veille commerciale KREDO\n\nTu opères au sein de KREDO, une plateforme de CRM et d'intelligence commerciale\ndestinée aux fonctions commerciales d'une ESN (Entreprise de Services du Numérique).\n\n## Ton lecteur\nUn commercial / avant-vente d'ESN, profil \"pont commerce-technique\" : il n'est pas\ningénieur, mais il doit paraître crédible et pertinent face à un DSI ou un décideur\nmétier. Il vend des prestations intellectuelles (conseil, intégration, IA, data).\nIl n'a PAS besoin d'actualité pour dirigeants d'ESN (M&A, book-to-bill, salaires).\nIl a besoin de MUNITIONS COMMERCIALES.\n\n## Ses cibles (ICP)\nDSI et décideurs métiers d'ETI et de grands comptes, sur les secteurs actuellement\ncouverts par KREDO : ${secteursActifs}.\n\n## La question à laquelle toute ton analyse doit répondre\n\"En quoi cette information donne-t-elle à un commercial d'ESN une RAISON D'AGIR :\nun angle d'ouverture, un déclencheur de prise de contact, un argument de crédibilité,\nou une preuve de ROI qu'il peut réutiliser dans un pitch ?\"\n\n## Est PERTINENT\n- Un cas d'usage IA concret en entreprise, avec impact business chiffrable.\n- Une tendance qui va faire réagir un DSI (agents IA, souveraineté, coûts, sécurité).\n- Une évolution réglementaire qui crée un besoin de service (audit, mise en conformité).\n- Un signal touchant un des secteurs de ${secteursActifs} (acteur, tendance, chiffre).\n- Une annonce d'un grand acteur (OpenAI, Anthropic, Mistral...) que le prospect aura vue.\n\n## N'est PAS pertinent (à écarter ou noter faible)\n- La recherche académique pure, les détails techniques sans traduction business.\n- Le buzz sans substance, les listes d'outils, les annonces produit mineures.\n- L'actualité \"dirigeant d'ESN\" (fusions, valorisations, politique salariale).\n- Ce qui ne se transforme en AUCUN angle commercial exploitable.\n\n## Posture éditoriale\nReste factuel et neutre. Ne prends pas parti dans les rivalités entre acteurs\n(fournisseurs, éditeurs, modèles). Une veille commerciale crédible informe, elle ne\nmilite pas. N'invente aucun chiffre ni citation : si une information n'est pas dans\nle contenu fourni, ne l'ajoute pas.`;\n\nreturn [{\n  json: {\n    secteursActifs,\n    blocContexteKredo,\n    workspaceId: '98dcd39d-f87b-4f9d-add9-ce76d635953a',\n    digestDate: new Date().toISOString().slice(0, 10),\n  }\n}];"
+      },
+      "id": "build_contexte_kredo",
+      "name": "Build Contexte KREDO",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const sources = [\n  // --- Marché IT / ESN France ---\n  { name: 'LeMagIT', rssUrl: 'https://www.lemagit.fr/rss', homepage: 'https://www.lemagit.fr', secteurDefaut: 'transverse', categorieDefaut: 'marche-esn', confiance: 'verifie' },\n  { name: 'ChannelNews', rssUrl: 'https://www.channelnews.fr/feed/', homepage: 'https://www.channelnews.fr', secteurDefaut: 'transverse', categorieDefaut: 'marche-esn', confiance: 'tres_probable' },\n  { name: \"L'Usine Digitale\", rssUrl: 'https://www.usine-digitale.fr/arc/outboundfeeds/rss/', homepage: 'https://www.usine-digitale.fr', secteurDefaut: 'transverse', categorieDefaut: 'vertical', confiance: 'verifie' },\n\n  // --- IA appliquée / ROI entreprise ---\n  { name: 'The Batch (DeepLearning.AI)', rssUrl: 'https://www.deeplearning.ai/the-batch/feed/', homepage: 'https://www.deeplearning.ai/the-batch/', secteurDefaut: 'transverse', categorieDefaut: 'ia-appliquee', confiance: 'verifie' },\n  { name: 'One Useful Thing', rssUrl: 'https://www.oneusefulthing.org/feed', homepage: 'https://www.oneusefulthing.org/', secteurDefaut: 'transverse', categorieDefaut: 'ia-appliquee', confiance: 'verifie' },\n  { name: 'VentureBeat AI', rssUrl: 'https://venturebeat.com/category/ai/feed/', homepage: 'https://venturebeat.com/ai/', secteurDefaut: 'transverse', categorieDefaut: 'ia-appliquee', confiance: 'verifie' },\n\n  // --- Frontier & acteurs IA ---\n  { name: 'Anthropic News', rssUrl: 'https://www.anthropic.com/news/rss.xml', homepage: 'https://www.anthropic.com/news', secteurDefaut: 'transverse', categorieDefaut: 'frontier', confiance: 'verifie' },\n  { name: 'OpenAI News', rssUrl: 'https://openai.com/news/rss.xml', homepage: 'https://openai.com/news/', secteurDefaut: 'transverse', categorieDefaut: 'frontier', confiance: 'verifie' },\n  { name: 'The Neuron', rssUrl: 'https://www.theneurondaily.com/rss.xml', homepage: 'https://www.theneurondaily.com/', secteurDefaut: 'transverse', categorieDefaut: 'frontier', confiance: 'verifie' },\n\n  // --- Stratégie & marché ---\n  { name: 'a16z', rssUrl: 'https://a16z.com/feed', homepage: 'https://a16z.com', secteurDefaut: 'transverse', categorieDefaut: 'strategie', confiance: 'verifie' },\n  { name: 'Journal du Net — IA', rssUrl: 'https://www.journaldunet.com/intelligence-artificielle/rss/', homepage: 'https://www.journaldunet.com/intelligence-artificielle/', secteurDefaut: 'transverse', categorieDefaut: 'strategie', confiance: 'verifie' },\n\n  // --- Réglementaire & souveraineté ---\n  { name: 'ActuIA', rssUrl: 'https://www.actuia.com/feed/', homepage: 'https://www.actuia.com', secteurDefaut: 'transverse', categorieDefaut: 'reglementaire', confiance: 'verifie' },\n\n  // --- Verticaux modulaires : à faire évoluer selon les secteurs KREDO actifs ---\n  { name: 'Finextra', rssUrl: 'https://www.finextra.com/rss/headlines.aspx', homepage: 'https://www.finextra.com', secteurDefaut: 'banque-finance', categorieDefaut: 'vertical', confiance: 'a_tester' },\n  { name: 'Premium Beauty News', rssUrl: 'https://www.premiumbeautynews.com/fr/rss.xml', homepage: 'https://www.premiumbeautynews.com', secteurDefaut: 'parfumerie', categorieDefaut: 'vertical', confiance: 'a_tester' },\n];\n\nreturn [{ json: { sources } }];"
+      },
+      "id": "config_sources_kredo",
+      "name": "Config Sources KREDO",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const sources = $input.first().json.sources;\nreturn sources.map(s => ({ json: s }));"
+      },
+      "id": "explode_sources",
+      "name": "Explode Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop_over_items_-_1_source",
+      "name": "Loop Over Items — 1 Source",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.rssUrl }}",
+        "options": {
+          "ignoreSSL": true
+        }
+      },
+      "id": "lire_flux_rss",
+      "name": "Lire Flux RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        750,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const source = $('Loop Over Items — 1 Source').item.json;\n\nreturn {\n  json: {\n    title: $json.title || '',\n    link: $json.link || '',\n    pubDate: $json.pubDate || $json.isoDate || null,\n    contentSnippet: $json.contentSnippet || $json.content || '',\n    sourceName: source.name,\n    sourceHomepage: source.homepage,\n    secteurDefaut: source.secteurDefaut,\n    categorieDefaut: source.categorieDefaut,\n  }\n};"
+      },
+      "id": "enrichir_avec_metadonnees_source",
+      "name": "Enrichir avec Métadonnées Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_articles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "url_hash"
+            },
+            {
+              "name": "created_at",
+              "value": "=gte.{{ $now.minus({ days: 21 }).toISO() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "recuperer_hash_articles_vus",
+      "name": "Récupérer Hash Articles Vus",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const seenRows = $('Récupérer Hash Articles Vus').all().map(i => i.json);\nconst seenHashes = new Set(seenRows.map(r => r.url_hash));\n\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst candidates = $input.all().map(i => i.json);\n\nfunction simpleHash(str) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return String(hash);\n}\n\nconst filtered = candidates\n  .filter(a => a.link)\n  .map(a => ({ ...a, urlHash: simpleHash(a.link) }))\n  .filter(a => !seenHashes.has(a.urlHash))\n  .filter(a => {\n    if (!a.pubDate) return true; // pas de date fiable : on laisse le classement IA trancher\n    const d = new Date(a.pubDate);\n    return !isNaN(d) && d >= sevenDaysAgo;\n  })\n  .filter(a => (a.title || '').length > 10);\n\n// Cap à 40 candidats pour maîtriser le coût du classement (Étape B, modèle Haiku)\nconst capped = filtered.slice(0, 40);\n\nreturn capped.map((a, idx) => ({\n  json: {\n    id: `art_${idx}`,\n    title: a.title,\n    source: a.sourceName,\n    url: a.link,\n    urlHash: a.urlHash,\n    publishedAt: a.pubDate,\n    summary: (a.contentSnippet || '').slice(0, 600),\n    secteurDefaut: a.secteurDefaut,\n    categorieDefaut: a.categorieDefaut,\n  }\n}));"
+      },
+      "id": "dedup_+_filtre_recence_+_prefiltre_qualite",
+      "name": "Dédup + Filtre Récence + Préfiltre Qualité",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst blocContexteKredo = $('Build Contexte KREDO').first().json.blocContexteKredo;\nconst secteursActifs = $('Build Contexte KREDO').first().json.secteursActifs;\nconst dateRun = new Date().toISOString().slice(0, 10);\n\nconst articlesBlock = items.map(a =>\n  `id: ${a.id}\\ntitre: ${a.title}\\nsource: ${a.source}\\ndate: ${a.publishedAt || 'inconnue'}\\nchapo: ${a.summary}`\n).join('\\n\\n---\\n\\n');\n\nconst promptClassement = `${blocContexteKredo}\n\n# TÂCHE\nVoici une liste d'articles candidats de la semaine. Évalue CHACUN selon la grille\nci-dessous, puis renvoie UNIQUEMENT les 5 meilleurs, classés par score décroissant.\n\n# FILTRE PRÉALABLE OBLIGATOIRE\nDate de référence : ${dateRun}.\nÉcarte immédiatement, avant tout scoring, tout article publié il y a plus de 7 jours.\nLa veille est HEBDOMADAIRE : un article ancien n'a pas sa place, même s'il est bon.\n\n# GRILLE DE SCORING (0 à 100)\n- Actionnabilité commerciale (0-40) : l'article fournit-il un angle, un déclencheur\n  ou un argument qu'un commercial peut réellement utiliser ? (le critère roi)\n- Pertinence pour le lecteur ESN (0-25) : parle-t-il d'IA appliquée, de tendance\n  décideur, de réglementation créatrice de besoin ?\n- Alignement secteur KREDO (0-20) : touche-t-il un secteur de ${secteursActifs} ?\n  (0 si transverse, mais un article transverse fort reste éligible)\n- Crédibilité & fraîcheur (0-15) : source fiable, information récente et non éculée.\n- PÉNALITÉS : retire des points pour buzz creux, technique non traduit, doublon\n  thématique évident, contenu promotionnel.\n\n# CONTRAINTE DE DIVERSITÉ\nÀ pertinence comparable, privilégie la diversité des catégories et des secteurs dans\nle top 5. Évite de retenir 5 articles de la même catégorie ou du même acteur.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, sans texte\navant ou après, structure exacte :\n{\"top5\":[{\"id\":\"art_0\",\"score\":87,\"categorie\":\"ia-appliquee\",\"secteur_principal\":\"banque-finance\",\"secteur_secondaire\":\"\",\"justification\":\"...\"}]}\n\n# ARTICLES CANDIDATS\n${articlesBlock}`;\n\nreturn [{\n  json: {\n    promptClassement,\n    candidatesById: Object.fromEntries(items.map(a => [a.id, a])),\n  }\n}];"
+      },
+      "id": "construire_prompt_classement",
+      "name": "Construire Prompt Classement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"claude-haiku-4-5-20251001\", max_tokens: 1500, messages: [ { role: \"user\", content: $json.promptClassement } ] } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "appel_claude_haiku_-_classement",
+      "name": "Appel Claude Haiku — Classement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1750,
+        0
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response = $input.first().json;\nconst rawText = response.content?.[0]?.text || '';\nconst candidatesById = $('Construire Prompt Classement').first().json.candidatesById;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(extractJson(rawText));\n} catch (e) {\n  throw new Error('Le classement Haiku n a pas renvoye un JSON exploitable : ' + rawText.slice(0, 300));\n}\n\nconst top5 = (parsed.top5 || []).slice(0, 5).map(t => {\n  const candidate = candidatesById[t.id];\n  if (!candidate) return null;\n  return {\n    ...candidate,\n    score: t.score,\n    categorie: t.categorie || candidate.categorieDefaut,\n    secteurPrincipal: t.secteur_principal || candidate.secteurDefaut,\n    secteurSecondaire: t.secteur_secondaire || '',\n    justification: t.justification || '',\n  };\n}).filter(Boolean);\n\nif (top5.length === 0) {\n  throw new Error('Aucun article valide dans le top 5 retourne par le classement.');\n}\n\nreturn top5.map(a => ({ json: a }));"
+      },
+      "id": "parser_top_5",
+      "name": "Parser Top 5",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst blocContexteKredo = $('Build Contexte KREDO').first().json.blocContexteKredo;\n\nconst articlesBlock = items.map((a, idx) =>\n  `Article ${idx + 1}\\nTitre: ${a.title}\\nSource: ${a.source}\\nURL: ${a.url}\\nPublié: ${a.publishedAt || 'inconnue'}\\nContenu: ${String(a.summary || '').slice(0, 1500)}`\n).join('\\n\\n---\\n\\n');\n\nconst promptAnalyse = `${blocContexteKredo}\n\n# TÂCHE\nPour chacun des ${items.length} articles ci-dessous, produis une fiche exploitable\npar un commercial d'ESN. Base-toi UNIQUEMENT sur le contenu fourni. Si un élément\n(chiffre, angle) n'est pas dans le texte, ne l'invente pas : reste factuel.\n\n# POUR CHAQUE ARTICLE, produis :\nselection_rank, titre_fr, resume (2-3 phrases factuelles), analyse_kredo (3-4\nphrases : LE POURQUOI pour un commercial d'ESN), action_commerciale (suggestion\nconcrète et ciblée, jamais une généralité), secteur_principal, secteur_secondaire\n(chaîne vide si aucun), categorie, tags (2 à 4 mots-clés).\n\n# PUIS, au niveau de la semaine, produis :\ntitre_digest, resume_hebdo (3-4 phrases donnant le fil rouge de la semaine),\nsuper_short_summary (4 à 10 mots, sans ponctuation finale).\n\n# CONTRAINTES\n- Français, ton professionnel et direct, zéro remplissage.\n- action_commerciale toujours concret. Interdiction de phrases creuses.\n- Reste neutre : ne prends pas parti dans les rivalités entre acteurs.\n\n# FORMAT DE SORTIE\nRéponds UNIQUEMENT avec un JSON valide, une seule ligne, sans backticks, structure :\n{\"titre_digest\":\"...\",\"resume_hebdo\":\"...\",\"super_short_summary\":\"...\",\"articles\":[{\"selection_rank\":1,\"titre_fr\":\"...\",\"resume\":\"...\",\"analyse_kredo\":\"...\",\"action_commerciale\":\"...\",\"secteur_principal\":\"...\",\"secteur_secondaire\":\"\",\"categorie\":\"...\",\"tags\":[\"...\"]}]}\n\n# ARTICLES\n${articlesBlock}`;\n\nreturn [{ json: { promptAnalyse, sourceArticles: items } }];"
+      },
+      "id": "construire_prompt_analyse",
+      "name": "Construire Prompt Analyse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: \"claude-sonnet-5\", max_tokens: 2500, messages: [ { role: \"user\", content: $json.promptAnalyse } ] } }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "appel_claude_sonnet_-_analyse",
+      "name": "Appel Claude Sonnet — Analyse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2500,
+        0
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response = $input.first().json;\nconst rawText = response.content?.[0]?.text || '';\nconst sourceArticles = $('Construire Prompt Analyse').first().json.sourceArticles;\n\nfunction extractJson(text) {\n  const fenced = text.match(/^```(?:json)?\\s*([\\s\\S]*?)\\s*```$/i);\n  if (fenced) return fenced[1].trim();\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) return text.slice(first, last + 1);\n  return text;\n}\n\nfunction repair(text) {\n  return text\n    .replace(/[“”]/g, '\"')\n    .replace(/[‘’]/g, \"'\")\n    .replace(/,\\s*([}\\]])/g, '$1');\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(repair(extractJson(rawText)));\n} catch (e) {\n  throw new Error('L analyse Sonnet n a pas renvoye un JSON exploitable : ' + rawText.slice(0, 300));\n}\n\nconst articles = (parsed.articles || []).map((a, idx) => {\n  const src = sourceArticles[idx] || {};\n  return {\n    selectionRank: a.selection_rank || idx + 1,\n    titreFr: a.titre_fr,\n    resume: a.resume,\n    analyseKredo: a.analyse_kredo,\n    actionCommerciale: a.action_commerciale,\n    secteurPrincipal: a.secteur_principal || src.secteurPrincipal || 'transverse',\n    secteurSecondaire: a.secteur_secondaire || '',\n    categorie: a.categorie || src.categorie,\n    tags: a.tags || [],\n    url: src.url,\n    urlHash: src.urlHash,\n    sourceName: src.source,\n    publishedAt: src.publishedAt || null,\n  };\n});\n\nreturn [{\n  json: {\n    titreDigest: parsed.titre_digest,\n    resumeHebdo: parsed.resume_hebdo,\n    superShortSummary: parsed.super_short_summary,\n    articles,\n  }\n}];"
+      },
+      "id": "parser_digest_final",
+      "name": "Parser Digest Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2750,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_digests",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { workspace_id: '98dcd39d-f87b-4f9d-add9-ce76d635953a', digest_date: $('Build Contexte KREDO').first().json.digestDate, titre_digest: $json.titreDigest, resume_hebdo: $json.resumeHebdo, super_short_summary: $json.superShortSummary, model_classement: 'claude-haiku-4-5-20251001', model_analyse: 'claude-sonnet-5', nb_candidats_evalues: $('Dédup + Filtre Récence + Préfiltre Qualité').all().length, nb_sources_actives: $('Config Sources KREDO').first().json.sources.length } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "creer_digest",
+      "name": "Créer Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const digest = $('Parser Digest Final').first().json;\nconst digestRow = $('Créer Digest').first().json;\nconst workspaceId = '98dcd39d-f87b-4f9d-add9-ce76d635953a';\n\nreturn digest.articles.map(a => ({\n  json: {\n    digest_id: digestRow.id,\n    workspace_id: workspaceId,\n    selection_rank: a.selectionRank,\n    titre_fr: a.titreFr,\n    source_name: a.sourceName,\n    url: a.url,\n    url_hash: a.urlHash,\n    published_at: a.publishedAt,\n    resume: a.resume,\n    analyse_kredo: a.analyseKredo,\n    action_commerciale: a.actionCommerciale,\n    secteur_principal: a.secteurPrincipal,\n    secteur_secondaire: a.secteurSecondaire,\n    categorie: a.categorie,\n    tags: a.tags,\n  }\n}));"
+      },
+      "id": "preparer_lignes_articles",
+      "name": "Préparer Lignes Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3250,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_articles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "creer_articles",
+      "name": "Créer Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3500,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "Supabase account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const source = $('Loop Over Items — 1 Source').item.json;\nconst err = $input.first().json.error || $input.first().json;\n\nconsole.log(`[Veille KREDO] Flux RSS en erreur, source ignorée : ${source.name} (${source.rssUrl}) — ${JSON.stringify(err).slice(0, 300)}`);\n\n// IMPORTANT : ne jamais retourner un tableau vide ici. n8n arrête l'exécution\n// du workflow entier quand un nœud ne produit aucun item en sortie (sauf à\n// activer 'Always Output Data' dans les Settings du nœud). On retourne donc\n// un item factice pour que la boucle B3 reçoive un signal et continue vers\n// la source suivante.\nreturn [{ json: { skipped: true, sourceName: source.name, sourceUrl: source.rssUrl } }];"
+      },
+      "id": "ignorer_source_en_erreur",
+      "name": "Ignorer Source En Erreur",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Lundi 6h Europe Paris": {
+      "main": [
+        [
+          {
+            "node": "Récupérer Secteurs Actifs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer Secteurs Actifs": {
+      "main": [
+        [
+          {
+            "node": "Build Contexte KREDO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Contexte KREDO": {
+      "main": [
+        [
+          {
+            "node": "Config Sources KREDO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config Sources KREDO": {
+      "main": [
+        [
+          {
+            "node": "Explode Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Sources": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items — 1 Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items — 1 Source": {
+      "main": [
+        [
+          {
+            "node": "Récupérer Hash Articles Vus",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Dédup + Filtre Récence + Préfiltre Qualité",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lire Flux RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lire Flux RSS": {
+      "main": [
+        [
+          {
+            "node": "Enrichir avec Métadonnées Source",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorer Source En Erreur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichir avec Métadonnées Source": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items — 1 Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer Hash Articles Vus": {
+      "main": []
+    },
+    "Dédup + Filtre Récence + Préfiltre Qualité": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Classement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Classement": {
+      "main": [
+        [
+          {
+            "node": "Appel Claude Haiku — Classement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appel Claude Haiku — Classement": {
+      "main": [
+        [
+          {
+            "node": "Parser Top 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Top 5": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Analyse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Analyse": {
+      "main": [
+        [
+          {
+            "node": "Appel Claude Sonnet — Analyse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appel Claude Sonnet — Analyse": {
+      "main": [
+        [
+          {
+            "node": "Parser Digest Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Digest Final": {
+      "main": [
+        [
+          {
+            "node": "Créer Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer Digest": {
+      "main": [
+        [
+          {
+            "node": "Préparer Lignes Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer Lignes Articles": {
+      "main": [
+        [
+          {
+            "node": "Créer Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignorer Source En Erreur": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items — 1 Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  }
+}

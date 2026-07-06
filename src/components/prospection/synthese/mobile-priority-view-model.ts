@@ -152,7 +152,7 @@ function computeDataConfidence(
   const reasons: string[] = []
   const periodMetrics = getPortfolioPeriodMetrics(account, period)
 
-  if (account.aiScore === null) {
+  if (account.legacyFolioScore === null) {
     reasons.push("Score de potentiel calculé par proxy")
   }
 
@@ -171,9 +171,9 @@ function computeDataConfidence(
   const isPartial = reasons.length > 0
 
   let level: DataConfidence["level"]
-  if (account.aiScore !== null && account.contactCount > 0 && periodMetrics.activityCount > 0) {
+  if (account.legacyFolioScore !== null && account.contactCount > 0 && periodMetrics.activityCount > 0) {
     level = "high"
-  } else if (account.aiScore !== null || account.contactCount > 0) {
+  } else if (account.legacyFolioScore !== null || account.contactCount > 0) {
     level = "medium"
   } else {
     level = "low"

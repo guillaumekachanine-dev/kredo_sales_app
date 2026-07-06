@@ -28,7 +28,7 @@ export type ProspectionPortfolioAccount = {
   sectorId: string | null
   lifecycle: string
   priority: string
-  aiScore: number | null
+  legacyFolioScore: number | null
   knowledgeState: string
   health: string | null
   contactCount: number
@@ -98,7 +98,7 @@ export type PortfolioCompanyRow = {
   sector_id: string | null
   lifecycle_status: string
   priority: string
-  ai_score: number | string | null
+  legacy_folio_score: number | string | null
   knowledge_state: string
   health: string | null
   updated_at: string
@@ -313,13 +313,13 @@ function isCompletedStatus(value: string | null | undefined) {
 }
 
 function evaluatePotentialOrigin(params: {
-  aiScore: number | null
+  legacyFolioScore: number | null
   knowledgeState: string
   hasNative: boolean
   hasLegacy: boolean
 }): ProspectionPortfolioAccount["potentialOrigin"] {
-  const { aiScore, knowledgeState, hasNative, hasLegacy } = params
-  if (aiScore === null) {
+  const { legacyFolioScore, knowledgeState, hasNative, hasLegacy } = params
+  if (legacyFolioScore === null) {
     return {
       primaryOrigin: "PROXY",
       origins: ["PROXY"],
@@ -590,7 +590,7 @@ export function buildProspectionPortfolioAccounts(params: {
     }
 
     const potentialScore = clamp(
-      Math.round((((company.ai_score ? Number(company.ai_score) : 0) / 5) * 70))
+      Math.round((((company.legacy_folio_score ? Number(company.legacy_folio_score) : 0) / 5) * 70))
         + priorityBonus(company.priority)
         + lifecycleBonus(company.lifecycle_status),
     )
@@ -679,7 +679,7 @@ export function buildProspectionPortfolioAccounts(params: {
       countResults: intelligence?.count_results ?? 0,
     }
     const potentialOrigin = evaluatePotentialOrigin({
-      aiScore: asNumber(company.ai_score),
+      legacyFolioScore: asNumber(company.legacy_folio_score),
       knowledgeState: company.knowledge_state,
       hasNative: nativeCoverage.hasClientAnalysis || nativeCoverage.hasSectorAnalysis || nativeCoverage.hasProcessDiagnostic || nativeCoverage.hasRoadmap || nativeCoverage.countResults > 0,
       hasLegacy: legacyCoverage.hasClientAnalysis || legacyCoverage.hasSectorAnalysis || legacyCoverage.hasPitches,
@@ -692,7 +692,7 @@ export function buildProspectionPortfolioAccounts(params: {
       sectorId: company.sector_id,
       lifecycle: company.lifecycle_status,
       priority: company.priority,
-      aiScore: asNumber(company.ai_score),
+      legacyFolioScore: asNumber(company.legacy_folio_score),
       knowledgeState: company.knowledge_state,
       health: company.health,
       contactCount: accountContacts.length,
@@ -746,7 +746,7 @@ export function buildProspectionPortfolioAccounts(params: {
     }
   }).sort((left, right) => right.potentialScore - left.potentialScore || left.name.localeCompare(right.name))
 
-  const scoredAccounts = accounts.filter((account) => account.aiScore !== null).length
+  const scoredAccounts = accounts.filter((account) => account.legacyFolioScore !== null).length
   const accountsWithCommitteeRole = accounts.filter((account) => account.committeeRoleCount > 0).length
   const accountsLinkedToSectorIntelligence = accounts.filter((account) => account.sectorId !== null).length
   const nativeIntelligenceAccounts = accounts.filter((account) =>
@@ -796,7 +796,7 @@ export function buildProspectionPortfolioAccounts(params: {
         label: "Potentiel compte",
         primaryOrigin: "REAL_LEGACY",
         origins: ["REAL_LEGACY", "REAL_NATIVE", "PROXY"],
-        formula: "ai_score réel, classé conservativement natif ou legacy selon knowledge_state et couverture d'intelligence, puis bonus priorité + bonus lifecycle.",
+        formula: "legacy_folio_score réel, classé conservativement natif ou legacy selon knowledge_state et couverture d'intelligence, puis bonus priorité + bonus lifecycle.",
         freshness: {
           latestAt: latestPotentialEvidence,
           label: freshnessLabel(latestPotentialEvidence),
@@ -806,7 +806,7 @@ export function buildProspectionPortfolioAccounts(params: {
           label: `${scoredAccounts}/${accounts.length} comptes scorés · ${legacyPotentialAccounts} legacy / ${nativePotentialAccounts} natifs / ${proxyPotentialAccounts} proxy`,
         },
         limitations: [
-          "La provenance exacte du champ ai_score n'est pas historisée ligne à ligne.",
+          "La provenance exacte du champ legacy_folio_score n'est pas historisée ligne à ligne.",
           "La classification natif vs legacy reste prudente et bascule en legacy dès qu'un patrimoine historique est détecté.",
         ],
       },
@@ -860,10 +860,10 @@ export function buildProspectionPortfolioAccounts(params: {
         },
         completeness: {
           value: percentage(
-            accounts.filter((account) => account.aiScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length,
+            accounts.filter((account) => account.legacyFolioScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length,
             accounts.length,
           ),
-          label: `${accounts.filter((account) => account.aiScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length}/${accounts.length} comptes avec score et contexte`,
+          label: `${accounts.filter((account) => account.legacyFolioScore !== null && (account.legacyCoverage.hasClientAnalysis || account.nativeCoverage.countResults > 0)).length}/${accounts.length} comptes avec score et contexte`,
         },
         limitations: [
           "La recommandation reste partiellement alimentée par du contexte legacy.",

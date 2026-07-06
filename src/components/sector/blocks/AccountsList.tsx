@@ -45,8 +45,8 @@ export function AccountsList({ companies, hasError }: AccountsListProps) {
     if (isActifA && !isActifB) return -1
     if (!isActifA && isActifB) return 1
 
-    const scoreA = a.ai_score ?? -1
-    const scoreB = b.ai_score ?? -1
+    const scoreA = a.legacy_folio_score ?? -1
+    const scoreB = b.legacy_folio_score ?? -1
     return scoreB - scoreA
   })
 
@@ -63,9 +63,9 @@ export function AccountsList({ companies, hasError }: AccountsListProps) {
                 <span className="text-xs font-bold text-heading leading-tight">
                   {company.name}
                 </span>
-                {company.ai_score !== null && (
+                {company.legacy_folio_score !== null && (
                   <span className="text-[10px] text-muted font-medium">
-                    Score IA : <span className="font-semibold text-primary">{company.ai_score.toFixed(1)}/5.0</span>
+                    Score IA : <span className="font-semibold text-primary">{company.legacy_folio_score.toFixed(1)}/5.0</span>
                   </span>
                 )}
               </div>

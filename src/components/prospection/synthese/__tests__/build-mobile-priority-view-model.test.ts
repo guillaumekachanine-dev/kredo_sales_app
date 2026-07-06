@@ -18,7 +18,7 @@ function makeAccount(
     sectorId: null,
     lifecycle: "prospect",
     priority: "normale",
-    aiScore: null,
+    legacyFolioScore: null,
     knowledgeState: "none",
     health: null,
     contactCount: 3,

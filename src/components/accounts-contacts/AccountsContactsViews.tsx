@@ -3,6 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
@@ -132,10 +133,6 @@ const CONTACT_FILTER_PANEL_WIDTH_CH = Math.max(
 // ─────────────────────────────────────────────────────────────────────────────
 //  Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-function formatScore(score: number | null) {
-  return score === null ? "—" : `${score}/5`
-}
 
 function displayRevenue(revenue: string | null | undefined) {
   if (!revenue || revenue === "Non renseigné" || revenue === "-") return "-"
@@ -731,15 +728,14 @@ function AccountsDesktop({
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3 w-[18%]">Compte</th>
               <th className="px-3 py-3 w-[9%]">Secteur</th>
-              <th className="px-3 py-3 w-[10%]">Statut</th>
+              <th className="px-3 py-3 w-[9%]">Statut</th>
               <th className="px-3 py-3 text-center w-[8%]">CA</th>
-              <th className="px-3 py-3 text-center w-[8%]">Taille</th>
-              <th className="px-3 py-3 text-center w-[8%]">Contacts</th>
-              <th className="px-3 py-3 text-center w-[8%]">Score</th>
-              <th className="px-3 py-3 text-center w-[10%]">Priorité</th>
-              <th className="px-3 py-3 text-center w-[15%]">Business Intelligence</th>
-              <th className="px-3 py-3 text-center w-[13%]">Rédaction</th>
-              <th className="px-5 py-3 text-right w-[4%]"></th>
+              <th className="px-3 py-3 text-center w-[7%]">Taille</th>
+              <th className="px-3 py-3 text-center w-[7%]">Contacts</th>
+              <th className="px-3 py-3 text-center w-[9%]">Priorité</th>
+              <th className="px-3 py-3 text-center w-[13%]">Business Intelligence</th>
+              <th className="px-3 py-3 text-center w-[10%]">Rédaction</th>
+              <th className="px-5 py-3 text-center w-[10%]">Pitch</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -769,12 +765,12 @@ function AccountsDesktop({
                   <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
                   <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
                   <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
-                  <td className="px-3 py-3 text-center font-semibold text-heading">{formatScore(account.score)}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
                   <td className="px-3 py-3 text-center">
                     {hasStudy ? (
                       <button
                         onClick={() => onOpenIntelligence(account)}
+                        style={{ height: "26px" }}
                         className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap cursor-pointer"
                       >
                         <span>Cockpit client</span>
@@ -797,9 +793,20 @@ function AccountsDesktop({
                       companyId={account.id}
                       companyName={account.name}
                       primaryEntity={{ type: "company", id: account.id }}
-                      label={account.status === "ancien_client" ? "Réactiver la relation" : undefined}
-                      className="h-8 min-h-8 px-2.5 text-[11px]"
+                      label={account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger message"}
+                      variant="primary"
+                      style={{ height: "26px" }}
+                      className="h-auto sm:h-auto min-w-0 border-0 py-1 px-2 text-[11px]"
                       aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
+                      rightIcon={
+                        <Image
+                          src="/icons_set/cockpit_intelligence/rediger_mail_ia.png"
+                          alt=""
+                          width={14}
+                          height={14}
+                          className="object-contain"
+                        />
+                      }
                       refs={{
                         angle: [
                           account.sector ? `Secteur: ${account.sector}` : null,
@@ -808,12 +815,27 @@ function AccountsDesktop({
                       }}
                     />
                   </td>
-                  <td className="pl-1 pr-5 py-3">
-                    <div className="flex items-center justify-end">
-                      <button onClick={() => onEdit(account)} className="rounded p-1 text-muted hover:bg-canvas/80 hover:text-heading transition-colors" title="Modifier">
-                        <IconEdit />
-                      </button>
-                    </div>
+                  <td className="px-3 py-3 text-center">
+                    <ContextualCommunicationButton
+                      entryPoint="account_pitch"
+                      companyId={account.id}
+                      companyName={account.name}
+                      primaryEntity={{ type: "company", id: account.id }}
+                      label="Générer pitch"
+                      variant="primary"
+                      style={{ height: "26px" }}
+                      className="h-auto sm:h-auto min-w-0 border-0 py-1 px-2 text-[11px]"
+                      aria-label={`Générer un pitch pour ${account.name}`}
+                      rightIcon={
+                        <Image
+                          src="/icons_set/cockpit_intelligence/generer_pitch_ia.png"
+                          alt=""
+                          width={14}
+                          height={14}
+                          className="object-contain"
+                        />
+                      }
+                    />
                   </td>
                 </tr>
               )

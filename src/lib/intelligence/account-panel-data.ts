@@ -55,7 +55,7 @@ type CompanyRow = {
   segment: string | null
   priority: string
   lifecycle_status: string
-  ai_score: number | string | null
+  legacy_folio_score: number | string | null
   website: string | null
   metadata: Json
 }
@@ -443,7 +443,7 @@ export async function getAccountIntelligencePanelData(
     await Promise.all([
       supabase
         .from("companies")
-        .select<CompanyRow>("id,name,sector,sector_id,segment,priority,lifecycle_status,ai_score,website,metadata")
+        .select<CompanyRow>("id,name,sector,sector_id,segment,priority,lifecycle_status,legacy_folio_score,website,metadata")
         .eq("id", companyId)
         .maybeSingle(),
       supabase
@@ -526,7 +526,7 @@ export async function getAccountIntelligencePanelData(
       segment: company.segment,
       priority: company.priority,
       lifecycleStatus: company.lifecycle_status,
-      aiScore: toNumber(company.ai_score),
+      legacyFolioScore: toNumber(company.legacy_folio_score),
       website: company.website,
       logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
     },

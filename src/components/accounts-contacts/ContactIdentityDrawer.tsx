@@ -62,7 +62,7 @@ type ContactIdentityData = {
       employee_count: number | null
       size_band: string | null
       health: string | null
-      ai_score: number | string | null
+      legacy_folio_score: number | string | null
       metadata?: Record<string, unknown>
     } | null
   }
@@ -205,7 +205,7 @@ function CompanyMiniModal({
             </div>
             <div className="bg-canvas/40 border border-border/30 rounded p-2 flex flex-col gap-0.5 min-w-0">
               <span className="text-muted font-medium text-[8px] uppercase tracking-wider">Score IA</span>
-              <span className="font-bold text-primary">{formatScore(company.ai_score)}</span>
+              <span className="font-bold text-primary">{formatScore(company.legacy_folio_score)}</span>
             </div>
           </div>
 
@@ -810,7 +810,7 @@ export function ContactIdentityDrawer({
                           <div className="border-l border-border/40 h-5 my-auto" />
                           <div className="flex flex-col justify-center min-w-[40px] px-1">
                             <span className="text-muted block text-[7px] uppercase tracking-tight font-medium">Score IA</span>
-                            <span className="font-bold text-primary mt-0.5 block">{formatScore(company.ai_score)}</span>
+                            <span className="font-bold text-primary mt-0.5 block">{formatScore(company.legacy_folio_score)}</span>
                           </div>
                         </div>
                       </div>

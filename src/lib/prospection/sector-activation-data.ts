@@ -476,7 +476,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
       sectorNewsResult,
       sectorRegulatoryResult,
     ] = await Promise.all([
-      supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,ai_score,knowledge_state,health,updated_at"),
+      supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at"),
       supabase.from("contacts").select<PortfolioContactRow>("company_id,relationship_role,decision_power"),
       supabase.from("interactions").select<PortfolioInteractionRow>("company_id,type,occurred_at"),
       supabase.from("calendar_events").select<PortfolioCalendarEventRow>("company_id,event_type,starts_at,status"),
@@ -532,7 +532,7 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
       const practiceScores = parsePracticesFit(sector.practices_fit)
       const linkedAccounts = accountsBySectorId.get(sector.id) ?? []
       const topPracticeKey = getTopPracticeKey(practiceScores)
-      const coveredAccountCount = linkedAccounts.filter((account) => account.aiScore !== null).length
+      const coveredAccountCount = linkedAccounts.filter((account) => account.legacyFolioScore !== null).length
       const averagePotentialScore = getAccountsAverage(linkedAccounts, "potentialScore")
       const averageReachScore = getAccountsAverage(linkedAccounts, "reachScore")
 

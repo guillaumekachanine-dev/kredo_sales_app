@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAccountScoreSummary, type AccountScoreSummaryView } from "@/lib/account-scoring/get-account-score-summary"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -96,7 +97,7 @@ export type ClientIntelligenceData = {
     segment: string
     priority: string
     lifecycleStatus: string
-    aiScore: number | null
+    legacyFolioScore: number | null
     website: string | null
     hqLocation: string
     logoPath: string | null
@@ -116,6 +117,10 @@ export type ClientIntelligenceData = {
   contacts: ClientIntelligenceContact[]
   pitches: LegacyPitch[]
   pitchDocuments: PitchDocumentSummary[]
+  // ADR-0011 Lot 4 — Score de Priorité Commerciale. null si aucun run n'a
+  // encore été calculé pour ce compte (état initial, avant le premier clic
+  // sur "Actualiser").
+  scoreSummary: AccountScoreSummaryView | null
 }
 
 // ADR-0009 — historique des générations de pitch moteur (onglet Stratégie).
@@ -282,7 +287,7 @@ type CompanyRow = {
   segment: string | null
   priority: string
   lifecycle_status: string
-  ai_score: number | string | null
+  legacy_folio_score: number | string | null
   website: string | null
   hq_location: string | null
   description: string | null
@@ -352,11 +357,11 @@ export async function getClientIntelligence(
   const supabaseReal = await createClient()
   const supabase = supabaseReal as unknown as LooseClient
 
-  const [companyResult, summaryResult, resultsResult, contactsResult, pitchDocumentsResult] = await Promise.all([
+  const [companyResult, summaryResult, resultsResult, contactsResult, pitchDocumentsResult, scoreSummary] = await Promise.all([
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,sector,segment,priority,lifecycle_status,ai_score,website,hq_location,description,metadata",
+        "id,name,sector,segment,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -387,6 +392,7 @@ export async function getClientIntelligence(
       .eq("primary_entity_id", companyId)
       .order("created_at", { ascending: false })
       .limit(5),
+    getAccountScoreSummary(companyId),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
@@ -462,7 +468,7 @@ export async function getClientIntelligence(
         segment: clean(company.segment, "Segment non renseigné"),
         priority: company.priority,
         lifecycleStatus: company.lifecycle_status,
-        aiScore: toNumber(company.ai_score),
+        legacyFolioScore: toNumber(company.legacy_folio_score),
         website: company.website,
         hqLocation: clean(company.hq_location),
         logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
@@ -489,6 +495,7 @@ export async function getClientIntelligence(
       signals: client?.data.signaux.actualitesRecentes ?? [],
       contacts,
       pitches: parsePitches(metadata.pitches),
+      scoreSummary,
       pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
         const content = asRecord(row.current_content_json)
         const kind = content.kind === "spoken_pitch" || content.kind === "meeting_briefing" ? content.kind : null

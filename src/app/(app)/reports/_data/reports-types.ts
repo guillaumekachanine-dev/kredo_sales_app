@@ -98,6 +98,7 @@ export type SaveAsDocumentInput = {
   sourceResultId?: string | null
   links?: ReportLinkInput[]
   primaryEntity?: ReportPrimaryEntityInput | null
+  status?: Database["public"]["Enums"]["intelligence_document_status"]
 }
 
 export type UpdateDocumentInput = {
@@ -580,3 +581,109 @@ export type WeeklyManagerTriggerInput = {
   detailLevel?: ReportDetailLevel
   additionalInstructions?: string
 }
+
+// ============================================================
+// REPORT-001 — Lot 2 : Types du rapport financier V1
+// ============================================================
+
+export type FinancialReportFacts = {
+  engineVersion: "financial-report-v1"
+
+  period: {
+    fiscalYear: number
+    asOfDate: string
+    lastClosedMonth: string | null
+    dataCutoffMonth: string | null
+  }
+
+  officialPnl: {
+    ytdRevenue: number
+    ytdGrossMarginValue: number | null
+    ytdGrossMarginPct: number | null
+    monthly: Array<{
+      month: string
+      revenue: number
+      grossMarginPct: number | null
+      operatingProfit: number | null
+    }>
+  }
+
+  revenueBridge: {
+    assistanceFromCra: number
+    assistanceFromValidatedCra: number
+    projectInvoicedMilestones: number
+    pnlResidualUnexplained: number
+    pnlResidualPct: number | null
+  }
+
+  pipeline: {
+    assistanceWeightedPipe: number
+    projectWeightedPipe: number
+    auditWeightedPipe: number
+    totalWeightedPipe: number
+    openOpportunitiesCount: number
+  }
+
+  targets: {
+    annualRevenueTarget: number | null
+    annualGrossMarginTargetPct: number | null
+    ytdRevenueCompletionPct: number | null
+    linearTargetGap: number | null
+  }
+
+  trajectory: {
+    runRateProjection: number | null
+    weightedPipeUpside: number
+    projectedYearEndRevenue: number | null
+    confidenceIndex: number
+    confidenceLabel: "high" | "medium" | "low"
+  }
+
+  dataHealth: {
+    craValidationCoveragePct: number | null
+    missingMonths: string[]
+    caveats: string[]
+  }
+
+  alerts: FinancialReportAlert[]
+
+  quickWin: {
+    title: string
+    description: string
+    actionType: FinancialReportActionType | null
+  }
+}
+
+export type FinancialReportActionType =
+  | "create_reconciliation_task"
+  | "review_cra_validation"
+  | "review_project_milestones"
+  | "open_financial_simulation"
+
+export type FinancialReportAlert = {
+  id: string
+  severity: "critical" | "warning" | "info"
+  kind:
+    | "unexplained_pnl_residual"
+    | "cra_validation_gap"
+    | "late_project_milestone"
+    | "low_margin_mission"
+    | "missing_financial_data"
+  title: string
+  description: string
+  impactAmount: number | null
+  action: {
+    type: FinancialReportActionType
+    label: string
+    entityType: "financial_period" | "project" | "mission"
+    entityId: string | null
+  }
+}
+
+export type FinancialReportDocumentContent = {
+  reportType: "financial"
+  title: string
+  generatedAt: string
+  facts: FinancialReportFacts
+}
+

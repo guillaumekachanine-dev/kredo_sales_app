@@ -64,7 +64,7 @@ export const getProspectionSummaryData = cache(async (): Promise<ProspectionSumm
       opportunitiesResult,
       intelligenceResult,
     ] = await Promise.all([
-      supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,ai_score,knowledge_state,health,updated_at").order("name"),
+      supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
       supabase.from("contacts").select<PortfolioContactRow>("company_id,relationship_role,decision_power"),
       supabase.from("interactions").select<PortfolioInteractionRow>("company_id,type,occurred_at"),
       supabase.from("calendar_events").select<PortfolioCalendarEventRow>("company_id,event_type,starts_at,status"),

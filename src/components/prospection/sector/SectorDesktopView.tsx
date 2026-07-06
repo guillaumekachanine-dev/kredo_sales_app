@@ -504,9 +504,9 @@ export function SectorDesktopView({ sector }: { sector: SectorWithRelations }) {
                       <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded border", LIFECYCLE_STYLE[company.lifecycle_status] ?? "bg-border/40 text-muted border-border")}>
                         {LIFECYCLE_LABEL[company.lifecycle_status] ?? company.lifecycle_status}
                       </span>
-                      {company.ai_score !== null && (
+                      {company.legacy_folio_score !== null && (
                         <span className="text-[10px] font-bold text-heading">
-                          {company.ai_score}/5
+                          {company.legacy_folio_score}/5
                         </span>
                       )}
                     </div>

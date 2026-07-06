@@ -1128,7 +1128,7 @@ export type Database = {
       }
       companies: {
         Row: {
-          ai_score: number | null
+          legacy_folio_score: number | null
           created_at: string
           description: string | null
           employee_count: number | null
@@ -1156,7 +1156,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          ai_score?: number | null
+          legacy_folio_score?: number | null
           created_at?: string
           description?: string | null
           employee_count?: number | null
@@ -1184,7 +1184,7 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
-          ai_score?: number | null
+          legacy_folio_score?: number | null
           created_at?: string
           description?: string | null
           employee_count?: number | null
@@ -3584,7 +3584,7 @@ export type Database = {
     Views: {
       v_ai_intelligence_summary: {
         Row: {
-          ai_score: number | null
+          legacy_folio_score: number | null
           company_id: string | null
           company_name: string | null
           count_results: number | null

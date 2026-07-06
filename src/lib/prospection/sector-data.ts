@@ -124,9 +124,9 @@ export async function getSectorData(slug?: string): Promise<SectorWithRelations 
 
     supabase
       .from("companies")
-      .select<RawCompany>("id,name,lifecycle_status,ai_score,sector_id")
+      .select<RawCompany>("id,name,lifecycle_status,legacy_folio_score,sector_id")
       .eq("sector_id", sectorId)
-      .order("ai_score", { ascending: false }) as unknown as PromiseLike<{ data: RawCompany[] | null; error: unknown }>,
+      .order("legacy_folio_score", { ascending: false }) as unknown as PromiseLike<{ data: RawCompany[] | null; error: unknown }>,
   ])
 
   const sector: SectorWithRelations = {
@@ -153,7 +153,7 @@ export async function getSectorData(slug?: string): Promise<SectorWithRelations 
     companies: (companiesResult.data ?? []).map(({ sector_id: _, ...rest }) => ({
       ...rest,
       revenue: null,
-      ai_score: toNumber(rest.ai_score),
+      legacy_folio_score: toNumber(rest.legacy_folio_score),
     }) as SectorCompany),
   }
 

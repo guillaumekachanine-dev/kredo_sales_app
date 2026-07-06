@@ -23,10 +23,11 @@ import { getWeekStartDateKey } from "@/lib/agenda/agenda-temporal"
 import { ActivityCommercialReportView } from "./ActivityCommercialReportView"
 import { ActivityRecruitmentReportView } from "./ActivityRecruitmentReportView"
 import { WeeklyManagerReportView } from "./WeeklyManagerReportView"
+import { FinancialReportContent } from "./financial/FinancialReportContent"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
 type ActivityContent = ActivityCommercialContent | ActivityRecruitmentContent
-type ReportContent = ActivityContent | WeeklyManagerContent
+type ReportContent = ActivityContent | WeeklyManagerContent | unknown
 
 const READY_ACTIVITY_WORKFLOW_IDS: Record<
   "activity_commercial" | "activity_recruitment",
@@ -131,7 +132,8 @@ export function ReportGenerationDrawer({
   const isReadyReport =
     reportType === "activity_commercial" ||
     reportType === "activity_recruitment" ||
-    reportType === "weekly_manager"
+    reportType === "weekly_manager" ||
+    reportType === "financial"
   const isWeeklyManager = reportType === "weekly_manager"
   const supabase = useMemo(() => createClient(), [])
 
@@ -141,6 +143,10 @@ export function ReportGenerationDrawer({
   const [additionalInstructions, setAdditionalInstructions] = useState("")
   const [weeklyPeriodChoice, setWeeklyPeriodChoice] = useState<"current" | "next">("current")
   const [weeklyIsWorkspaceWide, setWeeklyIsWorkspaceWide] = useState(false)
+
+  const [financialYearChoice, setFinancialYearChoice] = useState<number>(new Date().getFullYear())
+  const [financialAsOfChoice, setFinancialAsOfChoice] = useState<string>(new Date().toISOString().split("T")[0])
+  const [generatedDocumentId, setGeneratedDocumentId] = useState<string | null>(null)
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
@@ -165,6 +171,9 @@ export function ReportGenerationDrawer({
     setAdditionalInstructions("")
     setWeeklyPeriodChoice("current")
     setWeeklyIsWorkspaceWide(false)
+    setFinancialYearChoice(new Date().getFullYear())
+    setFinancialAsOfChoice(new Date().toISOString().split("T")[0])
+    setGeneratedDocumentId(null)
     resetExecutionState()
   }
 
@@ -219,6 +228,28 @@ export function ReportGenerationDrawer({
     setErrorMsg(null)
 
     try {
+      if (reportType === "financial") {
+        const res = await fetch("/api/reports/financial/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fiscalYear: financialYearChoice,
+            asOfDate: financialAsOfChoice || undefined,
+          }),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+          throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+        }
+
+        const data = await res.json() as { documentId: string; content: unknown }
+        setGeneratedDocumentId(data.documentId)
+        setContent(data.content)
+        setRunStatus("done")
+        return
+      }
+
       // weekly_manager a son propre endpoint : la route précalcule
       // AgendaSnapshot + get_weekly_business_facts + scoring avant d'appeler
       // n8n (ADR-0010 Lot 2) — contrairement aux autres rapports, elle ne
@@ -289,25 +320,45 @@ export function ReportGenerationDrawer({
       Fermer
     </Button>
   ) : runStatus === "done" && content ? (
-    <>
-      <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
-        Fermer
-      </Button>
-      <Button variant="secondary" size="sm" onClick={resetExecutionState}>
-        Refaire
-      </Button>
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={handleSaveAsDocument}
-        disabled={!resultId || saveStatus === "saving" || saveStatus === "saved"}
-      >
-        {saveStatus === "saving" && "Enregistrement…"}
-        {saveStatus === "saved" && "Enregistré"}
-        {saveStatus === "error" && "Échec — réessayer"}
-        {saveStatus === "idle" && "Enregistrer dans la bibliothèque"}
-      </Button>
-    </>
+    reportType === "financial" ? (
+      <>
+        <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
+          Fermer
+        </Button>
+        {generatedDocumentId && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onOpenChange(false)
+              window.location.search = `?id=${generatedDocumentId}`
+            }}
+          >
+            Voir dans la bibliothèque
+          </Button>
+        )}
+      </>
+    ) : (
+      <>
+        <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
+          Fermer
+        </Button>
+        <Button variant="secondary" size="sm" onClick={resetExecutionState}>
+          Refaire
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleSaveAsDocument}
+          disabled={!resultId || saveStatus === "saving" || saveStatus === "saved"}
+        >
+          {saveStatus === "saving" && "Enregistrement…"}
+          {saveStatus === "saved" && "Enregistré"}
+          {saveStatus === "error" && "Échec — réessayer"}
+          {saveStatus === "idle" && "Enregistrer dans la bibliothèque"}
+        </Button>
+      </>
+    )
   ) : (
     <>
       <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
@@ -393,13 +444,58 @@ export function ReportGenerationDrawer({
           </p>
         </div>
       ) : runStatus === "done" && content ? (
-        isWeeklyManager ? (
+        reportType === "financial" ? (
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+            <FinancialReportContent contentJson={content} contentText={null} />
+          </div>
+        ) : isWeeklyManager ? (
           <WeeklyManagerReportView content={content as WeeklyManagerContent} />
         ) : reportType === "activity_commercial" ? (
           <ActivityCommercialReportView content={content as ActivityCommercialContent} />
         ) : (
           <ActivityRecruitmentReportView content={content as ActivityRecruitmentContent} />
         )
+      ) : reportType === "financial" ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="financial-report-year" className="text-xs font-semibold text-heading">
+              Exercice fiscal
+            </label>
+            <Select
+              id="financial-report-year"
+              value={String(financialYearChoice)}
+              onChange={(event) => setFinancialYearChoice(Number(event.target.value))}
+              fullWidth
+            >
+              <option value={String(new Date().getFullYear() - 1)}>{new Date().getFullYear() - 1}</option>
+              <option value={String(new Date().getFullYear())}>{new Date().getFullYear()}</option>
+              <option value={String(new Date().getFullYear() + 1)}>{new Date().getFullYear() + 1}</option>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="financial-report-as-of" className="text-xs font-semibold text-heading">
+              Date d&apos;analyse (au)
+            </label>
+            <input
+              id="financial-report-as-of"
+              type="date"
+              value={financialAsOfChoice}
+              onChange={(event) => setFinancialAsOfChoice(event.target.value)}
+              className="w-full rounded border border-border bg-surface px-2.5 py-1.5 text-xs text-body"
+            />
+          </div>
+
+          {runStatus === "error" && errorMsg ? (
+            <div className="rounded border border-danger/30 bg-danger/5 px-3 py-2.5 text-xs text-danger">
+              {errorMsg}
+            </div>
+          ) : null}
+
+          <div className="rounded-lg border border-border bg-canvas/30 p-3 text-[11px] text-muted">
+            Génération déterministe synchrone (sans LLM ni n8n). Les calculs rapprochent en direct les CRA et les jalons de facturation du P&L.
+          </div>
+        </div>
       ) : isWeeklyManager ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">

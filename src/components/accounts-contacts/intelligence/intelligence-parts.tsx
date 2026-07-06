@@ -38,18 +38,6 @@ export function ProvenanceBadge({ source }: { source: IntelligenceSource }) {
   )
 }
 
-/** Pastille de score. Échelle volontairement non suffixée (1–10 vs /5 tranché au lot E). */
-export function ScorePill({ score, className }: { score: number | null; className?: string }) {
-  return (
-    <div className={cn("flex flex-col items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 rainbow-border-sweep", className)}>
-      <span className="font-heading text-2xl font-bold leading-none text-heading">
-        {score === null ? "—" : score.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}
-      </span>
-      <span className="mt-1 text-[9px] font-bold uppercase tracking-wider text-muted">Score IA</span>
-    </div>
-  )
-}
-
 export function KpiCard({ label, value, hint, status = "neutral" }: {
   label: string
   value: string

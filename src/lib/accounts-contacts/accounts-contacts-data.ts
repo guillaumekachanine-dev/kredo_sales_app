@@ -108,7 +108,7 @@ type CompanyQueryRow = {
   hq_location: string | null
   priority: string
   lifecycle_status: string
-  ai_score: number | string | null
+  legacy_folio_score: number | string | null
   website: string | null
   description: string | null
   metadata: unknown
@@ -224,7 +224,7 @@ function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: num
     location: cleanText(row.hq_location),
     priority: row.priority,
     status: row.lifecycle_status,
-    score: toNumber(row.ai_score),
+    score: toNumber(row.legacy_folio_score),
     website: row.website,
     contactCount: Math.max(contactCount, importedStats.contacts),
     emailCount: importedStats.emails,
@@ -244,7 +244,7 @@ function buildStudy(row: CompanyQueryRow): StudyRow | null {
     companyName: row.name,
     sector: cleanText(row.sector),
     segment: cleanText(row.segment, "Segment non renseigné"),
-    score: toNumber(row.ai_score),
+    score: toNumber(row.legacy_folio_score),
     growthTrend: nestedText(study, ["signaux", "tendance_croissance"]) || "Non renseigné",
     digitalMaturity: nestedText(study, ["signaux", "indices_maturite_digitale"]) || "Non renseigné",
     sectorTrends: nestedText(study, ["contexte_sectoriel", "tendances_sectorielles"]) || "Non renseigné",
@@ -315,8 +315,8 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const [companiesResult, contactsResult, tasksResult] = await Promise.all([
     supabase
       .from<CompanyQueryRow>("companies")
-      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,ai_score,website,description,metadata", { count: "exact" })
-      .order("ai_score", { ascending: false, nullsFirst: false })
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,metadata", { count: "exact" })
+      .order("legacy_folio_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
       .limit(300),
     supabase

@@ -36,7 +36,7 @@ type IdentityData = {
     description: string | null
     priority: string
     health: string | null
-    ai_score: number | string | null
+    legacy_folio_score: number | string | null
     tags: string[] | null
     metadata: Record<string, unknown> | null
     last_contact_at: string | null
@@ -496,7 +496,7 @@ export function CompanyIdentityDrawer({
               </div>
               <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
                 <span className="font-extrabold truncate text-white block">
-                  {formatScore(data.company.ai_score)}
+                  {formatScore(data.company.legacy_folio_score)}
                 </span>
               </div>
               <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">

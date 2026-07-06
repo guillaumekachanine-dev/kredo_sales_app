@@ -207,7 +207,7 @@ export function AccountIntelligenceLab({
 
             <div className="grid gap-4 md:grid-cols-3">
               <MetricStrip label="Axe X" value="Reach proxy" context="Rôles présents + densité contacts + récence commerciale" />
-              <MetricStrip label="Axe Y" value="Potentiel" context="ai_score réel + bonus heuristiques documentés" />
+              <MetricStrip label="Axe Y" value="Potentiel" context="legacy_folio_score réel + bonus heuristiques documentés" />
               <MetricStrip label="Halo" value="Momentum" context="Intensité mensuelle comparable sur la période" />
             </div>
           </div>

@@ -15,7 +15,7 @@ import { formatEuroCompact } from "@/lib/formatters"
 //   - répartition cycle de vie  → `companies.lifecycle_status`
 //   - secteurs chauds           → `companies.sector` (+ score moyen)
 //   - pipeline pondéré          → `opportunities.weighted_gain` (colonne générée)
-//   - comptes à activer         → `companies` (cible/prospect triés par ai_score)
+//   - comptes à activer         → `companies` (cible/prospect triés par legacy_folio_score)
 //
 //  Agrégation côté app : volumétrie faible (≈96 comptes, ≈9 opps) → fetch minimal
 //  + reduce JS, plus simple qu'une vue. À l'échelle (milliers de lignes), basculer
@@ -117,7 +117,7 @@ type CompanyRow = {
   name: string
   sector: string | null
   lifecycle_status: string
-  ai_score: number | string | null
+  legacy_folio_score: number | string | null
 }
 
 type OpportunityRow = {
@@ -154,7 +154,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   const supabase = (await createClient()) as unknown as LooseClient
 
   const [companiesResult, opportunitiesResult] = await Promise.all([
-    supabase.from("companies").select<CompanyRow>("id,name,sector,lifecycle_status,ai_score"),
+    supabase.from("companies").select<CompanyRow>("id,name,sector,lifecycle_status,legacy_folio_score"),
     supabase.from("opportunities").select<OpportunityRow>("stage,weighted_gain"),
   ])
 
@@ -181,7 +181,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     const sector = c.sector?.trim() || "Secteur non renseigné"
     const entry = sectorAgg.get(sector) ?? { count: 0, scoreSum: 0, scoreN: 0 }
     entry.count += 1
-    const score = toNumber(c.ai_score)
+    const score = toNumber(c.legacy_folio_score)
     if (score !== null) {
       entry.scoreSum += score
       entry.scoreN += 1
@@ -219,7 +219,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
       id: c.id,
       name: c.name,
       sector: c.sector?.trim() || "—",
-      score: toNumber(c.ai_score),
+      score: toNumber(c.legacy_folio_score),
       lifecycleLabel: LIFECYCLE_LABEL[c.lifecycle_status] ?? c.lifecycle_status,
     }))
     .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
@@ -228,7 +228,7 @@ export async function getSyntheseData(): Promise<SyntheseData> {
   // ── KPI décisionnels ────────────────────────────────────────────────────────
   const activeClients = lifeCounts.get("client_actif") ?? 0
   const targets = (lifeCounts.get("cible") ?? 0) + (lifeCounts.get("prospect") ?? 0)
-  const scored = companies.map((c) => toNumber(c.ai_score)).filter((s): s is number => s !== null)
+  const scored = companies.map((c) => toNumber(c.legacy_folio_score)).filter((s): s is number => s !== null)
   const avgScore = scored.length ? round1(scored.reduce((a, b) => a + b, 0) / scored.length) : null
 
   const kpis: SyntheseKpi[] = [

@@ -300,8 +300,8 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
                   <span className="text-[9px] font-semibold text-muted border border-border/50 rounded px-1.5 py-0.5">
                     {LIFECYCLE_LABEL[company.lifecycle_status] ?? company.lifecycle_status}
                   </span>
-                  {company.ai_score !== null && (
-                    <span className="text-[10px] font-bold text-heading">{company.ai_score}/5</span>
+                  {company.legacy_folio_score !== null && (
+                    <span className="text-[10px] font-bold text-heading">{company.legacy_folio_score}/5</span>
                   )}
                 </div>
               </Link>

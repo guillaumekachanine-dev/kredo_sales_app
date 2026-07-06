@@ -20,6 +20,7 @@ import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import type { PageFilterOption } from "@/components/ui/PageFilterSelect"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import type {
   FinanceDashboardData,
   LateBilling,
@@ -345,6 +346,13 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           href: "/missions/opps",
         },
       ],
+    },
+    {
+      id: "report",
+      label: "Rapport financier",
+      variant: "secondary",
+      icon: <IconSummary />,
+      onClick: () => openReportGeneration({ origin: "global", reportType: "financial" }),
     },
     {
       id: "simulation",

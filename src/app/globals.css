@@ -332,13 +332,16 @@
   --color-primary: #2554B8;
 }
 
-/* Modale de prévisualisation pitch (fiche compte, onglet Stratégie) — même
-   besoin que .cockpit-reading (échapper au cobalt+or ambiant pour du contenu
-   à lire), mais avec une identité dédiée plutôt qu'un simple retour au thème
-   par défaut : camaïeu bleu-pétrole clair + accent bronze antique repris de
-   la palette complémentaire KREDO (remplace l'ambre du cockpit sur le bouton
-   Favori). Portée : uniquement le sous-arbre de la modale, sans effet ailleurs. */
-[data-theme="cockpit"] .pitch-modal-reading {
+/* Modale de prévisualisation pitch (fiche compte, onglet Stratégie) ET modale
+   de détail du Score de Priorité Commerciale (ADR-0011 Lot 4) — même besoin
+   que .cockpit-reading (échapper au cobalt+or ambiant pour du contenu dense à
+   lire : prose ou tableau de composants), avec une identité dédiée plutôt
+   qu'un simple retour au thème par défaut : camaïeu bleu-pétrole clair +
+   accent bronze antique repris de la palette complémentaire KREDO (remplace
+   l'ambre du cockpit sur le bouton Favori). Portée : uniquement le sous-arbre
+   de la modale concernée, sans effet ailleurs. */
+[data-theme="cockpit"] .pitch-modal-reading,
+[data-theme="cockpit"] .score-modal-reading {
   background-color: #F3F7FB;
   border-color: #C7DCEC;
   --color-canvas: #EAF1F8;

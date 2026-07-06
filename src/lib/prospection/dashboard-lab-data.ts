@@ -281,7 +281,7 @@ export const getDashboardLabData = cache(async (): Promise<DashboardLabData> => 
     sectorNewsResult,
     sectorRegulatoryResult,
   ] = await Promise.all([
-    supabase.from("companies").select<CompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,ai_score,knowledge_state,health,updated_at").order("name"),
+    supabase.from("companies").select<CompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
     supabase.from("contacts").select<ContactRow>("company_id,relationship_role,decision_power"),
     supabase.from("interactions").select<InteractionRow>("company_id,type,occurred_at"),
     supabase.from("calendar_events").select<CalendarEventRow>("company_id,event_type,starts_at,status"),

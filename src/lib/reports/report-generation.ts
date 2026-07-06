@@ -34,7 +34,7 @@ export const REPORT_GENERATION_OPTIONS: ReportGenerationOption[] = [
     title: "Rapport financier",
     description: "Lecture structurée des indicateurs financiers, des écarts et des points de vigilance.",
     badge: "Finance",
-    availability: "planned",
+    availability: "ready",
   },
   {
     reportType: "weekly_manager",

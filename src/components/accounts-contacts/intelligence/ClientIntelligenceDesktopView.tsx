@@ -12,11 +12,12 @@ import {
   ComingSoon,
   Field,
   lifecycleLabel,
-  ScorePill,
   SectionBlock,
   SignalList,
   TagList,
 } from "./intelligence-parts"
+import { ScoreBadge } from "./ScoreBadge"
+import { ScoreDetailModal } from "./ScoreDetailModal"
 import {
   type TabKey,
   type ProcessStepKey,
@@ -36,6 +37,8 @@ const TABS: { key: TabKey; label: string; lot?: string }[] = [
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
+  const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
+  const [scoreModalOpen, setScoreModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const { company } = data
   const { diagnosticPdfUrl } = data
@@ -94,9 +97,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 </div>
               </div>
 
-              {/* Côté droit : Score IA */}
+              {/* Côté droit : Score de Priorité Commerciale (ADR-0011 Lot 4) */}
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <ScorePill score={company.aiScore} />
+                <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
               </div>
             </div>
           </div>
@@ -189,6 +192,14 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           />
         </dialog>
       )}
+
+      <ScoreDetailModal
+        open={scoreModalOpen}
+        onOpenChange={setScoreModalOpen}
+        companyId={company.id}
+        summary={scoreSummary}
+        onRecomputed={setScoreSummary}
+      />
     </div>
   )
 }

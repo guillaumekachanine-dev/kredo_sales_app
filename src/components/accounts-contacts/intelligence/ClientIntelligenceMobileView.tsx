@@ -8,11 +8,12 @@ import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-dat
 import {
   lifecycleLabel,
   ProvenanceBadge,
-  ScorePill,
   SectionBlock,
   SignalList,
   FreshnessLine,
 } from "./intelligence-parts"
+import { ScoreBadge } from "./ScoreBadge"
+import { ScoreDetailModal } from "./ScoreDetailModal"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import {
   type TabKey,
@@ -43,6 +44,8 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
+  const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
+  const [scoreModalOpen, setScoreModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -310,14 +313,11 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           {activePanel === "scoring" && (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <ScorePill score={company.aiScore} />
+                <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
               </div>
-              <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                  Breakdown du score à connecter.
-                </span>
-                <span className="text-[11px] text-muted/70">Disponible au lot E</span>
-              </div>
+              <p className="text-center text-[11px] text-muted">
+                Touchez la pastille pour voir le détail des composants et actualiser le score.
+              </p>
             </div>
           )}
 
@@ -375,6 +375,14 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
         </div>
+
+        <ScoreDetailModal
+          open={scoreModalOpen}
+          onOpenChange={setScoreModalOpen}
+          companyId={company.id}
+          summary={scoreSummary}
+          onRecomputed={setScoreSummary}
+        />
       </div>
     )
   }
@@ -412,7 +420,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             </div>
           </div>
         </div>
-        <ScorePill score={company.aiScore} className="shrink-0" />
+        <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} className="shrink-0" />
       </div>
 
       {/* Signaux Récents (Collapsible Frame) */}
@@ -546,8 +554,13 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         ))}
       </div>
 
-
-
+      <ScoreDetailModal
+        open={scoreModalOpen}
+        onOpenChange={setScoreModalOpen}
+        companyId={company.id}
+        summary={scoreSummary}
+        onRecomputed={setScoreSummary}
+      />
     </div>
   )
 }

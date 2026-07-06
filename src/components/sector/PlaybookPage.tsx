@@ -412,7 +412,7 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
                         className="flex items-center justify-between gap-3 rounded-[var(--radius-medium)] border border-border px-3 py-2 text-sm transition-colors hover:border-primary hover:bg-surface-hover"
                       >
                         <span className="font-semibold text-heading">{company.name}</span>
-                        <span className="text-xs text-muted">{company.ai_score !== null ? `${company.ai_score}/5` : "score n/a"}</span>
+                        <span className="text-xs text-muted">{company.legacy_folio_score !== null ? `${company.legacy_folio_score}/5` : "score n/a"}</span>
                       </Link>
                     ))}
                   </div>

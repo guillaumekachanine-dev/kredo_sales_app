@@ -350,7 +350,7 @@ function buildDashboardLabViewModel({
     summary: {
       totalAccounts: data.metrics.totalAccounts,
       filteredAccounts: accounts.length,
-      scoredAccounts: accounts.filter((account) => account.aiScore !== null).length,
+      scoredAccounts: accounts.filter((account) => account.legacyFolioScore !== null).length,
       linkedSectorAccounts: accounts.filter((account) => account.sectorId !== null).length,
       activeWindows: windows.filter((window) => isDemoWindow(window) || window.isCountedAsActive).length,
     },

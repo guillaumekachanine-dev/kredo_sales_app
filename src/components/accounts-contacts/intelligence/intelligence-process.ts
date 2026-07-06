@@ -71,7 +71,7 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       }
       return { label: "À venir", tone: "neutral" }
     case "scoring":
-      if (data.company.aiScore !== null) {
+      if (data.company.legacyFolioScore !== null) {
         return { label: "Disponible", tone: "success" }
       }
       return { label: "À compléter", tone: "neutral" }

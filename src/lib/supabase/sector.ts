@@ -102,7 +102,7 @@ export async function getSectors(): Promise<SectorListItem[]> {
  *  - pain_points : frequency_count DESC
  *  - regulatory_items : deadline_date ASC NULLS LAST
  *  - events : event_date DESC NULLS LAST
- *  - companies : id, name, revenue, lifecycle_status, ai_score
+ *  - companies : id, name, revenue, lifecycle_status, legacy_folio_score
  */
 export async function getSectorBySlug(slug: string): Promise<SectorWithRelations | null> {
   const supabase = await createClient()
@@ -143,7 +143,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
 
     supabase
       .from("companies")
-      .select("id, name, website, revenue, lifecycle_status, ai_score")
+      .select("id, name, website, revenue, lifecycle_status, legacy_folio_score")
       .eq("sector_id", sectorId)
   ])
 
@@ -215,7 +215,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
       website: item.website ?? null,
       revenue: item.revenue,
       lifecycle_status: item.lifecycle_status,
-      ai_score: toNumber(item.ai_score),
+      legacy_folio_score: toNumber(item.legacy_folio_score),
     })),
     errors: {
       pain_points: !!ppResult.error,

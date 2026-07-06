@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/ui/StatusPill"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import type { FinanceDashboardData, LateBilling, BillingAnomaly } from "@/lib/finance/finance-data"
+import { openReportGeneration } from "@/lib/reports/report-generation"
 import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
 
 type SheetType = "dunning" | "bench"
@@ -132,8 +133,8 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
           ) : undefined
         }
       >
-        {/* Action prioritaire de simulation */}
-        <div className="shrink-0">
+        {/* Actions prioritaires de simulation et rapport */}
+        <div className="shrink-0 space-y-2">
           <Button
             variant="primary"
             size="md"
@@ -145,6 +146,19 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 19h14M7 16V9M12 16V5M17 16v-7" />
             </svg>
             <span>Simuler une mission</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={() => openReportGeneration({ origin: "global", reportType: "financial" })}
+            className="h-11 rounded-[var(--radius-large)] flex items-center justify-center gap-2"
+          >
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 4.75h7.5L19 9.25v10A1.75 1.75 0 0117.25 21h-10.5A1.75 1.75 0 015 19.25V6.5A1.75 1.75 0 016.75 4.75H7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 4.75v4.5h4.5M8 12h8M8 15.5h5" />
+            </svg>
+            <span>Rapport financier</span>
           </Button>
         </div>
 

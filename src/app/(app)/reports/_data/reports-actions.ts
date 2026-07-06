@@ -386,7 +386,7 @@ export async function saveAsDocumentWithClient(
     owner_id: actorUserId,
     title,
     document_type: input.documentType,
-    status: "draft",
+    status: input.status ?? "draft",
     current_content_text: normalizeText(input.contentText),
     current_content_json: asJson(input.contentJson),
     data_cutoff_at: input.dataCutoffAt ?? null,

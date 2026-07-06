@@ -11,6 +11,7 @@ import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedP
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
+import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -306,6 +307,11 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
               </h3>
               {document.documentType === "client_summary" ? (
                 <ClientSummaryDocumentContent
+                  contentJson={document.currentContentJson}
+                  contentText={document.currentContentText}
+                />
+              ) : document.documentType === "financial" || (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "financial") ? (
+                <FinancialReportContent
                   contentJson={document.currentContentJson}
                   contentText={document.currentContentText}
                 />
