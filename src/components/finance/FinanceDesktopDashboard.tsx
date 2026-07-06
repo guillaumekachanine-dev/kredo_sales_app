@@ -104,15 +104,15 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           </span>
         }
         title={
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-start justify-between w-full">
             <span>
               {alerts.length > 0
                 ? `${alerts.length} point${alerts.length > 1 ? "s" : ""} d'arbitrage`
                 : "Aucune alerte"}
             </span>
             <img
-              src="/icons_set/cockpit_intelligence/arbitrage.png"
-              className="size-12 object-contain ml-3 shrink-0"
+              src="/icons_set/cockpit_intelligence/suggestion_taches_&_evenements.png"
+              className="size-16 object-contain ml-3 shrink-0 -mt-6"
               alt=""
             />
           </div>
