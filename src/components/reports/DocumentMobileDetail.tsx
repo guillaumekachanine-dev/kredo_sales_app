@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
-import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { DocumentGenerationParameters } from "@/components/reports/DocumentGenerationParameters"
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
@@ -325,103 +325,61 @@ export function DocumentMobileDetail({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                   Contenu
                 </h3>
-                {document.documentType === "client_summary" ? (
-                  <ClientSummaryDocumentContent
-                    contentJson={document.currentContentJson}
-                    contentText={document.currentContentText}
-                    isMobile
-                    fallbackClassName="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
-                  />
-                ) : document.documentType === "financial" || (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "financial") ? (
-                  <FinancialReportContent
-                    contentJson={document.currentContentJson}
-                    contentText={document.currentContentText}
-                    isMobile
-                  />
-                ) : isPitch ? (
-                  <PitchDocumentContent
-                    contentJson={document.currentContentJson}
-                    contentText={document.currentContentText}
-                    fallbackClassName="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
-                  />
-                ) : document.currentContentText ? (
-                  <div className="max-h-[40vh] overflow-y-auto rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
-                    {document.currentContentText}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted">Aucun contenu texte disponible.</p>
-                )}
+                <div
+                  className="paper-sheet p-4 rounded-[var(--radius-medium)] border border-border/40 max-h-[45vh] overflow-y-auto leading-relaxed"
+                  style={{
+                    backgroundColor: "#FAF9F6",
+                    color: "#4A5568",
+                    colorScheme: "light",
+                    ["--color-canvas" as any]: "#FAF9F6",
+                    ["--color-surface" as any]: "#FFFFFF",
+                    ["--color-surface-hover" as any]: "#F5F4F0",
+                    ["--color-border" as any]: "#E3DFD5",
+                    ["--color-heading" as any]: "#1C2333",
+                    ["--color-body" as any]: "#4A5568",
+                    ["--color-muted" as any]: "#718096",
+                    ["--color-primary" as any]: "#A67A1E",
+                    ["--color-primary-deep" as any]: "#8C6615",
+                    ["--color-primary-fg" as any]: "#FAF9F6",
+                  }}
+                >
+                  {document.documentType === "client_summary" ? (
+                    <ClientSummaryDocumentContent
+                      contentJson={document.currentContentJson}
+                      contentText={document.currentContentText}
+                      isMobile
+                      fallbackClassName="text-sm whitespace-pre-wrap text-body"
+                    />
+                  ) : document.documentType === "financial" || (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "financial") ? (
+                    <FinancialReportContent
+                      contentJson={document.currentContentJson}
+                      contentText={document.currentContentText}
+                      isMobile
+                    />
+                  ) : isPitch ? (
+                    <PitchDocumentContent
+                      contentJson={document.currentContentJson}
+                      contentText={document.currentContentText}
+                      fallbackClassName="text-sm whitespace-pre-wrap text-body"
+                    />
+                  ) : document.currentContentText ? (
+                    <div className="text-sm whitespace-pre-wrap text-body">
+                      {document.currentContentText}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted">Aucun contenu texte disponible.</p>
+                  )}
+                </div>
               </section>
 
-              <section className="space-y-2">
+              <section className="space-y-2 border-t border-border/20 pt-4">
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Qualité
+                  Paramètres de génération
                 </h3>
-                {qualityOk == null ? (
-                  <p className="text-sm text-muted">Aucun contrôle QA enregistré.</p>
-                ) : (
-                  <StatusPill
-                    label={qualityOk ? "Qualité OK" : "À vérifier"}
-                    variant={qualityOk ? "success" : "warning"}
-                  />
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Sources
-                </h3>
-                {document.versions[0]?.sourceRefs.length ? (
-                  <ul className="space-y-1 text-xs text-body">
-                    {document.versions[0].sourceRefs.map((ref, index) => (
-                      <li key={`${document.id}-source-${index}`}>• {formatSourceRef(ref)}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted">Aucune source enregistrée.</p>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Paramètres appliqués
-                </h3>
-                <DocumentAppliedParameters briefJson={appliedBrief} />
+                <DocumentGenerationParameters document={document} />
               </section>
 
               <DocumentCommunicationActions document={document} layout="stack" />
-
-              <section className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Contrôles qualité
-                </h3>
-                {qaFlags.length === 0 ? (
-                  <p className="text-sm text-muted">Aucun contrôle QA enregistré.</p>
-                ) : failedFlags.length > 0 ? (
-                  <ul className="space-y-1 text-xs text-warning">
-                    {failedFlags.map((flag, index) => (
-                      <li key={`${document.id}-qa-${index}`}>• {flag.detail || flag.check}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted">Tous les contrôles enregistrés sont passés.</p>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                  Entités liées
-                </h3>
-                {document.links.length > 0 ? (
-                  <ul className="space-y-1 text-sm text-body">
-                    {document.links.map((link) => (
-                      <li key={`${link.entityType}:${link.entityId}`}>{link.label}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted">Aucune entité liée.</p>
-                )}
-              </section>
 
               <section className="space-y-2">
                 <details className="rounded-[var(--radius-medium)] border border-border bg-canvas/30">

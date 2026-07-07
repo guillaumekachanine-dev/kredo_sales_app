@@ -309,6 +309,58 @@
   /* secondary → ambre */
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Thème « Intelligence Reports » — Refonte premium sombre (ADR-0011)
+   Scope : [data-theme="intelligence-reports"] sur /reports.
+   ────────────────────────────────────────────────────────────── */
+[data-theme="intelligence-reports"] {
+  --color-canvas: #0A0D1A;        /* Bleu noir très mat, moins électrique */
+  --color-surface: #12182D;       /* Bleu nuit profond mat */
+  --color-surface-hover: #1E2540; /* Bleu abysse discret */
+  --color-border: #242F52;        /* Bordure mate */
+  --color-heading: #E2931D;       /* Or mat sophistiqué (au lieu de ambre fluo) */
+  --color-body: #B0C4DE;          /* Bleu acier mat pour le texte courant */
+  --color-muted: #7A8CA3;         /* Gris ardoise/bleuté mat */
+  --color-primary: #E2931D;       /* Accent or mat */
+  --color-primary-deep: #C67E13;  /* Or bruni sombre */
+  --color-primary-fg: #0A0D1A;    /* Texte sombre */
+  --color-secondary: #12182D;     /* Assorti à la surface */
+  --color-secondary-fg: #B0C4DE;
+  --color-success: #27AE60;       /* Vert sapin / émeraude mat */
+  --color-warning: #D35400;       /* Cuivre mat */
+  --color-danger: #C0392B;        /* Rouge brique mat */
+}
+
+/* Feuille de papier éditoriale claire au sein du thème sombre */
+[data-theme="intelligence-reports"] .paper-sheet {
+  --color-canvas: #FAF9F6;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F4F0;
+  --color-border: #E3DFD5;
+  --color-heading: #1C2333;
+  --color-body: #4A5568;
+  --color-muted: #718096;
+  --color-primary: #A67A1E;
+  --color-primary-deep: #8C6615;
+  --color-primary-fg: #FAF9F6;
+  
+  background-color: var(--color-canvas) !important;
+  color: var(--color-body) !important;
+}
+
+[data-theme="intelligence-reports"] .paper-sheet * {
+  --color-canvas: #FAF9F6;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F4F0;
+  --color-border: #E3DFD5;
+  --color-heading: #1C2333;
+  --color-body: #4A5568;
+  --color-muted: #718096;
+  --color-primary: #A67A1E;
+  --color-primary-deep: #8C6615;
+  --color-primary-fg: #FAF9F6;
+}
+
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
    les tokens en clair pour préserver le confort de lecture — le bleu encadre,
    le texte long revient sur surface claire. Sans effet hors cockpit. */

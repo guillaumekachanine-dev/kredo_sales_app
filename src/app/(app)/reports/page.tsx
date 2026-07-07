@@ -96,23 +96,27 @@ export default async function ReportsPage({
 
   if (device === "mobile") {
     return (
-      <ReportsMobileView
-        reportsData={reportsData}
-        filters={filters}
-        listError={listError}
-      />
+      <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+        <ReportsMobileView
+          reportsData={reportsData}
+          filters={filters}
+          listError={listError}
+        />
+      </div>
     )
   }
 
   return (
-    <ReportsDesktopView
-      reportsData={reportsData}
-      kpis={reportsData.kpis}
-      filters={filters}
-      selectedDocumentId={selectedDocumentId}
-      selectedDocument={selectedDocument}
-      selectedDocumentError={selectedDocumentError}
-      listError={listError}
-    />
+    <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+      <ReportsDesktopView
+        reportsData={reportsData}
+        kpis={reportsData.kpis}
+        filters={filters}
+        selectedDocumentId={selectedDocumentId}
+        selectedDocument={selectedDocument}
+        selectedDocumentError={selectedDocumentError}
+        listError={listError}
+      />
+    </div>
   )
 }

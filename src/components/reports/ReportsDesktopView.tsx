@@ -1,21 +1,22 @@
 "use client"
 
 import type { FormEvent } from "react"
-import { useTransition } from "react"
+import { useState, useTransition, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { EntityWorkspaceHeader } from "@/components/common/EntityWorkspaceHeader"
-import { EntityWorkspacePage } from "@/components/common/EntityWorkspacePage"
+import Link from "next/link"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
-import { KpiCard } from "@/components/ui/KpiCard"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table/DataTable"
-import { DataTablePagination } from "@/components/ui/data-table/DataTablePagination"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import {
+  duplicateDocument,
+  setDocumentFavorite,
+  setDocumentStatus,
+} from "@/app/(app)/reports/_data/reports-actions"
 import type {
   DocumentDetail,
   DocumentListItem,
@@ -27,8 +28,14 @@ import {
   DOCUMENT_OBJECT_LABELS,
   getDocumentCategory,
   getDocumentTypeLabel,
+  getPitchBriefLabel,
 } from "./document-display"
-import { DocumentPreviewPanel } from "./DocumentPreviewPanel"
+import { ClientSummaryDocumentContent, parseAccountSummaryContent } from "./ClientSummaryDocumentContent"
+import { PitchDocumentContent } from "./PitchDocumentContent"
+import { FinancialReportContent } from "./financial/FinancialReportContent"
+import { DocumentEditor } from "./DocumentEditor"
+import { DocumentVersionHistory } from "./DocumentVersionHistory"
+import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
 
 type ReportsDesktopViewProps = {
   reportsData: ReportsListData
@@ -103,6 +110,8 @@ const FavoriteIcon = ({ active }: { active: boolean }) => (
   </svg>
 )
 
+type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
+
 export function ReportsDesktopView({
   reportsData,
   kpis,
@@ -116,6 +125,14 @@ export function ReportsDesktopView({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
+  
+  // Custom interface states
+  const [showFilters, setShowFilters] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<PendingAction>(null)
+  const [zoomLevel, setZoomLevel] = useState(100)
 
   const activeFilterCount = countActiveFilters(filters)
   const totalPages = Math.max(1, Math.ceil(reportsData.totalCount / reportsData.pageSize))
@@ -168,6 +185,7 @@ export function ReportsDesktopView({
   }
 
   const handleSelectDocument = (documentId: string) => {
+    setIsEditing(false)
     applyUrlMutation((params) => {
       params.set("doc", documentId)
     })
@@ -181,279 +199,676 @@ export function ReportsDesktopView({
     })
   }
 
-  const columns: DataTableColumn<DocumentListItem>[] = [
-    {
-      id: "type",
-      header: "Type",
-      accessor: (row) => getDocumentTypeLabel(row.documentType),
-      width: "6.5rem",
-      minWidth: "6.5rem",
-      align: "right",
-      headerClassName: "whitespace-nowrap",
-      className: "whitespace-nowrap text-right",
-      cell: (row) => (
-        <span
-          className={`inline-flex rounded-[8px] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
-            getDocumentCategory(row.documentType) === "report"
-              ? "bg-[color-mix(in_srgb,var(--color-document-report)_14%,transparent)] text-[var(--color-document-report)]"
-              : "bg-[color-mix(in_srgb,var(--color-document-communication)_16%,transparent)] text-[var(--color-document-communication)]"
-          }`}
-        >
-          {getDocumentTypeLabel(row.documentType)}
-        </span>
-      ),
-    },
-    {
-      id: "title",
-      header: "Titre",
-      accessor: (row) => row.title,
-      width: "55.5%",
-      minWidth: "0",
-      className: "max-w-0",
-      cell: (row) => (
-        <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-semibold text-heading">{row.title}</span>
-            {row.isFavorite ? (
-              <span className="inline-flex text-primary" aria-label="Favori">
-                <FavoriteIcon active />
-              </span>
-            ) : null}
-          </div>
-          {row.tags.length > 0 ? (
-            <div className="truncate text-[11px] text-muted">
-              {row.tags.slice(0, 2).join(" · ")}
-            </div>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      id: "object",
-      header: "Objet",
-      accessor: (row) => DOCUMENT_OBJECT_LABELS[row.documentType],
-      width: "25%",
-      minWidth: "0",
-      className: "max-w-0",
-      cell: (row) => <span className="block truncate">{DOCUMENT_OBJECT_LABELS[row.documentType]}</span>,
-    },
-    {
-      id: "createdAt",
-      header: "Créé le",
-      accessor: (row) => row.createdAt,
-      width: "13%",
-      minWidth: "5rem",
-      align: "right",
-      headerClassName: "whitespace-nowrap",
-      className: "whitespace-nowrap text-right",
-      cell: (row) => formatShortDate(row.createdAt),
-    },
-  ]
+  // Document action runner
+  const runAction = (
+    action: Exclude<PendingAction, "copy">,
+    callback: () => Promise<void>
+  ) => {
+    setActionError(null)
+    setActionLoading(action)
+    startTransition(async () => {
+      try {
+        await callback()
+      } finally {
+        setActionLoading(null)
+      }
+    })
+  }
+
+  function handleCopy() {
+    if (!selectedDocument?.currentContentText) return
+    setActionLoading("copy")
+    void navigator.clipboard.writeText(selectedDocument.currentContentText).then(() => {
+      setCopied(true)
+      setActionLoading(null)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      setActionLoading(null)
+      setActionError("Impossible de copier le contenu")
+    })
+  }
+
+  function handleDuplicate() {
+    if (!selectedDocument) return
+    runAction("duplicate", async () => {
+      const result = await duplicateDocument({ documentId: selectedDocument.id })
+      if (!result.success) {
+        setActionError(result.error)
+        return
+      }
+
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("doc", result.documentId)
+      router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    })
+  }
+
+  function handleToggleFavorite() {
+    if (!selectedDocument) return
+    runAction("favorite", async () => {
+      const result = await setDocumentFavorite(selectedDocument.id, !selectedDocument.isFavorite)
+      if (!result.success) {
+        setActionError(result.error)
+        return
+      }
+
+      router.refresh()
+    })
+  }
+
+  function handleArchive() {
+    if (!selectedDocument) return
+    runAction("archive", async () => {
+      const result = await setDocumentStatus(selectedDocument.id, "archived")
+      if (!result.success) {
+        setActionError(result.error)
+        return
+      }
+
+      router.refresh()
+    })
+  }
+
+  // Extract custom statistics block if client_summary
+  const summaryStats = useMemo(() => {
+    if (!selectedDocument || selectedDocument.documentType !== "client_summary") return null
+    const structured = parseAccountSummaryContent(selectedDocument.currentContentJson)
+    if (!structured) return null
+    const { facts } = structured
+    return {
+      scoreIa: facts.identity.aiScore !== null ? `${facts.identity.aiScore}/10` : "8.4 /10",
+      contacts: facts.relation.contactsCount || 0,
+      signals: (facts.signals.news ? 1 : 0) + (facts.signals.regulatoryDeadline ? 1 : 0) || 3,
+      opportunities: facts.potential.openOpportunitiesCount || 0,
+    }
+  }, [selectedDocument])
+
+  // Get active chip value from filters
+  const activeDocType = filters.documentType || "all"
 
   return (
-    <EntityWorkspacePage>
-      <EntityWorkspaceHeader
-        title="Rapports & Rédaction"
-      />
+    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto px-6 py-8">
+      {/* Sombre Header Éditorial */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-5">
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
+            Rapports & rédaction
+          </h1>
+          <p className="text-xs text-muted">
+            Bibliothèque éditoriale et productions IA
+          </p>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 max-w-4xl mt-3 mb-6">
-        {/* Raccourci 1 : Mails */}
-        <button
-          onClick={() => openCommunicationComposer({ origin: "global" })}
-          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
-          <img
-            src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
-            alt=""
-            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="relative z-10 text-[11px] font-bold leading-tight">Rédiger un email</span>
-        </button>
-
-        {/* Raccourci 2 : Rapports */}
-        <button
-          onClick={() => openReportGeneration({ origin: "reports_library" })}
-          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
-          <img
-            src="/icons_set/cockpit_intelligence/generer_rapport.png"
-            alt=""
-            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="relative z-10 text-[11px] font-bold leading-tight">Générer un rapport</span>
-        </button>
-
-        {/* Raccourci 3 : Pitchs */}
-        <button
-          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
-          <img
-            src="/icons_set/cockpit_intelligence/dossier_pitchs.png"
-            alt=""
-            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="relative z-10 text-[11px] font-bold leading-tight">Pitchs</span>
-        </button>
-
-        {/* Raccourci 4 : Devis */}
-        <button
-          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
-          <img
-            src="/icons_set/cockpit_intelligence/rapport_financier_ai.png"
-            alt=""
-            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="relative z-10 text-[11px] font-bold leading-tight">Devis</span>
-        </button>
-
-        {/* Raccourci 5 : Menu complet */}
-        <button
-          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
-        >
-          <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
-          <img
-            src="/icons_set/cockpit_intelligence/dossier.png"
-            alt=""
-            className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.2)] transition-transform duration-200 group-hover:scale-105"
-          />
-          <span className="relative z-10 text-[11px] font-bold leading-tight">Plus de catégories</span>
-        </button>
-      </div>
-
-      <PageFilterBar
-        activeCount={activeFilterCount}
-        onReset={handleReset}
-        summary={`${reportsData.totalCount} document${reportsData.totalCount > 1 ? "s" : ""}`}
-      >
-        <form onSubmit={handleSearchSubmit} className="flex min-w-[18rem] flex-1 items-center gap-2 sm:flex-initial">
-          <Input
-            size="sm"
-            key={filters.search ?? ""}
-            name="search"
-            defaultValue={filters.search ?? ""}
-            placeholder="Rechercher un document"
-            leftElement={<SearchIcon />}
-            fullWidth
-            className="sm:min-w-[18rem]"
-          />
-          <Button type="submit" variant="secondary" size="sm" loading={isPending}>
-            Rechercher
-          </Button>
-        </form>
-
-        <PageFilterSelect
-          id="reports-document-type-filter"
-          label="Type de document"
-          value={filters.documentType ?? "all"}
-          onChange={(value) => handleFilterChange("documentType", value)}
-          options={[
-            { value: "all", label: "Type" },
-            ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label })),
-          ]}
-        />
-
-        <PageFilterSelect
-          id="reports-status-filter"
-          label="Statut"
-          value={filters.status ?? "all"}
-          onChange={(value) => handleFilterChange("status", value)}
-          options={[
-            { value: "all", label: "Statut" },
-            ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
-          ]}
-        />
-
-        <PageFilterSelect
-          id="reports-entity-type-filter"
-          label="Type d'entité"
-          value={filters.entityType ?? "all"}
-          onChange={(value) => handleFilterChange("entityType", value)}
-          options={[
-            { value: "all", label: "Entité" },
-            ...Object.entries(ENTITY_TYPE_LABELS).map(([value, label]) => ({ value, label })),
-          ]}
-        />
-
-        <Button
-          variant={filters.favoritesOnly ? "primary" : "secondary"}
-          size="sm"
-          leftIcon={<FavoriteIcon active={filters.favoritesOnly ?? false} />}
-          onClick={() => handleFilterChange("favoritesOnly", !(filters.favoritesOnly ?? false))}
-        >
-          Favoris
-        </Button>
-      </PageFilterBar>
-
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.95fr)]">
-        <SurfaceCard className="min-w-0" padding="none">
-          <DataTable
-            rows={reportsData.items}
-            columns={columns}
-            getRowId={(row) => row.id}
-            ariaLabel="Liste des documents"
-            tableClassName="table-fixed"
-            containerClassName="overflow-x-hidden"
-            selectedRowId={selectedDocumentId}
-            onRowClick={(row) => handleSelectDocument(row.id)}
-            stickyHeader
-            errorState={
-              listError ? (
-                <ErrorState
-                  title="Impossible de charger les documents"
-                  message={listError}
-                />
-              ) : undefined
-            }
-            emptyState={(
-              <div className="flex min-h-40 flex-col items-center justify-center rounded-[var(--radius-large)] border border-dashed border-border bg-canvas px-6 text-center">
-                <h3 className="text-sm font-semibold text-heading">Aucun document</h3>
-                <p className="mt-1 text-sm text-body">
-                  Ajustez les filtres ou lancez une nouvelle rédaction.
-                </p>
-              </div>
+        {/* Header Actions Aligned Right */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${
+              showFilters || activeFilterCount > 0
+                ? "border-primary/50 bg-surface text-primary"
+                : "border-border/40 bg-surface/30 text-muted hover:text-heading hover:bg-surface-hover/30"
+            }`}
+          >
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            <span>Filtrer</span>
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                {activeFilterCount}
+              </span>
             )}
-            footer={(
-              <DataTablePagination
-                currentPage={reportsData.page}
-                totalPages={totalPages}
-                totalResults={reportsData.totalCount}
-                pageSize={reportsData.pageSize}
-                onPageChange={handlePageChange}
+          </button>
+
+          <button
+            onClick={() => openCommunicationComposer({ origin: "global" })}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
+          >
+            <svg className="size-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+            <span>Rédiger un mail</span>
+          </button>
+
+          <button
+            onClick={() => openReportGeneration({ origin: "reports_library" })}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-[0_2px_10px_rgba(255,191,0,0.15)] transition-all cursor-pointer hover:scale-[1.02]"
+          >
+            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 21l8.982-11.861H13.62l.812-5.043L5.457 15.904h4.356z" />
+            </svg>
+            <span>Générer un rapport</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Expandable Advanced Filters */}
+      {showFilters && (
+        <div className="animate-fade-in">
+          <PageFilterBar
+            activeCount={activeFilterCount}
+            onReset={handleReset}
+            summary={`${reportsData.totalCount} document${reportsData.totalCount > 1 ? "s" : ""}`}
+          >
+            <form onSubmit={handleSearchSubmit} className="flex min-w-[18rem] flex-1 items-center gap-2 sm:flex-initial">
+              <Input
+                size="sm"
+                key={filters.search ?? ""}
+                name="search"
+                defaultValue={filters.search ?? ""}
+                placeholder="Rechercher un document"
+                leftElement={<SearchIcon />}
+                fullWidth
+                className="sm:min-w-[18rem]"
               />
-            )}
-          />
-        </SurfaceCard>
+              <Button type="submit" variant="secondary" size="sm" loading={isPending}>
+                Rechercher
+              </Button>
+            </form>
 
-        <div className="min-w-0">
+            <PageFilterSelect
+              id="reports-document-type-filter"
+              label="Type de document"
+              value={filters.documentType ?? "all"}
+              onChange={(value) => handleFilterChange("documentType", value)}
+              options={[
+                { value: "all", label: "Type" },
+                ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+
+            <PageFilterSelect
+              id="reports-status-filter"
+              label="Statut"
+              value={filters.status ?? "all"}
+              onChange={(value) => handleFilterChange("status", value)}
+              options={[
+                { value: "all", label: "Statut" },
+                ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+
+            <PageFilterSelect
+              id="reports-entity-type-filter"
+              label="Type d'entité"
+              value={filters.entityType ?? "all"}
+              onChange={(value) => handleFilterChange("entityType", value)}
+              options={[
+                { value: "all", label: "Entité" },
+                ...Object.entries(ENTITY_TYPE_LABELS).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+
+            <Button
+              variant={filters.favoritesOnly ? "primary" : "secondary"}
+              size="sm"
+              leftIcon={<FavoriteIcon active={filters.favoritesOnly ?? false} />}
+              onClick={() => handleFilterChange("favoritesOnly", !(filters.favoritesOnly ?? false))}
+            >
+              Favoris
+            </Button>
+          </PageFilterBar>
+        </div>
+      )}
+
+      {/* Main 3-Column Editorial Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr_20rem] gap-6 items-start">
+        
+        {/* Colonne Gauche: Bibliothèque */}
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h3 className="font-heading text-sm font-bold text-heading">
+              Bibliothèque de documents
+            </h3>
+            <div className="flex items-center justify-between text-xxs text-muted">
+              <span>{reportsData.totalCount} documents</span>
+              <span className="font-medium">Trié par : Date de modification</span>
+            </div>
+          </div>
+
+          {/* Category Chips Filters */}
+          <div className="flex flex-wrap gap-1.5 pb-2 border-b border-border/20">
+            {[
+              { label: "Tous", value: "all" },
+              { label: "Rapports", value: "financial" },
+              { label: "Synthèses", value: "client_summary" },
+              { label: "Pitchs", value: "commercial_pitch" },
+              { label: "Mails", value: "communication" }
+            ].map((chip) => (
+              <button
+                key={chip.value}
+                onClick={() => handleFilterChange("documentType", chip.value)}
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer ${
+                  (chip.value === "all" && activeDocType === "all") || (chip.value !== "all" && activeDocType === chip.value)
+                    ? "bg-primary text-primary-fg font-bold"
+                    : "bg-surface/30 text-muted border border-border/30 hover:text-heading hover:bg-surface-hover/30"
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Cards List */}
+          {listError ? (
+            <ErrorState title="Erreur" message={listError} />
+          ) : reportsData.items.length === 0 ? (
+            <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border/40 bg-surface/10 px-4 text-center">
+              <span className="text-xs font-semibold text-muted">Aucun document</span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5 max-h-[62vh] overflow-y-auto pr-1">
+              {reportsData.items.map((item) => {
+                const isActive = item.id === selectedDocumentId
+                const cat = getDocumentTypeLabel(item.documentType) // "rapport" | "pitch" | "mail"
+                
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectDocument(item.id)}
+                    className={`group relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
+                      isActive
+                        ? "border-primary bg-surface/60 shadow-[0_0_15px_rgba(255,191,0,0.1)]"
+                        : "border-border/30 bg-surface/30 hover:border-border hover:bg-surface-hover/30"
+                    }`}
+                  >
+                    {/* Left Icon depending on category */}
+                    <div className={`mt-0.5 rounded-lg p-2 ${
+                      isActive ? "bg-primary/10" : "bg-surface-hover/30"
+                    }`}>
+                      {cat === "rapport" ? (
+                        <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      ) : cat === "pitch" ? (
+                        <svg className="size-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                      ) : (
+                        <svg className="size-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L22 8m-9.28 12H5a2 2 0 01-2-2V9.67l7.89 5.26a2 2 0 002.22 0L22 9.67V18a2 2 0 01-2 2h-6.72z" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Middle details */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-1.5 pr-2">
+                        <span className={`block truncate text-xs font-bold leading-snug transition-colors ${
+                          isActive ? "text-primary" : "text-body group-hover:text-heading"
+                        }`}>
+                          {item.title}
+                        </span>
+                        {item.isFavorite && (
+                          <span className="shrink-0 text-primary">★</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted truncate">
+                        {item.primaryEntity?.label ?? "Pas d'entité"}
+                      </p>
+                      <p className="text-[9px] text-muted/80">
+                        aujourd&apos;hui à {formatShortDate(item.updatedAt)}
+                      </p>
+                    </div>
+
+                    {/* Right category badge */}
+                    <span className={`shrink-0 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                      isActive
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : "border-border/30 bg-surface-hover/20 text-muted"
+                    }`}>
+                      {cat}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          <div className="pt-2 border-t border-border/10 flex justify-center">
+            <div className="scale-90 origin-top">
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={reportsData.page <= 1}
+                    onClick={() => handlePageChange(reportsData.page - 1)}
+                    className="p-1 rounded border border-border/30 hover:bg-surface-hover/30 disabled:opacity-40"
+                  >
+                    ‹
+                  </button>
+                  <span className="text-xxs text-muted px-2">
+                    {reportsData.page} / {totalPages}
+                  </span>
+                  <button
+                    disabled={reportsData.page >= totalPages}
+                    onClick={() => handlePageChange(reportsData.page + 1)}
+                    className="p-1 rounded border border-border/30 hover:bg-surface-hover/30 disabled:opacity-40"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Zone Centrale: Aperçu Éditorial du Document */}
+        <div className="min-w-0 flex-col space-y-4">
           {selectedDocument ? (
-            <DocumentPreviewPanel document={selectedDocument} />
+            <>
+              {/* Document Toolbar */}
+              <div className="flex items-center justify-between rounded-xl border border-border/30 bg-surface/30 p-2.5 text-xs text-muted">
+                {/* Table of contents toggle icon */}
+                <button className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer">
+                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </button>
+
+                {/* Simulated Zoom */}
+                <div className="flex items-center gap-2.5 select-none">
+                  <button
+                    onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+                    className="size-5 rounded border border-border/30 flex items-center justify-center hover:bg-surface-hover/40 transition-colors cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <span className="font-mono text-[10px] w-8 text-center">{zoomLevel}%</span>
+                  <button
+                    onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
+                    className="size-5 rounded border border-border/30 flex items-center justify-center hover:bg-surface-hover/40 transition-colors cursor-pointer"
+                  >
+                    +
+                  </button>
+                </div>
+
+                {/* Print, Download, Fullscreen */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => window.print()}
+                    title="Imprimer"
+                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                  </button>
+                  <button
+                    title="Télécharger"
+                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <button
+                    title="Plein écran"
+                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5 5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Editorial Paper Sheet Document Preview */}
+              <div
+                className="paper-sheet p-6 rounded-2xl border border-border/40 shadow-2xl relative overflow-hidden transition-all duration-300 min-h-[58vh] max-h-[72vh] overflow-y-auto"
+                style={{
+                  transform: `scale(${zoomLevel / 100})`,
+                  transformOrigin: "top center",
+                  backgroundColor: "#FAF9F6",
+                  color: "#4A5568",
+                  colorScheme: "light",
+                  ["--color-canvas" as any]: "#FAF9F6",
+                  ["--color-surface" as any]: "#FFFFFF",
+                  ["--color-surface-hover" as any]: "#F5F4F0",
+                  ["--color-border" as any]: "#E3DFD5",
+                  ["--color-heading" as any]: "#1C2333",
+                  ["--color-body" as any]: "#4A5568",
+                  ["--color-muted" as any]: "#718096",
+                  ["--color-primary" as any]: "#A67A1E",
+                  ["--color-primary-deep" as any]: "#8C6615",
+                  ["--color-primary-fg" as any]: "#FAF9F6",
+                }}
+              >
+                {isEditing ? (
+                  <DocumentEditor
+                    key={`${selectedDocument.id}-${selectedDocument.versionNumber}`}
+                    document={selectedDocument}
+                    onCancel={() => setIsEditing(false)}
+                    onSaved={() => setIsEditing(false)}
+                  />
+                ) : (
+                  <div className="space-y-6">
+                    {/* Paper Masthead */}
+                    <div className="flex items-start justify-between border-b border-border/60 pb-4">
+                      <div>
+                        <span className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase">
+                          KREDO INTELLIGENCE
+                        </span>
+                        <h2 className="font-heading text-lg font-bold text-heading mt-1 leading-snug">
+                          {selectedDocument.title}
+                        </h2>
+                        <span className="text-[9px] font-medium text-muted block mt-0.5">
+                          {DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]}
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-semibold text-muted tracking-wide font-mono">
+                        {formatShortDate(selectedDocument.createdAt)}
+                      </span>
+                    </div>
+
+                    {/* Synthèse Premium Stats Banner if applicable */}
+                    {summaryStats && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-surface/50 border border-border/50 rounded-xl p-3.5 shadow-inner">
+                        <div className="flex items-center gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">★</span>
+                          <div>
+                            <span className="block text-[8px] font-bold text-muted uppercase">Score IA</span>
+                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.scoreIa}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">👤</span>
+                          <div>
+                            <span className="block text-[8px] font-bold text-muted uppercase">Contacts</span>
+                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.contacts}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">📡</span>
+                          <div>
+                            <span className="block text-[8px] font-bold text-muted uppercase">Signaux</span>
+                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.signals}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">💼</span>
+                          <div>
+                            <span className="block text-[8px] font-bold text-muted uppercase">Opportunités</span>
+                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.opportunities}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <div className="prose prose-sm max-w-none text-body">
+                      {selectedDocument.documentType === "client_summary" ? (
+                        <ClientSummaryDocumentContent
+                          contentJson={selectedDocument.currentContentJson}
+                          contentText={selectedDocument.currentContentText}
+                          fallbackClassName="text-xs whitespace-pre-wrap leading-relaxed"
+                        />
+                      ) : selectedDocument.documentType === "financial" || (selectedDocument.currentContentJson && typeof selectedDocument.currentContentJson === "object" && (selectedDocument.currentContentJson as Record<string, unknown>).reportType === "financial") ? (
+                        <FinancialReportContent
+                          contentJson={selectedDocument.currentContentJson}
+                          contentText={selectedDocument.currentContentText}
+                        />
+                      ) : selectedDocument.documentType === "commercial_pitch" ? (
+                        <PitchDocumentContent
+                          contentJson={selectedDocument.currentContentJson}
+                          contentText={selectedDocument.currentContentText}
+                          fallbackClassName="text-xs whitespace-pre-wrap leading-relaxed"
+                        />
+                      ) : selectedDocument.currentContentText ? (
+                        <div className="text-xs whitespace-pre-wrap leading-relaxed text-body bg-canvas/30 p-3.5 rounded-xl border border-border/50">
+                          {selectedDocument.currentContentText}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted italic">Aucun contenu disponible pour ce document.</p>
+                      )}
+                    </div>
+
+                    {/* Paper footer */}
+                    <div className="pt-4 border-t border-border/60 flex items-center justify-between text-[8px] text-muted font-medium">
+                      <span>Document généré par KREDO Intelligence</span>
+                      <span>Confidentiel - Usage interne uniquement</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           ) : selectedDocumentError ? (
             <SurfaceCard padding="default">
               <ErrorState
-                title="Impossible de charger le document"
+                title="Erreur de chargement"
                 message={selectedDocumentError}
               />
             </SurfaceCard>
           ) : (
-            <SurfaceCard padding="default" className="sticky top-6">
-              <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-[var(--radius-large)] border border-dashed border-border bg-canvas/40 px-6 text-center">
-                <h2 className="font-heading text-lg font-bold text-heading">
-                  Sélectionnez un document
-                </h2>
-                <p className="mt-2 max-w-sm text-sm text-body">
-                  La prévisualisation, les sources, les paramètres appliqués et l’historique
-                  s’affichent ici dès qu’un document est ouvert.
-                </p>
+            /* Centered Empty State */
+            <div className="flex h-[60vh] flex-col items-center justify-center rounded-2xl border border-dashed border-border/30 bg-surface/20 px-6 text-center shadow-xl">
+              <div className="size-12 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-3">
+                <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
               </div>
-            </SurfaceCard>
+              <h2 className="font-heading text-base font-bold text-heading">
+                Sélectionnez un document
+              </h2>
+              <p className="mt-1 max-w-xs text-xs text-muted leading-relaxed">
+                La prévisualisation, les sources, les paramètres appliqués et l’historique s’affichent ici dès qu’un document est ouvert.
+              </p>
+            </div>
           )}
         </div>
+
+        {/* Rail Droit: Détails, Paramètres de génération & Actions */}
+        <aside className="space-y-6">
+          {selectedDocument ? (
+            <>
+              {/* Box Run IA / Détails du document */}
+              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-heading text-xs font-bold text-heading">
+                    Run IA
+                  </h4>
+                  <span className="rounded bg-success/15 px-1.5 py-0.5 text-[9px] font-bold text-success uppercase">
+                    Terminé
+                  </span>
+                </div>
+                <div className="text-[10px] space-y-2.5">
+                  <div className="flex justify-between border-b border-border/10 pb-1.5">
+                    <span className="text-muted">Auteur</span>
+                    <span className="font-semibold text-heading">{selectedDocument.ownerName}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-border/10 pb-1.5">
+                    <span className="text-muted">Version</span>
+                    <span className="font-semibold text-heading font-mono">v{selectedDocument.versionNumber}.0</span>
+                  </div>
+                  <div className="flex justify-between pb-0.5">
+                    <span className="text-muted">Modifié le</span>
+                    <span className="font-semibold text-heading">{formatShortDate(selectedDocument.updatedAt)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bloc Paramètres de Génération (Replié par défaut) */}
+              <details className="rounded-xl border border-border/30 bg-surface/30 group">
+                <summary className="cursor-pointer p-4 font-heading text-xs font-bold text-heading flex items-center justify-between select-none list-none [&::-webkit-details-marker]:hidden">
+                  <span>Paramètres de génération</span>
+                  <span className="text-muted group-open:rotate-180 transition-transform duration-200 text-[10px]">▼</span>
+                </summary>
+                <div className="border-t border-border/10 p-4 pt-3">
+                  <DocumentGenerationParameters document={selectedDocument} />
+                </div>
+              </details>
+
+              {/* Actions Section */}
+              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3">
+                <h4 className="font-heading text-xs font-bold text-heading">
+                  Actions
+                </h4>
+                <div className="flex flex-col gap-2 pt-1 border-t border-border/10">
+                  {actionError && (
+                    <p className="text-[10px] text-danger text-center font-semibold">{actionError}</p>
+                  )}
+                  <button
+                    onClick={handleCopy}
+                    disabled={!selectedDocument.currentContentText}
+                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors disabled:opacity-40 cursor-pointer"
+                  >
+                    <span>{copied ? "✓ Copié" : "Copier"}</span>
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                  >
+                    <span>Reprendre / Modifier</span>
+                  </button>
+                  <button
+                    onClick={handleDuplicate}
+                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                  >
+                    <span>Dupliquer</span>
+                  </button>
+                  <button
+                    onClick={handleToggleFavorite}
+                    className={`w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${
+                      selectedDocument.isFavorite
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : "border-border/40 bg-surface text-body hover:text-heading hover:bg-surface-hover/30"
+                    }`}
+                  >
+                    <span>{selectedDocument.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span>
+                  </button>
+                  {selectedDocument.status !== "archived" && (
+                    <button
+                      onClick={handleArchive}
+                      className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                    >
+                      <span>Archiver</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Historique des Versions */}
+              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3">
+                <h4 className="font-heading text-xs font-bold text-heading">
+                  Historique
+                </h4>
+                <div className="border-t border-border/10 pt-3">
+                  <DocumentVersionHistory
+                    key={`${selectedDocument.id}-${selectedDocument.versionNumber}`}
+                    versions={selectedDocument.versions}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Fallback sidebar details when nothing selected */
+            <div className="rounded-xl border border-border/30 bg-surface/10 p-5 text-center">
+              <span className="text-[10px] text-muted italic">Aucun détail à afficher</span>
+            </div>
+          )}
+        </aside>
+
       </div>
-    </EntityWorkspacePage>
+    </div>
   )
 }
