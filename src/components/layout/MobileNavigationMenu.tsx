@@ -81,7 +81,7 @@ const mainItems: MenuItem[] = [
     tabs: [
       { label: "Business Intelligence", shortLabel: "BI", href: "/intelligence", icon: "bi", disabled: true, comingSoon: true },
       { label: "Rapports & rédaction", shortLabel: "Rapports", href: "/reports", icon: "reports" },
-      { label: "Veille & actualités", shortLabel: "Veille", href: "/veille", icon: "veille", disabled: true, comingSoon: true },
+      { label: "Veille & actualités", shortLabel: "Veille", href: "/veille", icon: "veille" },
     ],
   },
   { id: "finance", label: "Finance", icon: "finance", tone: "olive", href: "/finance" },

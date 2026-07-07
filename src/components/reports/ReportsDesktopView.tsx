@@ -260,7 +260,7 @@ export function ReportsDesktopView({
         {/* Raccourci 1 : Mails */}
         <button
           onClick={() => openCommunicationComposer({ origin: "global" })}
-          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
         >
           <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
           <img
@@ -274,7 +274,7 @@ export function ReportsDesktopView({
         {/* Raccourci 2 : Rapports */}
         <button
           onClick={() => openReportGeneration({ origin: "reports_library" })}
-          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
         >
           <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
           <img
@@ -287,7 +287,7 @@ export function ReportsDesktopView({
 
         {/* Raccourci 3 : Pitchs */}
         <button
-          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
         >
           <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
           <img
@@ -300,7 +300,7 @@ export function ReportsDesktopView({
 
         {/* Raccourci 4 : Devis */}
         <button
-          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
         >
           <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
           <img
@@ -313,7 +313,7 @@ export function ReportsDesktopView({
 
         {/* Raccourci 5 : Menu complet */}
         <button
-          className="group relative flex min-h-[82px] flex-col justify-between overflow-hidden rounded-2xl bg-primary px-3 py-3 text-left text-white transition-all hover:bg-primary-deep active:scale-[0.97] cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="kredo-cockpit-hover-motion group flex min-h-[82px] flex-col justify-between rounded-2xl bg-primary px-3 py-3 text-left text-white transition-colors hover:bg-primary-deep cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
         >
           <span className="pointer-events-none absolute -right-6 -top-7 size-20 rounded-full bg-white/5 blur-2xl" />
           <img

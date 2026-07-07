@@ -782,6 +782,31 @@ export async function setDocumentFavorite(
   return { success: true, documentId }
 }
 
+export async function deleteDocument(
+  documentId: string
+): Promise<DocumentMutationResult> {
+  const auth = await requireAuthenticatedClient()
+  if ("error" in auth) return { error: auth.error ?? "Non authentifié" }
+
+  const { data: current, error: currentError } = await auth.supabase
+    .from("intelligence_documents")
+    .select("id")
+    .eq("id", documentId)
+    .maybeSingle()
+
+  if (currentError) return { error: currentError.message }
+  if (!current) return { error: "Document introuvable" }
+
+  const { error } = await auth.supabase
+    .from("intelligence_documents")
+    .delete()
+    .eq("id", documentId)
+
+  if (error) return { error: error.message }
+  revalidateReports()
+  return { success: true, documentId }
+}
+
 export async function duplicateDocument(
   input: DuplicateDocumentInput
 ): Promise<DocumentMutationResult> {

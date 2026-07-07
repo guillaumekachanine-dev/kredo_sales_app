@@ -195,8 +195,6 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "Veille",
         href: "/veille",
         icon: "veille",
-        comingSoon: true,
-        disabled: true,
       },
     ],
   },

@@ -4,16 +4,19 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/Button"
-import { StatusPill } from "@/components/ui/StatusPill"
+import { CompanyDocumentsMailAnalyticsPanel } from "@/components/accounts-contacts/intelligence/CompanyDocumentsMailAnalyticsPanel"
+import { OBJECTIVE_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
 import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
 import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
-import { fetchDocumentDetail } from "@/app/(app)/reports/_data/reports-actions"
+import { deleteDocument, fetchDocumentDetail } from "@/app/(app)/reports/_data/reports-actions"
 import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
+import type { CommunicationBrief } from "@/lib/n8n/types"
 import {
   DOCUMENT_OBJECT_LABELS,
   getDocumentTypeLabel,
@@ -38,10 +41,22 @@ type DocumentItem = {
   current_content_json: unknown
   created_at: string
   updated_at: string
+  list_summary?: {
+    heading: string
+    objectiveLabel: string | null
+  } | null
 }
 
 type CategoryKey = "mails" | "rapports" | "pitchs" | "devis" | "relances" | "fiches"
 type DisclosureKey = "sources" | "parameters" | "versions"
+type CompanyContactPreview = {
+  id: string
+  fullName: string | null
+  jobTitle: string | null
+}
+type CompanyLogoRow = {
+  metadata: Record<string, unknown> | null
+}
 
 const CATEGORIES: { key: CategoryKey; label: string; icon: string }[] = [
   {
@@ -76,19 +91,93 @@ const CATEGORIES: { key: CategoryKey; label: string; icon: string }[] = [
   },
 ]
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Brouillon",
-  ready: "Prêt",
-  used: "Utilisé",
-  archived: "Archivé",
-}
-
 const REUSE_ACTION_LABELS = [
   "Créer une variante",
   "Réutiliser pour ce compte",
   "Adapter à un autre contact",
   "Relancer à partir du message",
 ]
+
+const OBJECTIVE_LABELS = new Map(OBJECTIVE_OPTIONS.map((option) => [option.value, option.label]))
+
+function isCommunicationBrief(value: unknown): value is CommunicationBrief {
+  if (!value || typeof value !== "object") return false
+  const record = value as Partial<CommunicationBrief>
+  return Boolean(record.what?.scenario && record.who?.recipient && record.who?.objective)
+}
+
+function formatDocumentDate(value: string): string {
+  return new Date(value).toLocaleDateString("fr-FR")
+}
+
+function formatRecipientHeading(value: string): string {
+  const parts = value.trim().split(/\s+/)
+  if (parts.length <= 1) return value.trim()
+  const lastName = parts.pop() ?? ""
+  return `${parts.join(" ")} ${lastName.toUpperCase()}`
+}
+
+function getCompanyInitials(value: string): string {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("")
+}
+
+function getCommunicationHeaderData(
+  document: DocumentItem,
+  detail: DocumentDetail | null,
+  contacts: CompanyContactPreview[]
+) {
+  if (document.document_type !== "communication" && document.document_type !== "internal_note") return null
+
+  const latestVersion = detail?.versions[0]
+  const rawBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson
+  if (!isCommunicationBrief(rawBrief)) return null
+
+  const objectiveLabel = OBJECTIVE_LABELS.get(rawBrief.who.objective) ?? getDocumentTypeLabel(document.document_type)
+  const recipientName = rawBrief.who.recipient.displayName?.trim() || null
+  const matchedContact = rawBrief.who.recipient.contactId
+    ? contacts.find((contact) => contact.id === rawBrief.who.recipient.contactId) ?? null
+    : null
+  const recipientJobTitle = matchedContact?.jobTitle?.trim() || null
+  const recipientLine = [recipientName, recipientJobTitle].filter(Boolean).join(" - ")
+
+  return {
+    objectiveLabel,
+    recipientLine,
+    createdDate: formatDocumentDate(document.created_at),
+    updatedDate: formatDocumentDate(document.updated_at),
+  }
+}
+
+function getDocumentListSummary(
+  document: DocumentItem,
+  brief: unknown,
+  contacts: CompanyContactPreview[]
+) {
+  if (document.document_type !== "communication" && document.document_type !== "internal_note") return null
+
+  if (!isCommunicationBrief(brief)) return {
+    heading: "Destinataire non renseigné",
+    objectiveLabel: null,
+  }
+
+  const objectiveLabel = OBJECTIVE_LABELS.get(brief.who.objective) ?? null
+  const recipientName = brief.who.recipient.displayName?.trim() || null
+  const matchedContact = brief.who.recipient.contactId
+    ? contacts.find((contact) => contact.id === brief.who.recipient.contactId) ?? null
+    : null
+  const recipientJobTitle = matchedContact?.jobTitle?.trim() || null
+  const headingParts = [
+    recipientName ? formatRecipientHeading(recipientName) : null,
+    recipientJobTitle,
+  ].filter(Boolean)
+
+  return {
+    heading: headingParts.join(" - "),
+    objectiveLabel,
+  }
+}
 
 function formatSourceRef(value: unknown): string {
   if (typeof value === "string") return value
@@ -251,6 +340,11 @@ export function CompanyDocumentsModal({
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [detailReloadToken, setDetailReloadToken] = useState(0)
+  const [companyContacts, setCompanyContacts] = useState<CompanyContactPreview[]>([])
+  const [companyLogoPath, setCompanyLogoPath] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletePending, setDeletePending] = useState(false)
+  const isMailCategory = activeCategory === "mails"
 
   // Fetch documents for the company
   useEffect(() => {
@@ -261,6 +355,38 @@ export function CompanyDocumentsModal({
       const supabase = createClient()
 
       try {
+        const { data: companyRow, error: companyError } = await supabase
+          .from("companies")
+          .select("metadata")
+          .eq("id", companyId)
+          .maybeSingle<CompanyLogoRow>()
+
+        if (companyError) throw companyError
+        const companyMetadata =
+          companyRow?.metadata && typeof companyRow.metadata === "object" && !Array.isArray(companyRow.metadata)
+            ? companyRow.metadata
+            : null
+        setCompanyLogoPath(typeof companyMetadata?.logo_path === "string" ? companyMetadata.logo_path : null)
+
+        const { data: contacts, error: contactsError } = await supabase
+          .from("contacts")
+          .select("id, job_title, person:persons(full_name)")
+          .eq("company_id", companyId)
+
+        if (contactsError) throw contactsError
+        const companyContactsData = (contacts ?? []).map((contact) => {
+          const person = Array.isArray(contact.person) ? contact.person[0] : contact.person
+          return {
+            id: contact.id,
+            fullName:
+              person && typeof person === "object" && "full_name" in person && typeof person.full_name === "string"
+                ? person.full_name
+                : null,
+            jobTitle: contact.job_title,
+          }
+        })
+        setCompanyContacts(companyContactsData)
+
         const { data: links, error: linksError } = await supabase
           .from("intelligence_document_links")
           .select("document_id")
@@ -282,7 +408,76 @@ export function CompanyDocumentsModal({
           .order("updated_at", { ascending: false })
 
         if (docsError) throw docsError
-        setDocuments((docs ?? []) as DocumentItem[])
+        const { data: versions, error: versionsError } = await supabase
+          .from("intelligence_document_versions")
+          .select("document_id, version_number, source_result_id, brief_json")
+          .in("document_id", docIds)
+          .order("version_number", { ascending: false })
+
+        if (versionsError) throw versionsError
+
+        const latestVersionByDocumentId = new Map<string, {
+          source_result_id: string | null
+          brief_json: unknown | null
+        }>()
+        for (const version of versions ?? []) {
+          if (!latestVersionByDocumentId.has(version.document_id)) {
+            latestVersionByDocumentId.set(version.document_id, {
+              source_result_id: version.source_result_id,
+              brief_json: version.brief_json,
+            })
+          }
+        }
+
+        const resultIds = Array.from(new Set(
+          Array.from(latestVersionByDocumentId.values())
+            .map((version) => version.source_result_id)
+            .filter((value): value is string => Boolean(value))
+        ))
+
+        const { data: results, error: resultsError } = resultIds.length
+          ? await supabase
+              .from("ai_intelligence_results")
+              .select("id, run_id")
+              .in("id", resultIds)
+          : { data: [], error: null }
+
+        if (resultsError) throw resultsError
+
+        const runIds = Array.from(new Set(
+          (results ?? [])
+            .map((result) => result.run_id)
+            .filter((value): value is string => Boolean(value))
+        ))
+
+        const { data: runs, error: runsError } = runIds.length
+          ? await supabase
+              .from("ai_intelligence_runs")
+              .select("id, input_snapshot")
+              .in("id", runIds)
+          : { data: [], error: null }
+
+        if (runsError) throw runsError
+
+        const inputSnapshotByRunId = new Map((runs ?? []).map((run) => [run.id, run.input_snapshot] as const))
+        const runIdByResultId = new Map((results ?? []).map((result) => [result.id, result.run_id] as const))
+
+        setDocuments(
+          ((docs ?? []) as DocumentItem[]).map((document) => ({
+            ...document,
+            list_summary: getDocumentListSummary(
+              document,
+              (() => {
+                const latestVersion = latestVersionByDocumentId.get(document.id)
+                const runId = latestVersion?.source_result_id
+                  ? runIdByResultId.get(latestVersion.source_result_id)
+                  : null
+                return (runId ? inputSnapshotByRunId.get(runId) : null) ?? latestVersion?.brief_json ?? null
+              })(),
+              companyContactsData
+            ),
+          }))
+        )
       } catch (err) {
         console.error("Failed to load company documents:", err)
       } finally {
@@ -326,6 +521,9 @@ export function CompanyDocumentsModal({
 
   // Filter documents by active category
   const filteredDocs = activeCategory ? filterByCategory(documents, activeCategory) : []
+  const communicationHeaderData = selectedDoc
+    ? getCommunicationHeaderData(selectedDoc, selectedDetail, companyContacts)
+    : null
 
   function filterByCategory(docs: DocumentItem[], category: CategoryKey) {
     return docs.filter((doc) => {
@@ -361,6 +559,11 @@ export function CompanyDocumentsModal({
 
   const handleCategorySelect = (category: CategoryKey) => {
     setActiveCategory(category)
+    setSelectedDoc(null)
+    setSelectedDetail(null)
+    setDetailError(null)
+    setDetailLoading(false)
+    setIsEditing(false)
     setStep("list")
   }
 
@@ -381,6 +584,14 @@ export function CompanyDocumentsModal({
       setSelectedDoc(null)
       setSelectedDetail(null)
       setIsEditing(false)
+      setDetailError(null)
+      setDetailLoading(false)
+    } else if (step === "list" && selectedDoc && !isMobile) {
+      setSelectedDoc(null)
+      setSelectedDetail(null)
+      setIsEditing(false)
+      setDetailError(null)
+      setDetailLoading(false)
     } else if (step === "list") {
       setStep("categories")
       setActiveCategory(null)
@@ -403,6 +614,27 @@ export function CompanyDocumentsModal({
     setDetailError(null)
     setDetailLoading(false)
     onClose()
+  }
+
+  const handleDeleteDocument = async () => {
+    if (!selectedDoc) return
+
+    setDeletePending(true)
+    const result = await deleteDocument(selectedDoc.id)
+    setDeletePending(false)
+
+    if (result.error) {
+      setDetailError(result.error)
+      return
+    }
+
+    setDocuments((current) => current.filter((document) => document.id !== selectedDoc.id))
+    setSelectedDoc(null)
+    setSelectedDetail(null)
+    setIsEditing(false)
+    setDetailError(null)
+    setDetailLoading(false)
+    if (isMobile) setStep("list")
   }
 
   return (
@@ -500,7 +732,7 @@ export function CompanyDocumentsModal({
                     ? "hidden"
                     : isMobile
                     ? "w-full"
-                    : selectedDoc
+                    : selectedDoc || isMailCategory
                     ? "w-[38%] shrink-0"
                     : "w-full"
                 )}
@@ -516,34 +748,55 @@ export function CompanyDocumentsModal({
                         key={doc.id}
                         onClick={() => handleDocSelect(doc)}
                         className={cn(
-                          "p-3.5 rounded-xl border transition-all cursor-pointer",
+                          "relative rounded-xl border px-3.5 py-3 transition-all cursor-pointer",
                           selectedDoc?.id === doc.id
                             ? "bg-primary border-primary text-white shadow-md"
                             : "bg-white/[0.03] border-white/5 hover:bg-white/[0.08]"
                         )}
                       >
-                        <h4 className="text-xs font-bold leading-snug line-clamp-2">{doc.title}</h4>
-                        <div className="mt-2.5 flex items-center justify-between gap-2 text-[10px]">
+                        <div className="flex min-h-[64px] items-center justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                        <h4 className="pr-2 text-[11px] font-bold leading-[1.2] line-clamp-2">
+                          {doc.list_summary?.heading ?? doc.title}
+                        </h4>
+                        {doc.list_summary?.objectiveLabel ? (
+                          <p
+                            className={cn(
+                              "mt-0.5 pr-2 text-[10px] leading-[1.2] line-clamp-2",
+                              selectedDoc?.id === doc.id ? "text-white/84" : "text-white/72"
+                            )}
+                          >
+                            {doc.list_summary.objectiveLabel}
+                          </p>
+                        ) : null}
+                        <div className="mt-2 flex items-center justify-between gap-2 text-[10px]">
                           <span
                             className={cn(
                               "font-semibold uppercase tracking-wider",
                               selectedDoc?.id === doc.id ? "text-white/80" : "text-muted"
                             )}
                           >
-                            {new Date(doc.updated_at).toLocaleDateString("fr-FR")}
+                            {new Date(doc.created_at).toLocaleDateString("fr-FR")}
                           </span>
-                          <StatusPill
-                            label={STATUS_LABELS[doc.status] || doc.status}
-                            variant={
-                              doc.status === "ready"
-                                ? "inProgress"
-                                : doc.status === "used"
-                                ? "success"
-                                : doc.status === "draft"
-                                ? "draft"
-                                : "neutral"
-                            }
-                          />
+                        </div>
+                          </div>
+                          <div
+                            className={cn(
+                              "flex size-8 shrink-0 items-center justify-center",
+                              selectedDoc?.id === doc.id ? "text-white/88" : "text-white/52"
+                            )}
+                            aria-hidden="true"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="block">
+                              <path
+                                d="M6 3.5L12.5 10L6 16.5"
+                                stroke="currentColor"
+                                strokeWidth="2.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -558,7 +811,7 @@ export function CompanyDocumentsModal({
                     "h-full flex flex-col bg-slate-950/20 transition-all duration-500 ease-out",
                     isMobile
                       ? "w-full"
-                      : selectedDoc
+                      : selectedDoc || isMailCategory
                       ? "w-[62%] opacity-100 translate-x-0"
                       : "w-0 opacity-0 translate-x-12 pointer-events-none"
                   )}
@@ -567,22 +820,94 @@ export function CompanyDocumentsModal({
                     <div className="flex-1 overflow-y-auto p-5 sm:p-6">
                       {/* Document Meta Header inside viewer */}
                       <div className="mb-4 border-b border-white/5 pb-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
-                            {getDocumentTypeLabel(selectedDoc.document_type)}
-                          </span>
-                          <span className="inline-flex rounded-full bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">
-                            {DOCUMENT_OBJECT_LABELS[selectedDoc.document_type]}
-                          </span>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                                {getDocumentTypeLabel(selectedDoc.document_type)}
+                              </span>
+                              <span className="inline-flex rounded-full bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">
+                                {DOCUMENT_OBJECT_LABELS[selectedDoc.document_type]}
+                              </span>
+                            </div>
+                            {communicationHeaderData ? (
+                              <div className="mt-2 flex items-center gap-2.5">
+                                <Image
+                                  src="/icons_set/rapports_&_redactions/visionneuse_objectif.png"
+                                  alt=""
+                                  width={18}
+                                  height={18}
+                                  className="size-[18px] shrink-0 object-contain"
+                                  aria-hidden="true"
+                                />
+                                <h3 className="text-base font-bold leading-snug text-white">
+                                  {communicationHeaderData.objectiveLabel}
+                                </h3>
+                              </div>
+                            ) : (
+                              <h3 className="mt-2 text-base font-bold leading-snug text-white">
+                                {selectedDetail?.documentType === "commercial_pitch"
+                                  ? getPitchBriefLabel(selectedDetail.versions[0]?.sourceRunInputSnapshot ?? selectedDetail.versions[0]?.briefJson) ?? selectedDoc.title
+                                  : selectedDoc.title}
+                              </h3>
+                            )}
+                            {communicationHeaderData?.recipientLine ? (
+                              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/80">
+                                <Image
+                                  src="/icons_set/rapports_&_redactions/visionneuse_destinataire_2.png"
+                                  alt=""
+                                  width={18}
+                                  height={18}
+                                  className="size-[18px] shrink-0 object-contain"
+                                  aria-hidden="true"
+                                />
+                                <p className="min-w-0 truncate">{communicationHeaderData.recipientLine}</p>
+                              </div>
+                            ) : null}
+                            <div className="mt-1 flex items-center gap-2 text-[10px] text-muted">
+                              <Image
+                                src="/icons_set/rapports_&_redactions/visionneuse_date.png"
+                                alt=""
+                                width={18}
+                                height={18}
+                                className="size-[18px] shrink-0 object-contain opacity-75"
+                                aria-hidden="true"
+                              />
+                              {communicationHeaderData ? (
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <p>{communicationHeaderData.createdDate}</p>
+                                  <span>-</span>
+                                  <Image
+                                    src="/icons_set/rapports_&_redactions/visionneuse_maj.png"
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                    className="size-4 shrink-0 object-contain opacity-80"
+                                    aria-hidden="true"
+                                  />
+                                  <p>{communicationHeaderData.updatedDate}</p>
+                                </div>
+                              ) : (
+                                <p>{formatDocumentDate(selectedDoc.created_at)} - MAJ {formatDocumentDate(selectedDoc.updated_at)}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mr-1 self-center flex size-[68px] shrink-0 items-center justify-center rounded-full bg-white p-2.5 shadow-[0_10px_30px_rgba(15,23,42,0.22)]">
+                            {companyLogoPath ? (
+                              <Image
+                                src={companyLogoPath}
+                                alt={`Logo ${companyName}`}
+                                width={48}
+                                height={48}
+                                className="size-12 object-contain"
+                              />
+                            ) : (
+                              <span className="text-[13px] font-bold tracking-[0.08em] text-slate-700">
+                                {getCompanyInitials(companyName)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <h3 className="mt-2 text-base font-bold leading-snug text-white">
-                          {selectedDetail?.documentType === "commercial_pitch"
-                            ? getPitchBriefLabel(selectedDetail.versions[0]?.sourceRunInputSnapshot ?? selectedDetail.versions[0]?.briefJson) ?? selectedDoc.title
-                            : selectedDoc.title}
-                        </h3>
-                        <p className="mt-1 text-[10px] text-muted">
-                          Créé le {new Date(selectedDoc.created_at).toLocaleDateString("fr-FR")} · Mis à jour le {new Date(selectedDoc.updated_at).toLocaleDateString("fr-FR")}
-                        </p>
                       </div>
 
                       {detailLoading ? (
@@ -650,6 +975,16 @@ export function CompanyDocumentsModal({
                                       </Button>
                                     ))
                                   )}
+                                  <div className="sm:col-start-2 pt-1">
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      onClick={() => setShowDeleteConfirm(true)}
+                                      className="w-full justify-center !border-[#A52A2A] !text-[#A52A2A] hover:!border-[#A52A2A] hover:!bg-[#A52A2A]/10 hover:!text-[#A52A2A]"
+                                    >
+                                      Supprimer
+                                    </Button>
+                                  </div>
                                 </div>
                               </section>
 
@@ -659,6 +994,8 @@ export function CompanyDocumentsModal({
                         </div>
                       ) : null}
                     </div>
+                  ) : isMailCategory ? (
+                    <CompanyDocumentsMailAnalyticsPanel companyName={companyName} />
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-xs text-muted italic">
                       Sélectionnez un document pour le visionner
@@ -670,6 +1007,17 @@ export function CompanyDocumentsModal({
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Supprimer ce document ?"
+        description="Le document sera retiré définitivement de la bibliothèque de ce compte."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onConfirm={handleDeleteDocument}
+        isLoading={deletePending}
+      />
     </div>
   )
 }

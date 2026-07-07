@@ -212,24 +212,36 @@ export function DocumentAppliedParameters({ briefJson }: DocumentAppliedParamete
   const rows = buildParameterRows(briefJson)
 
   if (rows.length === 0) {
-    return <p className="text-sm text-muted">Aucun paramètre enregistré.</p>
+    return (
+      <div className="space-y-1.5">
+        <h5 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/78">
+          Paramètres
+        </h5>
+        <p className="text-[11px] leading-tight text-muted">Aucun paramètre enregistré.</p>
+      </div>
+    )
   }
 
   return (
-    <dl className="flex flex-wrap gap-2">
-      {rows.map((row) => (
-        <div
-          key={`${row.label}:${row.value}`}
-          className="inline-flex min-h-8 max-w-full items-center gap-2 border border-border bg-canvas/35 px-2.5 py-1.5 align-top"
-        >
-          <dt className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-            {row.label}
-          </dt>
-          <dd className="truncate text-sm leading-none text-body">
-            {row.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="space-y-1.5">
+      <h5 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/78">
+        Paramètres
+      </h5>
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={`${row.label}:${row.value}`} className="min-w-0">
+            <div className="flex min-w-0 items-baseline gap-1 text-[10px] leading-tight">
+              <dt className="shrink-0 font-semibold uppercase tracking-[0.05em] text-muted/80">
+                {row.label}
+              </dt>
+              <span className="shrink-0 text-muted/65">-</span>
+              <dd className="min-w-0 truncate text-[10.5px] text-body" title={row.value}>
+                {row.value}
+              </dd>
+            </div>
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }

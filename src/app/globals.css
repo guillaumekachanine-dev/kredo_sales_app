@@ -865,6 +865,42 @@ dialog.kredo-drawer-bottom {
   transform: translateY(-1px) scale(0.98);
 }
 
+.kredo-cockpit-hover-motion {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.19s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.19s ease;
+}
+
+.kredo-cockpit-hover-motion::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -60%;
+  background: linear-gradient(105deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 35%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0) 65%,
+      transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+}
+
+.kredo-cockpit-hover-motion:not(:disabled, [aria-disabled="true"]):hover {
+  transform: translateY(-3px);
+}
+
+.kredo-cockpit-hover-motion:not(:disabled, [aria-disabled="true"]):hover::after {
+  animation: kredo-action-shine-sweep 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.kredo-cockpit-hover-motion:not(:disabled, [aria-disabled="true"]):active {
+  transform: translateY(-1px) scale(0.98);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kredo-intelligence-toggle::before {
     animation: none;
@@ -879,7 +915,16 @@ dialog.kredo-drawer-bottom {
     display: none;
   }
 
+  .kredo-cockpit-hover-motion::after {
+    display: none;
+  }
+
   .kredo-action-card-dark:not(:disabled):hover {
+    transform: none;
+  }
+
+  .kredo-cockpit-hover-motion:not(:disabled, [aria-disabled="true"]):hover,
+  .kredo-cockpit-hover-motion:not(:disabled, [aria-disabled="true"]):active {
     transform: none;
   }
 

@@ -27,7 +27,7 @@ export function getMobileTabsForPath(pathname: string): SectionTab[] {
   if (pathname.startsWith("/reports") || pathname.startsWith("/veille")) {
     return [
       { label: "Rapports & Rédaction", shortLabel: "Rapports", href: "/reports" },
-      { label: "Veille & Actualités", shortLabel: "Veille", href: "/veille", disabled: true, comingSoon: true },
+      { label: "Veille & Actualités", shortLabel: "Veille", href: "/veille" },
     ]
   }
   return getSectionTabsForPath(pathname).filter(

@@ -25,6 +25,7 @@ export type CommunicationComposerOrigin =
   | "mission"
   | "project"
   | "calendar_event"
+  | "veille_signal"
 
 export type CommunicationComposerPrimaryEntity = {
   type: IntelligenceEntityType
