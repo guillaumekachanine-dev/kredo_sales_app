@@ -42,6 +42,7 @@ import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
 import {
+  fetchPersistedMobilePriorityAccountIds,
   getMobilePriorityAccountsChangeEvent,
   readMobilePriorityAccountIds,
   sortIdsByPriority,
@@ -911,6 +912,7 @@ function useMobilePriorityAccounts(device: DashboardDevice) {
     }
 
     syncPriorityIds()
+    void fetchPersistedMobilePriorityAccountIds().then(setPriorityIds).catch(() => {})
 
     const customEventName = getMobilePriorityAccountsChangeEvent()
     window.addEventListener("storage", syncPriorityIds)

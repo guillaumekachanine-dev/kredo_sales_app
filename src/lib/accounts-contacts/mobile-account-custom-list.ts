@@ -1,8 +1,17 @@
+import type { Json } from "@/types/database"
+
 const STORAGE_KEY = "kredo_mobile_priority_accounts"
 const CHANGE_EVENT = "kredo:mobile-priority-accounts-change"
+const PREFS_SECTION_KEY = "mobile_account_quick_search"
+const PREFS_PINNED_IDS_KEY = "pinned_company_ids"
 export const MOBILE_PRIORITY_ACCOUNT_LIMIT = 10
 
-function sanitizeIds(value: unknown): string[] {
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  return value as Record<string, unknown>
+}
+
+export function sanitizeMobilePriorityAccountIds(value: unknown): string[] {
   if (!Array.isArray(value)) return []
 
   const next: string[] = []
@@ -41,7 +50,7 @@ export function readMobilePriorityAccountIds(): string[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return sanitizeIds(JSON.parse(raw))
+    return sanitizeMobilePriorityAccountIds(JSON.parse(raw))
   } catch {
     return []
   }
@@ -50,9 +59,71 @@ export function readMobilePriorityAccountIds(): string[] {
 export function writeMobilePriorityAccountIds(ids: string[]) {
   if (typeof window === "undefined") return
 
-  const next = sanitizeIds(ids)
+  const next = sanitizeMobilePriorityAccountIds(ids)
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   emitChange(next)
+}
+
+export function extractMobilePriorityAccountIdsFromUiPrefs(uiPrefs: unknown): string[] {
+  const prefs = asRecord(uiPrefs)
+  const mobilePrefs = asRecord(prefs[PREFS_SECTION_KEY])
+  return sanitizeMobilePriorityAccountIds(mobilePrefs[PREFS_PINNED_IDS_KEY])
+}
+
+export function mergeMobilePriorityAccountIdsIntoUiPrefs(
+  uiPrefs: unknown,
+  ids: string[],
+): Json {
+  const prefs = asRecord(uiPrefs)
+  const mobilePrefs = asRecord(prefs[PREFS_SECTION_KEY])
+
+  return {
+    ...prefs,
+    [PREFS_SECTION_KEY]: {
+      ...mobilePrefs,
+      [PREFS_PINNED_IDS_KEY]: sanitizeMobilePriorityAccountIds(ids),
+    },
+  }
+}
+
+export async function fetchPersistedMobilePriorityAccountIds(): Promise<string[]> {
+  if (typeof window === "undefined") return []
+
+  const response = await fetch("/api/prospection/accounts/mobile-priority", {
+    method: "GET",
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const payload = (await response.json()) as { pinnedIds?: unknown }
+  const pinnedIds = sanitizeMobilePriorityAccountIds(payload.pinnedIds)
+  writeMobilePriorityAccountIds(pinnedIds)
+  return pinnedIds
+}
+
+export async function persistMobilePriorityAccountIds(ids: string[]): Promise<string[]> {
+  if (typeof window === "undefined") return sanitizeMobilePriorityAccountIds(ids)
+
+  const nextIds = sanitizeMobilePriorityAccountIds(ids)
+  const response = await fetch("/api/prospection/accounts/mobile-priority", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pinnedIds: nextIds }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const payload = (await response.json()) as { pinnedIds?: unknown }
+  const persistedIds = sanitizeMobilePriorityAccountIds(payload.pinnedIds ?? nextIds)
+  writeMobilePriorityAccountIds(persistedIds)
+  return persistedIds
 }
 
 export function toggleMobilePriorityAccountId(ids: string[], accountId: string): {
@@ -61,10 +132,10 @@ export function toggleMobilePriorityAccountId(ids: string[], accountId: string):
 } {
   const trimmedId = accountId.trim()
   if (!trimmedId) {
-    return { nextIds: sanitizeIds(ids), status: "limit" }
+    return { nextIds: sanitizeMobilePriorityAccountIds(ids), status: "limit" }
   }
 
-  const currentIds = sanitizeIds(ids)
+  const currentIds = sanitizeMobilePriorityAccountIds(ids)
   if (currentIds.includes(trimmedId)) {
     return {
       nextIds: currentIds.filter((id) => id !== trimmedId),

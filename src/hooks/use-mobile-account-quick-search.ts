@@ -3,7 +3,10 @@
 import { create } from "zustand"
 import type { MobileAccountLookupEntry } from "@/lib/accounts-contacts/mobile-account-lookup"
 import {
+  fetchPersistedMobilePriorityAccountIds,
+  persistMobilePriorityAccountIds,
   readMobilePriorityAccountIds,
+  sanitizeMobilePriorityAccountIds,
   toggleMobilePriorityAccountId,
   writeMobilePriorityAccountIds,
 } from "@/lib/accounts-contacts/mobile-account-custom-list"
@@ -11,6 +14,7 @@ import {
 export type MobileAccountQuickSearchPreset = "list" | "custom" | "campaign" | "news"
 
 type LoadStatus = "idle" | "loading" | "ready" | "error"
+type TogglePinnedAccountResult = "added" | "removed" | "limit" | "error"
 
 interface MobileAccountQuickSearchState {
   isOpen: boolean
@@ -26,17 +30,18 @@ interface MobileAccountQuickSearchState {
   setPreset: (preset: MobileAccountQuickSearchPreset) => void
   ensureEntries: () => Promise<void>
   hydratePinnedIds: () => void
-  togglePinnedAccount: (accountId: string) => "added" | "removed" | "limit"
+  syncPinnedIds: () => Promise<void>
+  togglePinnedAccount: (accountId: string) => Promise<TogglePinnedAccountResult>
 }
 
-function getDefaultPreset(pinnedIds: string[]): MobileAccountQuickSearchPreset {
-  return pinnedIds.length > 0 ? "custom" : "list"
+function getDefaultPreset(): MobileAccountQuickSearchPreset {
+  return "custom"
 }
 
 export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>((set, get) => ({
   isOpen: false,
   query: "",
-  preset: "list",
+  preset: "custom",
   entries: [],
   pinnedIds: [],
   loadStatus: "idle",
@@ -44,15 +49,15 @@ export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>
 
   open: (preset) => {
     get().hydratePinnedIds()
-    const pinnedIds = get().pinnedIds
 
     set({
       isOpen: true,
       query: "",
-      preset: preset ?? getDefaultPreset(pinnedIds),
+      preset: preset ?? getDefaultPreset(),
       errorMessage: null,
     })
 
+    void get().syncPinnedIds()
     void get().ensureEntries()
   },
 
@@ -65,6 +70,17 @@ export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>
 
   hydratePinnedIds: () => {
     set({ pinnedIds: readMobilePriorityAccountIds() })
+  },
+
+  syncPinnedIds: async () => {
+    get().hydratePinnedIds()
+
+    try {
+      const pinnedIds = await fetchPersistedMobilePriorityAccountIds()
+      set({ pinnedIds, errorMessage: null })
+    } catch (error) {
+      console.error("[mobile-account-quick-search] failed to sync pinned ids", error)
+    }
   },
 
   ensureEntries: async () => {
@@ -83,10 +99,19 @@ export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>
         throw new Error(`HTTP ${response.status}`)
       }
 
-      const payload = (await response.json()) as { accounts?: MobileAccountLookupEntry[] }
+      const payload = (await response.json()) as {
+        accounts?: MobileAccountLookupEntry[]
+        pinnedIds?: unknown
+      }
+      const pinnedIds = sanitizeMobilePriorityAccountIds(payload.pinnedIds)
+
+      if (pinnedIds.length > 0 || get().pinnedIds.length > 0) {
+        writeMobilePriorityAccountIds(pinnedIds)
+      }
 
       set({
         entries: payload.accounts ?? [],
+        pinnedIds,
         loadStatus: "ready",
         errorMessage: null,
       })
@@ -99,13 +124,24 @@ export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>
     }
   },
 
-  togglePinnedAccount: (accountId) => {
+  togglePinnedAccount: async (accountId) => {
+    const previousIds = get().pinnedIds
     const result = toggleMobilePriorityAccountId(get().pinnedIds, accountId)
     if (result.status === "limit") return "limit"
 
     writeMobilePriorityAccountIds(result.nextIds)
     set({ pinnedIds: result.nextIds })
-    return result.status
+
+    try {
+      const persistedIds = await persistMobilePriorityAccountIds(result.nextIds)
+      set({ pinnedIds: persistedIds })
+      return result.status
+    } catch (error) {
+      console.error("[mobile-account-quick-search] failed to persist pinned ids", error)
+      writeMobilePriorityAccountIds(previousIds)
+      set({ pinnedIds: previousIds })
+      return "error"
+    }
   },
 }))
 

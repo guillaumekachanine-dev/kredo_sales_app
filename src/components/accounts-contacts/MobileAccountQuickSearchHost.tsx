@@ -282,10 +282,12 @@ export function MobileAccountQuickSearchHost() {
                     {preset === "custom" ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          const result = togglePinnedAccount(entry.id)
+                        onClick={async () => {
+                          const result = await togglePinnedAccount(entry.id)
                           if (result === "limit") {
                             setCustomListNotice(`Maximum ${MOBILE_PRIORITY_ACCOUNT_LIMIT} comptes`)
+                          } else if (result === "error") {
+                            setCustomListNotice("Impossible d'enregistrer cette liste pour le moment")
                           }
                         }}
                         aria-pressed={isPinned}
