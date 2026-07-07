@@ -4,6 +4,7 @@ import { AppHeader } from "./AppHeader"
 import { MobileNav } from "./MobileNav"
 import { IntelligencePanel } from "@/components/intelligence/IntelligencePanel"
 import { IntelligenceFAB } from "@/components/intelligence/IntelligenceFAB"
+import { MobileAccountQuickSearchHost } from "@/components/accounts-contacts/MobileAccountQuickSearchHost"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 
 interface AppShellProps {
@@ -25,6 +26,7 @@ export async function AppShell({ device, children }: AppShellProps) {
 
         <IntelligenceFAB />
         <MobileNav />
+        <MobileAccountQuickSearchHost />
       </div>
     )
   }

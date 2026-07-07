@@ -41,6 +41,11 @@ import { cockpitActionIcons } from "@/components/intelligence/cockpit-action-ico
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
+import {
+  getMobilePriorityAccountsChangeEvent,
+  readMobilePriorityAccountIds,
+  sortIdsByPriority,
+} from "@/lib/accounts-contacts/mobile-account-custom-list"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Constants
@@ -93,19 +98,6 @@ const SORT_OPTIONS: FilterOption[] = [
   { value: "activite", label: "Activité" },
 ]
 
-// Abbreviations applied only in the mobile grid cards.
-const CARD_NAME_ABBREVIATIONS = new Map<string, string>([
-  ["banque populaire méditerranée", "BPMed"],
-  ["casa (communauté d'agglomérations de sophia antipolis)", "CASA"],
-  ["cnrs institut de la mer de villefranche", "CNRS Institut de la Mer"],
-  ["cnrs observatoire de la cote d'azur", "CNRS OCA"],
-  ["european society of cardiology", "ES Cardio"],
-])
-
-function abbreviateForCard(name: string): string {
-  return CARD_NAME_ABBREVIATIONS.get(name.toLowerCase()) ?? name
-}
-
 const ROLE_OPTIONS = [
   { value: "decideur", label: "Décideur" },
   { value: "prescripteur", label: "Prescripteur" },
@@ -156,14 +148,6 @@ function IconEdit() {
   return (
     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-    </svg>
-  )
-}
-
-function IconTrash() {
-  return (
-    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
   )
 }
@@ -710,15 +694,11 @@ function AccountsDesktop({
   studies,
   onOpenIdentity,
   onOpenIntelligence,
-  onEdit,
-  onDelete,
 }: {
   accounts: AccountRow[]
   studies: StudyRow[]
   onOpenIdentity: (id: string) => void
   onOpenIntelligence: (account: AccountRow) => void
-  onEdit: (account: AccountRow) => void
-  onDelete: (account: AccountRow) => void
 }) {
   return (
     <SurfaceCard className="overflow-hidden">
@@ -856,57 +836,93 @@ function AccountsMobile({
   onOpenIdentity: (id: string) => void
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="flex flex-col gap-2.5">
       {accounts.map((account) => (
         <div
           key={account.id}
           id={`account-row-${account.id}`}
-          className="flex flex-col items-stretch overflow-hidden rounded-xl border border-border bg-surface text-left"
+          className="overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
         >
           <button
             type="button"
             onClick={() => onOpenIdentity(account.id)}
-            className="flex flex-col items-stretch text-left active:opacity-75 transition-opacity"
+            className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors active:opacity-75"
           >
-            {/* Logo — fond blanc, sans cadre, dimensions inchangées */}
-            <div className="w-full aspect-square overflow-hidden bg-white p-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-canvas/80 p-2">
               <CompanyLogo
                 name={account.name}
                 logoPath={account.logoPath}
                 website={account.website}
-                size="md"
-                fill
-                className="!border-0"
+                size="sm"
               />
             </div>
-            {/* Bande bleue — nom abrégé en blanc gras */}
-            <div className="bg-primary px-2 py-2.5 w-full">
-              <span className="block text-xs font-bold text-white leading-snug text-center line-clamp-2">
-                {abbreviateForCard(account.name)}
-              </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2">
+                <span className="min-w-0 flex-1 truncate text-[13px] font-bold leading-tight text-heading">
+                  {account.name}
+                </span>
+                {account.score !== null ? (
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {account.score}/5
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+                {account.sector ? (
+                  <span className="max-w-[11rem] truncate">{account.sector}</span>
+                ) : null}
+                {account.status ? (
+                  <span className="capitalize">{account.status.replaceAll("_", " ")}</span>
+                ) : null}
+                <span>{account.contactCount} contact{account.contactCount > 1 ? "s" : ""}</span>
+                {account.taskCount > 0 ? (
+                  <span>{account.taskCount} tâche{account.taskCount > 1 ? "s" : ""}</span>
+                ) : null}
+                {account.segment ? (
+                  <span className="max-w-[10rem] truncate">{account.segment}</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 pl-1">
+              {account.priority === "haute" ? (
+                <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-warning">
+                  Priorité
+                </span>
+              ) : null}
+              <svg className="size-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </button>
-          <div className="border-t border-border bg-surface p-2">
-            <ContextualCommunicationButton
-              entryPoint={account.status === "ancien_client" ? "former_client" : "account_row"}
-              companyId={account.id}
-              companyName={account.name}
-              primaryEntity={{ type: "company", id: account.id }}
-              label={account.status === "ancien_client" ? "Réactiver" : "Rédiger"}
-              className="h-9 min-h-9 w-full px-2 text-[11px]"
-              aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
-              refs={{
-                angle: [
-                  account.sector ? `Secteur: ${account.sector}` : null,
-                  account.segment ? `Segment: ${account.segment}` : null,
-                ].filter(Boolean).join(" · ") || undefined,
-              }}
-            />
-          </div>
         </div>
       ))}
     </div>
   )
+}
+
+function useMobilePriorityAccounts(device: DashboardDevice) {
+  const [priorityIds, setPriorityIds] = useState<string[]>([])
+
+  useEffect(() => {
+    if (device !== "mobile") return
+
+    const syncPriorityIds = () => {
+      setPriorityIds(readMobilePriorityAccountIds())
+    }
+
+    syncPriorityIds()
+
+    const customEventName = getMobilePriorityAccountsChangeEvent()
+    window.addEventListener("storage", syncPriorityIds)
+    window.addEventListener(customEventName, syncPriorityIds)
+
+    return () => {
+      window.removeEventListener("storage", syncPriorityIds)
+      window.removeEventListener(customEventName, syncPriorityIds)
+    }
+  }, [device])
+
+  return priorityIds
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -918,13 +934,11 @@ function ContactsDesktop({
   onOpenIdentity,
   onOpenCompanyIdentity,
   onEdit,
-  onDelete,
 }: {
   contacts: ContactRow[]
   onOpenIdentity: (contactId: string) => void
   onOpenCompanyIdentity: (companyId: string) => void
   onEdit: (contact: ContactRow) => void
-  onDelete: (contact: ContactRow) => void
 }) {
   return (
     <SurfaceCard className="overflow-hidden">
@@ -1120,6 +1134,7 @@ export function ProspectionAccountsView({
   const { openCompany: openCompanyDrawer, openContact: openContactDrawer } = useCrmDrawer()
 
   const processedDrawerRef = useRef<string | null>(null)
+  const mobilePriorityAccountIds = useMobilePriorityAccounts(device)
 
   useEffect(() => {
     const drawerId = searchParams.get("drawer")
@@ -1139,7 +1154,7 @@ export function ProspectionAccountsView({
         }
       }, 100)
     }
-  }, [searchParams, setParam])
+  }, [searchParams, setParam, openCompanyDrawer])
 
   // URL is the source of truth for tab + filters.
   const filters = useMemo(
@@ -1201,10 +1216,17 @@ export function ProspectionAccountsView({
   }, [filteredAccounts, filters.sortAccounts, device])
 
   // Device-aware display limits applied AFTER filtering — never before.
-  // Mobile grid is compact enough to handle the full dataset (~96 companies).
-  const displayAccounts = useMemo(
+  const limitedAccounts = useMemo(
     () => sortedAccounts.slice(0, device === "mobile" ? 300 : 160),
     [sortedAccounts, device]
+  )
+  const displayAccounts = useMemo(
+    () => (
+      device === "mobile"
+        ? sortIdsByPriority(limitedAccounts, mobilePriorityAccountIds)
+        : limitedAccounts
+    ),
+    [device, limitedAccounts, mobilePriorityAccountIds]
   )
   const displayContacts = useMemo(
     () => filteredContacts.slice(0, device === "mobile" ? 60 : 200),
@@ -1496,8 +1518,6 @@ export function ProspectionAccountsView({
             onOpenIntelligence={(account) =>
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
             }
-            onEdit={(a) => setCompanyModal({ open: true, editing: a })}
-            onDelete={(a) => setDeleteTarget({ kind: "company", item: a })}
           />
         )
       )}
@@ -1520,7 +1540,6 @@ export function ProspectionAccountsView({
               openCompanyDrawer(companyId)
             }}
             onEdit={(c) => setContactModal({ open: true, editing: c })}
-            onDelete={(c) => setDeleteTarget({ kind: "contact", item: c })}
           />
         )
       )}

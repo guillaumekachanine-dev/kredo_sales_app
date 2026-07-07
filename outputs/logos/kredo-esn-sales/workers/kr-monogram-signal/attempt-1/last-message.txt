@@ -1,5 +1,0 @@
-Native image generation was invoked exactly once, but the generated PNG was not exposed as a filesystem path or binary I could save to the requested location.
-
-I wrote the required failed result JSON at:
-
-[outputs/logos/kredo-esn-sales/workers/kr-monogram-signal/attempt-1/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-esn-sales/workers/kr-monogram-signal/attempt-1/result.json)

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef } from "react"
+import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { SectionTab } from "@/lib/navigation/main-menu.config"
 import { cn } from "@/lib/utils"
 
@@ -66,6 +67,36 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
                   Bientôt
                 </span>
               </div>
+            )
+          }
+
+          if (tab.href === "/prospection/accounts") {
+            return (
+              <button
+                key={tab.href}
+                type="button"
+                onClick={() => {
+                  onSelect()
+                  openMobileAccountQuickSearch()
+                }}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "group relative flex shrink-0 items-center justify-center px-3.5 text-xs whitespace-nowrap transition-[color,opacity] duration-[var(--motion-duration-fast)] active:scale-95",
+                  "focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-white/40 focus-visible:ring-offset-0",
+                  isActive
+                    ? "text-primary-fg font-medium"
+                    : "text-primary-fg/55 hover:text-primary-fg/85"
+                )}
+              >
+                {tab.shortLabel ?? tab.label}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute bottom-1.5 left-1/2 h-[2px] -translate-x-1/2 rounded-full bg-primary-fg transition-all duration-300 ease-out",
+                    isActive ? "w-5 opacity-100" : "w-0 opacity-0"
+                  )}
+                />
+              </button>
             )
           }
 

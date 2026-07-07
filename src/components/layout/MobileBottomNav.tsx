@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
+import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MobileBottomNav — Barre de navigation mobile fixe (menu central)
@@ -52,7 +53,7 @@ export function MobileBottomNav({
       label: "CRM",
       icon: "crm",
       isActive: pathname.startsWith("/prospection"),
-      href: "/prospection",
+      href: "/prospection/accounts",
       type: "link" as const,
     },
     {
@@ -151,6 +152,23 @@ export function MobileBottomNav({
             >
               {inner}
             </button>
+          )
+        }
+
+        if (btn.id === "crm") {
+          return (
+            <Link
+              key={btn.id}
+              href="/prospection/accounts"
+              onClick={() => {
+                openMobileAccountQuickSearch()
+              }}
+              aria-label={btn.label}
+              aria-current={isActive ? "page" : undefined}
+              className={className}
+            >
+              {inner}
+            </Link>
           )
         }
 

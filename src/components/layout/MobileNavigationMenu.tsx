@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { getNavigationIcon } from "./navigation-icons"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { cn } from "@/lib/utils"
 import styles from "./MobileNavigationMenu.module.css"
 
@@ -249,6 +250,23 @@ function ExpandedTabs({
                 <span className={styles.tabIcon}>{getNavigationIcon(tab.icon)}</span>
                 <span className={styles.tabLabel}>{tab.shortLabel ?? tab.label}</span>
               </div>
+            )
+          }
+
+          if (tab.href === "/prospection/accounts") {
+            return (
+              <button
+                key={tab.href}
+                type="button"
+                onClick={() => {
+                  onNavigate()
+                  openMobileAccountQuickSearch()
+                }}
+                className={className}
+              >
+                <span className={styles.tabIcon}>{getNavigationIcon(tab.icon)}</span>
+                <span className={styles.tabLabel}>{tab.shortLabel ?? tab.label}</span>
+              </button>
             )
           }
 

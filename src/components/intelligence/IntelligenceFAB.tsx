@@ -24,6 +24,7 @@ import {
   type PitchMailAccountContext,
 } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
+import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
 
 type AccountPanelAction = "pitch" | "summary" | null
@@ -131,16 +132,16 @@ function QuickAccessLink({
   label,
   iconSrc,
   href,
+  onClick,
 }: {
   label: string
   iconSrc: string
-  href: string
+  href?: string
+  onClick?: () => void
 }) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-2xl bg-white/[0.18] px-3 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.24] active:scale-[0.98]"
-    >
+  const className = "group flex items-center gap-3 rounded-2xl bg-white/[0.18] px-3 py-2.5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:bg-white/[0.24] active:scale-[0.98]"
+  const content = (
+    <>
       <Image
         src={iconSrc}
         alt=""
@@ -152,6 +153,20 @@ function QuickAccessLink({
       <svg className="size-3.5 shrink-0 text-white/70 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>
+    </>
+  )
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <Link href={href ?? "/cockpit"} className={className}>
+      {content}
     </Link>
   )
 }
@@ -339,9 +354,9 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
         <MobileSectionHeading title="Accès rapides" />
         <div className="grid grid-cols-1 gap-2">
           <QuickAccessLink
-            href="/prospection/accounts"
             label="Accéder aux comptes"
             iconSrc={cockpitActionIcons.prioritizeAccounts}
+            onClick={() => openMobileAccountQuickSearch()}
           />
           <QuickAccessLink
             href="/prospection/suivi"

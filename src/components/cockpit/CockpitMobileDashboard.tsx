@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
@@ -25,7 +24,8 @@ import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
-import { IconStage, IconContact, IconRadar, IconContactCard, IconCalendar } from "./mobile/icons"
+import { IconStage, IconContact, IconRadar, IconContactCard } from "./mobile/icons"
+import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { cn } from "@/lib/utils"
 
 import "./mobile/cockpit-mobile.css"
@@ -166,8 +166,9 @@ export function CockpitMobileDashboard({
         if (need && need.companyId) {
           openCompanyDrawer(need.companyId)
         } else {
-          triggerToast("Redirection vers comptes de prospection")
-          router.push("/prospection/accounts")
+          triggerToast("Sélection d'un compte")
+          setContextSheet({ kind: null, label: "" })
+          openMobileAccountQuickSearch()
         }
       } else if (cleanLabel.includes("financière")) {
         triggerToast("Simulation financière: À RÉSOUDRE (seam finance)")
@@ -221,7 +222,8 @@ export function CockpitMobileDashboard({
   }
 
   // Drawers trigger helpers
-  const handleCompanyDrawerOpen = (companyId: string | null, _label: string) => {
+  const handleCompanyDrawerOpen = (companyId: string | null, label: string) => {
+    void label
     if (companyId) {
       openCompanyDrawer(companyId)
     } else {
@@ -229,7 +231,8 @@ export function CockpitMobileDashboard({
     }
   }
 
-  const handleContactDrawerOpen = (contactId: string | null, _label: string) => {
+  const handleContactDrawerOpen = (contactId: string | null, label: string) => {
+    void label
     if (contactId) {
       openContactDrawer(contactId)
     } else {
