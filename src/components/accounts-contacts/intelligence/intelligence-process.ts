@@ -59,7 +59,9 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
 } {
   switch (stepKey) {
     case "connaissance": {
-      const hasEngine = data.client?.source === "engine"
+      // ADR-0012 Lot 2 : `client` (FOLIO) et `accountKnowledge` (moteur) sont
+      // deux champs distincts depuis Lot 2 — plus jamais client.source==="engine".
+      const hasEngine = data.accountKnowledge !== null
       const hasFolio = data.client?.source === "folio"
       if (hasEngine) {
         return { label: "Disponible", tone: "success" }

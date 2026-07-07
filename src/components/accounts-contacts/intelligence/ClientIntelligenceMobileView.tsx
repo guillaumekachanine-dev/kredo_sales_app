@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useRef, useEffect, Fragment } from "react"
+import { useState, useRef, useEffect, useMemo, Fragment } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
+import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import type { AccountKnowledgeContent } from "@/lib/intelligence/account-intelligence-contracts"
 import {
   lifecycleLabel,
   ProvenanceBadge,
@@ -12,6 +14,12 @@ import {
   SignalList,
   FreshnessLine,
 } from "./intelligence-parts"
+import {
+  ContactsKeyCard,
+  CommercialRelationCard,
+  AccountSignalsCard,
+  AccountKnowledgeGeneratedContent,
+} from "./AccountKnowledgeBlocks"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -27,7 +35,6 @@ import {
   SectorAnalysisContent,
   ProcessDiagnosticContent,
   ClientAnalysisIcon,
-  SectorStudyIcon,
   ProcessDiagnosticIcon,
   PlusCircleIcon,
   ExpandIcon,
@@ -36,19 +43,80 @@ import {
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
 
+type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
+
 export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
-  const { company, client, sector, diagnostic, diagnosticPdfUrl, signals } = data
+  const { company, client, sector, diagnostic, diagnosticPdfUrl, signals, contacts, opportunities, missions, accountSignals } = data
+  const supabase = useMemo(() => createBrowserClient(), [])
 
   const [activePanel, setActivePanel] = useState<TabKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
   const [veilleMessage, setVeilleMessage] = useState<string | null>(null)
-  const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "sector" | "processus" | null>(null)
+  const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
   const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
   const [scoreModalOpen, setScoreModalOpen] = useState(false)
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
+
+  // ADR-0012 Lot 2 — même pattern que le desktop : contenu généré démarre avec
+  // le dernier run persisté, remplacé en Realtime dès qu'un nouveau run réussit.
+  const [knowledgeContent, setKnowledgeContent] = useState(data.accountKnowledge?.data ?? null)
+  const [knowledgeResultId, setKnowledgeResultId] = useState(data.accountKnowledge?.resultId ?? null)
+  const [knowledgeRunStatus, setKnowledgeRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [knowledgeRunId, setKnowledgeRunId] = useState<string | null>(null)
+  const [knowledgeErrorMsg, setKnowledgeErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!knowledgeRunId) return
+    const channel = supabase
+      .channel(`account-knowledge-result-mobile-${knowledgeRunId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${knowledgeRunId}` },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; content_json: AccountKnowledgeContent }
+          if (row.status === "succeeded") {
+            setKnowledgeContent(row.content_json)
+            setKnowledgeResultId(row.id)
+            setKnowledgeRunStatus("done")
+          } else if (row.status === "failed") {
+            setKnowledgeErrorMsg("La génération a échoué. Réessaie plus tard.")
+            setKnowledgeRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [knowledgeRunId])
+
+  async function handleGenerateKnowledge() {
+    setKnowledgeRunStatus("loading")
+    setKnowledgeErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-030-account-knowledge",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setKnowledgeRunId(newRunId)
+    } catch (err) {
+      setKnowledgeErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setKnowledgeRunStatus("error")
+    }
+  }
 
   useEffect(() => {
     const dialog = pdfDialogRef.current
@@ -112,8 +180,37 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         <div className="flex flex-col gap-4 mt-1">
           {activePanel === "connaissance" && (
             <>
-              {/* 3 analyses sous forme d'icônes sur une seule ligne */}
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              {/* ADR-0012 Lot 2 — blocs relationnels toujours disponibles (sans run n8n) */}
+              <div className="space-y-3 mb-3">
+                <ContactsKeyCard contacts={contacts} />
+                <CommercialRelationCard opportunities={opportunities} missions={missions} />
+                <AccountSignalsCard signals={accountSignals} />
+              </div>
+
+              {/* Bouton de génération — connaissance compte moteur */}
+              <button
+                type="button"
+                onClick={handleGenerateKnowledge}
+                disabled={knowledgeRunStatus === "loading"}
+                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
+              >
+                {knowledgeRunStatus === "loading" ? "Génération en cours…" : "Actualiser la connaissance compte"}
+              </button>
+              {knowledgeErrorMsg && (
+                <p className="mb-3 text-[11px] font-medium text-danger">{knowledgeErrorMsg}</p>
+              )}
+
+              {knowledgeContent && knowledgeResultId && (
+                <div className="mb-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+                    Synthèse générée (moteur IA)
+                  </p>
+                  <AccountKnowledgeGeneratedContent data={knowledgeContent} resultId={knowledgeResultId} />
+                </div>
+              )}
+
+              {/* 2 analyses sous forme d'icônes sur une seule ligne */}
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   type="button"
                   onClick={() => setSelectedAnalysis(selectedAnalysis === "client" ? null : "client")}
@@ -126,20 +223,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 >
                   <ClientAnalysisIcon className="h-6 w-6" />
                   <span className="text-[10px] font-bold leading-tight">Analyse client</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedAnalysis(selectedAnalysis === "sector" ? null : "sector")}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-2 p-2.5 rounded-xl border text-center transition-all cursor-pointer min-h-[90px]",
-                    selectedAnalysis === "sector"
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-surface hover:bg-surface-hover text-muted"
-                  )}
-                >
-                  <SectorStudyIcon className="h-6 w-6" />
-                  <span className="text-[10px] font-bold leading-tight">Étude sectorielle</span>
                 </button>
 
                 <button
@@ -217,30 +300,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 )
               )}
 
-              {selectedAnalysis === "sector" && (
-                sector ? (
-                  <>
-                    {/* Cadre indiquant la date de réalisation / dernière mise à jour */}
-                    <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
-                      <div>
-                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
-                        <div className="mt-1">
-                          <FreshnessLine
-                            latestRunAt={data.freshness.latestRunAt}
-                            latestRunStatus={data.freshness.latestRunStatus}
-                            fallbackSource={sector.source}
-                          />
-                        </div>
-                      </div>
-                      <ProvenanceBadge source={sector.source} />
-                    </div>
-                    <SectorAnalysisContent data={sector.data} />
-                  </>
-                ) : (
-                  <p className="text-xs text-muted italic">Aucune étude sectorielle disponible.</p>
-                )
-              )}
-
               {selectedAnalysis === "processus" && (
                 diagnosticPdfUrl && !pdfDialogOpen ? (
                   <div className="h-[70vh] min-h-[400px]">
@@ -304,12 +363,31 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
           {activePanel === "secteur" && (
-            <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                Intelligence sectorielle à connecter.
-              </span>
-              <span className="text-[11px] text-muted/70">Disponible au lot 3</span>
-            </div>
+            sector ? (
+              <>
+                <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
+                    <div className="mt-1">
+                      <FreshnessLine
+                        latestRunAt={data.freshness.latestRunAt}
+                        latestRunStatus={data.freshness.latestRunStatus}
+                        fallbackSource={sector.source}
+                      />
+                    </div>
+                  </div>
+                  <ProvenanceBadge source={sector.source} />
+                </div>
+                <SectorAnalysisContent data={sector.data} />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted">
+                  Intelligence sectorielle à connecter.
+                </span>
+                <span className="text-[11px] text-muted/70">Disponible au lot 3</span>
+              </div>
+            )
           )}
 
           {activePanel === "enjeux" && (

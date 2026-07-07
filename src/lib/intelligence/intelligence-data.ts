@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { getAccountScoreSummary, type AccountScoreSummaryView } from "@/lib/account-scoring/get-account-score-summary"
+import {
+  ACCOUNT_KNOWLEDGE_RESULT_TYPE,
+  SECTOR_SNAPSHOT_RESULT_TYPE,
+  type AccountKnowledgeContent,
+} from "@/lib/intelligence/account-intelligence-contracts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -87,6 +92,49 @@ export type ClientIntelligenceContact = {
   jobTitle: string | null
   relationshipRole: string | null
   email: string | null
+  // ADR-0012 Lot 2 — enrichissement "carte des interlocuteurs" (étape Connaissance
+  // compte). Optionnels : ce type est aussi construit ailleurs (panneau global,
+  // composeur de communication, rapports) avec un sous-ensemble minimal de champs.
+  department?: string | null
+  decisionPower?: string | null
+  relationshipLevel?: string | null
+  isPriority?: boolean
+}
+
+// ADR-0012 Lot 2 — blocs relationnels "Connaissance compte", haute confiance
+// (provenance="relational") car lus directement depuis les tables KREDO, pas
+// depuis une génération LLM. Disponibles immédiatement, sans run n8n.
+export type ClientIntelligenceOpportunity = {
+  id: string
+  title: string
+  stage: string
+  opportunityType: string
+  estimatedGain: number | null
+  weightedGain: number | null
+  nextActionLabel: string | null
+  nextActionAt: string | null
+  closedAt: string | null
+}
+
+export type ClientIntelligenceMission = {
+  id: string
+  title: string
+  roleTitle: string | null
+  practice: string | null
+  status: string
+  startDate: string | null
+  endDate: string | null
+  grossMarginPct: number | null
+}
+
+export type ClientIntelligenceSignal = {
+  id: string
+  category: string | null
+  type: string | null
+  title: string
+  summary: string | null
+  detectedAt: string
+  expiresAt: string | null
 }
 
 export type ClientIntelligenceData = {
@@ -111,6 +159,11 @@ export type ClientIntelligenceData = {
   }
   presence: ClientIntelligencePresence
   client: { data: AnalyseClient; source: IntelligenceSource } | null
+  // ADR-0012 Lot 2 — contrat riche "Connaissance compte" (schema_version 1),
+  // distinct de `client` (forme FOLIO historique). null tant qu'aucun run
+  // account_knowledge n'a réussi (workflow intel-030 pas encore importé sur le
+  // VPS) — l'UI retombe alors sur `client` (FOLIO) exactement comme avant.
+  accountKnowledge: { data: AccountKnowledgeContent; resultId: string } | null
   sector: { data: AnalyseSector; source: IntelligenceSource } | null
   diagnostic: { data: AnalyseDiagnostic; source: IntelligenceSource } | null
   signals: string[]
@@ -121,6 +174,14 @@ export type ClientIntelligenceData = {
   // encore été calculé pour ce compte (état initial, avant le premier clic
   // sur "Actualiser").
   scoreSummary: AccountScoreSummaryView | null
+  // ADR-0012 Lot 2 — blocs relationnels "Connaissance compte" (relational, sans LLM)
+  opportunities: ClientIntelligenceOpportunity[]
+  missions: ClientIntelligenceMission[]
+  accountSignals: ClientIntelligenceSignal[]
+  // id du dernier résultat account_knowledge réussi — cible des Server Actions
+  // de curation (confirmer/écarter/épingler un fait). null tant qu'aucun run
+  // n'a produit de account_knowledge (Lot 2 : workflow pas encore importé sur le VPS).
+  accountKnowledgeResultId: string | null
 }
 
 // ADR-0009 — historique des générations de pitch moteur (onglet Stratégie).
@@ -204,6 +265,18 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
       tendances: str(contexte.tendances_sectorielles),
     },
   }
+}
+
+/**
+ * ADR-0012 Lot 2 — parseur du contrat account_knowledge (schema_version 1),
+ * distinct de parseAnalyseClient (forme FOLIO). Ne PAS fusionner : les deux
+ * schémas n'ont aucun champ en commun, volontairement (la connaissance compte
+ * est plus riche que l'ancienne analyse client, cf. ADR-0012 §5 étape 1).
+ */
+function parseAccountKnowledgeContent(raw: unknown): AccountKnowledgeContent | null {
+  const root = asRecord(raw)
+  if (root.schema_version !== 1) return null
+  return root as unknown as AccountKnowledgeContent
 }
 
 function parseAnalyseDiagnostic(raw: unknown): AnalyseDiagnostic | null {
@@ -309,6 +382,7 @@ type SummaryRow = {
 }
 
 type ResultRow = {
+  id: string
   phase: number
   result_type: string
   content_json: unknown
@@ -319,11 +393,51 @@ type ResultRow = {
 type ContactRow = {
   id: string
   job_title: string | null
+  department: string | null
   relationship_role: string | null
+  decision_power: string | null
+  relationship_level: string | null
+  is_priority: boolean | null
   persons: { full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null }
     | { full_name: string | null; first_name: string | null; last_name: string | null; primary_email: string | null }[]
     | null
 }
+
+type OpportunityRow = {
+  id: string
+  title: string
+  stage: string
+  opportunity_type: string
+  estimated_gain: number | string | null
+  weighted_gain: number | string | null
+  next_action_label: string | null
+  next_action_at: string | null
+  closed_at: string | null
+}
+
+type MissionRow = {
+  id: string
+  title: string
+  role_title: string | null
+  practice: string | null
+  status: string
+  start_date: string | null
+  end_date: string | null
+  gross_margin_pct: number | string | null
+}
+
+type AccountSignalRow = {
+  id: string
+  signal_category: string | null
+  signal_type: string | null
+  title: string
+  summary: string | null
+  status: string
+  detected_at: string
+  expires_at: string | null
+}
+
+const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
 type PitchDocumentRow = {
   id: string
@@ -357,7 +471,17 @@ export async function getClientIntelligence(
   const supabaseReal = await createClient()
   const supabase = supabaseReal as unknown as LooseClient
 
-  const [companyResult, summaryResult, resultsResult, contactsResult, pitchDocumentsResult, scoreSummary] = await Promise.all([
+  const [
+    companyResult,
+    summaryResult,
+    resultsResult,
+    contactsResult,
+    pitchDocumentsResult,
+    scoreSummary,
+    opportunitiesResult,
+    missionsResult,
+    accountSignalsResult,
+  ] = await Promise.all([
     supabase
       .from("companies")
       .select<CompanyRow>(
@@ -374,16 +498,21 @@ export async function getClientIntelligence(
       .maybeSingle(),
     supabase
       .from("ai_intelligence_results")
-      .select<ResultRow>("phase,result_type,content_json,metadata,created_at")
+      .select<ResultRow>("id,phase,result_type,content_json,metadata,created_at")
       .eq("company_id", companyId)
       .eq("status", "succeeded")
       .order("created_at", { ascending: false }),
+    // ADR-0012 Lot 2 : enrichi (department/decision_power/relationship_level/
+    // is_priority) et remonté de 6 à 50 — sert désormais la "carte des
+    // interlocuteurs" de Connaissance compte, pas seulement un aperçu.
     supabase
       .from("contacts")
-      .select<ContactRow>("id,job_title,relationship_role,persons(full_name,first_name,last_name,primary_email)")
+      .select<ContactRow>(
+        "id,job_title,department,relationship_role,decision_power,relationship_level,is_priority,persons(full_name,first_name,last_name,primary_email)",
+      )
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
-      .limit(6),
+      .limit(50),
     supabase
       .from("intelligence_documents")
       .select<PitchDocumentRow>("id,title,status,current_content_json,created_at")
@@ -393,6 +522,26 @@ export async function getClientIntelligence(
       .order("created_at", { ascending: false })
       .limit(5),
     getAccountScoreSummary(companyId),
+    supabase
+      .from("opportunities")
+      .select<OpportunityRow>(
+        "id,title,stage,opportunity_type,estimated_gain,weighted_gain,next_action_label,next_action_at,closed_at",
+      )
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("missions")
+      .select<MissionRow>("id,title,role_title,practice,status,start_date,end_date,gross_margin_pct")
+      .eq("company_id", companyId)
+      .order("start_date", { ascending: false, nullsFirst: false })
+      .limit(20),
+    supabase
+      .from("account_signals")
+      .select<AccountSignalRow>("id,signal_category,signal_type,title,summary,status,detected_at,expires_at")
+      .eq("company_id", companyId)
+      .order("detected_at", { ascending: false })
+      .limit(15),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
@@ -403,21 +552,41 @@ export async function getClientIntelligence(
   const results = resultsResult.data ?? []
   const metadata = asRecord(company.metadata)
 
-  // Source de vérité : moteur d'abord (phase succeeded), sinon fallback FOLIO.
-  const enginePhase1 = results.find((r) => r.phase === 1)?.content_json
-  const enginePhase2 = results.find((r) => r.phase === 2)?.content_json
-  const enginePhase3 = results.find((r) => r.phase === 3)?.content_json
+  // Source de vérité : moteur d'abord (result_type succeeded), sinon fallback
+  // FOLIO. ADR-0012 D-5 : `phase` est déprécié comme clé de matching — la
+  // phase 1 héberge aussi des rapports (client_summary, activity_commercial,
+  // weekly_manager) qui n'ont pas la forme d'une analyse client. Matcher sur
+  // `phase === 1` seul faisait passer le rapport le plus récent d'un compte
+  // pour son "analyse client moteur" (bug live corrigé ici, cf. ADR-0012 Lot 1).
+  //
+  // Aucun résultat account_knowledge/sector_snapshot n'existe encore (Lots 2/3
+  // à venir) : ces deux lookups renvoient donc undefined aujourd'hui et le
+  // fallback FOLIO s'applique correctement — c'est le comportement attendu.
+  const engineAccountKnowledge = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.content_json
+  const engineSectorSnapshot = results.find((r) => r.result_type === SECTOR_SNAPSHOT_RESULT_TYPE)?.content_json
+  const engineProcessDiagnostic = results.find((r) => r.result_type === "process_diagnostic")?.content_json
 
+  // FOLIO reste la seule source du contrat `AnalyseClient` (legacy) tant que
+  // le workflow intel-030 n'a rien produit — `engineAccountKnowledge` a un
+  // schéma différent (AccountKnowledgeContent) et est exposé séparément
+  // ci-dessous via `accountKnowledge`, pas fusionné dans `client`.
   let client: ClientIntelligenceData["client"] = null
-  const clientFromEngine = parseAnalyseClient(enginePhase1)
-  if (clientFromEngine) client = { data: clientFromEngine, source: "engine" }
-  else {
-    const clientFromFolio = parseAnalyseClient(metadata.analysis_data)
-    if (clientFromFolio) client = { data: clientFromFolio, source: "folio" }
+  const clientFromFolio = parseAnalyseClient(metadata.analysis_data)
+  if (clientFromFolio) client = { data: clientFromFolio, source: "folio" }
+
+  const accountKnowledgeResultRow = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)
+  let accountKnowledge: ClientIntelligenceData["accountKnowledge"] = null
+  const accountKnowledgeContent = parseAccountKnowledgeContent(engineAccountKnowledge)
+  if (accountKnowledgeContent && accountKnowledgeResultRow) {
+    accountKnowledge = { data: accountKnowledgeContent, resultId: accountKnowledgeResultRow.id }
   }
 
+  // Note Lot 3 : engineSectorSnapshot suivra le contrat SectorSnapshotContent
+  // (sector_id/top_pain_points/...), pas la forme FOLIO — parseAnalyseSector
+  // ne le parsera pas correctement une fois le Lot 3 livré. Sans effet
+  // aujourd'hui : aucun résultat sector_snapshot n'existe encore.
   let sector: ClientIntelligenceData["sector"] = null
-  const sectorFromEngine = parseAnalyseSector(enginePhase2)
+  const sectorFromEngine = parseAnalyseSector(engineSectorSnapshot)
   if (sectorFromEngine) sector = { data: sectorFromEngine, source: "engine" }
   else {
     const sectorFromFolio = parseAnalyseSector(metadata.sector_analysis)
@@ -425,12 +594,12 @@ export async function getClientIntelligence(
   }
 
   let diagnostic: ClientIntelligenceData["diagnostic"] = null
-  const diagnosticFromEngine = parseAnalyseDiagnostic(enginePhase3)
+  const diagnosticFromEngine = parseAnalyseDiagnostic(engineProcessDiagnostic)
   if (diagnosticFromEngine) diagnostic = { data: diagnosticFromEngine, source: "engine" }
 
   // Signed URL pour le PDF source (bucket privé, valide 1h)
   let diagnosticPdfUrl: string | null = null
-  const phase3Meta = asRecord(results.find((r) => r.phase === 3)?.metadata)
+  const phase3Meta = asRecord(results.find((r) => r.result_type === "process_diagnostic")?.metadata)
   const pdfStoragePath = str(phase3Meta.pdf_storage_path)
   const pdfBucket = str(phase3Meta.pdf_bucket) || "ai_intelligence_process_diagnostics"
   if (pdfStoragePath) {
@@ -455,8 +624,53 @@ export async function getClientIntelligence(
       jobTitle: row.job_title,
       relationshipRole: row.relationship_role,
       email: person?.primary_email ?? null,
+      department: row.department,
+      decisionPower: row.decision_power,
+      relationshipLevel: row.relationship_level,
+      isPriority: Boolean(row.is_priority),
     }
   })
+
+  const opportunities: ClientIntelligenceOpportunity[] = (opportunitiesResult.data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    stage: row.stage,
+    opportunityType: row.opportunity_type,
+    estimatedGain: toNumber(row.estimated_gain),
+    weightedGain: toNumber(row.weighted_gain),
+    nextActionLabel: row.next_action_label,
+    nextActionAt: row.next_action_at,
+    closedAt: row.closed_at,
+  }))
+
+  const missions: ClientIntelligenceMission[] = (missionsResult.data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    roleTitle: row.role_title,
+    practice: row.practice,
+    status: row.status,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    grossMarginPct: toNumber(row.gross_margin_pct),
+  }))
+
+  const accountSignals: ClientIntelligenceSignal[] = (accountSignalsResult.data ?? [])
+    .filter((row) => {
+      if (DISMISSED_SIGNAL_STATUSES.has(row.status)) return false
+      if (row.expires_at && new Date(row.expires_at) < new Date()) return false
+      return true
+    })
+    .map((row) => ({
+      id: row.id,
+      category: row.signal_category,
+      type: row.signal_type,
+      title: row.title,
+      summary: row.summary,
+      detectedAt: row.detected_at,
+      expiresAt: row.expires_at,
+    }))
+
+  const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
 
   return {
     error: null,
@@ -489,6 +703,7 @@ export async function getClientIntelligence(
         hasLegacyPitches: Boolean(summary?.has_legacy_pitches),
       },
       client,
+      accountKnowledge,
       sector,
       diagnostic,
       diagnosticPdfUrl,
@@ -496,6 +711,10 @@ export async function getClientIntelligence(
       contacts,
       pitches: parsePitches(metadata.pitches),
       scoreSummary,
+      opportunities,
+      missions,
+      accountSignals,
+      accountKnowledgeResultId,
       pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
         const content = asRecord(row.current_content_json)
         const kind = content.kind === "spoken_pitch" || content.kind === "meeting_briefing" ? content.kind : null

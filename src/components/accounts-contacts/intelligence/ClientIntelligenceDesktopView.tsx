@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useRef, useEffect, Fragment, type ReactNode } from "react"
+import { useState, useRef, useEffect, useMemo, Fragment, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
+import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
+import type { AccountKnowledgeContent } from "@/lib/intelligence/account-intelligence-contracts"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
@@ -16,6 +18,12 @@ import {
   SignalList,
   TagList,
 } from "./intelligence-parts"
+import {
+  ContactsKeyCard,
+  CommercialRelationCard,
+  AccountSignalsCard,
+  AccountKnowledgeGeneratedContent,
+} from "./AccountKnowledgeBlocks"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -155,8 +163,16 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
             />
           )}
           {activeTab === "secteur" && (
-            <div className="pt-6">
-              <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>
+            <div className="mx-auto max-w-4xl pt-6">
+              {/* ADR-0012 Lot 0/2 : le contenu sectoriel (FOLIO ou moteur) vit
+                  désormais ici, plus dans "Connaissance compte". Le Lot 3
+                  remplacera cette lecture directe par un snapshot déterministe
+                  mutualisé (sector_intelligence) — sans changer cet emplacement UI. */}
+              {data.sector ? (
+                <SectorAnalysisContent data={data.sector.data} />
+              ) : (
+                <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>
+              )}
             </div>
           )}
           {activeTab === "enjeux" && (
@@ -171,7 +187,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           )}
           {activeTab === "roadmap" && (
             <div className="pt-6">
-              <ComingSoon lot="lot G">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
+              <ComingSoon lot="lot 6">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
             </div>
           )}
         </main>
@@ -364,7 +380,7 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
 
 // ─── Onglet Analyse — sélecteur + raccourcis + sections aérées ───────────────
 
-export type AnalysisTypeKey = "client" | "sector" | "process"
+export type AnalysisTypeKey = "client" | "process"
 
 const ANALYSIS_CATALOG: {
   key: AnalysisTypeKey
@@ -377,12 +393,6 @@ const ANALYSIS_CATALOG: {
     label: "Analyse client",
     subtitle: "Portrait stratégique · signaux · contexte business",
     icon: ClientAnalysisIcon,
-  },
-  {
-    key: "sector",
-    label: "Étude sectorielle",
-    subtitle: "Marché · acteurs · concurrence · normatif",
-    icon: SectorStudyIcon,
   },
   {
     key: "process",
@@ -400,14 +410,6 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
     { id: "ac-signaux",        label: "Signaux",         icon: SectionSignauxIcon },
     { id: "ac-contexte",       label: "Contexte",        icon: SectionContexteIcon },
   ],
-  sector: [
-    { id: "se-synthese",    label: "Synthèse",    icon: SectionSyntheseIcon },
-    { id: "se-marche",      label: "Marché",       icon: SectionMarcheIcon },
-    { id: "se-segments",    label: "Segments",    icon: SectionSegmentsIcon },
-    { id: "se-acteurs",     label: "Acteurs",     icon: SectionActeursIcon },
-    { id: "se-concurrence", label: "Concurrence", icon: SectionConcurrenceIcon },
-    { id: "se-normatif",    label: "Normatif",    icon: SectionNormatifIcon },
-  ],
   process: [
     { id: "dp-synthese",      label: "Synthèse",      icon: SectionSyntheseIcon },
     { id: "dp-activites",     label: "Activités",      icon: SectionCartographieIcon },
@@ -416,6 +418,8 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
     { id: "dp-matrice",       label: "Matrice impact", icon: SectionMatriceIcon },
   ],
 }
+
+type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
 
 function AnalyseTab({
   data,
@@ -427,18 +431,75 @@ function AnalyseTab({
   onExpandViewer: (v: boolean) => void
 }) {
   const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const { client, sector, diagnostic, diagnosticPdfUrl, company } = data
+  const { client, diagnostic, diagnosticPdfUrl, company, contacts, opportunities, missions, accountSignals } = data
+  const supabase = useMemo(() => createBrowserClient(), [])
+
+  // ADR-0012 Lot 2 — le contenu généré (account_knowledge) démarre avec ce que
+  // la page a déjà persisté (run précédent), puis est remplacé en Realtime dès
+  // qu'un nouveau run réussit — même pattern que SummaryDrawerContent/PitchMailDrawerContent.
+  const [knowledgeContent, setKnowledgeContent] = useState(data.accountKnowledge?.data ?? null)
+  const [knowledgeResultId, setKnowledgeResultId] = useState(data.accountKnowledge?.resultId ?? null)
+  const [runStatus, setRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [runId, setRunId] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!runId) return
+    const channel = supabase
+      .channel(`account-knowledge-result-${runId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; content_json: AccountKnowledgeContent }
+          if (row.status === "succeeded") {
+            setKnowledgeContent(row.content_json)
+            setKnowledgeResultId(row.id)
+            setRunStatus("done")
+          } else if (row.status === "failed") {
+            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            setRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId])
+
+  async function handleGenerate() {
+    setRunStatus("loading")
+    setErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-030-account-knowledge",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setRunId(newRunId)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setRunStatus("error")
+    }
+  }
 
   function isAvailable(key: AnalysisTypeKey) {
     if (key === "client") return !!client
-    if (key === "sector") return !!sector
     return !!diagnostic || !!diagnosticPdfUrl
   }
 
   function getSource(key: AnalysisTypeKey): IntelligenceSource {
     if (key === "client") return client?.source ?? "none"
-    if (key === "sector") return sector?.source ?? "none"
     return diagnostic?.source ?? "none"
   }
 
@@ -451,79 +512,93 @@ function AnalyseTab({
   const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
 
   return (
-    <div className="mx-auto max-w-4xl pt-6">
-      {/* ── Sélecteur d'analyse ──────────────────────────────────────────────── */}
-      <div className="mb-6">
-        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
-          Sélectionner une analyse
-        </p>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            {ANALYSIS_CATALOG.map((entry) => {
-              const available = isAvailable(entry.key)
-              const isSelected = selected === entry.key
-              const Icon = entry.icon
-              return (
-                <button
-                  key={entry.key}
-                  type="button"
-                  disabled={!available}
-                  onClick={() => handleSelect(entry.key)}
-                  className={cn(
-                    "group relative flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition-all duration-200 cursor-pointer min-h-[38px]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                    isSelected
-                      ? "border-primary bg-surface"
-                      : available
-                      ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover"
-                      : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  {isSelected && (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full bg-primary"
-                    />
-                  )}
-                  <div className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors duration-200",
-                    isSelected
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
-                  )}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span className={cn(
-                    "font-heading text-xs font-bold leading-tight",
-                    isSelected ? "text-primary" : "text-heading",
-                  )}>
-                    {entry.label}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+    <div className="mx-auto max-w-4xl space-y-6 pt-6">
+      {/* ── Blocs relationnels — toujours disponibles, sans run n8n (ADR-0012 étape 1) ── */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <ContactsKeyCard contacts={contacts} />
+        <CommercialRelationCard opportunities={opportunities} missions={missions} />
+      </div>
+      <AccountSignalsCard signals={accountSignals} />
 
-          {/* Bouton Lancer/actualiser une analyse */}
-          <div className="ml-auto flex items-center gap-3">
-            {message && (
-              <p className="text-[11px] font-medium text-muted">{message}</p>
-            )}
+      {/* ── Synthèse générée (account_knowledge, moteur) — quand disponible ── */}
+      {knowledgeContent && knowledgeResultId && (
+        <div>
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
+            Synthèse générée (moteur IA)
+          </p>
+          <AccountKnowledgeGeneratedContent data={knowledgeContent} resultId={knowledgeResultId} />
+        </div>
+      )}
+
+      {/* ── Sélecteur d'analyse (FOLIO / diagnostic) ─────────────────────────── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
+            Sélectionner une analyse
+          </p>
+          <div className="flex items-center gap-3">
+            {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
             <button
               type="button"
-              onClick={() => setMessage("Lancement de l'analyse en cours...")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px]"
+              onClick={handleGenerate}
+              disabled={runStatus === "loading"}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
             >
-              <RefreshIcon className="h-3.5 w-3.5" />
-              Lancer/actualiser une analyse
+              <RefreshIcon className={cn("h-3.5 w-3.5", runStatus === "loading" && "animate-spin")} />
+              {runStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la connaissance compte"}
             </button>
           </div>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {ANALYSIS_CATALOG.map((entry) => {
+            const available = isAvailable(entry.key)
+            const isSelected = selected === entry.key
+            const Icon = entry.icon
+            return (
+              <button
+                key={entry.key}
+                type="button"
+                disabled={!available}
+                onClick={() => handleSelect(entry.key)}
+                className={cn(
+                  "group relative flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition-all duration-200 cursor-pointer min-h-[38px]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  isSelected
+                    ? "border-primary bg-surface"
+                    : available
+                    ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover"
+                    : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
+                )}
+              >
+                {isSelected && (
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full bg-primary"
+                  />
+                )}
+                <div className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors duration-200",
+                  isSelected
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
+                )}>
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
+                <span className={cn(
+                  "font-heading text-xs font-bold leading-tight",
+                  isSelected ? "text-primary" : "text-heading",
+                )}>
+                  {entry.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* ── Barre de raccourcis (sticky dans le scroll container de <main>) ─── */}
       {selected && activeSections.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-6 mb-5 border-b border-border/30 bg-canvas/90 px-6 py-2.5 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 -mx-6 border-b border-border/30 bg-canvas/90 px-6 py-2.5 backdrop-blur-sm">
           <div className="flex items-center gap-2 overflow-x-auto justify-start">
             {activeSections.map((section) => {
               const SIcon = section.icon
@@ -548,9 +623,6 @@ function AnalyseTab({
       {/* ── Contenu de l'analyse sélectionnée ──────────────────────────────── */}
       {selected === "client" && client && (
         <ClientAnalysisContent data={client.data} />
-      )}
-      {selected === "sector" && sector && (
-        <SectorAnalysisContent data={sector.data} />
       )}
       {selected === "process" && (diagnostic || diagnosticPdfUrl) && !isExpandedViewer && (
         diagnosticPdfUrl ? (
@@ -580,9 +652,10 @@ function AnalyseTab({
         ) : null
       )}
 
-      {/* État vide global */}
-      {!selected && !client && !sector && !diagnostic && (
-        <ComingSoon lot="lot A+">Aucune analyse disponible pour ce compte</ComingSoon>
+      {/* État vide global — n'apparaît que si aucun bloc relationnel ni analyse */}
+      {!selected && !client && !diagnostic && !knowledgeContent
+        && contacts.length === 0 && opportunities.length === 0 && missions.length === 0 && accountSignals.length === 0 && (
+        <ComingSoon lot="lot 2">Aucune connaissance disponible pour ce compte</ComingSoon>
       )}
     </div>
   )

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import type { IntelligenceSource } from "@/lib/intelligence/intelligence-data"
+import type { IntelligenceProvenance } from "@/lib/intelligence/account-intelligence-contracts"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +34,25 @@ export function ProvenanceBadge({ source }: { source: IntelligenceSource }) {
   const { label, cls } = map[source]
   return (
     <span className={cn("inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", cls)}>
+      {label}
+    </span>
+  )
+}
+
+// ADR-0012 D-3 — badge de provenance des faits "Connaissance compte" (enum
+// intelligence_provenance, distinct de IntelligenceSource : plus granulaire,
+// jamais présenté comme une vérité moteur pour folio_legacy/inferred.
+export function FactProvenanceBadge({ provenance }: { provenance: IntelligenceProvenance }) {
+  const map: Record<IntelligenceProvenance, { label: string; cls: string }> = {
+    relational: { label: "KREDO", cls: "bg-primary/10 text-primary border-primary/20" },
+    human_verified: { label: "Vérifié", cls: "bg-success/10 text-success border-success/25" },
+    engine_researched: { label: "Recherche IA", cls: "bg-primary/10 text-primary border-primary/20" },
+    folio_legacy: { label: "FOLIO", cls: "bg-warning/10 text-warning border-warning/25" },
+    inferred: { label: "Déduit", cls: "bg-surface-hover text-muted border-border" },
+  }
+  const { label, cls } = map[provenance]
+  return (
+    <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0", cls)}>
       {label}
     </span>
   )

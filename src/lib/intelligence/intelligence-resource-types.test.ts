@@ -23,9 +23,24 @@ describe("intelligence resource classification", () => {
     expect(classifyIntelligenceResultType("process_diagnostic")).toBe("analyses")
     expect(classifyIntelligenceResultType("communication")).toBe("communications")
     expect(classifyIntelligenceResultType("client_summary")).toBe("reports")
-    expect(classifyIntelligenceResultType("report")).toBe("reports")
     expect(classifyIntelligenceResultType("roadmap")).toBe("roadmaps")
     expect(classifyIntelligenceResultType("unknown")).toBeNull()
+  })
+
+  it("classifies the real result_type values produced in prod (vérifiés en base 2026-07-07)", () => {
+    expect(classifyIntelligenceResultType("commercial_pitch")).toBe("communications")
+    expect(classifyIntelligenceResultType("activity_commercial")).toBe("reports")
+    expect(classifyIntelligenceResultType("activity_recruitment")).toBe("reports")
+    expect(classifyIntelligenceResultType("weekly_manager")).toBe("reports")
+  })
+
+  it("keeps legacy pitch/pitch_mail aliases classified (pré-rename intel-020-pitch-mail)", () => {
+    expect(classifyIntelligenceResultType("pitch")).toBe("communications")
+    expect(classifyIntelligenceResultType("pitch_mail")).toBe("communications")
+  })
+
+  it("no longer classifies the never-produced generic 'report' placeholder", () => {
+    expect(classifyIntelligenceResultType("report")).toBeNull()
   })
 
   it("counts succeeded, needs_review and failed separately", () => {

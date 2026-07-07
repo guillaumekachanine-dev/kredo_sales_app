@@ -136,7 +136,7 @@ Dès l'étape 1, le manager peut, sur chaque item : **confirmer** (→ `human_ve
 Critère de tri, sans ambiguïté : *« le manager mute-t-il des lignes individuelles ET d'autres modules requêtent-ils transversalement ? »* → Oui = table. Non = JSON. Cela **respecte ADR-0008** (les analyses restent en `content_json`) tout en modélisant correctement la spine décisionnelle — cohérent avec le précédent ADR-0011.
 
 Nouveaux `result_type` (le champ `phase`, pollué, est **déprécié comme clé fonctionnelle** ; conservé pour compat) :
-`account_knowledge` · `sector_snapshot` · `commercial_strategy` · `commercial_pitch` (existe) · `commercial_roadmap` (draft avant normalisation).
+`account_knowledge` · `sector_snapshot` · `account_issues_map` (draft avant normalisation dans `account_issues`, symétrique à la roadmap) · `commercial_strategy` · `commercial_pitch` (existe) · `commercial_roadmap` (draft avant normalisation dans `account_roadmap_actions`).
 
 ### D-6 — Économie : incrémental, déterministe par défaut, LLM en dernier recours
 
