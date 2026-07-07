@@ -428,10 +428,10 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
       {/* Bouton Consulter les documents (Mobile style) */}
       <button
         onClick={() => setIsDocsModalOpen(true)}
-        className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-white/[0.08] border border-white/10 py-3 text-white hover:bg-white/[0.14] transition-all cursor-pointer shadow-sm active:scale-98"
+        className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-brand-brass border border-brand-brass/25 py-3 text-white hover:bg-brand-brass-hover transition-all cursor-pointer shadow-sm active:scale-98"
       >
         <img
-          src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+          src="/icons_set/cockpit_intelligence/dossier.png"
           alt=""
           className="size-6 object-contain"
         />

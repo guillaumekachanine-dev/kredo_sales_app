@@ -103,10 +103,10 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               <div className="flex items-center gap-4 shrink-0">
                 <button
                   onClick={() => setIsDocsModalOpen(true)}
-                  className="flex items-center gap-2 rounded-xl bg-white/[0.08] border border-white/10 px-4 py-2 text-white hover:bg-white/[0.14] transition-all cursor-pointer shadow-sm active:scale-95"
+                  className="flex items-center gap-2 rounded-xl bg-brand-brass border border-brand-brass/25 px-4 py-2 text-white hover:bg-brand-brass-hover transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   <img
-                    src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+                    src="/icons_set/cockpit_intelligence/dossier.png"
                     alt=""
                     className="size-7 object-contain"
                   />
