@@ -11,6 +11,7 @@ export type N8nWorkflowId =
   | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note)
   | "intel-022-campaign"            // INTEL-022 : création campagne
   | "intel-030-account-knowledge"   // ADR-0012 Lot 2 : connaissance compte (étape 1 chaîne de décision)
+  | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale

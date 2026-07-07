@@ -6319,6 +6319,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_account_issues_context: {
+        Args: { p_company_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       get_account_knowledge_context: {
         Args: { p_company_id: string; p_workspace_id: string }
         Returns: Json

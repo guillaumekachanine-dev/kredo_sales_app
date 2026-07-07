@@ -25,6 +25,7 @@ import {
   AccountKnowledgeGeneratedContent,
 } from "./AccountKnowledgeBlocks"
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
+import { AccountIssuesTable } from "./AccountIssuesBlocks"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -180,7 +181,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           )}
           {activeTab === "enjeux" && (
             <div className="pt-6">
-              <ComingSoon lot="lot 4">Cartographie enjeux × offres ESN</ComingSoon>
+              <EnjeuxTab data={data} />
             </div>
           )}
           {activeTab === "strategie" && (
@@ -323,6 +324,122 @@ const PITCH_KIND_LABEL: Record<string, string> = {
 
 function formatPitchDate(value: string) {
   return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
+  const { company, contacts } = data
+  const supabase = useMemo(() => createBrowserClient(), [])
+
+  const [issues, setIssues] = useState(data.accountIssues)
+  const [runStatus, setRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [runId, setRunId] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!runId) return
+    const channel = supabase
+      .channel(`account-issues-result-${runId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
+        (payload) => {
+          const row = payload.new as { status: string }
+          if (row.status === "succeeded") {
+            // Matérialisation faite côté callback (D-5) — on recharge les
+            // enjeux ouverts directement, pas de contenu à parser côté client.
+            void supabase
+              .from("account_issues")
+              .select("id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at")
+              .eq("company_id", company.id)
+              .eq("status", "open")
+              .order("importance", { ascending: false })
+              .then(({ data: rows }) => {
+                if (rows) {
+                  setIssues(rows.map((r) => ({
+                    id: r.id,
+                    title: r.title,
+                    category: r.category,
+                    problemStatement: r.problem_statement,
+                    evidenceLevel: r.evidence_level,
+                    provenance: r.provenance,
+                    importance: r.importance,
+                    urgency: r.urgency,
+                    criticality: r.criticality,
+                    businessImpact: r.business_impact,
+                    accessibility: r.accessibility,
+                    kredoFit: r.kredo_fit,
+                    contactIds: r.contact_ids ?? [],
+                    recommendedNextProbe: r.recommended_next_probe,
+                    status: r.status,
+                    createdAt: r.created_at,
+                  })))
+                }
+                setRunStatus("done")
+              })
+          } else if (row.status === "failed") {
+            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            setRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId])
+
+  async function handleGenerate() {
+    setRunStatus("loading")
+    setErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-031-issues-map",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setRunId(newRunId)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setRunStatus("error")
+    }
+  }
+
+  function handleDismiss(issueId: string) {
+    setIssues((prev) => prev.filter((i) => i.id !== issueId))
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Étape 3 — Cartographie des enjeux</p>
+          <h2 className="mt-1 font-heading text-xl font-bold text-heading">Enjeux de {company.name}</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={runStatus === "loading"}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
+          >
+            <RefreshIcon className={cn("h-3.5 w-3.5", runStatus === "loading" && "animate-spin")} />
+            {runStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la cartographie des enjeux"}
+          </button>
+        </div>
+      </div>
+      <AccountIssuesTable issues={issues} contacts={contacts} onDismiss={handleDismiss} />
+    </div>
+  )
 }
 
 function StrategieTab({ data }: { data: ClientIntelligenceData }) {

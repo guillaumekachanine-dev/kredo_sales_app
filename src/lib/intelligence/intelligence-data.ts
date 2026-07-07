@@ -4,6 +4,10 @@ import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
   SECTOR_SNAPSHOT_RESULT_TYPE,
   type AccountKnowledgeContent,
+  type AccountIssueCategory,
+  type AccountIssueEvidenceLevel,
+  type AccountIssueStatus,
+  type IntelligenceProvenance,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 
@@ -138,6 +142,26 @@ export type ClientIntelligenceSignal = {
   expiresAt: string | null
 }
 
+// ADR-0012 Lot 4 — enjeux matérialisés (table account_issues, spine D-5).
+export type ClientIntelligenceIssue = {
+  id: string
+  title: string
+  category: AccountIssueCategory
+  problemStatement: string
+  evidenceLevel: AccountIssueEvidenceLevel
+  provenance: IntelligenceProvenance
+  importance: number
+  urgency: number
+  criticality: number
+  businessImpact: number
+  accessibility: number
+  kredoFit: number
+  contactIds: string[]
+  recommendedNextProbe: string | null
+  status: AccountIssueStatus
+  createdAt: string
+}
+
 export type ClientIntelligenceData = {
   company: {
     id: string
@@ -184,6 +208,8 @@ export type ClientIntelligenceData = {
   opportunities: ClientIntelligenceOpportunity[]
   missions: ClientIntelligenceMission[]
   accountSignals: ClientIntelligenceSignal[]
+  // ADR-0012 Lot 4 — enjeux ouverts (table account_issues, spine matérialisée)
+  accountIssues: ClientIntelligenceIssue[]
   // id du dernier résultat account_knowledge réussi — cible des Server Actions
   // de curation (confirmer/écarter/épingler un fait). null tant qu'aucun run
   // n'a produit de account_knowledge (Lot 2 : workflow pas encore importé sur le VPS).
@@ -446,6 +472,25 @@ type AccountSignalRow = {
 
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
+type AccountIssueRow = {
+  id: string
+  title: string
+  category: AccountIssueCategory
+  problem_statement: string
+  evidence_level: AccountIssueEvidenceLevel
+  provenance: IntelligenceProvenance
+  importance: number
+  urgency: number
+  criticality: number
+  business_impact: number
+  accessibility: number
+  kredo_fit: number
+  contact_ids: string[] | null
+  recommended_next_probe: string | null
+  status: AccountIssueStatus
+  created_at: string
+}
+
 type PitchDocumentRow = {
   id: string
   title: string
@@ -488,6 +533,7 @@ export async function getClientIntelligence(
     opportunitiesResult,
     missionsResult,
     accountSignalsResult,
+    accountIssuesResult,
   ] = await Promise.all([
     supabase
       .from("companies")
@@ -549,6 +595,14 @@ export async function getClientIntelligence(
       .eq("company_id", companyId)
       .order("detected_at", { ascending: false })
       .limit(15),
+    supabase
+      .from("account_issues")
+      .select<AccountIssueRow>(
+        "id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at",
+      )
+      .eq("company_id", companyId)
+      .eq("status", "open")
+      .order("importance", { ascending: false }),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
@@ -681,6 +735,25 @@ export async function getClientIntelligence(
       expiresAt: row.expires_at,
     }))
 
+  const accountIssues: ClientIntelligenceIssue[] = (accountIssuesResult.data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    category: row.category,
+    problemStatement: row.problem_statement,
+    evidenceLevel: row.evidence_level,
+    provenance: row.provenance,
+    importance: row.importance,
+    urgency: row.urgency,
+    criticality: row.criticality,
+    businessImpact: row.business_impact,
+    accessibility: row.accessibility,
+    kredoFit: row.kredo_fit,
+    contactIds: row.contact_ids ?? [],
+    recommendedNextProbe: row.recommended_next_probe,
+    status: row.status,
+    createdAt: row.created_at,
+  }))
+
   const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
 
   return {
@@ -726,6 +799,7 @@ export async function getClientIntelligence(
       opportunities,
       missions,
       accountSignals,
+      accountIssues,
       accountKnowledgeResultId,
       pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
         const content = asRecord(row.current_content_json)

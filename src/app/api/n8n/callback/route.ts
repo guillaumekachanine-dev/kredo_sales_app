@@ -16,6 +16,8 @@ import { verifyHmac } from "@/lib/n8n/hmac"
 import { saveResult, updateRunStatus } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
+import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
+import { ACCOUNT_ISSUES_MAP_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
 import type { Database } from "@/types/database"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
 
@@ -106,6 +108,24 @@ export async function POST(request: Request) {
   } catch (err) {
     // Non bloquant : le résultat est déjà sauvé, on log et on continue
     console.error("[callback] updateRunStatus failed:", err)
+  }
+
+  // ADR-0012 Lot 4 / D-5 : matérialisation "1 résultat → N lignes account_issues",
+  // distincte du chemin document (1 résultat → 1 intelligence_documents) ci-dessous.
+  if (status === "succeeded" && resultType === ACCOUNT_ISSUES_MAP_RESULT_TYPE) {
+    if (!run.company_id) {
+      console.error("[callback] account_issues_map sans company_id — run:", runId)
+      return NextResponse.json({ error: "account_issues_map requiert un run scopé compte" }, { status: 400 })
+    }
+    const materializeResult = await materializeAccountIssues(
+      supabase,
+      { workspaceId: run.workspace_id, companyId: run.company_id, runId },
+      contentJson,
+    )
+    if (!materializeResult.success) {
+      console.error("[callback] materializeAccountIssues failed:", materializeResult.error)
+      return NextResponse.json({ error: "Erreur matérialisation enjeux" }, { status: 500 })
+    }
   }
 
   if (status === "succeeded" && isEligibleDocumentResult(resultType)) {

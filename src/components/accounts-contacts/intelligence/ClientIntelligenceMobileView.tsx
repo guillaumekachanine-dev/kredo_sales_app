@@ -21,6 +21,7 @@ import {
   AccountKnowledgeGeneratedContent,
 } from "./AccountKnowledgeBlocks"
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
+import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -117,6 +118,93 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
       setKnowledgeErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
       setKnowledgeRunStatus("error")
     }
+  }
+
+  // ADR-0012 Lot 4 — enjeux (matérialisation côté callback, D-5) : pas de
+  // contenu à parser côté client, on recharge la liste ouverte au succès.
+  const [issues, setIssues] = useState(data.accountIssues)
+  const [issuesRunStatus, setIssuesRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [issuesRunId, setIssuesRunId] = useState<string | null>(null)
+  const [issuesErrorMsg, setIssuesErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!issuesRunId) return
+    const channel = supabase
+      .channel(`account-issues-result-mobile-${issuesRunId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${issuesRunId}` },
+        (payload) => {
+          const row = payload.new as { status: string }
+          if (row.status === "succeeded") {
+            void supabase
+              .from("account_issues")
+              .select("id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at")
+              .eq("company_id", company.id)
+              .eq("status", "open")
+              .order("importance", { ascending: false })
+              .then(({ data: rows }) => {
+                if (rows) {
+                  setIssues(rows.map((r) => ({
+                    id: r.id,
+                    title: r.title,
+                    category: r.category,
+                    problemStatement: r.problem_statement,
+                    evidenceLevel: r.evidence_level,
+                    provenance: r.provenance,
+                    importance: r.importance,
+                    urgency: r.urgency,
+                    criticality: r.criticality,
+                    businessImpact: r.business_impact,
+                    accessibility: r.accessibility,
+                    kredoFit: r.kredo_fit,
+                    contactIds: r.contact_ids ?? [],
+                    recommendedNextProbe: r.recommended_next_probe,
+                    status: r.status,
+                    createdAt: r.created_at,
+                  })))
+                }
+                setIssuesRunStatus("done")
+              })
+          } else if (row.status === "failed") {
+            setIssuesErrorMsg("La génération a échoué. Réessaie plus tard.")
+            setIssuesRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issuesRunId])
+
+  async function handleGenerateIssues() {
+    setIssuesRunStatus("loading")
+    setIssuesErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-031-issues-map",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setIssuesRunId(newRunId)
+    } catch (err) {
+      setIssuesErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setIssuesRunStatus("error")
+    }
+  }
+
+  function handleDismissIssue(issueId: string) {
+    setIssues((prev) => prev.filter((i) => i.id !== issueId))
   }
 
   useEffect(() => {
@@ -394,12 +482,20 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
           {activePanel === "enjeux" && (
-            <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                Cartographie des enjeux à connecter.
-              </span>
-              <span className="text-[11px] text-muted/70">Disponible au lot 4</span>
-            </div>
+            <>
+              <button
+                type="button"
+                onClick={handleGenerateIssues}
+                disabled={issuesRunStatus === "loading"}
+                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
+              >
+                {issuesRunStatus === "loading" ? "Génération en cours…" : "Actualiser la cartographie des enjeux"}
+              </button>
+              {issuesErrorMsg && (
+                <p className="mb-3 text-[11px] font-medium text-danger">{issuesErrorMsg}</p>
+              )}
+              <AccountIssuesTopList issues={issues} contacts={data.contacts} onDismiss={handleDismissIssue} />
+            </>
           )}
 
           {activePanel === "strategie" && (

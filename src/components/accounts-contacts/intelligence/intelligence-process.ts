@@ -84,7 +84,9 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       return { label: "À venir", tone: "neutral" }
     }
     case "enjeux":
-      if (data.presence.hasProcessDiagnostic) {
+      // ADR-0012 Lot 4 : présence réelle = enjeux ouverts matérialisés,
+      // plus le placeholder hasProcessDiagnostic (diagnostic ≠ enjeux, D-2).
+      if (data.accountIssues.length > 0) {
         return { label: "Disponible", tone: "success" }
       }
       return { label: "À venir", tone: "neutral" }
