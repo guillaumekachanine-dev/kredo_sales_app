@@ -3,7 +3,8 @@ import type {
   VeilleDigest, 
   VeilleArticle, 
   SectorNews, 
-  SectorEvent 
+  SectorEvent,
+  CompanyContextStats
 } from "@/app/(app)/veille/_data/veille-data"
 import { VeilleActualitesDesktop } from "./VeilleActualitesDesktop"
 import { VeilleActualitesMobile } from "./VeilleActualitesMobile"
@@ -15,6 +16,7 @@ interface VeilleActualitesPageProps {
   pastDigests: VeilleDigest[]
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
+  companies: CompanyContextStats[]
 }
 
 export function VeilleActualitesPage({
@@ -24,6 +26,7 @@ export function VeilleActualitesPage({
   pastDigests,
   sectorNews,
   sectorEvents,
+  companies,
 }: VeilleActualitesPageProps) {
   if (device === "mobile") {
     return (
@@ -33,6 +36,7 @@ export function VeilleActualitesPage({
         pastDigests={pastDigests}
         sectorNews={sectorNews}
         sectorEvents={sectorEvents}
+        companies={companies}
       />
     )
   }
@@ -44,6 +48,8 @@ export function VeilleActualitesPage({
       pastDigests={pastDigests}
       sectorNews={sectorNews}
       sectorEvents={sectorEvents}
+      companies={companies}
     />
   )
 }
+
