@@ -62,17 +62,17 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   if (activePanel !== "accueil") {
     const stepDetails = {
-      analyses: {
-        title: "Analyses",
-        description: "Comprendre le compte, son secteur, ses signaux et son contexte.",
+      connaissance: {
+        title: "Connaissance compte",
+        description: "Ce que l'on sait factuellement du compte : identité, organisation, interlocuteurs, relation et signaux.",
+      },
+      secteur: {
+        title: "Intelligence sectorielle",
+        description: "Enjeux, contraintes et fenêtres commerciales du secteur, contextualisés pour ce compte.",
       },
       enjeux: {
         title: "Cartographie des enjeux",
         description: "Transformer les constats en problématiques client.",
-      },
-      scoring: {
-        title: "Scoring IA",
-        description: "Prioriser le compte avec un score expliqué.",
       },
       strategie: {
         title: "Stratégie commerciale",
@@ -102,7 +102,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               {stepDetails.title}
             </h1>
           </div>
-          {activePanel !== "analyses" && stepDetails.description && (
+          {activePanel !== "connaissance" && stepDetails.description && (
             <p className="text-[11px] text-body mt-0.5 font-medium">
               {stepDetails.description}
             </p>
@@ -110,7 +110,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         </div>
 
         <div className="flex flex-col gap-4 mt-1">
-          {activePanel === "analyses" && (
+          {activePanel === "connaissance" && (
             <>
               {/* 3 analyses sous forme d'icônes sur une seule ligne */}
               <div className="grid grid-cols-3 gap-2 mb-2">
@@ -303,23 +303,21 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
             </>
           )}
 
+          {activePanel === "secteur" && (
+            <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted">
+                Intelligence sectorielle à connecter.
+              </span>
+              <span className="text-[11px] text-muted/70">Disponible au lot 3</span>
+            </div>
+          )}
+
           {activePanel === "enjeux" && (
             <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
               <span className="text-xs font-bold uppercase tracking-wider text-muted">
                 Cartographie des enjeux à connecter.
               </span>
-              <span className="text-[11px] text-muted/70">Disponible au lot F</span>
-            </div>
-          )}
-
-          {activePanel === "scoring" && (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
-              </div>
-              <p className="text-center text-[11px] text-muted">
-                Touchez la pastille pour voir le détail des composants et actualiser le score.
-              </p>
+              <span className="text-[11px] text-muted/70">Disponible au lot 4</span>
             </div>
           )}
 
@@ -372,7 +370,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               <span className="text-xs font-bold uppercase tracking-wider text-muted">
                 Roadmap commerciale à connecter.
               </span>
-              <span className="text-[11px] text-muted/70">Disponible au lot G</span>
+              <span className="text-[11px] text-muted/70">Disponible au lot 6</span>
             </div>
           )}
 

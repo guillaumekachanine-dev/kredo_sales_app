@@ -80,14 +80,14 @@ export function AppDialog({
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 m-auto max-h-[min(100dvh-2rem,42rem)] w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-heading sm:max-h-[calc(100dvh-4rem)] sm:w-full sm:max-w-lg sm:p-6",
+        "fixed inset-0 m-auto flex flex-col h-fit max-h-[min(100dvh-2rem,42rem)] w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-heading sm:max-h-[calc(100dvh-4rem)] sm:w-full sm:max-w-lg sm:p-6",
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
         "z-[var(--z-modal)]",
         className
       )}
     >
-      <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex flex-col flex-1 min-h-0 gap-4">
         {/* Header */}
         <div className={cn("flex flex-col gap-1.5", headerClassName)}>
           <div className="flex items-center justify-between">

@@ -26,13 +26,14 @@ import {
   getProcessStepStatus,
 } from "./intelligence-process"
 
+// ADR-0012 — Scoring sorti des onglets (capacité transverse : badge header + modale).
 const TABS: { key: TabKey; label: string; lot?: string }[] = [
   { key: "accueil", label: "Accueil" },
-  { key: "analyses", label: "Analyses" },
-  { key: "enjeux", label: "Enjeux", lot: "lot F" },
-  { key: "scoring", label: "Scoring", lot: "lot E" },
-  { key: "strategie", label: "Stratégie", lot: "lot H" },
-  { key: "roadmap", label: "Roadmap", lot: "lot G" },
+  { key: "connaissance", label: "Connaissance compte" },
+  { key: "secteur", label: "Intelligence sectorielle", lot: "lot 3" },
+  { key: "enjeux", label: "Enjeux", lot: "lot 4" },
+  { key: "strategie", label: "Stratégie", lot: "lot 5" },
+  { key: "roadmap", label: "Roadmap", lot: "lot 6" },
 ]
 
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
@@ -146,21 +147,21 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               onOpenTab={(tab) => setActiveTab(tab)}
             />
           )}
-          {activeTab === "analyses" && (
+          {activeTab === "connaissance" && (
             <AnalyseTab
               data={data}
               isExpandedViewer={expandedViewer}
               onExpandViewer={setExpandedViewer}
             />
           )}
-          {activeTab === "enjeux" && (
+          {activeTab === "secteur" && (
             <div className="pt-6">
-              <ComingSoon lot="lot F">Cartographie enjeux × offres ESN</ComingSoon>
+              <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>
             </div>
           )}
-          {activeTab === "scoring" && (
+          {activeTab === "enjeux" && (
             <div className="pt-6">
-              <ComingSoon lot="lot E">Breakdown du score déterministe et expliqué</ComingSoon>
+              <ComingSoon lot="lot 4">Cartographie enjeux × offres ESN</ComingSoon>
             </div>
           )}
           {activeTab === "strategie" && (
@@ -1152,16 +1153,6 @@ function IssuesMapIcon({ className }: { className?: string }) {
   )
 }
 
-function ScoreIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3.34 19a10 10 0 1 1 17.32 0" />
-      <path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-      <path d="M12 14l5-5" />
-    </svg>
-  )
-}
-
 function StrategyIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1189,9 +1180,9 @@ function ChevronRightIcon({ className }: { className?: string }) {
 }
 
 const STEP_ICONS: Record<ProcessStepKey, (props: { className?: string }) => ReactNode> = {
-  analyses: AnalyseIcon,
+  connaissance: AnalyseIcon,
+  secteur: SectorStudyIcon,
   enjeux: IssuesMapIcon,
-  scoring: ScoreIcon,
   strategie: StrategyIcon,
   roadmap: RoadmapIcon,
 }

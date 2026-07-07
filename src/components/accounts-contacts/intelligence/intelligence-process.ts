@@ -1,10 +1,15 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 
+// ADR-0012 — Chaîne de décision commerciale.
+// Le processus devient : Connaissance compte → Intelligence sectorielle →
+// Cartographie des enjeux → Stratégie commerciale → Roadmap commerciale.
+// Le Scoring N'EST PLUS une étape : c'est une capacité transverse (badge header
+// + modale, ADR-0011). Cf. docs/adr/ADR-0012-cockpit-intelligence-chaine-decision.md
 export type TabKey =
   | "accueil"
-  | "analyses"
+  | "connaissance"
+  | "secteur"
   | "enjeux"
-  | "scoring"
   | "strategie"
   | "roadmap"
 
@@ -17,34 +22,34 @@ export const INTELLIGENCE_PROCESS_STEPS: {
   description: string
 }[] = [
   {
-    key: "analyses",
-    label: "Analyses",
-    shortLabel: "Analyser",
-    description: "Comprendre le compte, son secteur, ses signaux et son contexte business.",
+    key: "connaissance",
+    label: "Connaissance compte",
+    shortLabel: "Compte",
+    description: "Réunir ce que l'on sait factuellement du compte : identité, organisation, interlocuteurs, relation et signaux propres.",
+  },
+  {
+    key: "secteur",
+    label: "Intelligence sectorielle",
+    shortLabel: "Secteur",
+    description: "Lire les enjeux, contraintes et fenêtres commerciales du secteur, mutualisés et contextualisés pour ce compte.",
   },
   {
     key: "enjeux",
     label: "Cartographie des enjeux",
     shortLabel: "Enjeux",
-    description: "Transformer les constats en problématiques client et zones de création de valeur.",
-  },
-  {
-    key: "scoring",
-    label: "Scoring",
-    shortLabel: "Scoring",
-    description: "Prioriser le compte avec un score expliqué et exploitable commercialement.",
+    description: "Transformer les constats en enjeux priorisés, sourcés et actionnables par KREDO.",
   },
   {
     key: "strategie",
     label: "Stratégie commerciale",
     shortLabel: "Stratégie",
-    description: "Définir l’angle d’approche, les messages clés et les interlocuteurs prioritaires.",
+    description: "Relier enjeux et offres KREDO en angles d'approche, messages clés et pitchs ciblés.",
   },
   {
     key: "roadmap",
     label: "Roadmap commerciale",
     shortLabel: "Roadmap",
-    description: "Convertir la stratégie en prochaines actions, jalons et relances.",
+    description: "Convertir la stratégie en actions cadencées, validées par le manager puis matérialisées dans l'agenda.",
   },
 ]
 
@@ -53,11 +58,10 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
   tone: "success" | "warning" | "neutral"
 } {
   switch (stepKey) {
-    case "analyses": {
-      const hasEngine = (data.client && data.client.source === "engine") || (data.sector && data.sector.source === "engine")
-      const hasFolio = (data.client && data.client.source === "folio") || (data.sector && data.sector.source === "folio")
-      const hasDiagnosticPdf = !!data.diagnosticPdfUrl
-      if (hasEngine || hasDiagnosticPdf) {
+    case "connaissance": {
+      const hasEngine = data.client?.source === "engine"
+      const hasFolio = data.client?.source === "folio"
+      if (hasEngine) {
         return { label: "Disponible", tone: "success" }
       }
       if (hasFolio) {
@@ -65,19 +69,25 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       }
       return { label: "À compléter", tone: "neutral" }
     }
+    case "secteur": {
+      const hasEngine = data.sector?.source === "engine"
+      const hasFolio = data.sector?.source === "folio"
+      if (hasEngine) {
+        return { label: "Disponible", tone: "success" }
+      }
+      if (hasFolio) {
+        return { label: "FOLIO", tone: "warning" }
+      }
+      return { label: "À venir", tone: "neutral" }
+    }
     case "enjeux":
       if (data.presence.hasProcessDiagnostic) {
         return { label: "Disponible", tone: "success" }
       }
       return { label: "À venir", tone: "neutral" }
-    case "scoring":
-      if (data.company.legacyFolioScore !== null) {
-        return { label: "Disponible", tone: "success" }
-      }
-      return { label: "À compléter", tone: "neutral" }
     case "strategie":
-      if (data.pitches && data.pitches.length > 0) {
-        return { label: "FOLIO", tone: "warning" }
+      if ((data.pitchDocuments && data.pitchDocuments.length > 0) || (data.pitches && data.pitches.length > 0)) {
+        return { label: "Disponible", tone: "success" }
       }
       return { label: "À venir", tone: "neutral" }
     case "roadmap":
