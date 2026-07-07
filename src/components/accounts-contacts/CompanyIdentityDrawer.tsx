@@ -1,17 +1,21 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
+import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 import { RatingIndicator } from "@/components/ui/RatingIndicator"
+import { getCommunicationEntryPoint, type CommunicationEntryPoint } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -240,6 +244,24 @@ function formatManagerName(name: string): string {
   return clean.trim()
 }
 
+function formatContactLineName(person: NonNullable<IdentityData["contacts"][number]["persons"]>): string {
+  const firstName = person.first_name?.trim()
+  const lastName = person.last_name?.trim()
+
+  if (firstName || lastName) {
+    return [firstName, lastName?.toUpperCase()].filter(Boolean).join(" ")
+  }
+
+  return person.full_name?.trim() || "Contact"
+}
+
+function formatRelationshipRoleLabel(role: string | null): string | null {
+  if (!role) return null
+  return role
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
 function isProposalFollowUpStage(stage: string) {
   const normalized = stage.toLowerCase()
   return normalized.includes("proposition") || normalized.includes("cv_envoyes") || normalized.includes("offre")
@@ -257,9 +279,23 @@ export function CompanyIdentityDrawer({
   const [syntheseExpanded, setSyntheseExpanded] = useState(false)
   const [transitionPending, startTransition] = useTransition()
   const [contactFilter, setContactFilter] = useState<"all" | "decideur" | "activity" | "cible" | "other">("all")
+  const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const prevCompanyIdRef = useRef<string | null>(null)
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const syncViewport = () => setIsMobileViewport(media.matches)
+
+    syncViewport()
+    media.addEventListener("change", syncViewport)
+
+    return () => {
+      media.removeEventListener("change", syncViewport)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open || !companyId) {
@@ -290,6 +326,7 @@ export function CompanyIdentityDrawer({
       setData(null)
       setSyntheseExpanded(false)
       setContactFilter("all")
+      setIsDocumentsModalOpen(false)
     }
   }, [companyId, open])
 
@@ -395,18 +432,7 @@ export function CompanyIdentityDrawer({
         <div className="flex flex-col h-full gap-5">
           {/* Company identity card summary - exact styling match to Contact card with petroleum blue background & top white gradient fade */}
           <div className="relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all bg-[#257A8E] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.15)_0%,transparent_100%)] text-white border-[#257A8E]/20">
-            {/* Close button in top right, no background, smaller cross */}
-            <button
-              onClick={() => onOpenChange(false)}
-              className="absolute top-2.5 right-2.5 text-white/70 hover:text-white transition-colors p-1"
-              title="Fermer"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="flex items-center justify-between gap-4">
+            <div className="relative flex items-center gap-4 min-w-0 pr-11">
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Logo de l'entreprise */}
                 {data.company.website ? (
@@ -435,75 +461,124 @@ export function CompanyIdentityDrawer({
                   />
                 )}
 
-                <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-white leading-tight truncate">{data.company.name}</h3>
-                    {(data.company.sector || data.company.segment) && (
-                      <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
-                        {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
-                      </span>
-                    )}
-                  </div>
-                  
-                  {companyId && (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <ContextualCommunicationButton
-                        entryPoint={data.company.lifecycle_status === "ancien_client" ? "former_client" : "account_row"}
-                        companyId={data.company.id}
-                        companyName={data.company.name}
-                        primaryEntity={{ type: "company", id: data.company.id }}
-                        label={data.company.lifecycle_status === "ancien_client" ? "Réactiver" : "Rédiger"}
-                        variant="secondary"
-                        className="h-9 min-h-9 border-white/20 bg-white/10 px-3 text-[11px] text-white hover:bg-white/20"
-                        aria-label={`${data.company.lifecycle_status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${data.company.name}`}
-                        refs={{
-                          angle: [
-                            data.company.sector ? `Secteur: ${data.company.sector}` : null,
-                            data.company.segment ? `Segment: ${data.company.segment}` : null,
-                            data.company.lifecycle_status ? `Cycle de vie: ${data.company.lifecycle_status}` : null,
-                          ].filter(Boolean).join(" · ") || undefined,
-                        }}
-                      />
-                      <Link
-                        href={`/prospection/accounts/${companyId}`}
-                        onClick={() => onOpenChange(false)}
-                        className="kredo-intelligence-toggle bg-primary flex shrink-0 items-center justify-center rounded-full w-11 h-11 min-w-11 min-h-11 transition-opacity hover:opacity-90 active:opacity-70"
-                        title="Accéder au cockpit"
-                      >
-                        <svg
-                          className="w-5 h-5 relative z-10 shrink-0"
-                          style={{ color: "var(--color-secondary)" }}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={1.75}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                        </svg>
-                      </Link>
-                    </div>
+                <div className="min-w-0 flex-1 pr-10">
+                  <h3 className="truncate text-base font-bold leading-tight text-white sm:text-lg">{data.company.name}</h3>
+                  {(data.company.sector || data.company.segment) && (
+                    <span className="mt-0.5 block truncate text-[11px] font-medium leading-tight text-white/80">
+                      {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
+                    </span>
                   )}
+                  <span className="mt-1 block truncate text-[10px] font-bold leading-tight text-[#FFB812]">
+                    {lifecycleLabel(data.company.lifecycle_status)}
+                  </span>
                 </div>
+              </div>
+
+              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
+                  title="Fermer"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const event = new CustomEvent("crm-edit-company", { detail: { companyId: data.company.id } })
+                    window.dispatchEvent(event)
+                    if (window.location.pathname !== "/prospection/accounts") {
+                      window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
+                    }
+                  }}
+                  className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
+                  title="Modifier les informations du compte"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Pastilles : Statut (Amber Yellow) / Score IA / Priorité */}
-            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 text-[11px] w-full text-center border-t border-white/12">
-              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
-                <span className="font-extrabold truncate capitalize text-[#FFB812] block">
-                  {lifecycleLabel(data.company.lifecycle_status)}
-                </span>
-              </div>
-              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
-                <span className="font-extrabold truncate text-white block">
-                  {formatScore(data.company.legacy_folio_score)}
-                </span>
-              </div>
-              <div className="rounded border bg-white/10 border-white/10 px-2 py-1 flex items-center justify-center min-w-0 h-7">
-                <span className="font-extrabold truncate capitalize text-white block">
-                  {data.company.priority || "normale"}
-                </span>
-              </div>
+            {/* Actions primaires du header */}
+            <div className="grid grid-cols-3 gap-2 border-t border-white/12 pt-2.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => {
+                  const entryPoint: CommunicationEntryPoint =
+                    data.company.lifecycle_status === "ancien_client" ? "former_client" : "account_row"
+                  const preset = getCommunicationEntryPoint(entryPoint)
+                  openCommunicationComposer({
+                    origin: "account",
+                    companyId: data.company.id,
+                    companyName: data.company.name,
+                    primaryEntity: { type: "company", id: data.company.id },
+                    preset: {
+                      channel: preset.channel,
+                      scenario: preset.scenario,
+                      objective: preset.objective,
+                      tone: preset.tone,
+                      length: preset.length,
+                      refs: {
+                        angle: [
+                          data.company.sector ? `Secteur: ${data.company.sector}` : null,
+                          data.company.segment ? `Segment: ${data.company.segment}` : null,
+                          data.company.lifecycle_status ? `Cycle de vie: ${data.company.lifecycle_status}` : null,
+                        ].filter(Boolean).join(" · ") || undefined,
+                      },
+                      mustInclude: preset.contextHint || undefined,
+                    },
+                  })
+                }}
+                className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#1E5E99" }}
+              >
+                <Image
+                  src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 shrink-0 object-contain"
+                />
+                <span>Rédiger</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsDocumentsModalOpen(true)}
+                className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#1E5E99" }}
+              >
+                <Image
+                  src="/icons_set/cockpit_intelligence/dossier.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 shrink-0 object-contain"
+                />
+                <span>Consulter</span>
+              </button>
+
+              <Link
+                href={`/prospection/accounts/${data.company.id}`}
+                onClick={() => onOpenChange(false)}
+                className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#1E5E99" }}
+                title="Accéder au cockpit intelligence"
+              >
+                <Image
+                  src="/icons_set/cockpit_intelligence/cockpit_intelligence.png"
+                  alt=""
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 shrink-0 object-contain"
+                />
+                <span>Cockpit</span>
+              </Link>
             </div>
           </div>
 
@@ -849,66 +924,85 @@ export function CompanyIdentityDrawer({
                       {filteredContacts.map((contact) => {
                         const person = contact.persons
                         if (!person) return null
-                        return (
-                          <SurfaceCard key={contact.id} className="px-4 py-2.5 flex flex-col gap-2">
-                            <div className="flex items-start justify-between gap-2.5">
-                              <div>
-                                <h5 
-                                  onClick={() => onOpenContactIdentity?.(contact.id)}
-                                  className={cn(
-                                    "text-xs font-bold text-heading",
-                                    onOpenContactIdentity ? "cursor-pointer hover:text-primary transition-colors hover:underline" : ""
-                                  )}
-                                >
-                                  {person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()}
-                                </h5>
-                                <p className="text-[10px] text-muted mt-0.5 leading-snug">
-                                  {contact.job_title || "Fonction non spécifiée"}
-                                </p>
-                              </div>
-                              {contact.relationship_role && (
-                                <span className="rounded bg-primary/5 border border-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary uppercase tracking-wider shrink-0">
-                                  {contact.relationship_role.replace("_", " ")}
-                                </span>
-                              )}
-                            </div>
+                        const lineName = formatContactLineName(person)
+                        const roleLabel = formatRelationshipRoleLabel(contact.relationship_role)
+                        const lineParts = [lineName, contact.job_title || null, roleLabel].filter(Boolean)
 
-                            {/* Contact information details */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] border-t border-border/30 pt-2 text-muted">
-                              {person.primary_email && (
+                        return (
+                          <div
+                            key={contact.id}
+                            onClick={() => onOpenContactIdentity?.(contact.id)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-lg border border-border/40 bg-canvas/20 px-3 py-2 text-[11px] text-body transition-colors",
+                              onOpenContactIdentity ? "cursor-pointer hover:border-primary/30 hover:bg-primary/[0.04]" : ""
+                            )}
+                          >
+                            <Image
+                              src="/icons_set/contact_id.png"
+                              alt=""
+                              width={18}
+                              height={18}
+                              className="h-[18px] w-[18px] shrink-0 object-contain"
+                            />
+
+                            <span
+                              className="min-w-0 flex-1 truncate text-[11px] font-medium leading-none text-heading"
+                              title={lineParts.join(" - ")}
+                            >
+                              {lineParts.join(" - ")}
+                            </span>
+
+                            <div className="ml-auto flex shrink-0 items-center gap-2">
+                              {person.phone ? (
+                                <a
+                                  href={`tel:${person.phone}`}
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="flex items-center justify-center opacity-80 transition-opacity hover:opacity-100"
+                                  title={person.phone}
+                                >
+                                  <Image
+                                    src="/icons_set/contact_mail.png"
+                                    alt="Téléphone"
+                                    width={16}
+                                    height={16}
+                                    className="h-4 w-4 object-contain"
+                                  />
+                                </a>
+                              ) : null}
+
+                              {person.primary_email ? (
                                 <a
                                   href={`mailto:${person.primary_email}`}
-                                  className="flex items-center gap-1.5 hover:text-primary hover:underline truncate"
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="flex items-center justify-center opacity-80 transition-opacity hover:opacity-100"
+                                  title={person.primary_email}
                                 >
-                                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                  </svg>
-                                  <span className="truncate">{person.primary_email}</span>
+                                  <Image
+                                    src="/icons_set/contact_phone.png"
+                                    alt="Email"
+                                    width={16}
+                                    height={16}
+                                    className="h-4 w-4 object-contain"
+                                  />
                                 </a>
-                              )}
-                              {person.phone && (
-                                <span className="flex items-center gap-1.5 truncate">
-                                  <svg className="w-3.5 h-3.5 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                  </svg>
-                                  {person.phone}
-                                </span>
-                              )}
-                              {person.linkedin_url && (
+                              ) : null}
+
+                              {person.linkedin_url ? (
                                 <a
                                   href={person.linkedin_url.startsWith("http") ? person.linkedin_url : `https://${person.linkedin_url}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 hover:text-primary hover:underline sm:col-span-2 text-primary/80"
+                                  onClick={(event) => event.stopPropagation()}
+                                  className="flex items-center justify-center text-primary/80 opacity-85 transition-opacity hover:opacity-100"
+                                  title="Profil LinkedIn"
                                 >
-                                  <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                  <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                                   </svg>
-                                  <span className="truncate">Profil LinkedIn</span>
                                 </a>
-                              )}
+                              ) : null}
                             </div>
-                          </SurfaceCard>
+                          </div>
                         )
                       })}
                     </div>
@@ -1522,6 +1616,16 @@ export function CompanyIdentityDrawer({
             )}
           </div>
         </div>
+      ) : null}
+
+      {data ? (
+        <CompanyDocumentsModal
+          open={isDocumentsModalOpen}
+          onClose={() => setIsDocumentsModalOpen(false)}
+          companyId={data.company.id}
+          companyName={data.company.name}
+          isMobile={isMobileViewport}
+        />
       ) : null}
     </AppDrawer>
   )

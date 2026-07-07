@@ -1,33 +1,22 @@
-"use client"
-
-import { useState, useTransition } from "react"
 import { signInWithPassword } from "./actions"
 
 interface LoginFormProps {
   next?: string
+  error?: string | null
 }
 
-export function LoginForm({ next = "/cockpit" }: LoginFormProps) {
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+const errorMessages: Record<string, string> = {
+  invalid_credentials: "Email ou mot de passe incorrect.",
+}
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setError(null)
-    const formData = new FormData(e.currentTarget)
-    formData.set("next", next)
-
-    startTransition(async () => {
-      const result = await signInWithPassword(formData)
-      if (result?.error) setError(result.error)
-    })
-  }
-
+export function LoginForm({ next = "/cockpit", error }: LoginFormProps) {
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form action={signInWithPassword} className="flex flex-col gap-4">
+      <input type="hidden" name="next" value={next} />
+
       {error && (
         <div className="rounded-md bg-danger/10 border border-danger/20 px-3 py-2 text-xs text-danger">
-          {error}
+          {errorMessages[error] ?? "Une erreur est survenue. Réessayez."}
         </div>
       )}
 
@@ -63,10 +52,9 @@ export function LoginForm({ next = "/cockpit" }: LoginFormProps) {
 
       <button
         type="submit"
-        disabled={isPending}
         className="mt-1 w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-fg hover:bg-primary/90 active:scale-[.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
-        {isPending ? "Connexion…" : "Se connecter"}
+        Se connecter
       </button>
     </form>
   )

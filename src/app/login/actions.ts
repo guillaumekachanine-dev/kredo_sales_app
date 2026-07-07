@@ -3,16 +3,24 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
+function getSafeNextPath(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.startsWith("/")) {
+    return "/cockpit"
+  }
+
+  return value
+}
+
 export async function signInWithPassword(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
-  const next = (formData.get("next") as string) || "/cockpit"
+  const next = getSafeNextPath(formData.get("next"))
 
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: "Email ou mot de passe incorrect." }
+    redirect(`/login?error=invalid_credentials&next=${encodeURIComponent(next)}`)
   }
 
   redirect(next)

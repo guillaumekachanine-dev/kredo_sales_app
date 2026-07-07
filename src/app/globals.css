@@ -720,14 +720,8 @@ dialog.kredo-drawer-bottom {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0) 20%,
-      rgba(255, 255, 255, 0.15) 50%,
-      rgba(255, 255, 255, 0) 80%,
-      transparent 100%);
-  animation: kredo-ready-shine 3s ease-in-out infinite;
-  animation-delay: 0.5s;
+  background: none;
+  animation: none;
   z-index: 2;
 }
 
@@ -1189,14 +1183,8 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0) 20%,
-      rgba(255, 255, 255, 0.42) 50%,
-      rgba(255, 255, 255, 0) 80%,
-      transparent 100%);
-  animation: kredo-ready-shine 3s ease-in-out infinite;
-  animation-delay: 0.5s;
+  background: none;
+  animation: none;
 }
 
 .kredo-ready-action-button:disabled {
@@ -1544,14 +1532,8 @@ canvas {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0) 20%,
-      rgba(255, 255, 255, 0.42) 50%,
-      rgba(255, 255, 255, 0) 80%,
-      transparent 100%);
-  animation: kredo-ready-shine 3s ease-in-out infinite;
-  animation-delay: 0.5s;
+  background: none;
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

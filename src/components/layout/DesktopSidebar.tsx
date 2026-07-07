@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { useTransition, useState, useEffect } from "react"
 import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
-import { signOut } from "@/app/login/actions"
 import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/ui/IconButton"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
@@ -284,8 +283,9 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                   </p>
                 </div>
                 <IconButton
-                  disabled={isPending}
-                  onClick={() => startTransition(() => signOut())}
+                  onClick={() => {
+                    window.location.href = "/auth/signout"
+                  }}
                   aria-label="Se déconnecter"
                   variant="ghost"
                   size="sm"

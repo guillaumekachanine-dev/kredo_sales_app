@@ -1219,9 +1219,82 @@ export function ProspectionAccountsView({
 
   // Company modal
   const [companyModal, setCompanyModal] = useState<{ open: boolean; editing?: AccountRow }>({ open: false })
+  const [editCompanyReturnToIdentityId, setEditCompanyReturnToIdentityId] = useState<string | null>(null)
   // Contact modal
   const [contactModal, setContactModal] = useState<{ open: boolean; editing?: ContactRow }>({ open: false })
   const [editContactReturnToIdentityId, setEditContactReturnToIdentityId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const editCompanyId = searchParams.get("editCompanyId")
+    if (!editCompanyId) return
+
+    const timeoutId = window.setTimeout(() => {
+      const foundCompany = data.accounts.find((account) => account.id === editCompanyId)
+      if (foundCompany) {
+        setEditCompanyReturnToIdentityId(editCompanyId)
+        setCompanyModal({ open: true, editing: foundCompany })
+      }
+      setParam("editCompanyId", null)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [searchParams, data.accounts, setParam])
+
+  useEffect(() => {
+    const editContactId = searchParams.get("editContactId")
+    if (!editContactId) return
+
+    const timeoutId = window.setTimeout(() => {
+      const foundContact = data.contacts.find((c) => c.id === editContactId)
+      if (foundContact) {
+        setEditContactReturnToIdentityId(editContactId)
+        setContactModal({ open: true, editing: foundContact })
+      }
+      setParam("editContactId", null)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [searchParams, data.contacts, setParam])
+
+  useEffect(() => {
+    const handleEditCompany = (e: Event) => {
+      const customEvent = e as CustomEvent<{ companyId: string }>
+      const targetCompanyId = customEvent.detail.companyId
+      const foundCompany = data.accounts.find((account) => account.id === targetCompanyId)
+      if (foundCompany) {
+        setEditCompanyReturnToIdentityId(targetCompanyId)
+        setCompanyModal({ open: true, editing: foundCompany })
+        useCrmDrawer.getState().close()
+      }
+    }
+
+    window.addEventListener("crm-edit-company", handleEditCompany)
+    return () => {
+      window.removeEventListener("crm-edit-company", handleEditCompany)
+    }
+  }, [data.accounts])
+
+  useEffect(() => {
+    const handleEditContact = (e: Event) => {
+      const customEvent = e as CustomEvent<{ contactId: string }>
+      const contactId = customEvent.detail.contactId
+      const foundContact = data.contacts.find((c) => c.id === contactId)
+      if (foundContact) {
+        setEditContactReturnToIdentityId(contactId)
+        setContactModal({ open: true, editing: foundContact })
+        useCrmDrawer.getState().close()
+      }
+    }
+    window.addEventListener("crm-edit-contact", handleEditContact)
+    return () => {
+      window.removeEventListener("crm-edit-contact", handleEditContact)
+    }
+  }, [data.contacts])
+
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
@@ -1458,8 +1531,20 @@ export function ProspectionAccountsView({
           initial={companyModal.editing}
           createKind={device === "mobile" && !companyModal.editing ? "company" : undefined}
           onCreateKindChange={device === "mobile" && !companyModal.editing ? handleCreateKindChange : undefined}
-          onClose={() => setCompanyModal({ open: false })}
-          onSuccess={refreshData}
+          onClose={() => {
+            setCompanyModal({ open: false })
+            if (editCompanyReturnToIdentityId) {
+              openCompanyDrawer(editCompanyReturnToIdentityId)
+              setEditCompanyReturnToIdentityId(null)
+            }
+          }}
+          onSuccess={() => {
+            refreshData()
+            if (editCompanyReturnToIdentityId) {
+              openCompanyDrawer(editCompanyReturnToIdentityId)
+              setEditCompanyReturnToIdentityId(null)
+            }
+          }}
         />
       )}
 

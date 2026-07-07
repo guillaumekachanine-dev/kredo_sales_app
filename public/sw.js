@@ -1,4 +1,4 @@
-const CACHE_NAME = "kredo-static-v1"
+const CACHE_NAME = "kredo-static-v2"
 const STATIC_PATHS = [
   "/manifest.json",
   "/icon-192.png",
@@ -37,7 +37,6 @@ self.addEventListener("fetch", (event) => {
   const isStaticAsset =
     url.origin === self.location.origin &&
     (
-      url.pathname.startsWith("/_next/static/") ||
       url.pathname.startsWith("/icons_set/") ||
       url.pathname.startsWith("/optimized/") ||
       STATIC_PATHS.includes(url.pathname)

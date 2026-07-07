@@ -1,11 +1,11 @@
 import { LoginForm } from "./LoginForm"
 
 interface LoginPageProps {
-  searchParams: Promise<{ next?: string }>
+  searchParams: Promise<{ next?: string; error?: string }>
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { next } = await searchParams
+  const { next, error } = await searchParams
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-canvas px-4">
@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         {/* Card */}
         <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
-          <LoginForm next={next ?? "/cockpit"} />
+          <LoginForm next={next ?? "/cockpit"} error={error ?? null} />
         </div>
       </div>
     </div>

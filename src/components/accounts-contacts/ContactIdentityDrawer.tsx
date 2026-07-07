@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useState, useTransition, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -14,6 +15,9 @@ import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
 import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
 import { RegisterIntelligenceEntity } from "@/components/intelligence/RegisterIntelligenceEntity"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { getCommunicationEntryPoint } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
 interface ContactIdentityDrawerProps {
   contactId: string | null
@@ -322,6 +326,16 @@ export function ContactIdentityDrawer({
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [transitionPending, startTransition] = useTransition()
+  const router = useRouter()
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
+  const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!toastMessage) return
+    const timer = setTimeout(() => setToastMessage(null), 3000)
+    return () => clearTimeout(timer)
+  }, [toastMessage])
 
   const handleTaskCreated = useCallback((task: TaskRow) => {
     setData((prev) =>
@@ -482,11 +496,11 @@ export function ContactIdentityDrawer({
 
           {/* Identity Summary Card — bleu sur toutes les surfaces */}
           <div className={cn(
-            "flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
+            "relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
             "bg-primary text-white border-primary/20",
             contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
           )}>
-            <div className="flex items-center justify-between gap-4">
+            <div className="relative flex items-center justify-between gap-4 pr-11">
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Logo du compte (ou avatar initiales) */}
                 {company ? (
@@ -512,96 +526,128 @@ export function ContactIdentityDrawer({
                   </div>
                 )}
 
-                <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
-                    {contact.job_title && (
-                      <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
-                        {contact.job_title}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {company && (
-                      <ContextualCommunicationButton
-                        entryPoint="contact_drawer"
-                        companyId={company.id}
-                        companyName={company.name}
-                        contactId={contact.id}
-                        primaryEntity={{ type: "contact", id: contact.id }}
-                        label="Rédiger un email"
-                        variant="secondary"
-                        className="h-8 min-h-8 border-white/20 bg-white/10 px-2.5 text-[11px] text-white hover:bg-white/20"
-                        aria-label={`Rédiger un email pour ${fullName}`}
-                        refs={{
-                          angle: [
-                            contact.job_title ? `Fonction: ${contact.job_title}` : null,
-                            contact.relationship_role ? `Rôle relationnel: ${contact.relationship_role}` : null,
-                            contact.relationship_level ? `Niveau de relation: ${contact.relationship_level}` : null,
-                          ].filter(Boolean).join(" · ") || undefined,
-                        }}
-                      />
-                    )}
-                    {onEditContact && (
-                      <button
-                        onClick={() => onEditContact(contact.id)}
-                        className="rounded-full p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
-                        title="Modifier les informations du contact"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onOpenChange(false)}
-                      className="rounded-full p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
-                      title="Fermer"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
+                <div className="flex-1 min-w-0 pr-8">
+                  <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
+                  {contact.job_title && (
+                    <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
+                      {contact.job_title}
+                    </span>
+                  )}
+                  {contact.relationship_role && (
+                    <span className="text-[10px] text-[#FFB812] font-bold block mt-1 leading-tight truncate capitalize">
+                      {relationshipRoleDisplay}
+                    </span>
+                  )}
                 </div>
+              </div>
+
+              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
+                <button
+                  onClick={() => onOpenChange(false)}
+                  className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
+                  title="Fermer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    if (onEditContact) {
+                      onEditContact(contact.id)
+                    } else {
+                      const event = new CustomEvent("crm-edit-contact", { detail: { contactId: contact.id } })
+                      window.dispatchEvent(event)
+                      if (window.location.pathname !== "/prospection/accounts") {
+                        window.location.href = `/prospection/accounts?tab=contacts&editContactId=${contact.id}`
+                      }
+                    }
+                  }}
+                  className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
+                  title="Modifier les informations du contact"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Pastilles : Rôle / Intimité / Statut */}
-            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 text-[10px] w-full text-center border-t border-white/12">
-              {contact.relationship_role ? (
-                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-[#FFB812]">
-                  {relationshipRoleDisplay}
-                </span>
-              ) : (
-                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
-                  Rôle
-                </span>
-              )}
-              {contact.relationship_level ? (
-                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-white">
-                  {relationshipLevelDisplay}
-                </span>
-              ) : (
-                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
-                  Intimité
-                </span>
-              )}
-              {company?.lifecycle_status === "prospect" ? (
-                contact.is_priority !== null && contact.is_priority !== undefined ? (
-                  <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate text-white">
-                    {contact.is_priority ? "Oui" : "Non"}
-                  </span>
-                ) : (
-                  <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-semibold truncate text-white/35">
-                    Prioritaire
-                  </span>
-                )
-              ) : (
-                <span className="rounded border bg-white/10 border-white/10 px-2 py-1 font-bold truncate capitalize text-white">
-                  {contact.status}
-                </span>
-              )}
+            {/* Pastilles d'action du bas */}
+            <div className="grid grid-cols-3 gap-2 items-center pt-2.5 text-[10px] w-full border-t border-white/12">
+              <button
+                onClick={() => {
+                  setEventInitialValues({
+                    title: `Échange · ${fullName}`,
+                    event_type: "rdv_prospection",
+                    company: company ? { id: company.id, name: company.name, isNew: false } : null,
+                    contact_id: contact.id,
+                  })
+                  setEventDrawerOpen(true)
+                }}
+                className="flex h-8 items-center justify-center gap-1 px-1 py-1 rounded-md font-bold text-white transition-all shadow-sm hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#6468f7" }}
+              >
+                <img
+                  src="/icons_set/cockpit_intelligence/suggestion_taches_&_evenements.png"
+                  alt=""
+                  className="w-4 h-4 object-contain shrink-0"
+                />
+                <span>Planifier</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  const epPreset = getCommunicationEntryPoint("contact_drawer")
+                  openCommunicationComposer({
+                    origin: "contact",
+                    companyId: company?.id || null,
+                    companyName: company?.name || null,
+                    contactId: contact.id,
+                    primaryEntity: { type: "contact", id: contact.id },
+                    preset: {
+                      channel: epPreset.channel,
+                      scenario: epPreset.scenario,
+                      objective: epPreset.objective,
+                      tone: epPreset.tone,
+                      length: epPreset.length,
+                      contactId: contact.id,
+                      refs: {
+                        angle: [
+                          contact.job_title ? `Fonction: ${contact.job_title}` : null,
+                          contact.relationship_role ? `Rôle relationnel: ${contact.relationship_role}` : null,
+                          contact.relationship_level ? `Niveau de relation: ${contact.relationship_level}` : null,
+                        ].filter(Boolean).join(" · ") || undefined,
+                      },
+                      mustInclude: epPreset.contextHint || undefined,
+                    },
+                  })
+                }}
+                className="flex h-8 items-center justify-center gap-1 px-1 py-1 rounded-md font-bold text-white transition-all shadow-sm hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#6468f7" }}
+              >
+                <img
+                  src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
+                  alt=""
+                  className="w-4 h-4 object-contain shrink-0"
+                />
+                <span>Rédiger</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setToastMessage("Ajout aux campagnes : Bientôt disponible !")
+                }}
+                className="flex h-8 items-center justify-center gap-1 px-1 py-1 rounded-md font-bold text-white transition-all shadow-sm hover:brightness-105 active:scale-[0.98]"
+                style={{ backgroundColor: "#6468f7" }}
+              >
+                <img
+                  src="/icons_set/cockpit_intelligence/creer_campagne.png"
+                  alt=""
+                  className="w-4 h-4 object-contain shrink-0"
+                />
+                <span>Ajouter</span>
+              </button>
             </div>
           </div>
 
@@ -1195,6 +1241,25 @@ export function ContactIdentityDrawer({
           </div>
         </div>
       ) : null}
+
+      {eventDrawerOpen && (
+        <AgendaEventDrawer
+          open={eventDrawerOpen}
+          onOpenChange={setEventDrawerOpen}
+          event={null}
+          initialValues={eventInitialValues}
+          onSaved={() => {
+            setEventDrawerOpen(false)
+            router.refresh()
+          }}
+        />
+      )}
+
+      {toastMessage && (
+        <div className="fixed bottom-6 left-4 right-4 z-[100] animate-fade-in rounded-lg border border-border bg-surface px-4 py-3 text-center text-xs font-semibold text-heading shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+          {toastMessage}
+        </div>
+      )}
     </AppDrawer>
   )
 }
