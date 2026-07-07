@@ -361,6 +361,60 @@
   --color-primary-fg: #FAF9F6;
 }
 
+/* Drawer Kredo Intelligence sombre & mat */
+.intelligence-drawer {
+  --color-canvas: #0A0D1A !important;
+  --color-surface: #12182D !important;
+  --color-surface-hover: #1E2540 !important;
+  --color-border: #242F52 !important;
+  --color-heading: #E2931D !important;
+  --color-body: #B0C4DE !important;
+  --color-muted: #7A8CA3 !important;
+  --color-primary: #E2931D !important;
+  --color-primary-deep: #C67E13 !important;
+  --color-primary-fg: #0A0D1A !important;
+  --color-secondary: #12182D !important;
+  --color-secondary-fg: #B0C4DE !important;
+
+  background-color: #0A0D1A !important;
+  color: #B0C4DE !important;
+  border-color: #242F52 !important;
+}
+
+.intelligence-drawer h2,
+.intelligence-drawer h3,
+.intelligence-drawer h4 {
+  color: var(--color-heading) !important;
+}
+
+.intelligence-drawer p,
+.intelligence-drawer label {
+  color: var(--color-body) !important;
+}
+
+.intelligence-drawer select,
+.intelligence-drawer input,
+.intelligence-drawer textarea {
+  background-color: #12182D !important;
+  color: #B0C4DE !important;
+  border-color: #242F52 !important;
+}
+
+.intelligence-drawer select:focus,
+.intelligence-drawer input:focus,
+.intelligence-drawer textarea:focus {
+  border-color: #E2931D !important;
+}
+
+.intelligence-drawer button.kredo-ready-spectrum-button {
+  background-color: #E2931D !important;
+  color: #0A0D1A !important;
+}
+
+.intelligence-drawer button.kredo-ready-spectrum-button:hover {
+  background-color: #C67E13 !important;
+}
+
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement
    les tokens en clair pour préserver le confort de lecture — le bleu encadre,
    le texte long revient sur surface claire. Sans effet hors cockpit. */

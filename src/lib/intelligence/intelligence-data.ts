@@ -5,6 +5,7 @@ import {
   SECTOR_SNAPSHOT_RESULT_TYPE,
   type AccountKnowledgeContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
+import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -164,6 +165,11 @@ export type ClientIntelligenceData = {
   // account_knowledge n'a réussi (workflow intel-030 pas encore importé sur le
   // VPS) — l'UI retombe alors sur `client` (FOLIO) exactement comme avant.
   accountKnowledge: { data: AccountKnowledgeContent; resultId: string } | null
+  // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
+  // depuis sector_intelligence + tables sector_* mutualisées. null tant que le
+  // compte n'a pas de sector_id (majorité du parc — cf. ADR §backfill honnête,
+  // pas de rattachement forcé). L'UI retombe sur `sector` (FOLIO) sinon.
+  sectorSnapshot: SectorSnapshotView | null
   sector: { data: AnalyseSector; source: IntelligenceSource } | null
   diagnostic: { data: AnalyseDiagnostic; source: IntelligenceSource } | null
   signals: string[]
@@ -357,6 +363,7 @@ type CompanyRow = {
   id: string
   name: string
   sector: string | null
+  sector_id: string | null
   segment: string | null
   priority: string
   lifecycle_status: string
@@ -485,7 +492,7 @@ export async function getClientIntelligence(
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,sector,segment,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
+        "id,name,sector,sector_id,segment,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -551,6 +558,10 @@ export async function getClientIntelligence(
   const summary = summaryResult.data ?? null
   const results = resultsResult.data ?? []
   const metadata = asRecord(company.metadata)
+
+  // ADR-0012 Lot 3 — snapshot sectoriel déterministe, seulement si le compte a
+  // un sector_id (backfill honnête, ~27/95 comptes couverts au 2026-07-07).
+  const sectorSnapshot = company.sector_id ? await getSectorSnapshot(company.sector_id) : null
 
   // Source de vérité : moteur d'abord (result_type succeeded), sinon fallback
   // FOLIO. ADR-0012 D-5 : `phase` est déprécié comme clé de matching — la
@@ -704,6 +715,7 @@ export async function getClientIntelligence(
       },
       client,
       accountKnowledge,
+      sectorSnapshot,
       sector,
       diagnostic,
       diagnosticPdfUrl,

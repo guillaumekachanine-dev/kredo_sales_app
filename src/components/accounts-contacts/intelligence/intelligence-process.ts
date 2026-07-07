@@ -72,11 +72,12 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       return { label: "À compléter", tone: "neutral" }
     }
     case "secteur": {
-      const hasEngine = data.sector?.source === "engine"
-      const hasFolio = data.sector?.source === "folio"
-      if (hasEngine) {
+      // ADR-0012 Lot 3 : sectorSnapshot (déterministe, mutualisé) prime sur le
+      // fallback FOLIO/moteur legacy.
+      if (data.sectorSnapshot) {
         return { label: "Disponible", tone: "success" }
       }
+      const hasFolio = data.sector?.source === "folio"
       if (hasFolio) {
         return { label: "FOLIO", tone: "warning" }
       }

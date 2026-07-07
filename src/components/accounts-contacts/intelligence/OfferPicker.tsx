@@ -24,9 +24,9 @@ export function OfferPicker({
   isMobile?: boolean
 }) {
   const selectCls = cn(
-    "w-full rounded border px-3 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50",
+    "w-full rounded-lg border px-3 text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0",
     isMobile ? "h-11" : "h-9",
-    value ? "border-border bg-surface" : "border-warning/40 bg-warning/[0.06]"
+    value ? "border-border/30 bg-surface/20" : "border-warning/30 bg-surface/10"
   )
   const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
 

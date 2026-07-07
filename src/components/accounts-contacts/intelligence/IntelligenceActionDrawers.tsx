@@ -248,11 +248,11 @@ export function PitchMailDrawerContent({
           onClick={handleGenerate}
           disabled={runStatus === "loading" || missingOfferRef}
           className={cn(
-            "kredo-ready-spectrum-button w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-medium)] px-3 text-xs font-bold text-[#151515] transition-transform",
+            "kredo-ready-spectrum-button w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-medium)] px-3 text-xs font-bold text-[#151515]",
             isMobile ? "min-h-[44px]" : "min-h-[36px]",
             runStatus === "loading" || missingOfferRef
               ? "cursor-not-allowed opacity-80"
-              : "hover:-translate-y-[1px]"
+              : ""
           )}
         >
           {runStatus === "loading" ? (

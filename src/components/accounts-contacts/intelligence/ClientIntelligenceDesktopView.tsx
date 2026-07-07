@@ -24,6 +24,7 @@ import {
   AccountSignalsCard,
   AccountKnowledgeGeneratedContent,
 } from "./AccountKnowledgeBlocks"
+import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -164,11 +165,13 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
           )}
           {activeTab === "secteur" && (
             <div className="mx-auto max-w-4xl pt-6">
-              {/* ADR-0012 Lot 0/2 : le contenu sectoriel (FOLIO ou moteur) vit
-                  désormais ici, plus dans "Connaissance compte". Le Lot 3
-                  remplacera cette lecture directe par un snapshot déterministe
-                  mutualisé (sector_intelligence) — sans changer cet emplacement UI. */}
-              {data.sector ? (
+              {/* ADR-0012 Lot 3 : snapshot déterministe mutualisé (sector_intelligence
+                  + tables sector_*) en priorité — seulement si le compte a un
+                  sector_id (backfill honnête, ~27/95 comptes). Fallback FOLIO/moteur
+                  sinon, exactement comme avant (Lot 0/2). */}
+              {data.sectorSnapshot ? (
+                <SectorSnapshotContent data={data.sectorSnapshot} />
+              ) : data.sector ? (
                 <SectorAnalysisContent data={data.sector.data} />
               ) : (
                 <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>

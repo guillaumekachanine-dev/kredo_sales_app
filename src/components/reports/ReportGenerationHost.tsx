@@ -11,49 +11,31 @@ import {
   type ReportGenerationKind,
 } from "@/lib/reports/report-generation"
 
-const REPORT_SELECTOR_CHROME_CLASS = "bg-[#112F35] text-[#edf6f7] [--drawer-header-fade-start:rgba(17,47,53,0.96)] [--drawer-header-fade-end:rgba(17,47,53,0)]"
-const REPORT_SELECTOR_HEADER_CLASS = "border-b border-white/10 bg-[#112F35] [&_h2]:text-[#edf6f7] [&_p]:text-[#c2d6d9] [&_button]:text-[#edf6f7] [&_button:hover]:bg-white/10"
-const REPORT_SELECTOR_CONTENT_CLASS = "bg-[#112F35] px-4 pb-5 pt-4 sm:px-5"
+const REPORT_SELECTOR_CHROME_CLASS = "intelligence-drawer text-body border-l border-border/40"
+const REPORT_SELECTOR_HEADER_CLASS = "intelligence-drawer border-b border-border/40 [&_h2]:text-primary [&_p]:text-muted [&_button]:text-heading [&_button:hover]:bg-surface-hover/30"
+const REPORT_SELECTOR_CONTENT_CLASS = "intelligence-drawer px-4 pb-5 pt-4 sm:px-5 [--drawer-header-fade-start:rgba(10,13,26,0.95)] [--drawer-header-fade-end:rgba(10,13,26,0)]"
 
 function ReportTypeIcon({ reportType }: { reportType: ReportGenerationKind }) {
   if (reportType === "activity_commercial") {
     return (
-      <svg className="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 16L9 11L13 15L20 8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M15 8H20V13" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/prevision_ca.png" alt="" />
     )
   }
 
   if (reportType === "activity_recruitment") {
     return (
-      <svg className="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M15 19V17.5C15 15.567 13.433 14 11.5 14H8.5C6.567 14 5 15.567 5 17.5V19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <circle cx="10" cy="9" r="3" stroke="currentColor" strokeWidth="1.8" />
-        <path d="M18 8V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M21 11H15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
+      <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/rapport_recrutement_ai.png" alt="" />
     )
   }
 
   if (reportType === "financial") {
     return (
-      <svg className="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M5 18H19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M7 18V11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M12 18V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M17 18V13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
+      <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/rapport_financier_ai.png" alt="" />
     )
   }
 
   return (
-    <svg className="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="5" y="4" width="14" height="16" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M8 9H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M8 13H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M8 17H13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
+    <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/brief_hebdo.png" alt="" />
   )
 }
 
@@ -95,7 +77,7 @@ export function ReportGenerationHost() {
       <AppDrawer
         open={selectorOpen}
         onOpenChange={setSelectorOpen}
-        title="générer un rapport"
+        title="Générer un rapport"
         width="default"
         showMobileCloseButton
         className={REPORT_SELECTOR_CHROME_CLASS}
@@ -114,38 +96,30 @@ export function ReportGenerationHost() {
                 onClick={() => openReport(option.reportType)}
                 data-autofocus={option.reportType === "activity_commercial" ? "true" : undefined}
                 className={cn(
-                  "group flex min-h-[9.5rem] flex-col justify-between rounded-[var(--radius-medium)] border p-4 text-left transition-all",
-                  "bg-[color-mix(in_srgb,#112F35_70%,white)]",
+                  "group flex min-h-[9.5rem] flex-col justify-between rounded-2xl border p-4 text-left transition-all duration-200",
+                  "bg-surface/30 border-border/30",
                   isReady
-                    ? "cursor-pointer border-white/10 hover:-translate-y-0.5 hover:border-white/20 hover:bg-[color-mix(in_srgb,#112F35_64%,white)] active:translate-y-0"
-                    : "cursor-pointer border-white/8 hover:border-white/16 hover:bg-[color-mix(in_srgb,#112F35_66%,white)]",
-                  isSuggested && "border-white/25 shadow-[0_0_0_1px_rgba(255,255,255,0.14)]",
+                    ? "cursor-pointer hover:-translate-y-0.5 hover:border-primary/50 hover:bg-surface-hover/30 hover:shadow-[0_4px_20px_rgba(0,0,0,0.2)] active:translate-y-0"
+                    : "cursor-pointer hover:border-border hover:bg-surface-hover/20",
+                  isSuggested && "border-primary/80 bg-surface/50 shadow-[0_0_15px_rgba(226,147,29,0.1)]",
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span
-                    className={cn(
-                      "inline-flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-small)] border",
-                      isReady
-                        ? "border-white/12 bg-white/[0.07] text-[#edf6f7]"
-                        : "border-white/10 bg-white/[0.05] text-[#d4e3e5]",
-                    )}
-                  >
-                    <ReportTypeIcon reportType={option.reportType} />
-                  </span>
+                  <ReportTypeIcon reportType={option.reportType} />
                 </div>
 
-                <div className="space-y-3">
-                  <span className="block text-sm font-bold leading-5 text-[#f4fbfb]">
+                <div className="space-y-2">
+                  <span className="block text-sm font-bold leading-5 text-heading transition-colors group-hover:text-primary">
                     {option.title}
                   </span>
                   <span
                     className={cn(
-                      "block text-[11px] font-medium uppercase tracking-[0.12em]",
-                      isReady ? "text-emerald-100/85" : "text-amber-100/80",
+                      "inline-flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                      isReady ? "text-success" : "text-muted",
                     )}
                   >
-                    {isReady ? "Disponible" : "À développer"}
+                    <span className={cn("size-1.5 rounded-full", isReady ? "bg-success" : "bg-muted")} />
+                    <span>{isReady ? "Disponible" : "À développer"}</span>
                   </span>
                 </div>
               </button>

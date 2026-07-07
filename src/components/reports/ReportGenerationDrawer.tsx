@@ -383,6 +383,9 @@ export function ReportGenerationDrawer({
         onOpenChange(nextOpen)
         if (!nextOpen) resetAll()
       }}
+      className="intelligence-drawer border-l border-border/40 text-body"
+      headerClassName="intelligence-drawer border-b border-border/40 [&_h2]:text-primary [&_p]:text-muted [&_button]:text-heading [&_button:hover]:bg-surface-hover/30"
+      contentClassName="intelligence-drawer px-4 pb-5 pt-4 sm:px-5 [--drawer-header-fade-start:rgba(10,13,26,0.95)] [--drawer-header-fade-end:rgba(10,13,26,0)]"
       title={(
         <div className="flex min-w-0 items-center gap-3">
           <button

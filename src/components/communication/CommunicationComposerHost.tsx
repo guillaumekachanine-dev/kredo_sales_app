@@ -48,9 +48,9 @@ type ComposerAccountContext = PitchMailAccountContext & {
   communicationPreset?: CommunicationComposerPreset
 }
 
-const MAIL_DRAWER_CHROME_CLASS = "bg-primary-deep text-primary-fg"
-const MAIL_DRAWER_HEADER_CLASS = "bg-primary-deep [&_h2]:text-primary-fg [&_p]:text-primary-fg/65"
-const MAIL_DRAWER_CONTENT_CLASS = "bg-primary-deep [--drawer-header-fade-start:rgba(30,69,150,0.95)] [--drawer-header-fade-end:rgba(30,69,150,0)]"
+const MAIL_DRAWER_CHROME_CLASS = "intelligence-drawer text-body border-l border-border/40"
+const MAIL_DRAWER_HEADER_CLASS = "intelligence-drawer border-b border-border/40 [&_h2]:text-primary [&_p]:text-muted"
+const MAIL_DRAWER_CONTENT_CLASS = "intelligence-drawer [--drawer-header-fade-start:rgba(10,13,26,0.95)] [--drawer-header-fade-end:rgba(10,13,26,0)]"
 
 function enrichFromActiveIntelligenceContext(
   request: CommunicationComposerRequest,
@@ -170,7 +170,7 @@ function ComposerContent({
   }
 
   return (
-    <div data-theme="cockpit" className="rounded-[var(--radius-medium)] border border-border bg-surface p-4">
+    <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-4">
       <PitchMailDrawerContent
         key={`${instanceKey}:${context.company.id}:${context.communicationPreset?.contactId ?? "none"}`}
         data={context}

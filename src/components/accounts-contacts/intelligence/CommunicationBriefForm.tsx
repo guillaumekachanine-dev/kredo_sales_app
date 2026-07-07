@@ -32,14 +32,25 @@ import { ContactSelector } from "./ContactSelector"
 import { OfferPicker } from "./OfferPicker"
 import type { SuggestedOffer } from "./get-suggested-offers"
 
+const PRACTICE_OPTIONS = [
+  "Quality Engineering & Testing",
+  "Cloud Engineering",
+  "Project & Agile Delivery",
+  "Data & AI",
+  "Digital Business Solutions",
+  "Legacy Systems & Mainframe",
+  "Digital Experience",
+  "Cybersecurity"
+]
+
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
-    "w-full rounded border border-border bg-surface px-3 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50",
+    "w-full rounded-lg border border-border/30 bg-surface/20 px-3 text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0",
     isMobile ? "h-11" : "h-9"
   )
   const textareaCls =
-    "w-full rounded border border-border bg-surface px-3 py-2 text-xs font-medium text-body focus:outline-none focus:ring-1 focus:ring-primary/50 min-h-[64px]"
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
+    "w-full rounded-lg border border-border/30 bg-surface/20 px-3 py-2.5 text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0 min-h-[64px]"
+  const labelCls = "block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5"
   return { selectCls, textareaCls, labelCls }
 }
 
@@ -52,16 +63,16 @@ function SectionHeading({
 }) {
   return (
     <summary className="cursor-pointer select-none list-none marker:content-none [&::-webkit-details-marker]:hidden">
-      <div className="flex items-center justify-between gap-3 py-1">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className="inline-flex min-h-7 items-center rounded-full border border-primary/20 bg-primary/12 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-primary"
-          >
+      <div className="flex items-center justify-between gap-3 py-1.5">
+        <div className="flex min-w-0 items-center gap-2">
+          {/* Subtle gold bullet */}
+          <span className="size-1 rounded-full bg-primary" aria-hidden />
+          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary">
             {title}
           </span>
-          {meta ? <span className="truncate text-[11px] text-muted">{meta}</span> : null}
+          {meta ? <span className="truncate text-[10px] text-muted font-medium ml-1">({meta})</span> : null}
         </div>
-        <span className="text-muted/60 transition-transform group-open:rotate-180">▾</span>
+        <span className="text-muted/60 transition-transform duration-200 group-open:rotate-180 text-xxs">▼</span>
       </div>
     </summary>
   )
@@ -200,13 +211,18 @@ export function CommunicationBriefForm({
       </div>
       <div>
         <label className={labelCls}>Practice (optionnel)</label>
-        <input
-          type="text"
+        <Select
           value={brief.who.sender.practice || ""}
           onChange={(e) => updateSender({ practice: e.target.value || undefined })}
-          placeholder="Data/IA, Cloud…"
           className={selectCls}
-        />
+        >
+          <option value="">Non spécifié</option>
+          {PRACTICE_OPTIONS.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </Select>
       </div>
     </div>
   )
@@ -309,11 +325,11 @@ export function CommunicationBriefForm({
               type="button"
               onClick={() => updateHow({ formality: f })}
               className={cn(
-                "flex-1 rounded border px-3 text-xs font-semibold transition-colors",
+                "flex-1 rounded-lg border px-3 text-xs font-semibold transition-all duration-150 cursor-pointer",
                 isMobile ? "min-h-[44px]" : "h-9",
                 brief.how.formality === f
-                  ? "border-primary bg-primary text-[#151515]"
-                  : "border-border bg-surface text-body hover:bg-canvas"
+                  ? "border-primary bg-primary/20 text-primary font-bold shadow-[0_0_12px_rgba(226,147,29,0.05)]"
+                  : "border-border/30 bg-surface/20 text-body hover:bg-surface/35"
               )}
             >
               {f}
@@ -414,7 +430,7 @@ export function CommunicationBriefForm({
 
   return (
     <div className="space-y-3">
-      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
         <SectionHeading title="Quoi" />
         <div className="pt-3 space-y-4">
           {fieldScenario}
@@ -423,7 +439,7 @@ export function CommunicationBriefForm({
         </div>
       </details>
 
-      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
         <SectionHeading title="Qui" />
         <div className="pt-3 space-y-4">
           {fieldSenderAndPractice}
@@ -433,14 +449,14 @@ export function CommunicationBriefForm({
         </div>
       </details>
 
-      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
         <SectionHeading title="Comment" />
         <div className="pt-3 space-y-4">
           {fieldToneFormalityAndLanguage}
         </div>
       </details>
 
-      <details open className="group rounded-xl border border-white/10 bg-[#2450AE] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
         <SectionHeading title="Contexte" meta={contextMetaLabel} />
         <div className="pt-3 space-y-4">
           {fieldMustInclude}

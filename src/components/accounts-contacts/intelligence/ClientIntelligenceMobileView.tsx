@@ -20,6 +20,7 @@ import {
   AccountSignalsCard,
   AccountKnowledgeGeneratedContent,
 } from "./AccountKnowledgeBlocks"
+import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -363,7 +364,9 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
           )}
 
           {activePanel === "secteur" && (
-            sector ? (
+            data.sectorSnapshot ? (
+              <SectorSnapshotContent data={data.sectorSnapshot} />
+            ) : sector ? (
               <>
                 <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
                   <div>
