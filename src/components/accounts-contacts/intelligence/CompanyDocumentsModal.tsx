@@ -1,9 +1,24 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { Button } from "@/components/ui/Button"
 import { StatusPill } from "@/components/ui/StatusPill"
+import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
+import { DocumentAppliedParameters } from "@/components/reports/DocumentAppliedParameters"
+import { DocumentCommunicationActions } from "@/components/reports/DocumentCommunicationActions"
+import { DocumentEditor } from "@/components/reports/DocumentEditor"
+import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
+import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
+import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
+import { fetchDocumentDetail } from "@/app/(app)/reports/_data/reports-actions"
+import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
+import {
+  DOCUMENT_OBJECT_LABELS,
+  getDocumentTypeLabel,
+  getPitchBriefLabel,
+} from "@/components/reports/document-display"
 import { cn } from "@/lib/utils"
 
 interface CompanyDocumentsModalProps {
@@ -17,15 +32,16 @@ interface CompanyDocumentsModalProps {
 type DocumentItem = {
   id: string
   title: string
-  document_type: string
+  document_type: DocumentDetail["documentType"]
   status: "draft" | "ready" | "used" | "archived"
   current_content_text: string | null
-  current_content_json: any
+  current_content_json: unknown
   created_at: string
   updated_at: string
 }
 
 type CategoryKey = "mails" | "rapports" | "pitchs" | "devis" | "relances" | "fiches"
+type DisclosureKey = "sources" | "parameters" | "versions"
 
 const CATEGORIES: { key: CategoryKey; label: string; icon: string }[] = [
   {
@@ -67,6 +83,157 @@ const STATUS_LABELS: Record<string, string> = {
   archived: "Archivé",
 }
 
+const REUSE_ACTION_LABELS = [
+  "Créer une variante",
+  "Réutiliser pour ce compte",
+  "Adapter à un autre contact",
+  "Relancer à partir du message",
+]
+
+function formatSourceRef(value: unknown): string {
+  if (typeof value === "string") return value
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>
+    const label = record.label
+    if (typeof label === "string" && label.trim()) return label.trim()
+    const name = record.name
+    if (typeof name === "string" && name.trim()) return name.trim()
+    const title = record.title
+    if (typeof title === "string" && title.trim()) return title.trim()
+  }
+
+  return JSON.stringify(value) ?? "Source structurée"
+}
+
+function isFinancialDocument(document: DocumentDetail) {
+  return document.documentType === "financial"
+    || (
+      document.currentContentJson
+      && typeof document.currentContentJson === "object"
+      && !Array.isArray(document.currentContentJson)
+      && (document.currentContentJson as Record<string, unknown>).reportType === "financial"
+    )
+}
+
+function isCommunicationDocument(document: DocumentDetail) {
+  return ["communication", "commercial_pitch", "campaign", "internal_note"].includes(document.documentType)
+}
+
+function DocumentContent({ document }: { document: DocumentDetail }) {
+  if (document.documentType === "client_summary") {
+    return (
+      <ClientSummaryDocumentContent
+        contentJson={document.currentContentJson}
+        contentText={document.currentContentText}
+      />
+    )
+  }
+
+  if (isFinancialDocument(document)) {
+    return (
+      <FinancialReportContent
+        contentJson={document.currentContentJson}
+        contentText={document.currentContentText}
+      />
+    )
+  }
+
+  if (document.documentType === "commercial_pitch") {
+    return (
+      <PitchDocumentContent
+        contentJson={document.currentContentJson}
+        contentText={document.currentContentText}
+        fallbackClassName="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
+      />
+    )
+  }
+
+  if (document.currentContentText) {
+    return (
+      <div className="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
+        {document.currentContentText}
+      </div>
+    )
+  }
+
+  return <p className="text-sm text-muted">Aucun contenu texte disponible.</p>
+}
+
+function DocumentDisclosureChips({ document }: { document: DocumentDetail }) {
+  const [openKey, setOpenKey] = useState<DisclosureKey | null>(null)
+  const latestVersion = document.versions[0] ?? null
+  const appliedBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
+  const sourceCount = latestVersion?.sourceRefs.length ?? 0
+
+  const chips: Array<{ key: DisclosureKey; label: string; count?: number }> = [
+    { key: "sources", label: "Sources", count: sourceCount },
+    { key: "parameters", label: "Paramètres" },
+    { key: "versions", label: "Versions", count: document.versions.length },
+  ]
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {chips.map((chip) => {
+          const isOpen = openKey === chip.key
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpenKey(isOpen ? null : chip.key)}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors",
+                isOpen
+                  ? "border-primary/30 bg-primary/[0.10] text-primary"
+                  : "border-border bg-surface text-body hover:bg-surface-hover hover:text-heading"
+              )}
+            >
+              <span>{chip.label}</span>
+              {typeof chip.count === "number" ? (
+                <span className="rounded-full bg-canvas px-1.5 py-0.5 text-[10px] text-muted">
+                  {chip.count}
+                </span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+
+      {openKey ? (
+        <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-sm">
+          {openKey === "sources" ? (
+            latestVersion && latestVersion.sourceRefs.length > 0 ? (
+              <ul className="space-y-2 text-sm leading-relaxed text-body">
+                {latestVersion.sourceRefs.map((ref, index) => (
+                  <li key={`${document.id}-source-${index}`} className="flex gap-2">
+                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
+                    <span>{formatSourceRef(ref)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">Aucune source enregistrée.</p>
+            )
+          ) : null}
+
+          {openKey === "parameters" ? (
+            <DocumentAppliedParameters briefJson={appliedBrief} />
+          ) : null}
+
+          {openKey === "versions" ? (
+            <DocumentVersionHistory
+              key={`${document.id}-${document.versionNumber}`}
+              versions={document.versions}
+              compact
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 export function CompanyDocumentsModal({
   open,
   onClose,
@@ -77,8 +244,13 @@ export function CompanyDocumentsModal({
   const [step, setStep] = useState<"categories" | "list" | "viewer">("categories")
   const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentItem | null>(null)
+  const [selectedDetail, setSelectedDetail] = useState<DocumentDetail | null>(null)
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [detailReloadToken, setDetailReloadToken] = useState(0)
 
   // Fetch documents for the company
   useEffect(() => {
@@ -110,7 +282,7 @@ export function CompanyDocumentsModal({
           .order("updated_at", { ascending: false })
 
         if (docsError) throw docsError
-        setDocuments(docs as DocumentItem[])
+        setDocuments((docs ?? []) as DocumentItem[])
       } catch (err) {
         console.error("Failed to load company documents:", err)
       } finally {
@@ -121,14 +293,34 @@ export function CompanyDocumentsModal({
     loadDocuments()
   }, [open, companyId])
 
-  // Reset states when closed or opened
   useEffect(() => {
-    if (!open) {
-      setStep("categories")
-      setActiveCategory(null)
-      setSelectedDoc(null)
+    if (!open || !selectedDoc) return
+
+    let cancelled = false
+
+    void fetchDocumentDetail(selectedDoc.id).then((result) => {
+      if (cancelled) return
+
+      if ("error" in result) {
+        setSelectedDetail(null)
+        setDetailError(result.error ?? "Impossible de charger le document")
+        return
+      }
+
+      setSelectedDetail(result.data)
+    }).catch(() => {
+      if (!cancelled) {
+        setSelectedDetail(null)
+        setDetailError("Impossible de charger le document")
+      }
+    }).finally(() => {
+      if (!cancelled) setDetailLoading(false)
+    })
+
+    return () => {
+      cancelled = true
     }
-  }, [open])
+  }, [detailReloadToken, open, selectedDoc])
 
   if (!open) return null
 
@@ -174,6 +366,10 @@ export function CompanyDocumentsModal({
 
   const handleDocSelect = (doc: DocumentItem) => {
     setSelectedDoc(doc)
+    setSelectedDetail(null)
+    setDetailError(null)
+    setDetailLoading(true)
+    setIsEditing(false)
     if (isMobile) {
       setStep("viewer")
     }
@@ -183,15 +379,30 @@ export function CompanyDocumentsModal({
     if (step === "viewer") {
       setStep("list")
       setSelectedDoc(null)
+      setSelectedDetail(null)
+      setIsEditing(false)
     } else if (step === "list") {
       setStep("categories")
       setActiveCategory(null)
       setSelectedDoc(null)
+      setSelectedDetail(null)
+      setIsEditing(false)
     }
   }
 
   const getCategoryLabel = (key: CategoryKey) => {
     return CATEGORIES.find((c) => c.key === key)?.label ?? ""
+  }
+
+  const handleClose = () => {
+    setStep("categories")
+    setActiveCategory(null)
+    setSelectedDoc(null)
+    setSelectedDetail(null)
+    setIsEditing(false)
+    setDetailError(null)
+    setDetailLoading(false)
+    onClose()
   }
 
   return (
@@ -231,7 +442,7 @@ export function CompanyDocumentsModal({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex items-center justify-center size-9 rounded-lg hover:bg-white/5 text-muted hover:text-white transition-colors cursor-pointer"
             aria-label="Fermer la modale"
           >
@@ -260,9 +471,11 @@ export function CompanyDocumentsModal({
                       className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white/[0.05] border border-white/10 px-4 py-4 text-left text-white hover:bg-white/[0.10] active:scale-[0.97] transition-all cursor-pointer h-28"
                     >
                       <span className="pointer-events-none absolute -right-6 -top-7 size-24 rounded-full bg-white/5 blur-2xl" />
-                      <img
+                      <Image
                         src={cat.icon}
                         alt=""
+                        width={40}
+                        height={40}
                         className="relative z-10 size-10 object-contain drop-shadow-[0_4px_12px_rgba(18,24,61,0.25)] transition-transform duration-200 group-hover:scale-105"
                       />
                       <div className="relative z-10 flex flex-col">
@@ -283,7 +496,9 @@ export function CompanyDocumentsModal({
               <div
                 className={cn(
                   "h-full flex flex-col border-r border-white/5 transition-all duration-500 ease-out",
-                  isMobile
+                  isMobile && step === "viewer"
+                    ? "hidden"
+                    : isMobile
                     ? "w-full"
                     : selectedDoc
                     ? "w-[38%] shrink-0"
@@ -349,24 +564,100 @@ export function CompanyDocumentsModal({
                   )}
                 >
                   {selectedDoc ? (
-                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-6">
                       {/* Document Meta Header inside viewer */}
-                      <div className="border-b border-white/5 pb-4">
-                        <span className="inline-flex rounded-[6px] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] bg-white/10 text-white">
-                          {selectedDoc.document_type.replace(/_/g, " ")}
-                        </span>
-                        <h3 className="text-base font-bold mt-2 text-white">{selectedDoc.title}</h3>
-                        <p className="text-[10px] text-muted mt-1">
+                      <div className="mb-4 border-b border-white/5 pb-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                            {getDocumentTypeLabel(selectedDoc.document_type)}
+                          </span>
+                          <span className="inline-flex rounded-full bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">
+                            {DOCUMENT_OBJECT_LABELS[selectedDoc.document_type]}
+                          </span>
+                        </div>
+                        <h3 className="mt-2 text-base font-bold leading-snug text-white">
+                          {selectedDetail?.documentType === "commercial_pitch"
+                            ? getPitchBriefLabel(selectedDetail.versions[0]?.sourceRunInputSnapshot ?? selectedDetail.versions[0]?.briefJson) ?? selectedDoc.title
+                            : selectedDoc.title}
+                        </h3>
+                        <p className="mt-1 text-[10px] text-muted">
                           Créé le {new Date(selectedDoc.created_at).toLocaleDateString("fr-FR")} · Mis à jour le {new Date(selectedDoc.updated_at).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
 
-                      {/* Content rendering */}
-                      <div className="prose prose-invert max-w-none text-sm leading-relaxed text-slate-200 whitespace-pre-wrap font-sans">
-                        {selectedDoc.current_content_text || (
-                          <p className="text-xs text-muted italic">Ce document ne contient aucun texte.</p>
-                        )}
-                      </div>
+                      {detailLoading ? (
+                        <div className="flex min-h-56 flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04]">
+                          <span className="size-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          <p className="text-xs text-muted font-medium">Chargement du document...</p>
+                        </div>
+                      ) : detailError ? (
+                        <div className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-4 text-sm text-danger">
+                          {detailError}
+                        </div>
+                      ) : selectedDetail ? (
+                        <div className="cockpit-reading pitch-modal-reading space-y-5 rounded-2xl border px-4 py-4 shadow-[0_18px_50px_rgba(2,6,23,0.20)]">
+                          {isEditing ? (
+                            <DocumentEditor
+                              key={`${selectedDetail.id}-${selectedDetail.versionNumber}`}
+                              document={selectedDetail}
+                              onCancel={() => setIsEditing(false)}
+                              onSaved={() => {
+                                setIsEditing(false)
+                                setDetailLoading(true)
+                                setDetailError(null)
+                                setDetailReloadToken((current) => current + 1)
+                              }}
+                            />
+                          ) : (
+                            <>
+                              <section className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                                  Contenu
+                                </h4>
+                                <DocumentContent document={selectedDetail} />
+                              </section>
+
+                              <section className="space-y-3 border-t border-border pt-4">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+                                  Actions
+                                </h4>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => setIsEditing(true)}
+                                    className="justify-center"
+                                  >
+                                    Modifier
+                                  </Button>
+                                  {isCommunicationDocument(selectedDetail) ? (
+                                    <DocumentCommunicationActions
+                                      document={selectedDetail}
+                                      presentation="buttons"
+                                      buttonClassName="justify-center"
+                                    />
+                                  ) : (
+                                    REUSE_ACTION_LABELS.map((label) => (
+                                      <Button
+                                        key={label}
+                                        variant="secondary"
+                                        size="sm"
+                                        disabled
+                                        title="Disponible pour les mails, pitchs, campagnes et notes."
+                                        className="justify-center"
+                                      >
+                                        {label}
+                                      </Button>
+                                    ))
+                                  )}
+                                </div>
+                              </section>
+
+                              <DocumentDisclosureChips document={selectedDetail} />
+                            </>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="flex-1 flex items-center justify-center text-xs text-muted italic">

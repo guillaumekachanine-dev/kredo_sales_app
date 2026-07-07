@@ -16,13 +16,15 @@ import type {
 type DocumentCommunicationActionsProps = {
   document: DocumentDetail
   layout?: "grid" | "stack"
+  presentation?: "section" | "buttons"
+  buttonClassName?: string
 }
 
 const ACTIONS: Array<{ mode: CommunicationReuseMode; label: string }> = [
   { mode: "variant", label: "Créer une variante" },
-  { mode: "adapt_contact", label: "Adapter à un autre contact" },
   { mode: "reuse_account", label: "Réutiliser pour ce compte" },
-  { mode: "follow_up", label: "Relancer à partir de ce message" },
+  { mode: "adapt_contact", label: "Adapter à un autre contact" },
+  { mode: "follow_up", label: "Relancer à partir du message" },
 ]
 
 function isCommunicationDocument(document: DocumentDetail) {
@@ -32,6 +34,8 @@ function isCommunicationDocument(document: DocumentDetail) {
 export function DocumentCommunicationActions({
   document,
   layout = "grid",
+  presentation = "section",
+  buttonClassName,
 }: DocumentCommunicationActionsProps) {
   const [isPending, startTransition] = useTransition()
   const [activeMode, setActiveMode] = useState<CommunicationReuseMode | null>(null)
@@ -56,6 +60,53 @@ export function DocumentCommunicationActions({
   }
 
   const isDrawerOpen = Boolean(activeMode)
+  const buttons = ACTIONS.map((action) => (
+    <Button
+      key={action.mode}
+      variant="secondary"
+      size="sm"
+      onClick={() => handlePrepare(action.mode)}
+      loading={isPending && activeMode === action.mode}
+      fullWidth={layout === "stack"}
+      className={buttonClassName}
+    >
+      {action.label}
+    </Button>
+  ))
+
+  if (presentation === "buttons") {
+    return (
+      <>
+        {error ? <p className="sm:col-span-2 text-sm text-danger">{error}</p> : null}
+        {buttons}
+
+        <AppDrawer
+          open={isDrawerOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              setActiveMode(null)
+              setPrepared(null)
+              setError(null)
+            }
+          }}
+          title={prepared?.title ?? "Préparation de la reprise"}
+          subtitle={prepared?.description}
+          loading={isPending && !prepared}
+          error={error ? { title: "Impossible de préparer la reprise", description: error } : null}
+          width="wide"
+        >
+          {prepared ? (
+            <PitchMailDrawerContent
+              key={`${document.id}-${activeMode ?? "reuse"}`}
+              data={prepared.data}
+              initialBrief={prepared.initialBrief}
+              contextMetaLabel="brief source + message précédent"
+            />
+          ) : null}
+        </AppDrawer>
+      </>
+    )
+  }
 
   return (
     <>
@@ -70,18 +121,7 @@ export function DocumentCommunicationActions({
         </div>
         {error ? <p className="text-sm text-danger">{error}</p> : null}
         <div className={layout === "grid" ? "grid gap-2 sm:grid-cols-2" : "flex flex-col gap-2"}>
-          {ACTIONS.map((action) => (
-            <Button
-              key={action.mode}
-              variant="secondary"
-              size="sm"
-              onClick={() => handlePrepare(action.mode)}
-              loading={isPending && activeMode === action.mode}
-              fullWidth={layout === "stack"}
-            >
-              {action.label}
-            </Button>
-          ))}
+          {buttons}
         </div>
       </section>
 
