@@ -357,6 +357,51 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
       let companyId = currentRequest.companyId ?? inferred.companyId
       let company: CompanyRecord | null = null
 
+      const signalRef = currentRequest.preset?.refs?.signalRef
+      let signalMustInclude = ""
+      let signalPractice: string | undefined = undefined
+
+      if (signalRef) {
+        const { data: signalRow } = await supabase
+          .from("account_signals")
+          .select(`
+            id,
+            title,
+            summary,
+            recommended_action,
+            recommended_practice_id,
+            intelligence_sources(id, source_name, source_url),
+            offer_practices(id, name)
+          `)
+          .eq("id", signalRef)
+          .maybeSingle()
+
+        if (signalRow) {
+          const source = signalRow.intelligence_sources
+            ? Array.isArray(signalRow.intelligence_sources)
+              ? signalRow.intelligence_sources[0]
+              : signalRow.intelligence_sources
+            : null
+
+          const practice = signalRow.offer_practices
+            ? Array.isArray(signalRow.offer_practices)
+              ? signalRow.offer_practices[0]
+              : signalRow.offer_practices
+            : null
+
+          signalPractice = practice?.name || undefined
+
+          signalMustInclude = `[SIGNAL_CONTEXT]
+Titre du signal : ${signalRow.title}
+Résumé : ${signalRow.summary || "Non renseigné"}
+Source principale : ${source?.source_name || "Non spécifiée"}${source?.source_url ? ` (${source.source_url})` : ""}
+Action recommandée : ${signalRow.recommended_action || "Non spécifiée"}
+Practice recommandée : ${practice?.name || "Non spécifiée"}
+
+Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
+        }
+      }
+
       if (companyId) {
         const { data, error: companyError } = await supabase
           .from("companies")
@@ -402,6 +447,12 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
 
       const contacts = mapContacts((contactRows ?? []) as unknown as ContactRecord[])
       const preset = mergePreset(currentRequest, inferred)
+      if (signalMustInclude) {
+        preset.mustInclude = [signalMustInclude, preset.mustInclude].filter(Boolean).join("\n\n")
+      }
+      if (signalPractice) {
+        preset.practice = signalPractice
+      }
 
       setSelectedAccount({ id: company.id, name: company.name, isNew: false })
       setContext({

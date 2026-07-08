@@ -9,6 +9,9 @@ import {
   CreateAccountNoteDialog,
   CreateOpportunityDialog,
 } from "./SignalDialogs"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { AccountSignalDetailDrawer } from "@/components/accounts-contacts/intelligence/AccountSignalDetailDrawer"
+import { cn } from "@/lib/utils"
 import { getRelativeTimeFr, extractMatchedCompany } from "./veille-utils"
 import type {
   VeilleDigest,
@@ -16,6 +19,7 @@ import type {
   SectorNews,
   SectorEvent,
   CompanyContextStats,
+  WatchedAccountSignal
 } from "@/app/(app)/veille/_data/veille-data"
 
 interface VeilleActualitesMobileProps {
@@ -25,6 +29,7 @@ interface VeilleActualitesMobileProps {
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
+  watchedSignals: WatchedAccountSignal[]
 }
 
 export function VeilleActualitesMobile({
@@ -34,12 +39,28 @@ export function VeilleActualitesMobile({
   sectorNews,
   sectorEvents,
   companies,
+  watchedSignals,
 }: VeilleActualitesMobileProps) {
+  const [activeTab, setActiveTab] = useState<"globale" | "comptes">("globale")
   const [articles, setArticles] = useState<VeilleArticle[]>(initialArticles)
   const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(() => {
     return initialArticles.length > 0 ? initialArticles[0] : null
   })
   const [selectedCategory, setSelectedCategory] = useState("Tous")
+  const [localWatchedSignals, setLocalWatchedSignals] = useState<WatchedAccountSignal[]>(watchedSignals)
+
+  // Detail drawer for watched signals
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [detailSignal, setDetailSignal] = useState<WatchedAccountSignal | null>(null)
+
+  const handleOpenDetail = (sig: WatchedAccountSignal) => {
+    setDetailSignal(sig)
+    setIsDetailOpen(true)
+  }
+
+  const handleDismissSignal = (signalId: string) => {
+    setLocalWatchedSignals((prev) => prev.filter((s) => s.id !== signalId))
+  }
 
   // Dialog States
   const [isNoteOpen, setIsNoteOpen] = useState(false)
@@ -119,6 +140,85 @@ export function VeilleActualitesMobile({
     showToast("Signal qualifié et mis à jour.")
   }
 
+  const watchedMobileView = (
+    <div className="px-4 space-y-4 pb-24">
+      <div className="flex items-center justify-between">
+        <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-heading">
+          Signaux détectés ({localWatchedSignals.length})
+        </h2>
+      </div>
+
+      {localWatchedSignals.length === 0 ? (
+        <div className="rounded-xl border border-border/20 bg-surface/10 p-8 text-center text-xs text-muted italic">
+          Aucun signal de compte surveillé pour le moment.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {localWatchedSignals.map((sig) => (
+            <div
+              key={sig.id}
+              className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3.5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CompanyLogo
+                    name={sig.company.name}
+                    logoPath={sig.company.logoPath}
+                    website={sig.company.website}
+                    size="sm"
+                  />
+                  <span className="text-xs font-bold text-heading truncate max-w-[120px]">
+                    {sig.company.name}
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted">
+                  {formatDateFr(sig.detectedAt)}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-heading text-xs font-bold text-heading leading-snug">
+                  {sig.title}
+                </h3>
+                <p className="text-xxs text-body line-clamp-2 leading-relaxed">
+                  {sig.summary}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-2.5 border-t border-border/20 text-xxs text-muted">
+                <div className="flex gap-2">
+                  <span>Score : <strong className="text-heading">{Math.round(sig.globalScore * 100)}%</strong></span>
+                  <span>Urgence : <strong className="text-heading">{Math.round(sig.urgencyScore * 100)}%</strong></span>
+                </div>
+                <span className="rounded bg-surface/50 border border-border/40 px-1.5 py-0.5 text-[9px] font-bold text-muted uppercase tracking-wider">
+                  {sig.category}
+                </span>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => handleOpenDetail(sig)}
+                  className="flex-1 min-h-[36px] inline-flex items-center justify-center rounded-lg border border-border/40 bg-surface/30 text-xxs font-bold text-body hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                >
+                  Détails
+                </button>
+                <ContextualCommunicationButton
+                  entryPoint="signal_card"
+                  companyId={sig.company.id}
+                  companyName={sig.company.name}
+                  refs={{ signalRef: sig.id }}
+                  label="Pitch"
+                  variant="primary"
+                  className="flex-1 min-h-[36px] inline-flex items-center justify-center rounded-lg bg-primary text-xxs font-bold text-primary-fg hover:bg-primary-deep shadow-sm transition-all cursor-pointer"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="flex-1 overflow-y-auto bg-canvas pb-24 text-body space-y-4">
       {/* Toast Alert overlay */}
@@ -152,7 +252,40 @@ export function VeilleActualitesMobile({
         </button>
       </header>
 
-      {/* Chips filtres horizontaux */}
+      {/* Tab Switcher */}
+      <div className="flex border-b border-border/40 px-4">
+        <button
+          onClick={() => setActiveTab("globale")}
+          className={cn(
+            "flex-1 text-center py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
+            activeTab === "globale"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted"
+          )}
+        >
+          Veille globale
+        </button>
+        <button
+          onClick={() => setActiveTab("comptes")}
+          className={cn(
+            "flex-1 text-center py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1.5",
+            activeTab === "comptes"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted"
+          )}
+        >
+          <span>Comptes surveillés</span>
+          {localWatchedSignals.length > 0 && (
+            <span className="rounded-full bg-[#E2931D]/10 border border-[#E2931D]/30 px-1.5 py-0.5 text-[9px] font-bold text-[#E2931D]">
+              {localWatchedSignals.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === "globale" ? (
+        <>
+          {/* Chips filtres horizontaux */}
       <div className="px-4 overflow-x-auto scrollbar-none flex gap-2 pb-2">
         {["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"].map((cat) => (
           <button
@@ -448,6 +581,10 @@ export function VeilleActualitesMobile({
           </div>
         )}
       </div>
+    </>
+  ) : (
+    watchedMobileView
+  )}
 
       {/* Dialog modals */}
       {selectedArticle && (
@@ -479,6 +616,33 @@ export function VeilleActualitesMobile({
             </>
           )}
         </>
+      )}
+
+      {detailSignal && (
+        <AccountSignalDetailDrawer
+          open={isDetailOpen}
+          onOpenChange={setIsDetailOpen}
+          signal={{
+            id: detailSignal.id,
+            category: detailSignal.category,
+            type: detailSignal.type,
+            title: detailSignal.title,
+            summary: detailSignal.summary,
+            detectedAt: detailSignal.detectedAt,
+            expiresAt: null,
+            globalScore: detailSignal.globalScore,
+            urgencyScore: detailSignal.urgencyScore,
+            confidenceScore: detailSignal.confidenceScore,
+            status: detailSignal.status,
+            primarySourceId: detailSignal.primarySource?.id || null,
+            recommendedAction: detailSignal.recommendedAction,
+            recommendedPracticeId: detailSignal.recommendedPracticeId,
+            primarySource: detailSignal.primarySource
+          }}
+          companyId={detailSignal.company.id}
+          companyName={detailSignal.company.name}
+          onDismiss={handleDismissSignal}
+        />
       )}
     </div>
   )

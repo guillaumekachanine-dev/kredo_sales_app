@@ -72,6 +72,7 @@ export function AccountWatchSettingsCard({
   const isBusy = isSaving || isRefreshing
   const updatedAtLabel = formatDateTime(savedSettings.updatedAt)
   const lastRunAtLabel = formatDateTime(savedSettings.lastRunAt)
+  const nextRunAtLabel = formatDateTime(savedSettings.nextRunAt)
   const lastStatusLabel = savedSettings.lastStatus ? LAST_STATUS_LABELS[savedSettings.lastStatus] : null
 
   function handleToggle() {
@@ -260,6 +261,7 @@ export function AccountWatchSettingsCard({
           {updatedAtLabel ? <MetaRow label="Dernière mise à jour" value={updatedAtLabel} /> : null}
           {lastStatusLabel ? <MetaRow label="Dernier statut" value={lastStatusLabel} /> : null}
           {lastRunAtLabel ? <MetaRow label="Dernier run" value={lastRunAtLabel} /> : null}
+          {nextRunAtLabel ? <MetaRow label="Prochain run prévu" value={nextRunAtLabel} /> : null}
           {savedSettings.lastError ? (
             <p className="rounded border border-danger/25 bg-danger/5 px-2.5 py-2 text-[11px] text-danger">
               {savedSettings.lastError}

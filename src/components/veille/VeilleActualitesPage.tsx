@@ -4,7 +4,8 @@ import type {
   VeilleArticle, 
   SectorNews, 
   SectorEvent,
-  CompanyContextStats
+  CompanyContextStats,
+  WatchedAccountSignal
 } from "@/app/(app)/veille/_data/veille-data"
 import { VeilleActualitesDesktop } from "./VeilleActualitesDesktop"
 import { VeilleActualitesMobile } from "./VeilleActualitesMobile"
@@ -17,6 +18,7 @@ interface VeilleActualitesPageProps {
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
+  watchedSignals: WatchedAccountSignal[]
 }
 
 export function VeilleActualitesPage({
@@ -27,6 +29,7 @@ export function VeilleActualitesPage({
   sectorNews,
   sectorEvents,
   companies,
+  watchedSignals,
 }: VeilleActualitesPageProps) {
   if (device === "mobile") {
     return (
@@ -37,6 +40,7 @@ export function VeilleActualitesPage({
         sectorNews={sectorNews}
         sectorEvents={sectorEvents}
         companies={companies}
+        watchedSignals={watchedSignals}
       />
     )
   }
@@ -49,6 +53,7 @@ export function VeilleActualitesPage({
       sectorNews={sectorNews}
       sectorEvents={sectorEvents}
       companies={companies}
+      watchedSignals={watchedSignals}
     />
   )
 }

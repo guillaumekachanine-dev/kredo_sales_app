@@ -224,6 +224,7 @@ export function buildDefaultBrief(
       sender: {
         role: "business_manager",
         name: senderName,
+        practice: preset?.practice,
       },
       recipient: {
         type: recipientTypeFromLifecycle(company.lifecycleStatus),

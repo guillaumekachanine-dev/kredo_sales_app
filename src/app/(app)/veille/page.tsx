@@ -6,6 +6,7 @@ import {
   getSectorNews,
   getSectorEvents,
   getCompaniesContextStats,
+  getWatchedAccountsSignals,
   type VeilleDigest,
   type VeilleArticle,
   type SectorNews,
@@ -16,9 +17,10 @@ import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
 export const dynamic = "force-dynamic"
 
 export default async function VeillePage() {
-  const [device, companiesResult] = await Promise.all([
+  const [device, companiesResult, watchedSignalsResult] = await Promise.all([
     getDashboardDevice(),
     getCompaniesContextStats(),
+    getWatchedAccountsSignals(),
   ])
 
   // 1. Fetch latest digest
@@ -48,6 +50,7 @@ export default async function VeillePage() {
   }
 
   const companies = companiesResult.data || []
+  const watchedSignals = watchedSignalsResult.data || []
 
   return (
     <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
@@ -59,6 +62,7 @@ export default async function VeillePage() {
         sectorNews={sectorNews}
         sectorEvents={sectorEvents}
         companies={companies}
+        watchedSignals={watchedSignals}
       />
     </div>
   )

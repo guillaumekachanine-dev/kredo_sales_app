@@ -10,6 +10,8 @@ import {
   CreateAccountNoteDialog,
   CreateOpportunityDialog,
 } from "./SignalDialogs"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { cn } from "@/lib/utils"
 import { getRelativeTimeFr, extractMatchedCompany } from "./veille-utils"
 import type {
   VeilleDigest,
@@ -17,6 +19,7 @@ import type {
   SectorNews,
   SectorEvent,
   CompanyContextStats,
+  WatchedAccountSignal
 } from "@/app/(app)/veille/_data/veille-data"
 
 interface VeilleActualitesDesktopProps {
@@ -26,6 +29,7 @@ interface VeilleActualitesDesktopProps {
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
+  watchedSignals: WatchedAccountSignal[]
 }
 
 export function VeilleActualitesDesktop({
@@ -35,10 +39,15 @@ export function VeilleActualitesDesktop({
   sectorNews,
   sectorEvents,
   companies,
+  watchedSignals,
 }: VeilleActualitesDesktopProps) {
+  const [activeTab, setActiveTab] = useState<"globale" | "comptes">("globale")
   const [articles, setArticles] = useState<VeilleArticle[]>(initialArticles)
   const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(() => {
     return initialArticles.length > 0 ? initialArticles[0] : null
+  })
+  const [selectedWatchedSignal, setSelectedWatchedSignal] = useState<WatchedAccountSignal | null>(() => {
+    return watchedSignals.length > 0 ? watchedSignals[0] : null
   })
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Tous")
@@ -140,6 +149,188 @@ export function VeilleActualitesDesktop({
     showToast("Signal qualifié et mis à jour avec succès.")
   }
 
+  const watchedView = (
+    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+      {/* Colonne Gauche — Liste des signaux */}
+      <section className="xl:col-span-1 space-y-6">
+        <div className="space-y-3">
+          <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-heading flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-primary" />
+            Signaux détectés ({watchedSignals.length})
+          </h2>
+
+          {watchedSignals.length === 0 ? (
+            <div className="rounded-lg border border-border/20 bg-surface/10 p-6 text-center text-xs text-muted italic">
+              Aucun signal de compte surveillé pour le moment.
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
+              {watchedSignals.map((sig) => (
+                <button
+                  key={sig.id}
+                  onClick={() => setSelectedWatchedSignal(sig)}
+                  className={cn(
+                    "w-full text-left rounded-xl border p-4 transition-all duration-200 cursor-pointer flex flex-col gap-2.5",
+                    selectedWatchedSignal?.id === sig.id
+                      ? "bg-primary/[0.03] border-primary/50 shadow-md"
+                      : "bg-surface/30 border-border/30 hover:border-border/60 hover:bg-surface/40"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-surface/50 border border-border/40 px-1.5 py-0.5 text-[9px] font-bold text-muted uppercase tracking-wider">
+                        {sig.category}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted">
+                      {formatDateFr(sig.detectedAt)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-heading hover:underline leading-snug">
+                      {sig.title}
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-semibold text-muted">Sur</span>
+                      <span className="text-[10px] font-bold text-primary">
+                        {sig.company.name}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5 items-center justify-between pt-2 border-t border-border/20 text-xxs text-muted">
+                    <div className="flex gap-1.5 items-center">
+                      <span>Global :</span>
+                      <span className={cn(
+                        "font-bold",
+                        sig.globalScore >= 0.8 ? "text-danger" : sig.globalScore >= 0.6 ? "text-warning" : "text-heading"
+                      )}>
+                        {Math.round(sig.globalScore * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 items-center">
+                      <span>Urgence :</span>
+                      <span className="font-bold text-heading">
+                        {Math.round(sig.urgencyScore * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Zone Centrale — Détail du signal */}
+      <section className="xl:col-span-3 space-y-6">
+        {selectedWatchedSignal ? (
+          <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-6 space-y-6 shadow-md">
+            <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-4">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                  {selectedWatchedSignal.category} · {selectedWatchedSignal.type}
+                </span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xxs text-muted">
+                  <span>Détecté le {formatDateFr(selectedWatchedSignal.detectedAt)}</span>
+                  {selectedWatchedSignal.primarySource?.source_name && (
+                    <>
+                      <span>•</span>
+                      <span>Source : {selectedWatchedSignal.primarySource.source_name}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Company Context Widget */}
+              <div className="flex items-center gap-2.5 bg-surface-hover/30 border border-border/30 rounded-lg p-1.5 px-3">
+                <CompanyLogo
+                  name={selectedWatchedSignal.company.name}
+                  logoPath={selectedWatchedSignal.company.logoPath}
+                  website={selectedWatchedSignal.company.website}
+                  size="md"
+                />
+                <span className="text-xs font-bold text-heading truncate max-w-[150px]">
+                  {selectedWatchedSignal.company.name}
+                </span>
+              </div>
+            </div>
+
+            <h2 className="font-heading text-xl md:text-2xl font-bold tracking-tight text-heading leading-tight">
+              {selectedWatchedSignal.title}
+            </h2>
+
+            <p className="text-xs text-body leading-relaxed whitespace-pre-wrap">
+              {selectedWatchedSignal.summary}
+            </p>
+
+            {/* Recommended Action */}
+            {selectedWatchedSignal.recommendedAction && (
+              <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-4 space-y-2">
+                <h3 className="font-heading text-xs font-bold text-primary flex items-center gap-2">
+                  <svg className="size-4 shrink-0 text-[#E2931D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Action recommandée
+                </h3>
+                <p className="text-xs leading-relaxed text-heading font-medium">
+                  {selectedWatchedSignal.recommendedAction}
+                </p>
+              </div>
+            )}
+
+            {/* Scores grids */}
+            <div className="grid grid-cols-3 gap-4 border-t border-b border-border/40 py-4 text-center">
+              <div>
+                <p className="text-[10px] uppercase font-bold text-muted mb-1">Score Global</p>
+                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.globalScore * 100)}%</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-muted mb-1">Urgence</p>
+                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.urgencyScore * 100)}%</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-muted mb-1">Confiance</p>
+                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.confidenceScore * 100)}%</p>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center gap-3 justify-between pt-4">
+              {selectedWatchedSignal.primarySource?.source_url ? (
+                <a
+                  href={selectedWatchedSignal.primarySource.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                >
+                  Ouvrir la source →
+                </a>
+              ) : (
+                <div />
+              )}
+
+              <ContextualCommunicationButton
+                entryPoint="signal_card"
+                companyId={selectedWatchedSignal.company.id}
+                companyName={selectedWatchedSignal.company.name}
+                refs={{ signalRef: selectedWatchedSignal.id }}
+                label="Générer un pitch"
+                variant="primary"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-md transition-all cursor-pointer hover:scale-[1.02]"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border/20 bg-surface/10 p-12 text-center text-xs text-muted italic">
+            Sélectionnez un signal sur la gauche pour l&apos;étudier.
+          </div>
+        )}
+      </section>
+    </div>
+  )
+
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-8 space-y-6">
       {/* Toast Alert overlay */}
@@ -200,7 +391,39 @@ export function VeilleActualitesDesktop({
         </div>
       </header>
 
-      {digest ? (
+      {/* Tab Switcher */}
+      <div className="flex border-b border-border/40">
+        <button
+          onClick={() => setActiveTab("globale")}
+          className={cn(
+            "px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
+            activeTab === "globale"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted hover:text-heading"
+          )}
+        >
+          Veille globale (Actualités)
+        </button>
+        <button
+          onClick={() => setActiveTab("comptes")}
+          className={cn(
+            "px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5",
+            activeTab === "comptes"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted hover:text-heading"
+          )}
+        >
+          <span>Comptes surveillés</span>
+          {watchedSignals.length > 0 && (
+            <span className="rounded-full bg-[#E2931D]/10 border border-[#E2931D]/30 px-1.5 py-0.5 text-[9px] font-bold text-[#E2931D]">
+              {watchedSignals.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === "globale" ? (
+        digest ? (
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
           {/* ──────────────────────────────────────────────────────────────
              COLONNE GAUCHE — Recherche & signaux
@@ -707,6 +930,8 @@ export function VeilleActualitesDesktop({
             </div>
           )}
         </div>
+      )) : (
+        watchedView
       )}
 
       {/* Dialog modals */}

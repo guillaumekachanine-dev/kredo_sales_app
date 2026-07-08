@@ -147,6 +147,18 @@ export type ClientIntelligenceSignal = {
   summary: string | null
   detectedAt: string
   expiresAt: string | null
+  globalScore: number
+  urgencyScore: number
+  confidenceScore: number
+  status: string
+  primarySourceId: string | null
+  recommendedAction: string | null
+  recommendedPracticeId: string | null
+  primarySource: {
+    id: string
+    source_name: string
+    source_url: string | null
+  } | null
 }
 
 // ADR-0012 Lot 5 — référentiel offres allégé (résolution id→libellé pour la
@@ -504,6 +516,21 @@ type AccountSignalRow = {
   status: string
   detected_at: string
   expires_at: string | null
+  global_score: number
+  urgency_score: number
+  confidence_score: number
+  primary_source_id: string | null
+  recommended_action: string | null
+  recommended_practice_id: string | null
+  intelligence_sources?: {
+    id: string
+    source_name: string
+    source_url: string | null
+  } | {
+    id: string
+    source_name: string
+    source_url: string | null
+  }[] | null
 }
 
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
@@ -637,10 +664,26 @@ export async function getClientIntelligence(
       .limit(20),
     supabase
       .from("account_signals")
-      .select<AccountSignalRow>("id,signal_category,signal_type,title,summary,status,detected_at,expires_at")
+      .select<AccountSignalRow>(`
+        id,
+        signal_category,
+        signal_type,
+        title,
+        summary,
+        status,
+        detected_at,
+        expires_at,
+        global_score,
+        urgency_score,
+        confidence_score,
+        primary_source_id,
+        recommended_action,
+        recommended_practice_id,
+        intelligence_sources(id, source_name, source_url)
+      `)
       .eq("company_id", companyId)
       .order("detected_at", { ascending: false })
-      .limit(15),
+      .limit(20),
     supabase
       .from("account_watch_settings")
       .select<AccountWatchSettingsSelectRow>(
@@ -800,15 +843,41 @@ export async function getClientIntelligence(
       if (row.expires_at && new Date(row.expires_at) < new Date()) return false
       return true
     })
-    .map((row) => ({
-      id: row.id,
-      category: row.signal_category,
-      type: row.signal_type,
-      title: row.title,
-      summary: row.summary,
-      detectedAt: row.detected_at,
-      expiresAt: row.expires_at,
-    }))
+    .slice(0, 10)
+    .sort((a, b) => {
+      const scoreA = a.global_score ?? 0
+      const scoreB = b.global_score ?? 0
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA
+      }
+      return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime()
+    })
+    .map((row) => {
+      const primarySource = firstRelation(row.intelligence_sources)
+      return {
+        id: row.id,
+        category: row.signal_category,
+        type: row.signal_type,
+        title: row.title,
+        summary: row.summary,
+        detectedAt: row.detected_at,
+        expiresAt: row.expires_at,
+        globalScore: row.global_score ?? 0,
+        urgencyScore: row.urgency_score ?? 0,
+        confidenceScore: row.confidence_score ?? 0,
+        status: row.status,
+        primarySourceId: row.primary_source_id,
+        recommendedAction: row.recommended_action,
+        recommendedPracticeId: row.recommended_practice_id,
+        primarySource: primarySource
+          ? {
+              id: primarySource.id,
+              source_name: primarySource.source_name,
+              source_url: primarySource.source_url,
+            }
+          : null,
+      }
+    })
 
   const accountIssues: ClientIntelligenceIssue[] = (accountIssuesResult.data ?? []).map((row) => ({
     id: row.id,

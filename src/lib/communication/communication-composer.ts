@@ -41,6 +41,7 @@ export type CommunicationComposerPreset = {
   contactId?: string
   mustInclude?: string
   mustExclude?: string
+  practice?: string
   refs?: Partial<CommunicationBrief["context"]>
 }
 

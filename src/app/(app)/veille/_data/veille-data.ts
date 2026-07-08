@@ -142,3 +142,116 @@ export async function getCompaniesContextStats(): Promise<{ data: CompanyContext
   }
 }
 
+export type WatchedAccountSignal = {
+  id: string
+  title: string
+  summary: string | null
+  globalScore: number
+  urgencyScore: number
+  confidenceScore: number
+  detectedAt: string
+  status: string
+  category: string
+  type: string
+  recommendedAction: string | null
+  recommendedPracticeId: string | null
+  companyId: string
+  company: {
+    id: string
+    name: string
+    website: string | null
+    logoPath: string | null
+  }
+  primarySource: {
+    id: string
+    source_name: string
+    source_url: string | null
+  } | null
+}
+
+export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccountSignal[]; error: any }> {
+  try {
+    const supabase = await createClient()
+
+    // 1. Get enabled watch settings
+    const { data: watchSettings, error: watchError } = await supabase
+      .from("account_watch_settings")
+      .select("company_id")
+      .eq("is_enabled", true)
+
+    if (watchError) return { data: [], error: watchError }
+    if (!watchSettings || watchSettings.length === 0) return { data: [], error: null }
+
+    const companyIds = watchSettings.map(w => w.company_id).filter(Boolean)
+
+    // 2. Get signals
+    const { data: signals, error: signalsError } = await supabase
+      .from("account_signals")
+      .select(`
+        id,
+        title,
+        summary,
+        global_score,
+        urgency_score,
+        confidence_score,
+        detected_at,
+        status,
+        signal_category,
+        signal_type,
+        recommended_action,
+        recommended_practice_id,
+        company_id,
+        companies(id, name, website, metadata),
+        intelligence_sources(id, source_name, source_url)
+      `)
+      .in("company_id", companyIds)
+      .neq("status", "dismissed")
+      .order("global_score", { ascending: false })
+      .order("detected_at", { ascending: false })
+
+    if (signalsError) return { data: [], error: signalsError }
+
+    const mapped: WatchedAccountSignal[] = (signals || []).map(row => {
+      const companyRow = Array.isArray(row.companies) ? row.companies[0] : row.companies
+      const sourceRow = Array.isArray(row.intelligence_sources) ? row.intelligence_sources[0] : row.intelligence_sources
+
+      const metadata = companyRow?.metadata && typeof companyRow.metadata === "object" && !Array.isArray(companyRow.metadata) 
+        ? companyRow.metadata as Record<string, any> 
+        : {}
+      const logoPath = typeof metadata.logo_path === "string" ? metadata.logo_path : null
+
+      return {
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        globalScore: row.global_score ?? 0,
+        urgencyScore: row.urgency_score ?? 0,
+        confidenceScore: row.confidence_score ?? 0,
+        detectedAt: row.detected_at,
+        status: row.status,
+        category: row.signal_category,
+        type: row.signal_type,
+        recommendedAction: row.recommended_action,
+        recommendedPracticeId: row.recommended_practice_id,
+        companyId: row.company_id,
+        company: companyRow ? {
+          id: companyRow.id,
+          name: companyRow.name,
+          website: companyRow.website,
+          logoPath
+        } : { id: row.company_id, name: "Compte inconnu", website: null, logoPath: null },
+        primarySource: sourceRow ? {
+          id: sourceRow.id,
+          source_name: sourceRow.source_name,
+          source_url: sourceRow.source_url
+        } : null
+      }
+    })
+
+    return { data: mapped, error: null }
+  } catch (err) {
+    console.error("Error in getWatchedAccountsSignals:", err)
+    return { data: [], error: err }
+  }
+}
+

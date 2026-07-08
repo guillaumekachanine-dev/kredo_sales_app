@@ -327,7 +327,12 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
               <div className="space-y-3 mb-3">
                 <ContactsKeyCard contacts={contacts} />
                 <CommercialRelationCard opportunities={opportunities} missions={missions} />
-                <AccountSignalsCard signals={accountSignals} />
+                <AccountSignalsCard
+                  signals={accountSignals}
+                  isMobile={true}
+                  companyId={company.id}
+                  companyName={company.name}
+                />
               </div>
 
               {/* Bouton de génération — connaissance compte moteur */}

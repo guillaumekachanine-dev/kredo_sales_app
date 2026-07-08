@@ -733,7 +733,12 @@ function AnalyseTab({
         <ContactsKeyCard contacts={contacts} />
         <CommercialRelationCard opportunities={opportunities} missions={missions} />
       </div>
-      <AccountSignalsCard signals={accountSignals} />
+      <AccountSignalsCard
+        signals={accountSignals}
+        isMobile={false}
+        companyId={company.id}
+        companyName={company.name}
+      />
 
       {/* ── Synthèse générée (account_knowledge, moteur) — quand disponible ── */}
       {knowledgeContent && knowledgeResultId && (
