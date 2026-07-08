@@ -4,7 +4,6 @@
 // un job de reprise pourra le relancer — OPS-004).
 
 import { signPayload } from "./hmac"
-import type { N8nTriggerPayload } from "./types"
 
 function getBaseUrl(): string {
   const url = process.env.N8N_WEBHOOK_BASE_URL
@@ -16,7 +15,7 @@ function getBaseUrl(): string {
 // ex: "intel-020-communication" → POST sur {BASE}/webhook/intel-020-communication
 export async function callN8nWebhook(
   workflowPath: string,
-  payload: N8nTriggerPayload
+  payload: Record<string, unknown>
 ): Promise<void> {
   const body = JSON.stringify(payload)
   const signature = signPayload(body)

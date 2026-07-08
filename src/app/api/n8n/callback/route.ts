@@ -33,6 +33,7 @@ function isEligibleDocumentResult(resultType: string) {
     "communication",
     "client_summary",
     "commercial_pitch",
+    "commercial_strategy",
     "campaign",
     "pitch",
     "pitch_mail",

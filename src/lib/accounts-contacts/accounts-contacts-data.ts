@@ -129,12 +129,11 @@ type PersonRelation = {
   linkedin_url: string | null
 }
 
-type CompanyRelation = {
-  id: string
+type CompanyMapValue = {
   name: string
-  sector: string | null
+  sector: string
   website: string | null
-  metadata: unknown
+  logoPath: string | null
 }
 
 type ContactQueryRow = {
@@ -147,10 +146,10 @@ type ContactQueryRow = {
   status: string
   department: string | null
   persons: PersonRelation | PersonRelation[] | null
-  companies: CompanyRelation | CompanyRelation[] | null
   is_priority?: boolean | null
   manager_contact_id?: string | null
   campaign_id?: string | null
+  created_at?: string | null
 }
 
 type JsonRecord = Record<string, unknown>
@@ -253,12 +252,11 @@ function buildStudy(row: CompanyQueryRow): StudyRow | null {
   }
 }
 
-function buildContact(row: ContactQueryRow): ContactRow {
+function buildContact(row: ContactQueryRow, companyById: Map<string, CompanyMapValue>): ContactRow {
   const person = firstRelation(row.persons)
-  const company = firstRelation(row.companies)
+  const company = row.company_id ? companyById.get(row.company_id) : null
   const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
   const managerContactId = row.manager_contact_id ?? null
-  const companyMetadata = company ? asRecord(company.metadata) : {}
 
   return {
     id: row.id,
@@ -280,7 +278,7 @@ function buildContact(row: ContactQueryRow): ContactRow {
     managerContactId,
     isPriority: row.is_priority ?? false,
     campaignId: row.campaign_id ?? null,
-    logoPath: typeof companyMetadata.logo_path === "string" ? companyMetadata.logo_path : null,
+    logoPath: company?.logoPath ?? null,
     website: company?.website ?? null,
   }
 }
@@ -321,7 +319,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(300),
     supabase
       .from<ContactQueryRow>("contacts")
-      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),companies(id,name,sector,website,metadata),is_priority,manager_contact_id,campaign_id")
+      .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),is_priority,manager_contact_id,campaign_id,created_at")
       .order("created_at", { ascending: false })
       .limit(1000),
     supabase
@@ -351,12 +349,23 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     }
   }
 
+  const companyById = new Map<string, CompanyMapValue>()
+  for (const company of companies) {
+    const metadata = asRecord(company.metadata)
+    companyById.set(company.id, {
+      name: company.name,
+      sector: cleanText(company.sector),
+      website: company.website,
+      logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
+    })
+  }
+
   const accounts = companies
     .map((company) => buildAccount(company, contactCounts.get(company.id) ?? 0, taskCounts.get(company.id) ?? 0))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
 
   const contacts = rawContacts
-    .map(buildContact)
+    .map((row) => buildContact(row, companyById))
     .toSorted((a, b) => a.companyName.localeCompare(b.companyName) || a.fullName.localeCompare(b.fullName))
 
   const studies = companies

@@ -3,13 +3,20 @@ import { getAccountScoreSummary, type AccountScoreSummaryView } from "@/lib/acco
 import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
   SECTOR_SNAPSHOT_RESULT_TYPE,
+  COMMERCIAL_STRATEGY_RESULT_TYPE,
   type AccountKnowledgeContent,
   type AccountIssueCategory,
   type AccountIssueEvidenceLevel,
   type AccountIssueStatus,
   type IntelligenceProvenance,
+  type CommercialStrategyContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
+import {
+  normalizeAccountWatchSettings,
+  type AccountWatchSettingsRow,
+  type AccountWatchSettingsState,
+} from "@/lib/intelligence/account-watch-settings"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -142,6 +149,16 @@ export type ClientIntelligenceSignal = {
   expiresAt: string | null
 }
 
+// ADR-0012 Lot 5 — référentiel offres allégé (résolution id→libellé pour la
+// matrice enjeu↔offre affichée dans l'onglet Stratégie). Distinct de
+// `SuggestedOffer` (get-suggested-offers.ts, ADR-0009) : celui-ci sert
+// uniquement d'index de libellés, pas de sélection dans un formulaire.
+export type ClientIntelligenceOfferRef = {
+  id: string
+  name: string
+  practiceName: string
+}
+
 // ADR-0012 Lot 4 — enjeux matérialisés (table account_issues, spine D-5).
 export type ClientIntelligenceIssue = {
   id: string
@@ -208,8 +225,15 @@ export type ClientIntelligenceData = {
   opportunities: ClientIntelligenceOpportunity[]
   missions: ClientIntelligenceMission[]
   accountSignals: ClientIntelligenceSignal[]
+  accountWatch: AccountWatchSettingsState
   // ADR-0012 Lot 4 — enjeux ouverts (table account_issues, spine matérialisée)
   accountIssues: ClientIntelligenceIssue[]
+  // ADR-0012 Lot 5 — mapping enjeu↔offre + angles/messages/objections
+  // (result_type=commercial_strategy, content_json pur — D-5, pas de
+  // matérialisation table). null tant qu'aucun run n'a réussi.
+  commercialStrategy: { data: CommercialStrategyContent; resultId: string } | null
+  // Référentiel offres actives, pour résoudre les offer_id de la matrice.
+  offersCatalog: ClientIntelligenceOfferRef[]
   // id du dernier résultat account_knowledge réussi — cible des Server Actions
   // de curation (confirmer/écarter/épingler un fait). null tant qu'aucun run
   // n'a produit de account_knowledge (Lot 2 : workflow pas encore importé sur le VPS).
@@ -233,7 +257,7 @@ export type PitchDocumentSummary = {
 
 type LooseResult<T> = { data: T | null; error: { message: string } | null }
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }> & {
-  eq(column: string, value: string): LooseQuery<T>
+  eq(column: string, value: string | boolean): LooseQuery<T>
   order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): LooseQuery<T>
   limit(count: number): LooseQuery<T>
   maybeSingle(): PromiseLike<LooseResult<T>>
@@ -309,6 +333,18 @@ function parseAccountKnowledgeContent(raw: unknown): AccountKnowledgeContent | n
   const root = asRecord(raw)
   if (root.schema_version !== 1) return null
   return root as unknown as AccountKnowledgeContent
+}
+
+/**
+ * ADR-0012 Lot 5 — parseur du contrat commercial_strategy (schema_version 1).
+ * Même logique que parseAccountKnowledgeContent : discriminé par schema_version,
+ * jamais fusionné avec un autre parseur (aucun artefact legacy équivalent —
+ * le pitch legacy FOLIO/`pitches` n'a pas de mapping enjeu↔offre).
+ */
+function parseCommercialStrategyContent(raw: unknown): CommercialStrategyContent | null {
+  const root = asRecord(raw)
+  if (root.schema_version !== 1) return null
+  return root as unknown as CommercialStrategyContent
 }
 
 function parseAnalyseDiagnostic(raw: unknown): AnalyseDiagnostic | null {
@@ -472,6 +508,8 @@ type AccountSignalRow = {
 
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
+type AccountWatchSettingsSelectRow = AccountWatchSettingsRow
+
 type AccountIssueRow = {
   id: string
   title: string
@@ -497,6 +535,12 @@ type PitchDocumentRow = {
   status: string
   current_content_json: unknown
   created_at: string
+}
+
+type OfferRow = {
+  id: string
+  name: string
+  offer_practices: { name: string } | { name: string }[] | null
 }
 
 function firstRelation<T>(value: T | T[] | null): T | null {
@@ -533,7 +577,9 @@ export async function getClientIntelligence(
     opportunitiesResult,
     missionsResult,
     accountSignalsResult,
+    accountWatchResult,
     accountIssuesResult,
+    offersResult,
   ] = await Promise.all([
     supabase
       .from("companies")
@@ -596,6 +642,13 @@ export async function getClientIntelligence(
       .order("detected_at", { ascending: false })
       .limit(15),
     supabase
+      .from("account_watch_settings")
+      .select<AccountWatchSettingsSelectRow>(
+        "is_enabled,watch_level,cadence,last_run_at,next_run_at,last_status,last_error,updated_at",
+      )
+      .eq("company_id", companyId)
+      .maybeSingle(),
+    supabase
       .from("account_issues")
       .select<AccountIssueRow>(
         "id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at",
@@ -603,15 +656,28 @@ export async function getClientIntelligence(
       .eq("company_id", companyId)
       .eq("status", "open")
       .order("importance", { ascending: false }),
+    // ADR-0012 Lot 5 — référentiel offres actives, pour résoudre les offer_id
+    // de la matrice enjeu↔offre (l'onglet Stratégie n'a pas besoin de la fiche
+    // complète, juste du libellé — cf. get-suggested-offers.ts pour le
+    // sélecteur riche utilisé côté génération de pitch).
+    supabase
+      .from("offers")
+      .select<OfferRow>("id,name,offer_practices(name)")
+      .eq("is_active", true)
+      .order("name", { ascending: true }),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
   if (!companyResult.data) return { error: "Compte introuvable", data: null }
+  if (accountWatchResult.error) {
+    console.error("[intelligence] account watch settings query failed:", accountWatchResult.error.message, { companyId })
+  }
 
   const company = companyResult.data
   const summary = summaryResult.data ?? null
   const results = resultsResult.data ?? []
   const metadata = asRecord(company.metadata)
+  const accountWatch = normalizeAccountWatchSettings(accountWatchResult.data)
 
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe, seulement si le compte a
   // un sector_id (backfill honnête, ~27/95 comptes couverts au 2026-07-07).
@@ -638,6 +704,15 @@ export async function getClientIntelligence(
   let client: ClientIntelligenceData["client"] = null
   const clientFromFolio = parseAnalyseClient(metadata.analysis_data)
   if (clientFromFolio) client = { data: clientFromFolio, source: "folio" }
+
+  // ADR-0012 Lot 5 — result_type=commercial_strategy, content_json pur (D-5,
+  // pas de matérialisation table contrairement à account_issues_map/Lot 4).
+  const commercialStrategyResultRow = results.find((r) => r.result_type === COMMERCIAL_STRATEGY_RESULT_TYPE)
+  let commercialStrategy: ClientIntelligenceData["commercialStrategy"] = null
+  const commercialStrategyContent = parseCommercialStrategyContent(commercialStrategyResultRow?.content_json)
+  if (commercialStrategyContent && commercialStrategyResultRow) {
+    commercialStrategy = { data: commercialStrategyContent, resultId: commercialStrategyResultRow.id }
+  }
 
   const accountKnowledgeResultRow = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)
   let accountKnowledge: ClientIntelligenceData["accountKnowledge"] = null
@@ -756,6 +831,11 @@ export async function getClientIntelligence(
 
   const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
 
+  const offersCatalog: ClientIntelligenceOfferRef[] = ((offersResult.data ?? []) as OfferRow[]).map((row) => {
+    const practice = firstRelation(row.offer_practices)
+    return { id: row.id, name: row.name, practiceName: practice?.name ?? "" }
+  })
+
   return {
     error: null,
     data: {
@@ -799,7 +879,10 @@ export async function getClientIntelligence(
       opportunities,
       missions,
       accountSignals,
+      accountWatch,
       accountIssues,
+      commercialStrategy,
+      offersCatalog,
       accountKnowledgeResultId,
       pitchDocuments: ((pitchDocumentsResult.data ?? []) as PitchDocumentRow[]).map((row) => {
         const content = asRecord(row.current_content_json)

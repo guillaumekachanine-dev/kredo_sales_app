@@ -12,6 +12,7 @@ type DocumentCardProps = {
 const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   communication: "Communication",
   client_summary: "Synthèse client",
+  commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
   campaign: "Campagne",
   internal_note: "Note interne",

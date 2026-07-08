@@ -3,6 +3,7 @@ import { CHANNEL_OPTIONS, OBJECTIVE_OPTIONS } from "@/components/accounts-contac
 
 type ReportDocumentType =
   | "client_summary"
+  | "commercial_strategy"
   | "activity_commercial"
   | "activity_recruitment"
   | "weekly_manager"
@@ -25,6 +26,7 @@ export type DocumentCategory = "report" | "communication"
 
 const REPORT_DOCUMENT_TYPES = new Set<ReportDocumentType>([
   "client_summary",
+  "commercial_strategy",
   "activity_commercial",
   "activity_recruitment",
   "weekly_manager",
@@ -39,6 +41,7 @@ const REPORT_DOCUMENT_TYPES = new Set<ReportDocumentType>([
 export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   communication: "Communication",
   client_summary: "Synthèse client",
+  commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
   campaign: "Campagne",
   internal_note: "Note interne",
@@ -59,6 +62,7 @@ const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentTyp
   campaign: "pitch",
   internal_note: "mail",
   client_summary: "rapport",
+  commercial_strategy: "rapport",
   activity_commercial: "rapport",
   activity_recruitment: "rapport",
   weekly_manager: "rapport",

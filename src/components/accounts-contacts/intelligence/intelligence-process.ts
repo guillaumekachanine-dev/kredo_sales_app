@@ -91,6 +91,12 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       }
       return { label: "À venir", tone: "neutral" }
     case "strategie":
+      // ADR-0012 Lot 5 : présence réelle = mapping enjeu↔offre généré
+      // (commercialStrategy), le fallback pitchs/pitches reste valable tant
+      // qu'aucun run stratégie n'a encore réussi (workflow pas encore importé).
+      if (data.commercialStrategy !== null) {
+        return { label: "Disponible", tone: "success" }
+      }
       if ((data.pitchDocuments && data.pitchDocuments.length > 0) || (data.pitches && data.pitches.length > 0)) {
         return { label: "Disponible", tone: "success" }
       }

@@ -6,12 +6,11 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { AccountKnowledgeContent } from "@/lib/intelligence/account-intelligence-contracts"
+import type { AccountKnowledgeContent, CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
 import {
   lifecycleLabel,
   ProvenanceBadge,
   SectionBlock,
-  SignalList,
   FreshnessLine,
 } from "./intelligence-parts"
 import {
@@ -22,6 +21,8 @@ import {
 } from "./AccountKnowledgeBlocks"
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
+import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
+import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -38,7 +39,6 @@ import {
   ProcessDiagnosticContent,
   ClientAnalysisIcon,
   ProcessDiagnosticIcon,
-  PlusCircleIcon,
   ExpandIcon,
   CollapseIcon,
 } from "./ClientIntelligenceDesktopView"
@@ -53,7 +53,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   const [activePanel, setActivePanel] = useState<TabKey>("accueil")
   const [signalsExpanded, setSignalsExpanded] = useState(false)
-  const [veilleMessage, setVeilleMessage] = useState<string | null>(null)
   const [selectedAnalysis, setSelectedAnalysis] = useState<"client" | "processus" | null>(null)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [openPitchDocumentId, setOpenPitchDocumentId] = useState<string | null>(null)
@@ -205,6 +204,61 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
   function handleDismissIssue(issueId: string) {
     setIssues((prev) => prev.filter((i) => i.id !== issueId))
+  }
+
+  // ADR-0012 Lot 5 — même pattern que knowledgeContent (content_json pur, D-5).
+  const [strategy, setStrategy] = useState(data.commercialStrategy)
+  const [strategyRunStatus, setStrategyRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [strategyRunId, setStrategyRunId] = useState<string | null>(null)
+  const [strategyErrorMsg, setStrategyErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!strategyRunId) return
+    const channel = supabase
+      .channel(`commercial-strategy-result-mobile-${strategyRunId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${strategyRunId}` },
+        (payload) => {
+          const row = payload.new as { id: string; status: string; content_json: CommercialStrategyContent }
+          if (row.status === "succeeded") {
+            setStrategy({ data: row.content_json, resultId: row.id })
+            setStrategyRunStatus("done")
+          } else if (row.status === "failed") {
+            setStrategyErrorMsg("La génération a échoué. Réessaie plus tard.")
+            setStrategyRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [strategyRunId])
+
+  async function handleGenerateStrategy() {
+    setStrategyRunStatus("loading")
+    setStrategyErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-032-strategy",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setStrategyRunId(newRunId)
+    } catch (err) {
+      setStrategyErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setStrategyRunStatus("error")
+    }
   }
 
   useEffect(() => {
@@ -500,10 +554,38 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
 
           {activePanel === "strategie" && (
             <div className="space-y-4">
-              <p className="text-xs text-body">
-                Script d&apos;appel de 30 secondes ou fiche de préparation de rendez-vous, ancrés sur le catalogue
-                d&apos;offres Kredo et le contexte réel du compte.
-              </p>
+              <button
+                type="button"
+                onClick={handleGenerateStrategy}
+                disabled={strategyRunStatus === "loading"}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
+              >
+                <RefreshIcon className={cn("h-3.5 w-3.5", strategyRunStatus === "loading" && "animate-spin")} />
+                {strategyRunStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la stratégie"}
+              </button>
+              {strategyErrorMsg && (
+                <p className="text-[11px] font-medium text-danger">{strategyErrorMsg}</p>
+              )}
+              {strategy ? (
+                <CommercialStrategyGeneratedContent
+                  strategy={strategy.data}
+                  issues={issues}
+                  offers={data.offersCatalog}
+                  isMobile
+                />
+              ) : (
+                <p className="text-xs italic text-muted">
+                  {issues.length === 0
+                    ? "Cartographie d'abord les enjeux (étape 3) avant de lancer la stratégie."
+                    : "Lance la génération pour obtenir un premier mapping enjeu↔offre."}
+                </p>
+              )}
+              <div className="border-t border-border pt-4">
+                <p className="text-xs text-body">
+                  Script d&apos;appel de 30 secondes ou fiche de préparation de rendez-vous, ancrés sur le catalogue
+                  d&apos;offres Kredo et le contexte réel du compte.
+                </p>
+              </div>
               <ContextualCommunicationButton
                 entryPoint="account_pitch"
                 label="Générer un pitch"
@@ -613,6 +695,12 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         <span className="text-xs font-bold">Consulter les documents</span>
       </button>
 
+      <AccountWatchSettingsCard
+        companyId={company.id}
+        initialSettings={data.accountWatch}
+        isMobile
+      />
+
       {/* Signaux Récents (Collapsible Frame) */}
       <div className="rounded-lg border border-border bg-surface overflow-hidden">
         <button
@@ -682,26 +770,6 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                 ))}
               </ul>
             )}
-
-            {/* Action Veille IA paramétrable à la fin des signaux */}
-            <div className="mt-3 pt-3 border-t border-border/30">
-              <button
-                type="button"
-                onClick={() => setVeilleMessage("Veille IA en cours de chargement...")}
-                className="w-full flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors active:scale-98 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <VeilleIaIcon className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-semibold text-primary">Paramétrer la veille IA</span>
-                </div>
-                <ChevronRightIcon className="h-3.5 w-3.5 text-primary" />
-              </button>
-              {veilleMessage && (
-                <p className="text-[11px] text-muted text-center font-medium mt-2">
-                  {veilleMessage}
-                </p>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -778,24 +846,6 @@ function RefreshIcon({ className }: { className?: string }) {
       <path d="M3 3v5h5" />
       <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
       <path d="M16 16h5v5" />
-    </svg>
-  )
-}
-
-function VeilleIaIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 15a5 5 0 1 1 5-5 5 5 0 0 1-5 5z" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" />
-      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
     </svg>
   )
 }

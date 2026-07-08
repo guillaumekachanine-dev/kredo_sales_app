@@ -25,6 +25,7 @@ function getServiceClient() {
 
 type CreateRunOptions = {
   workflowId: N8nWorkflowId
+  runType?: string
   // Entité pivot du run — "workspace" pour les rapports transverses sans compte
   // unique (REPORT-001 Lot 0). companyId reste la dénormalisation historique
   // utilisée par les runs company-centric (INTEL-010/011/020/021/022).
@@ -51,7 +52,7 @@ export async function createRun(opts: CreateRunOptions): Promise<string> {
       company_id: opts.companyId ?? null,
       primary_entity_type: opts.entityType,
       primary_entity_id: opts.entityId,
-      run_type: opts.workflowId,
+      run_type: opts.runType ?? opts.workflowId,
       trigger_source: opts.triggerSource ?? "ui",
       status: "queued",
       input_snapshot: opts.input as Json,

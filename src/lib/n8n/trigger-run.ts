@@ -24,7 +24,7 @@ export type TriggerN8nRunResult =
   | { ok: true; runId: string }
   | { ok: false; runId?: string; error: string }
 
-function resolveAppBaseUrl(): string {
+export function resolveAppBaseUrl(): string {
   // VERCEL_URL pointe vers l'URL unique du déploiement (protégée par le SSO
   // Vercel par défaut) — VERCEL_PROJECT_PRODUCTION_URL pointe vers le domaine
   // de prod stable (non protégé), c'est celui qu'il faut utiliser pour que n8n

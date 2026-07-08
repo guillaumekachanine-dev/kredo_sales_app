@@ -5,8 +5,8 @@ import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
-import type { ClientIntelligenceData, IntelligenceSource, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
-import type { AccountKnowledgeContent } from "@/lib/intelligence/account-intelligence-contracts"
+import type { ClientIntelligenceData, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
+import type { AccountKnowledgeContent, CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
@@ -26,6 +26,8 @@ import {
 } from "./AccountKnowledgeBlocks"
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { AccountIssuesTable } from "./AccountIssuesBlocks"
+import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
+import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
@@ -258,7 +260,6 @@ function AccueilTab({
   const { signals } = data
   return (
     <div className="mx-auto max-w-6xl space-y-6 pt-6">
-
       {/* ── Frise process horizontal ── */}
       <div className="flex items-stretch gap-2 py-2">
         {INTELLIGENCE_PROCESS_STEPS.map((step, idx) => {
@@ -304,6 +305,11 @@ function AccueilTab({
           )
         })}
       </div>
+
+      <AccountWatchSettingsCard
+        companyId={data.company.id}
+        initialSettings={data.accountWatch}
+      />
 
       {/* ── Signaux récents ── */}
       {signals && signals.length > 0 && (
@@ -443,12 +449,106 @@ function EnjeuxTab({ data }: { data: ClientIntelligenceData }) {
 }
 
 function StrategieTab({ data }: { data: ClientIntelligenceData }) {
-  const { company, pitchDocuments } = data
+  const { company, pitchDocuments, accountIssues, offersCatalog } = data
+  const supabase = useMemo(() => createBrowserClient(), [])
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
+
+  const [strategy, setStrategy] = useState(data.commercialStrategy)
+  const [runStatus, setRunStatus] = useState<ConnaissanceRunStatus>("idle")
+  const [runId, setRunId] = useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!runId) return
+    const channel = supabase
+      .channel(`commercial-strategy-result-${runId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
+        (payload) => {
+          const row = payload.new as { status: string; content_json: unknown; id: string }
+          if (row.status === "succeeded") {
+            setStrategy({ data: row.content_json as CommercialStrategyContent, resultId: row.id })
+            setRunStatus("done")
+          } else if (row.status === "failed") {
+            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            setRunStatus("error")
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId])
+
+  async function handleGenerateStrategy() {
+    setRunStatus("loading")
+    setErrorMsg(null)
+    try {
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-032-strategy",
+          entityType: "company",
+          entityId: company.id,
+          input: {},
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setRunId(newRunId)
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
+      setRunStatus("error")
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Étape 4 — Stratégie commerciale</p>
+          <h2 className="mt-1 font-heading text-2xl font-bold text-heading">Stratégie pour {company.name}</h2>
+          <p className="mt-1 max-w-xl text-xs text-body">
+            Relie les enjeux déjà cartographiés (étape 3) aux offres Kredo : angles d&apos;approche, messages
+            clés par interlocuteur et objections anticipées.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
+          <button
+            type="button"
+            onClick={handleGenerateStrategy}
+            disabled={runStatus === "loading"}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
+          >
+            <RefreshIcon className={cn("h-3.5 w-3.5", runStatus === "loading" && "animate-spin")} />
+            {runStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la stratégie"}
+          </button>
+        </div>
+      </div>
+
+      {strategy ? (
+        <CommercialStrategyGeneratedContent
+          strategy={strategy.data}
+          issues={accountIssues}
+          offers={offersCatalog}
+          isMobile={false}
+        />
+      ) : (
+        <p className="text-xs italic text-muted">
+          Aucune stratégie générée pour l&apos;instant.{" "}
+          {accountIssues.length === 0
+            ? "Cartographie d'abord les enjeux (étape 3) avant de lancer la stratégie."
+            : "Lance la génération pour obtenir un premier mapping enjeu↔offre."}
+        </p>
+      )}
+
+      <div className="flex items-start justify-between gap-4 flex-wrap border-t border-border pt-6">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">Angle d&apos;approche</p>
           <h2 className="mt-1 font-heading text-2xl font-bold text-heading">Générer un pitch pour {company.name}</h2>
@@ -616,11 +716,6 @@ function AnalyseTab({
   function isAvailable(key: AnalysisTypeKey) {
     if (key === "client") return !!client
     return !!diagnostic || !!diagnosticPdfUrl
-  }
-
-  function getSource(key: AnalysisTypeKey): IntelligenceSource {
-    if (key === "client") return client?.source ?? "none"
-    return diagnostic?.source ?? "none"
   }
 
   function handleSelect(key: AnalysisTypeKey) {
@@ -1468,5 +1563,3 @@ export function ExpandIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-
-

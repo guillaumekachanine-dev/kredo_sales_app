@@ -50,6 +50,8 @@ function mapResultTypeToDocumentType(resultType: string): DocumentType | null {
     case "pitch":
     case "pitch_mail":
       return "commercial_pitch"
+    case "commercial_strategy":
+      return "commercial_strategy"
     case "campaign":
       return "campaign"
     case "activity_commercial":
@@ -147,6 +149,8 @@ function buildFallbackTitle(documentType: DocumentType) {
       return "Synthèse client IA"
     case "commercial_pitch":
       return "Pitch commercial IA"
+    case "commercial_strategy":
+      return "Stratégie commerciale IA"
     case "campaign":
       return "Campagne IA"
     case "internal_note":

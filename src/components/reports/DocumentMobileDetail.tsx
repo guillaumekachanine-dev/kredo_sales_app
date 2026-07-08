@@ -29,6 +29,7 @@ type DocumentMobileDetailProps = {
 const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   communication: "Communication",
   client_summary: "Synthèse client",
+  commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
   campaign: "Campagne",
   internal_note: "Note interne",

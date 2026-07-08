@@ -12,6 +12,8 @@ export type N8nWorkflowId =
   | "intel-022-campaign"            // INTEL-022 : création campagne
   | "intel-030-account-knowledge"   // ADR-0012 Lot 2 : connaissance compte (étape 1 chaîne de décision)
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
+  | "intel-032-strategy"            // ADR-0012 Lot 5 : stratégie commerciale (étape 4 chaîne de décision)
+  | "intel-033-account-watch-refresh" // Veille spécifique compte : rafraîchissement manuel
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale
@@ -95,6 +97,35 @@ export type TriggerResponse = {
 
 export type TriggerErrorResponse = {
   error: string
+}
+
+// ─── Account watch refresh (veille spécifique compte) ───────────────────────
+
+export type AccountWatchRefreshTriggerMode = "manual"
+
+export type AccountWatchRefreshSettings = {
+  isEnabled: boolean
+  watchLevel: "standard" | "priority" | "hot"
+  cadence: "weekly" | "twice_weekly" | "daily"
+  includeOfficialSite: boolean
+  includeNews: boolean
+  includeJobs: boolean
+  includePublicRecords: boolean
+  includeTenders: boolean
+  includeSocialManual: boolean
+  queryAliases: string[]
+  metadata: Record<string, unknown>
+}
+
+export type AccountWatchRefreshWebhookPayload = {
+  runId: string
+  workspaceId: string
+  companyId: string
+  userId: string
+  triggerMode: AccountWatchRefreshTriggerMode
+  watchLevel: AccountWatchRefreshSettings["watchLevel"]
+  settings: AccountWatchRefreshSettings
+  callbackUrl: string
 }
 
 // ─── INTEL-020 — Rédaction assistée (V1) ─────────────────────────────────────
