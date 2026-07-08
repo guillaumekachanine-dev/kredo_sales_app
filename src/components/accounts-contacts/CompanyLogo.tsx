@@ -26,6 +26,13 @@ export function CompanyLogo({
   website,
   size = "md",
   fill = false,
+  /**
+   * En mode liste dense (tableau comptes, tableau contacts), passer `denseList={true}`
+   * pour sauter l'appel favicon Google et afficher directement les initiales quand
+   * aucun logoPath n'est disponible.
+   * Cela évite N requêtes réseau tierces par rendu de liste, une par ligne.
+   */
+  denseList = false,
   className,
 }: {
   name: string
@@ -33,6 +40,7 @@ export function CompanyLogo({
   website?: string | null
   size?: Size
   fill?: boolean
+  denseList?: boolean
   className?: string
 }) {
   const { px, text } = SIZES[size]
@@ -49,13 +57,22 @@ export function CompanyLogo({
       <div className={base} style={sizeStyle}>
         {logoPath.startsWith("http") ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoPath} alt={`Logo ${name}`} width={px} height={px} className="h-full w-full object-contain" />
+          <img
+            src={logoPath}
+            alt={`Logo ${name}`}
+            width={px}
+            height={px}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-contain"
+          />
         ) : (
           <Image
             src={logoPath}
             alt={`Logo ${name}`}
             width={px}
             height={px}
+            loading="lazy"
             className="object-contain w-full h-full"
           />
         )}
@@ -63,13 +80,23 @@ export function CompanyLogo({
     )
   }
 
-  const faviconUrl = getFaviconUrl(website)
+  // En liste dense, on ne déclenche pas de requête favicon externe —
+  // on affiche directement les initiales pour éviter N appels vers Google.
+  const faviconUrl = denseList ? null : getFaviconUrl(website)
 
   if (faviconUrl) {
     return (
       <div className={base} style={sizeStyle}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={faviconUrl} alt={`Logo ${name}`} width={px} height={px} className="h-full w-full object-contain p-0.5" />
+        <img
+          src={faviconUrl}
+          alt={`Logo ${name}`}
+          width={px}
+          height={px}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-contain p-0.5"
+        />
       </div>
     )
   }

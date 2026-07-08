@@ -10,7 +10,6 @@ import {
   AccountRow,
   AccountsContactsData,
   ContactRow,
-  StudyRow,
 } from "@/lib/accounts-contacts/accounts-contacts-data"
 import {
   parseFilters,
@@ -692,12 +691,10 @@ function DeleteConfirmModal({
 
 function AccountsDesktop({
   accounts,
-  studies,
   onOpenIdentity,
   onOpenIntelligence,
 }: {
   accounts: AccountRow[]
-  studies: StudyRow[]
   onOpenIdentity: (id: string) => void
   onOpenIntelligence: (account: AccountRow) => void
 }) {
@@ -722,13 +719,13 @@ function AccountsDesktop({
           </thead>
           <tbody className="divide-y divide-border/50">
             {accounts.map((account) => {
-              const hasStudy = studies.some((s) => s.id === account.id)
+              const hasStudy = account.hasStudy
               return (
                 <tr key={account.id} id={`account-row-${account.id}`} className="kredo-hover-reference">
                   <td className="px-5 py-3 truncate">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
-                        <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" />
+                        <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" denseList />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div 
@@ -855,6 +852,7 @@ function AccountsMobile({
                 logoPath={account.logoPath}
                 website={account.website}
                 size="sm"
+                denseList
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -967,6 +965,7 @@ function ContactsDesktop({
                       logoPath={contact.logoPath}
                       website={contact.website}
                       size="sm"
+                      denseList
                     />
                     <span
                       onClick={() => onOpenIdentity(contact.id)}
@@ -1166,7 +1165,9 @@ export function ProspectionAccountsView({
   const subTab = filters.tab
   const deferredQuery = useDeferredValue(filters.q)
 
-  const studyIds = useMemo(() => new Set(data.studies.map((study) => study.id)), [data.studies])
+  // studyIds est pré-calculé côté serveur sous forme de tableau simple.
+  // On recrée un Set côté client pour un lookup O(1) efficace.
+  const studyIds = useMemo(() => new Set(data.studyIds), [data.studyIds])
 
   const sectorOptions = useMemo<FilterOption[]>(
     () =>
@@ -1195,7 +1196,9 @@ export function ProspectionAccountsView({
 
   const filteredAccounts = useMemo(
     () => filterAccounts(data.accounts, { ...filters, q: deferredQuery }, studyIds),
-    [data.accounts, filters, deferredQuery, studyIds]
+    // studyIds est une référence stable (Set créé une fois côté serveur, rerçu en prop)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.accounts, filters, deferredQuery]
   )
   const filteredContacts = useMemo(
     () => filterContacts(data.contacts, { ...filters, q: deferredQuery }),
@@ -1515,7 +1518,6 @@ export function ProspectionAccountsView({
         ) : (
           <AccountsDesktop
             accounts={displayAccounts}
-            studies={data.studies}
             onOpenIdentity={openCompanyDrawer}
             onOpenIntelligence={(account) =>
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })

@@ -42,7 +42,7 @@ export async function GET() {
     .maybeSingle()
 
   if (error) {
-    console.error("[mobile-priority] failed to load profile preferences", error)
+    console.error("[crm-launcher-pinned] failed to load profile preferences", error)
     return NextResponse.json({ error: "Impossible de charger la liste personnalisée" }, { status: 500 })
   }
 
@@ -74,7 +74,7 @@ export async function PUT(request: Request) {
     .maybeSingle()
 
   if (readError) {
-    console.error("[mobile-priority] failed to read current profile preferences", readError)
+    console.error("[crm-launcher-pinned] failed to read current profile preferences", readError)
     return NextResponse.json({ error: "Impossible d'enregistrer la liste personnalisée" }, { status: 500 })
   }
 
@@ -88,7 +88,7 @@ export async function PUT(request: Request) {
     .maybeSingle()
 
   if (updateError) {
-    console.error("[mobile-priority] failed to persist profile preferences", updateError)
+    console.error("[crm-launcher-pinned] failed to persist profile preferences", updateError)
     return NextResponse.json({ error: "Impossible d'enregistrer la liste personnalisée" }, { status: 500 })
   }
 

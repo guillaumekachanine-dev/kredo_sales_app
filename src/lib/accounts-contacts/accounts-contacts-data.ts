@@ -25,6 +25,8 @@ export type AccountRow = {
   logoPath: string | null
   taskCount: number
   employeeCount: number | null
+  /** Pré-calculé serveur-side depuis la vue — évite studies.some() côté client */
+  hasStudy: boolean
 }
 
 export type ContactRow = {
@@ -51,19 +53,6 @@ export type ContactRow = {
   website: string | null
 }
 
-export type StudyRow = {
-  id: string
-  companyName: string
-  sector: string
-  segment: string
-  score: number | null
-  growthTrend: string
-  digitalMaturity: string
-  sectorTrends: string
-  competitors: string[]
-  summary: string
-}
-
 export type SectorStudyRow = {
   sector: string
   companies: number
@@ -76,9 +65,15 @@ export type AccountsContactsData = {
   stats: AccountsContactsStats
   accounts: AccountRow[]
   contacts: ContactRow[]
-  studies: StudyRow[]
+  /**
+   * Tableau des IDs de comptes ayant une étude.
+   * Transmis sous forme de tableau simple pour la sérialisation RSC.
+   */
+  studyIds: string[]
   sectors: SectorStudyRow[]
 }
+
+// ─── Types internes Supabase ───────────────────────────────────────────────────
 
 type SupabaseError = { message: string }
 type QueryResult<T> = { data: T[] | null; error: SupabaseError | null; count: number | null }
@@ -97,7 +92,12 @@ type LooseSupabaseClient = {
   from<T>(table: string): ReadTable<T>
 }
 
-type CompanyQueryRow = {
+/**
+ * Ligne issue de la vue v_crm_account_list (projection légère sans metadata complet).
+ * Les champs logo_path, nb_contacts, nb_with_email et has_study sont extraits
+ * côté Postgres — seules les valeurs scalaires traversent le réseau.
+ */
+type AccountViewRow = {
   id: string
   name: string
   sector: string | null
@@ -111,7 +111,10 @@ type CompanyQueryRow = {
   legacy_folio_score: number | string | null
   website: string | null
   description: string | null
-  metadata: unknown
+  logo_path: string | null
+  nb_contacts: number | null
+  nb_with_email: number | null
+  has_study: boolean | null
 }
 
 type TaskQueryRow = {
@@ -152,36 +155,11 @@ type ContactQueryRow = {
   created_at?: string | null
 }
 
-type JsonRecord = Record<string, unknown>
-
-function asRecord(value: unknown): JsonRecord {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
-  return value as JsonRecord
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function firstRelation<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
   return value
-}
-
-function nestedRecord(source: JsonRecord, key: string): JsonRecord {
-  return asRecord(source[key])
-}
-
-function nestedText(source: JsonRecord, path: string[]): string {
-  let cursor: unknown = source
-  for (const part of path) {
-    cursor = asRecord(cursor)[part]
-  }
-  return typeof cursor === "string" && cursor.trim().length > 0 ? cursor.trim() : ""
-}
-
-function nestedTextArray(source: JsonRecord, path: string[]): string[] {
-  let cursor: unknown = source
-  for (const part of path) {
-    cursor = asRecord(cursor)[part]
-  }
-  return Array.isArray(cursor) ? cursor.filter((item): item is string => typeof item === "string") : []
 }
 
 function toNumber(value: number | string | null): number | null {
@@ -197,22 +175,9 @@ function cleanText(value: string | null | undefined, fallback = "Non renseigné"
   return value && value.trim().length > 0 ? value.trim() : fallback
 }
 
-function getContactStats(metadata: unknown) {
-  const stats = nestedRecord(asRecord(metadata), "contact_stats")
-  return {
-    contacts: Number(stats.nb_contacts ?? 0) || 0,
-    emails: Number(stats.nb_with_email ?? 0) || 0,
-  }
-}
-
-function getStudy(metadata: unknown) {
-  return nestedRecord(asRecord(metadata), "analysis_data")
-}
-
-function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: number): AccountRow {
-  const metadata = asRecord(row.metadata)
-  const importedStats = getContactStats(row.metadata)
-  const study = getStudy(row.metadata)
+function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number): AccountRow {
+  const importedContacts = Number(row.nb_contacts ?? 0) || 0
+  const importedEmails  = Number(row.nb_with_email ?? 0) || 0
 
   return {
     id: row.id,
@@ -225,30 +190,13 @@ function buildAccount(row: CompanyQueryRow, contactCount: number, taskCount: num
     status: row.lifecycle_status,
     score: toNumber(row.legacy_folio_score),
     website: row.website,
-    contactCount: Math.max(contactCount, importedStats.contacts),
-    emailCount: importedStats.emails,
-    summary: cleanText(row.description, nestedText(study, ["synthese_consultant"]) || "Aucune synthèse disponible."),
-    logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
+    contactCount: Math.max(contactCount, importedContacts),
+    emailCount: importedEmails,
+    summary: cleanText(row.description, "Aucune synthèse disponible."),
+    logoPath: row.logo_path,
     taskCount,
     employeeCount: row.employee_count,
-  }
-}
-
-function buildStudy(row: CompanyQueryRow): StudyRow | null {
-  const study = getStudy(row.metadata)
-  if (Object.keys(study).length === 0) return null
-
-  return {
-    id: row.id,
-    companyName: row.name,
-    sector: cleanText(row.sector),
-    segment: cleanText(row.segment, "Segment non renseigné"),
-    score: toNumber(row.legacy_folio_score),
-    growthTrend: nestedText(study, ["signaux", "tendance_croissance"]) || "Non renseigné",
-    digitalMaturity: nestedText(study, ["signaux", "indices_maturite_digitale"]) || "Non renseigné",
-    sectorTrends: nestedText(study, ["contexte_sectoriel", "tendances_sectorielles"]) || "Non renseigné",
-    competitors: nestedTextArray(study, ["contexte_sectoriel", "concurrents_identifies"]),
-    summary: nestedText(study, ["synthese_consultant"]) || "Aucune synthèse disponible.",
+    hasStudy: row.has_study === true,
   }
 }
 
@@ -310,10 +258,10 @@ function buildSectorRows(accounts: AccountRow[]) {
 export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
-  const [companiesResult, contactsResult, tasksResult] = await Promise.all([
+  const [accountsResult, contactsResult, tasksResult] = await Promise.all([
     supabase
-      .from<CompanyQueryRow>("companies")
-      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,metadata")
+      .from<AccountViewRow>("v_crm_account_list")
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study")
       .order("legacy_folio_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
       .limit(300),
@@ -328,20 +276,22 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .limit(2000),
   ])
 
-  if (companiesResult.error) throw new Error(companiesResult.error.message)
+  if (accountsResult.error) throw new Error(accountsResult.error.message)
   if (contactsResult.error) throw new Error(contactsResult.error.message)
 
-  const companies = companiesResult.data ?? []
+  const rawAccounts = accountsResult.data ?? []
   const rawContacts = contactsResult.data ?? []
-  const rawTasks = tasksResult.data ?? []
-  const contactCounts = new Map<string, number>()
+  const rawTasks    = tasksResult.data ?? []
 
+  // Comptage contacts par entreprise (depuis les contacts chargés)
+  const contactCounts = new Map<string, number>()
   for (const contact of rawContacts) {
     if (contact.company_id) {
       contactCounts.set(contact.company_id, (contactCounts.get(contact.company_id) ?? 0) + 1)
     }
   }
 
+  // Comptage tâches par entreprise
   const taskCounts = new Map<string, number>()
   for (const task of rawTasks) {
     if (task.entity_id && (task.entity_type === "company" || !task.entity_type)) {
@@ -349,35 +299,33 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     }
   }
 
+  // Map companyId → infos légères pour la construction des contacts
   const companyById = new Map<string, CompanyMapValue>()
-  for (const company of companies) {
-    const metadata = asRecord(company.metadata)
-    companyById.set(company.id, {
-      name: company.name,
-      sector: cleanText(company.sector),
-      website: company.website,
-      logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
+  for (const row of rawAccounts) {
+    companyById.set(row.id, {
+      name: row.name,
+      sector: cleanText(row.sector),
+      website: row.website,
+      logoPath: row.logo_path,
     })
   }
 
-  const accounts = companies
-    .map((company) => buildAccount(company, contactCounts.get(company.id) ?? 0, taskCounts.get(company.id) ?? 0))
+  const accounts = rawAccounts
+    .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
 
   const contacts = rawContacts
     .map((row) => buildContact(row, companyById))
     .toSorted((a, b) => a.companyName.localeCompare(b.companyName) || a.fullName.localeCompare(b.fullName))
 
-  const studies = companies
-    .map(buildStudy)
-    .filter((study): study is StudyRow => study !== null)
-    .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.companyName.localeCompare(b.companyName))
+  // Liste d'IDs ayant une étude
+  const studyIds = accounts.filter((a) => a.hasStudy).map((a) => a.id)
 
   const stats = {
-    companies: companiesResult.count ?? accounts.length,
+    companies: accountsResult.count ?? accounts.length,
     contacts: contactsResult.count ?? contacts.length,
     emails: contacts.filter((contact) => Boolean(contact.email)).length,
-    studies: studies.length,
+    studies: studyIds.length,
     highPriority: accounts.filter((account) => account.priority === "haute").length,
   }
 
@@ -387,7 +335,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     stats,
     accounts,
     contacts,
-    studies,
+    studyIds,
     sectors: buildSectorRows(accounts),
   }
 }

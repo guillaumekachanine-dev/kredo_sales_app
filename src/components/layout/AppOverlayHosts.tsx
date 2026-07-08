@@ -34,6 +34,14 @@ const ReportGenerationHost = dynamic(
   { ssr: false },
 )
 
+const CrmAccountLauncherHost = dynamic(
+  () =>
+    import("@/components/crm/launcher/CrmAccountLauncherHost").then(
+      (mod) => mod.CrmAccountLauncherHost,
+    ),
+  { ssr: false },
+)
+
 interface AppOverlayHostsProps {
   device: DashboardDevice
 }
@@ -46,6 +54,7 @@ export function AppOverlayHosts({ device }: AppOverlayHostsProps) {
       <CrmIdentityDrawerHost />
       <CommunicationComposerHost device={device} />
       <ReportGenerationHost />
+      <CrmAccountLauncherHost device={device} />
     </>
   )
 }

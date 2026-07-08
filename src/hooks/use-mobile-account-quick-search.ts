@@ -145,6 +145,8 @@ export const useMobileAccountQuickSearch = create<MobileAccountQuickSearchState>
   },
 }))
 
-export function openMobileAccountQuickSearch(preset?: MobileAccountQuickSearchPreset) {
-  useMobileAccountQuickSearch.getState().open(preset)
+import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
+
+export function openMobileAccountQuickSearch() {
+  useCrmAccountLauncherStore.getState().open()
 }

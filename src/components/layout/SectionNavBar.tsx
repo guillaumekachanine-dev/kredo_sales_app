@@ -14,6 +14,8 @@ import { sectionTabItemClasses, sectionTabListClasses } from "./section-tab-styl
 //  layouts de rendre <SectionNavBar /> sans connaître le module courant.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
+
 interface SectionNavBarProps {
   tabs?: SectionTab[]
 }
@@ -21,6 +23,7 @@ interface SectionNavBarProps {
 export function SectionNavBar({ tabs: propTabs }: SectionNavBarProps) {
   const pathname = usePathname()
   const tabs = propTabs ?? getSectionTabsForPath(pathname)
+  const openLauncher = useCrmAccountLauncherStore((s) => s.open)
 
   if (tabs.length === 0) return null
 
@@ -52,11 +55,19 @@ export function SectionNavBar({ tabs: propTabs }: SectionNavBarProps) {
           </>
         )
 
+        const handleLinkClick = (e: React.MouseEvent) => {
+          if (tab.href === "/prospection/accounts") {
+            e.preventDefault()
+            openLauncher()
+          }
+        }
+
         if (isClickable) {
           return (
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={handleLinkClick}
               className={baseClasses}
               aria-current={isActive ? "page" : undefined}
             >

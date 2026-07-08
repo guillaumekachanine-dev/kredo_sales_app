@@ -5,8 +5,10 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 export const dynamic = "force-dynamic"
 
 export default async function ProspectionAccountsPage() {
-  const device = await getDashboardDevice()
-  const data = await getAccountsContactsData()
+  const [device, data] = await Promise.all([
+    getDashboardDevice(),
+    getAccountsContactsData(),
+  ])
 
   return <ProspectionAccountsView data={data} device={device} />
 }
