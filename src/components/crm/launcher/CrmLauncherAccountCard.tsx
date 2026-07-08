@@ -26,7 +26,7 @@ export function CrmLauncherAccountCard({
   return (
     <div
       onClick={onSelect}
-      className="flex items-center gap-3 rounded-[var(--radius-medium)] border border-border/40 bg-surface hover:bg-canvas p-2.5 cursor-pointer transition-all hover:border-primary/20 hover:shadow-sm"
+      className="flex items-center gap-3 rounded-[var(--radius-medium)] border border-transparent bg-surface hover:bg-surface-hover hover:scale-[1.02] active:scale-[0.98] p-2.5 cursor-pointer transition-all duration-200 hover:border-primary/10 hover:shadow-sm"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -40,7 +40,7 @@ export function CrmLauncherAccountCard({
         name={account.name}
         logoPath={account.logoPath}
         website={account.website}
-        size="sm"
+        size="md"
         denseList
       />
 

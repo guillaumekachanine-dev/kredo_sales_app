@@ -85,21 +85,17 @@ export function CrmAccountLauncherMobile({
     }
   }
 
-  return (
-    <dialog
+  return (    <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-x-0 bottom-0 top-12 m-0 flex flex-col h-[calc(100dvh-3rem)] w-full overflow-hidden rounded-t-2xl border-t border-border bg-surface p-4 text-heading shadow-2xl",
+        "fixed inset-0 m-auto flex flex-col h-[560px] max-h-[85vh] w-[calc(100%-2rem)] max-w-[480px] overflow-hidden rounded-[var(--radius-large)] border border-border bg-surface p-4 text-heading shadow-2xl",
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
-        "open:animate-slide-up duration-300 outline-none",
+        "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
         "z-[9999]"
       )}
     >
       <div className="flex flex-col h-full gap-3.5">
-        {/* Handle de bottom sheet pour donner l'aspect mobile */}
-        <div className="w-10 h-1 bg-border/80 rounded-full mx-auto shrink-0 mb-1" />
-
         {/* Header */}
         <div className="flex items-center justify-between shrink-0">
           <h2 className="text-sm font-bold flex items-center gap-2">
@@ -195,7 +191,7 @@ export function CrmAccountLauncherMobile({
               <p className="text-xs text-muted">Aucun compte trouvé</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 pb-6">
+            <div className="flex flex-col gap-2 pb-2">
               {accounts.map((account) => (
                 <div key={account.id} className="active:scale-[0.99] transition-transform">
                   <CrmLauncherAccountCard
@@ -210,31 +206,24 @@ export function CrmAccountLauncherMobile({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border/40 pt-3 flex items-center justify-between shrink-0 pb-4">
-          <span className="text-[10px] text-muted">
-            {accounts.length} compte{accounts.length > 1 ? "s" : ""} disponible{accounts.length > 1 ? "s" : ""}
-          </span>
+        <div className="border-t border-border/40 pt-3 flex items-center justify-end shrink-0 pb-2">
           <Link
             href="/prospection/accounts?tab=accounts"
             prefetch={false}
             onClick={() => onOpenChange(false)}
-            className="text-xs font-bold text-primary hover:underline flex items-center gap-1 py-2 px-3 bg-primary/5 rounded-full"
-            style={{ minHeight: "44px" }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            style={{ minHeight: "36px" }}
           >
-            Liste complète
             <svg
-              className="w-3.5 h-3.5"
+              className="w-3 h-3 text-white shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={3}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M17 8l4 4m0 0l-4 4m4-4H3"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
+            Liste complète
           </Link>
         </div>
       </div>

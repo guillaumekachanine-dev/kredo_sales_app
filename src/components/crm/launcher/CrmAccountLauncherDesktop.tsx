@@ -205,30 +205,28 @@ export function CrmAccountLauncherDesktop({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border/40 pt-3 flex items-center justify-between">
-          <span className="text-[10px] text-muted">
-            {accounts.length} compte{accounts.length > 1 ? "s" : ""} disponible{accounts.length > 1 ? "s" : ""}
-          </span>
+        <div className="border-t border-border/40 pt-3 flex items-center justify-end">
           <Link
             href="/prospection/accounts?tab=accounts"
             prefetch={false}
             onClick={() => onOpenChange(false)}
-            className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            style={{ minHeight: "36px" }}
           >
-            Liste complète
             <svg
-              className="w-3.5 h-3.5"
+              className="w-3.5 h-3.5 text-white shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={2}
+              strokeWidth={3}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                d="M9 5l7 7-7 7"
               />
             </svg>
+            Liste complète
           </Link>
         </div>
       </div>
