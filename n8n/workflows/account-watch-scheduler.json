@@ -1,0 +1,452 @@
+{
+  "name": "Account Watch — Scheduler (veille périodique comptes)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "n1-cron",
+      "name": "Cron — Quotidien 03:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_watch_settings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "is_enabled",
+              "value": "eq.true"
+            },
+            {
+              "name": "or",
+              "value": "=(next_run_at.is.null,next_run_at.lte.{{ new Date().toISOString() }})"
+            },
+            {
+              "name": "select",
+              "value": "id,company_id,workspace_id,watch_level,cadence,include_official_site,include_news,include_jobs,include_public_records,include_tenders,include_social_manual,query_aliases,metadata,workspaces(owner_id)"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "n2-load-active",
+      "name": "Supabase: Load Active Watch Settings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "n3-loop",
+      "name": "Loop Over Accounts",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { company_id: $json.company_id, primary_entity_type: \"company\", primary_entity_id: $json.company_id, run_type: \"account_watch_refresh\", trigger_source: \"cron\", status: \"queued\", input_snapshot: { triggerMode: \"auto\", watchLevel: $json.watch_level }, config: { workflowId: \"intel-033-account-watch-refresh\" }, owner_id: $json.workspaces && $json.workspaces.owner_id, workspace_id: $json.workspace_id } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "n4-create-run",
+      "name": "Supabase: Create Run Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const row = $('Loop Over Accounts').item.json;\nconst runRows = $input.all().map((i) => i.json);\nconst run = runRows[0];\n\nif (!run || !run.id) {\n  throw new Error(`Création du run échouée pour company_id=${row.company_id} (réponse Supabase inattendue)`);\n}\n\nconst ownerId = (row.workspaces && row.workspaces.owner_id) || null;\nif (!ownerId) {\n  throw new Error(`Impossible de résoudre owner_id du workspace pour company_id=${row.company_id}`);\n}\n\nconst settings = {\n  isEnabled: true,\n  watchLevel: row.watch_level,\n  cadence: row.cadence,\n  includeOfficialSite: row.include_official_site,\n  includeNews: row.include_news,\n  includeJobs: row.include_jobs,\n  includePublicRecords: row.include_public_records,\n  includeTenders: row.include_tenders,\n  includeSocialManual: row.include_social_manual,\n  queryAliases: Array.isArray(row.query_aliases) ? row.query_aliases.filter((v) => typeof v === 'string') : [],\n  metadata: (row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)) ? row.metadata : {},\n};\n\nconst payload = {\n  runId: run.id,\n  workspaceId: row.workspace_id,\n  companyId: row.company_id,\n  userId: ownerId,\n  triggerMode: 'auto',\n  watchLevel: row.watch_level,\n  settings,\n  // Alias de production documenté (vercel-prod-env-config) — vérifier qu'il est\n  // toujours exact avant d'activer ce workflow (même caveat que report-weekly-manager-cron).\n  callbackUrl: 'https://kredo-green.vercel.app/api/n8n/callback',\n};\n\nreturn [{\n  json: {\n    companyId: row.company_id,\n    workspaceId: row.workspace_id,\n    watchLevel: row.watch_level,\n    rawBody: JSON.stringify(payload),\n  }\n}];"
+      },
+      "id": "n5-build-payload",
+      "name": "Build Webhook Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "n6-sign",
+      "name": "Sign Trigger Payload",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/intel-033-account-watch-refresh",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "n7-trigger",
+      "name": "HTTP Request: Trigger Watch Refresh",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const data = $('Build Webhook Payload').item.json;\nconst level = data.watchLevel;\nconst now = new Date();\nconst nextRun = new Date(now);\n\nif (level === 'hot') {\n  nextRun.setUTCDate(now.getUTCDate() + 1);\n} else if (level === 'priority') {\n  nextRun.setUTCDate(now.getUTCDate() + 3);\n} else {\n  nextRun.setUTCDate(now.getUTCDate() + 7);\n}\nnextRun.setUTCHours(3, 0, 0, 0);\n\nreturn [{\n  json: {\n    companyId: data.companyId,\n    workspaceId: data.workspaceId,\n    nextRunAt: nextRun.toISOString(),\n  }\n}];"
+      },
+      "id": "n8-next-run",
+      "name": "Calculate next_run_at",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_watch_settings?company_id=eq.{{ $json.companyId }}&workspace_id=eq.{{ $json.workspaceId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { next_run_at: $json.nextRunAt, last_status: \"queued\", last_error: null } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "n9-update-success",
+      "name": "Supabase: Update Settings -> Queued",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        300
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const row = $('Loop Over Accounts').item.json;\nconst errItem = $input.first().json;\n\nlet errorMessage = 'Erreur inconnue dans account-watch-scheduler';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst currentMetadata = (row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)) ? row.metadata : {};\nconst consecutiveFailures = (Number(currentMetadata.consecutive_failures) || 0) + 1;\nconst breaker = consecutiveFailures >= 5;\n\nconst now = new Date();\nconst nextRun = new Date(now);\nnextRun.setUTCDate(now.getUTCDate() + 1);\nnextRun.setUTCHours(3, 0, 0, 0);\n\nreturn [{\n  json: {\n    companyId: row.company_id,\n    workspaceId: row.workspace_id,\n    errorMessage,\n    breaker,\n    nextRunAt: nextRun.toISOString(),\n    metadata: { ...currentMetadata, consecutive_failures: consecutiveFailures },\n  }\n}];"
+      },
+      "id": "n10-error-handler",
+      "name": "Error Handler — Increment Failures",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_watch_settings?company_id=eq.{{ $json.companyId }}&workspace_id=eq.{{ $json.workspaceId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { last_status: \"failed\", last_error: $json.errorMessage, next_run_at: $json.nextRunAt, metadata: $json.metadata, is_enabled: !$json.breaker } }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "n11-update-failure",
+      "name": "Supabase: Update Settings -> Failed / Circuit Breaker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        620
+      ],
+      "onError": "continueErrorOutput",
+      "continueOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "GBrm2aWU0dDf85QS",
+          "name": "Supabase_Service_Role_KREDO"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron — Quotidien 03:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Load Active Watch Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Load Active Watch Settings": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Accounts": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Create Run Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Create Run Row": {
+      "main": [
+        [
+          {
+            "node": "Build Webhook Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler — Increment Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Webhook Payload": {
+      "main": [
+        [
+          {
+            "node": "Sign Trigger Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Trigger Payload": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Trigger Watch Refresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Trigger Watch Refresh": {
+      "main": [
+        [
+          {
+            "node": "Calculate next_run_at",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler — Increment Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate next_run_at": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Update Settings -> Queued",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Update Settings -> Queued": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler — Increment Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler — Increment Failures": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Update Settings -> Failed / Circuit Breaker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Update Settings -> Failed / Circuit Breaker": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
