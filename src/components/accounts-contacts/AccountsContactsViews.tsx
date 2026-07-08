@@ -1,6 +1,6 @@
 "use client"
 
-import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
@@ -35,6 +35,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
+import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
 import {
@@ -688,13 +689,49 @@ function DeleteConfirmModal({
 
 function AccountsDesktop({
   accounts,
+  contacts,
   onOpenIdentity,
   onOpenIntelligence,
+  onOpenContactIdentity,
 }: {
   accounts: AccountRow[]
+  contacts: ContactRow[]
   onOpenIdentity: (id: string) => void
   onOpenIntelligence: (account: AccountRow) => void
+  onOpenContactIdentity: (id: string) => void
 }) {
+  const [collapsedSectors, setCollapsedSectors] = useState<Record<string, boolean>>({})
+  const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
+  const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
+
+  const router = useRouter()
+
+  const handleLogActivity = (contact: ContactRow, account: AccountRow) => {
+    setEventInitialValues({
+      contact_id: contact.id,
+      company: {
+        id: account.id,
+        name: account.name,
+        isNew: false,
+      },
+      title: `Échange avec ${contact.fullName}`,
+    })
+    setEventDrawerOpen(true)
+  }
+
+  const groupedBySector = useMemo(() => {
+    const map = new Map<string, AccountRow[]>()
+    accounts.forEach((acc) => {
+      const sector = acc.sector || "Non renseigné"
+      if (!map.has(sector)) {
+        map.set(sector, [])
+      }
+      map.get(sector)!.push(acc)
+    })
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [accounts])
+
   return (
     <SurfaceCard className="overflow-hidden">
 
@@ -703,83 +740,228 @@ function AccountsDesktop({
           <thead>
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3 w-[18%]">Compte</th>
-              <th className="px-3 py-3 w-[9%]">Secteur</th>
-              <th className="px-3 py-3 w-[12%]">Rattachement sectoriel</th>
+              <th className="px-3 py-3 w-[21%]">Secteur</th>
               <th className="px-3 py-3 w-[8%]">Statut</th>
               <th className="px-3 py-3 text-center w-[7%]">CA</th>
               <th className="px-3 py-3 text-center w-[7%]">Taille</th>
               <th className="px-3 py-3 text-center w-[7%]">Contacts</th>
-              <th className="px-3 py-3 text-center w-[8%]">Priorité</th>
-              <th className="px-3 py-3 w-[12%]">Étape analyse</th>
+              <th className="px-3 py-3 text-center w-[12%]">Activité</th>
               <th className="px-3 py-3 text-center w-[6%]">Veille dédiée</th>
+              <th className="px-3 py-3 text-center w-[8%]">Priorité</th>
               <th className="px-5 py-3 text-center w-[6%]">Cockpit</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
-            {accounts.map((account) => {
-              const hasStudy = account.hasStudy
+            {groupedBySector.map(([sector, sectorAccounts]) => {
+              const isSectorCollapsed = collapsedSectors[sector] === true
+
               return (
-                <tr key={account.id} id={`account-row-${account.id}`} className="kredo-hover-reference">
-                  <td className="px-5 py-3 truncate">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
-                        <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="sm" denseList />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div 
-                          onClick={() => onOpenIdentity(account.id)} 
-                          className="font-semibold text-heading truncate cursor-pointer hover:text-primary transition-colors"
-                          title="Voir la fiche d'identité"
-                        >
-                          {account.name}
-                        </div>
-                        <div className="truncate text-[11px] text-muted" title={account.segment}>{account.segment}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
-                  <td className="px-3 py-3 text-body truncate" title={account.sectorAttachment ?? "Non renseigné"}>
-                    {account.sectorAttachment ?? <span className="text-muted">—</span>}
-                  </td>
-                  <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
-                  <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
-                  <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
-                  <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
-                  <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
-                  <td className="px-3 py-3 text-body truncate" title={account.analysisStep ?? "Aucune étape réalisée"}>
-                    {account.analysisStep ?? <span className="text-muted">—</span>}
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <span className={cn(
-                      "text-[11px] font-bold uppercase tracking-[0.12em]",
-                      account.hasDedicatedWatch ? "text-primary" : "text-muted"
-                    )}>
-                      {account.hasDedicatedWatch ? "Oui" : "Non"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-center">
-                    {hasStudy ? (
+                <Fragment key={sector}>
+                  {/* Sector Header Row */}
+                  <tr className="border-y border-border/80 kredo-sector-header-row" style={{ backgroundColor: "#607D8B" }}>
+                    <td colSpan={10} className="px-5 py-2.5 align-middle font-bold text-white text-[11px] uppercase tracking-wider select-none">
                       <button
                         type="button"
-                        onClick={() => onOpenIntelligence(account)}
-                        className="inline-flex size-7 items-center justify-center rounded bg-primary text-primary-fg transition-colors hover:bg-primary/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer"
-                        aria-label={`Ouvrir le cockpit client de ${account.name}`}
-                        title="Cockpit client"
+                        onClick={() => {
+                          setCollapsedSectors(prev => ({ ...prev, [sector]: !prev[sector] }))
+                        }}
+                        className="flex items-center gap-2 font-bold cursor-pointer text-left w-full focus:outline-none text-white"
                       >
-                        <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5 19.5 4.5m0 0H8.25m11.25 0v11.25" />
+                        <svg
+                          className={cn(
+                            "size-3.5 shrink-0 text-white/80 transition-transform duration-200",
+                            !isSectorCollapsed ? "rotate-90" : ""
+                          )}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
+                        <span>{sector}</span>
+                        <span className="text-[10px] font-semibold text-white/70 ml-1 normal-case font-sans">
+                          ({sectorAccounts.length} compte{sectorAccounts.length > 1 ? "s" : ""})
+                        </span>
                       </button>
-                    ) : (
-                      <span className="text-muted text-[11px] italic">—</span>
-                    )}
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+
+                  {/* Sector Accounts Rows */}
+                  {!isSectorCollapsed && sectorAccounts.map((account) => {
+                    const hasStudy = account.hasStudy
+                    const isContactsExpanded = expandedAccounts[account.id] === true
+                    const accountContacts = contacts.filter((c) => c.companyId === account.id)
+
+                    return (
+                      <Fragment key={account.id}>
+                        {/* Account Main Row */}
+                        <tr id={`account-row-${account.id}`} className="kredo-hover-reference border-b border-border/40">
+                          {/* Compte Name, Logo and Collapse toggle */}
+                          <td className="px-5 py-3 truncate">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setExpandedAccounts(prev => ({ ...prev, [account.id]: !prev[account.id] }))
+                                }}
+                                className="text-muted hover:text-heading p-0.5 transition-transform"
+                                title={isContactsExpanded ? "Cacher les contacts" : "Afficher les contacts"}
+                              >
+                                <svg
+                                  className={cn(
+                                    "size-3.5 shrink-0 transition-transform duration-200",
+                                    isContactsExpanded ? "rotate-90" : ""
+                                  )}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2.5}
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                              </button>
+                              <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
+                                <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" denseList />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div 
+                                  onClick={() => onOpenIdentity(account.id)} 
+                                  className="font-bold text-[13px] text-heading truncate cursor-pointer hover:text-primary transition-colors"
+                                  title="Voir la fiche d'identité"
+                                >
+                                  {account.name}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Secteur */}
+                          <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
+
+                          {/* Statut */}
+                          <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
+
+                          {/* CA */}
+                          <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
+
+                          {/* Taille */}
+                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
+
+                          {/* Contacts Count */}
+                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
+
+                          {/* Activité Count */}
+                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.taskCount}</td>
+
+                          {/* Veille dédiée */}
+                          <td className="px-3 py-3 text-center">
+                            <span className={cn(
+                              "text-[11px] font-bold uppercase tracking-[0.12em]",
+                              account.hasDedicatedWatch ? "text-primary" : "text-muted"
+                            )}>
+                              {account.hasDedicatedWatch ? "Oui" : "Non"}
+                            </span>
+                          </td>
+
+                          {/* Priorité */}
+                          <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
+
+                          {/* Cockpit */}
+                          <td className="px-5 py-3 text-center">
+                            {hasStudy ? (
+                              <button
+                                type="button"
+                                onClick={() => onOpenIntelligence(account)}
+                                className="inline-flex size-7 items-center justify-center rounded text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer kredo-cockpit-button shadow-sm"
+                                aria-label={`Ouvrir le cockpit client de ${account.name}`}
+                                title="Cockpit client"
+                              >
+                                <svg className="size-3.5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <span className="text-muted text-[11px] italic">—</span>
+                            )}
+                          </td>
+                        </tr>
+
+                        {/* Collapsible Contacts Row */}
+                        {isContactsExpanded && (
+                          <tr className="bg-canvas/15 border-b border-border/30">
+                            <td colSpan={10} className="px-5 py-2.5">
+                              <div className="flex flex-col gap-1.5 pl-6 border-l-2 border-primary/25 py-1">
+                                {accountContacts.length === 0 ? (
+                                  <span className="text-[11px] text-muted italic pl-3">Aucun contact enregistré pour ce compte.</span>
+                                ) : (
+                                  accountContacts.map((contact) => (
+                                    <div
+                                      key={contact.id}
+                                      onClick={() => onOpenContactIdentity(contact.id)}
+                                      className="grid grid-cols-[18px_180px_100px_1fr_150px] gap-6 items-center py-1.5 px-3 rounded hover:bg-canvas/30 transition-colors cursor-pointer text-left w-full"
+                                    >
+                                      {/* Col 1: Account Logo */}
+                                      <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="xs" denseList />
+
+                                      {/* Col 2: Prénom NOM */}
+                                      <span className="font-semibold text-heading truncate text-xs" title={contact.fullName}>
+                                        {contact.fullName}
+                                      </span>
+
+                                      {/* Col 3: Bouton d'action "activité" (cobalt blue) */}
+                                      <div className="flex">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleLogActivity(contact, account)
+                                          }}
+                                          className="rounded bg-[#0047AB] hover:bg-[#003c96] px-2.5 py-1 text-[10px] font-bold text-white transition-colors cursor-pointer shadow-sm inline-flex items-center justify-center min-w-[76px]"
+                                        >
+                                          Activité
+                                        </button>
+                                      </div>
+
+                                      {/* Col 4: Poste */}
+                                      <span className="text-body truncate text-xs" title={contact.jobTitle}>
+                                        {contact.jobTitle || "—"}
+                                      </span>
+
+                                      {/* Col 5: Rôle décisionnel */}
+                                      <span className="text-muted text-[11px] capitalize truncate" title={contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}>
+                                        {contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}
+                                      </span>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </Fragment>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      {eventDrawerOpen && (
+        <AgendaEventDrawer
+          open={eventDrawerOpen}
+          onOpenChange={setEventDrawerOpen}
+          event={null}
+          initialValues={eventInitialValues}
+          onSaved={() => {
+            setEventDrawerOpen(false)
+            router.refresh()
+          }}
+        />
+      )}
     </SurfaceCard>
   )
 }
@@ -1476,10 +1658,12 @@ export function ProspectionAccountsView({
         ) : (
           <AccountsDesktop
             accounts={displayAccounts}
+            contacts={data.contacts}
             onOpenIdentity={openCompanyDrawer}
             onOpenIntelligence={(account) =>
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
             }
+            onOpenContactIdentity={openContactDrawer}
           />
         )
       )}

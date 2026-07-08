@@ -255,7 +255,6 @@ export function PoolCompetencesMap({
   const selectedSkills = skillGroups.flatMap((group) => group.skills)
   const totalSelectedSkills = selectedSkills.length
   const suppliedSelectedSkills = selectedSkills.filter((skill) => skill.supplyCount > 0).length
-  const selectedDemandCount = selectedSkills.reduce((sum, skill) => sum + skill.demandCount, 0)
   const coverageRate =
     totalSelectedSkills > 0 ? Math.round((suppliedSelectedSkills / totalSelectedSkills) * 100) : 0
 
@@ -324,7 +323,7 @@ export function PoolCompetencesMap({
       const sourceRect = sourceElement.getBoundingClientRect()
       const source = {
         x: sourceRect.left - stageRect.left + sourceRect.width / 2,
-        y: sourceRect.bottom - stageRect.top + 12,
+        y: sourceRect.bottom - stageRect.top,
       }
 
       const targets = categoryNodes
@@ -484,13 +483,6 @@ export function PoolCompetencesMap({
 
               <div className="relative z-10 mt-8 sm:pl-12">
                 <StepRailLabel label="Categories" tone={selectedPractice.tone} />
-                <div className="mb-3 flex flex-wrap justify-end gap-2 text-xs">
-                  <StatusPill label={`${selectedPractice.offers.length} offres`} tone={selectedPractice.tone} />
-                  <StatusPill label={`${totalSelectedSkills} competences`} tone={selectedPractice.tone} />
-                  <StatusPill label={`${attachedCollaborators.length} consultants`} tone={selectedPractice.tone} />
-                  <StatusPill label={`${selectedDemandCount} demandes`} tone={selectedPractice.tone} />
-                </div>
-
                 <CategoryNodeGrid
                   activeCategory={activeCategory}
                   bindCategoryRef={bindCategoryRef}
@@ -1442,14 +1434,6 @@ function Metric({
         />
       </div>
     </div>
-  )
-}
-
-function StatusPill({ label, tone }: { label: string; tone: PracticeTerritory["tone"] }) {
-  return (
-    <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]", toneClasses[tone].fill)}>
-      {label}
-    </span>
   )
 }
 

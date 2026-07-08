@@ -2020,3 +2020,22 @@ canvas {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Cockpit Client button style matching ReadyActionButton colors but without pulse/bounce */
+.kredo-cockpit-button {
+  background-image: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
+  background-size: 400% 400%;
+  animation: kredo-ready-gradient-flow 3s linear infinite;
+}

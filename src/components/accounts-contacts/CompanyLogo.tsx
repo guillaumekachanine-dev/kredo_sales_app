@@ -1,9 +1,10 @@
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
-type Size = "sm" | "md" | "lg" | "xl" | "2xl"
+type Size = "xs" | "sm" | "md" | "lg" | "xl" | "2xl"
 
 const SIZES: Record<Size, { px: number; text: string }> = {
+  xs: { px: 18, text: "text-[8px]" },
   sm: { px: 24, text: "text-[9px]" },
   md: { px: 32, text: "text-[11px]" },
   lg: { px: 48, text: "text-sm" },
