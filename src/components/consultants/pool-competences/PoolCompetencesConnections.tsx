@@ -1,10 +1,10 @@
 import { cn } from "@/lib/utils"
-import type { PracticeTone, SkillCategory } from "@/lib/consultants/pool-competences-data"
+import type { PracticeTone } from "@/lib/consultants/pool-competences-data"
 import { toneClasses } from "./pool-competences-shared"
 import type { SceneConnection, SceneSource } from "./types"
 
 type PoolCompetencesConnectionsProps = {
-  activeCategory: SkillCategory | null
+  activeKey: string | null
   connections: SceneConnection[]
   height: number
   practiceKey: string
@@ -16,7 +16,7 @@ type PoolCompetencesConnectionsProps = {
 
 export function PoolCompetencesConnections(props: PoolCompetencesConnectionsProps) {
   const {
-    activeCategory,
+    activeKey,
     connections,
     height,
     practiceKey,
@@ -61,7 +61,7 @@ export function PoolCompetencesConnections(props: PoolCompetencesConnectionsProp
       />
 
       {connections.map((connection, index) => {
-        const focused = !activeCategory || activeCategory === connection.category
+        const focused = !activeKey || activeKey === connection.category
 
         return (
           <g

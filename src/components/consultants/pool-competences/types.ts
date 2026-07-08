@@ -1,5 +1,3 @@
-import type { SkillCategory } from "@/lib/consultants/pool-competences-data"
-
 export type PracticeCollaborator = {
   id: string
   person_id: string | null
@@ -35,7 +33,7 @@ export type SceneSource = {
 
 export type SceneConnection = {
   key: string
-  category: SkillCategory
+  category: string
   path: string
   targetX: number
   targetY: number

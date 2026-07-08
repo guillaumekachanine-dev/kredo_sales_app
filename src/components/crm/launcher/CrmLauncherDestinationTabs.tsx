@@ -19,9 +19,9 @@ export function CrmLauncherDestinationTabs({
   ] as const
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-        Action après sélection :
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[10px] font-bold text-muted uppercase tracking-wider shrink-0">
+        Destination :
       </span>
       <div className="inline-flex rounded-[var(--radius-medium)] bg-canvas p-0.5 border border-border/80 w-fit">
         {destinations.map((dest) => {

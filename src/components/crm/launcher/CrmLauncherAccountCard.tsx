@@ -22,14 +22,6 @@ export function CrmLauncherAccountCard({
   mode,
   onSelect,
 }: CrmLauncherAccountCardProps) {
-  // Statut badges style
-  const getStatusColor = (status: string | null) => {
-    if (!status) return "bg-border/40 text-muted"
-    const lower = status.toLowerCase()
-    if (lower.includes("client")) return "bg-success/10 text-success"
-    if (lower.includes("lead") || lower.includes("piste")) return "bg-primary/10 text-primary"
-    return "bg-border/60 text-muted"
-  };
 
   return (
     <div
@@ -57,25 +49,20 @@ export function CrmLauncherAccountCard({
           <span className="font-semibold text-xs text-heading truncate">
             {account.name}
           </span>
-          {account.status && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium leading-none ${getStatusColor(account.status)}`}>
-              {account.status}
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-1.5 text-[10px] text-muted truncate mt-0.5">
           <span>{account.sector || "Secteur non renseigné"}</span>
           <span>·</span>
-          <span>{account.contactCount} contact{account.contactCount > 1 ? "s" : ""}</span>
+          <span>{account.status || "Statut non renseigné"}</span>
         </div>
       </div>
 
       {/* Colonne droite dépendante du mode ou du score */}
       <div className="flex flex-col items-end shrink-0">
         {mode === "news" && account.signalCountWeek !== undefined && (
-          <span className="text-[10px] font-bold text-primary bg-primary/8 px-1.5 py-0.5 rounded">
-            {account.signalCountWeek} signal{account.signalCountWeek > 1 ? "signaux" : ""}
+          <span className="text-[10px] font-bold text-primary">
+            {account.signalCountWeek} {account.signalCountWeek > 1 ? "signaux" : "signal"}
           </span>
         )}
 

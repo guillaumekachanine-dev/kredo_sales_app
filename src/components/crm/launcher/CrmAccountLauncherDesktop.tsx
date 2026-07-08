@@ -143,14 +143,14 @@ export function CrmAccountLauncherDesktop({
         {/* Search */}
         <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
 
-        {/* Configuration Actions & Modes */}
-        <div className="flex flex-col gap-3">
-          <CrmLauncherDestinationTabs
-            activeDestination={destination}
-            onChange={onDestinationChange}
-          />
-          <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
-        </div>
+        {/* Modes de liste directement sous la recherche */}
+        <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
+
+        {/* Choix de la destination */}
+        <CrmLauncherDestinationTabs
+          activeDestination={destination}
+          onChange={onDestinationChange}
+        />
 
         {/* Content list */}
         <div className="flex-1 overflow-y-auto pr-1 min-h-0">

@@ -146,6 +146,21 @@ export const practiceImages: Record<string, string> = {
   "quality-engineering-testing": "/images/practices/qa-testing.jpg",
 }
 
+export const practiceIcons: Record<string, string> = {
+  "data-ai": "/images/practice_icons/practice_data_ia.png",
+  "data-ia": "/images/practice_icons/practice_data_ia.png",
+  "cloud-engineering": "/images/practice_icons/practice_cloud_engineering.png",
+  "digital-cloud": "/images/practice_icons/practice_cloud_engineering.png",
+  "digital-business-solutions": "/images/practice_icons/practice_digital_business_solutions.png",
+  "digital-experience": "/images/practice_icons/practice_digital_business_solutions%202.png",
+  cybersecurity: "/images/practice_icons/practice_cybersecurity.png",
+  "legacy-systems-mainframe": "/images/practice_icons/practice_legacy_mainframe.png",
+  "project-agile-delivery": "/images/practice_icons/practice_project_agile_delivery.png",
+  "agile-pm": "/images/practice_icons/practice_project_agile_delivery.png",
+  "quality-engineering-testing": "/images/practice_icons/practice_QA_testing.png",
+  "qa-testing": "/images/practice_icons/practice_QA_testing.png",
+}
+
 export const categoryLabels: Record<SkillCategory, string> = {
   certification: "Certifications",
   cloud: "Cloud",
@@ -277,7 +292,7 @@ export function isAttachedToPractice(
 
 export function buildPracticeConnections(
   source: SceneSource,
-  targets: Array<SceneSource & { key: string; category: SkillCategory }>
+  targets: Array<SceneSource & { key: string; category: string }>
 ): SceneConnection[] {
   return targets.map((target) => ({
     key: target.key,

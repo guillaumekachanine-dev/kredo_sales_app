@@ -76,6 +76,7 @@ export function CrmAccountLauncher({
   useEffect(() => {
     if (!open) return
 
+    setDestination("cockpit")
     fetchAccounts("personal", "")
   }, [open, fetchAccounts])
 

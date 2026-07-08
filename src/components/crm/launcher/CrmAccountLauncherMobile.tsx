@@ -148,11 +148,11 @@ export function CrmAccountLauncherMobile({
 
         {/* Configuration Actions & Modes */}
         <div className="flex flex-col gap-3.5 shrink-0">
+          <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
           <CrmLauncherDestinationTabs
             activeDestination={destination}
             onChange={onDestinationChange}
           />
-          <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
         </div>
 
         {/* Content list (défilement tactile fluide) */}
