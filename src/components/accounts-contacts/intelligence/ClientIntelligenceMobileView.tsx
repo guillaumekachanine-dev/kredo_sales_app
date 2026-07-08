@@ -743,6 +743,8 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
                         <span className="text-xs leading-relaxed text-body">{signal}</span>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 justify-start mt-2">
                       <a
                         href={
                           signal.match(/(https?:\/\/[^\s]+)/)?.[0] ||
@@ -750,25 +752,42 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-[10px] font-bold text-primary hover:underline bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2 py-1 rounded transition-colors shrink-0"
+                        className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                         title="Accéder à la source"
                       >
-                        <span>Source</span>
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
+                        <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
+                        <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
+                        <img
+                          src="/icons_set/cockpit_intelligence/recherche_actualités.png"
+                          alt=""
+                          width={12}
+                          height={12}
+                          className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
+                        />
+                        <span className="relative z-10">Voir la source</span>
                       </a>
-                    </div>
-                    <div className="flex justify-end">
                       <ContextualCommunicationButton
                         entryPoint="signal_card"
                         companyId={company.id}
                         companyName={company.name}
                         primaryEntity={{ type: "company", id: company.id }}
                         label="Contacter sur ce signal"
-                        className="h-8 min-h-8 px-2.5 text-[11px]"
+                        className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(72,77,245,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                         aria-label={`Contacter ${company.name} sur le signal ${i + 1}`}
                         refs={{ signalRef: signal }}
+                        leftIcon={
+                          <>
+                            <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
+                            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
+                            <img
+                              src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
+                              alt=""
+                              width={12}
+                              height={12}
+                              className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
+                            />
+                          </>
+                        }
                       />
                     </div>
                   </li>
