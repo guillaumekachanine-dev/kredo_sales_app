@@ -3,7 +3,6 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
@@ -35,8 +34,6 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Select } from "@/components/ui/Select"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
-import { cockpitActionIcons } from "@/components/intelligence/cockpit-action-icons"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { cn } from "@/lib/utils"
 import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
@@ -707,14 +704,15 @@ function AccountsDesktop({
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-5 py-3 w-[18%]">Compte</th>
               <th className="px-3 py-3 w-[9%]">Secteur</th>
-              <th className="px-3 py-3 w-[9%]">Statut</th>
-              <th className="px-3 py-3 text-center w-[8%]">CA</th>
+              <th className="px-3 py-3 w-[12%]">Rattachement sectoriel</th>
+              <th className="px-3 py-3 w-[8%]">Statut</th>
+              <th className="px-3 py-3 text-center w-[7%]">CA</th>
               <th className="px-3 py-3 text-center w-[7%]">Taille</th>
               <th className="px-3 py-3 text-center w-[7%]">Contacts</th>
-              <th className="px-3 py-3 text-center w-[9%]">Priorité</th>
-              <th className="px-3 py-3 text-center w-[13%]">Business Intelligence</th>
-              <th className="px-3 py-3 text-center w-[10%]">Rédaction</th>
-              <th className="px-5 py-3 text-center w-[10%]">Pitch</th>
+              <th className="px-3 py-3 text-center w-[8%]">Priorité</th>
+              <th className="px-3 py-3 w-[12%]">Étape analyse</th>
+              <th className="px-3 py-3 text-center w-[6%]">Veille dédiée</th>
+              <th className="px-5 py-3 text-center w-[6%]">Cockpit</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -740,81 +738,41 @@ function AccountsDesktop({
                     </div>
                   </td>
                   <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
+                  <td className="px-3 py-3 text-body truncate" title={account.sectorAttachment ?? "Non renseigné"}>
+                    {account.sectorAttachment ?? <span className="text-muted">—</span>}
+                  </td>
                   <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
                   <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
                   <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
                   <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
                   <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
+                  <td className="px-3 py-3 text-body truncate" title={account.analysisStep ?? "Aucune étape réalisée"}>
+                    {account.analysisStep ?? <span className="text-muted">—</span>}
+                  </td>
                   <td className="px-3 py-3 text-center">
+                    <span className={cn(
+                      "text-[11px] font-bold uppercase tracking-[0.12em]",
+                      account.hasDedicatedWatch ? "text-primary" : "text-muted"
+                    )}>
+                      {account.hasDedicatedWatch ? "Oui" : "Non"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-center">
                     {hasStudy ? (
                       <button
+                        type="button"
                         onClick={() => onOpenIntelligence(account)}
-                        style={{ height: "26px" }}
-                        className="relative inline-flex items-center gap-1.5 rounded bg-primary px-2.5 py-1 text-[11px] font-bold text-primary-fg transition-colors hover:bg-primary/95 whitespace-nowrap cursor-pointer"
+                        className="inline-flex size-7 items-center justify-center rounded bg-primary text-primary-fg transition-colors hover:bg-primary/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer"
+                        aria-label={`Ouvrir le cockpit client de ${account.name}`}
+                        title="Cockpit client"
                       >
-                        <span>Cockpit client</span>
-                        <span
-                          className="kredo-ready-action-circle"
-                          style={{ width: "14px", height: "14px", minWidth: "14px", minHeight: "14px" }}
-                        >
-                          <svg className="w-2 h-2 relative z-10 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
-                          </svg>
-                        </span>
+                        <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5 19.5 4.5m0 0H8.25m11.25 0v11.25" />
+                        </svg>
                       </button>
                     ) : (
                       <span className="text-muted text-[11px] italic">—</span>
                     )}
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <ContextualCommunicationButton
-                      entryPoint={account.status === "ancien_client" ? "former_client" : "account_row"}
-                      companyId={account.id}
-                      companyName={account.name}
-                      primaryEntity={{ type: "company", id: account.id }}
-                      label={account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger message"}
-                      variant="primary"
-                      style={{ height: "26px" }}
-                      className="h-auto sm:h-auto min-w-0 border-0 py-1 px-2 text-[11px]"
-                      aria-label={`${account.status === "ancien_client" ? "Réactiver la relation" : "Rédiger un message"} pour ${account.name}`}
-                      rightIcon={
-                        <Image
-                          src={cockpitActionIcons.message}
-                          alt=""
-                          width={14}
-                          height={14}
-                          className="object-contain"
-                        />
-                      }
-                      refs={{
-                        angle: [
-                          account.sector ? `Secteur: ${account.sector}` : null,
-                          account.segment ? `Segment: ${account.segment}` : null,
-                        ].filter(Boolean).join(" · ") || undefined,
-                      }}
-                    />
-                  </td>
-                  <td className="px-3 py-3 text-center">
-                    <ContextualCommunicationButton
-                      entryPoint="account_pitch"
-                      companyId={account.id}
-                      companyName={account.name}
-                      primaryEntity={{ type: "company", id: account.id }}
-                      label="Générer pitch"
-                      variant="primary"
-                      style={{ height: "26px" }}
-                      className="h-auto sm:h-auto min-w-0 border-0 py-1 px-2 text-[11px]"
-                      aria-label={`Générer un pitch pour ${account.name}`}
-                      rightIcon={
-                        <Image
-                          src={cockpitActionIcons.pitch}
-                          alt=""
-                          width={14}
-                          height={14}
-                          className="object-contain"
-                        />
-                      }
-                    />
                   </td>
                 </tr>
               )

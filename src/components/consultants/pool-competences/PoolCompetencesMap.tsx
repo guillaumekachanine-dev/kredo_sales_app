@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import {
   startTransition,
   useEffect,
@@ -51,10 +52,7 @@ type PracticeCategoryKey = "offers" | "skills" | "profiles" | "talent" | "market
 type PracticeCategoryNode = {
   key: PracticeCategoryKey
   label: string
-  eyebrow: string
-  description: string
-  countLabel: string
-  glyph: string
+  iconSrc: string
 }
 
 type SceneLayout = {
@@ -97,6 +95,34 @@ type MarketSignalPalette = {
   ink: string
   soft: string
 }
+
+const practiceCategoryNodes: PracticeCategoryNode[] = [
+  {
+    key: "offers",
+    label: "Offres",
+    iconSrc: "/icons_set/equipe/equipe_offres.png",
+  },
+  {
+    key: "skills",
+    label: "Compétences",
+    iconSrc: "/icons_set/equipe/equipe_competences.png",
+  },
+  {
+    key: "profiles",
+    label: "Métiers",
+    iconSrc: "/icons_set/equipe/equipe_metiers.png",
+  },
+  {
+    key: "talent",
+    label: "Vivier",
+    iconSrc: "/icons_set/equipe/equipe_vivier_consultants.png",
+  },
+  {
+    key: "market",
+    label: "Marché",
+    iconSrc: "/icons_set/equipe/equipe_marche.png",
+  },
+]
 
 const marketSignalPositions = [
   [74, 116],
@@ -249,18 +275,7 @@ export function PoolCompetencesMap({
       left.name.localeCompare(right.name)
   )
 
-  const categoryNodes = useMemo(
-    () =>
-      selectedPractice
-        ? getPracticeCategoryNodes({
-            collaboratorCount: attachedCollaborators.length,
-            demandCount: selectedDemandCount,
-            practice: selectedPractice,
-            skillCount: totalSelectedSkills,
-          })
-        : [],
-    [attachedCollaborators.length, selectedDemandCount, selectedPractice, totalSelectedSkills]
-  )
+  const categoryNodes = practiceCategoryNodes
 
   const metrics: MetricItem[] = [
     {
@@ -633,9 +648,9 @@ function CategoryNodeCard({
       onFocus={() => onHoverCategory(category.key)}
       onBlur={() => onHoverCategory(null)}
       className={cn(
-        "group min-h-32 w-full rounded-[18px] border px-4 py-4 text-left transition-[border-color,background-color,opacity,transform] duration-500 ease-out motion-reduce:duration-150 sm:min-h-36 sm:basis-[calc(50%-0.5rem)] lg:basis-[calc(20%-0.6rem)] focus:outline-none focus:ring-2 focus:ring-primary/35",
+        "group flex min-h-[68px] w-full items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition-[border-color,background-color,opacity,transform] duration-500 ease-out motion-reduce:duration-150 sm:basis-[calc(50%-0.5rem)] lg:basis-[calc(20%-0.6rem)] focus:outline-none focus:ring-2 focus:ring-primary/35",
         active
-          ? cn("order-first max-w-[560px] basis-full bg-surface shadow-sm lg:basis-full", tone.border)
+          ? cn("order-first max-w-[360px] basis-full bg-surface shadow-sm lg:basis-full", tone.border)
           : "border-border bg-surface/84 hover:border-heading/10 hover:bg-surface",
         dimmed && "opacity-45 hover:opacity-80"
       )}
@@ -647,36 +662,18 @@ function CategoryNodeCard({
             }
       }
     >
-      <span className="flex items-start justify-between gap-3">
-        <span className="flex min-w-0 items-start gap-3">
-          <span
-            className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[11px] font-black",
-              active ? tone.fill : "bg-canvas text-muted"
-            )}
-          >
-            {category.glyph}
-          </span>
-          <span className="min-w-0">
-            <span className={cn("block text-[10px] font-bold uppercase tracking-[0.16em]", active ? tone.text : "text-muted")}>
-              {category.eyebrow}
-            </span>
-            <span className="mt-1 block text-sm font-bold leading-5 text-heading">
-              {category.label}
-            </span>
-          </span>
-        </span>
-        <span
-          className={cn(
-            "rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]",
-            active ? tone.fill : "bg-canvas text-muted"
-          )}
-        >
-          {category.countLabel}
-        </span>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center">
+        <Image
+          src={category.iconSrc}
+          alt=""
+          aria-hidden
+          width={40}
+          height={40}
+          className="h-9 w-9 object-contain"
+        />
       </span>
-      <span className="mt-3 block text-xs leading-5 text-body">
-        {category.description}
+      <span className="min-w-0 truncate text-sm font-bold leading-5 text-heading">
+        {category.label}
       </span>
     </button>
   )
@@ -1454,61 +1451,6 @@ function StatusPill({ label, tone }: { label: string; tone: PracticeTerritory["t
       {label}
     </span>
   )
-}
-
-function getPracticeCategoryNodes({
-  collaboratorCount,
-  demandCount,
-  practice,
-  skillCount,
-}: {
-  collaboratorCount: number
-  demandCount: number
-  practice: PracticeTerritory
-  skillCount: number
-}): PracticeCategoryNode[] {
-  return [
-    {
-      key: "offers",
-      label: "Catalogue d'offres",
-      eyebrow: "Offres",
-      description: "Offres rattachees a la practice selectionnee.",
-      countLabel: `${practice.offers.length}`,
-      glyph: "OF",
-    },
-    {
-      key: "skills",
-      label: "Competences",
-      eyebrow: "Skills",
-      description: "Competences, technos et hard skills avec bulles d'information.",
-      countLabel: `${skillCount}`,
-      glyph: "SK",
-    },
-    {
-      key: "profiles",
-      label: "Metiers",
-      eyebrow: "Profils",
-      description: "Profils reperes et stacks metiers existants.",
-      countLabel: `${practice.profiles.length}`,
-      glyph: "MT",
-    },
-    {
-      key: "talent",
-      label: "Vivier",
-      eyebrow: "Pool",
-      description: "Collaborateurs rattaches a la practice active.",
-      countLabel: `${collaboratorCount}`,
-      glyph: "VI",
-    },
-    {
-      key: "market",
-      label: "Marche",
-      eyebrow: "Signaux",
-      description: "Signaux competences issus de la couverture et de la demande.",
-      countLabel: `${demandCount}`,
-      glyph: "MR",
-    },
-  ]
 }
 
 function formatDate(value: string | null): string {

@@ -12,11 +12,14 @@ export type AccountRow = {
   id: string
   name: string
   sector: string
+  sectorAttachment: string | null
   segment: string
   revenue: string
   location: string
   priority: string
   status: string
+  analysisStep: string | null
+  hasDedicatedWatch: boolean
   score: number | null
   website: string | null
   contactCount: number
@@ -79,6 +82,7 @@ type SupabaseError = { message: string }
 type QueryResult<T> = { data: T[] | null; error: SupabaseError | null; count: number | null }
 
 type ReadQuery<T> = PromiseLike<QueryResult<T>> & {
+  eq(column: string, value: string | number | boolean): ReadQuery<T>
   order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): ReadQuery<T>
   limit(count: number): ReadQuery<T>
   not(column: string, operator: string, value: string): ReadQuery<T>
@@ -115,6 +119,46 @@ type AccountViewRow = {
   nb_contacts: number | null
   nb_with_email: number | null
   has_study: boolean | null
+}
+
+type SectorRelation = {
+  name: string | null
+}
+
+type CompanySectorAttachmentRow = {
+  id: string
+  sector_intelligence: SectorRelation | SectorRelation[] | null
+}
+
+type AccountWatchSettingsRow = {
+  company_id: string | null
+  is_enabled: boolean | null
+}
+
+type AccountIntelligenceSummaryRow = {
+  company_id: string
+  has_client_analysis: boolean | null
+  has_sector_analysis: boolean | null
+  has_process_diagnostic: boolean | null
+  has_roadmap: boolean | null
+  has_legacy_analysis: boolean | null
+  has_legacy_sector: boolean | null
+}
+
+type AccountIssueListRow = {
+  company_id: string | null
+}
+
+type CommercialStrategyResultRow = {
+  company_id: string | null
+}
+
+type AccountAnalysisMeta = {
+  sectorAttachmentName: string | null
+  hasDedicatedWatch: boolean
+  summary: AccountIntelligenceSummaryRow | null
+  hasAccountIssues: boolean
+  hasCommercialStrategy: boolean
 }
 
 type TaskQueryRow = {
@@ -175,7 +219,23 @@ function cleanText(value: string | null | undefined, fallback = "Non renseigné"
   return value && value.trim().length > 0 ? value.trim() : fallback
 }
 
-function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number): AccountRow {
+function logOptionalEnrichmentError(source: string, error: SupabaseError | null) {
+  if (error) {
+    console.error(`[accounts-contacts] optional enrichment "${source}" failed:`, error.message)
+  }
+}
+
+function getLatestAnalysisStep(meta: AccountAnalysisMeta): string | null {
+  const summary = meta.summary
+  if (summary?.has_roadmap) return "Roadmap commerciale"
+  if (meta.hasCommercialStrategy) return "Stratégie commerciale"
+  if (meta.hasAccountIssues || summary?.has_process_diagnostic) return "Cartographie des enjeux"
+  if (summary?.has_sector_analysis || summary?.has_legacy_sector || meta.sectorAttachmentName) return "Intelligence sectorielle"
+  if (summary?.has_client_analysis || summary?.has_legacy_analysis) return "Connaissance compte"
+  return null
+}
+
+function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number, meta: AccountAnalysisMeta): AccountRow {
   const importedContacts = Number(row.nb_contacts ?? 0) || 0
   const importedEmails  = Number(row.nb_with_email ?? 0) || 0
 
@@ -183,11 +243,14 @@ function buildAccount(row: AccountViewRow, contactCount: number, taskCount: numb
     id: row.id,
     name: row.name,
     sector: cleanText(row.sector),
+    sectorAttachment: meta.sectorAttachmentName,
     segment: cleanText(row.segment, "Segment non renseigné"),
     revenue: cleanText(row.revenue),
     location: cleanText(row.hq_location),
     priority: row.priority,
     status: row.lifecycle_status,
+    analysisStep: getLatestAnalysisStep(meta),
+    hasDedicatedWatch: meta.hasDedicatedWatch,
     score: toNumber(row.legacy_folio_score),
     website: row.website,
     contactCount: Math.max(contactCount, importedContacts),
@@ -258,7 +321,16 @@ function buildSectorRows(accounts: AccountRow[]) {
 export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
-  const [accountsResult, contactsResult, tasksResult] = await Promise.all([
+  const [
+    accountsResult,
+    contactsResult,
+    tasksResult,
+    sectorAttachmentsResult,
+    watchSettingsResult,
+    intelligenceSummaryResult,
+    accountIssuesResult,
+    commercialStrategyResult,
+  ] = await Promise.all([
     supabase
       .from<AccountViewRow>("v_crm_account_list")
       .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study")
@@ -274,14 +346,48 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .from<TaskQueryRow>("tasks")
       .select("id,entity_id,entity_type")
       .limit(2000),
+    supabase
+      .from<CompanySectorAttachmentRow>("companies")
+      .select("id,sector_intelligence(name)")
+      .limit(300),
+    supabase
+      .from<AccountWatchSettingsRow>("account_watch_settings")
+      .select("company_id,is_enabled")
+      .eq("is_enabled", true)
+      .limit(300),
+    supabase
+      .from<AccountIntelligenceSummaryRow>("v_ai_intelligence_summary")
+      .select("company_id,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector")
+      .limit(300),
+    supabase
+      .from<AccountIssueListRow>("account_issues")
+      .select("company_id")
+      .eq("status", "open")
+      .limit(1000),
+    supabase
+      .from<CommercialStrategyResultRow>("ai_intelligence_results")
+      .select("company_id")
+      .eq("status", "succeeded")
+      .eq("result_type", "commercial_strategy")
+      .limit(1000),
   ])
 
   if (accountsResult.error) throw new Error(accountsResult.error.message)
   if (contactsResult.error) throw new Error(contactsResult.error.message)
+  logOptionalEnrichmentError("sector attachments", sectorAttachmentsResult.error)
+  logOptionalEnrichmentError("account watch settings", watchSettingsResult.error)
+  logOptionalEnrichmentError("intelligence summary", intelligenceSummaryResult.error)
+  logOptionalEnrichmentError("account issues", accountIssuesResult.error)
+  logOptionalEnrichmentError("commercial strategy", commercialStrategyResult.error)
 
   const rawAccounts = accountsResult.data ?? []
   const rawContacts = contactsResult.data ?? []
   const rawTasks    = tasksResult.data ?? []
+  const rawSectorAttachments = sectorAttachmentsResult.error ? [] : (sectorAttachmentsResult.data ?? [])
+  const rawWatchSettings = watchSettingsResult.error ? [] : (watchSettingsResult.data ?? [])
+  const rawIntelligenceSummaries = intelligenceSummaryResult.error ? [] : (intelligenceSummaryResult.data ?? [])
+  const rawAccountIssues = accountIssuesResult.error ? [] : (accountIssuesResult.data ?? [])
+  const rawCommercialStrategies = commercialStrategyResult.error ? [] : (commercialStrategyResult.data ?? [])
 
   // Comptage contacts par entreprise (depuis les contacts chargés)
   const contactCounts = new Map<string, number>()
@@ -299,6 +405,38 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     }
   }
 
+  const sectorAttachmentByCompanyId = new Map<string, string>()
+  for (const row of rawSectorAttachments) {
+    const sector = firstRelation(row.sector_intelligence)
+    const name = sector?.name?.trim()
+    if (name) {
+      sectorAttachmentByCompanyId.set(row.id, name)
+    }
+  }
+
+  const dedicatedWatchCompanyIds = new Set(
+    rawWatchSettings
+      .filter((row) => row.is_enabled === true && row.company_id)
+      .map((row) => row.company_id as string),
+  )
+
+  const intelligenceSummaryByCompanyId = new Map<string, AccountIntelligenceSummaryRow>()
+  for (const summary of rawIntelligenceSummaries) {
+    intelligenceSummaryByCompanyId.set(summary.company_id, summary)
+  }
+
+  const accountIssueCompanyIds = new Set(
+    rawAccountIssues
+      .map((row) => row.company_id)
+      .filter((companyId): companyId is string => Boolean(companyId)),
+  )
+
+  const commercialStrategyCompanyIds = new Set(
+    rawCommercialStrategies
+      .map((row) => row.company_id)
+      .filter((companyId): companyId is string => Boolean(companyId)),
+  )
+
   // Map companyId → infos légères pour la construction des contacts
   const companyById = new Map<string, CompanyMapValue>()
   for (const row of rawAccounts) {
@@ -311,7 +449,13 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   }
 
   const accounts = rawAccounts
-    .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0))
+    .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0, {
+      sectorAttachmentName: sectorAttachmentByCompanyId.get(row.id) ?? null,
+      hasDedicatedWatch: dedicatedWatchCompanyIds.has(row.id),
+      summary: intelligenceSummaryByCompanyId.get(row.id) ?? null,
+      hasAccountIssues: accountIssueCompanyIds.has(row.id),
+      hasCommercialStrategy: commercialStrategyCompanyIds.has(row.id),
+    }))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
 
   const contacts = rawContacts
