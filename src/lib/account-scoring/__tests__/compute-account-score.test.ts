@@ -92,9 +92,9 @@ describe("computeAccountScore", () => {
     expect(result.components.find((c) => c.componentKey === "C6_active_value")).toBeUndefined()
   })
 
-  it("includes C6 (valeur active) only for client_actif with active missions", () => {
+  it("includes C6 (valeur active) only for client with active missions", () => {
     const context = makeContext({
-      company: { ...makeContext().company, lifecycleStatus: "client_actif" },
+      company: { ...makeContext().company, lifecycleStatus: "client" },
       missions: { activeCount: 2, avgGrossMarginPct: 30 },
     })
 
@@ -105,9 +105,9 @@ describe("computeAccountScore", () => {
     expect(c6!.lifecycleMultiplier).toBe(1.0)
   })
 
-  it("omits C6 for a client_actif with zero active missions (data inconsistency guard)", () => {
+  it("omits C6 for a client with zero active missions (data inconsistency guard)", () => {
     const context = makeContext({
-      company: { ...makeContext().company, lifecycleStatus: "client_actif" },
+      company: { ...makeContext().company, lifecycleStatus: "client" },
       missions: { activeCount: 0, avgGrossMarginPct: null },
     })
 

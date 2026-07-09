@@ -2,7 +2,7 @@
 
 import React, { useEffect, useEffectEvent, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
-import { AGENDA_CATEGORIES, AGENDA_EVENT_TYPES, type AgendaCategoryId } from "@/lib/agenda/agenda-config"
+import { AGENDA_CATEGORIES, type AgendaCategoryId } from "@/lib/agenda/agenda-config"
 
 interface AgendaEventTypePickerProps {
   open: boolean
@@ -184,12 +184,6 @@ export function AgendaEventTypePicker({
               <h2 className="text-sm font-bold font-heading text-heading">
                 {step === "category" ? "Choisir la nature de l'événement" : currentCategory?.label}
               </h2>
-              {step === "category" && (
-                <p className="text-[11px] text-muted mt-0.5">Sélectionnez d&apos;abord la famille d&apos;activité</p>
-              )}
-              {step === "type" && currentCategory && (
-                <p className="text-[11px] text-muted mt-0.5">{currentCategory.subtitle}</p>
-              )}
             </div>
           </div>
           <button
@@ -342,19 +336,6 @@ export function AgendaEventTypePicker({
           </div>
         )}
 
-        {/* Footer hint */}
-        <div className="border-t border-border/40 px-5 py-3 flex items-center justify-between">
-          <p className="text-[10px] text-muted">
-            {step === "category"
-              ? "3 familles · 16 types d'événements"
-              : `${currentCategory?.types.length} types disponibles dans cette catégorie`}
-          </p>
-          {step === "type" && value && AGENDA_EVENT_TYPES[value] && (
-            <span className="text-[10px] font-semibold text-muted">
-              Sélectionné : <span className="text-heading">{AGENDA_EVENT_TYPES[value].label}</span>
-            </span>
-          )}
-        </div>
       </div>
     </dialog>
   )

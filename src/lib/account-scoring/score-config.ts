@@ -9,7 +9,7 @@ export const BASE_WEIGHTS: Record<ScoreComponentKey, number> = {
   C3_signals: 20,
   C4_relational: 15,
   C5_momentum: 20,
-  // Bonus additif, uniquement calculé pour les clients actifs (cf. compute-account-score.ts).
+  // Bonus additif, uniquement calculé pour les clients (cf. compute-account-score.ts).
   C6_active_value: 15,
 }
 
@@ -42,7 +42,7 @@ export const LIFECYCLE_MULTIPLIERS: Record<LifecycleBucket, Record<ScoreComponen
 }
 
 export function getLifecycleBucket(lifecycleStatus: string): LifecycleBucket {
-  if (lifecycleStatus === "client_actif") return "active"
+  if (lifecycleStatus === "client" || lifecycleStatus === "client_actif") return "active"
   if (lifecycleStatus === "client_dormant" || lifecycleStatus === "ancien_client") return "dormant"
   return "prospect"
 }

@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import type { Json } from "@/types/database"
 import type {
   AgendaEvent,
+  AgendaContextOption,
   AgendaEventFormInput,
   AgendaSelectCandidate,
   AgendaSelectContact,
@@ -54,6 +56,7 @@ type AgendaEventRow = {
   contacts: AgendaContactRelationRow | null
   opportunities: AgendaOpportunityRelationRow | null
   candidates: AgendaCandidateRelationRow | null
+  metadata: Json | null
 }
 
 type ContactSelectRow = {
@@ -91,6 +94,7 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
       contact_id,
       opportunity_id,
       candidate_id,
+      metadata,
       companies ( id, name ),
       contacts (
         id,
@@ -167,6 +171,7 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
         ? { id: e.candidates.id, full_name: candidatePerson?.full_name || "" }
         : null,
       preparatory_task: tasksMap.get(e.id) || null,
+      metadata: e.metadata || null,
     } satisfies AgendaEvent
   })
 }
@@ -192,6 +197,7 @@ export async function createAgendaEvent(input: AgendaEventFormInput) {
     p_task_title:     input.task_title || undefined,
     p_task_due_date:  input.task_due_date || undefined,
     p_task_priority:  input.task_priority || "normal",
+    p_metadata:       input.metadata || undefined,
   })
 
   if (error) {
@@ -224,6 +230,7 @@ export async function updateAgendaEvent(input: AgendaEventFormInput) {
       contact_id:     input.contact_id || null,
       opportunity_id: input.opportunity_id || null,
       candidate_id:   input.candidate_id || null,
+      metadata:       input.metadata || {},
     })
     .eq("id", input.id)
 
@@ -337,6 +344,127 @@ export async function getOpportunitiesForSelect() {
     return []
   }
   return (data || []) as AgendaSelectOpportunity[]
+}
+
+export async function getAgendaContextOptions(
+  kind: string,
+  companyId?: string | null,
+): Promise<AgendaContextOption[]> {
+  const supabase = await createClient()
+
+  if (kind === "opportunity") {
+    let query = supabase
+      .from("opportunities")
+      .select("id, title")
+      .order("title", { ascending: true })
+      .limit(50)
+
+    if (companyId) query = query.eq("company_id", companyId)
+
+    const { data, error } = await query
+    if (error) {
+      console.error("getAgendaContextOptions opportunities error:", error)
+      return []
+    }
+
+    return (data || []).map((row: { id: string; title: string }) => ({
+      id: row.id,
+      label: row.title,
+    }))
+  }
+
+  if (kind === "signal") {
+    if (!companyId) return []
+
+    const { data, error } = await supabase
+      .from("account_signals")
+      .select("id, title, signal_category")
+      .eq("company_id", companyId)
+      .order("detected_at", { ascending: false })
+      .limit(50)
+
+    if (error) {
+      console.error("getAgendaContextOptions signals error:", error)
+      return []
+    }
+
+    return (data || []).map((row: { id: string; title: string; signal_category: string | null }) => ({
+      id: row.id,
+      label: row.title,
+      description: row.signal_category,
+    }))
+  }
+
+  if (kind === "contract") {
+    let query = supabase
+      .from("missions")
+      .select("id, title, status")
+      .order("updated_at", { ascending: false })
+      .limit(50)
+
+    if (companyId) query = query.eq("company_id", companyId)
+
+    const { data, error } = await query
+    if (error) {
+      console.error("getAgendaContextOptions contracts error:", error)
+      return []
+    }
+
+    return (data || []).map((row: { id: string; title: string; status: string | null }) => ({
+      id: row.id,
+      label: row.title,
+      description: row.status,
+    }))
+  }
+
+  if (kind === "mail" || kind === "campaign") {
+    let query = supabase
+      .from("intelligence_documents")
+      .select("id, title, status")
+      .eq("document_type", kind === "mail" ? "communication" : "campaign")
+      .order("updated_at", { ascending: false })
+      .limit(50)
+
+    if (companyId) {
+      query = query
+        .eq("primary_entity_type", "company")
+        .eq("primary_entity_id", companyId)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error("getAgendaContextOptions documents error:", error)
+      return []
+    }
+
+    return (data || []).map((row: { id: string; title: string; status: string | null }) => ({
+      id: row.id,
+      label: row.title,
+      description: row.status,
+    }))
+  }
+
+  if (kind === "offer") {
+    const { data, error } = await supabase
+      .from("offers")
+      .select("id, name, short_description")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .limit(50)
+
+    if (error) {
+      console.error("getAgendaContextOptions offers error:", error)
+      return []
+    }
+
+    return (data || []).map((row: { id: string; name: string; short_description: string | null }) => ({
+      id: row.id,
+      label: row.name,
+      description: row.short_description,
+    }))
+  }
+
+  return []
 }
 
 export async function getCandidatesForSelect() {

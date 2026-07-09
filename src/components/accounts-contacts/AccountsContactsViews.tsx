@@ -67,16 +67,56 @@ const SIZE_OPTIONS = [
   { value: "+5k", label: "+5k" },
 ]
 
+const COMPANY_CATEGORY_OPTIONS = [
+  { value: "CAC40", label: "CAC40" },
+  { value: "ETI", label: "ETI" },
+  { value: "PME", label: "PME" },
+  { value: "TPE", label: "TPE" },
+  { value: "etablissement_public", label: "Établissement public" },
+]
+
+const DEFAULT_SECTOR_OPTIONS = [
+  "Aéronautique & Défense",
+  "Assurance",
+  "Banque & Services financiers",
+  "BTP, Construction & Immobilier",
+  "Énergie & Utilities",
+  "EHPAD & Résidences Seniors",
+  "Industrie & Manufacturing",
+  "Luxe, Beauté & Cosmétique",
+  "Parfumerie & Arômes",
+  "Retail & Distribution",
+  "Santé & Pharmaceutique",
+  "Services numériques & Conseil",
+  "Télécoms & Médias",
+  "Transport & Mobilité régionale",
+]
+
 const LIFECYCLE_OPTIONS = [
-  { value: "cible", label: "Cible" },
   { value: "prospect", label: "Prospect" },
-  { value: "client_actif", label: "Client actif" },
-  { value: "client_dormant", label: "Client dormant" },
+  { value: "client", label: "Client" },
   { value: "ancien_client", label: "Ancien client" },
   { value: "partenaire", label: "Partenaire" },
-  { value: "non_prioritaire", label: "Non prioritaire" },
-  { value: "exclu", label: "Exclu" },
 ]
+
+const COMPANY_MODAL_ACCENT = "#348A98"
+const CONTACT_MODAL_ACCENT = "#2554B8"
+
+function normalizeLifecycleStatus(value: string | undefined) {
+  switch (value) {
+    case "client":
+    case "client_actif":
+    case "client_dormant":
+      return "client"
+    case "ancien_client":
+      return "ancien_client"
+    case "partenaire":
+      return "partenaire"
+    case "prospect":
+    default:
+      return "prospect"
+  }
+}
 
 const PRIORITY_OPTIONS = [
   { value: "haute", label: "Haute" },
@@ -243,12 +283,14 @@ function ContactCompanyCombobox({
 
 function CompanyFormModal({
   initial,
+  sectorOptions,
   createKind,
   onCreateKindChange,
   onClose,
   onSuccess,
 }: {
   initial?: AccountRow
+  sectorOptions: string[]
   createKind?: CreateEntityKind
   onCreateKindChange?: (kind: CreateEntityKind) => void
   onClose: () => void
@@ -257,11 +299,14 @@ function CompanyFormModal({
   const [form, setForm] = useState<CompanyFormData>({
     name: initial?.name ?? "",
     sector: initial?.sector === "Non renseigné" ? "" : (initial?.sector ?? ""),
+    segment: initial?.segment === "Segment non renseigné" ? "" : (initial?.segment ?? ""),
     hq_location: initial?.location === "Non renseigné" ? "" : (initial?.location ?? ""),
+    revenue: initial?.revenue === "Non renseigné" ? "" : (initial?.revenue ?? ""),
+    employee_count: initial?.employeeCount !== null && initial?.employeeCount !== undefined ? String(initial.employeeCount) : "",
     priority: initial?.priority ?? "normale",
-    lifecycle_status: initial?.status ?? "cible",
+    lifecycle_status: normalizeLifecycleStatus(initial?.status),
     website: initial?.website ?? "",
-    description: "",
+    description: initial?.description ?? "",
   })
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -285,33 +330,56 @@ function CompanyFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden border border-border animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
+      <SurfaceCard className="relative flex w-full max-w-2xl flex-col overflow-hidden border border-border animate-in zoom-in-95 duration-200">
+        <div
+          className="flex items-center justify-between border-b border-white/20 px-5 py-3.5 text-white"
+          style={{ backgroundColor: COMPANY_MODAL_ACCENT }}
+        >
           {initial || !createKind || !onCreateKindChange ? (
-            <h2 className="text-base font-bold text-heading font-heading">
+            <h2 className="text-base font-bold text-white font-heading">
               {initial ? "Modifier le compte" : "Nouveau compte"}
             </h2>
           ) : (
             <NewEntityTitle kind={createKind} onKindChange={onCreateKindChange} />
           )}
-          <button onClick={onClose} className="rounded p-1 hover:bg-canvas/80 text-muted hover:text-heading transition-colors">
+          <button onClick={onClose} className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-6 py-5 overflow-y-auto max-h-[70vh]">
+        <form onSubmit={handleSubmit} className="flex max-h-[72vh] flex-col gap-3.5 overflow-y-auto px-5 py-4">
           <Field label="Nom *">
             <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="BNP Paribas" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Secteur">
-              <input className={inputCls} value={form.sector} onChange={(e) => set("sector", e.target.value)} placeholder="Finance" />
-            </Field>
-            <Field label="Localisation">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Siège social">
               <input className={inputCls} value={form.hq_location} onChange={(e) => set("hq_location", e.target.value)} placeholder="Paris" />
             </Field>
+            <Field label="Site web">
+              <input className={inputCls} value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://bnpparibas.com" />
+            </Field>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Chiffre d'affaires">
+              <input className={inputCls} value={form.revenue} onChange={(e) => set("revenue", e.target.value)} placeholder="100-300M€" />
+            </Field>
+            <Field label="Effectifs">
+              <input className={inputCls} inputMode="numeric" value={form.employee_count} onChange={(e) => set("employee_count", e.target.value)} placeholder="250" />
+            </Field>
+            <Field label="Catégorie">
+              <Select className={selectCls} value={form.segment} onChange={(e) => set("segment", e.target.value)}>
+                <option value="">Non renseigné</option>
+                {COMPANY_CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </Select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Secteur d'activité">
+              <Select className={selectCls} value={form.sector} onChange={(e) => set("sector", e.target.value)}>
+                <option value="">Non renseigné</option>
+                {sectorOptions.map((sector) => <option key={sector} value={sector}>{sector}</option>)}
+              </Select>
+            </Field>
             <Field label="Priorité">
               <Select className={selectCls} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
                 {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -323,18 +391,20 @@ function CompanyFormModal({
               </Select>
             </Field>
           </div>
-          <Field label="Site web">
-            <input className={inputCls} value={form.website} onChange={(e) => set("website", e.target.value)} placeholder="https://bnpparibas.com" />
-          </Field>
-          <Field label="Description">
-            <textarea className={cn(inputCls, "resize-none")} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Notes sur ce compte…" />
+          <Field label="Métier">
+            <textarea className={cn(inputCls, "resize-none")} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Décrire le métier, les offres ou le contexte du compte…" />
           </Field>
           {error && <p className="text-xs text-red-500">{error}</p>}
         </form>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 px-6 py-3 bg-canvas/30">
+        <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-canvas/30 px-5 py-3">
           <button onClick={onClose} className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">Annuler</button>
-          <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <button
+            onClick={handleSubmit as unknown as React.MouseEventHandler}
+            disabled={pending}
+            className="rounded px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:opacity-50"
+            style={{ backgroundColor: COMPANY_MODAL_ACCENT }}
+          >
             {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le compte"}
           </button>
         </div>
@@ -436,15 +506,18 @@ function ContactFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <SurfaceCard className="relative w-full max-w-lg flex flex-col overflow-hidden border border-border animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-border/60 px-6 py-4 bg-canvas/30">
+        <div
+          className="flex items-center justify-between border-b border-white/20 px-6 py-4 text-white"
+          style={{ backgroundColor: CONTACT_MODAL_ACCENT }}
+        >
           {initial || !createKind || !onCreateKindChange ? (
-            <h2 className="text-base font-bold text-heading font-heading">
+            <h2 className="text-base font-bold text-white font-heading">
               {initial ? "Modifier le contact" : "Nouveau contact"}
             </h2>
           ) : (
             <NewEntityTitle kind={createKind} onKindChange={onCreateKindChange} />
           )}
-          <button onClick={onClose} className="rounded p-1 hover:bg-canvas/80 text-muted hover:text-heading transition-colors">
+          <button onClick={onClose} className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -625,7 +698,12 @@ function ContactFormModal({
               Annuler
             </button>
           )}
-          <button onClick={handleSubmit as unknown as React.MouseEventHandler} disabled={pending || deletePending} className="rounded bg-primary px-4 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          <button
+            onClick={handleSubmit as unknown as React.MouseEventHandler}
+            disabled={pending || deletePending}
+            className="rounded px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:opacity-50"
+            style={{ backgroundColor: CONTACT_MODAL_ACCENT }}
+          >
             {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le contact"}
           </button>
         </div>
@@ -874,12 +952,27 @@ function AccountsDesktop({
                               <button
                                 type="button"
                                 onClick={() => onOpenIntelligence(account)}
-                                className="inline-flex size-7 items-center justify-center rounded text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer kredo-cockpit-button shadow-sm"
+                                className="inline-flex size-8 items-center justify-center rounded-full text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer kredo-cockpit-button shadow-sm"
                                 aria-label={`Ouvrir le cockpit client de ${account.name}`}
                                 title="Cockpit client"
                               >
-                                <svg className="size-3.5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                                <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24">
+                                  <defs>
+                                    <linearGradient id={`cockpit-grad-${account.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                      <stop offset="0%" stopColor="#5b57f5" />
+                                      <stop offset="25%" stopColor="#ff004d" />
+                                      <stop offset="50%" stopColor="#ff7a00" />
+                                      <stop offset="75%" stopColor="#33d17a" />
+                                      <stop offset="100%" stopColor="#00c2ff" />
+                                    </linearGradient>
+                                  </defs>
+                                  <path
+                                    stroke={`url(#cockpit-grad-${account.id})`}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
+                                  />
                                 </svg>
                               </button>
                             ) : (
@@ -900,7 +993,7 @@ function AccountsDesktop({
                                     <div
                                       key={contact.id}
                                       onClick={() => onOpenContactIdentity(contact.id)}
-                                      className="grid grid-cols-[18px_180px_100px_1fr_150px] gap-6 items-center py-1.5 px-3 rounded hover:bg-canvas/30 transition-colors cursor-pointer text-left w-full"
+                                      className="grid grid-cols-[18px_180px_220px_150px_100px_1fr] gap-6 items-center py-1.5 px-3 rounded hover:bg-canvas/30 transition-colors cursor-pointer text-left w-full"
                                     >
                                       {/* Col 1: Account Logo */}
                                       <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="xs" denseList />
@@ -910,7 +1003,17 @@ function AccountsDesktop({
                                         {contact.fullName}
                                       </span>
 
-                                      {/* Col 3: Bouton d'action "activité" (cobalt blue) */}
+                                      {/* Col 3: Poste */}
+                                      <span className="text-body truncate text-xs" title={contact.jobTitle}>
+                                        {contact.jobTitle || "—"}
+                                      </span>
+
+                                      {/* Col 4: Rôle décisionnel */}
+                                      <span className="text-muted text-[11px] capitalize truncate" title={contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}>
+                                        {contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}
+                                      </span>
+
+                                      {/* Col 5: Bouton d'action "activité" (cobalt blue) */}
                                       <div className="flex">
                                         <button
                                           type="button"
@@ -923,16 +1026,6 @@ function AccountsDesktop({
                                           Activité
                                         </button>
                                       </div>
-
-                                      {/* Col 4: Poste */}
-                                      <span className="text-body truncate text-xs" title={contact.jobTitle}>
-                                        {contact.jobTitle || "—"}
-                                      </span>
-
-                                      {/* Col 5: Rôle décisionnel */}
-                                      <span className="text-muted text-[11px] capitalize truncate" title={contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}>
-                                        {contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}
-                                      </span>
                                     </div>
                                   ))
                                 )}
@@ -1317,6 +1410,21 @@ export function ProspectionAccountsView({
         .map((sector) => ({ value: sector, label: sector })),
     [data.accounts]
   )
+  const companySectorOptions = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...DEFAULT_SECTOR_OPTIONS,
+          ...data.accounts
+            .map((account) => account.sectorAttachment)
+            .filter((sector): sector is string => Boolean(sector)),
+          ...data.accounts
+            .map((account) => account.sector)
+            .filter((sector) => sector.length > 0 && sector !== "Non renseigné"),
+        ]),
+      ].sort((a, b) => a.localeCompare(b, "fr")),
+    [data.accounts]
+  )
 
   const accountFilterPanelWidthCh = useMemo(() => {
     const accountFilterOptions = [
@@ -1694,6 +1802,7 @@ export function ProspectionAccountsView({
       {companyModal.open && (
         <CompanyFormModal
           initial={companyModal.editing}
+          sectorOptions={companySectorOptions}
           createKind={device === "mobile" && !companyModal.editing ? "company" : undefined}
           onCreateKindChange={device === "mobile" && !companyModal.editing ? handleCreateKindChange : undefined}
           onClose={() => {

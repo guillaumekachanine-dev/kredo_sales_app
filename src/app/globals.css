@@ -2023,7 +2023,9 @@ canvas {
 
 /* Cockpit Client button style matching ReadyActionButton colors but without pulse/bounce */
 .kredo-cockpit-button {
-  background-image: linear-gradient(135deg,
+  background-image:
+    linear-gradient(#0047AB, #0047AB),
+    linear-gradient(135deg,
       #5b57f5,
       #7c4fff,
       #b84dff,
@@ -2036,6 +2038,9 @@ canvas {
       #5b57f5,
       #b84dff,
       #5b57f5);
-  background-size: 400% 400%;
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-size: auto, 400% 400%;
+  border: 2px solid transparent !important;
   animation: kredo-ready-gradient-flow 3s linear infinite;
 }

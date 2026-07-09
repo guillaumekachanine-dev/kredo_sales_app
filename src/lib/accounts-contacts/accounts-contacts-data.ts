@@ -16,6 +16,7 @@ export type AccountRow = {
   segment: string
   revenue: string
   location: string
+  sizeBand: string | null
   priority: string
   status: string
   analysisStep: string | null
@@ -25,6 +26,7 @@ export type AccountRow = {
   contactCount: number
   emailCount: number
   summary: string
+  description: string | null
   logoPath: string | null
   taskCount: number
   employeeCount: number | null
@@ -247,6 +249,7 @@ function buildAccount(row: AccountViewRow, contactCount: number, taskCount: numb
     segment: cleanText(row.segment, "Segment non renseigné"),
     revenue: cleanText(row.revenue),
     location: cleanText(row.hq_location),
+    sizeBand: row.size_band,
     priority: row.priority,
     status: row.lifecycle_status,
     analysisStep: getLatestAnalysisStep(meta),
@@ -256,6 +259,7 @@ function buildAccount(row: AccountViewRow, contactCount: number, taskCount: numb
     contactCount: Math.max(contactCount, importedContacts),
     emailCount: importedEmails,
     summary: cleanText(row.description, "Aucune synthèse disponible."),
+    description: row.description,
     logoPath: row.logo_path,
     taskCount,
     employeeCount: row.employee_count,

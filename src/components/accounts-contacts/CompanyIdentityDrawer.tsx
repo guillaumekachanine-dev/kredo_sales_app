@@ -5,12 +5,11 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { getCompanyIdentity } from "@/app/(app)/prospection/accounts/actions"
+import { getCompanyIdentity, toggleCompanyFavorite } from "@/app/(app)/prospection/accounts/actions"
 import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
-import { RatingIndicator } from "@/components/ui/RatingIndicator"
 import { getCommunicationEntryPoint, type CommunicationEntryPoint } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 import { formatEuro, formatDate } from "@/lib/formatters"
@@ -149,86 +148,47 @@ interface CompanyAnalysisData {
 
 type TabKey = "apercu" | "intelligence" | "contacts" | "crm" | "actu"
 
-function parseHealthScore(health: string | null): number | null {
-  if (!health) return null
-  const h = health.toLowerCase().trim()
-  if (h === "" || h === "non trouvé" || h === "tbd" || h === "-") return null
-
-  // Very strong / excellent / 5
-  if (
-    h.includes("très forte croissance") ||
-    h.includes("forte croissance") ||
-    h.includes("croissance active") ||
-    h.includes("excellent") ||
-    h.includes("exceptionnel")
-  ) {
-    return 5
-  }
-
-  // Good / positive / 4
-  if (
-    h.includes("croissance durable") ||
-    h.includes("croissance soutenue") ||
-    h.includes("croissance positive") ||
-    h.includes("croissance structurée") ||
-    h.includes("dynamique positive") ||
-    h.includes("positive") ||
-    h.includes("reprise attendue") ||
-    h.includes("légère croissance") ||
-    h.includes("croissance confirmée") ||
-    h.includes("croissance internationale") ||
-    h.includes("expansion active")
-  ) {
-    return 4
-  }
-
-  // Stable / neutral / 3
-  if (
-    h.includes("stable") ||
-    h.includes("non applicable") ||
-    h.includes("entité publique") ||
-    h.includes("institution publique") ||
-    h.includes("réseau en évolution")
-  ) {
-    return 3
-  }
-
-  // Mixed / difficult / 2
-  if (
-    h.includes("mitigée") ||
-    h.includes("contrastée") ||
-    h.includes("difficile") ||
-    h.includes("sous pression") ||
-    h.includes("contraction")
-  ) {
-    return 2
-  }
-
-  // Bad / negative / 1
-  if (
-    h.includes("négative") ||
-    h.includes("déficitaire") ||
-    h.includes("difficultés financières") ||
-    h.includes("redressement") ||
-    h.includes("critique") ||
-    h.includes("faillite")
-  ) {
-    return 1
-  }
-
-  // Fallback heuristic:
-  if (h.includes("croissance")) return 4
-  if (h.includes("difficulté") || h.includes("négatif") || h.includes("baisse")) return 2
-
-  return 3
+function formatCategory(sizeBand: string | null) {
+  if (!sizeBand) return "Non renseigné"
+  const normalized = sizeBand.trim().toLowerCase()
+  if (normalized === "cac40") return "CAC40"
+  if (normalized === "eti") return "ETI"
+  if (normalized === "pme") return "PME"
+  if (normalized === "tpe") return "TPE"
+  if (normalized.includes("public")) return "Établissement public"
+  return sizeBand
 }
 
-
-function formatScore(score: number | string | null) {
-  if (score === null || score === undefined) return "—"
-  return `${score}/5`
+function formatDynamique(health: string | null, tendency?: string) {
+  const value = `${health || ""} ${tendency || ""}`.toLowerCase()
+  if (!value.trim()) return "Stagnation"
+  if (
+    value.includes("croissance") ||
+    value.includes("expansion") ||
+    value.includes("positive") ||
+    value.includes("reprise")
+  ) return "Croissance"
+  if (
+    value.includes("baisse") ||
+    value.includes("négative") ||
+    value.includes("negative") ||
+    value.includes("diffic") ||
+    value.includes("pression") ||
+    value.includes("contraction") ||
+    value.includes("critique") ||
+    value.includes("faillite")
+  ) return "Mauvaise"
+  return "Stagnation"
 }
 
+function formatRayonnement(zone?: string) {
+  if (!zone || !zone.trim()) return "Régional"
+  const normalized = zone.toLowerCase()
+  if (normalized.includes("international") || normalized.includes("monde") || normalized.includes("global")) return "International"
+  if (normalized.includes("europe") || normalized.includes(" ue") || normalized === "ue") return "UE"
+  if (normalized.includes("national") || normalized.includes("france")) return "National"
+  return "Régional"
+}
 
 function formatOpportunityMeta(opportunity: IdentityData["opportunities"][number]) {
   return [
@@ -237,13 +197,6 @@ function formatOpportunityMeta(opportunity: IdentityData["opportunities"][number
     opportunity.remote_policy ? opportunity.remote_policy.replaceAll("_", " ") : null,
     opportunity.source ? opportunity.source.replaceAll("_", " ") : null,
   ].filter(Boolean).join(" · ")
-}
-
-function formatManagerName(name: string): string {
-  if (!name) return ""
-  let clean = name.replace(/\s*\(.*?\)/g, "")
-  clean = clean.split(",")[0].split(" - ")[0].split(" :")[0]
-  return clean.trim()
 }
 
 function formatContactLineName(person: NonNullable<IdentityData["contacts"][number]["persons"]>): string {
@@ -255,13 +208,6 @@ function formatContactLineName(person: NonNullable<IdentityData["contacts"][numb
   }
 
   return person.full_name?.trim() || "Contact"
-}
-
-function formatRelationshipRoleLabel(role: string | null): string | null {
-  if (!role) return null
-  return role
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function isProposalFollowUpStage(stage: string) {
@@ -280,9 +226,10 @@ export function CompanyIdentityDrawer({
   const [activeTab, setActiveTab] = useState<TabKey>("apercu")
   const [syntheseExpanded, setSyntheseExpanded] = useState(false)
   const [transitionPending, startTransition] = useTransition()
-  const [contactFilter, setContactFilter] = useState<"all" | "decideur" | "activity" | "cible" | "other">("all")
+  const [contactFilter, setContactFilter] = useState<"all" | "decideur" | "sponsor">("all")
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
+  const [favoritePending, setFavoritePending] = useState(false)
   const prevCompanyIdRef = useRef<string | null>(null)
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
@@ -329,8 +276,32 @@ export function CompanyIdentityDrawer({
       setSyntheseExpanded(false)
       setContactFilter("all")
       setIsDocumentsModalOpen(false)
+      setFavoritePending(false)
     }
   }, [companyId, open])
+
+  const handleToggleFavorite = async () => {
+    if (!data || favoritePending) return
+    const nextPriority = data.company.priority === "haute" ? "normale" : "haute"
+    const previousPriority = data.company.priority
+
+    setFavoritePending(true)
+    setData((prev) =>
+      prev
+        ? { ...prev, company: { ...prev.company, priority: nextPriority } }
+        : prev
+    )
+
+    const result = await toggleCompanyFavorite(data.company.id, nextPriority === "haute")
+    if (result.error) {
+      setData((prev) =>
+        prev
+          ? { ...prev, company: { ...prev.company, priority: previousPriority } }
+          : prev
+      )
+    }
+    setFavoritePending(false)
+  }
 
   // Extract analysis_data from company metadata
   const metadata = data?.company?.metadata || {}
@@ -340,8 +311,6 @@ export function CompanyIdentityDrawer({
   const positionnement = analysisData.positionnement || {}
   const signaux = analysisData.signaux || {}
   const synthese = analysisData.synthese_consultant || data?.company?.description || "Aucune synthèse disponible."
-  const healthScore = data ? parseHealthScore(data.company.health) : null
-  const riskScore = healthScore
 
   const hasMaturite = !!(
     signaux.indices_maturite_digitale &&
@@ -351,39 +320,6 @@ export function CompanyIdentityDrawer({
     !signaux.indices_maturite_digitale.toLowerCase().includes("non renseignée")
   )
 
-
-  const getHealthLabel = (score: number | null) => {
-    switch (score) {
-      case 5: return "Très bonne"
-      case 4: return "Bonne"
-      case 3: return "Stable"
-      case 2: return "Fragile"
-      case 1: return "Critique"
-      default: return "Non renseignée"
-    }
-  }
-
-  const getRiskLabel = (score: number | null) => {
-    switch (score) {
-      case 5: return "Très faible"
-      case 4: return "Faible"
-      case 3: return "Modéré"
-      case 2: return "Élevé"
-      case 1: return "Très élevé"
-      default: return "Non renseigné"
-    }
-  }
-
-  const getRiskDescription = (score: number | null) => {
-    switch (score) {
-      case 5: return "Risque très faible. Situation financière saine et stable."
-      case 4: return "Risque faible. Bons indicateurs de performance."
-      case 3: return "Risque modéré. Pas de signal critique détecté."
-      case 2: return "Risque élevé. Indicateurs financiers sous pression."
-      case 1: return "Risque très élevé. Difficultés ou restructuration critiques."
-      default: return "Risque non évaluable."
-    }
-  }
 
 
 
@@ -434,7 +370,10 @@ export function CompanyIdentityDrawer({
         <div className="flex flex-col h-full gap-5">
           {/* Company identity card summary - exact styling match to Contact card with petroleum blue background & top white gradient fade */}
           <div className="relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all bg-[#257A8E] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.15)_0%,transparent_100%)] text-white border-[#257A8E]/20">
-            <div className="relative flex items-center gap-4 min-w-0 pr-11">
+            <div className={cn(
+              "relative flex items-center gap-4 min-w-0",
+              isMobileViewport ? "pr-11" : "pr-10"
+            )}>
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Logo de l'entreprise */}
                 {data.company.website ? (
@@ -463,8 +402,29 @@ export function CompanyIdentityDrawer({
                   />
                 )}
 
-                <div className="min-w-0 flex-1 pr-10">
-                  <h3 className="truncate text-base font-bold leading-tight text-white sm:text-lg">{data.company.name}</h3>
+                <div className={cn("min-w-0 flex-1", isMobileViewport ? "pr-10" : "pr-2")}>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h3 className="truncate text-base font-bold leading-tight text-white sm:text-lg">{data.company.name}</h3>
+                    {!isMobileViewport && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const event = new CustomEvent("crm-edit-company", { detail: { companyId: data.company.id } })
+                          window.dispatchEvent(event)
+                          if (window.location.pathname !== "/prospection/accounts") {
+                            window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
+                          }
+                        }}
+                        className="-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white"
+                        title="Modifier les informations du compte"
+                        aria-label="Modifier les informations du compte"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   {(data.company.sector || data.company.segment) && (
                     <span className="mt-0.5 block truncate text-[11px] font-medium leading-tight text-white/80">
                       {[data.company.sector, data.company.segment].filter(Boolean).join(" - ")}
@@ -477,16 +437,35 @@ export function CompanyIdentityDrawer({
               </div>
 
               <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
-                  title="Fermer"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                {isMobileViewport ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChange(false)}
+                    className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
+                    title="Fermer"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleToggleFavorite}
+                    disabled={favoritePending}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-amber-300 disabled:opacity-60",
+                      data.company.priority === "haute" && "text-amber-400"
+                    )}
+                    title={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
+                    aria-label={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
+                    aria-pressed={data.company.priority === "haute"}
+                  >
+                    <svg className="h-4 w-4" fill={data.company.priority === "haute" ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -496,7 +475,10 @@ export function CompanyIdentityDrawer({
                       window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
                     }
                   }}
-                  className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
+                  className={cn(
+                    "flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20",
+                    !isMobileViewport && "hidden"
+                  )}
                   title="Modifier les informations du compte"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -551,18 +533,19 @@ export function CompanyIdentityDrawer({
 
               <button
                 type="button"
-                onClick={() => setIsDocumentsModalOpen(true)}
+                onClick={() => setActiveTab("actu")}
                 className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
                 style={{ backgroundColor: "#1E5E99" }}
+                title="Ouvrir la veille du compte"
               >
                 <Image
-                  src="/icons_set/cockpit_intelligence/dossier.png"
+                  src="/icons_set/cockpit_intelligence/AI_veille.png"
                   alt=""
                   width={16}
                   height={16}
                   className="h-4 w-4 shrink-0 object-contain"
                 />
-                <span>Consulter</span>
+                <span>Veille</span>
               </button>
 
               <Link
@@ -617,24 +600,23 @@ export function CompanyIdentityDrawer({
                 {/* Core Administrative Identity */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                    Statut & chiffres clés
+                    Catégorie & chiffres clés
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Statut */}
+                    {/* Catégorie */}
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Statut</span>
+                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Catégorie</span>
                       <span className="text-xs font-bold text-heading">
-                        {lifecycleLabel(data.company.lifecycle_status)}
+                        {formatCategory(data.company.size_band)}
                       </span>
                     </div>
-                    {/* Priorité */}
+                    {/* Effectifs */}
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Priorité</span>
-                      <span className={cn(
-                        "text-xs font-bold capitalize",
-                        data.company.priority === "haute" ? "text-warning" : "text-heading"
-                      )}>
-                        {data.company.priority}
+                      <span className="text-[9px] text-muted font-bold uppercase">Effectifs</span>
+                      <span className="text-xs font-bold text-heading">
+                        {data.company.employee_count !== null 
+                          ? data.company.employee_count
+                          : (identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
                       </span>
                     </div>
 
@@ -645,11 +627,9 @@ export function CompanyIdentityDrawer({
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Effectifs</span>
+                      <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
                       <span className="text-xs font-bold text-heading">
-                        {data.company.employee_count !== null 
-                          ? data.company.employee_count
-                          : (identite.effectif_estime || (metadata.employee_count_raw as string) || "Non renseigné")}
+                        {formatDynamique(data.company.health, signaux.tendance_croissance)}
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
@@ -659,17 +639,9 @@ export function CompanyIdentityDrawer({
                       </span>
                     </div>
                     <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                      <span className="text-[9px] text-muted font-bold uppercase">Dirigeant actuel</span>
-                      <span className="text-xs font-bold text-heading truncate" title={identite.dirigeants && identite.dirigeants.length > 0 ? identite.dirigeants.join(", ") : undefined}>
-                        {identite.dirigeants && identite.dirigeants.length > 0
-                          ? identite.dirigeants.map(formatManagerName).join(", ")
-                          : "Non renseigné"}
-                      </span>
-                    </div>
-                    <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1 col-span-2">
-                      <span className="text-[9px] text-muted font-bold uppercase">Dynamique</span>
-                      <span className="text-xs font-normal text-heading">
-                        {data.company.health || "Aucun indicateur de dynamique renseigné"}
+                      <span className="text-[9px] text-muted font-bold uppercase">Rayonnement</span>
+                      <span className="text-xs font-bold text-heading">
+                        {formatRayonnement(positionnement.zone_geographique)}
                       </span>
                     </div>
                     {hasMaturite && (
@@ -678,22 +650,6 @@ export function CompanyIdentityDrawer({
                         <span className="text-xs font-normal text-heading">
                           {signaux.indices_maturite_digitale}
                         </span>
-                      </div>
-                    )}
-                    {healthScore !== null && (
-                      <div className="grid grid-cols-2 gap-3 col-span-2">
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Santé financière</span>
-                          <div className="flex items-center mt-0.5">
-                            <RatingIndicator value={healthScore} mode="single" size="lg" showLabel={false} />
-                          </div>
-                        </div>
-                        <div className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-1">
-                          <span className="text-[9px] text-muted font-bold uppercase tracking-wider">Risque financier</span>
-                          <div className="flex items-center mt-0.5">
-                            <RatingIndicator value={riskScore} mode="single" size="lg" showLabel={false} />
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -770,10 +726,10 @@ export function CompanyIdentityDrawer({
             {activeTab === "contacts" && (() => {
               // Role hierarchy for sorting (lower index = higher priority)
               const ROLE_ORDER: Record<string, number> = {
-                dsi: 0,
+                decideur: 0,
                 sponsor: 1,
-                decideur: 2,
-                prescripteur: 3,
+                prescripteur: 2,
+                dsi: 3,
                 direction_metier: 4,
                 manager_technique: 5,
                 operationnel: 6,
@@ -805,39 +761,13 @@ export function CompanyIdentityDrawer({
               const filteredContacts = sortedContacts.filter((contact) => {
                 if (contactFilter === "all") return true
                 if (contactFilter === "decideur") return contact.relationship_role === "decideur"
-                if (contactFilter === "activity") {
-                  return !!(
-                    contact.relationship_level &&
-                    contact.relationship_level.trim() !== "" &&
-                    contact.relationship_level.toLowerCase() !== "aucun" &&
-                    contact.relationship_level.toLowerCase() !== "none"
-                  )
-                }
-                if (contactFilter === "cible") return contact.is_priority === true
-                if (contactFilter === "other") {
-                  const isDecideur = contact.relationship_role === "decideur"
-                  const hasActivity = !!(
-                    contact.relationship_level &&
-                    contact.relationship_level.trim() !== "" &&
-                    contact.relationship_level.toLowerCase() !== "aucun" &&
-                    contact.relationship_level.toLowerCase() !== "none"
-                  )
-                  const isCible = contact.is_priority === true
-                  return !isDecideur && !hasActivity && !isCible
-                }
+                if (contactFilter === "sponsor") return contact.relationship_role === "sponsor" || contact.relationship_role === "prescripteur"
                 return true
               })
 
               const countAll = sortedContacts.length
               const countDecideurs = sortedContacts.filter(c => c.relationship_role === "decideur").length
-              const countActivity = sortedContacts.filter(c => c.relationship_level && c.relationship_level.trim() !== "" && c.relationship_level.toLowerCase() !== "aucun" && c.relationship_level.toLowerCase() !== "none").length
-              const countCibles = sortedContacts.filter(c => c.is_priority === true).length
-              const countOthers = sortedContacts.filter(c => {
-                const isDec = c.relationship_role === "decideur"
-                const hasAct = !!(c.relationship_level && c.relationship_level.trim() !== "" && c.relationship_level.toLowerCase() !== "aucun" && c.relationship_level.toLowerCase() !== "none")
-                const isCib = c.is_priority === true
-                return !isDec && !hasAct && !isCib
-              }).length
+              const countSponsors = sortedContacts.filter(c => c.relationship_role === "sponsor" || c.relationship_role === "prescripteur").length
 
               return (
                 <div className="space-y-4">
@@ -876,39 +806,15 @@ export function CompanyIdentityDrawer({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setContactFilter("activity")}
+                        onClick={() => setContactFilter("sponsor")}
                         className={cn(
                           "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
-                          contactFilter === "activity"
+                          contactFilter === "sponsor"
                             ? "border-primary bg-primary/10 text-primary"
                             : "border-border bg-surface text-muted hover:text-heading"
                         )}
                       >
-                        Activité ({countActivity})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setContactFilter("cible")}
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
-                          contactFilter === "cible"
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-surface text-muted hover:text-heading"
-                        )}
-                      >
-                        Cibles ({countCibles})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setContactFilter("other")}
-                        className={cn(
-                          "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors cursor-pointer",
-                          contactFilter === "other"
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-surface text-muted hover:text-heading"
-                        )}
-                      >
-                        Autres ({countOthers})
+                        Sponsors ({countSponsors})
                       </button>
                     </div>
                   )}
@@ -927,8 +833,8 @@ export function CompanyIdentityDrawer({
                         const person = contact.persons
                         if (!person) return null
                         const lineName = formatContactLineName(person)
-                        const roleLabel = formatRelationshipRoleLabel(contact.relationship_role)
-                        const lineParts = [lineName, contact.job_title || null, roleLabel].filter(Boolean)
+                        const isDecideur = contact.relationship_role === "decideur"
+                        const lineParts = [lineName, contact.job_title || null].filter(Boolean)
 
                         return (
                           <div
@@ -939,8 +845,11 @@ export function CompanyIdentityDrawer({
                               onOpenContactIdentity ? "cursor-pointer hover:border-primary/30 hover:bg-primary/[0.04]" : ""
                             )}
                           >
+                            {isDecideur ? (
+                              <span className="h-8 w-1 rounded-full bg-[#FFB812] shrink-0" aria-hidden="true" />
+                            ) : null}
                             <Image
-                              src="/icons_set/contact_id.png"
+                              src="/icons_set/cockpit_intelligence/compte_contact.png"
                               alt=""
                               width={18}
                               height={18}
@@ -948,7 +857,7 @@ export function CompanyIdentityDrawer({
                             />
 
                             <span
-                              className="min-w-0 flex-1 truncate text-[11px] font-medium leading-none text-heading"
+                              className="min-w-0 flex-1 truncate text-[11px] font-bold leading-none text-heading"
                               title={lineParts.join(" - ")}
                             >
                               {lineParts.join(" - ")}
@@ -963,11 +872,11 @@ export function CompanyIdentityDrawer({
                                   title={person.phone}
                                 >
                                   <Image
-                                    src="/icons_set/contact_mail.png"
+                                    src="/icons_set/contact_telephone.png"
                                     alt="Téléphone"
-                                    width={16}
-                                    height={16}
-                                    className="h-4 w-4 object-contain"
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5 object-contain"
                                   />
                                 </a>
                               ) : null}
@@ -1023,7 +932,7 @@ export function CompanyIdentityDrawer({
               const hasDecideur = data.contacts.some((c) => c.relationship_role === "decideur")
               const hasSponsor = data.contacts.some((c) => c.relationship_role === "sponsor" || c.relationship_role === "prescripteur")
 
-              if (status === "client_actif") {
+              if (status === "client" || status === "client_actif") {
                 return (
                   <div className="space-y-6">
                     {/* 1. Engagements */}
@@ -1599,7 +1508,7 @@ export function CompanyIdentityDrawer({
                                   style={{
                                     height: "calc(100% - 12px)",
                                     background: idx === 0
-                                      ? "var(--color-primary)"
+                                      ? "#FF9800"
                                       : "var(--color-border)",
                                   }}
                                 />
@@ -1608,11 +1517,11 @@ export function CompanyIdentityDrawer({
                               <div
                                 className="relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[8px] font-bold"
                                 style={{
-                                  borderColor: "var(--color-primary)",
+                                  borderColor: "#FF9800",
                                   background: idx === 0
-                                    ? "var(--color-primary)"
+                                    ? "#FF9800"
                                     : "var(--color-canvas)",
-                                  color: idx === 0 ? "white" : "var(--color-primary)",
+                                  color: idx === 0 ? "white" : "#FF9800",
                                 }}
                               >
                                 {idx === 0 && "✓"}
@@ -1633,7 +1542,7 @@ export function CompanyIdentityDrawer({
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                                    className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                                     title="Accéder à la source du signal"
                                   >
                                     <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
@@ -1654,7 +1563,7 @@ export function CompanyIdentityDrawer({
                                     companyName={data.company.name}
                                     primaryEntity={{ type: "company", id: data.company.id }}
                                     label="Contacter sur ce signal"
-                                    className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                                    className="group relative overflow-hidden bg-[#FF9800] hover:bg-[#E88900] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(255,152,0,0.24)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                                     aria-label={`Contacter ${data.company.name} sur le signal ${idx + 1}`}
                                     refs={{
                                       signalRef: item,

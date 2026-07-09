@@ -25,6 +25,7 @@ const URGENCY_LABEL: Record<Urgency, string> = {
 }
 
 const LIFECYCLE_LABEL: Record<string, string> = {
+  client: "Client",
   client_actif: "Client actif", prospect: "Prospect", cible: "Cible",
   client_dormant: "Dormant", ancien_client: "Ancien client",
   partenaire: "Partenaire", non_prioritaire: "Non prio.", exclu: "Exclu",

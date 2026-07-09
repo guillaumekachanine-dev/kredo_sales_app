@@ -29,6 +29,7 @@ export interface AgendaEvent {
     priority: string
     status: string
   } | null
+  metadata?: Json | null
 }
 
 export interface AgendaSelectContact {
@@ -49,6 +50,12 @@ export interface AgendaSelectCandidate {
   status: string
 }
 
+export interface AgendaContextOption {
+  id: string
+  label: string
+  description?: string | null
+}
+
 export interface AgendaEventFormInput {
   id?: string
   title: string
@@ -64,6 +71,7 @@ export interface AgendaEventFormInput {
   task_title: string
   task_due_date: string
   task_priority: string
+  metadata?: Json
 }
 
 export type AgendaItemType =

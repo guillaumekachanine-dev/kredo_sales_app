@@ -10,11 +10,38 @@ const REVALIDATE = "/prospection/accounts"
 export type CompanyFormData = {
   name: string
   sector?: string
+  segment?: string
   hq_location?: string
+  revenue?: string
+  employee_count?: string | number
   priority?: string
   lifecycle_status?: string
   website?: string
   description?: string
+}
+
+function parseOptionalInteger(value: string | number | undefined) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  const parsed = Number.parseInt(trimmed.replace(/\s+/g, ""), 10)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeCompanyLifecycleStatus(value: string | undefined) {
+  switch (value) {
+    case "client":
+    case "client_actif":
+    case "client_dormant":
+      return "client"
+    case "ancien_client":
+      return "ancien_client"
+    case "partenaire":
+      return "partenaire"
+    case "prospect":
+    default:
+      return "prospect"
+  }
 }
 
 export async function createCompany(data: CompanyFormData) {
@@ -22,9 +49,12 @@ export async function createCompany(data: CompanyFormData) {
   const { error } = await supabase.from("companies").insert({
     name: data.name.trim(),
     sector: data.sector?.trim() || null,
+    segment: data.segment?.trim() || null,
     hq_location: data.hq_location?.trim() || null,
+    revenue: data.revenue?.trim() || null,
+    employee_count: parseOptionalInteger(data.employee_count),
     priority: data.priority || "normale",
-    lifecycle_status: data.lifecycle_status || "cible",
+    lifecycle_status: normalizeCompanyLifecycleStatus(data.lifecycle_status),
     website: data.website?.trim() || null,
     description: data.description?.trim() || null,
   })
@@ -40,13 +70,28 @@ export async function updateCompany(id: string, data: CompanyFormData) {
     .update({
       name: data.name.trim(),
       sector: data.sector?.trim() || null,
+      segment: data.segment?.trim() || null,
       hq_location: data.hq_location?.trim() || null,
+      revenue: data.revenue?.trim() || null,
+      employee_count: parseOptionalInteger(data.employee_count),
       priority: data.priority || "normale",
-      lifecycle_status: data.lifecycle_status || "cible",
+      lifecycle_status: normalizeCompanyLifecycleStatus(data.lifecycle_status),
       website: data.website?.trim() || null,
       description: data.description?.trim() || null,
     })
     .eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath(REVALIDATE)
+  return { error: null }
+}
+
+export async function toggleCompanyFavorite(id: string, isFavorite: boolean) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("companies")
+    .update({ priority: isFavorite ? "haute" : "normale" })
+    .eq("id", id)
+
   if (error) return { error: error.message }
   revalidatePath(REVALIDATE)
   return { error: null }
@@ -168,6 +213,18 @@ export async function updateContact(
 
   if (personResult.error) return { error: personResult.error.message }
   if (contactResult.error) return { error: contactResult.error.message }
+  revalidatePath(REVALIDATE)
+  return { error: null }
+}
+
+export async function toggleContactFavorite(contactId: string, isFavorite: boolean) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("contacts")
+    .update({ is_priority: isFavorite })
+    .eq("id", contactId)
+
+  if (error) return { error: error.message }
   revalidatePath(REVALIDATE)
   return { error: null }
 }

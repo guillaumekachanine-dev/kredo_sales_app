@@ -8,6 +8,7 @@ import { AgendaQuarterHourTimeField } from "./AgendaQuarterHourTimeField"
 import { AGENDA_EVENT_TYPES, COMMERCE_TYPES, MANAGEMENT_TYPES, RECRUTEMENT_TYPES } from "@/lib/agenda/agenda-config"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
 import type {
+  AgendaContextOption,
   AgendaEvent,
   AgendaEventFormInput,
   AgendaSelectCandidate,
@@ -19,6 +20,7 @@ import {
   updateAgendaEvent,
   deleteAgendaEvent,
   getContactsByCompany,
+  getAgendaContextOptions,
   getOpportunitiesForSelect,
   getCandidatesForSelect,
 } from "@/lib/agenda/agenda-actions"
@@ -42,9 +44,13 @@ export interface AgendaEventDrawerInitialValues {
   description?: string
   company?: AccountValue | null
   contact_id?: string
+  contact_ids?: string[]
+  external_contact_name?: string
   opportunity_id?: string
   candidate_id?: string
 }
+
+type ContextLinkType = "opportunity" | "contract" | "mail" | "signal" | "campaign" | "offer"
 
 interface FormState {
   title: string
@@ -55,8 +61,13 @@ interface FormState {
   description: string
   company: AccountValue | null
   contact_id: string
+  contact_ids: string[]
+  external_contact_name: string
   opportunity_id: string
   candidate_id: string
+  link_context: boolean
+  context_type: ContextLinkType
+  context_id: string
   create_task: boolean
   task_title: string
   task_date: string
@@ -73,8 +84,13 @@ const INITIAL_FORM: FormState = {
   description: "",
   company: null,
   contact_id: "",
+  contact_ids: [],
+  external_contact_name: "",
   opportunity_id: "",
   candidate_id: "",
+  link_context: false,
+  context_type: "opportunity",
+  context_id: "",
   create_task: false,
   task_title: "",
   task_date: "",
@@ -87,6 +103,49 @@ const PRIORITY_OPTIONS = [
   { value: "normal", label: "Normale" },
   { value: "high", label: "Haute" },
 ]
+
+const CONTEXT_LINK_TYPES: Array<{ value: ContextLinkType; label: string; emptyLabel: string }> = [
+  { value: "opportunity", label: "Lier à une opportunité", emptyLabel: "Aucune opportunité disponible" },
+  { value: "contract", label: "Lier à un contrat", emptyLabel: "Aucun contrat disponible" },
+  { value: "mail", label: "Lier à un mail", emptyLabel: "Aucun mail disponible" },
+  { value: "signal", label: "Lier à un signal", emptyLabel: "Aucun signal disponible" },
+  { value: "campaign", label: "Lier à une campagne", emptyLabel: "Aucune campagne disponible" },
+  { value: "offer", label: "Lier à une offre", emptyLabel: "Aucune offre disponible" },
+]
+
+function readEventMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return {
+      contactIds: [] as string[],
+      externalContactName: "",
+      linkedContext: null as { type: ContextLinkType; id: string } | null,
+    }
+  }
+
+  const record = metadata as Record<string, unknown>
+  const rawContactIds = Array.isArray(record.contact_ids) ? record.contact_ids : []
+  const contactIds = rawContactIds.filter((id): id is string => typeof id === "string")
+  const externalContactName =
+    typeof record.external_contact_name === "string" ? record.external_contact_name : ""
+
+  const linkedContext =
+    record.linked_context && typeof record.linked_context === "object" && !Array.isArray(record.linked_context)
+      ? record.linked_context as Record<string, unknown>
+      : null
+  const contextType = linkedContext?.type
+  const contextId = linkedContext?.id
+
+  return {
+    contactIds,
+    externalContactName,
+    linkedContext:
+      typeof contextType === "string" &&
+      CONTEXT_LINK_TYPES.some((type) => type.value === contextType) &&
+      typeof contextId === "string"
+        ? { type: contextType as ContextLinkType, id: contextId }
+        : null,
+  }
+}
 
 export function AgendaEventDrawer({
   open,
@@ -102,7 +161,9 @@ export function AgendaEventDrawer({
   const [contacts, setContacts] = useState<AgendaSelectContact[]>([])
   const [opportunities, setOpportunities] = useState<AgendaSelectOpportunity[]>([])
   const [candidates, setCandidates] = useState<AgendaSelectCandidate[]>([])
+  const [contextOptions, setContextOptions] = useState<AgendaContextOption[]>([])
   const [loadingContacts, setLoadingContacts] = useState(false)
+  const [loadingContextOptions, setLoadingContextOptions] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -113,6 +174,7 @@ export function AgendaEventDrawer({
 
     if (event) {
       setMode("view")
+      const metadata = readEventMetadata(event.metadata)
 
       const start = new Date(event.starts_at)
       const end = new Date(event.ends_at)
@@ -152,8 +214,17 @@ export function AgendaEventDrawer({
         description: event.description || "",
         company: event.company ? { id: event.company.id, name: event.company.name, isNew: false } : null,
         contact_id: event.contact_id || "",
+        contact_ids: metadata.contactIds.length > 0
+          ? metadata.contactIds
+          : event.contact_id
+            ? [event.contact_id]
+            : [],
+        external_contact_name: metadata.externalContactName,
         opportunity_id: event.opportunity_id || "",
         candidate_id: event.candidate_id || "",
+        link_context: Boolean(metadata.linkedContext),
+        context_type: metadata.linkedContext?.type || "opportunity",
+        context_id: metadata.linkedContext?.id || "",
         ...taskState,
       })
     } else {
@@ -167,6 +238,9 @@ export function AgendaEventDrawer({
         ...INITIAL_FORM,
         date: todayStr,
         task_date: todayStr,
+        contact_ids: initialValues?.contact_id
+          ? [initialValues.contact_id]
+          : initialValues?.contact_ids || [],
         ...initialValues,
       })
     }
@@ -191,12 +265,20 @@ export function AgendaEventDrawer({
       setLoadingContacts(false)
       setForm((prev) =>
         prev.contact_id && !data.some((contact) => contact.id === prev.contact_id)
-          ? { ...prev, contact_id: "" }
+          ? {
+              ...prev,
+              contact_id: "",
+              contact_ids: prev.contact_ids.filter((id) => data.some((contact) => contact.id === id)),
+            }
           : prev
       )
     } else {
       setContacts([])
-      setForm((prev) => (prev.contact_id ? { ...prev, contact_id: "" } : prev))
+      setForm((prev) =>
+        prev.contact_id || prev.contact_ids.length > 0
+          ? { ...prev, contact_id: "", contact_ids: [] }
+          : prev
+      )
     }
   })
 
@@ -205,6 +287,28 @@ export function AgendaEventDrawer({
       void syncContacts(companyId)
     })
   }, [companyId])
+
+  const syncContextOptions = useEffectEvent(async (kind: ContextLinkType, nextCompanyId?: string | null) => {
+    setLoadingContextOptions(true)
+    const data = await getAgendaContextOptions(kind, nextCompanyId)
+    setContextOptions(data)
+    setLoadingContextOptions(false)
+    setForm((prev) =>
+      prev.context_id && !data.some((option) => option.id === prev.context_id)
+        ? { ...prev, context_id: "" }
+        : prev
+    )
+  })
+
+  useEffect(() => {
+    if (!form.link_context) {
+      return
+    }
+
+    queueMicrotask(() => {
+      void syncContextOptions(form.context_type, companyId)
+    })
+  }, [form.link_context, form.context_type, companyId])
 
   function handleStartTimeChange(value: string) {
     setForm((prev) => ({ ...prev, start_time: value, end_time: addOneHourToTime(value) }))
@@ -217,6 +321,24 @@ export function AgendaEventDrawer({
         return next
       })
     }
+  }
+
+  function toggleContact(contactId: string) {
+    setForm((prev) => {
+      const exists = prev.contact_ids.includes(contactId)
+      const contact_ids = exists
+        ? prev.contact_ids.filter((id) => id !== contactId)
+        : [...prev.contact_ids, contactId]
+      return {
+        ...prev,
+        contact_ids,
+        contact_id: contact_ids[0] || "",
+      }
+    })
+  }
+
+  function removeExternalContact() {
+    setField("external_contact_name", "")
   }
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -273,6 +395,14 @@ export function AgendaEventDrawer({
       const taskDueIso = shouldCreateTask
         ? new Date(`${form.task_date}T${form.task_time}`).toISOString()
         : ""
+      const selectedContactIds = form.contact_ids.filter(Boolean)
+      const metadata = {
+        contact_ids: selectedContactIds,
+        external_contact_name: form.external_contact_name.trim() || null,
+        linked_context: form.link_context && form.context_id
+          ? { type: form.context_type, id: form.context_id }
+          : null,
+      }
 
       const payload: AgendaEventFormInput = {
         id: event?.id,
@@ -282,13 +412,14 @@ export function AgendaEventDrawer({
         ends_at: endsAt,
         description: form.description.trim(),
         company_id: form.company?.id || null,
-        contact_id: form.contact_id || null,
+        contact_id: selectedContactIds[0] || form.contact_id || null,
         opportunity_id: form.opportunity_id || null,
         candidate_id: form.candidate_id || null,
         create_task: shouldCreateTask,
         task_title: shouldCreateTask ? form.task_title.trim() : "",
         task_due_date: taskDueIso,
         task_priority: shouldCreateTask ? form.task_priority : "normal",
+        metadata,
       }
 
       const res =
@@ -347,7 +478,7 @@ export function AgendaEventDrawer({
               ? "Modifier l'événement"
               : "Créer un événement"
         }
-        subtitle={event ? undefined : "Planification d'une nouvelle action"}
+        subtitle={undefined}
         width="default"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
@@ -465,18 +596,125 @@ export function AgendaEventDrawer({
               />
               {errors.title && <p className="mt-1 text-[11px] text-danger">{errors.title}</p>}
             </div>
+
+            <div>
+              <label className="block text-xs font-medium text-heading mb-1.5">Compte associé</label>
+              {isView ? (
+                <input
+                  type="text"
+                  value={event?.company?.name || "—"}
+                  disabled
+                  className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                />
+              ) : (
+                <AccountCombobox
+                  value={form.company}
+                  onChange={(val) => {
+                    setField("company", val)
+                    setField("contact_id", "")
+                    setField("contact_ids", [])
+                  }}
+                  allowCreate={false}
+                  openOnFocus
+                  minSearchLength={0}
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-heading mb-1.5">
+                Contact associé
+                {loadingContacts && <span className="text-[10px] text-muted ml-1">(chargement…)</span>}
+              </label>
+              {isView ? (
+                <div className="min-h-9 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-70">
+                  {[
+                    ...contacts
+                      .filter((contact) => form.contact_ids.includes(contact.id))
+                      .map((contact) => contact.full_name),
+                    form.external_contact_name,
+                  ].filter(Boolean).join(", ") || "—"}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (!e.target.value) return
+                      if (e.target.value === "__other__") {
+                        setField("external_contact_name", form.external_contact_name || "Contact externe")
+                        return
+                      }
+                      toggleContact(e.target.value)
+                    }}
+                    disabled={isPending || loadingContacts || !form.company}
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
+                  >
+                    <option value="">
+                      {form.company ? "Ajouter un contact présent…" : "Sélectionnez d'abord un compte"}
+                    </option>
+                    {contacts
+                      .filter((contact) => !form.contact_ids.includes(contact.id))
+                      .map((contact) => (
+                        <option key={contact.id} value={contact.id}>
+                          {contact.full_name} {contact.job_title ? `— ${contact.job_title}` : ""}
+                        </option>
+                      ))}
+                    <option value="__other__">Autre contact…</option>
+                  </select>
+
+                  {form.contact_ids.length > 0 || form.external_contact_name ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {form.contact_ids.map((contactId) => {
+                        const contact = contacts.find((candidate) => candidate.id === contactId)
+                        return (
+                          <button
+                            key={contactId}
+                            type="button"
+                            onClick={() => toggleContact(contactId)}
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-1 text-[11px] font-semibold text-primary"
+                            title="Retirer ce contact"
+                          >
+                            {contact?.full_name || "Contact"}
+                            <span aria-hidden="true">×</span>
+                          </button>
+                        )
+                      })}
+                      {form.external_contact_name ? (
+                        <button
+                          type="button"
+                          onClick={removeExternalContact}
+                          className="inline-flex items-center gap-1 rounded-full border border-border bg-canvas px-2 py-1 text-[11px] font-semibold text-heading"
+                          title="Retirer ce contact"
+                        >
+                          {form.external_contact_name}
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {form.external_contact_name ? (
+                    <input
+                      type="text"
+                      value={form.external_contact_name}
+                      onChange={(e) => setField("external_contact_name", e.target.value)}
+                      disabled={isPending}
+                      placeholder="Nom du contact non répertorié"
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60"
+                    />
+                  ) : null}
+                </div>
+              )}
+            </div>
           </section>
 
           <div className="border-t border-border/40" />
 
           {/* ── SECTION 2: DATE & HEURES ── */}
           <section className="flex flex-col gap-3">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-              Date &amp; Heures (Europe/Paris)
-            </p>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-1">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
                 <label className="block text-xs font-medium text-heading mb-1.5">
                   Date&nbsp;<span className="text-danger">*</span>
                 </label>
@@ -495,29 +733,16 @@ export function AgendaEventDrawer({
 
               <div>
                 <label className="block text-xs font-medium text-heading mb-1.5">
-                  Début&nbsp;<span className="text-danger">*</span>
+                  Horaire&nbsp;<span className="text-danger">*</span>
                 </label>
                 <AgendaQuarterHourTimeField
                   value={form.start_time}
                   onChange={handleStartTimeChange}
                   disabled={isView || isPending}
-                  hourAriaLabel="Heure de début"
-                  minuteAriaLabel="Minutes de début"
+                  hourAriaLabel="Heure de l'événement"
+                  minuteAriaLabel="Minutes de l'événement"
                 />
                 {errors.start_time && <p className="mt-1 text-[11px] text-danger">{errors.start_time}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-heading mb-1.5">
-                  Fin&nbsp;<span className="text-danger">*</span>
-                </label>
-                <AgendaQuarterHourTimeField
-                  value={form.end_time}
-                  onChange={(value) => setField("end_time", value)}
-                  disabled={isView || isPending}
-                  hourAriaLabel="Heure de fin"
-                  minuteAriaLabel="Minutes de fin"
-                />
                 {errors.end_time && <p className="mt-1 text-[11px] text-danger">{errors.end_time}</p>}
               </div>
             </div>
@@ -532,42 +757,6 @@ export function AgendaEventDrawer({
                 <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
                   Relations CRM
                 </p>
-
-                <div>
-                  <label className="block text-xs font-medium text-heading mb-1.5">Compte client</label>
-                  {isView ? (
-                    <input
-                      type="text"
-                      value={event?.company?.name || "—"}
-                      disabled
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
-                    />
-                  ) : (
-                    <AccountCombobox value={form.company} onChange={(val) => setField("company", val)} />
-                  )}
-                </div>
-
-                {form.company && (
-                  <div>
-                    <label className="block text-xs font-medium text-heading mb-1.5">
-                      Contact
-                      {loadingContacts && <span className="text-[10px] text-muted ml-1">(chargement…)</span>}
-                    </label>
-                    <select
-                      value={form.contact_id}
-                      onChange={(e) => setField("contact_id", e.target.value)}
-                      disabled={isView || isPending || loadingContacts}
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
-                    >
-                      <option value="">Aucun contact lié</option>
-                      {contacts.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.full_name} {c.job_title ? `— ${c.job_title}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
 
                 <div>
                   <label className="block text-xs font-medium text-heading mb-1.5">
@@ -629,9 +818,6 @@ export function AgendaEventDrawer({
           <section className="flex flex-col gap-3">
             <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">Détails</p>
             <div>
-              <label className="block text-xs font-medium text-heading mb-1.5">
-                Description / Notes de préparation
-              </label>
               <textarea
                 value={form.description}
                 onChange={(e) => setField("description", e.target.value)}
@@ -641,6 +827,75 @@ export function AgendaEventDrawer({
                 className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 resize-y"
               />
             </div>
+          </section>
+
+          <div className="border-t border-border/40" />
+
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="link_context_chk"
+                checked={form.link_context}
+                onChange={(e) => {
+                  setField("link_context", e.target.checked)
+                  if (!e.target.checked) {
+                    setContextOptions([])
+                    setField("context_id", "")
+                  }
+                }}
+                disabled={isView || isPending}
+                className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
+              />
+              <label
+                htmlFor="link_context_chk"
+                className="text-xs font-bold text-heading select-none cursor-pointer"
+              >
+                Lier du contexte
+              </label>
+            </div>
+
+            {form.link_context && (
+              <div className="rounded-md border border-border/80 bg-canvas/30 p-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-heading mb-1.5">Type de contexte</label>
+                  <select
+                    value={form.context_type}
+                    onChange={(e) => {
+                      setField("context_type", e.target.value as ContextLinkType)
+                      setField("context_id", "")
+                    }}
+                    disabled={isView || isPending}
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+                  >
+                    {CONTEXT_LINK_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-heading mb-1.5">Élément lié</label>
+                  <select
+                    value={form.context_id}
+                    onChange={(e) => setField("context_id", e.target.value)}
+                    disabled={isView || isPending || loadingContextOptions}
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+                  >
+                    <option value="">
+                      {loadingContextOptions
+                        ? "Chargement…"
+                        : CONTEXT_LINK_TYPES.find((type) => type.value === form.context_type)?.emptyLabel || "Aucun élément disponible"}
+                    </option>
+                    {contextOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}{option.description ? ` — ${option.description}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </section>
 
           {allowPreparatoryTask ? (

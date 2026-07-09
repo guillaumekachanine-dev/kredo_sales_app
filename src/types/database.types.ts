@@ -3855,6 +3855,7 @@ export type Database = {
           p_event_type: string
           p_location?: string
           p_meeting_url?: string
+          p_metadata?: Json
           p_opportunity_id?: string
           p_starts_at: string
           p_task_due_date?: string

@@ -1,8 +1,8 @@
 import type { AccountScoreContext, RawScoreComponent } from "../types"
 
-// C6 — Valeur active. Bonus additif calculé UNIQUEMENT pour les clients actifs
+// C6 — Valeur active. Bonus additif calculé UNIQUEMENT pour les clients
 // (cf. orchestrateur compute-account-score.ts). Retourne null si aucune
-// mission active n'est trouvée — cas limite où lifecycle_status=client_actif
+// mission active n'est trouvée — cas limite où lifecycle_status=client
 // mais missions.status n'a pas encore été mis à jour (données incohérentes),
 // le composant est alors simplement absent du run plutôt que de fabriquer une
 // valeur arbitraire.

@@ -12,6 +12,7 @@ import { ContextualCommunicationButton } from "@/components/communication/Contex
 const LIFECYCLE_LABELS: Record<string, string> = {
   cible: "Cible",
   prospect: "Prospect",
+  client: "Client",
   client_actif: "Client actif",
   client_dormant: "Client dormant",
   ancien_client: "Ancien client",

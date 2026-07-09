@@ -268,7 +268,7 @@ function freshnessLabel(value: string | null) {
 function lifecycleBonus(lifecycle: string) {
   if (lifecycle === "prospect") return 10
   if (lifecycle === "ancien_client") return 6
-  if (lifecycle === "client_actif") return 4
+  if (lifecycle === "client" || lifecycle === "client_actif") return 4
   return 0
 }
 

@@ -140,11 +140,11 @@ export const TONE_OPTIONS: { value: CommunicationTone; label: string }[] = [
 ]
 
 // ─── Présélection automatique — § 6.5 ────────────────────────────────────────
-// lifecycle_status réel (CLAUDE.md) : cible · prospect · client_actif · client_dormant
-// · ancien_client · partenaire · non_prioritaire · exclu
+// lifecycle_status réel : prospect · client · ancien_client · partenaire
 
 function recipientTypeFromLifecycle(lifecycleStatus: string): CommunicationRecipientType {
   switch (lifecycleStatus) {
+    case "client":
     case "client_actif":
       return "active_client"
     case "client_dormant":
@@ -159,6 +159,7 @@ function recipientTypeFromLifecycle(lifecycleStatus: string): CommunicationRecip
 
 function relationFromLifecycle(lifecycleStatus: string): CommunicationRelation {
   switch (lifecycleStatus) {
+    case "client":
     case "client_actif":
       return "active_client"
     case "client_dormant":

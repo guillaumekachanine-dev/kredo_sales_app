@@ -42,6 +42,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 }
 
 const LIFECYCLE_LABEL: Record<string, string> = {
+  client:          "Client",
   client_actif:    "Client actif",
   prospect:        "Prospect",
   cible:           "Cible",
@@ -53,6 +54,7 @@ const LIFECYCLE_LABEL: Record<string, string> = {
 }
 
 const LIFECYCLE_STYLE: Record<string, string> = {
+  client:          "bg-success/10 text-success border-success/30",
   client_actif:    "bg-success/10 text-success border-success/30",
   prospect:        "bg-warning/10 text-warning border-warning/30",
   cible:           "bg-primary/10 text-primary border-primary/30",

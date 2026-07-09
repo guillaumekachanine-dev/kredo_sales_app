@@ -65,6 +65,7 @@ const FOCUS_LABELS: Record<Exclude<ProspectionSummaryFocusPreset, "all">, string
 const LIFECYCLE_LABELS: Record<string, string> = {
   cible: "Cible",
   prospect: "Prospect",
+  client: "Client",
   client_actif: "Client actif",
   client_dormant: "Client dormant",
   ancien_client: "Ancien client",
@@ -202,7 +203,7 @@ export function getCommercialRecommendation(
     }
   }
 
-  if (account.lifecycle === "client_actif" && periodMetrics.momentumScore < 25) {
+  if ((account.lifecycle === "client" || account.lifecycle === "client_actif") && periodMetrics.momentumScore < 25) {
     return {
       key: "reactivate-client",
       dominantReason: "Client actif à dynamique commerciale faible",

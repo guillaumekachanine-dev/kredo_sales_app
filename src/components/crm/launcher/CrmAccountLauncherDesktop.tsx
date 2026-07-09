@@ -140,17 +140,36 @@ export function CrmAccountLauncherDesktop({
           </button>
         </div>
 
-        {/* Search */}
-        <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
+        {/* Search & Liste complète */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
+          </div>
+          <Link
+            href="/prospection/accounts?tab=accounts"
+            prefetch={false}
+            onClick={() => onOpenChange(false)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-bold text-white shadow-sm hover:bg-primary/95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] shrink-0 whitespace-nowrap h-[38px]"
+          >
+            <svg
+              className="w-3.5 h-3.5 text-white shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+            Liste complète
+          </Link>
+        </div>
 
         {/* Modes de liste directement sous la recherche */}
         <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
-
-        {/* Choix de la destination */}
-        <CrmLauncherDestinationTabs
-          activeDestination={destination}
-          onChange={onDestinationChange}
-        />
 
         {/* Content list */}
         <div className="flex-1 overflow-y-auto pr-1 min-h-0">
@@ -202,32 +221,6 @@ export function CrmAccountLauncherDesktop({
               ))}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-border/40 pt-3 flex items-center justify-end">
-          <Link
-            href="/prospection/accounts?tab=accounts"
-            prefetch={false}
-            onClick={() => onOpenChange(false)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            style={{ minHeight: "36px" }}
-          >
-            <svg
-              className="w-3.5 h-3.5 text-white shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-            Liste complète
-          </Link>
         </div>
       </div>
     </dialog>

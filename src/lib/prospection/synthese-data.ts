@@ -87,6 +87,7 @@ export type SyntheseData = {
 const LIFECYCLE_LABEL: Record<string, string> = {
   cible: "Cibles",
   prospect: "Prospects",
+  client: "Clients",
   client_actif: "Clients actifs",
   client_dormant: "Clients dormants",
   ancien_client: "Anciens clients",
@@ -96,6 +97,7 @@ const LIFECYCLE_LABEL: Record<string, string> = {
 }
 
 const LIFECYCLE_TONE: Record<string, SyntheseStatus> = {
+  client: "success",
   client_actif: "success",
   partenaire: "success",
   prospect: "warning",
@@ -212,9 +214,9 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     .map(([key, v]) => ({ key, label: getOpportunityStageLabel(key), count: v.count, weighted: v.weighted }))
     .sort((a, b) => b.weighted - a.weighted)
 
-  // ── Comptes à activer (cibles/prospects à plus fort score) ──────────────────
+  // ── Comptes à activer (prospects à plus fort score) ─────────────────────────
   const accountsToActivate: AccountToActivate[] = companies
-    .filter((c) => c.lifecycle_status === "cible" || c.lifecycle_status === "prospect")
+    .filter((c) => c.lifecycle_status === "prospect")
     .map((c) => ({
       id: c.id,
       name: c.name,
@@ -226,8 +228,8 @@ export async function getSyntheseData(): Promise<SyntheseData> {
     .slice(0, 6)
 
   // ── KPI décisionnels ────────────────────────────────────────────────────────
-  const activeClients = lifeCounts.get("client_actif") ?? 0
-  const targets = (lifeCounts.get("cible") ?? 0) + (lifeCounts.get("prospect") ?? 0)
+  const activeClients = (lifeCounts.get("client") ?? 0) + (lifeCounts.get("client_actif") ?? 0)
+  const targets = lifeCounts.get("prospect") ?? 0
   const scored = companies.map((c) => toNumber(c.legacy_folio_score)).filter((s): s is number => s !== null)
   const avgScore = scored.length ? round1(scored.reduce((a, b) => a + b, 0) / scored.length) : null
 

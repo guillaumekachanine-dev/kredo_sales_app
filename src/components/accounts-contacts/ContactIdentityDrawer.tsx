@@ -4,7 +4,7 @@ import Image from "next/image"
 import { useEffect, useState, useTransition, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
-import { getContactIdentity } from "@/app/(app)/prospection/accounts/actions"
+import { getContactIdentity, toggleContactFavorite } from "@/app/(app)/prospection/accounts/actions"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
@@ -330,6 +330,26 @@ export function ContactIdentityDrawer({
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [favoritePending, setFavoritePending] = useState(false)
+  const [mobileViewportMatches, setMobileViewportMatches] = useState(false)
+  const isMobileViewport = device ? device === "mobile" : mobileViewportMatches
+  const isDesktopDrawer = device ? device !== "mobile" : !isMobileViewport
+
+  useEffect(() => {
+    if (device) {
+      return
+    }
+
+    const media = window.matchMedia("(max-width: 767px)")
+    const syncViewport = () => setMobileViewportMatches(media.matches)
+
+    syncViewport()
+    media.addEventListener("change", syncViewport)
+
+    return () => {
+      media.removeEventListener("change", syncViewport)
+    }
+  }, [device])
 
   useEffect(() => {
     if (!toastMessage) return
@@ -363,6 +383,29 @@ export function ContactIdentityDrawer({
     await toggleTaskStatus(taskId, isDone)
   }, [])
 
+  const handleToggleFavorite = useCallback(async () => {
+    if (!data || favoritePending) return
+    const nextFavorite = data.contact.is_priority !== true
+    const previousFavorite = data.contact.is_priority
+
+    setFavoritePending(true)
+    setData((prev) =>
+      prev
+        ? { ...prev, contact: { ...prev.contact, is_priority: nextFavorite } }
+        : prev
+    )
+
+    const result = await toggleContactFavorite(data.contact.id, nextFavorite)
+    if (result.error) {
+      setData((prev) =>
+        prev
+          ? { ...prev, contact: { ...prev.contact, is_priority: previousFavorite } }
+          : prev
+      )
+    }
+    setFavoritePending(false)
+  }, [data, favoritePending])
+
   const loading = transitionPending || (open && !!contactId && !data && !error)
 
   useEffect(() => {
@@ -389,6 +432,7 @@ export function ContactIdentityDrawer({
 
     return () => {
       setData(null)
+      setFavoritePending(false)
     }
   }, [contactId, open])
 
@@ -500,7 +544,10 @@ export function ContactIdentityDrawer({
             "bg-primary text-white border-primary/20",
             contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
           )}>
-            <div className="relative flex items-center justify-between gap-4 pr-11">
+            <div className={cn(
+              "relative flex items-center justify-between gap-4",
+              isDesktopDrawer ? "pr-10" : "pr-11"
+            )}>
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 {/* Logo du compte (ou avatar initiales) */}
                 {company ? (
@@ -526,8 +573,33 @@ export function ContactIdentityDrawer({
                   </div>
                 )}
 
-                <div className="flex-1 min-w-0 pr-8">
-                  <h3 className="text-sm font-bold text-white leading-tight truncate">{fullName}</h3>
+                <div className={cn("flex-1 min-w-0", isDesktopDrawer ? "pr-2" : "pr-8")}>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h3 className="truncate text-sm font-bold leading-tight text-white">{fullName}</h3>
+                    {isDesktopDrawer && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onEditContact) {
+                            onEditContact(contact.id)
+                          } else {
+                            const event = new CustomEvent("crm-edit-contact", { detail: { contactId: contact.id } })
+                            window.dispatchEvent(event)
+                            if (window.location.pathname !== "/prospection/accounts") {
+                              window.location.href = `/prospection/accounts?tab=contacts&editContactId=${contact.id}`
+                            }
+                          }
+                        }}
+                        className="-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white"
+                        title="Modifier les informations du contact"
+                        aria-label="Modifier les informations du contact"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   {contact.job_title && (
                     <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
                       {contact.job_title}
@@ -542,15 +614,34 @@ export function ContactIdentityDrawer({
               </div>
 
               <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
-                <button
-                  onClick={() => onOpenChange(false)}
-                  className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
-                  title="Fermer"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                {isDesktopDrawer ? (
+                  <button
+                    type="button"
+                    onClick={handleToggleFavorite}
+                    disabled={favoritePending}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-[#FFB812] disabled:opacity-60",
+                      contact.is_priority === true && "text-[#FFB812]"
+                    )}
+                    title={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
+                    aria-label={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
+                    aria-pressed={contact.is_priority === true}
+                  >
+                    <svg className="h-4 w-4" fill={contact.is_priority === true ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onOpenChange(false)}
+                    className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
+                    title="Fermer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     if (onEditContact) {
@@ -563,7 +654,10 @@ export function ContactIdentityDrawer({
                       }
                     }
                   }}
-                  className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
+                  className={cn(
+                    "rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0",
+                    isDesktopDrawer && "hidden"
+                  )}
                   title="Modifier les informations du contact"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -789,77 +883,6 @@ export function ContactIdentityDrawer({
                     </h4>
                     <div className="text-xs leading-relaxed text-heading bg-primary/5 border border-primary/10 rounded-[var(--radius-medium)] p-4 font-normal whitespace-pre-wrap">
                       {person.notes}
-                    </div>
-                  </div>
-                )}
-
-                {/* Associated Company Card */}
-                {company && device !== "mobile" && (
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted mb-2 font-heading">
-                      Compte associé
-                    </h4>
-                    <div 
-                      onClick={() => onOpenCompanyIdentity?.(company.id)}
-                      className="kredo-hover-reference group rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3.5 hover:border-primary/50"
-                      title="Consulter la fiche complète de l'entreprise"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        {/* Left Side: Name, Sector/Segment, Priority */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-heading group-hover:text-primary transition-colors leading-tight">
-                              {company.name}
-                            </span>
-                            {company.website && (
-                              <a
-                                href={company.website.startsWith("http") ? company.website : `https://${company.website}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="p-1 rounded text-muted hover:text-primary hover:bg-primary/10 transition-colors shrink-0 -mt-0.5"
-                                title="Visiter le site internet"
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                              </a>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-muted mt-0.5 block leading-tight">
-                            {company.sector} {company.segment ? `· ${company.segment}` : ""}
-                          </span>
-                          
-                          <span className={cn(
-                            "inline-block rounded px-1.5 py-0.2 text-[8px] font-bold border capitalize tracking-wide mt-1 leading-none",
-                            company.priority === "haute" 
-                              ? "bg-warning/10 border-warning/20 text-warning" 
-                              : "bg-canvas text-body border-border"
-                          )}>
-                            Priorité {company.priority}
-                          </span>
-                        </div>
-
-                        {/* Right Side: 3 KPIs - Distributed equally on same line, no outer frame */}
-                        <div className="flex items-center gap-2 shrink-0 text-center text-[9px] leading-tight">
-                          <div className="flex flex-col justify-center min-w-[32px] px-1">
-                            <span className="text-muted block text-[7px] uppercase tracking-tight font-medium">CA</span>
-                            <span className="font-bold text-heading mt-0.5 block">{company.revenue || "—"}</span>
-                          </div>
-                          <div className="border-l border-border/40 h-5 my-auto" />
-                          <div className="flex flex-col justify-center min-w-[40px] px-1">
-                            <span className="text-muted block text-[7px] uppercase tracking-tight font-medium">Effectifs</span>
-                            <span className="font-bold text-heading mt-0.5 block">
-                              {company.employee_count !== null ? company.employee_count : "—"}
-                            </span>
-                          </div>
-                          <div className="border-l border-border/40 h-5 my-auto" />
-                          <div className="flex flex-col justify-center min-w-[40px] px-1">
-                            <span className="text-muted block text-[7px] uppercase tracking-tight font-medium">Score IA</span>
-                            <span className="font-bold text-primary mt-0.5 block">{formatScore(company.legacy_folio_score)}</span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -1103,6 +1126,27 @@ export function ContactIdentityDrawer({
                       })}
                     </div>
                   )}
+                </div>
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEventInitialValues({
+                        title: `Échange · ${fullName}`,
+                        event_type: "rdv_prospection",
+                        company: company ? { id: company.id, name: company.name, isNew: false } : null,
+                        contact_id: contact.id,
+                      })
+                      setEventDrawerOpen(true)
+                    }}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-medium)] bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 text-xs font-bold transition-all active:scale-95 hover:shadow"
+                    title="Ajouter un nouvel événement"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Ajouter un événement
+                  </button>
                 </div>
               </div>
             )}

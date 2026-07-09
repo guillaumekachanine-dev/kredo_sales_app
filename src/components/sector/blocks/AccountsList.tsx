@@ -7,12 +7,14 @@ export interface AccountsListProps {
 }
 
 const LIFECYCLE_BADGE_COLORS: Record<string, string> = {
+  client: 'bg-success/10 text-success border border-success/15',
   client_actif: 'bg-success/10 text-success border border-success/15',
   prospect: 'bg-muted/10 text-heading border border-border',
   cible: 'bg-muted/5 text-muted border border-border/40',
 }
 
 const LIFECYCLE_LABELS: Record<string, string> = {
+  client: 'Client',
   client_actif: 'Client Actif',
   prospect: 'Prospect',
   cible: 'Cible',
@@ -23,7 +25,7 @@ const LIFECYCLE_LABELS: Record<string, string> = {
 
 /**
  * AccountsList - Renders the list of companies associated with the sector.
- * Ordered with client_actif first, showing AI Score and right-aligned revenue.
+ * Ordered with clients first, showing AI Score and right-aligned revenue.
  */
 export function AccountsList({ companies, hasError }: AccountsListProps) {
   if (hasError) {
@@ -38,10 +40,10 @@ export function AccountsList({ companies, hasError }: AccountsListProps) {
     return <p className="text-xs text-muted">Aucun compte rattaché à ce secteur.</p>
   }
 
-  // Sort: client_actif first, then sub-sorted by AI score DESC
+  // Sort: clients first, then sub-sorted by AI score DESC
   const sorted = [...companies].sort((a, b) => {
-    const isActifA = a.lifecycle_status === 'client_actif'
-    const isActifB = b.lifecycle_status === 'client_actif'
+    const isActifA = a.lifecycle_status === 'client' || a.lifecycle_status === 'client_actif'
+    const isActifB = b.lifecycle_status === 'client' || b.lifecycle_status === 'client_actif'
     if (isActifA && !isActifB) return -1
     if (!isActifA && isActifB) return 1
 
