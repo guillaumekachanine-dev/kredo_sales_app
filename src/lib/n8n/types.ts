@@ -145,6 +145,11 @@ export type CommunicationScenario =
   | "signal_outreach"
   | "follow_up_no_reply"
   | "post_meeting"
+  // ⚠️ Conservé tel quel (pas de rename profile_submission_to_client en Lot 1) :
+  // le workflow n8n intel-020-communication a déjà ce libellé en dur dans son
+  // dictionnaire de prompts (SCENARIO_MISSIONS) — le renommer sans toucher au
+  // workflow casserait silencieusement le prompt spécifique de ce scénario en
+  // production (ADR-0013 §6.2 non-régression). Rename différé au Lot 3.
   | "profile_submission"
   | "cross_sell"
   | "reactivation"
@@ -164,8 +169,95 @@ export type CommunicationScenario =
   | "cold_call_pitch"
   | "meeting_prep_discovery"
   | "meeting_prep_cross_sell"
+  // ADR-0013 Lot 1 — Commerce · Prospection
+  | "first_contact_after_nomination"
+  | "linkedin_to_email_bridge"
+  | "event_invitation"
+  | "sector_rebound"
+  | "discovery_meeting_request"
+  | "signal_based_pitch"
+  | "sector_persona_pitch"
+  | "why_us_now_pitch"
+  | "first_objection_bad_timing"
+  // ADR-0013 Lot 1 — Commerce · Périmètre actif
+  | "mission_renewal"
+  | "consultant_replacement_notice"
+  | "client_tension_apology"
+  | "delivery_delay_notice"
+  | "proposal_defense_pitch"
+  | "renewal_pitch"
+  | "price_objection_pitch"
+  | "client_crisis_talk_track"
+  | "delay_talk_track"
+  | "tense_copil_briefing"
+  // ADR-0013 Lot 1 — Delivery
+  | "risk_communication"
+  | "milestone_validation_request"
+  | "escalation_briefing"
+  | "risk_meeting_briefing"
+  // ADR-0013 Lot 1 — Recrutement
+  | "candidate_availability_check"
+  | "candidate_post_interview_feedback"
+  | "candidate_cv_completion_request"
+  | "dormant_talent_pool_reactivation"
+  | "candidate_to_client_pitch"
+  | "opportunity_to_candidate_pitch"
+  | "candidate_closing_pitch"
+  | "atypical_candidate_defense"
+  | "recruiter_briefing_pre_interview"
+  | "mobility_salary_pitch"
+  // ADR-0013 Lot 1 — Interne · Management
+  | "one_on_one_alignment"
+  | "collaborator_recognition"
+  | "performance_review_prep"
+  | "assignment_change_notice"
+  | "internal_arbitrage_request"
+  | "staffing_help_request"
+  | "handover_note"
+  | "weekly_briefing_prep"
+  | "internal_validation_before_send"
+  | "difficult_announcement_talk_track"
+  | "disciplinary_meeting_posture"
+  | "quarterly_business_review"
+  | "resource_arbitrage_pitch"
+  | "intercontract_exit_pitch"
+  | "sensitive_meeting_briefing"
+  | "internal_committee_pitch"
+  | "investment_arbitrage_argument"
+  | "project_status_pitch"
+  | "direction_summary_pitch"
 
 export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
+
+// ─── ADR-0013 Lot 2 — modèle mail/pitch découplé du canal ────────────────────
+
+// Nature technique du livrable renvoyé par le LLM — remplace la déduction par
+// canal (isPitchChannel). "structured_briefing" couvre aussi bien un brief RDV
+// commercial qu'une prise de parole non commerciale (crise, business review,
+// recadrage) : même forme de sortie (MeetingBriefingOutput), seul le prompt change.
+export type CommunicationOutputKind =
+  | "written_message"
+  | "spoken_pitch"
+  | "structured_briefing"
+
+// 5 catégories d'activité (remplace le family à 4 valeurs sales/recruitment/
+// delivery/internal — Delivery et Interne·Management sont désormais distincts,
+// ADR-0013 §3.2). Persistée dans input_snapshot pour permettre le monitoring
+// futur de l'activité de prospection sans re-lire la registry TS depuis SQL.
+export type CommunicationActivityCategory =
+  | "commerce_prospection"
+  | "commerce_actif"
+  | "delivery"
+  | "recrutement"
+  | "interne_management"
+
+// Portée de résolution d'entité côté composer (ADR-0013 D-2) — "account" =
+// comportement historique (compte CRM requis), "collaborator" = contexte
+// collaborateur (aucun compte requis), "internal" = aucune entité requise.
+// Type canonique unique : CommunicationComposerScope (communication-composer.ts)
+// et ScenarioRegistryItem.requiredScopes (communication-scenario-registry.ts)
+// l'importent tous les deux d'ici plutôt que de le redéfinir.
+export type CommunicationScope = "account" | "collaborator" | "internal"
 
 export type CommunicationSenderRole =
   | "business_manager"
@@ -220,6 +312,18 @@ export type CommunicationObjective =
   | "secure_payment"
   | "escalate_issue"
   | "summarize_decisions"
+  // ADR-0013 Lot 1 — nouveaux objectifs sans équivalent parmi les 16 existants
+  | "announce_change"
+  | "repair_relationship"
+  | "manage_expectations"
+  | "de_escalate_tension"
+  | "close_candidate"
+  | "advocate_for_candidate"
+  | "negotiate_terms"
+  | "acknowledge_contribution"
+  | "deliver_difficult_news"
+  | "address_performance_issue"
+  | "secure_resources"
 
 export type CommunicationTone =
   | "direct"
@@ -233,7 +337,17 @@ export interface CommunicationBrief {
   what: {
     channel: CommunicationChannel
     scenario: CommunicationScenario
+    // ADR-0013 Lot 2 — nature du livrable, remplace la déduction par canal
+    // (isPitchChannel). Toujours renseigné par buildDefaultBrief ; les runs
+    // antérieurs au Lot 2 stockés en base n'ont pas ce champ — c'est un
+    // artefact historique figé, pas un état que le front doit re-hydrater.
+    outputKind: CommunicationOutputKind
     length: CommunicationLength
+    // ADR-0013 Lot 2 — persisté dans input_snapshot pour permettre le futur
+    // monitoring de l'activité de prospection sans re-lire la registry TS.
+    activityCategory: CommunicationActivityCategory
+    // ADR-0013 Lot 2 — reflète le scope résolu par le composer (Lot 0).
+    scope: CommunicationScope
   }
   who: {
     sender: {
@@ -246,6 +360,9 @@ export interface CommunicationBrief {
       persona: CommunicationPersona
       relation: CommunicationRelation
       contactId?: string
+      // ADR-0013 Lot 2 — renseigné quand scope === "collaborator" (aucun contact
+      // CRM, le destinataire est un collaborateur interne).
+      collaboratorId?: string
       displayName?: string
       companyName?: string
     }
@@ -269,10 +386,12 @@ export interface CommunicationBrief {
     previousMessage?: string
     reuseMode?: "variant" | "adapt_contact" | "reuse_account" | "follow_up"
     angle?: string
-    // ADR-0009 — offre catalogue ancrant le pitch (offers.id). Requis pour les
-    // scénarios cold_call_pitch/meeting_prep_discovery/meeting_prep_cross_sell —
-    // le LLM ne peut jamais inventer une offre hors catalogue (no-go ADR-0009 §6).
+    // ADR-0009 — offre catalogue ancrant le pitch (offers.id). Obligatoire
+    // uniquement quand scenario.requiresOffer === true (ADR-0013 D-5, supersede
+    // ADR-0009 §6 — l'obligation n'est plus universelle à tout canal pitch).
     offerRef?: string
+    // ADR-0013 Lot 2 — renseigné quand scope === "collaborator".
+    collaboratorRef?: string
   }
 }
 

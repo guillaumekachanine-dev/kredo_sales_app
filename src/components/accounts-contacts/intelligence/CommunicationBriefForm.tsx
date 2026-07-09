@@ -22,14 +22,14 @@ import {
   PERSONA_OPTIONS,
   RECIPIENT_TYPE_OPTIONS,
   RELATION_OPTIONS,
-  SCENARIO_OPTIONS,
   SENDER_ROLE_OPTIONS,
   TONE_OPTIONS,
-  isPitchChannel,
   personaFromRelationshipRole,
 } from "./communication-brief-options"
+import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import { ContactSelector } from "./ContactSelector"
 import { OfferPicker } from "./OfferPicker"
+import { ScenarioPicker } from "./ScenarioPicker"
 import type { SuggestedOffer } from "./get-suggested-offers"
 
 const PRACTICE_OPTIONS = [
@@ -98,7 +98,10 @@ export function CommunicationBriefForm({
   offersLoading?: boolean
 }) {
   const { selectCls, textareaCls, labelCls } = useFieldClasses(isMobile)
-  const isPitch = isPitchChannel(brief.what.channel)
+  // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) comme vérité
+  // principale (channel et outputKind sont désormais deux dimensions distinctes).
+  const isPitch = brief.what.outputKind !== "written_message"
+  const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
 
   function updateWhat(patch: Partial<CommunicationBrief["what"]>) {
     onChange({ ...brief, what: { ...brief.what, ...patch } })
@@ -124,12 +127,18 @@ export function CommunicationBriefForm({
     onChange({ ...brief, context: { ...brief.context, ...patch } })
   }
 
-  function handleScenarioChange(scenario: string) {
-    const preset = SCENARIO_OPTIONS.find((s) => s.value === scenario)
+  function handleScenarioChange(scenario: CommunicationScenario) {
+    const item = getScenarioRegistryItem(scenario)
     onChange({
       ...brief,
-      what: { ...brief.what, scenario: scenario as CommunicationScenario, channel: preset?.defaultChannel ?? brief.what.channel },
-      who: { ...brief.who, objective: preset?.defaultObjective ?? brief.who.objective },
+      what: {
+        ...brief.what,
+        scenario,
+        channel: item?.defaultChannel ?? brief.what.channel,
+        outputKind: item?.defaultOutputKind ?? brief.what.outputKind,
+        activityCategory: item?.activityCategory ?? brief.what.activityCategory,
+      },
+      who: { ...brief.who, objective: item?.defaultObjective ?? brief.who.objective },
     })
   }
 
@@ -149,21 +158,17 @@ export function CommunicationBriefForm({
   //    accordéons QUOI/QUI/COMMENT/CONTEXTE) et mobile (3 champs essentiels
   //    + "Plus d'options") ────────────────────────────────────────────────
 
+  // ADR-0013 Lot 1 — la modale catégorie → scénario est filtrée par useCase à
+  // partir du canal courant (même proxy que isPitch ci-dessus). Le vrai champ
+  // outputKind/mode explicite arrive au Lot 2 ; en attendant, choisir un
+  // scénario de l'autre useCase repasse par le changement de canal existant.
   const fieldScenario = (
-    <div>
-      <label className={labelCls}>Scénario</label>
-      <Select
-        value={brief.what.scenario}
-        onChange={(e) => handleScenarioChange(e.target.value)}
-        className={selectCls}
-      >
-        {SCENARIO_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </Select>
-    </div>
+    <ScenarioPicker
+      useCase={isPitch ? "pitch" : "mail"}
+      value={brief.what.scenario}
+      onChange={handleScenarioChange}
+      isMobile={isMobile}
+    />
   )
 
   const fieldChannelAndLength = (
@@ -371,6 +376,7 @@ export function CommunicationBriefForm({
       value={brief.context.offerRef}
       onChange={(offerId) => updateContext({ offerRef: offerId })}
       loading={offersLoading}
+      required={requiresOffer}
       isMobile={isMobile}
     />
   ) : null

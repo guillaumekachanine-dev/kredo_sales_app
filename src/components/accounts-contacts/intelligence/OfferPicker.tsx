@@ -5,19 +5,19 @@ import { cn } from "@/lib/utils"
 import type { SuggestedOffer } from "./get-suggested-offers"
 import { OfferPickerModal } from "./OfferPickerModal"
 
-// ADR-0009 — no-go : un pitch ne peut jamais s'ancrer hors catalogue. Ce
-// composant est le seul point d'entrée pour context.offerRef ; le formulaire
-// bloque la génération tant qu'aucune offre n'est choisie (voir IntelligenceActionDrawers).
+// ADR-0009 §6 (supersédé par ADR-0013 D-5) — l'ancrage catalogue reste
+// obligatoire pour les scénarios où scenario.requiresOffer === true (ex:
+// cold_call_pitch, meeting_prep_cross_sell, renewal_pitch), optionnel pour
+// les autres scénarios pitch (préparation RDV, crise, business review...).
 // Le choix se fait via OfferPickerModal (practice → offre), pas un <select> à
 // plat : 41 offres sur 8 practices sont illisibles listées en vrac.
-// Conservé dans l'API publique (CommunicationBriefForm) — n'est plus
-// consommé depuis que la pastille "Suggérée" a été retirée du picker.
 export function OfferPicker({
   offers,
   suggestedPracticeSlugs,
   value,
   onChange,
   loading,
+  required,
   isMobile,
 }: {
   offers: SuggestedOffer[]
@@ -25,6 +25,7 @@ export function OfferPicker({
   value: string | undefined
   onChange: (offerId: string) => void
   loading: boolean
+  required: boolean
   isMobile?: boolean
 }) {
   const [modalOpen, setModalOpen] = useState(false)
@@ -34,13 +35,13 @@ export function OfferPicker({
   const triggerCls = cn(
     "flex w-full items-center justify-between gap-2 rounded-lg border px-3 text-left text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
     isMobile ? "h-11" : "h-9",
-    value ? "border-border/30 bg-surface/20" : "border-warning/30 bg-surface/10",
+    !required || value ? "border-border/30 bg-surface/20" : "border-warning/30 bg-surface/10",
   )
   const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
 
   return (
     <div>
-      <label className={labelCls}>Offre catalogue (obligatoire)</label>
+      <label className={labelCls}>Offre catalogue {required ? "(obligatoire)" : "(recommandée)"}</label>
       <button
         type="button"
         onClick={() => setModalOpen(true)}
@@ -64,9 +65,9 @@ export function OfferPicker({
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
         </svg>
       </button>
-      {!value && !loading && (
+      {required && !value && !loading && (
         <p className="mt-1 text-[10px] text-warning">
-          Un pitch doit toujours s&apos;ancrer sur une offre du catalogue Kredo.
+          Ce scénario doit s&apos;ancrer sur une offre du catalogue Kredo.
         </p>
       )}
       <OfferPickerModal

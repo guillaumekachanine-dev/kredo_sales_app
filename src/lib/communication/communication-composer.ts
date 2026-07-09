@@ -4,6 +4,7 @@ import type {
   CommunicationLength,
   CommunicationObjective,
   CommunicationScenario,
+  CommunicationScope,
   CommunicationTone,
 } from "@/lib/n8n/types"
 import type { IntelligenceEntityType } from "@/lib/intelligence/intelligence-registry"
@@ -32,6 +33,14 @@ export type CommunicationComposerPrimaryEntity = {
   id: string
 }
 
+// ADR-0013 — débloque les scénarios sans compte pivot (business review, brief
+// manager, arbitrage interne...). "account" = comportement historique (compte
+// CRM requis) ; "collaborator" = contexte collaborateur (aucun compte requis) ;
+// "internal" = aucune entité requise, le contexte vient du prompt utilisateur.
+// Alias du type canonique CommunicationScope (n8n/types.ts, Lot 2) — conservé
+// pour ne pas casser les imports existants de CommunicationComposerHost.tsx.
+export type CommunicationComposerScope = CommunicationScope
+
 export type CommunicationComposerPreset = {
   channel?: CommunicationChannel
   scenario?: CommunicationScenario
@@ -47,9 +56,12 @@ export type CommunicationComposerPreset = {
 
 export type CommunicationComposerRequest = {
   origin: CommunicationComposerOrigin
+  // Défaut "account" si omis — rétro-compatible avec tous les call-sites existants.
+  scope?: CommunicationComposerScope
   companyId?: string | null
   companyName?: string | null
   contactId?: string | null
+  collaboratorId?: string | null
   primaryEntity?: CommunicationComposerPrimaryEntity | null
   preset?: CommunicationComposerPreset
 }

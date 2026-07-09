@@ -7,12 +7,17 @@ import type {
   CommunicationRecipientType,
   CommunicationRelation,
   CommunicationScenario,
+  CommunicationScope,
   CommunicationSenderRole,
   CommunicationTone,
 } from "@/lib/n8n/types"
 import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import type { CommunicationComposerPreset } from "@/lib/communication/communication-composer"
+import {
+  SCENARIO_REGISTRY,
+  type ActivityCategory,
+} from "@/lib/communication/communication-scenario-registry"
 
 // ─── Taxonomies V1 — INTEL-020-REDACTION-ASSISTEE-V1.md § 4 ─────────────────
 
@@ -25,13 +30,24 @@ export const CHANNEL_OPTIONS: { value: CommunicationChannel; label: string }[] =
   { value: "meeting_briefing", label: "Fiche de préparation RDV" },
 ]
 
-// ADR-0009 — canaux dont la sortie est structurée (PitchOutput), pas un texte
-// libre CommunicationOutput. Sert à brancher le bon composant de rendu résultat
-// et à rendre OfferPicker obligatoire dans le formulaire.
-export const PITCH_CHANNELS: CommunicationChannel[] = ["spoken_pitch_30s", "meeting_briefing"]
-
-export function isPitchChannel(channel: CommunicationChannel): boolean {
-  return PITCH_CHANNELS.includes(channel)
+// ADR-0013 Lot 1 — dérivé de SCENARIO_REGISTRY (source de vérité unique, 69+
+// scénarios classés par activityCategory). Shape et comportement inchangés
+// pour les 21 scénarios historiques : `family` reste le mapping 4 valeurs
+// consommé par le code existant (handleScenarioChange, scenarioLabel,
+// buildDefaultBrief, applyCommunicationEntryPoint) — aucun de ces call-sites
+// n'a besoin d'évoluer pour ce lot.
+function toLegacyFamily(category: ActivityCategory): "sales" | "recruitment" | "delivery" | "internal" {
+  switch (category) {
+    case "commerce_prospection":
+    case "commerce_actif":
+      return "sales"
+    case "delivery":
+      return "delivery"
+    case "recrutement":
+      return "recruitment"
+    case "interne_management":
+      return "internal"
+  }
 }
 
 export const SCENARIO_OPTIONS: {
@@ -40,30 +56,13 @@ export const SCENARIO_OPTIONS: {
   family: "sales" | "recruitment" | "delivery" | "internal"
   defaultChannel: CommunicationChannel
   defaultObjective: CommunicationObjective
-}[] = [
-  { value: "signal_outreach", label: "Premier contact (signal/actualité)", family: "sales", defaultChannel: "email", defaultObjective: "get_meeting" },
-  { value: "follow_up_no_reply", label: "Relance sans réponse", family: "sales", defaultChannel: "email", defaultObjective: "get_reply" },
-  { value: "post_meeting", label: "Suivi après rendez-vous", family: "sales", defaultChannel: "email", defaultObjective: "confirm_next_steps" },
-  { value: "profile_submission", label: "Envoi de profil", family: "sales", defaultChannel: "email", defaultObjective: "submit_profile" },
-  { value: "cross_sell", label: "Cross-sell / mission existante", family: "sales", defaultChannel: "email", defaultObjective: "present_offer" },
-  { value: "reactivation", label: "Réactivation ancien client", family: "sales", defaultChannel: "email", defaultObjective: "reactivate" },
-  { value: "proposal_follow_up", label: "Relance de proposition", family: "sales", defaultChannel: "email", defaultObjective: "accelerate_decision" },
-  { value: "offer_introduction", label: "Présentation d'offre", family: "sales", defaultChannel: "email", defaultObjective: "present_offer" },
-  { value: "candidate_interview_invitation", label: "Invitation à un entretien candidat", family: "recruitment", defaultChannel: "email", defaultObjective: "invite_to_interview" },
-  { value: "candidate_follow_up", label: "Relance candidat", family: "recruitment", defaultChannel: "email", defaultObjective: "get_reply" },
-  { value: "candidate_offer", label: "Proposition d'embauche", family: "recruitment", defaultChannel: "email", defaultObjective: "send_offer" },
-  { value: "candidate_rejection", label: "Refus candidat", family: "recruitment", defaultChannel: "email", defaultObjective: "reject_candidate" },
-  { value: "appointment_confirmation", label: "Confirmation de rendez-vous", family: "sales", defaultChannel: "email", defaultObjective: "confirm_next_steps" },
-  { value: "manager_collaborator_internal", label: "Communication manager/collaborateur", family: "internal", defaultChannel: "internal_note", defaultObjective: "align_internal" },
-  { value: "cra_absence_reminder", label: "Rappel CRA ou absence", family: "internal", defaultChannel: "email", defaultObjective: "request_action" },
-  { value: "invoice_follow_up", label: "Relance de facture", family: "sales", defaultChannel: "email", defaultObjective: "secure_payment" },
-  { value: "project_alert_escalation", label: "Alerte projet / escalade client", family: "delivery", defaultChannel: "email", defaultObjective: "escalate_issue" },
-  { value: "steering_committee_minutes", label: "Compte-rendu de comité de pilotage", family: "delivery", defaultChannel: "email", defaultObjective: "summarize_decisions" },
-  // ADR-0009 — génération de pitch (onglet Stratégie, fiche compte)
-  { value: "cold_call_pitch", label: "Cold call prospect", family: "sales", defaultChannel: "spoken_pitch_30s", defaultObjective: "get_meeting" },
-  { value: "meeting_prep_discovery", label: "Préparation RDV découverte", family: "sales", defaultChannel: "meeting_briefing", defaultObjective: "get_meeting" },
-  { value: "meeting_prep_cross_sell", label: "Préparation RDV cross-sell", family: "sales", defaultChannel: "meeting_briefing", defaultObjective: "present_offer" },
-]
+}[] = SCENARIO_REGISTRY.map((item) => ({
+  value: item.value,
+  label: item.label,
+  family: toLegacyFamily(item.activityCategory),
+  defaultChannel: item.defaultChannel,
+  defaultObjective: item.defaultObjective,
+}))
 
 export const LENGTH_OPTIONS: { value: CommunicationLength; label: string; hint: string }[] = [
   { value: "ultra_short", label: "Ultra-court", hint: "40-80 mots" },
@@ -129,6 +128,18 @@ export const OBJECTIVE_OPTIONS: { value: CommunicationObjective; label: string }
   { value: "secure_payment", label: "Sécuriser le paiement" },
   { value: "escalate_issue", label: "Escalader un sujet" },
   { value: "summarize_decisions", label: "Synthétiser décisions et actions" },
+  // ADR-0013 Lot 1
+  { value: "announce_change", label: "Annoncer un changement" },
+  { value: "repair_relationship", label: "Réparer la relation" },
+  { value: "manage_expectations", label: "Gérer les attentes" },
+  { value: "de_escalate_tension", label: "Désamorcer une tension" },
+  { value: "close_candidate", label: "Closer un candidat" },
+  { value: "advocate_for_candidate", label: "Défendre un candidat" },
+  { value: "negotiate_terms", label: "Négocier les conditions" },
+  { value: "acknowledge_contribution", label: "Valoriser une contribution" },
+  { value: "deliver_difficult_news", label: "Annoncer une nouvelle difficile" },
+  { value: "address_performance_issue", label: "Adresser un problème de performance" },
+  { value: "secure_resources", label: "Obtenir des moyens" },
 ]
 
 export const TONE_OPTIONS: { value: CommunicationTone; label: string }[] = [
@@ -190,20 +201,27 @@ export function personaFromRelationshipRole(relationshipRole: string | null): Co
 }
 
 type DefaultBriefData = {
-  company: { lifecycleStatus: string; name: string }
+  // ADR-0013 — nul pour scope "collaborator"/"internal" (aucun compte pivot).
+  company?: { lifecycleStatus: string; name: string } | null
+  collaborator?: { id: string; name: string } | null
   contacts?: ClientIntelligenceContact[]
   communicationPreset?: CommunicationComposerPreset
+  // ADR-0013 Lot 2 — défaut "account" si omis : les call-sites qui construisent
+  // toujours un company non-nul (cockpit compte, panneau global, bibliothèque)
+  // n'ont pas besoin de le préciser.
+  scope?: CommunicationScope
 }
 
 export function buildDefaultBrief(
   data: DefaultBriefData,
   senderName: string
 ): CommunicationBrief {
-  const { company } = data
+  const { company, collaborator } = data
+  const scope: CommunicationScope = data.scope ?? "account"
   const preset = data.communicationPreset
   const scenario =
-    SCENARIO_OPTIONS.find((option) => option.value === preset?.scenario) ??
-    SCENARIO_OPTIONS[0]
+    SCENARIO_REGISTRY.find((item) => item.value === preset?.scenario) ??
+    SCENARIO_REGISTRY[0]
   const selectedContact = preset?.contactId
     ? data.contacts?.find((contact) => contact.id === preset.contactId)
     : undefined
@@ -212,7 +230,10 @@ export function buildDefaultBrief(
     what: {
       channel: preset?.channel ?? scenario.defaultChannel,
       scenario: scenario.value,
+      outputKind: scenario.defaultOutputKind,
       length: preset?.length ?? "standard",
+      activityCategory: scenario.activityCategory,
+      scope,
     },
     who: {
       sender: {
@@ -221,14 +242,15 @@ export function buildDefaultBrief(
         practice: preset?.practice,
       },
       recipient: {
-        type: recipientTypeFromLifecycle(company.lifecycleStatus),
+        type: company ? recipientTypeFromLifecycle(company.lifecycleStatus) : "internal",
         persona: selectedContact
           ? personaFromRelationshipRole(selectedContact.relationshipRole)
           : "other",
-        relation: relationFromLifecycle(company.lifecycleStatus),
+        relation: company ? relationFromLifecycle(company.lifecycleStatus) : "unknown",
         contactId: selectedContact?.id,
-        displayName: selectedContact?.fullName,
-        companyName: company.name,
+        collaboratorId: collaborator?.id,
+        displayName: selectedContact?.fullName ?? collaborator?.name,
+        companyName: company?.name ?? collaborator?.name,
       },
       objective: preset?.objective ?? scenario.defaultObjective,
     },
@@ -241,6 +263,7 @@ export function buildDefaultBrief(
       ...(preset?.refs ?? {}),
       ...(preset?.mustInclude ? { mustInclude: preset.mustInclude } : {}),
       ...(preset?.mustExclude ? { mustExclude: preset.mustExclude } : {}),
+      ...(collaborator?.id ? { collaboratorRef: collaborator.id } : {}),
     },
   }
 }
@@ -350,7 +373,7 @@ export function applyCommunicationEntryPoint(
   refs?: Partial<CommunicationBrief["context"]>
 ): CommunicationBrief {
   const preset = ENTRY_POINT_SCENARIOS[entryPoint]
-  const scenario = SCENARIO_OPTIONS.find((option) => option.value === preset.scenario)
+  const scenario = SCENARIO_REGISTRY.find((item) => item.value === preset.scenario)
   const contextHint = preset.contextHint
   const mustInclude = [
     contextHint,
@@ -363,7 +386,9 @@ export function applyCommunicationEntryPoint(
       ...brief.what,
       scenario: preset.scenario,
       channel: preset.channel ?? scenario?.defaultChannel ?? brief.what.channel,
+      outputKind: scenario?.defaultOutputKind ?? brief.what.outputKind,
       length: preset.length ?? brief.what.length,
+      activityCategory: scenario?.activityCategory ?? brief.what.activityCategory,
     },
     who: {
       ...brief.who,

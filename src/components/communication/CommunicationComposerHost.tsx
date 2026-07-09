@@ -15,6 +15,7 @@ import {
   COMMUNICATION_COMPOSER_EVENT,
   type CommunicationComposerPreset,
   type CommunicationComposerRequest,
+  type CommunicationComposerScope,
 } from "@/lib/communication/communication-composer"
 
 interface CompanyRecord {
@@ -41,11 +42,21 @@ interface ContactRecord {
 interface ResolvedEntityContext {
   companyId?: string
   contactId?: string
+  // ADR-0013 — résolution des entités sans compte pivot.
+  collaboratorId?: string
+  collaboratorName?: string
+  collaboratorPractice?: string | null
+  collaboratorTitle?: string | null
+  sectorName?: string
+  // Scope inféré du type d'entité primaire, quand le request ne le précise pas
+  // explicitement (ex: primaryEntity.type === "collaborator" → scope "collaborator").
+  inferredScope?: CommunicationComposerScope
   refs: NonNullable<CommunicationComposerPreset["refs"]>
 }
 
 type ComposerAccountContext = PitchMailAccountContext & {
   communicationPreset?: CommunicationComposerPreset
+  scope: CommunicationComposerScope
 }
 
 const MAIL_DRAWER_CHROME_CLASS = "intelligence-drawer text-body border-l border-border/40"
@@ -146,6 +157,7 @@ function ComposerAccountSelector({
 
 function ComposerContent({
   context,
+  scope,
   selectedAccount,
   onAccountChange,
   error,
@@ -153,6 +165,7 @@ function ComposerContent({
   instanceKey,
 }: {
   context: ComposerAccountContext | null
+  scope: CommunicationComposerScope
   selectedAccount: AccountValue | null
   onAccountChange: (value: AccountValue | null) => void
   error: string | null
@@ -160,6 +173,16 @@ function ComposerContent({
   instanceKey: number
 }) {
   if (!context) {
+    // ADR-0013 — le sélecteur de compte n'a de sens que pour le scope "account" :
+    // pour "collaborator"/"internal", rien à faire choisir manuellement, on
+    // affiche l'erreur factuelle de résolution telle quelle.
+    if (scope !== "account") {
+      return (
+        <div className="rounded-[var(--radius-medium)] border border-danger/30 bg-danger/10 px-3 py-2.5 text-xs text-primary-fg">
+          {error ?? "Aucune entité n'a pu être résolue pour cette action."}
+        </div>
+      )
+    }
     return (
       <ComposerAccountSelector
         value={selectedAccount}
@@ -172,7 +195,7 @@ function ComposerContent({
   return (
     <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-4">
       <PitchMailDrawerContent
-        key={`${instanceKey}:${context.company.id}:${context.communicationPreset?.contactId ?? "none"}`}
+        key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
         data={context}
         variant={variant}
       />
@@ -185,6 +208,7 @@ function DesktopCommunicationDrawer({
   onOpenChange,
   loading,
   context,
+  scope,
   selectedAccount,
   onAccountChange,
   error,
@@ -196,7 +220,7 @@ function DesktopCommunicationDrawer({
       onOpenChange={onOpenChange}
       title="Rédiger un email"
       eyebrow="Assistance IA contextuelle"
-      subtitle={context?.company.name}
+      subtitle={context?.company?.name ?? context?.collaborator?.name}
       width="default"
       loading={loading}
       className={MAIL_DRAWER_CHROME_CLASS}
@@ -205,6 +229,7 @@ function DesktopCommunicationDrawer({
     >
       <ComposerContent
         context={context}
+        scope={scope}
         selectedAccount={selectedAccount}
         onAccountChange={onAccountChange}
         error={error}
@@ -220,6 +245,7 @@ function MobileCommunicationDrawer({
   onOpenChange,
   loading,
   context,
+  scope,
   selectedAccount,
   onAccountChange,
   error,
@@ -231,7 +257,7 @@ function MobileCommunicationDrawer({
       onOpenChange={onOpenChange}
       title="Rédiger un email"
       eyebrow="Assistant IA"
-      subtitle={context?.company.name}
+      subtitle={context?.company?.name ?? context?.collaborator?.name}
       side="bottom"
       loading={loading}
       showMobileCloseButton
@@ -241,6 +267,7 @@ function MobileCommunicationDrawer({
     >
       <ComposerContent
         context={context}
+        scope={scope}
         selectedAccount={selectedAccount}
         onAccountChange={onAccountChange}
         error={error}
@@ -256,6 +283,7 @@ interface DrawerVariantProps {
   onOpenChange: (open: boolean) => void
   loading: boolean
   context: ComposerAccountContext | null
+  scope: CommunicationComposerScope
   selectedAccount: AccountValue | null
   onAccountChange: (value: AccountValue | null) => void
   error: string | null
@@ -339,6 +367,66 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
           },
         }
       }
+      // ADR-0013 Lot 0 — candidat : rattaché à un compte via son dernier
+      // positionnement (opportunity_candidates), sinon scope interne (recrutement
+      // pur, pas encore de client identifié).
+      case "candidate": {
+        const { data: positioning } = await supabase
+          .from("opportunity_candidates")
+          .select("opportunity_id, opportunities(company_id)")
+          .eq("candidate_id", entity.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const opportunity = positioning?.opportunities
+          ? (Array.isArray(positioning.opportunities) ? positioning.opportunities[0] : positioning.opportunities)
+          : null
+
+        return {
+          companyId: opportunity?.company_id ?? undefined,
+          inferredScope: opportunity?.company_id ? "account" : "internal",
+          refs: {
+            ...(positioning?.opportunity_id ? { opportunityRef: positioning.opportunity_id } : {}),
+            profileRef: entity.id,
+          },
+        }
+      }
+      // ADR-0013 Lot 0 — collaborateur : scope dédié, aucun compte requis (1:1,
+      // recadrage, sortie d'intercontrat, business review...).
+      case "collaborator": {
+        const { data } = await supabase
+          .from("collaborators")
+          .select("id, practice, current_title, persons(full_name)")
+          .eq("id", entity.id)
+          .maybeSingle()
+        const person = data?.persons
+          ? (Array.isArray(data.persons) ? data.persons[0] : data.persons)
+          : null
+        return {
+          collaboratorId: data?.id ?? entity.id,
+          collaboratorName: person?.full_name ?? undefined,
+          collaboratorPractice: data?.practice ?? null,
+          collaboratorTitle: data?.current_title ?? null,
+          inferredScope: "collaborator",
+          refs: {},
+        }
+      }
+      // ADR-0013 Lot 0 — secteur : contexte sectoriel pur, jamais de compte.
+      // Reste en scope "account" (catégorie commerciale) mais companyId null —
+      // le nom du secteur est injecté en mustInclude par hydrate().
+      case "sector": {
+        const { data } = await supabase
+          .from("sector_intelligence")
+          .select("id, name")
+          .eq("id", entity.id)
+          .maybeSingle()
+        return {
+          sectorName: data?.name ?? undefined,
+          inferredScope: "account",
+          refs: {},
+        }
+      }
       default:
         return { refs: {} }
     }
@@ -354,6 +442,77 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
 
     try {
       const inferred = await resolvePrimaryEntity(currentRequest)
+      // ADR-0013 — scope explicite du request, sinon inféré du type d'entité
+      // primaire (ex: primaryEntity.type === "collaborator"), sinon "account"
+      // (comportement historique, rétro-compatible avec tous les call-sites existants).
+      const scope: CommunicationComposerScope = currentRequest.scope ?? inferred.inferredScope ?? "account"
+
+      // ── Scope "collaborator" — aucun compte requis, contexte = collaborateur ──
+      if (scope === "collaborator") {
+        const collaboratorId = currentRequest.collaboratorId ?? inferred.collaboratorId
+        if (!collaboratorId) {
+          if (sequence !== loadSequence.current) return
+          setError("Aucun collaborateur n'a pu être résolu pour cette action.")
+          return
+        }
+
+        let collaboratorName = inferred.collaboratorName
+        let collaboratorPractice = inferred.collaboratorPractice ?? null
+        let collaboratorTitle = inferred.collaboratorTitle ?? null
+
+        // collaboratorId peut être passé directement (sans primaryEntity) — le
+        // résoudre dans ce cas plutôt que de dépendre uniquement de resolvePrimaryEntity.
+        if (!collaboratorName) {
+          const { data } = await supabase
+            .from("collaborators")
+            .select("id, practice, current_title, persons(full_name)")
+            .eq("id", collaboratorId)
+            .maybeSingle()
+          const person = data?.persons
+            ? (Array.isArray(data.persons) ? data.persons[0] : data.persons)
+            : null
+          collaboratorName = person?.full_name ?? undefined
+          collaboratorPractice = data?.practice ?? null
+          collaboratorTitle = data?.current_title ?? null
+        }
+
+        if (sequence !== loadSequence.current) return
+
+        if (!collaboratorName) {
+          setError("Le collaborateur sélectionné n'a pas pu être résolu.")
+          return
+        }
+
+        setContext({
+          scope,
+          company: null,
+          collaborator: {
+            id: collaboratorId,
+            name: collaboratorName,
+            practice: collaboratorPractice,
+            currentTitle: collaboratorTitle,
+          },
+          contacts: [],
+          communicationPreset: mergePreset(currentRequest, inferred),
+        })
+        setInstanceKey((key) => key + 1)
+        return
+      }
+
+      // ── Scope "internal" — aucune entité requise, contexte porté par le prompt ──
+      if (scope === "internal") {
+        setContext({
+          scope,
+          company: null,
+          collaborator: null,
+          contacts: [],
+          communicationPreset: mergePreset(currentRequest, inferred),
+        })
+        setInstanceKey((key) => key + 1)
+        return
+      }
+
+      // ── Scope "account" (défaut) — comportement historique ──
       let companyId = currentRequest.companyId ?? inferred.companyId
       let company: CompanyRecord | null = null
 
@@ -425,6 +584,25 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       if (sequence !== loadSequence.current) return
 
       if (!company || !companyId) {
+        // ADR-0013 — secteur pur (companyId volontairement absent) : pas de
+        // forçage du sélecteur de compte, le contexte sectoriel est injecté en
+        // mustInclude et le drawer s'ouvre directement.
+        if (inferred.sectorName) {
+          const preset = mergePreset(currentRequest, inferred)
+          const sectorMustInclude = `[SECTEUR_CONTEXT]\nSecteur : ${inferred.sectorName}\n\nAncre le message/pitch sur ce secteur, sans supposer de compte précis.`
+          preset.mustInclude = [sectorMustInclude, preset.mustInclude].filter(Boolean).join("\n\n")
+
+          setContext({
+            scope,
+            company: null,
+            collaborator: null,
+            contacts: [],
+            communicationPreset: preset,
+          })
+          setInstanceKey((key) => key + 1)
+          return
+        }
+
         setSelectedAccount(null)
         setError(
           currentRequest.companyName
@@ -456,11 +634,13 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
 
       setSelectedAccount({ id: company.id, name: company.name, isNew: false })
       setContext({
+        scope,
         company: {
           id: company.id,
           name: company.name,
           lifecycleStatus: company.lifecycle_status,
         },
+        collaborator: null,
         contacts,
         communicationPreset: preset,
       })
@@ -520,6 +700,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     onOpenChange: handleOpenChange,
     loading,
     context,
+    scope: context?.scope ?? request.scope ?? "account",
     selectedAccount,
     onAccountChange: handleAccountChange,
     error,

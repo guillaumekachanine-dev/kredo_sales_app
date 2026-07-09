@@ -12,6 +12,7 @@ export type DocumentListItem = {
   primaryEntity: { type: string; id: string; label: string } | null
   qualityOk: boolean | null
   ownerName: string
+  scenarioLabel: string | null
   createdAt: string
   updatedAt: string
 }

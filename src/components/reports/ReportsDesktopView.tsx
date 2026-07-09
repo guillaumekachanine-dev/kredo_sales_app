@@ -110,6 +110,109 @@ const FavoriteIcon = ({ active }: { active: boolean }) => (
   </svg>
 )
 
+// ─── Run IA helpers ────────────────────────────────────────────────────────
+
+function extractMoteur(doc: DocumentDetail): string {
+  const latestVersion = doc.versions[0] ?? null
+  const brief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
+  if (brief && typeof brief === "object") {
+    const b = brief as Record<string, any>
+    return b.model || b.modelName || "KREDO-GPT-4o"
+  }
+  return "KREDO-GPT-4o"
+}
+
+function extractQualiteStatus(doc: DocumentDetail): {
+  label: string | null
+  ok: boolean
+  details: string[]
+} {
+  const latestVersion = doc.versions[0] ?? null
+  const qaFlags: any[] = (latestVersion?.qaFlags as any[]) || []
+  if (qaFlags.length === 0) return { label: null, ok: true, details: [] }
+  const failed = qaFlags.filter((f) => f && typeof f === "object" && !f.passed)
+  return {
+    label: failed.length === 0 ? "Qualité OK" : "À vérifier",
+    ok: failed.length === 0,
+    details: failed.map((f: any) => f.detail || f.check || "Anomalie non spécifiée"),
+  }
+}
+
+function RunIaMoteurRow({ document }: { document: DocumentDetail }) {
+  const moteur = extractMoteur(document)
+  return (
+    <div className="flex justify-between border-b border-border/10 pb-1.5">
+      <span className="text-muted">Moteur</span>
+      <span className="font-semibold text-heading font-mono text-[9px]">{moteur}</span>
+    </div>
+  )
+}
+
+function RunIaQualiteRow({ document }: { document: DocumentDetail }) {
+  const { label, ok, details } = extractQualiteStatus(document)
+  if (!label) return null
+  return (
+    <div className="flex justify-between pb-0.5">
+      <span className="flex items-center gap-1 text-muted">
+        Statut qualité
+        {/* Info tooltip icon */}
+        <span className="relative group/tooltip inline-flex">
+          <svg
+            className="size-3 text-muted/60 hover:text-muted cursor-help"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-label="Détails du statut qualité"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {/* Tooltip bubble */}
+          <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 rounded-lg border border-border/50 bg-canvas px-2.5 py-2 text-[9px] leading-relaxed text-body shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 z-50">
+            {ok
+              ? "Tous les contrôles qualité sont passés avec succès."
+              : details.length > 0
+              ? details.join(" · ")
+              : "Des anomalies qualité ont été détectées."}
+          </span>
+        </span>
+      </span>
+      <span className={`flex items-center gap-1 font-semibold ${ok ? "text-success" : "text-warning"}`}>
+        <span className={`size-1.5 rounded-full ${ok ? "bg-success" : "bg-warning"}`} />
+        {label}
+      </span>
+    </div>
+  )
+}
+
+// ─── Follow-up button for mail documents ──────────────────────────────────
+
+function FollowUpButton({ documentId }: { documentId: string }) {
+  const [isPending, startTransition] = useTransition()
+
+  function handleFollowUp() {
+    startTransition(async () => {
+      const { prepareCommunicationReuse } = await import("@/app/(app)/reports/_data/reports-actions")
+      const result = await prepareCommunicationReuse(documentId, "follow_up")
+      if ("error" in result) return // silently ignore; full action available in DocumentCommunicationActions
+    })
+  }
+
+  return (
+    <button
+      onClick={handleFollowUp}
+      disabled={isPending}
+      className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors disabled:opacity-50 cursor-pointer"
+    >
+      <span>{isPending ? "Préparation…" : "Relance à partir de ce message"}</span>
+    </button>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+
 type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
 
 export function ReportsDesktopView({
@@ -460,59 +563,101 @@ export function ReportsDesktopView({
             <div className="flex flex-col gap-2.5 max-h-[62vh] overflow-y-auto pr-1">
               {reportsData.items.map((item) => {
                 const isActive = item.id === selectedDocumentId
-                const cat = getDocumentTypeLabel(item.documentType) // "rapport" | "pitch" | "mail"
-                
+                const cat = getDocumentTypeLabel(item.documentType)
+                const isMailOrPitch = cat === "mail" || cat === "pitch"
+
+                const entityLabel = item.primaryEntity?.label ?? null
+                const typeLabel = DOCUMENT_OBJECT_LABELS[item.documentType]
+
+                // Format creation date as DD/MM/YYYY
+                const createdDate = (() => {
+                  const d = new Date(item.createdAt)
+                  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`
+                })()
+
                 return (
                   <div
                     key={item.id}
                     onClick={() => handleSelectDocument(item.id)}
-                    className={`group relative flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
+                    className={`group relative flex items-start gap-2.5 rounded-xl border p-3 transition-all cursor-pointer ${
                       isActive
                         ? "border-primary bg-surface/60 shadow-[0_0_15px_rgba(255,191,0,0.1)]"
                         : "border-border/30 bg-surface/30 hover:border-border hover:bg-surface-hover/30"
                     }`}
                   >
-                    {/* Left Icon depending on category */}
-                    <div className={`mt-0.5 rounded-lg p-2 ${
-                      isActive ? "bg-primary/10" : "bg-surface-hover/30"
-                    }`}>
+                    {/* Left icon */}
+                    <div className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${isActive ? "bg-primary/10" : "bg-surface-hover/30"}`}>
                       {cat === "rapport" ? (
-                        <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="size-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       ) : cat === "pitch" ? (
-                        <svg className="size-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="size-3.5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                         </svg>
                       ) : (
-                        <svg className="size-4 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg className="size-3.5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L22 8m-9.28 12H5a2 2 0 01-2-2V9.67l7.89 5.26a2 2 0 002.22 0L22 9.67V18a2 2 0 01-2 2h-6.72z" />
                         </svg>
                       )}
                     </div>
 
-                    {/* Middle details */}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center gap-1.5 pr-2">
-                        <span className={`block truncate text-xs font-bold leading-snug transition-colors ${
-                          isActive ? "text-primary" : "text-body group-hover:text-heading"
-                        }`}>
-                          {item.title}
-                        </span>
-                        {item.isFavorite && (
-                          <span className="shrink-0 text-primary">★</span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-muted truncate">
-                        {item.primaryEntity?.label ?? "Pas d'entité"}
-                      </p>
-                      <p className="text-[9px] text-muted/80">
-                        aujourd&apos;hui à {formatShortDate(item.updatedAt)}
+                    {/* Text content */}
+                    <div className="min-w-0 flex-1 pr-10">
+                      {isMailOrPitch ? (
+                        <>
+                          {/* Mail / Pitch — L1: client, L2: scénario, L3: titre */}
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className={`truncate text-xs font-bold leading-snug transition-colors ${
+                              isActive ? "text-primary" : "text-body group-hover:text-heading"
+                            }`}>
+                              {entityLabel ?? "—"}
+                            </span>
+                            {item.isFavorite && (
+                              <span className="shrink-0 text-primary text-[10px] ml-0.5">★</span>
+                            )}
+                          </div>
+                          {item.scenarioLabel && (
+                            <p className="text-[10px] text-muted truncate mb-0.5">
+                              {item.scenarioLabel}
+                            </p>
+                          )}
+                          <p className={`text-[10px] truncate leading-snug transition-colors ${
+                            isActive ? "text-primary/80" : "text-muted/70 group-hover:text-body/80"
+                          }`}>
+                            {item.title}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {/* Rapport — L1: titre, L2: client + type */}
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <span className={`block truncate text-xs font-bold leading-snug transition-colors ${
+                              isActive ? "text-primary" : "text-body group-hover:text-heading"
+                            }`}>
+                              {item.title}
+                            </span>
+                            {item.isFavorite && (
+                              <span className="shrink-0 text-primary text-[10px]">★</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted truncate">
+                            {entityLabel
+                              ? <>{entityLabel}<span className="mx-1 opacity-40">·</span><span className="opacity-70">{typeLabel}</span></>
+                              : <span className="opacity-70">{typeLabel}</span>
+                            }
+                          </p>
+                        </>
+                      )}
+
+                      {/* Line 3 — creation date (all categories) */}
+                      <p className="text-[9px] text-muted/70 mt-0.5">
+                        Créé le {createdDate}
                       </p>
                     </div>
 
-                    {/* Right category badge */}
-                    <span className={`shrink-0 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                    {/* Category badge — top right */}
+                    <span className={`absolute top-2.5 right-2.5 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
                       isActive
                         ? "border-primary/20 bg-primary/10 text-primary"
                         : "border-border/30 bg-surface-hover/20 text-muted"
@@ -780,10 +925,14 @@ export function ReportsDesktopView({
                     <span className="text-muted">Version</span>
                     <span className="font-semibold text-heading font-mono">v{selectedDocument.versionNumber}.0</span>
                   </div>
-                  <div className="flex justify-between pb-0.5">
+                  <div className="flex justify-between border-b border-border/10 pb-1.5">
                     <span className="text-muted">Modifié le</span>
                     <span className="font-semibold text-heading">{formatShortDate(selectedDocument.updatedAt)}</span>
                   </div>
+                  {/* Moteur row (moved from DocumentGenerationParameters) */}
+                  <RunIaMoteurRow document={selectedDocument} />
+                  {/* Statut qualité row with tooltip */}
+                  <RunIaQualiteRow document={selectedDocument} />
                 </div>
               </div>
 
@@ -824,8 +973,12 @@ export function ReportsDesktopView({
                     onClick={handleDuplicate}
                     className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
                   >
-                    <span>Dupliquer</span>
+                    <span>Adapter à un autre contexte</span>
                   </button>
+                  {/* Mail-specific: follow-up action */}
+                  {selectedDocument.documentType === "communication" && (
+                    <FollowUpButton documentId={selectedDocument.id} />
+                  )}
                   <button
                     onClick={handleToggleFavorite}
                     className={`w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${
@@ -847,18 +1000,19 @@ export function ReportsDesktopView({
                 </div>
               </div>
 
-              {/* Historique des Versions */}
-              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3">
-                <h4 className="font-heading text-xs font-bold text-heading">
-                  Historique
-                </h4>
-                <div className="border-t border-border/10 pt-3">
+              {/* Historique des Versions — replié par défaut */}
+              <details className="rounded-xl border border-border/30 bg-surface/30 group">
+                <summary className="cursor-pointer p-4 font-heading text-xs font-bold text-heading flex items-center justify-between select-none list-none [&::-webkit-details-marker]:hidden">
+                  <span>Historique</span>
+                  <span className="text-muted group-open:rotate-180 transition-transform duration-200 text-[10px]">▼</span>
+                </summary>
+                <div className="border-t border-border/10 p-4 pt-3">
                   <DocumentVersionHistory
                     key={`${selectedDocument.id}-${selectedDocument.versionNumber}`}
                     versions={selectedDocument.versions}
                   />
                 </div>
-              </div>
+              </details>
             </>
           ) : (
             /* Fallback sidebar details when nothing selected */

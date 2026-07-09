@@ -21,7 +21,9 @@ export function CommunicationResult({
 }: {
   result: CommunicationOutput
   qaFlags: CommunicationQaFlag[]
-  companyId: string
+  // ADR-0013 — absent quand le brief n'a pas de compte pivot (scope collaborateur/interne) :
+  // la journalisation en interaction CRM n'a alors pas de sens, le bouton correspondant est masqué.
+  companyId?: string | null
   companyName: string
   channelLabel: string
   brief: CommunicationBrief
@@ -56,6 +58,7 @@ export function CommunicationResult({
   }
 
   async function handleSaveInteraction() {
+    if (!companyId) return
     setInteractionStatus("saving")
     const res = await saveCommunicationInteraction({ companyId, brief, result })
     setInteractionStatus(res.error ? "error" : "saved")
@@ -176,25 +179,27 @@ export function CommunicationResult({
           {documentStatus === "error" && "Échec — réessayer"}
           {documentStatus === "idle" && "Enregistrer dans la bibliothèque"}
         </button>
-        <button
-          type="button"
-          onClick={handleSaveInteraction}
-          disabled={interactionStatus === "saving" || interactionStatus === "saved"}
-          className={cn(
-            "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
-            isMobile ? "min-h-[44px]" : "min-h-[36px]",
-            interactionStatus === "saved"
-              ? "border-success/30 bg-success/10 text-success cursor-default"
-              : interactionStatus === "error"
-                ? "border-danger/30 bg-danger/5 text-danger"
-                : "border-border bg-surface text-body hover:bg-canvas"
-          )}
-        >
-          {interactionStatus === "saving" && "Journalisation…"}
-          {interactionStatus === "saved" && "✓ Interaction journalisée"}
-          {interactionStatus === "error" && "Échec — réessayer"}
-          {interactionStatus === "idle" && "Journaliser comme interaction"}
-        </button>
+        {companyId && (
+          <button
+            type="button"
+            onClick={handleSaveInteraction}
+            disabled={interactionStatus === "saving" || interactionStatus === "saved"}
+            className={cn(
+              "w-full inline-flex items-center justify-center gap-2 rounded border px-3 text-xs font-bold transition-colors",
+              isMobile ? "min-h-[44px]" : "min-h-[36px]",
+              interactionStatus === "saved"
+                ? "border-success/30 bg-success/10 text-success cursor-default"
+                : interactionStatus === "error"
+                  ? "border-danger/30 bg-danger/5 text-danger"
+                  : "border-border bg-surface text-body hover:bg-canvas"
+            )}
+          >
+            {interactionStatus === "saving" && "Journalisation…"}
+            {interactionStatus === "saved" && "✓ Interaction journalisée"}
+            {interactionStatus === "error" && "Échec — réessayer"}
+            {interactionStatus === "idle" && "Journaliser comme interaction"}
+          </button>
+        )}
       </div>
     </div>
   )

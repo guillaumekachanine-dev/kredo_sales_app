@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/types/database"
+import { SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 import type {
   DocumentDetail,
   DocumentDetailResult,
@@ -353,6 +354,14 @@ function buildDocumentListItem(
     primaryEntity,
     qualityOk: computeQualityOk(latestVersion?.qa_flags ?? null),
     ownerName: getOwnerName(row.owner),
+    scenarioLabel: (() => {
+      const raw = latestVersion?.brief_json
+      if (!raw || typeof raw !== "object") return null
+      const brief = raw as Record<string, any>
+      const scenario = brief.what?.scenario ?? brief.preset?.scenario ?? brief.scenario
+      if (typeof scenario !== "string" || !scenario) return null
+      return SCENARIO_REGISTRY.find((item) => item.value === scenario)?.label ?? null
+    })(),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

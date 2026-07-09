@@ -12,7 +12,8 @@ import {
 import {
   buildCampaignPayload,
 } from "./intelligence-action-utils"
-import { buildDefaultBrief, CHANNEL_OPTIONS, SCENARIO_OPTIONS, isPitchChannel } from "./communication-brief-options"
+import { buildDefaultBrief, CHANNEL_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
+import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
 import { PitchResult } from "./PitchResult"
@@ -24,12 +25,23 @@ type RunStatus = "idle" | "loading" | "done" | "error"
 // que par AccountIntelligencePanelData (panneau global) : la génération pitch/mail
 // n'a jamais eu besoin des analyses/diagnostics complets, seulement du compte et
 // des contacts.
+// ADR-0013 — `company` devient nul pour les scénarios sans compte pivot (scope
+// collaborateur/interne : business review, brief manager, arbitrage interne...).
+// `collaborator` porte alors le contexte à la place. Les 5 autres call-sites de
+// ce composant (cockpit compte, panneau global, bibliothèque) passent toujours
+// un `company` non-nul et n'ont rien à changer.
 export type PitchMailAccountContext = {
   company: {
     id: string
     name: string
     lifecycleStatus: string
-  }
+  } | null
+  collaborator?: {
+    id: string
+    name: string
+    practice: string | null
+    currentTitle: string | null
+  } | null
   contacts: ClientIntelligenceContact[]
 }
 
@@ -48,9 +60,13 @@ export function PitchMailDrawerContent({
   entityId?: string
   contextMetaLabel?: string
 }) {
-  const { company, contacts } = data
+  const { company, collaborator, contacts } = data
   const isMobile = variant === "mobile"
   const supabase = createClient()
+  // ADR-0013 — libellé de contexte affiché quand il n'y a pas de compte (scope
+  // collaborateur/interne) : jamais de valeur inventée, "Contexte interne" est
+  // factuel plutôt qu'un nom de compte fantôme.
+  const contextLabel = company?.name ?? collaborator?.name ?? "Contexte interne"
 
   const [brief, setBrief] = useState<CommunicationBrief>(() => initialBrief ?? buildDefaultBrief(data, ""))
 
@@ -67,19 +83,27 @@ export function PitchMailDrawerContent({
   const [offersLoading, setOffersLoading] = useState(false)
 
   useEffect(() => {
+    // ADR-0013 — pas de catalogue d'offres suggérées sans compte pivot (scope
+    // collaborateur/interne) : les scénarios requérant une offre y sont de toute
+    // façon exclus (requiresOffer piloté par scope, Lot 2). Rien à réinitialiser
+    // ici : le Host remonte ce composant (key sur l'identité de l'entité) à
+    // chaque changement de contexte, donc les états offers/loading repartent
+    // déjà de leur valeur initiale ([]/false) pour un scope sans compte.
+    const companyId = company?.id
+    if (!companyId) return
     let cancelled = false
-    async function loadOffers() {
+    async function loadOffers(id: string) {
       setOffersLoading(true)
-      const res = await getSuggestedOffers(company.id)
+      const res = await getSuggestedOffers(id)
       if (!cancelled) {
         setOffers(res.offers)
         setSuggestedPracticeSlugs(res.suggestedPracticeSlugs)
         setOffersLoading(false)
       }
     }
-    void loadOffers()
+    void loadOffers(companyId)
     return () => { cancelled = true }
-  }, [company.id])
+  }, [company?.id])
 
   // Émetteur dérivé du profil connecté — § 4.2, seul le rôle reste modifiable en UI
   useEffect(() => {
@@ -138,6 +162,16 @@ export function PitchMailDrawerContent({
   }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleGenerate() {
+    // ADR-0013 — sans compte pivot, l'entité effective vient de entityId (passé
+    // explicitement par le Host pour scope collaborateur/interne) ou du collaborateur
+    // résolu. Garde-fou factuel plutôt qu'un appel API voué à échouer côté n8n.
+    const effectiveEntityId = entityId ?? company?.id ?? collaborator?.id
+    if (!effectiveEntityId) {
+      setErrorMsg("Aucune entité n'a pu être résolue pour cette génération.")
+      setRunStatus("error")
+      return
+    }
+
     setRunStatus("loading")
     setResult(null)
     setResultId(null)
@@ -151,8 +185,8 @@ export function PitchMailDrawerContent({
         body: JSON.stringify({
           workflowId: "intel-020-communication",
           entityType,
-          entityId: entityId ?? company.id,
-          companyId: entityType === "company" ? company.id : undefined,
+          entityId: effectiveEntityId,
+          companyId: entityType === "company" ? company?.id : undefined,
           input: brief,
         }),
       })
@@ -182,8 +216,12 @@ export function PitchMailDrawerContent({
 
   const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
   const scenarioLabel = SCENARIO_OPTIONS.find((o) => o.value === brief.what.scenario)?.label ?? brief.what.scenario
-  const isPitch = isPitchChannel(brief.what.channel)
-  const missingOfferRef = isPitch && !brief.context.offerRef
+  // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) ; l'offre
+  // n'est bloquante que pour les scénarios où requiresOffer === true (D-5,
+  // supersede ADR-0009 §6).
+  const isPitch = brief.what.outputKind !== "written_message"
+  const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
+  const missingOfferRef = requiresOffer && !brief.context.offerRef
 
   // ── Résultat généré ──────────────────────────────────────────────────────────
   if (runStatus === "done" && result) {
@@ -192,7 +230,7 @@ export function PitchMailDrawerContent({
         <PitchResult
           result={result}
           qaFlags={qaFlags}
-          companyName={company.name}
+          companyName={contextLabel}
           scenarioLabel={scenarioLabel}
           resultId={resultId}
           isMobile={isMobile}
@@ -204,8 +242,8 @@ export function PitchMailDrawerContent({
       <CommunicationResult
         result={result}
         qaFlags={qaFlags}
-        companyId={company.id}
-        companyName={company.name}
+        companyId={company?.id}
+        companyName={contextLabel}
         channelLabel={channelLabel}
         brief={brief}
         resultId={resultId}

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/types/database"
+import { SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 import type {
   DocumentListItem,
   ReportsFilterState,
@@ -55,6 +56,7 @@ type LatestVersionRow = {
   document_id: string
   version_number: number
   qa_flags: unknown
+  brief_json: unknown
 }
 
 type LinkRow = {
@@ -389,6 +391,17 @@ async function resolveEntityLabels(
   return labels
 }
 
+function extractScenarioLabel(version: LatestVersionRow | undefined): string | null {
+  if (!version) return null
+  const raw = version.brief_json
+  if (!raw || typeof raw !== "object") return null
+  const brief = raw as Record<string, any>
+  // CommunicationBrief shape: brief.what.scenario
+  const scenario = brief.what?.scenario ?? brief.preset?.scenario ?? brief.scenario
+  if (typeof scenario !== "string" || !scenario) return null
+  return SCENARIO_REGISTRY.find((item) => item.value === scenario)?.label ?? null
+}
+
 function buildListItem(
   row: DocumentRow,
   labelMap: Map<string, string>,
@@ -405,6 +418,8 @@ function buildListItem(
         }
       : null
 
+  const latestVersion = latestVersionByDocumentId.get(row.id)
+
   return {
     id: row.id,
     title: row.title,
@@ -414,8 +429,9 @@ function buildListItem(
     isFavorite: row.is_favorite,
     tags: row.tags ?? [],
     primaryEntity,
-    qualityOk: computeQualityOk(latestVersionByDocumentId.get(row.id)?.qa_flags),
+    qualityOk: computeQualityOk(latestVersion?.qa_flags),
     ownerName: getOwnerName(row.owner),
+    scenarioLabel: extractScenarioLabel(latestVersion),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -521,7 +537,7 @@ export async function getReportsList(input?: {
       documentIds.length
         ? supabase
             .from("intelligence_document_versions")
-            .select<LatestVersionRow>("document_id, version_number, qa_flags")
+            .select<LatestVersionRow>("document_id, version_number, qa_flags, brief_json")
             .in("document_id", documentIds)
             .order("version_number", { ascending: false })
         : Promise.resolve({
