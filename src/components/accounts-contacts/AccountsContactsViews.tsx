@@ -16,6 +16,7 @@ import {
   filterAccounts,
   filterContacts,
 } from "@/lib/accounts-contacts/accounts-contacts-filters"
+import { relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
 import { useUrlFilters } from "@/lib/search/use-url-filters"
 import { SearchToolbar } from "@/components/search/SearchToolbar"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
@@ -1128,10 +1129,12 @@ function AccountsMobile({
             </div>
 
             {!isSectorCollapsed && sectorAccounts.map((account) => {
+              const roleRank = (role: string | null) =>
+                role === "decideur" ? 0 : role === "prescripteur" ? 1 : 2
               const accountContacts = (contactsByCompanyId.get(account.id) ?? []).slice().sort((a, b) => {
-                const decideurA = a.relationshipRole === "decideur" ? 0 : 1
-                const decideurB = b.relationshipRole === "decideur" ? 0 : 1
-                if (decideurA !== decideurB) return decideurA - decideurB
+                const rankA = roleRank(a.relationshipRole)
+                const rankB = roleRank(b.relationshipRole)
+                if (rankA !== rankB) return rankA - rankB
                 return a.fullName.localeCompare(b.fullName, "fr")
               })
               const isContactsExpanded = expandedAccounts[account.id] === true
@@ -1201,7 +1204,7 @@ function AccountsMobile({
                           </span>
                         ) : (
                           accountContacts.map((contact) => {
-                            const isDecideur = contact.relationshipRole === "decideur"
+                            const accentColor = relationshipRoleAccentColor(contact.relationshipRole)
                             const lineTitle = `${contact.fullName} - ${contact.jobTitle || "Fonction non renseignée"}`
 
                             return (
@@ -1211,8 +1214,12 @@ function AccountsMobile({
                                 onClick={() => onOpenContactIdentity(contact.id)}
                                 className="flex w-full items-center gap-2 pl-9 pr-3 py-2 text-left transition-colors hover:bg-canvas/35"
                               >
-                                {isDecideur ? (
-                                  <span className="h-5 w-1 shrink-0 rounded-full bg-[#FFB812]" aria-hidden="true" />
+                                {accentColor ? (
+                                  <span
+                                    className="h-5 w-1 shrink-0 rounded-full"
+                                    style={{ backgroundColor: accentColor }}
+                                    aria-hidden="true"
+                                  />
                                 ) : (
                                   <span className="w-1 shrink-0" aria-hidden="true" />
                                 )}

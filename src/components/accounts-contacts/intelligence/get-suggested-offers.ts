@@ -7,6 +7,8 @@ export type SuggestedOffer = {
   name: string
   practiceName: string
   practiceSlug: string
+  practiceColor: string
+  practiceSortOrder: number
   shortDescription: string | null
 }
 
@@ -16,11 +18,13 @@ export type SuggestedOffersResult = {
   error: string | null
 }
 
+type OfferPracticeRef = { name: string; slug: string; color_hex: string | null; sort_order: number }
+
 type OfferRow = {
   id: string
   name: string
   short_description: string | null
-  offer_practices: { name: string; slug: string } | { name: string; slug: string }[] | null
+  offer_practices: OfferPracticeRef | OfferPracticeRef[] | null
 }
 
 // ADR-0009 — alimente l'OfferPicker du formulaire de génération de pitch.
@@ -48,7 +52,7 @@ export async function getSuggestedOffers(companyId: string): Promise<SuggestedOf
   const [offersResult, contextResult] = await Promise.all([
     supabase
       .from("offers")
-      .select("id,name,short_description,offer_practices(name,slug)")
+      .select("id,name,short_description,offer_practices(name,slug,color_hex,sort_order)")
       .eq("is_active", true)
       .order("name"),
     supabase.rpc("get_pitch_context", { p_workspace_id: workspaceId, p_company_id: companyId }),
@@ -65,6 +69,8 @@ export async function getSuggestedOffers(companyId: string): Promise<SuggestedOf
       name: row.name,
       practiceName: practice?.name ?? "",
       practiceSlug: practice?.slug ?? "",
+      practiceColor: practice?.color_hex ?? "#2554B8",
+      practiceSortOrder: practice?.sort_order ?? 99,
       shortDescription: row.short_description,
     }
   })

@@ -15,8 +15,13 @@ import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/inte
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
-import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
+import { normalizeContactRelationshipRole, relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import {
+  fetchPersistedCrmLauncherAccountIds,
+  persistCrmLauncherAccountIds,
+  toggleCrmLauncherAccountId,
+} from "@/lib/crm/account-launcher-preferences"
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -413,6 +418,8 @@ export function CompanyIdentityDrawer({
     if (!data || favoritePending) return
     const nextPriority = data.company.priority === "haute" ? "normale" : "haute"
     const previousPriority = data.company.priority
+    const shouldBePinned = nextPriority === "haute"
+    const companyId = data.company.id
 
     setFavoritePending(true)
     setData((prev) =>
@@ -421,14 +428,29 @@ export function CompanyIdentityDrawer({
         : prev
     )
 
-    const result = await toggleCompanyFavorite(data.company.id, nextPriority === "haute")
+    const result = await toggleCompanyFavorite(companyId, shouldBePinned)
     if (result.error) {
       setData((prev) =>
         prev
           ? { ...prev, company: { ...prev.company, priority: previousPriority } }
           : prev
       )
+      setFavoritePending(false)
+      return
     }
+
+    // Synchronise la liste "Favoris" du CRM Launcher avec l'état de l'étoile
+    try {
+      const currentPinnedIds = await fetchPersistedCrmLauncherAccountIds()
+      const isPinned = currentPinnedIds.includes(companyId)
+      if (shouldBePinned !== isPinned) {
+        const { nextIds } = toggleCrmLauncherAccountId(currentPinnedIds, companyId)
+        await persistCrmLauncherAccountIds(nextIds)
+      }
+    } catch (error) {
+      console.error("Failed to sync CRM launcher favorites list", error)
+    }
+
     setFavoritePending(false)
   }
 
@@ -825,8 +847,8 @@ export function CompanyIdentityDrawer({
               // Role hierarchy for sorting (lower index = higher priority)
               const ROLE_ORDER: Record<string, number> = {
                 decideur: 0,
-                sponsor: 1,
-                prescripteur: 2,
+                prescripteur: 1,
+                sponsor: 2,
                 acheteur: 3,
                 operationnel: 4,
               }
@@ -932,7 +954,7 @@ export function CompanyIdentityDrawer({
                         const person = contact.persons
                         if (!person) return null
                         const lineName = formatContactLineName(person)
-                        const isDecideur = normalizeContactRelationshipRole(contact.relationship_role) === "decideur"
+                        const accentColor = relationshipRoleAccentColor(contact.relationship_role)
                         const lineParts = [lineName, contact.job_title || null].filter(Boolean)
 
                         return (
@@ -944,8 +966,12 @@ export function CompanyIdentityDrawer({
                               onOpenContactIdentity ? "cursor-pointer hover:border-primary/30 hover:bg-primary/[0.04]" : ""
                             )}
                           >
-                            {isDecideur ? (
-                              <span className="h-8 w-1 rounded-full bg-[#FFB812] shrink-0" aria-hidden="true" />
+                            {accentColor ? (
+                              <span
+                                className="h-8 w-1 rounded-full shrink-0"
+                                style={{ backgroundColor: accentColor }}
+                                aria-hidden="true"
+                              />
                             ) : null}
                             <Image
                               src="/icons_set/cockpit_intelligence/compte_contact.png"

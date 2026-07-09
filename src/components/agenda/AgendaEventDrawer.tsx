@@ -174,6 +174,17 @@ export function AgendaEventDrawer({
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  const loadContactsForCompany = useEffectEvent(async (nextCompanyId?: string | null) => {
+    if (!nextCompanyId) {
+      setContacts([])
+      return
+    }
+    setLoadingContacts(true)
+    const data = await getContactsByCompany(nextCompanyId)
+    setContacts(data)
+    setLoadingContacts(false)
+  })
+
   const syncDrawerState = useEffectEvent(() => {
     setErrors({})
     setServerError(null)
@@ -233,6 +244,7 @@ export function AgendaEventDrawer({
         context_id: metadata.linkedContext?.id || "",
         ...taskState,
       })
+      void loadContactsForCompany(event.company?.id ?? null)
     } else {
       setMode("create")
       const today = new Date()
@@ -249,6 +261,7 @@ export function AgendaEventDrawer({
           : initialValues?.contact_ids || [],
         ...initialValues,
       })
+      void loadContactsForCompany(initialValues?.company?.id ?? null)
     }
   })
 
@@ -263,36 +276,6 @@ export function AgendaEventDrawer({
   }, [])
 
   const companyId = form.company?.id
-  const syncContacts = useEffectEvent(async (nextCompanyId?: string | null) => {
-    if (nextCompanyId) {
-      setLoadingContacts(true)
-      const data = await getContactsByCompany(nextCompanyId)
-      setContacts(data)
-      setLoadingContacts(false)
-      setForm((prev) =>
-        prev.contact_id && !data.some((contact) => contact.id === prev.contact_id)
-          ? {
-              ...prev,
-              contact_id: "",
-              contact_ids: prev.contact_ids.filter((id) => data.some((contact) => contact.id === id)),
-            }
-          : prev
-      )
-    } else {
-      setContacts([])
-      setForm((prev) =>
-        prev.contact_id || prev.contact_ids.length > 0
-          ? { ...prev, contact_id: "", contact_ids: [] }
-          : prev
-      )
-    }
-  })
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      void syncContacts(companyId)
-    })
-  }, [companyId])
 
   const syncContextOptions = useEffectEvent(async (kind: ContextLinkType, nextCompanyId?: string | null) => {
     setLoadingContextOptions(true)
@@ -616,6 +599,16 @@ export function AgendaEventDrawer({
                     setField("company", val)
                     setField("contact_id", "")
                     setField("contact_ids", [])
+                    const nextCompanyId = val?.id ?? null
+                    if (nextCompanyId) {
+                      setLoadingContacts(true)
+                      getContactsByCompany(nextCompanyId).then((data) => {
+                        setContacts(data)
+                        setLoadingContacts(false)
+                      })
+                    } else {
+                      setContacts([])
+                    }
                   }}
                   allowCreate={false}
                   openOnFocus
@@ -640,7 +633,7 @@ export function AgendaEventDrawer({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Select
+                  <select
                     value=""
                     onChange={(e) => {
                       if (!e.target.value) return
@@ -651,7 +644,7 @@ export function AgendaEventDrawer({
                       toggleContact(e.target.value)
                     }}
                     disabled={isPending || loadingContacts || !form.company}
-                    size="sm"
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
                   >
                     <option value="">
                       {form.company ? "Ajouter un contact présent…" : "Sélectionnez d'abord un compte"}
@@ -664,7 +657,7 @@ export function AgendaEventDrawer({
                         </option>
                       ))}
                     <option value="__other__">Autre contact…</option>
-                  </Select>
+                  </select>
 
                   {form.contact_ids.length > 0 || form.external_contact_name ? (
                     <div className="flex flex-wrap gap-1.5">

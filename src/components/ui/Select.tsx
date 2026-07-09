@@ -239,7 +239,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       if (typeof document === "undefined") return
       const parentDialog = containerRef.current?.closest("dialog")
       setPortalContainer(parentDialog ?? document.body)
-    }, [dropdownOpen])
+    }, [dropdownOpen, drawerOpen])
 
     useEffect(() => {
       if (!dropdownOpen) return
@@ -276,7 +276,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
     if (shouldRenderMobileSelect) {
       return (
-        <div className={cn("relative", fullWidth && "w-full")}>
+        <div ref={containerRef} className={cn("relative", fullWidth && "w-full")}>
           <button
             id={id}
             type="button"
@@ -400,7 +400,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     </div>
                   </div>
                 </div>,
-                document.body,
+                portalContainer || document.body,
               )
             : null}
         </div>
@@ -531,7 +531,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 )
               })}
             </div>,
-            hasNativePopover ? document.body : (portalContainer || document.body)
+            portalContainer || document.body
           )
         }
       </div>

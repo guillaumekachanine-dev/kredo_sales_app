@@ -311,7 +311,7 @@ export async function getContactIdentity(contactId: string) {
     const supabase = await createClient()
 
     // 1. Contact + all independent relations in parallel
-    const [contactResult, interactionsResult, oppsResult2, tasksResult] = await Promise.all([
+    const [contactResult, interactionsResult, oppsResult2, tasksResult, calendarEventsResult] = await Promise.all([
       supabase
         .from("contacts")
         .select(`
@@ -340,6 +340,11 @@ export async function getContactIdentity(contactId: string) {
         .eq("entity_id", contactId)
         .eq("entity_type", "contact")
         .order("due_date", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("calendar_events")
+        .select("id, title, event_type, status, starts_at, ends_at, description, metadata")
+        .eq("contact_id", contactId)
+        .order("starts_at", { ascending: false }),
     ])
 
     if (contactResult.error) return { error: contactResult.error.message, data: null }
@@ -349,6 +354,7 @@ export async function getContactIdentity(contactId: string) {
     if (interactionsResult.error) console.error("Error fetching contact interactions:", interactionsResult.error)
     if (oppsResult2.error) console.error("Error fetching contact opportunities:", oppsResult2.error)
     if (tasksResult.error) console.error("Error fetching contact tasks:", tasksResult.error)
+    if (calendarEventsResult.error) console.error("Error fetching contact calendar events:", calendarEventsResult.error)
 
     const opportunities = (oppsResult2.data || [])
       .map((oc) => {
@@ -406,6 +412,7 @@ export async function getContactIdentity(contactId: string) {
         interactions: interactionsResult.data || [],
         opportunities: opportunities || [],
         tasks: tasksResult.data || [],
+        calendarEvents: calendarEventsResult.data || [],
         manager,
         reports,
       },

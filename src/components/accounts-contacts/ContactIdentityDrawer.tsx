@@ -20,6 +20,7 @@ import { toggleTaskStatus, type TaskRow } from "@/lib/tasks/task-actions"
 import { RegisterIntelligenceEntity } from "@/components/intelligence/RegisterIntelligenceEntity"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
+import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { getCommunicationEntryPoint } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
@@ -111,6 +112,16 @@ type ContactIdentityData = {
     priority: string
     status: string
     completed_at: string | null
+  }>
+  calendarEvents: Array<{
+    id: string
+    title: string
+    event_type: string
+    status: string
+    starts_at: string
+    ends_at: string
+    description: string | null
+    metadata: Record<string, unknown> | null
   }>
   manager: { id: string; fullName: string; job_title: string | null; email: string | null; phone: string | null } | null
   reports: Array<{ id: string; fullName: string; job_title: string | null }>
@@ -452,6 +463,15 @@ export function ContactIdentityDrawer({
   const initials = person ? getInitials(person.first_name, person.last_name, person.full_name) : "??"
   const avatarBg = person ? getAvatarBgColor(fullName) : "var(--color-primary)"
 
+  type TimelineEntry =
+    | { kind: "interaction"; date: string; interaction: ContactIdentityData["interactions"][number] }
+    | { kind: "event"; date: string; event: ContactIdentityData["calendarEvents"][number] }
+
+  const timelineEntries: TimelineEntry[] = [
+    ...(data?.interactions || []).map((it): TimelineEntry => ({ kind: "interaction", date: it.occurred_at, interaction: it })),
+    ...(data?.calendarEvents || []).map((ev): TimelineEntry => ({ kind: "event", date: ev.starts_at, event: ev })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
   const normalizedRelationshipRole = normalizeContactRelationshipRole(contact?.relationship_role)
   const relationshipRoleDisplay = contact?.relationship_role
     ? relationshipRoleLabel(contact.relationship_role)
@@ -547,7 +567,8 @@ export function ContactIdentityDrawer({
           <div className={cn(
             "relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
             "bg-primary text-white border-primary/20",
-            normalizedRelationshipRole === "decideur" && "border-l-[4px] border-l-[#FFB812]"
+            normalizedRelationshipRole === "decideur" && "border-l-[4px] border-l-[#FFB812]",
+            normalizedRelationshipRole === "prescripteur" && "border-l-[4px] border-l-[#9FB0C7]"
           )}>
             <div className={cn(
               "relative flex items-center justify-between gap-4",
@@ -722,7 +743,7 @@ export function ContactIdentityDrawer({
             {(
               [
                 { key: "apercu", label: "Aperçu" },
-                { key: "activite", label: `Activité (${data.interactions.length + data.opportunities.length})` },
+                { key: "activite", label: `Activité (${data.interactions.length + data.calendarEvents.length + data.opportunities.length})` },
                 { key: "taches", label: `Tâches (${data.tasks.length})` },
               ] as const
             ).map((t) => (
@@ -1015,21 +1036,65 @@ export function ContactIdentityDrawer({
                   )}
                 </div>
 
-                {/* Interactions timeline */}
+                {/* Timeline unifiée : interactions + événements agenda (passés et futurs) */}
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading mb-4">
-                    Timeline des interactions ({data.interactions.length})
+                    Timeline ({timelineEntries.length})
                   </h4>
-                  {data.interactions.length === 0 ? null : (
+                  {timelineEntries.length === 0 ? null : (
                     <div className="relative pl-5 border-l border-border/60 ml-2.5 space-y-5">
-                      {data.interactions.map((it) => {
+                      {timelineEntries.map((entry) => {
+                        if (entry.kind === "event") {
+                          const ev = entry.event
+                          const typeConfig = AGENDA_EVENT_TYPES[ev.event_type]
+                          const isPast = new Date(ev.starts_at) < new Date()
+
+                          return (
+                            <div key={`event-${ev.id}`} className="relative">
+                              <span className={cn(
+                                "absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-surface",
+                                typeConfig?.dotClass || "bg-primary"
+                              )} />
+
+                              <div className="bg-canvas/30 border border-border/50 rounded-[var(--radius-medium)] p-3">
+                                <div className="flex justify-between items-start gap-2.5">
+                                  <span className="text-[10px] text-muted font-semibold">
+                                    {isPast ? "Le" : "Prévu le"} {formatDate(ev.starts_at)}
+                                  </span>
+                                  <span className={cn(
+                                    "text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0",
+                                    typeConfig?.colorClasses || "bg-primary/10 text-primary"
+                                  )}>
+                                    {typeConfig?.shortLabel || ev.event_type.replace(/_/g, " ")}
+                                  </span>
+                                </div>
+
+                                <div className="mt-1.5 text-xs font-bold text-heading">
+                                  {ev.title}
+                                </div>
+
+                                <div className="mt-1 text-[10px] text-muted font-medium truncate">
+                                  {fullName}{company ? ` · ${company.name}` : ""}
+                                </div>
+
+                                {ev.description && (
+                                  <p className="text-[11px] text-body mt-2 leading-relaxed font-normal">
+                                    {ev.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        const it = entry.interaction
                         let dotColor = "bg-border"
                         if (it.sentiment === "positif") dotColor = "bg-success"
                         if (it.sentiment === "negatif") dotColor = "bg-danger"
                         if (it.sentiment === "neutre") dotColor = "bg-warning"
 
                         return (
-                          <div key={it.id} className="relative">
+                          <div key={`interaction-${it.id}`} className="relative">
                             {/* Dot timeline pin */}
                             <span className={cn(
                               "absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 border-surface",
@@ -1038,14 +1103,9 @@ export function ContactIdentityDrawer({
 
                             <div className="bg-canvas/30 border border-border/50 rounded-[var(--radius-medium)] p-3">
                               <div className="flex justify-between items-start gap-2.5">
-                                <div className="min-w-0">
-                                  <span className="text-xs font-bold text-heading capitalize">
-                                    {it.type.replace("_", " ")}
-                                  </span>
-                                  <span className="text-[10px] text-muted font-normal block mt-0.5">
-                                    Le {formatDate(it.occurred_at)}
-                                  </span>
-                                </div>
+                                <span className="text-[10px] text-muted font-semibold">
+                                  Le {formatDate(it.occurred_at)}
+                                </span>
                                 {it.sentiment && (
                                   <span className={cn(
                                     "text-[9px] font-semibold px-1.5 py-0.5 rounded capitalize shrink-0",
@@ -1056,6 +1116,14 @@ export function ContactIdentityDrawer({
                                     {it.sentiment}
                                   </span>
                                 )}
+                              </div>
+
+                              <div className="mt-1.5 text-xs font-bold text-heading capitalize">
+                                {it.type.replace("_", " ")}
+                              </div>
+
+                              <div className="mt-1 text-[10px] text-muted font-medium truncate">
+                                {fullName}{company ? ` · ${company.name}` : ""}
                               </div>
 
                               {it.summary && (
