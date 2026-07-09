@@ -29,7 +29,7 @@ export function FilterDropdown({
   fullWidthPanel = false,
 }: {
   label: string
-  options: FilterOption[]
+  options: readonly FilterOption[]
   selected: string[]
   mode?: "multi" | "single"
   compact?: boolean

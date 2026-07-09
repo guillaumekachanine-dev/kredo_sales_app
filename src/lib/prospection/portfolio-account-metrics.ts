@@ -498,7 +498,7 @@ export function buildProspectionPortfolioAccounts(params: {
       new Set(
         accountContacts
           .map((contact) => normalizeContactRelationshipRole(contact.relationship_role))
-          .filter((value): value is string => Boolean(value)),
+          .filter((value): value is NonNullable<typeof value> => value !== null),
       ),
     )
     const committeeRoleCount = committeeRoles.filter((role) => ["decideur", "sponsor", "prescripteur", "acheteur"].includes(role)).length
