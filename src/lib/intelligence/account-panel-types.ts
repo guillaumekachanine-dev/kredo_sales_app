@@ -1,3 +1,5 @@
+import type { ContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
+
 export type PanelDataSource = "supabase" | "engine" | "legacy_folio" | "none"
 
 export type PanelResourceStatusCounts = {
@@ -72,7 +74,7 @@ export type PanelContact = {
   fullName: string
   initials: string
   jobTitle: string | null
-  relationshipRole: "decideur" | "dsi" | "direction_metier"
+  relationshipRole: ContactRelationshipRole
   isPriority: boolean
   email: string | null
 }

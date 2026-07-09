@@ -1,12 +1,70 @@
--- ============================================================
--- ADR-0011 Lot 3 — RPC unique d'hydratation de contexte pour le
--- moteur de scoring TypeScript (src/lib/account-scoring/).
--- Même pattern que get_pitch_context/get_communication_context/
--- get_account_summary_facts : un seul appel remplace plusieurs
--- requêtes REST séparées. Appelée depuis une Server Action en
--- session utilisateur standard (SECURITY INVOKER, RLS normal),
--- pas depuis n8n — pas de contrainte de clé JSON héritée ici.
--- ============================================================
+BEGIN;
+
+CREATE OR REPLACE FUNCTION private.normalize_contact_relationship_role(p_value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog, public
+AS $$
+  WITH normalized AS (
+    SELECT NULLIF(regexp_replace(lower(btrim(p_value)), '\s+', ' ', 'g'), '') AS value
+  )
+  SELECT CASE value
+    WHEN 'decideur' THEN 'decideur'
+    WHEN 'dsi' THEN 'decideur'
+    WHEN 'direction_metier' THEN 'decideur'
+    WHEN 'prescripteur' THEN 'prescripteur'
+    WHEN 'rh' THEN 'prescripteur'
+    WHEN 'sponsor' THEN 'sponsor'
+    WHEN 'operationnel' THEN 'operationnel'
+    WHEN 'manager_technique' THEN 'operationnel'
+    WHEN 'utilisateur_final' THEN 'operationnel'
+    WHEN 'acheteur' THEN 'acheteur'
+    ELSE value
+  END
+  FROM normalized;
+$$;
+
+CREATE OR REPLACE FUNCTION private.contacts_normalize_relationship_role()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  NEW.relationship_role := private.normalize_contact_relationship_role(NEW.relationship_role);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_contacts_normalize_relationship_role ON public.contacts;
+
+CREATE TRIGGER trg_contacts_normalize_relationship_role
+BEFORE INSERT OR UPDATE OF relationship_role
+ON public.contacts
+FOR EACH ROW
+EXECUTE FUNCTION private.contacts_normalize_relationship_role();
+
+UPDATE public.contacts
+SET relationship_role = private.normalize_contact_relationship_role(relationship_role)
+WHERE relationship_role IS NOT NULL;
+
+ALTER TABLE public.contacts
+  DROP CONSTRAINT IF EXISTS contacts_relationship_role_check;
+
+ALTER TABLE public.contacts
+  ADD CONSTRAINT contacts_relationship_role_check
+  CHECK (
+    relationship_role IS NULL
+    OR relationship_role = ANY (
+      ARRAY[
+        'decideur'::text,
+        'prescripteur'::text,
+        'sponsor'::text,
+        'operationnel'::text,
+        'acheteur'::text
+      ]
+    )
+  );
 
 CREATE OR REPLACE FUNCTION public.get_account_score_context(
   p_workspace_id uuid,
@@ -119,8 +177,44 @@ AS $$
   )
 $$;
 
-REVOKE ALL ON FUNCTION public.get_account_score_context(uuid, uuid) FROM public;
-GRANT EXECUTE ON FUNCTION public.get_account_score_context(uuid, uuid) TO authenticated;
+CREATE OR REPLACE FUNCTION public.compute_conviction_score_v1(p_company_id uuid)
+RETURNS numeric(3,1)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  WITH pipe AS (
+    SELECT coalesce(sum(weighted_gain), 0) AS weighted_pipe,
+           count(*) FILTER (WHERE stage NOT IN ('gagne', 'perdu', 'abandonne')) AS open_count
+    FROM public.opportunities
+    WHERE company_id = p_company_id
+  ),
+  won AS (
+    SELECT count(*) AS won_count
+    FROM public.opportunities
+    WHERE company_id = p_company_id AND stage = 'gagne'
+  ),
+  signals AS (
+    SELECT count(*) AS recent_signal_count
+    FROM public.sector_news sn
+    JOIN public.companies c ON c.sector_id = sn.sector_id
+    WHERE c.id = p_company_id
+      AND sn.published_at >= now() - interval '90 days'
+  ),
+  key_contacts AS (
+    SELECT count(*) AS decision_maker_count
+    FROM public.contacts
+    WHERE company_id = p_company_id
+      AND relationship_role IN ('decideur', 'sponsor')
+  )
+  SELECT round((
+      0.45 * least(5.0, (pipe.weighted_pipe / 20000.0))
+      + 0.20 * least(5.0, signals.recent_signal_count * 1.25)
+      + 0.20 * least(5.0, key_contacts.decision_maker_count * 1.7)
+      + 0.15 * least(5.0, pipe.open_count * 1.0 + won.won_count * 1.5)
+    )::numeric, 1)
+  FROM pipe, won, signals, key_contacts
+$$;
 
-COMMENT ON FUNCTION public.get_account_score_context(uuid, uuid) IS
-  'ADR-0011 Lot 3 — hydratation déterministe pour le moteur de scoring TypeScript (src/lib/account-scoring/). Appelée en session utilisateur (SECURITY INVOKER, RLS normal) depuis la Server Action recomputeAccountScore, pas depuis n8n. GRANT authenticated (contrairement aux RPC service_role de communication/pitch/reports) car c''est l''utilisateur connecté qui déclenche le recalcul via le bouton "Actualiser".';
+COMMIT;

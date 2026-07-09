@@ -447,7 +447,7 @@ alter table companies add constraint companies_workspace_id_fkey FOREIGN KEY (wo
 -- contacts
 alter table contacts add constraint contacts_pkey PRIMARY KEY (id);
 alter table contacts add constraint contacts_decision_power_check CHECK ((decision_power = ANY (ARRAY['faible'::text, 'moyen'::text, 'fort'::text])));
-alter table contacts add constraint contacts_relationship_role_check CHECK ((relationship_role = ANY (ARRAY['decideur'::text, 'prescripteur'::text, 'acheteur'::text, 'operationnel'::text, 'sponsor'::text, 'utilisateur_final'::text, 'rh'::text, 'manager_technique'::text, 'dsi'::text, 'direction_metier'::text])));
+alter table contacts add constraint contacts_relationship_role_check CHECK ((relationship_role = ANY (ARRAY['decideur'::text, 'prescripteur'::text, 'sponsor'::text, 'operationnel'::text, 'acheteur'::text])));
 alter table contacts add constraint contacts_company_id_fkey FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL;
 alter table contacts add constraint contacts_person_id_fkey FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE;
 alter table contacts add constraint contacts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE;

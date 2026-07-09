@@ -1,4 +1,8 @@
 import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
+import {
+  normalizeContactRelationshipRole,
+  type ContactRelationshipRole,
+} from "@/lib/accounts-contacts/contact-constants"
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"
 import type {
@@ -19,12 +23,11 @@ import {
 } from "./intelligence-resource-types"
 
 export const KEY_CONTACT_RELATIONSHIP_ROLES = [
-  "decideur",
   "dsi",
+  "decideur",
   "direction_metier",
 ] as const
 
-type KeyContactRelationshipRole = (typeof KEY_CONTACT_RELATIONSHIP_ROLES)[number]
 type SupabaseError = { message: string }
 type QueryResult<T> = { data: T[] | null; error: SupabaseError | null }
 type SingleResult<T> = { data: T | null; error: SupabaseError | null }
@@ -281,17 +284,24 @@ function isKeyContactRole(value: string | null): value is KeyContactRelationship
   return KEY_CONTACT_RELATIONSHIP_ROLES.includes(value as KeyContactRelationshipRole)
 }
 
-const CONTACT_ROLE_ORDER: Record<KeyContactRelationshipRole, number> = {
+type KeyContactRelationshipRole = (typeof KEY_CONTACT_RELATIONSHIP_ROLES)[number]
+
+const CONTACT_ROLE_ORDER: Record<ContactRelationshipRole, number> = {
   decideur: 0,
-  dsi: 1,
-  direction_metier: 2,
+  prescripteur: 1,
+  sponsor: 2,
+  acheteur: 3,
+  operationnel: 4,
 }
 
 export function buildPanelContacts(rows: PanelContactRow[], limit = 6): PanelContact[] {
-  const byPerson = new Map<string, PanelContact>()
+  const byPerson = new Map<string, { contact: PanelContact; sourceRank: number }>()
 
   for (const row of rows) {
     if (!isKeyContactRole(row.relationship_role)) continue
+    const relationshipRole = normalizeContactRelationshipRole(row.relationship_role)
+    if (!relationshipRole) continue
+    const sourceRank = KEY_CONTACT_RELATIONSHIP_ROLES.indexOf(row.relationship_role)
     const person = firstRelation(row.persons)
     const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
     const fullName = person?.full_name?.trim() || fallbackName || "Contact sans nom"
@@ -301,17 +311,21 @@ export function buildPanelContacts(rows: PanelContactRow[], limit = 6): PanelCon
       fullName,
       initials: getInitials(fullName),
       jobTitle: row.job_title,
-      relationshipRole: row.relationship_role,
+      relationshipRole,
       isPriority: Boolean(row.is_priority),
       email: person?.primary_email ?? null,
     }
     const existing = byPerson.get(row.person_id)
-    if (!existing || comparePanelContacts(contact, existing) < 0) {
-      byPerson.set(row.person_id, contact)
+    if (
+      !existing ||
+      comparePanelContacts(contact, existing.contact) < 0 ||
+      (comparePanelContacts(contact, existing.contact) === 0 && sourceRank < existing.sourceRank)
+    ) {
+      byPerson.set(row.person_id, { contact, sourceRank })
     }
   }
 
-  return Array.from(byPerson.values()).sort(comparePanelContacts).slice(0, limit)
+  return Array.from(byPerson.values()).map((entry) => entry.contact).sort(comparePanelContacts).slice(0, limit)
 }
 
 function comparePanelContacts(a: PanelContact, b: PanelContact): number {

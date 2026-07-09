@@ -8,7 +8,11 @@ import { getContactIdentity, toggleContactFavorite } from "@/app/(app)/prospecti
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
-import { departmentLabel } from "@/lib/accounts-contacts/contact-constants"
+import {
+  departmentLabel,
+  normalizeContactRelationshipRole,
+  relationshipRoleLabel,
+} from "@/lib/accounts-contacts/contact-constants"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { TaskCreateModal } from "@/components/tasks/TaskCreateModal"
@@ -448,8 +452,9 @@ export function ContactIdentityDrawer({
   const initials = person ? getInitials(person.first_name, person.last_name, person.full_name) : "??"
   const avatarBg = person ? getAvatarBgColor(fullName) : "var(--color-primary)"
 
-  const relationshipRoleDisplay = contact?.relationship_role 
-    ? contact.relationship_role.replace("_", " ") 
+  const normalizedRelationshipRole = normalizeContactRelationshipRole(contact?.relationship_role)
+  const relationshipRoleDisplay = contact?.relationship_role
+    ? relationshipRoleLabel(contact.relationship_role)
     : "Non spécifié"
 
   const relationshipLevelDisplay = contact?.relationship_level 
@@ -542,7 +547,7 @@ export function ContactIdentityDrawer({
           <div className={cn(
             "relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all",
             "bg-primary text-white border-primary/20",
-            contact.relationship_role === "decideur" && "border-l-[4px] border-l-[#FFB812]"
+            normalizedRelationshipRole === "decideur" && "border-l-[4px] border-l-[#FFB812]"
           )}>
             <div className={cn(
               "relative flex items-center justify-between gap-4",
@@ -576,29 +581,30 @@ export function ContactIdentityDrawer({
                 <div className={cn("flex-1 min-w-0", isDesktopDrawer ? "pr-2" : "pr-8")}>
                   <div className="flex min-w-0 items-center gap-2">
                     <h3 className="truncate text-sm font-bold leading-tight text-white">{fullName}</h3>
-                    {isDesktopDrawer && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onEditContact) {
-                            onEditContact(contact.id)
-                          } else {
-                            const event = new CustomEvent("crm-edit-contact", { detail: { contactId: contact.id } })
-                            window.dispatchEvent(event)
-                            if (window.location.pathname !== "/prospection/accounts") {
-                              window.location.href = `/prospection/accounts?tab=contacts&editContactId=${contact.id}`
-                            }
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onEditContact) {
+                          onEditContact(contact.id)
+                        } else {
+                          const event = new CustomEvent("crm-edit-contact", { detail: { contactId: contact.id } })
+                          window.dispatchEvent(event)
+                          if (window.location.pathname !== "/prospection/accounts") {
+                            window.location.href = `/prospection/accounts?tab=contacts&editContactId=${contact.id}`
                           }
-                        }}
-                        className="-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white"
-                        title="Modifier les informations du contact"
-                        aria-label="Modifier les informations du contact"
-                      >
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    )}
+                        }
+                      }}
+                      className={cn(
+                        "-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white",
+                        !isDesktopDrawer && "h-4 w-4"
+                      )}
+                      title="Modifier les informations du contact"
+                      aria-label="Modifier les informations du contact"
+                    >
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
                   </div>
                   {contact.job_title && (
                     <span className="text-[11px] text-white/80 font-medium block mt-0.5 leading-tight truncate">
@@ -613,55 +619,21 @@ export function ContactIdentityDrawer({
                 </div>
               </div>
 
-              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
-                {isDesktopDrawer ? (
-                  <button
-                    type="button"
-                    onClick={handleToggleFavorite}
-                    disabled={favoritePending}
-                    className={cn(
-                      "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-[#FFB812] disabled:opacity-60",
-                      contact.is_priority === true && "text-[#FFB812]"
-                    )}
-                    title={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
-                    aria-label={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
-                    aria-pressed={contact.is_priority === true}
-                  >
-                    <svg className="h-4 w-4" fill={contact.is_priority === true ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => onOpenChange(false)}
-                    className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0"
-                    title="Fermer"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center">
                 <button
-                  onClick={() => {
-                    if (onEditContact) {
-                      onEditContact(contact.id)
-                    } else {
-                      const event = new CustomEvent("crm-edit-contact", { detail: { contactId: contact.id } })
-                      window.dispatchEvent(event)
-                      if (window.location.pathname !== "/prospection/accounts") {
-                        window.location.href = `/prospection/accounts?tab=contacts&editContactId=${contact.id}`
-                      }
-                    }
-                  }}
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  disabled={favoritePending}
                   className={cn(
-                    "rounded-full p-1.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors flex items-center justify-center shrink-0",
-                    isDesktopDrawer && "hidden"
+                    "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-[#FFB812] disabled:opacity-60",
+                    contact.is_priority === true && "text-[#FFB812]"
                   )}
-                  title="Modifier les informations du contact"
+                  title={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
+                  aria-label={contact.is_priority === true ? "Retirer des favoris" : "Marquer comme favori"}
+                  aria-pressed={contact.is_priority === true}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <svg className="h-4 w-4" fill={contact.is_priority === true ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
                   </svg>
                 </button>
               </div>
@@ -709,7 +681,7 @@ export function ContactIdentityDrawer({
                       refs: {
                         angle: [
                           contact.job_title ? `Fonction: ${contact.job_title}` : null,
-                          contact.relationship_role ? `Rôle relationnel: ${contact.relationship_role}` : null,
+                          contact.relationship_role ? `Rôle relationnel: ${relationshipRoleLabel(contact.relationship_role)}` : null,
                           contact.relationship_level ? `Niveau de relation: ${contact.relationship_level}` : null,
                         ].filter(Boolean).join(" · ") || undefined,
                       },

@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
 import { createClient } from "@/lib/supabase/server"
 
 const REVALIDATE = "/prospection/accounts"
@@ -149,7 +150,7 @@ export async function createContact(data: ContactFormData) {
     person_id: person.id,
     company_id: data.company_id || null,
     job_title: data.job_title?.trim() || null,
-    relationship_role: data.relationship_role || null,
+    relationship_role: normalizeContactRelationshipRole(data.relationship_role),
     relationship_level: data.relationship_level || null,
     department: data.department?.trim() || null,
     status: "actif",
@@ -201,7 +202,7 @@ export async function updateContact(
       .update({
         company_id: data.company_id || null,
         job_title: data.job_title?.trim() || null,
-        relationship_role: data.relationship_role || null,
+        relationship_role: normalizeContactRelationshipRole(data.relationship_role),
         relationship_level: data.relationship_level || null,
         department: data.department?.trim() || null,
         is_priority: data.is_priority ?? false,

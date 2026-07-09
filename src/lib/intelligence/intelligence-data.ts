@@ -270,6 +270,7 @@ export type PitchDocumentSummary = {
 type LooseResult<T> = { data: T | null; error: { message: string } | null }
 type LooseQuery<T> = PromiseLike<{ data: T[] | null; error: { message: string } | null }> & {
   eq(column: string, value: string | boolean): LooseQuery<T>
+  in(column: string, values: readonly string[]): LooseQuery<T>
   order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): LooseQuery<T>
   limit(count: number): LooseQuery<T>
   maybeSingle(): PromiseLike<LooseResult<T>>
@@ -622,12 +623,23 @@ export async function getClientIntelligence(
       )
       .eq("company_id", companyId)
       .maybeSingle(),
+    // Seuls 4 result_type sont jamais lus plus bas (account_knowledge,
+    // sector_snapshot, commercial_strategy, process_diagnostic) — filtrer ici
+    // évite de transporter le content_json (LLM, jusqu'à ~15 Ko/ligne) des
+    // rapports/pitchs/etc. qui s'accumulent sur ce compte pour rien.
     supabase
       .from("ai_intelligence_results")
       .select<ResultRow>("id,phase,result_type,content_json,metadata,created_at")
       .eq("company_id", companyId)
       .eq("status", "succeeded")
-      .order("created_at", { ascending: false }),
+      .in("result_type", [
+        ACCOUNT_KNOWLEDGE_RESULT_TYPE,
+        SECTOR_SNAPSHOT_RESULT_TYPE,
+        COMMERCIAL_STRATEGY_RESULT_TYPE,
+        "process_diagnostic",
+      ])
+      .order("created_at", { ascending: false })
+      .limit(20),
     // ADR-0012 Lot 2 : enrichi (department/decision_power/relationship_level/
     // is_priority) et remonté de 6 à 50 — sert désormais la "carte des
     // interlocuteurs" de Connaissance compte, pas seulement un aperçu.
@@ -722,9 +734,29 @@ export async function getClientIntelligence(
   const metadata = asRecord(company.metadata)
   const accountWatch = normalizeAccountWatchSettings(accountWatchResult.data)
 
-  // ADR-0012 Lot 3 — snapshot sectoriel déterministe, seulement si le compte a
-  // un sector_id (backfill honnête, ~27/95 comptes couverts au 2026-07-07).
-  const sectorSnapshot = company.sector_id ? await getSectorSnapshot(company.sector_id) : null
+  // Le snapshot sectoriel (ADR-0012 Lot 3) et l'URL signée du PDF diagnostic
+  // sont deux appels indépendants l'un de l'autre — ils étaient auparavant
+  // enchaînés en deux `await` séquentiels après le Promise.all principal,
+  // ajoutant deux allers-retours réseau pleins au temps de réponse de la page
+  // au lieu d'un seul. Parallélisés ici (perf).
+  const phase3MetaForPdf = asRecord(results.find((r) => r.result_type === "process_diagnostic")?.metadata)
+  const pdfStoragePath = str(phase3MetaForPdf.pdf_storage_path)
+  const pdfBucket = str(phase3MetaForPdf.pdf_bucket) || "ai_intelligence_process_diagnostics"
+
+  const [sectorSnapshot, signedUrlOutcome] = await Promise.all([
+    company.sector_id ? getSectorSnapshot(company.sector_id) : Promise.resolve(null),
+    pdfStoragePath
+      ? supabaseReal.storage.from(pdfBucket).createSignedUrl(pdfStoragePath, 3600)
+      : Promise.resolve(null),
+  ])
+
+  let diagnosticPdfUrl: string | null = null
+  if (signedUrlOutcome) {
+    if (signedUrlOutcome.error) {
+      console.error("[intelligence] createSignedUrl failed:", signedUrlOutcome.error.message, { pdfBucket, pdfStoragePath })
+    }
+    diagnosticPdfUrl = signedUrlOutcome.data?.signedUrl ?? null
+  }
 
   // Source de vérité : moteur d'abord (result_type succeeded), sinon fallback
   // FOLIO. ADR-0012 D-5 : `phase` est déprécié comme clé de matching — la
@@ -779,19 +811,6 @@ export async function getClientIntelligence(
   let diagnostic: ClientIntelligenceData["diagnostic"] = null
   const diagnosticFromEngine = parseAnalyseDiagnostic(engineProcessDiagnostic)
   if (diagnosticFromEngine) diagnostic = { data: diagnosticFromEngine, source: "engine" }
-
-  // Signed URL pour le PDF source (bucket privé, valide 1h)
-  let diagnosticPdfUrl: string | null = null
-  const phase3Meta = asRecord(results.find((r) => r.result_type === "process_diagnostic")?.metadata)
-  const pdfStoragePath = str(phase3Meta.pdf_storage_path)
-  const pdfBucket = str(phase3Meta.pdf_bucket) || "ai_intelligence_process_diagnostics"
-  if (pdfStoragePath) {
-    const { data: signedData, error: signedError } = await supabaseReal.storage
-      .from(pdfBucket)
-      .createSignedUrl(pdfStoragePath, 3600)
-    if (signedError) console.error("[intelligence] createSignedUrl failed:", signedError.message, { pdfBucket, pdfStoragePath })
-    diagnosticPdfUrl = signedData?.signedUrl ?? null
-  }
 
   // Synthèse fallback : description compte si aucune analyse.
   if (client && !client.data.synthese) {

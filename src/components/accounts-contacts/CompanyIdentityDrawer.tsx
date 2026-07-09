@@ -15,6 +15,8 @@ import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/inte
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
+import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -190,15 +192,6 @@ function formatRayonnement(zone?: string) {
   return "Régional"
 }
 
-function formatOpportunityMeta(opportunity: IdentityData["opportunities"][number]) {
-  return [
-    opportunity.seniority,
-    opportunity.location,
-    opportunity.remote_policy ? opportunity.remote_policy.replaceAll("_", " ") : null,
-    opportunity.source ? opportunity.source.replaceAll("_", " ") : null,
-  ].filter(Boolean).join(" · ")
-}
-
 function formatContactLineName(person: NonNullable<IdentityData["contacts"][number]["persons"]>): string {
   const firstName = person.first_name?.trim()
   const lastName = person.last_name?.trim()
@@ -210,9 +203,126 @@ function formatContactLineName(person: NonNullable<IdentityData["contacts"][numb
   return person.full_name?.trim() || "Contact"
 }
 
-function isProposalFollowUpStage(stage: string) {
-  const normalized = stage.toLowerCase()
-  return normalized.includes("proposition") || normalized.includes("cv_envoyes") || normalized.includes("offre")
+function MobileOpportunitiesList({
+  opportunities,
+  onOpenOpportunity,
+}: {
+  opportunities: IdentityData["opportunities"]
+  onOpenOpportunity: (opportunity: IdentityData["opportunities"][number]) => void
+}) {
+  if (opportunities.length === 0) {
+    return (
+      <p className="text-xs text-muted italic py-1">
+        Aucune opportunité commerciale en cours.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {opportunities.map((opportunity) => {
+        const staffingCount = opportunity.required_headcount ?? 0
+
+        return (
+          <div key={opportunity.id} className="flex items-start gap-2.5">
+            <svg
+              className="mt-1 h-2.5 w-2.5 shrink-0 text-black"
+              viewBox="0 0 10 10"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M1 0.75L8.5 5L1 9.25V0.75Z" />
+            </svg>
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => onOpenOpportunity(opportunity)}
+                className="block w-full truncate text-left text-xs font-bold text-heading transition-colors hover:text-primary"
+                title={opportunity.title}
+              >
+                {opportunity.title}
+              </button>
+              <div className="mt-0.5 text-[10px] text-body">
+                Staffing : {staffingCount} profil{staffingCount > 1 ? "s" : ""}
+              </div>
+              <div className="mt-0.5 text-[10px] text-muted">
+                étape : {getOpportunityStageLabel(opportunity.stage)}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function MobileActiveMissionsList({
+  missions,
+  onOpenMission,
+}: {
+  missions: IdentityData["missions"]
+  onOpenMission: (mission: IdentityData["missions"][number]) => void
+}) {
+  if (missions.length === 0) {
+    return (
+      <p className="text-xs text-muted italic py-1">
+        Aucune prestation active en cours.
+      </p>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {missions.map((mission) => {
+        const collaborator = mission.collaborators?.persons
+        const collaboratorName = collaborator
+          ? collaborator.full_name || `${collaborator.first_name || ""} ${collaborator.last_name || ""}`.trim()
+          : "Non assigné"
+
+        return (
+          <div key={mission.id} className="flex items-start gap-2.5">
+            <svg
+              className="mt-1 h-2.5 w-2.5 shrink-0 text-black"
+              viewBox="0 0 10 10"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M1 0.75L8.5 5L1 9.25V0.75Z" />
+            </svg>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => onOpenMission(mission)}
+                  className="block min-w-0 flex-1 truncate text-left text-xs font-bold text-heading transition-colors hover:text-primary"
+                  title={mission.title}
+                >
+                  {mission.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenMission(mission)}
+                  className="inline-flex shrink-0 items-center gap-1 text-[10px] font-semibold text-heading transition-colors hover:text-primary"
+                  aria-label={`Consulter la mission ${mission.title}`}
+                >
+                  <span>Consulter</span>
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mt-0.5 text-[10px] text-body">
+                Consultant : {collaboratorName}
+              </div>
+              <div className="mt-0.5 text-[10px] text-muted">
+                Date de fin : {mission.end_date ? formatDate(mission.end_date) : "indéterminé"}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 export function CompanyIdentityDrawer({
@@ -231,8 +341,27 @@ export function CompanyIdentityDrawer({
   const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [favoritePending, setFavoritePending] = useState(false)
   const prevCompanyIdRef = useRef<string | null>(null)
+  const { openTab: openMissionTab } = useMissionsTabStore()
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
+
+  const openOpportunityDrawer = (opportunity: IdentityData["opportunities"][number]) => {
+    openMissionTab({
+      entityType: "opportunite",
+      entityId: opportunity.id,
+      title: data?.company.name ?? "Opportunité",
+      subtitle: opportunity.title,
+    })
+  }
+
+  const openMissionDrawer = (mission: IdentityData["missions"][number]) => {
+    openMissionTab({
+      entityType: "mission",
+      entityId: mission.id,
+      title: data?.company.name ?? "Mission",
+      subtitle: mission.title,
+    })
+  }
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)")
@@ -405,25 +534,26 @@ export function CompanyIdentityDrawer({
                 <div className={cn("min-w-0 flex-1", isMobileViewport ? "pr-10" : "pr-2")}>
                   <div className="flex min-w-0 items-center gap-2">
                     <h3 className="truncate text-base font-bold leading-tight text-white sm:text-lg">{data.company.name}</h3>
-                    {!isMobileViewport && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const event = new CustomEvent("crm-edit-company", { detail: { companyId: data.company.id } })
-                          window.dispatchEvent(event)
-                          if (window.location.pathname !== "/prospection/accounts") {
-                            window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
-                          }
-                        }}
-                        className="-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white"
-                        title="Modifier les informations du compte"
-                        aria-label="Modifier les informations du compte"
-                      >
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const event = new CustomEvent("crm-edit-company", { detail: { companyId: data.company.id } })
+                        window.dispatchEvent(event)
+                        if (window.location.pathname !== "/prospection/accounts") {
+                          window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
+                        }
+                      }}
+                      className={cn(
+                        "-mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/70 transition-colors hover:text-white",
+                        isMobileViewport && "h-4 w-4"
+                      )}
+                      title="Modifier les informations du compte"
+                      aria-label="Modifier les informations du compte"
+                    >
+                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
                   </div>
                   {(data.company.sector || data.company.segment) && (
                     <span className="mt-0.5 block truncate text-[11px] font-medium leading-tight text-white/80">
@@ -436,53 +566,21 @@ export function CompanyIdentityDrawer({
                 </div>
               </div>
 
-              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2">
-                {isMobileViewport ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpenChange(false)}
-                    className="flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
-                    title="Fermer"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleToggleFavorite}
-                    disabled={favoritePending}
-                    className={cn(
-                      "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-amber-300 disabled:opacity-60",
-                      data.company.priority === "haute" && "text-amber-400"
-                    )}
-                    title={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
-                    aria-label={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
-                    aria-pressed={data.company.priority === "haute"}
-                  >
-                    <svg className="h-4 w-4" fill={data.company.priority === "haute" ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
-                    </svg>
-                  </button>
-                )}
+              <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 items-center">
                 <button
                   type="button"
-                  onClick={() => {
-                    const event = new CustomEvent("crm-edit-company", { detail: { companyId: data.company.id } })
-                    window.dispatchEvent(event)
-                    if (window.location.pathname !== "/prospection/accounts") {
-                      window.location.href = `/prospection/accounts?tab=accounts&editCompanyId=${data.company.id}`
-                    }
-                  }}
+                  onClick={handleToggleFavorite}
+                  disabled={favoritePending}
                   className={cn(
-                    "flex items-center justify-center rounded-full border border-white/20 bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20",
-                    !isMobileViewport && "hidden"
+                    "flex h-7 w-7 items-center justify-center text-white/70 transition-colors hover:text-amber-300 disabled:opacity-60",
+                    data.company.priority === "haute" && "text-amber-400"
                   )}
-                  title="Modifier les informations du compte"
+                  title={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
+                  aria-label={data.company.priority === "haute" ? "Retirer des favoris" : "Marquer comme favori"}
+                  aria-pressed={data.company.priority === "haute"}
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <svg className="h-4 w-4" fill={data.company.priority === "haute" ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.5a.6.6 0 011.04 0l2.33 4.73a.6.6 0 00.45.33l5.22.76a.6.6 0 01.33 1.02l-3.78 3.69a.6.6 0 00-.17.53l.89 5.2a.6.6 0 01-.87.63l-4.67-2.45a.6.6 0 00-.56 0l-4.67 2.45a.6.6 0 01-.87-.63l.89-5.2a.6.6 0 00-.17-.53l-3.78-3.69a.6.6 0 01.33-1.02l5.22-.76a.6.6 0 00.45-.33L11.48 3.5z" />
                   </svg>
                 </button>
               </div>
@@ -729,11 +827,8 @@ export function CompanyIdentityDrawer({
                 decideur: 0,
                 sponsor: 1,
                 prescripteur: 2,
-                dsi: 3,
-                direction_metier: 4,
-                manager_technique: 5,
-                operationnel: 6,
-                utilisateur_final: 7,
+                acheteur: 3,
+                operationnel: 4,
               }
               const INTIMACY_ORDER: Record<string, number> = {
                 fort: 0,
@@ -743,8 +838,8 @@ export function CompanyIdentityDrawer({
 
               const sortedContacts = [...data.contacts].sort((a, b) => {
                 // 1. Role hierarchy
-                const roleA = ROLE_ORDER[a.relationship_role?.toLowerCase() ?? ""] ?? 99
-                const roleB = ROLE_ORDER[b.relationship_role?.toLowerCase() ?? ""] ?? 99
+                const roleA = ROLE_ORDER[normalizeContactRelationshipRole(a.relationship_role) ?? ""] ?? 99
+                const roleB = ROLE_ORDER[normalizeContactRelationshipRole(b.relationship_role) ?? ""] ?? 99
                 if (roleA !== roleB) return roleA - roleB
 
                 // 2. Priority contacts first
@@ -759,15 +854,19 @@ export function CompanyIdentityDrawer({
               })
 
               const filteredContacts = sortedContacts.filter((contact) => {
+                const role = normalizeContactRelationshipRole(contact.relationship_role)
                 if (contactFilter === "all") return true
-                if (contactFilter === "decideur") return contact.relationship_role === "decideur"
-                if (contactFilter === "sponsor") return contact.relationship_role === "sponsor" || contact.relationship_role === "prescripteur"
+                if (contactFilter === "decideur") return role === "decideur"
+                if (contactFilter === "sponsor") return role === "sponsor" || role === "prescripteur"
                 return true
               })
 
               const countAll = sortedContacts.length
-              const countDecideurs = sortedContacts.filter(c => c.relationship_role === "decideur").length
-              const countSponsors = sortedContacts.filter(c => c.relationship_role === "sponsor" || c.relationship_role === "prescripteur").length
+              const countDecideurs = sortedContacts.filter((contact) => normalizeContactRelationshipRole(contact.relationship_role) === "decideur").length
+              const countSponsors = sortedContacts.filter((contact) => {
+                const role = normalizeContactRelationshipRole(contact.relationship_role)
+                return role === "sponsor" || role === "prescripteur"
+              }).length
 
               return (
                 <div className="space-y-4">
@@ -833,7 +932,7 @@ export function CompanyIdentityDrawer({
                         const person = contact.persons
                         if (!person) return null
                         const lineName = formatContactLineName(person)
-                        const isDecideur = contact.relationship_role === "decideur"
+                        const isDecideur = normalizeContactRelationshipRole(contact.relationship_role) === "decideur"
                         const lineParts = [lineName, contact.job_title || null].filter(Boolean)
 
                         return (
@@ -926,11 +1025,13 @@ export function CompanyIdentityDrawer({
               const status = data.company.lifecycle_status
               const activeMissions = data.missions.filter((m) => m.status === "active")
               const openOpps = data.opportunities.filter((o) => !isTerminalOpportunityStage(o.stage))
-              const priorityContacts = data.contacts.filter((c) => c.is_priority === true)
 
               // Check if we have a Décideur or Sponsor for addressing strategy
-              const hasDecideur = data.contacts.some((c) => c.relationship_role === "decideur")
-              const hasSponsor = data.contacts.some((c) => c.relationship_role === "sponsor" || c.relationship_role === "prescripteur")
+              const hasDecideur = data.contacts.some((contact) => normalizeContactRelationshipRole(contact.relationship_role) === "decideur")
+              const hasSponsor = data.contacts.some((contact) => {
+                const role = normalizeContactRelationshipRole(contact.relationship_role)
+                return role === "sponsor" || role === "prescripteur"
+              })
 
               if (status === "client" || status === "client_actif") {
                 return (
@@ -940,120 +1041,15 @@ export function CompanyIdentityDrawer({
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
                         Engagements (Prestations en cours)
                       </h4>
-                      {activeMissions.length === 0 ? (
-                        <p className="text-xs text-muted italic py-1">
-                          Aucune prestation active en cours.
-                        </p>
-                      ) : (
-                        <div className="flex flex-col gap-2.5">
-                          {activeMissions.map((mission) => {
-                            const collab = mission.collaborators?.persons
-                            const collabName = collab
-                              ? collab.full_name || `${collab.first_name || ""} ${collab.last_name || ""}`.trim()
-                              : "Non assigné"
-                            return (
-                              <div key={mission.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
-                                <div className="flex justify-between items-start gap-3">
-                                  <div>
-                                    <span className="text-xs font-bold text-heading block">{mission.title}</span>
-                                    <span className="text-[10px] text-muted mt-0.5 block">
-                                      Consultant : <strong className="text-body font-medium">{collabName}</strong>
-                                    </span>
-                                  </div>
-                                  <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success uppercase tracking-wider shrink-0">
-                                    En cours
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2">
-                                  <span>Début : <strong className="text-body">{formatDate(mission.start_date)}</strong></span>
-                                  <span>TJ client : <strong className="text-heading font-bold">{formatEuro(mission.tjm)}</strong></span>
-                                  {mission.gross_margin_pct !== null && (
-                                    <span>Marge : <strong className="text-success font-bold">{mission.gross_margin_pct}%</strong></span>
-                                  )}
-                                </div>
-                                <div className="flex justify-end border-t border-border/30 pt-2">
-                                  <ContextualCommunicationButton
-                                    entryPoint="active_mission"
-                                    companyId={data.company.id}
-                                    companyName={data.company.name}
-                                    primaryEntity={{ type: "mission", id: mission.id }}
-                                    label="Proposer une extension"
-                                    className="h-8 min-h-8 px-2.5 text-[11px]"
-                                    aria-label={`Proposer une extension pour la mission ${mission.title}`}
-                                    refs={{
-                                      missionRef: mission.id,
-                                      angle: [
-                                        `Mission active: ${mission.title}`,
-                                        `Consultant: ${collabName}`,
-                                        mission.end_date ? `Fin prévue: ${formatDate(mission.end_date)}` : null,
-                                      ].filter(Boolean).join("\n") || undefined,
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                      <MobileActiveMissionsList missions={activeMissions} onOpenMission={openMissionDrawer} />
                     </div>
 
-                    {/* 2. Pipe opportunités */}
+                    {/* 2. Opportunités */}
                     <div className="space-y-3">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
-                        Pipe opportunités
+                        Opportunités
                       </h4>
-                      {openOpps.length === 0 ? (
-                        <p className="text-xs text-muted italic py-1">
-                          Aucune opportunité commerciale en cours.
-                        </p>
-                      ) : (
-                        <div className="flex flex-col gap-2.5">
-                          {openOpps.map((opp) => (
-                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
-                              <div className="flex justify-between items-start gap-3">
-                                <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
-                                <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
-                                  {getOpportunityStageLabel(opp.stage)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
-                                <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                                <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
-                                {opp.acv && <span>Valeur : <strong className="text-heading">{formatEuro(opp.acv)}</strong></span>}
-                              </div>
-                              {formatOpportunityMeta(opp) ? (
-                                <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
-                              ) : null}
-                              {opp.requires_staffing ? (
-                                <div className="text-[10px] font-medium text-primary">
-                                  Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
-                                </div>
-                              ) : null}
-                              {isProposalFollowUpStage(opp.stage) ? (
-                                <div className="flex justify-end border-t border-border/30 pt-2">
-                                  <ContextualCommunicationButton
-                                    entryPoint="proposal_sent"
-                                    companyId={data.company.id}
-                                    companyName={data.company.name}
-                                    primaryEntity={{ type: "opportunity", id: opp.id }}
-                                    label="Relancer la proposition"
-                                    className="h-8 min-h-8 px-2.5 text-[11px]"
-                                    aria-label={`Relancer la proposition pour ${opp.title}`}
-                                    refs={{
-                                      opportunityRef: opp.id,
-                                      angle: [
-                                        `Opportunité: ${opp.title}`,
-                                        `Stade: ${getOpportunityStageLabel(opp.stage)}`,
-                                        opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
-                                      ].filter(Boolean).join("\n") || undefined,
-                                    }}
-                                  />
-                                </div>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <MobileOpportunitiesList opportunities={openOpps} onOpenOpportunity={openOpportunityDrawer} />
                     </div>
 
                     {/* 3. Actions */}
@@ -1146,115 +1142,15 @@ export function CompanyIdentityDrawer({
               if (status === "prospect") {
                 return (
                   <div className="space-y-6">
-                    {/* 1. Stratégie d'adressage (en premier) */}
+                    {/* 1. Opportunités */}
                     <div className="space-y-3">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
-                        Stratégie d&apos;adressage
+                        Opportunités
                       </h4>
-                      {priorityContacts.length === 0 ? (
-                        <p className="text-xs text-muted italic py-1">
-                          Aucun contact prioritaire lié pour établir la stratégie d&apos;adressage.
-                        </p>
-                      ) : (
-                        <div className="bg-canvas/20 rounded-[var(--radius-medium)] border border-border/40 p-4 space-y-4">
-                          <div className="flex flex-col gap-2.5">
-                            {priorityContacts.map((contact) => {
-                              const person = contact.persons
-                              if (!person) return null
-                              const name = person.full_name || `${person.first_name || ""} ${person.last_name || ""}`.trim()
-                              return (
-                                <div key={contact.id} className="flex justify-between items-center bg-surface border border-border/40 rounded-[var(--radius-medium)] p-2.5">
-                                  <div>
-                                    <span
-                                      onClick={() => onOpenContactIdentity?.(contact.id)}
-                                      className="text-xs font-bold text-heading hover:text-primary hover:underline cursor-pointer transition-colors"
-                                    >
-                                      {name}
-                                    </span>
-                                    <span className="text-[10px] text-muted block mt-0.5">
-                                      {contact.job_title || "Fonction non spécifiée"}
-                                    </span>
-                                  </div>
-                                  {contact.relationship_role && (
-                                    <span className={cn(
-                                      "rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border shrink-0",
-                                      contact.relationship_role === "decideur"
-                                        ? "bg-success/10 border-success/20 text-success"
-                                        : contact.relationship_role === "sponsor" || contact.relationship_role === "prescripteur"
-                                        ? "bg-primary/10 border-primary/20 text-primary"
-                                        : "bg-muted/10 border-border text-muted"
-                                    )}>
-                                      {contact.relationship_role.replace("_", " ")}
-                                    </span>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
+                      <MobileOpportunitiesList opportunities={openOpps} onOpenOpportunity={openOpportunityDrawer} />
                     </div>
 
-                    {/* 2. Pipe opportunités */}
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
-                        Pipe opportunités
-                      </h4>
-                      {openOpps.length === 0 ? (
-                        <p className="text-xs text-muted italic py-1">
-                          Aucune opportunité commerciale en cours.
-                        </p>
-                      ) : (
-                        <div className="flex flex-col gap-2.5">
-                          {openOpps.map((opp) => (
-                            <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
-                              <div className="flex justify-between items-start gap-3">
-                                <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
-                                <span className="rounded bg-primary/10 border border-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary capitalize shrink-0">
-                                  {getOpportunityStageLabel(opp.stage)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
-                                <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                                <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
-                                {opp.acv && <span>Valeur : <strong className="text-heading">{formatEuro(opp.acv)}</strong></span>}
-                              </div>
-                              {formatOpportunityMeta(opp) ? (
-                                <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
-                              ) : null}
-                              {opp.requires_staffing ? (
-                                <div className="text-[10px] font-medium text-primary">
-                                  Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
-                                </div>
-                              ) : null}
-                              {isProposalFollowUpStage(opp.stage) ? (
-                                <div className="flex justify-end border-t border-border/30 pt-2">
-                                  <ContextualCommunicationButton
-                                    entryPoint="proposal_sent"
-                                    companyId={data.company.id}
-                                    companyName={data.company.name}
-                                    primaryEntity={{ type: "opportunity", id: opp.id }}
-                                    label="Relancer la proposition"
-                                    className="h-8 min-h-8 px-2.5 text-[11px]"
-                                    aria-label={`Relancer la proposition pour ${opp.title}`}
-                                    refs={{
-                                      opportunityRef: opp.id,
-                                      angle: [
-                                        `Opportunité: ${opp.title}`,
-                                        `Stade: ${getOpportunityStageLabel(opp.stage)}`,
-                                        opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
-                                      ].filter(Boolean).join("\n") || undefined,
-                                    }}
-                                  />
-                                </div>
-                              ) : null}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 3. Actions */}
+                    {/* 2. Actions */}
                     <div className="space-y-3">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
                         Actions
@@ -1347,59 +1243,14 @@ export function CompanyIdentityDrawer({
                   {/* Pipeline Commercial */}
                   <div className="space-y-3">
                     <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted font-heading">
-                      Pipeline Commercial ({data.opportunities.length})
+                      Opportunités ({data.opportunities.length})
                     </h4>
                     {data.opportunities.length === 0 ? (
                       <p className="text-xs text-muted italic py-1">
                         Aucune opportunité commerciale enregistrée.
                       </p>
                     ) : (
-                      <div className="flex flex-col gap-2.5">
-                        {data.opportunities.map((opp) => (
-                          <div key={opp.id} className="p-3 bg-canvas/30 rounded border border-border/50 flex flex-col gap-2">
-                            <div className="flex justify-between items-start gap-3">
-                              <span className="text-xs font-semibold text-heading truncate">{opp.title}</span>
-                              <span className="rounded bg-success/10 border border-success/20 px-2 py-0.5 text-[9px] font-bold text-success capitalize shrink-0">
-                                  {getOpportunityStageLabel(opp.stage)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] text-muted border-t border-border/30 pt-2 font-medium">
-                              <span>Type : <strong className="text-body capitalize">{opp.opportunity_type}</strong></span>
-                              <span>Conviction : <strong className="text-body">{opp.conviction}%</strong></span>
-                              {opp.acv && <span>Valeur : <strong className="text-heading">{formatEuro(opp.acv)}</strong></span>}
-                            </div>
-                            {formatOpportunityMeta(opp) ? (
-                              <div className="text-[10px] text-muted">{formatOpportunityMeta(opp)}</div>
-                            ) : null}
-                            {opp.requires_staffing ? (
-                              <div className="text-[10px] font-medium text-primary">
-                                Staffing : {opp.required_headcount} profil{opp.required_headcount > 1 ? "s" : ""}
-                              </div>
-                            ) : null}
-                            {isProposalFollowUpStage(opp.stage) ? (
-                              <div className="flex justify-end border-t border-border/30 pt-2">
-                                <ContextualCommunicationButton
-                                  entryPoint="proposal_sent"
-                                  companyId={data.company.id}
-                                  companyName={data.company.name}
-                                  primaryEntity={{ type: "opportunity", id: opp.id }}
-                                  label="Relancer la proposition"
-                                  className="h-8 min-h-8 px-2.5 text-[11px]"
-                                  aria-label={`Relancer la proposition pour ${opp.title}`}
-                                  refs={{
-                                    opportunityRef: opp.id,
-                                    angle: [
-                                      `Opportunité: ${opp.title}`,
-                                      `Stade: ${getOpportunityStageLabel(opp.stage)}`,
-                                      opp.acv ? `Valeur: ${formatEuro(opp.acv)}` : null,
-                                    ].filter(Boolean).join("\n") || undefined,
-                                  }}
-                                />
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
+                      <MobileOpportunitiesList opportunities={data.opportunities} onOpenOpportunity={openOpportunityDrawer} />
                     )}
                   </div>
 

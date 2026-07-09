@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
 import { AccountSignalDetailDrawer } from "./AccountSignalDetailDrawer"
 import { AddSignalDrawer } from "./AddSignalDrawer"
 import { dismissAccountSignal } from "./dismiss-account-signal"
@@ -31,22 +32,9 @@ import {
 // ClientIntelligenceDesktopView.tsx/ClientIntelligenceMobileView.tsx (déjà
 // volumineux) — importé par les deux.
 
-const RELATIONSHIP_ROLE_LABELS: Record<string, string> = {
-  decideur: "Décideur",
-  prescripteur: "Prescripteur",
-  acheteur: "Acheteur",
-  operationnel: "Opérationnel",
-  sponsor: "Sponsor",
-  utilisateur_final: "Utilisateur final",
-  rh: "RH",
-  manager_technique: "Manager technique",
-  dsi: "DSI",
-  direction_metier: "Direction métier",
-}
-
 function roleLabel(role: string | null): string {
   if (!role) return "Rôle non renseigné"
-  return RELATIONSHIP_ROLE_LABELS[role] ?? role
+  return relationshipRoleLabel(role)
 }
 
 const OPPORTUNITY_STAGE_LABELS: Record<string, string> = {
@@ -237,17 +225,14 @@ export function AccountSignalsCard({
   companyName: string
 }) {
   const router = useRouter()
-  const [signals, setSignals] = useState<ClientIntelligenceSignal[]>(initialSignals)
+  const [hiddenSignalIds, setHiddenSignalIds] = useState<Record<string, true>>({})
   const [selectedSignal, setSelectedSignal] = useState<ClientIntelligenceSignal | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const [feedbacks, setFeedbacks] = useState<Record<string, { tone: "success" | "error"; message: string }>>({})
-
-  useEffect(() => {
-    setSignals(initialSignals)
-  }, [initialSignals])
+  const signals = initialSignals.filter((signal) => !hiddenSignalIds[signal.id])
 
   const addButton = (
     <Button
@@ -280,7 +265,7 @@ export function AccountSignalsCard({
       const result = await dismissAccountSignal(signalId)
       setPendingActionId(null)
       if (!result.error) {
-        setSignals((current) => current.filter((s) => s.id !== signalId))
+        setHiddenSignalIds((current) => ({ ...current, [signalId]: true }))
       } else {
         setFeedbacks((prev) => ({ ...prev, [signalId]: { tone: "error", message: result.error! } }))
       }
@@ -406,7 +391,7 @@ export function AccountSignalsCard({
           onOpenChange={setIsDrawerOpen}
           companyId={companyId}
           companyName={companyName}
-          onDismiss={(id) => setSignals((current) => current.filter((s) => s.id !== id))}
+          onDismiss={(id) => setHiddenSignalIds((current) => ({ ...current, [id]: true }))}
         />
 
         <AddSignalDrawer
@@ -531,7 +516,7 @@ export function AccountSignalsCard({
         onOpenChange={setIsDrawerOpen}
         companyId={companyId}
         companyName={companyName}
-        onDismiss={(id) => setSignals((current) => current.filter((s) => s.id !== id))}
+        onDismiss={(id) => setHiddenSignalIds((current) => ({ ...current, [id]: true }))}
       />
 
       <AddSignalDrawer

@@ -24,6 +24,10 @@ export function SearchToolbar({
   placeholder = "Rechercher…",
   onQueryChange,
   onReset,
+  mobileAction,
+  hideReset = false,
+  hideChildrenWhenCompact = false,
+  hideCompactResult = false,
   children,
 }: {
   device: DashboardDevice
@@ -35,6 +39,10 @@ export function SearchToolbar({
   placeholder?: string
   onQueryChange: (value: string) => void
   onReset: () => void
+  mobileAction?: ReactNode
+  hideReset?: boolean
+  hideChildrenWhenCompact?: boolean
+  hideCompactResult?: boolean
   children?: ReactNode
 }) {
   const inputId = useId()
@@ -95,31 +103,35 @@ export function SearchToolbar({
               {resultText}
             </span>
           )}
-          <button
-            type="button"
-            onClick={onReset}
-            aria-label="Réinitialiser"
-            className={cn(
-              "rounded-md border border-border text-xs font-semibold text-muted transition-colors hover:text-heading",
-              showCompactMobile ? "flex h-9 w-9 items-center justify-center p-0" : "px-3 py-2"
-            )}
-          >
-            {showCompactMobile ? (
-              <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 0 1 15.36-6.36M21 12A9 9 0 0 1 5.64 18.36M18 5.64V3h2.64M6 18.36V21H3.36" />
-              </svg>
-            ) : (
-              "Réinitialiser"
-            )}
-          </button>
+          {showCompactMobile && mobileAction ? (
+            mobileAction
+          ) : !hideReset ? (
+            <button
+              type="button"
+              onClick={onReset}
+              aria-label="Réinitialiser"
+              className={cn(
+                "rounded-md border border-border text-xs font-semibold text-muted transition-colors hover:text-heading",
+                showCompactMobile ? "flex h-9 w-9 items-center justify-center p-0" : "px-3 py-2"
+              )}
+            >
+              {showCompactMobile ? (
+                <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 0 1 15.36-6.36M21 12A9 9 0 0 1 5.64 18.36M18 5.64V3h2.64M6 18.36V21H3.36" />
+                </svg>
+              ) : (
+                "Réinitialiser"
+              )}
+            </button>
+          ) : null}
         </div>
       </div>
-      {children && (
+      {children && !(showCompactMobile && hideChildrenWhenCompact) && (
         <div className={cn("flex", showCompactMobile ? "flex-nowrap gap-1" : "flex-wrap gap-2")}>
           {children}
         </div>
       )}
-      {showCompactMobile && (
+      {showCompactMobile && !hideCompactResult && (
         <div className="text-xs font-bold text-heading">
           {resultText}
         </div>

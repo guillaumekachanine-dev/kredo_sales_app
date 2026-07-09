@@ -14,7 +14,7 @@ function contact(overrides: Partial<PanelContactRow>): PanelContactRow {
     id: overrides.id ?? crypto.randomUUID(),
     person_id: overrides.person_id ?? crypto.randomUUID(),
     job_title: overrides.job_title ?? "DSI",
-    relationship_role: overrides.relationship_role ?? "dsi",
+    relationship_role: overrides.relationship_role ?? "decideur",
     is_priority: overrides.is_priority ?? false,
     persons: overrides.persons ?? {
       full_name: "Marie Martin",
@@ -84,7 +84,7 @@ describe("account panel data rules", () => {
     ])
 
     expect(contacts.map((item) => item.id)).toEqual(["dsi-priority", "decideur", "direction"])
-    expect(contacts.every((item) => ["decideur", "dsi", "direction_metier"].includes(item.relationshipRole))).toBe(true)
+    expect(contacts.every((item) => item.relationshipRole === "decideur")).toBe(true)
   })
 
   it("deduplicates key contacts by person and keeps the strongest row", () => {

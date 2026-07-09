@@ -111,7 +111,7 @@ AS $$
     SELECT count(*) AS decision_maker_count
     FROM public.contacts
     WHERE company_id = p_company_id
-      AND relationship_role IN ('decideur', 'direction_metier', 'dsi', 'sponsor')
+      AND relationship_role IN ('decideur', 'sponsor')
   )
   SELECT round((
       -- potentiel économique (45% — inclut la part practice/offre non branchée)

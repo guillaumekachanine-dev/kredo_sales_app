@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/lib/formatters"
+import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
 import { isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 
 export type ProspectionPeriod = "30d" | "90d" | "180d"
@@ -212,12 +213,7 @@ const COMMITTEE_ROLE_WEIGHTS: Record<string, number> = {
   sponsor: 20,
   prescripteur: 15,
   acheteur: 15,
-  dsi: 10,
-  direction_metier: 8,
-  manager_technique: 8,
   operationnel: 5,
-  utilisateur_final: 4,
-  rh: 4,
 }
 
 function asNumber(value: number | string | null | undefined): number | null {
@@ -499,7 +495,11 @@ export function buildProspectionPortfolioAccounts(params: {
     const intelligence = intelligenceByCompany.get(company.id)
 
     const committeeRoles = Array.from(
-      new Set(accountContacts.map((contact) => contact.relationship_role).filter((value): value is string => Boolean(value))),
+      new Set(
+        accountContacts
+          .map((contact) => normalizeContactRelationshipRole(contact.relationship_role))
+          .filter((value): value is string => Boolean(value)),
+      ),
     )
     const committeeRoleCount = committeeRoles.filter((role) => ["decideur", "sponsor", "prescripteur", "acheteur"].includes(role)).length
     const decisionPowerCount = accountContacts.filter((contact) => Boolean(contact.decision_power)).length

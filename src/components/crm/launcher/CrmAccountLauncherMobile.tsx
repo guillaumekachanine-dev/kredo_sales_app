@@ -5,7 +5,6 @@ import { useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { CrmLauncherSearchBox } from "./CrmLauncherSearchBox"
 import { CrmLauncherModeTabs } from "./CrmLauncherModeTabs"
-import { CrmLauncherDestinationTabs } from "./CrmLauncherDestinationTabs"
 import { CrmLauncherAccountCard } from "./CrmLauncherAccountCard"
 import type { CrmLauncherAccount, CrmLauncherDestination, CrmLauncherMode } from "./CrmAccountLauncher"
 
@@ -28,8 +27,6 @@ interface CrmAccountLauncherMobileProps {
 export function CrmAccountLauncherMobile({
   open,
   onOpenChange,
-  destination,
-  onDestinationChange,
   mode,
   onModeChange,
   searchQuery,
@@ -85,7 +82,8 @@ export function CrmAccountLauncherMobile({
     }
   }
 
-  return (    <dialog
+  return (
+    <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={cn(
@@ -137,18 +135,33 @@ export function CrmAccountLauncherMobile({
           </button>
         </div>
 
-        {/* Search */}
-        <div className="shrink-0">
-          <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
+        {/* Search & Liste complète */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex-1 min-w-0">
+            <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
+          </div>
+          <Link
+            href="/prospection/accounts?tab=accounts"
+            prefetch={false}
+            onClick={() => onOpenChange(false)}
+            className="inline-flex h-[38px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 text-xs font-bold text-white shadow-sm transition-all hover:scale-[1.02] hover:bg-primary/95 active:scale-[0.98]"
+          >
+            <svg
+              className="w-3.5 h-3.5 text-white shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            Liste complète
+          </Link>
         </div>
 
-        {/* Configuration Actions & Modes */}
-        <div className="flex flex-col gap-3.5 shrink-0">
+        {/* Modes de liste directement sous la recherche */}
+        <div className="shrink-0">
           <CrmLauncherModeTabs activeMode={mode} onChange={onModeChange} />
-          <CrmLauncherDestinationTabs
-            activeDestination={destination}
-            onChange={onDestinationChange}
-          />
         </div>
 
         {/* Content list (défilement tactile fluide) */}
@@ -203,28 +216,6 @@ export function CrmAccountLauncherMobile({
               ))}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-border/40 pt-3 flex items-center justify-end shrink-0 pb-2">
-          <Link
-            href="/prospection/accounts?tab=accounts"
-            prefetch={false}
-            onClick={() => onOpenChange(false)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            style={{ minHeight: "36px" }}
-          >
-            <svg
-              className="w-3 h-3 text-white shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={3}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            Liste complète
-          </Link>
         </div>
       </div>
     </dialog>

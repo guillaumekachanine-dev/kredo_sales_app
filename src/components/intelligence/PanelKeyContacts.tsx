@@ -1,14 +1,9 @@
 "use client"
 
 import type { ReactNode } from "react"
+import { relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
 import type { PanelContact } from "@/lib/intelligence/account-panel-types"
 import { openContactFromIntelligencePanel } from "@/lib/intelligence/panel-drawer-switch"
-
-const ROLE_LABELS: Record<string, string> = {
-  decideur: "Décideur",
-  dsi: "DSI",
-  direction_metier: "Direction métier",
-}
 
 interface PanelKeyContactsProps {
   contacts: PanelContact[]
@@ -60,7 +55,7 @@ export function PanelKeyContacts({ contacts, tone = "dark" }: PanelKeyContactsPr
                   {contact.fullName}
                 </p>
                 <p className={isDark ? "truncate text-[11px] text-primary-fg/45" : "truncate text-[11px] text-muted"}>
-                  {contact.jobTitle ?? ROLE_LABELS[contact.relationshipRole] ?? "—"}
+                  {contact.jobTitle ?? relationshipRoleLabel(contact.relationshipRole)}
                 </p>
               </div>
               {contact.isPriority && (

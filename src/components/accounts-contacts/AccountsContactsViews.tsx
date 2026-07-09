@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
@@ -37,7 +38,10 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import { cn } from "@/lib/utils"
-import { CONTACT_DEPARTMENTS } from "@/lib/accounts-contacts/contact-constants"
+import {
+  CONTACT_DEPARTMENTS,
+  CONTACT_RELATIONSHIP_ROLE_OPTIONS,
+} from "@/lib/accounts-contacts/contact-constants"
 import {
   fetchPersistedMobilePriorityAccountIds,
   getMobilePriorityAccountsChangeEvent,
@@ -130,24 +134,7 @@ const SCORE_OPTIONS: FilterOption[] = [
   { value: "2", label: "≥ 2" },
 ]
 
-const SORT_OPTIONS: FilterOption[] = [
-  { value: "score", label: "Score" },
-  { value: "alphabetique", label: "Alphabétique" },
-  { value: "activite", label: "Activité" },
-]
-
-const ROLE_OPTIONS = [
-  { value: "decideur", label: "Décideur" },
-  { value: "prescripteur", label: "Prescripteur" },
-  { value: "acheteur", label: "Acheteur" },
-  { value: "operationnel", label: "Opérationnel" },
-  { value: "sponsor", label: "Sponsor" },
-  { value: "utilisateur_final", label: "Utilisateur final" },
-  { value: "rh", label: "RH" },
-  { value: "manager_technique", label: "Manager technique" },
-  { value: "dsi", label: "DSI" },
-  { value: "direction_metier", label: "Direction métier" },
-]
+const ROLE_OPTIONS = CONTACT_RELATIONSHIP_ROLE_OPTIONS
 
 const RELATIONSHIP_LEVEL_OPTIONS = [
   { value: "inexistant", label: "Inexistant" },
@@ -1061,73 +1048,192 @@ function AccountsDesktop({
 
 function AccountsMobile({
   accounts,
+  contacts,
   onOpenIdentity,
+  onOpenContactIdentity,
 }: {
   accounts: AccountRow[]
+  contacts: ContactRow[]
   onOpenIdentity: (id: string) => void
+  onOpenContactIdentity: (id: string) => void
 }) {
+  const [collapsedSectors, setCollapsedSectors] = useState<Record<string, boolean>>({})
+  const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
+
+  const groupedBySector = useMemo(() => {
+    const map = new Map<string, AccountRow[]>()
+    accounts.forEach((account) => {
+      const sector = account.sector || "Non renseigné"
+      if (!map.has(sector)) {
+        map.set(sector, [])
+      }
+      map.get(sector)!.push(account)
+    })
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [accounts])
+
+  const contactsByCompanyId = useMemo(() => {
+    const map = new Map<string, ContactRow[]>()
+    contacts.forEach((contact) => {
+      if (!contact.companyId) return
+      const bucket = map.get(contact.companyId)
+      if (bucket) {
+        bucket.push(contact)
+      } else {
+        map.set(contact.companyId, [contact])
+      }
+    })
+    return map
+  }, [contacts])
+
   return (
-    <div className="flex flex-col gap-2.5">
-      {accounts.map((account) => (
-        <div
-          key={account.id}
-          id={`account-row-${account.id}`}
-          className="overflow-hidden rounded-2xl border border-border bg-surface text-left shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
-        >
-          <button
-            type="button"
-            onClick={() => onOpenIdentity(account.id)}
-            className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors active:opacity-75"
-          >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-canvas/80 p-2">
-              <CompanyLogo
-                name={account.name}
-                logoPath={account.logoPath}
-                website={account.website}
-                size="sm"
-                denseList
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] font-bold leading-tight text-heading">
-                  {account.name}
+    <div className="overflow-hidden rounded-[var(--radius-large)] border border-border/60 bg-surface">
+      {groupedBySector.map(([sector, sectorAccounts]) => {
+        const isSectorCollapsed = collapsedSectors[sector] === true
+
+        return (
+          <Fragment key={sector}>
+            <div className="border-y border-border/80 kredo-sector-header-row" style={{ backgroundColor: "#607D8B" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setCollapsedSectors((prev) => ({ ...prev, [sector]: !prev[sector] }))
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left font-bold text-white"
+                aria-expanded={!isSectorCollapsed}
+              >
+                <svg
+                  className={cn(
+                    "size-3.5 shrink-0 text-white/80 transition-transform duration-200",
+                    !isSectorCollapsed ? "rotate-90" : ""
+                  )}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <span className="text-[11px] uppercase tracking-wider">{sector}</span>
+                <span className="ml-1 text-[10px] font-semibold normal-case text-white/70">
+                  ({sectorAccounts.length} compte{sectorAccounts.length > 1 ? "s" : ""})
                 </span>
-                {account.score !== null ? (
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-                    {account.score}/5
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-                {account.sector ? (
-                  <span className="max-w-[11rem] truncate">{account.sector}</span>
-                ) : null}
-                {account.status ? (
-                  <span className="capitalize">{account.status.replaceAll("_", " ")}</span>
-                ) : null}
-                <span>{account.contactCount} contact{account.contactCount > 1 ? "s" : ""}</span>
-                {account.taskCount > 0 ? (
-                  <span>{account.taskCount} tâche{account.taskCount > 1 ? "s" : ""}</span>
-                ) : null}
-                {account.segment ? (
-                  <span className="max-w-[10rem] truncate">{account.segment}</span>
-                ) : null}
-              </div>
+              </button>
             </div>
-            <div className="flex shrink-0 items-center gap-2 pl-1">
-              {account.priority === "haute" ? (
-                <span className="rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-warning">
-                  Priorité
-                </span>
-              ) : null}
-              <svg className="size-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          </button>
-        </div>
-      ))}
+
+            {!isSectorCollapsed && sectorAccounts.map((account) => {
+              const accountContacts = (contactsByCompanyId.get(account.id) ?? []).slice().sort((a, b) => {
+                const decideurA = a.relationshipRole === "decideur" ? 0 : 1
+                const decideurB = b.relationshipRole === "decideur" ? 0 : 1
+                if (decideurA !== decideurB) return decideurA - decideurB
+                return a.fullName.localeCompare(b.fullName, "fr")
+              })
+              const isContactsExpanded = expandedAccounts[account.id] === true
+              const accountStatus = account.status ? account.status.replaceAll("_", " ") : "-"
+              const accountSegment = account.segment || "Segment non renseigné"
+
+              return (
+                <Fragment key={account.id}>
+                  <div id={`account-row-${account.id}`} className="border-b border-border/40">
+                    <div className="flex items-center gap-2 px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setExpandedAccounts((prev) => ({ ...prev, [account.id]: !prev[account.id] }))
+                        }}
+                        className="flex size-8 shrink-0 items-center justify-center text-muted transition-colors hover:text-heading"
+                        aria-expanded={isContactsExpanded}
+                        aria-label={isContactsExpanded ? "Masquer les contacts" : "Afficher les contacts"}
+                        title={isContactsExpanded ? "Cacher les contacts" : "Afficher les contacts"}
+                      >
+                        <svg
+                          className={cn(
+                            "size-3.5 shrink-0 transition-transform duration-200",
+                            isContactsExpanded ? "rotate-90" : ""
+                          )}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onOpenIdentity(account.id)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left transition-colors active:opacity-75"
+                      >
+                        <CompanyLogo
+                          name={account.name}
+                          logoPath={account.logoPath}
+                          website={account.website}
+                          size="lg"
+                          denseList
+                          className="rounded-none border-0 bg-transparent"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[14px] font-bold leading-tight text-heading">
+                            {account.name}
+                          </div>
+                          <div className="mt-0.5 truncate text-[11px] text-muted">
+                            {accountSegment} - {accountStatus}
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {isContactsExpanded && (
+                    <div className="border-b border-border/30 bg-canvas/15">
+                      <div className="flex flex-col gap-1 py-1.5">
+                        {accountContacts.length === 0 ? (
+                          <span className="px-14 py-2 text-[11px] italic text-muted">
+                            Aucun contact enregistré pour ce compte.
+                          </span>
+                        ) : (
+                          accountContacts.map((contact) => {
+                            const isDecideur = contact.relationshipRole === "decideur"
+                            const lineTitle = `${contact.fullName} - ${contact.jobTitle || "Fonction non renseignée"}`
+
+                            return (
+                              <button
+                                key={contact.id}
+                                type="button"
+                                onClick={() => onOpenContactIdentity(contact.id)}
+                                className="flex w-full items-center gap-2 pl-9 pr-3 py-2 text-left transition-colors hover:bg-canvas/35"
+                              >
+                                {isDecideur ? (
+                                  <span className="h-5 w-1 shrink-0 rounded-full bg-[#FFB812]" aria-hidden="true" />
+                                ) : (
+                                  <span className="w-1 shrink-0" aria-hidden="true" />
+                                )}
+                                <Image
+                                  src="/icons_set/comptes_liste_contacts.png"
+                                  alt=""
+                                  width={18}
+                                  height={18}
+                                  className="h-[18px] w-[18px] shrink-0 object-contain"
+                                />
+                                <span className="min-w-0 flex-1 truncate text-[11px] text-body" title={lineTitle}>
+                                  <span className="font-bold text-heading">{contact.fullName}</span>
+                                  <span>{` - ${contact.jobTitle || "Fonction non renseignée"}`}</span>
+                                </span>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Fragment>
+              )
+            })}
+          </Fragment>
+        )
+      })}
     </div>
   )
 }
@@ -1573,6 +1679,7 @@ export function ProspectionAccountsView({
   // Delete confirm
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
 
 
@@ -1600,6 +1707,93 @@ export function ProspectionAccountsView({
     })
   }
 
+  const toolbarFilters = subTab === "accounts" ? (
+    <>
+      <FilterDropdown
+        label="Secteur"
+        options={sectorOptions}
+        selected={filters.includeSector}
+        onToggle={(value) => toggleListValue("incSector", value)}
+        onClear={() => setParam("incSector", null)}
+        compact={isMobileAccounts}
+        panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
+        fullWidthPanel
+      />
+      <FilterDropdown
+        label="Statut"
+        options={LIFECYCLE_OPTIONS}
+        selected={filters.includeStatus}
+        onToggle={(value) => toggleListValue("incStatus", value)}
+        onClear={() => setParam("incStatus", null)}
+        compact={isMobileAccounts}
+        panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
+        fullWidthPanel
+      />
+      <FilterDropdown
+        label={device === "mobile" ? "CA" : "Chiffre affaire"}
+        options={REVENUE_OPTIONS}
+        selected={filters.includeRevenue}
+        onToggle={(value) => toggleListValue("incRevenue", value)}
+        onClear={() => setParam("incRevenue", null)}
+        compact={isMobileAccounts}
+        panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
+        fullWidthPanel
+      />
+      <FilterDropdown
+        label="Taille"
+        options={SIZE_OPTIONS}
+        selected={filters.includeSize}
+        onToggle={(value) => toggleListValue("incSize", value)}
+        onClear={() => setParam("incSize", null)}
+        compact={isMobileAccounts}
+        panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
+        fullWidthPanel
+      />
+      {!isMobileAccounts && (
+        <FilterDropdown
+          label="Score"
+          mode="single"
+          options={SCORE_OPTIONS}
+          selected={filters.minScore === null ? [] : [String(filters.minScore)]}
+          onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
+          onClear={() => setParam("minScore", null)}
+          panelWidthCh={11}
+        />
+      )}
+    </>
+  ) : (
+    <>
+      <FilterDropdown
+        label="Rôle"
+        options={ROLE_OPTIONS}
+        selected={filters.includeRole}
+        onToggle={(value) => toggleListValue("incRole", value)}
+        onClear={() => setParam("incRole", null)}
+        compact={isMobileContacts}
+        panelWidthCh={isMobileContacts ? CONTACT_FILTER_PANEL_WIDTH_CH : undefined}
+        fullWidthPanel
+      />
+      <FilterChip
+        label="Avec email"
+        active={filters.hasEmail}
+        compact={isMobileContacts}
+        onToggle={() => setParam("hasEmail", filters.hasEmail ? null : "1")}
+      />
+      <FilterChip
+        label="Avec téléphone"
+        active={filters.hasPhone}
+        compact={isMobileContacts}
+        onToggle={() => setParam("hasPhone", filters.hasPhone ? null : "1")}
+      />
+    </>
+  )
+
+  const mobileResultText = isMobileAccounts
+    ? `${totalFiltered}/${totalAll} comptes`
+    : isMobileContacts
+      ? `${totalFiltered}/${totalAll} contacts`
+      : null
+
   return (
     <div className={cn("mx-auto flex w-full max-w-7xl flex-col bg-canvas", device === "mobile" ? "gap-3 px-4 py-4" : "gap-5 px-6 py-6")}>
 
@@ -1609,46 +1803,57 @@ export function ProspectionAccountsView({
             Comptes & Contacts
           </h1>
         </div>
-        <div className={cn("flex items-center gap-2 shrink-0", device === "mobile" && "mt-5")}>
-          {device === "mobile" ? (
+        {device !== "mobile" && (
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              type="button"
-              onClick={() => openCreateModal()}
-              className="flex h-9 w-9 items-center justify-center rounded bg-primary text-lg font-semibold leading-none text-primary-fg hover:bg-primary/90 transition-colors"
-              aria-label="Créer un compte ou un contact"
+              onClick={() => setContactModal({ open: true })}
+              className="rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
             >
-              +
+              + Contact
             </button>
-          ) : (
-            <>
-              <button
-                onClick={() => setContactModal({ open: true })}
-                className="rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
-              >
-                + Contact
-              </button>
-              <button
-                onClick={() => setCompanyModal({ open: true })}
-                className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-colors"
-              >
-                + Compte
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              onClick={() => setCompanyModal({ open: true })}
+              className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-colors"
+            >
+              + Compte
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sub-tab selection */}
-      <div>
+      <div className={cn(device === "mobile" ? "grid grid-cols-[auto_1fr_auto] items-center gap-2" : undefined)}>
         <PageViewSelector
-          items={[
-            { value: "accounts", label: `Comptes (${filteredAccounts.length})` },
-            { value: "contacts", label: `Contacts (${filteredContacts.length})` },
-          ]}
+          items={
+            device === "mobile"
+              ? [
+                  { value: "accounts", label: "Comptes" },
+                  { value: "contacts", label: "Contacts" },
+                ]
+              : [
+                  { value: "accounts", label: `Comptes (${filteredAccounts.length})` },
+                  { value: "contacts", label: `Contacts (${filteredContacts.length})` },
+                ]
+          }
           value={subTab}
           onChange={(value) => setParam("tab", value)}
           ariaLabel="Sélection de la vue Comptes ou Contacts"
         />
+        {device === "mobile" && mobileResultText ? (
+          <span className="min-w-0 text-center text-xs font-bold text-heading">
+            {mobileResultText}
+          </span>
+        ) : null}
+        {device === "mobile" && (
+          <button
+            type="button"
+            onClick={() => openCreateModal()}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary text-lg font-semibold leading-none text-primary-fg transition-colors hover:bg-primary/90"
+            aria-label="Créer un compte ou un contact"
+          >
+            +
+          </button>
+        )}
       </div>
 
       {/* Search & quick filters */}
@@ -1662,106 +1867,84 @@ export function ProspectionAccountsView({
         placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
         onQueryChange={(value) => setParam("q", value)}
         onReset={() => clearAll(["tab"])}
+        hideReset={isMobileSearch}
+        hideChildrenWhenCompact={isMobileSearch}
+        hideCompactResult={isMobileSearch}
+        mobileAction={isMobileSearch ? (
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(true)}
+            aria-label="Ouvrir les filtres"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:text-heading"
+          >
+            <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+            </svg>
+          </button>
+        ) : undefined}
       >
-        {subTab === "accounts" ? (
-          <>
-            <FilterDropdown
-              label="Secteur"
-              options={sectorOptions}
-              selected={filters.includeSector}
-              onToggle={(value) => toggleListValue("incSector", value)}
-              onClear={() => setParam("incSector", null)}
-              compact={isMobileAccounts}
-              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
-              fullWidthPanel
-            />
-            <FilterDropdown
-              label="Statut"
-              options={LIFECYCLE_OPTIONS}
-              selected={filters.includeStatus}
-              onToggle={(value) => toggleListValue("incStatus", value)}
-              onClear={() => setParam("incStatus", null)}
-              compact={isMobileAccounts}
-              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
-              fullWidthPanel
-            />
-            <FilterDropdown
-              label={device === "mobile" ? "CA" : "Chiffre affaire"}
-              options={REVENUE_OPTIONS}
-              selected={filters.includeRevenue}
-              onToggle={(value) => toggleListValue("incRevenue", value)}
-              onClear={() => setParam("incRevenue", null)}
-              compact={isMobileAccounts}
-              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
-              fullWidthPanel
-            />
-            <FilterDropdown
-              label="Taille"
-              options={SIZE_OPTIONS}
-              selected={filters.includeSize}
-              onToggle={(value) => toggleListValue("incSize", value)}
-              onClear={() => setParam("incSize", null)}
-              compact={isMobileAccounts}
-              panelWidthCh={isMobileAccounts ? accountFilterPanelWidthCh : undefined}
-              fullWidthPanel
-            />
-            {isMobileAccounts ? (
-              <FilterDropdown
-                label="Tri"
-                mode="single"
-                options={SORT_OPTIONS}
-                selected={[filters.sortAccounts]}
-                onToggle={(value) => setParam("sortAcc", value === filters.sortAccounts ? null : value)}
-                onClear={() => setParam("sortAcc", null)}
-                compact
-                panelWidthCh={14}
-              />
-            ) : (
-              <FilterDropdown
-                label="Score"
-                mode="single"
-                options={SCORE_OPTIONS}
-                selected={filters.minScore === null ? [] : [String(filters.minScore)]}
-                onToggle={(value) => setParam("minScore", filters.minScore === Number(value) ? null : value)}
-                onClear={() => setParam("minScore", null)}
-                panelWidthCh={11}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <FilterDropdown
-              label="Rôle"
-              options={ROLE_OPTIONS}
-              selected={filters.includeRole}
-              onToggle={(value) => toggleListValue("incRole", value)}
-              onClear={() => setParam("incRole", null)}
-              compact={isMobileContacts}
-              panelWidthCh={isMobileContacts ? CONTACT_FILTER_PANEL_WIDTH_CH : undefined}
-              fullWidthPanel
-            />
-            <FilterChip
-              label="Avec email"
-              active={filters.hasEmail}
-              compact={isMobileContacts}
-              onToggle={() => setParam("hasEmail", filters.hasEmail ? null : "1")}
-            />
-            <FilterChip
-              label="Avec téléphone"
-              active={filters.hasPhone}
-              compact={isMobileContacts}
-              onToggle={() => setParam("hasPhone", filters.hasPhone ? null : "1")}
-            />
-          </>
-        )}
+        {toolbarFilters}
       </SearchToolbar>
+
+      {isMobileSearch && mobileFiltersOpen && (
+        <div className="fixed inset-0 z-[1000] bg-heading/30 backdrop-blur-sm" onClick={() => setMobileFiltersOpen(false)}>
+          <div
+            className="absolute inset-x-4 top-[8.25rem] rounded-[var(--radius-large)] border border-border/70 bg-surface p-3 shadow-[0_20px_60px_rgba(15,23,42,0.16)]"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Paramètres de filtres"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-heading">Filtres</h2>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted transition-colors hover:text-heading"
+                aria-label="Fermer les filtres"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div
+              className={cn(
+                subTab === "accounts"
+                  ? "grid grid-cols-4 gap-1.5 [&>div]:min-w-0 [&>div]:w-full [&>div>button]:flex [&>div>button]:w-full [&>div>button]:justify-between"
+                  : "flex flex-wrap gap-2"
+              )}
+            >
+              {toolbarFilters}
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => clearAll(["tab"])}
+                className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted transition-colors hover:text-heading"
+              >
+                Réinitialiser
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileFiltersOpen(false)}
+                className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-fg transition-colors hover:bg-primary/90"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dynamic Views */}
       {subTab === "accounts" && (
         device === "mobile" ? (
           <AccountsMobile
             accounts={displayAccounts}
+            contacts={data.contacts}
             onOpenIdentity={openCompanyDrawer}
+            onOpenContactIdentity={openContactDrawer}
           />
         ) : (
           <AccountsDesktop

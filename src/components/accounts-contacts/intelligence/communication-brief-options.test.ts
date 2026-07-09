@@ -3,10 +3,10 @@ import { buildDefaultBrief } from "./communication-brief-options"
 
 const contacts = [
   {
-    id: "contact-dsi",
+    id: "contact-decideur",
     fullName: "Alice Martin",
     jobTitle: "DSI",
-    relationshipRole: "dsi",
+    relationshipRole: "decideur",
     email: "alice@example.com",
   },
 ]
@@ -16,13 +16,13 @@ describe("buildDefaultBrief", () => {
     const brief = buildDefaultBrief({
       company: { name: "Acme", lifecycleStatus: "prospect" },
       contacts,
-      communicationPreset: { contactId: "contact-dsi" },
+      communicationPreset: { contactId: "contact-decideur" },
     }, "Guillaume")
 
     expect(brief.who.sender.name).toBe("Guillaume")
-    expect(brief.who.recipient.contactId).toBe("contact-dsi")
+    expect(brief.who.recipient.contactId).toBe("contact-decideur")
     expect(brief.who.recipient.displayName).toBe("Alice Martin")
-    expect(brief.who.recipient.persona).toBe("cto_cio")
+    expect(brief.who.recipient.persona).toBe("other")
     expect(brief.who.recipient.relation).toBe("warm")
   })
 

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { AppDrawer } from "@/components/ui/AppDrawer"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 import { FormControlSize, getControlClassName } from "./form-controls"
 
@@ -158,6 +158,19 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const drawerTitle = ariaLabel ?? title ?? "Sélectionner une option"
     const shouldRenderMobileSelect = isMobileViewport && !multiple
 
+    useEffect(() => {
+      if (!drawerOpen) return
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          setDrawerOpen(false)
+        }
+      }
+
+      window.addEventListener("keydown", handleKeyDown)
+      return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [drawerOpen])
+
     const setRefs = (node: HTMLSelectElement | null) => {
       nativeSelectRef.current = node
 
@@ -236,68 +249,82 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {children}
           </select>
 
-          <AppDrawer
-            open={drawerOpen}
-            onOpenChange={setDrawerOpen}
-            side="bottom"
-            title={drawerTitle}
-            className="sm:hidden"
-          >
-            <div className="flex max-h-[min(60vh,28rem)] flex-col overflow-y-auto">
-              {optionItems.map((item) => {
-                if (item.kind === "group") {
-                  return (
-                    <p
-                      key={item.key}
-                      className="px-1 pb-2 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted first:pt-0"
-                    >
-                      {item.label}
-                    </p>
-                  )
-                }
-
-                const isSelected = item.value === selectedValue
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    disabled={item.disabled}
-                    className={cn(
-                      "flex min-h-11 w-full items-start justify-between gap-3 rounded-[var(--radius-medium)] px-3 py-3 text-left text-sm leading-6 text-heading transition-colors",
-                      isSelected ? "bg-primary/8 text-primary" : "bg-transparent",
-                      item.disabled && "cursor-not-allowed opacity-50",
-                    )}
-                    onClick={() => {
-                      commitValue(item.value)
-                      setDrawerOpen(false)
-                    }}
+          {drawerOpen && typeof document !== "undefined"
+            ? createPortal(
+                <div
+                  className="fixed inset-0 z-[var(--z-drawer)] flex items-center justify-center bg-[var(--color-backdrop)] px-4 py-6 sm:hidden"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={drawerTitle}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <div
+                    className="flex w-[min(92vw,26rem)] max-w-full flex-col overflow-hidden rounded-[20px] border border-border bg-surface text-heading shadow-[var(--shadow-overlay-md)] animate-in fade-in zoom-in-95 duration-150"
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    <span className="min-w-0 flex-1 break-words">{item.label}</span>
-                    <span
-                      className={cn(
-                        "mt-1 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-border",
-                        isSelected && "border-primary bg-primary text-primary-fg",
-                      )}
-                      aria-hidden="true"
-                    >
-                      {isSelected ? (
-                        <svg className="size-3" viewBox="0 0 16 16" fill="none">
-                          <path
-                            d="M3.5 8.25L6.5 11.25L12.5 4.75"
-                            stroke="currentColor"
-                            strokeWidth="1.75"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      ) : null}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </AppDrawer>
+                    <div className="border-b border-border/70 px-4 py-3.5">
+                      <p className="text-sm font-semibold leading-5 text-heading">{drawerTitle}</p>
+                    </div>
+
+                    <div className="flex max-h-[min(60vh,28rem)] flex-col overflow-y-auto px-2 py-2">
+                      {optionItems.map((item) => {
+                        if (item.kind === "group") {
+                          return (
+                            <p
+                              key={item.key}
+                              className="px-2 pb-2 pt-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted first:pt-0"
+                            >
+                              {item.label}
+                            </p>
+                          )
+                        }
+
+                        const isSelected = item.value === selectedValue
+
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            disabled={item.disabled}
+                            className={cn(
+                              "flex min-h-11 w-full items-start justify-between gap-3 rounded-[14px] px-3 py-3 text-left text-sm leading-6 text-heading transition-colors",
+                              isSelected ? "bg-primary/8 text-primary" : "bg-transparent",
+                              item.disabled && "cursor-not-allowed opacity-50",
+                            )}
+                            onClick={() => {
+                              commitValue(item.value)
+                              setDrawerOpen(false)
+                            }}
+                          >
+                            <span className="min-w-0 flex-1 break-words">{item.label}</span>
+                            <span
+                              className={cn(
+                                "mt-1 inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-border",
+                                isSelected && "border-primary bg-primary text-primary-fg",
+                              )}
+                              aria-hidden="true"
+                            >
+                              {isSelected ? (
+                                <svg className="size-3" viewBox="0 0 16 16" fill="none">
+                                  <path
+                                    d="M3.5 8.25L6.5 11.25L12.5 4.75"
+                                    stroke="currentColor"
+                                    strokeWidth="1.75"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              ) : null}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>,
+                document.body,
+              )
+            : null}
         </div>
       )
     }

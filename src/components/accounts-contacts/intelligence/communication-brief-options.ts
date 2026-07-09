@@ -10,6 +10,7 @@ import type {
   CommunicationSenderRole,
   CommunicationTone,
 } from "@/lib/n8n/types"
+import { normalizeContactRelationshipRole } from "@/lib/accounts-contacts/contact-constants"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import type { CommunicationComposerPreset } from "@/lib/communication/communication-composer"
 
@@ -174,23 +175,15 @@ function relationFromLifecycle(lifecycleStatus: string): CommunicationRelation {
   }
 }
 
-// contacts.relationship_role réel (CLAUDE.md) : decideur · prescripteur · acheteur ·
-// operationnel · sponsor · utilisateur_final · rh · manager_technique · dsi · direction_metier
 export function personaFromRelationshipRole(relationshipRole: string | null): CommunicationPersona {
-  switch (relationshipRole) {
-    case "dsi":
-      return "cto_cio"
-    case "direction_metier":
-      return "business_director"
-    case "rh":
-      return "hr_talent"
+  switch (normalizeContactRelationshipRole(relationshipRole)) {
     case "acheteur":
       return "purchasing"
-    case "manager_technique":
-      return "technical"
     case "operationnel":
-    case "utilisateur_final":
       return "operational"
+    case "decideur":
+    case "prescripteur":
+    case "sponsor":
     default:
       return "other"
   }

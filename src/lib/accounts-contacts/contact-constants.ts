@@ -16,7 +16,56 @@ export const CONTACT_DEPARTMENTS = [
 
 export type ContactDepartment = (typeof CONTACT_DEPARTMENTS)[number]["value"]
 
+export const CONTACT_RELATIONSHIP_ROLE_OPTIONS = [
+  { value: "decideur", label: "Décideur" },
+  { value: "prescripteur", label: "Prescripteur" },
+  { value: "sponsor", label: "Sponsor" },
+  { value: "operationnel", label: "Opérationnel" },
+  { value: "acheteur", label: "Acheteur" },
+] as const
+
+export type ContactRelationshipRole = (typeof CONTACT_RELATIONSHIP_ROLE_OPTIONS)[number]["value"]
+
+const CONTACT_RELATIONSHIP_ROLE_LABELS: Record<ContactRelationshipRole, string> =
+  Object.fromEntries(
+    CONTACT_RELATIONSHIP_ROLE_OPTIONS.map((option) => [option.value, option.label]),
+  ) as Record<ContactRelationshipRole, string>
+
 export function departmentLabel(value: string | null | undefined): string {
   if (!value) return "—"
   return CONTACT_DEPARTMENTS.find((d) => d.value === value)?.label ?? value
+}
+
+export function normalizeContactRelationshipRole(
+  value: string | null | undefined,
+): ContactRelationshipRole | null {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) return null
+
+  switch (normalized) {
+    case "decideur":
+    case "dsi":
+    case "direction_metier":
+      return "decideur"
+    case "prescripteur":
+    case "rh":
+      return "prescripteur"
+    case "sponsor":
+      return "sponsor"
+    case "operationnel":
+    case "manager_technique":
+    case "utilisateur_final":
+      return "operationnel"
+    case "acheteur":
+      return "acheteur"
+    default:
+      return null
+  }
+}
+
+export function relationshipRoleLabel(value: string | null | undefined): string {
+  const normalized = normalizeContactRelationshipRole(value)
+  if (normalized) return CONTACT_RELATIONSHIP_ROLE_LABELS[normalized]
+  if (!value) return "—"
+  return value.replaceAll("_", " ")
 }

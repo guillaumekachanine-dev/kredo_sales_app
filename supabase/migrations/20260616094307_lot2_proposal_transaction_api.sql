@@ -805,8 +805,7 @@ BEGIN
           v_text_value := private.extract_allowed_text_value(
             v_payload,
             ARRAY[
-              'decideur', 'prescripteur', 'acheteur', 'operationnel', 'sponsor',
-              'utilisateur_final', 'rh', 'manager_technique', 'dsi', 'direction_metier'
+              'decideur', 'prescripteur', 'sponsor', 'operationnel', 'acheteur'
             ],
             true
           );
