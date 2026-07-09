@@ -5,6 +5,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Textarea } from "@/components/ui/Textarea"
+import { Select } from "@/components/ui/Select"
 import { updateVeilleArticleAction } from "@/app/(app)/veille/_actions/veille-actions"
 import { createCompanyInteraction } from "@/app/(app)/prospection/_actions/company-interaction"
 import { createOpportunity, type SalesStage, type SalesPriority } from "@/app/(app)/missions/_actions/create-opportunity"
@@ -102,18 +103,16 @@ export function QualifySignalDialog({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Catégorie</label>
-            <select
+            <Select
               value={categorie}
               onChange={(e) => setCategorie(e.target.value)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-xs text-heading outline-none focus:border-primary"
             >
               <option value="Nominations">Nominations</option>
               <option value="Réglementaire">Réglementaire</option>
-              <option value="Nominations">Nominations</option>
               <option value="Marché">Marché</option>
               <option value="Comptes">Comptes</option>
               <option value="Investissement">Investissement</option>
-            </select>
+            </Select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Secteur</label>
@@ -353,30 +352,28 @@ export function CreateOpportunityDialog({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Étape commerciale</label>
-            <select
+            <Select
               value={stage}
               onChange={(e) => setStage(e.target.value as SalesStage)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-xs text-heading outline-none focus:border-primary"
             >
               <option value="qualification">Qualification</option>
               <option value="recherche_profil">Recherche profil</option>
               <option value="cv_envoyes">CV envoyés</option>
               <option value="entretien_client">Entretien client</option>
               <option value="contractualisation">Contractualisation</option>
-            </select>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Priorité</label>
-            <select
+            <Select
               value={priority}
               onChange={(e) => setPriority(e.target.value as SalesPriority)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-xs text-heading outline-none focus:border-primary"
             >
               <option value="basse">Basse</option>
               <option value="normale">Normale</option>
               <option value="haute">Haute</option>
-            </select>
+            </Select>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { useState } from "react"
 import { getPracticeByName } from "@/lib/config/practices"
 import { MissionsListRow } from "../MissionsListView"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import { Trajectory2026Chart } from "./Trajectory2026Chart"
 import type { Trajectory2026Data } from "./trajectory-2026-types"
@@ -518,39 +519,27 @@ export function MissionsDesktopDashboard({
             
             {/* Filters */}
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <select
-                  value={filterOppsCriticite}
-                  onChange={(e) => setFilterOppsCriticite(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-[var(--radius-medium)] py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                >
-                  <option value="all">Filtrer par criticité</option>
-                  <option value="high">Priorité Haute</option>
-                  <option value="normal">Priorité Normale</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <Select
+                value={filterOppsCriticite}
+                onChange={(e) => setFilterOppsCriticite(e.target.value)}
+                size="sm"
+                className="text-xs font-medium w-auto"
+              >
+                <option value="all">Filtrer par criticité</option>
+                <option value="high">Priorité Haute</option>
+                <option value="normal">Priorité Normale</option>
+              </Select>
 
-              <div className="relative">
-                <select
-                  value={filterTjm}
-                  onChange={(e) => setFilterTjm(e.target.value)}
-                  className="text-xs border border-border bg-surface text-body rounded-[var(--radius-medium)] py-1 px-2.5 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-medium"
-                >
-                  <option value="all">Filtrer par TJM</option>
-                  <option value="500">&gt; 500 €</option>
-                  <option value="700">&gt; 700 €</option>
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <Select
+                value={filterTjm}
+                onChange={(e) => setFilterTjm(e.target.value)}
+                size="sm"
+                className="text-xs font-medium w-auto"
+              >
+                <option value="all">Filtrer par TJM</option>
+                <option value="500">&gt; 500 €</option>
+                <option value="700">&gt; 700 €</option>
+              </Select>
             </div>
           </div>
 

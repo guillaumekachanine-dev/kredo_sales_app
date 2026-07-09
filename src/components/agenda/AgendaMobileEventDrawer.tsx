@@ -5,7 +5,6 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
-import { AgendaQuarterHourTimeField } from "./AgendaQuarterHourTimeField"
 import {
   AGENDA_EVENT_TYPES,
   COMMERCE_TYPES,
@@ -77,6 +76,12 @@ const PRIORITY_OPTIONS = [
   { value: "normal", label: "Normale" },
   { value: "high", label: "Haute" },
 ]
+
+const CATEGORY_LABELS: Record<string, string> = {
+  commerce: "Commerce",
+  recrutement: "Recrutement",
+  management: "Interne",
+}
 
 export function AgendaMobileEventDrawer({
   open,
@@ -249,10 +254,9 @@ export function AgendaMobileEventDrawer({
     if (form.create_task) {
       if (!form.task_title.trim()) errs.task_title = "L'intitulé est obligatoire."
       if (!form.task_date) errs.task_date = "La date est obligatoire."
-      if (!form.task_time) errs.task_time = "L'heure est obligatoire."
-      if (form.date && form.start_time && form.task_date && form.task_time) {
+      if (form.date && form.start_time && form.task_date) {
         const eventStart = new Date(`${form.date}T${form.start_time}`)
-        const taskDue = new Date(`${form.task_date}T${form.task_time}`)
+        const taskDue = new Date(`${form.task_date}T${form.task_time || "08:30"}`)
         if (taskDue >= eventStart)
           errs.task_date = "La tâche doit expirer avant le début de l'événement."
       }
@@ -275,7 +279,7 @@ export function AgendaMobileEventDrawer({
       const startsAt = new Date(`${form.date}T${form.start_time}`).toISOString()
       const endsAt = new Date(`${form.date}T${form.end_time}`).toISOString()
       const taskDueIso = form.create_task
-        ? new Date(`${form.task_date}T${form.task_time}`).toISOString()
+        ? new Date(`${form.task_date}T${form.task_time || "08:30"}`).toISOString()
         : ""
 
       const payload: AgendaEventFormInput = {
@@ -460,7 +464,9 @@ export function AgendaMobileEventDrawer({
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border w-fit",
                     currentTypeConfig?.colorClasses || "bg-canvas border-border text-heading"
                   )}>
-                    {currentTypeConfig?.label || event.event_type}
+                    {currentTypeConfig ? (
+                      `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
+                    ) : event.event_type}
                   </span>
                   <h2 className="font-heading text-lg font-bold text-heading mt-1">
                     {event.title}
@@ -584,9 +590,10 @@ export function AgendaMobileEventDrawer({
                       )}
                     >
                       <span className="flex items-center gap-2">
-                        <span className={cn("size-2 rounded-full shrink-0", currentTypeConfig?.dotClass || "bg-muted")} />
                         <span className={currentTypeConfig ? "font-semibold" : "text-muted"}>
-                          {currentTypeConfig?.label || "Sélectionner le type…"}
+                          {currentTypeConfig ? (
+                            `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
+                          ) : "Sélectionner le type…"}
                         </span>
                       </span>
                       <svg className="size-4 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -612,52 +619,40 @@ export function AgendaMobileEventDrawer({
                     {errors.title && <p className="mt-1 text-[10px] text-danger">{errors.title}</p>}
                   </div>
 
-                  {/* Date */}
-                  <div data-error-field={errors.date ? "true" : "false"}>
-                    <label className="block text-xs font-bold text-heading mb-1">
-                      Date&nbsp;<span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => {
-                        setField("date", e.target.value)
-                        if (!form.task_date) setField("task_date", e.target.value)
-                      }}
-                      disabled={isPending}
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none"
-                    />
-                    {errors.date && <p className="mt-1 text-[10px] text-danger">{errors.date}</p>}
-                  </div>
-
-                  {/* Times */}
+                  {/* Date & Horaire */}
                   <div className="grid grid-cols-2 gap-3">
+                    <div data-error-field={errors.date ? "true" : "false"}>
+                      <label className="block text-xs font-bold text-heading mb-1">
+                        Date&nbsp;<span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={form.date}
+                        onChange={(e) => {
+                          setField("date", e.target.value)
+                          if (!form.task_date) setField("task_date", e.target.value)
+                        }}
+                        disabled={isPending}
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none"
+                      />
+                      {errors.date && <p className="mt-1 text-[10px] text-danger">{errors.date}</p>}
+                    </div>
+
                     <div data-error-field={errors.start_time ? "true" : "false"}>
                       <label className="block text-xs font-bold text-heading mb-1">
-                        Début&nbsp;<span className="text-danger">*</span>
+                        Horaire&nbsp;<span className="text-danger">*</span>
                       </label>
-                      <AgendaQuarterHourTimeField
+                      <input
+                        type="time"
                         value={form.start_time}
-                        onChange={handleStartTimeChange}
+                        onChange={(e) => handleStartTimeChange(e.target.value)}
                         disabled={isPending}
-                        hourAriaLabel="Heure de début"
-                        minuteAriaLabel="Minutes de début"
+                        step="900"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading focus:ring-1 focus:ring-primary/50 outline-none cursor-pointer"
                       />
-                    </div>
-                    <div data-error-field={errors.end_time ? "true" : "false"}>
-                      <label className="block text-xs font-bold text-heading mb-1">
-                        Fin&nbsp;<span className="text-danger">*</span>
-                      </label>
-                      <AgendaQuarterHourTimeField
-                        value={form.end_time}
-                        onChange={(value) => setField("end_time", value)}
-                        disabled={isPending}
-                        hourAriaLabel="Heure de fin"
-                        minuteAriaLabel="Minutes de fin"
-                      />
+                      {errors.start_time && <p className="mt-1 text-[10px] text-danger">{errors.start_time}</p>}
                     </div>
                   </div>
-                  {errors.end_time && <p className="text-[10px] text-danger -mt-1">{errors.end_time}</p>}
                 </div>
               )}
 
@@ -692,23 +687,6 @@ export function AgendaMobileEventDrawer({
                           </Select>
                         </div>
                       )}
-
-                      <div>
-                        <label className="block text-xs font-bold text-heading mb-1">Opportunité liée</label>
-                        <Select
-                          value={form.opportunity_id}
-                          onChange={(e) => setField("opportunity_id", e.target.value)}
-                          disabled={isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                        >
-                          <option value="">Aucune opportunité liée</option>
-                          {opportunities.map((opp) => (
-                            <option key={opp.id} value={opp.id}>
-                              {opp.title}
-                            </option>
-                          ))}
-                        </Select>
-                      </div>
                     </>
                   )}
 
@@ -734,18 +712,16 @@ export function AgendaMobileEventDrawer({
 
                   {/* Notes */}
                   <div>
-                    <label className="block text-xs font-bold text-heading mb-1">Notes de préparation</label>
+                    <label className="block text-xs font-bold text-heading mb-1">Détails</label>
                     <textarea
                       value={form.description}
                       onChange={(e) => setField("description", e.target.value)}
                       disabled={isPending}
-                      rows={3}
+                      rows={2}
                       placeholder="Points clés à aborder, ordre du jour..."
                       className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 focus:ring-1 focus:ring-primary/50 resize-y outline-none"
                     />
                   </div>
-
-                  <div className="border-t border-border/40" />
 
                   {/* Tâche préparatoire */}
                   <div className="flex flex-col gap-2">
@@ -761,7 +737,7 @@ export function AgendaMobileEventDrawer({
                         htmlFor="mobile_create_task_chk"
                         className="text-xs font-bold text-heading select-none cursor-pointer"
                       >
-                        Activer une tâche préparatoire
+                        Définir une tâche
                       </label>
                     </div>
 
@@ -795,42 +771,22 @@ export function AgendaMobileEventDrawer({
                               className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
                             />
                           </div>
+
                           <div>
-                            <label className="block text-[11px] font-bold text-heading mb-1">
-                              Heure&nbsp;<span className="text-danger">*</span>
-                            </label>
-                            <AgendaQuarterHourTimeField
-                              value={form.task_time}
-                              onChange={(value) => setField("task_time", value)}
+                            <label className="block text-[11px] font-bold text-heading mb-1">Priorité</label>
+                            <Select
+                              value={form.task_priority}
+                              onChange={(e) => setField("task_priority", e.target.value)}
                               disabled={isPending}
-                              hourAriaLabel="Heure de la tâche"
-                              minuteAriaLabel="Minutes de la tâche"
-                            />
+                              className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                            >
+                              {PRIORITY_OPTIONS.map((p) => (
+                                <option key={p.value} value={p.value}>{p.label}</option>
+                              ))}
+                            </Select>
                           </div>
                         </div>
                         {errors.task_date && <p className="text-[10px] text-danger -mt-1">{errors.task_date}</p>}
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-heading mb-1.5">Priorité</label>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {PRIORITY_OPTIONS.map((p) => (
-                              <button
-                                key={p.value}
-                                type="button"
-                                disabled={isPending}
-                                onClick={() => setField("task_priority", p.value)}
-                                className={cn(
-                                  "py-1.5 rounded-md text-[11px] font-bold border transition-all cursor-pointer",
-                                  form.task_priority === p.value
-                                    ? "bg-primary text-primary-fg border-primary"
-                                    : "bg-canvas text-muted border-border hover:border-primary/30"
-                                )}
-                              >
-                                {p.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useEffectEvent, useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
-import { AgendaQuarterHourTimeField } from "./AgendaQuarterHourTimeField"
 import { AGENDA_EVENT_TYPES, COMMERCE_TYPES, MANAGEMENT_TYPES, RECRUTEMENT_TYPES } from "@/lib/agenda/agenda-config"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
 import type {
@@ -104,13 +104,19 @@ const PRIORITY_OPTIONS = [
   { value: "high", label: "Haute" },
 ]
 
+const CATEGORY_LABELS: Record<string, string> = {
+  commerce: "Commerce",
+  recrutement: "Recrutement",
+  management: "Interne",
+}
+
 const CONTEXT_LINK_TYPES: Array<{ value: ContextLinkType; label: string; emptyLabel: string }> = [
-  { value: "opportunity", label: "Lier à une opportunité", emptyLabel: "Aucune opportunité disponible" },
-  { value: "contract", label: "Lier à un contrat", emptyLabel: "Aucun contrat disponible" },
-  { value: "mail", label: "Lier à un mail", emptyLabel: "Aucun mail disponible" },
-  { value: "signal", label: "Lier à un signal", emptyLabel: "Aucun signal disponible" },
-  { value: "campaign", label: "Lier à une campagne", emptyLabel: "Aucune campagne disponible" },
-  { value: "offer", label: "Lier à une offre", emptyLabel: "Aucune offre disponible" },
+  { value: "opportunity", label: "Opportunité", emptyLabel: "Aucune opportunité disponible" },
+  { value: "contract", label: "Contrat", emptyLabel: "Aucun contrat disponible" },
+  { value: "mail", label: "Mail", emptyLabel: "Aucun mail disponible" },
+  { value: "signal", label: "Signal", emptyLabel: "Aucun signal disponible" },
+  { value: "campaign", label: "Campagne", emptyLabel: "Aucune campagne disponible" },
+  { value: "offer", label: "Offre", emptyLabel: "Aucune offre disponible" },
 ]
 
 function readEventMetadata(metadata: unknown) {
@@ -369,11 +375,10 @@ export function AgendaEventDrawer({
     if (allowPreparatoryTask && form.create_task) {
       if (!form.task_title.trim()) errs.task_title = "Le titre de la tâche est obligatoire."
       if (!form.task_date) errs.task_date = "La date d'échéance est obligatoire."
-      if (!form.task_time) errs.task_time = "L'heure d'échéance est obligatoire."
 
-      if (form.date && form.start_time && form.task_date && form.task_time) {
+      if (form.date && form.start_time && form.task_date) {
         const eventStart = new Date(`${form.date}T${form.start_time}`)
-        const taskDue = new Date(`${form.task_date}T${form.task_time}`)
+        const taskDue = new Date(`${form.task_date}T${form.task_time || "08:30"}`)
         if (taskDue >= eventStart) {
           errs.task_date = "L'échéance de la tâche doit être antérieure au début de l'événement."
         }
@@ -393,7 +398,7 @@ export function AgendaEventDrawer({
       const endsAt = new Date(`${form.date}T${form.end_time}`).toISOString()
       const shouldCreateTask = allowPreparatoryTask && form.create_task
       const taskDueIso = shouldCreateTask
-        ? new Date(`${form.task_date}T${form.task_time}`).toISOString()
+        ? new Date(`${form.task_date}T${form.task_time || "08:30"}`).toISOString()
         : ""
       const selectedContactIds = form.contact_ids.filter(Boolean)
       const metadata = {
@@ -537,10 +542,6 @@ export function AgendaEventDrawer({
 
           {/* ── SECTION 1: IDENTITÉ ── */}
           <section className="flex flex-col gap-3">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-              Identité de l&apos;événement
-            </p>
-
             {/* Nature picker */}
             <div>
               <label className="block text-xs font-medium text-heading mb-1.5">
@@ -551,8 +552,9 @@ export function AgendaEventDrawer({
                   "w-full rounded-md border px-3 py-2 text-xs font-semibold flex items-center gap-2",
                   currentTypeConfig?.colorClasses || "bg-canvas border-border text-heading"
                 )}>
-                  <span className={cn("size-2 rounded-full shrink-0", currentTypeConfig?.dotClass)} />
-                  {currentTypeConfig?.label || form.event_type}
+                  {currentTypeConfig ? (
+                    `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
+                  ) : form.event_type}
                 </div>
               ) : (
                 <button
@@ -568,9 +570,10 @@ export function AgendaEventDrawer({
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    <span className={cn("size-2 rounded-full shrink-0", currentTypeConfig?.dotClass || "bg-muted")} />
                     <span className={currentTypeConfig ? "font-semibold" : "text-muted"}>
-                      {currentTypeConfig?.label || "Sélectionner le type…"}
+                      {currentTypeConfig ? (
+                        `${CATEGORY_LABELS[currentTypeConfig.category] || currentTypeConfig.category} - ${currentTypeConfig.label}`
+                      ) : "Sélectionner le type…"}
                     </span>
                   </span>
                   <svg className="size-3.5 shrink-0 text-current opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -637,7 +640,7 @@ export function AgendaEventDrawer({
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <select
+                  <Select
                     value=""
                     onChange={(e) => {
                       if (!e.target.value) return
@@ -648,7 +651,7 @@ export function AgendaEventDrawer({
                       toggleContact(e.target.value)
                     }}
                     disabled={isPending || loadingContacts || !form.company}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
+                    size="sm"
                   >
                     <option value="">
                       {form.company ? "Ajouter un contact présent…" : "Sélectionnez d'abord un compte"}
@@ -657,11 +660,11 @@ export function AgendaEventDrawer({
                       .filter((contact) => !form.contact_ids.includes(contact.id))
                       .map((contact) => (
                         <option key={contact.id} value={contact.id}>
-                          {contact.full_name} {contact.job_title ? `— ${contact.job_title}` : ""}
+                           {contact.full_name} {contact.job_title ? `— ${contact.job_title}` : ""}
                         </option>
                       ))}
                     <option value="__other__">Autre contact…</option>
-                  </select>
+                  </Select>
 
                   {form.contact_ids.length > 0 || form.external_contact_name ? (
                     <div className="flex flex-wrap gap-1.5">
@@ -709,8 +712,6 @@ export function AgendaEventDrawer({
             </div>
           </section>
 
-          <div className="border-t border-border/40" />
-
           {/* ── SECTION 2: DATE & HEURES ── */}
           <section className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-2">
@@ -735,101 +736,61 @@ export function AgendaEventDrawer({
                 <label className="block text-xs font-medium text-heading mb-1.5">
                   Horaire&nbsp;<span className="text-danger">*</span>
                 </label>
-                <AgendaQuarterHourTimeField
+                <input
+                  type="time"
                   value={form.start_time}
-                  onChange={handleStartTimeChange}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
                   disabled={isView || isPending}
-                  hourAriaLabel="Heure de l'événement"
-                  minuteAriaLabel="Minutes de l'événement"
+                  step="900"
+                  className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
                 />
                 {errors.start_time && <p className="mt-1 text-[11px] text-danger">{errors.start_time}</p>}
-                {errors.end_time && <p className="mt-1 text-[11px] text-danger">{errors.end_time}</p>}
               </div>
             </div>
           </section>
 
-          <div className="border-t border-border/40" />
-
-          {/* ── SECTION 3: RELATIONS CRM ── */}
-          {isCommerce && (
-            <>
-              <section className="flex flex-col gap-3">
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-                  Relations CRM
-                </p>
-
-                <div>
-                  <label className="block text-xs font-medium text-heading mb-1.5">
-                    Opportunité commerciale liée
-                  </label>
-                  <select
-                    value={form.opportunity_id}
-                    onChange={(e) => setField("opportunity_id", e.target.value)}
-                    disabled={isView || isPending}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
-                  >
-                    <option value="">Aucune opportunité liée</option>
-                    {opportunities.map((opp) => (
-                      <option key={opp.id} value={opp.id}>
-                        {opp.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </section>
-
-              <div className="border-t border-border/40" />
-            </>
-          )}
-
           {/* ── SECTION 4: CANDIDAT (RECRUTEMENT) ── */}
           {isRecrutement && (
-            <>
-              <section className="flex flex-col gap-3">
-                <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-                  Candidat
-                </p>
-                <div>
-                  <label className="block text-xs font-medium text-heading mb-1.5">
-                    Candidat lié
-                  </label>
-                  <select
-                    value={form.candidate_id}
-                    onChange={(e) => setField("candidate_id", e.target.value)}
-                    disabled={isView || isPending}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
-                  >
-                    <option value="">Aucun candidat sélectionné</option>
-                    {candidates.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.full_name}
-                        {c.status ? ` (${c.status})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </section>
-
-              <div className="border-t border-border/40" />
-            </>
+            <section className="flex flex-col gap-3">
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
+                Candidat
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">
+                  Candidat lié
+                </label>
+                <Select
+                  value={form.candidate_id}
+                  onChange={(e) => setField("candidate_id", e.target.value)}
+                  disabled={isView || isPending}
+                  size="sm"
+                >
+                  <option value="">Aucun candidat sélectionné</option>
+                  {candidates.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.full_name}
+                      {c.status ? ` (${c.status})` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </section>
           )}
 
           {/* ── SECTION 5: NOTES ── */}
           <section className="flex flex-col gap-3">
-            <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">Détails</p>
             <div>
+              <label className="block text-xs font-medium text-heading mb-1.5">Détails</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setField("description", e.target.value)}
                 disabled={isView || isPending}
-                rows={4}
+                rows={2}
                 placeholder="Saisissez vos remarques ou l'ordre du jour..."
                 className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 resize-y"
               />
             </div>
           </section>
-
-          <div className="border-t border-border/40" />
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
@@ -849,7 +810,7 @@ export function AgendaEventDrawer({
               />
               <label
                 htmlFor="link_context_chk"
-                className="text-xs font-bold text-heading select-none cursor-pointer"
+                className="text-xs font-medium text-heading select-none cursor-pointer"
               >
                 Lier du contexte
               </label>
@@ -859,28 +820,28 @@ export function AgendaEventDrawer({
               <div className="rounded-md border border-border/80 bg-canvas/30 p-3 grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-heading mb-1.5">Type de contexte</label>
-                  <select
+                  <Select
                     value={form.context_type}
                     onChange={(e) => {
                       setField("context_type", e.target.value as ContextLinkType)
                       setField("context_id", "")
                     }}
                     disabled={isView || isPending}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+                    size="sm"
                   >
                     {CONTEXT_LINK_TYPES.map((type) => (
                       <option key={type.value} value={type.value}>{type.label}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-heading mb-1.5">Élément lié</label>
-                  <select
+                  <Select
                     value={form.context_id}
                     onChange={(e) => setField("context_id", e.target.value)}
                     disabled={isView || isPending || loadingContextOptions}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-60"
+                    size="sm"
                   >
                     <option value="">
                       {loadingContextOptions
@@ -892,106 +853,80 @@ export function AgendaEventDrawer({
                         {option.label}{option.description ? ` — ${option.description}` : ""}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
             )}
           </section>
 
           {allowPreparatoryTask ? (
-            <>
-              <div className="border-t border-border/40" />
+            <section className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="create_task_chk"
+                  checked={form.create_task}
+                  onChange={(e) => setField("create_task", e.target.checked)}
+                  disabled={isView || isPending}
+                  className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
+                />
+                <label
+                  htmlFor="create_task_chk"
+                  className="text-xs font-medium text-heading select-none cursor-pointer"
+                >
+                  Définir une tâche
+                </label>
+              </div>
 
-              {/* ── SECTION 6: TÂCHE PRÉPARATOIRE ── */}
-              <section className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="create_task_chk"
-                    checked={form.create_task}
-                    onChange={(e) => setField("create_task", e.target.checked)}
-                    disabled={isView || isPending}
-                    className="rounded border-border text-primary focus:ring-primary/50 h-4 w-4 cursor-pointer"
-                  />
-                  <label
-                    htmlFor="create_task_chk"
-                    className="text-xs font-bold text-heading select-none cursor-pointer"
-                  >
-                    Activer une tâche préparatoire
-                  </label>
-                </div>
+              {form.create_task && (
+                <div className="rounded-md border border-border/80 bg-canvas/30 p-3 flex flex-col gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-heading mb-1">
+                      Intitulé de la tâche&nbsp;<span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.task_title}
+                      onChange={(e) => setField("task_title", e.target.value)}
+                      disabled={isView || isPending}
+                      placeholder="ex. Préparer le support de présentation"
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50"
+                    />
+                    {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
+                  </div>
 
-                {form.create_task && (
-                  <div className="rounded-md border border-border/80 bg-canvas/30 p-3 flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[11px] font-semibold text-heading mb-1">
-                        Intitulé de la tâche&nbsp;<span className="text-danger">*</span>
+                        Échéance&nbsp;<span className="text-danger">*</span>
                       </label>
                       <input
-                        type="text"
-                        value={form.task_title}
-                        onChange={(e) => setField("task_title", e.target.value)}
+                        type="date"
+                        value={form.task_date}
+                        onChange={(e) => setField("task_date", e.target.value)}
                         disabled={isView || isPending}
-                        placeholder="ex. Préparer le support de présentation"
-                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50"
                       />
-                      {errors.task_title && <p className="mt-1 text-[10px] text-danger">{errors.task_title}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-heading mb-1">
-                          Échéance date&nbsp;<span className="text-danger">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={form.task_date}
-                          onChange={(e) => setField("task_date", e.target.value)}
-                          disabled={isView || isPending}
-                          className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading"
-                        />
-                        {errors.task_date && <p className="mt-1 text-[10px] text-danger">{errors.task_date}</p>}
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-heading mb-1">
-                          Heure&nbsp;<span className="text-danger">*</span>
-                        </label>
-                        <AgendaQuarterHourTimeField
-                          value={form.task_time}
-                          onChange={(value) => setField("task_time", value)}
-                          disabled={isView || isPending}
-                          hourAriaLabel="Heure de la tâche"
-                          minuteAriaLabel="Minutes de la tâche"
-                        />
-                      </div>
+                      {errors.task_date && <p className="mt-1 text-[10px] text-danger">{errors.task_date}</p>}
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-semibold text-heading mb-1.5">Priorité</label>
-                      <div className="grid grid-cols-3 gap-1.5">
+                      <Select
+                        value={form.task_priority}
+                        onChange={(e) => setField("task_priority", e.target.value)}
+                        disabled={isView || isPending}
+                        size="sm"
+                      >
                         {PRIORITY_OPTIONS.map((p) => (
-                          <button
-                            key={p.value}
-                            type="button"
-                            disabled={isView || isPending}
-                            onClick={() => setField("task_priority", p.value)}
-                            className={cn(
-                              "py-1 rounded-md text-[11px] font-semibold border transition-all cursor-pointer",
-                              form.task_priority === p.value
-                                ? "bg-primary text-primary-fg border-primary"
-                                : "bg-canvas text-muted border-border hover:border-primary/30 hover:text-heading"
-                            )}
-                          >
-                            {p.label}
-                          </button>
+                          <option key={p.value} value={p.value}>{p.label}</option>
                         ))}
-                      </div>
+                      </Select>
                     </div>
                   </div>
-                )}
-              </section>
-            </>
+                </div>
+              )}
+            </section>
           ) : null}
         </div>
       </AppDrawer>

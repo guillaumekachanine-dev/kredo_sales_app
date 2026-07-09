@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { Select } from "@/components/ui/Select"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { formatDate, formatEuro, formatDateNumeric } from "@/lib/formatters"
 import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
@@ -524,31 +525,29 @@ export function MissionSynthesisTab({ vm, onRefresh }: MissionSynthesisTabProps)
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1.5">
                 Practice
               </label>
-              <select
+              <Select
                 value={editPractice}
                 onChange={(e) => setEditPractice(e.target.value)}
-                className="w-full px-2.5 py-2 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
               >
                 <option value="">— Sélectionner —</option>
                 {PRACTICE_OPTIONS.map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-muted block mb-1.5">
                 Séniorité
               </label>
-              <select
+              <Select
                 value={editSeniority}
                 onChange={(e) => setEditSeniority(e.target.value)}
-                className="w-full px-2.5 py-2 bg-canvas rounded border border-border text-xs text-heading focus:outline-none focus:border-primary/50"
               >
                 <option value="">— Sélectionner —</option>
                 {SENIORITY_OPTIONS.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
           <div>

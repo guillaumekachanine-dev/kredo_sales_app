@@ -8,6 +8,7 @@ import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-
 import { formatDate } from "@/lib/formatters"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { updateCandidateStatus } from "@/app/(app)/recruitment/_actions/update-candidate-status"
+import { Select } from "@/components/ui/Select"
 import type { StructuredListColumn } from "@/components/ui/StructuredList"
 
 interface RecruitmentListViewProps {
@@ -81,36 +82,21 @@ function CandidateStatusDropdown({
   const label = CANDIDATE_STATUS_LABELS[optimisticStatus] ?? optimisticStatus
 
   return (
-    <div
-      className="relative inline-flex items-center"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <select
+    <div onClick={(e) => e.stopPropagation()} className="w-36 select-none">
+      <Select
         value={optimisticStatus}
         onChange={handleChange}
         disabled={isPending}
-        className="cursor-pointer appearance-none border-0 bg-transparent pr-4 text-xs font-medium outline-none disabled:opacity-50"
-        style={{ color: "var(--color-body)" }}
+        size="sm"
         aria-label={`Statut de ${label}`}
+        className="text-xs font-semibold"
       >
         {CANDIDATE_STATUS_OPTIONS.map((s) => (
           <option key={s} value={s}>
             {CANDIDATE_STATUS_LABELS[s]}
           </option>
         ))}
-      </select>
-      <svg
-        className="pointer-events-none absolute right-0 size-3 shrink-0"
-        style={{ color: "var(--color-muted)" }}
-        viewBox="0 0 12 12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 4.5l3 3 3-3" />
-      </svg>
+      </Select>
     </div>
   )
 }

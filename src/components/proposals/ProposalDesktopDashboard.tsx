@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ProposalDashboardData, ProposalAuditItem } from "@/lib/proposals/proposals-data"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
@@ -150,20 +151,14 @@ export function ProposalDesktopDashboard({ data }: { data: ProposalDashboardData
               Pipe Velocity & Health Trend
             </h2>
 
-            <div className="relative">
-              <select
-                value={selectedSort}
-                onChange={(e) => setSelectedSort(e.target.value)}
-                className="text-[10px] border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
-              >
-                <option value="all">Filteres tilts</option>
-              </select>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <Select
+              value={selectedSort}
+              onChange={(e) => setSelectedSort(e.target.value)}
+              size="sm"
+              className="text-[10px] font-semibold w-auto"
+            >
+              <option value="all">Filteres tilts</option>
+            </Select>
           </div>
 
           {/* Area graph */}
@@ -284,20 +279,14 @@ export function ProposalDesktopDashboard({ data }: { data: ProposalDashboardData
             <h2 className="text-xs font-bold text-heading uppercase tracking-wider">
               Audit Qualité de Propositions
             </h2>
-            <div className="relative">
-              <select
-                value={selectedSort}
-                onChange={(e) => setSelectedSort(e.target.value)}
-                className="text-[10px] border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
-              >
-                <option value="all">Filter tilts</option>
-              </select>
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <Select
+              value={selectedSort}
+              onChange={(e) => setSelectedSort(e.target.value)}
+              size="sm"
+              className="text-[10px] font-semibold w-auto"
+            >
+              <option value="all">Filter tilts</option>
+            </Select>
           </div>
 
           <div className="overflow-x-auto">

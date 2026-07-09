@@ -5,6 +5,7 @@ import { useDrawerState } from '@/hooks/use-drawer-state'
 import { formatEuro } from '@/lib/formatters'
 import { getPracticeByName } from '@/lib/config/practices'
 import { cn } from '@/lib/utils'
+import { Select } from '@/components/ui/Select'
 import { ConsultantDrawer } from '@/components/consultants/ConsultantDrawer'
 import { StructuredList, type StructuredListColumn } from '@/components/ui/StructuredList'
 import { StatusPill } from '@/components/ui/StatusPill'
@@ -209,28 +210,14 @@ function FilterSelect({
   children: React.ReactNode
 }) {
   return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none rounded-[var(--radius-medium)] border px-3 py-1.5 pr-8 text-xs font-medium focus:outline-none"
-        style={{
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-surface)',
-          color: 'var(--color-body)',
-        }}
-      >
-        {children}
-      </select>
-      <div
-        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
-        style={{ color: 'var(--color-muted)' }}
-      >
-        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-    </div>
+    <Select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      size="sm"
+      className="text-xs font-medium w-auto"
+    >
+      {children}
+    </Select>
   )
 }
 

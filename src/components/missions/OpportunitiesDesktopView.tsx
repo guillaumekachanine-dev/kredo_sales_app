@@ -564,27 +564,22 @@ export function OpportunitiesDesktopView({
               >
                 Créer un événement
               </Button>
-              <div className="relative inline-flex items-center gap-1.5 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors">
+              <div className="flex items-center gap-1.5 select-none">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
                   Échelle
                 </span>
-                <select
+                <Select
                   id="opp-planning-scale-select"
                   value={planningScale}
-                  onChange={(event) => setPlanningScale(event.target.value as "year" | "quarter" | "month" | "week")}
-                  className="appearance-none border-0 bg-transparent pr-4 text-xs font-semibold text-brand-brass outline-none focus:outline-none focus:ring-0"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right center",
-                    backgroundSize: "10px",
-                  }}
+                  onChange={(event) => setPlanningScale(event.target.value as any)}
+                  size="sm"
+                  className="text-brand-brass border-brand-brass bg-brand-brass/[0.08] hover:bg-brand-brass/[0.12] w-auto font-sans"
                 >
-                  <option value="year" className="bg-surface font-normal text-body">Année</option>
-                  <option value="quarter" className="bg-surface font-normal text-body">Trimestre</option>
-                  <option value="month" className="bg-surface font-normal text-body">Mois</option>
-                  <option value="week" className="bg-surface font-normal text-body">Semaine</option>
-                </select>
+                  <option value="week">Semaine</option>
+                  <option value="month">Mois</option>
+                  <option value="quarter">Trimestre</option>
+                  <option value="year">Année</option>
+                </Select>
               </div>
             </>
           ) : viewMode === "kanban" ? (

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
+import { Select } from "@/components/ui/Select"
 import { StaffingListView } from "./StaffingListView"
 import { StaffingKanbanView } from "./StaffingKanbanView"
 import { StaffingPlanningView } from "./StaffingPlanningView"
@@ -207,25 +208,20 @@ export function StaffingDesktopView({ staffings, planningData }: StaffingDesktop
               Créer un événement
             </button>
 
-            <div className="relative inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] text-brand-brass transition-colors">
+            <div className="flex items-center gap-1.5 select-none">
               <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">Échelle</span>
-              <select
+              <Select
                 id="staffing-planning-scale-select"
+                size="sm"
                 value={planningScale}
-                onChange={(e) => setPlanningScale(e.target.value as "year" | "quarter" | "month" | "week")}
-                className="bg-transparent font-semibold text-xs border-0 outline-none pr-4 cursor-pointer focus:ring-0 focus:outline-none appearance-none text-brand-brass font-sans"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right center",
-                  backgroundSize: "10px",
-                }}
+                onChange={(e) => setPlanningScale(e.target.value as any)}
+                className="text-brand-brass border-brand-brass bg-brand-brass/[0.08] hover:bg-brand-brass/[0.12] w-auto font-sans"
               >
-                <option value="week" className="bg-surface text-body font-normal">Semaine</option>
-                <option value="month" className="bg-surface text-body font-normal">Mois</option>
-                <option value="quarter" className="bg-surface text-body font-normal">Trimestre</option>
-                <option value="year" className="bg-surface text-body font-normal">Année</option>
-              </select>
+                <option value="week">Semaine</option>
+                <option value="month">Mois</option>
+                <option value="quarter">Trimestre</option>
+                <option value="year">Année</option>
+              </Select>
             </div>
           </>
         )}

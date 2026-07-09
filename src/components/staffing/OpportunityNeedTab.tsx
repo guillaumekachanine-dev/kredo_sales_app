@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition, useMemo, type KeyboardEvent, type PointerEvent } from "react"
 import { curveCatmullRom, line } from "d3-shape"
+import { Select } from "@/components/ui/Select"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { getContactsByCompany } from "@/lib/agenda/agenda-actions"
 import type { AgendaSelectContact } from "@/lib/agenda/agenda-types"
@@ -814,10 +815,9 @@ function ClientContactSection({
                       <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
                         Rôle sur la mission
                       </label>
-                      <select
+                      <Select
                         value={contact.role ?? ""}
                         onChange={(e) => handleDraftRoleChange(contact.id, e.target.value)}
-                        className="w-full rounded-[var(--radius-medium)] border border-border bg-surface px-3 py-2 text-xs text-heading focus:border-[var(--color-brand-ember)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand-ember)_20%,transparent)]"
                       >
                         <option value="">— Aucun rôle spécifique —</option>
                         {CLIENT_CONTACT_ROLE_OPTIONS.map((role) => (
@@ -825,7 +825,7 @@ function ClientContactSection({
                             {role.label}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   </div>
                 ))}

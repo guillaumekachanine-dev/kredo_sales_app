@@ -10,6 +10,7 @@ import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
 import { Button } from "@/components/ui/Button"
+import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { HeaderKpiCard } from "@/components/missions/HeaderKpiCard"
 import { StaffingDrawer } from "@/components/staffing/StaffingDrawer"
@@ -237,37 +238,19 @@ function PeriodSelector({
   period: PeriodDisplay
   onChange: (value: PeriodDisplay) => void
 }) {
-  const label = getPeriodLabel(period)
-
   return (
-    <div className="relative inline-flex items-center gap-2">
-      <span className="text-sm font-semibold text-primary">
-        {label}
-      </span>
-      <svg
-        className="size-4 shrink-0 text-primary/60"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M4 6l4 4 4-4" />
-      </svg>
-      <select
-        value={period}
-        onChange={(e) => onChange(e.target.value as PeriodDisplay)}
-        className="absolute inset-0 cursor-pointer opacity-0"
-        aria-label="Changer la période d'affichage"
-      >
-        <option value="week">Semaine en cours</option>
-        <option value="month">Mois en cours</option>
-        <option value="quarter">Trimestre en cours</option>
-        <option value="year">Année en cours</option>
-      </select>
-    </div>
+    <Select
+      value={period}
+      onChange={(e) => onChange(e.target.value as PeriodDisplay)}
+      size="sm"
+      aria-label="Changer la période d'affichage"
+      className="text-sm font-semibold text-primary border-primary bg-primary/[0.08] hover:bg-primary/[0.12] w-auto"
+    >
+      <option value="week">Semaine en cours</option>
+      <option value="month">Mois en cours</option>
+      <option value="quarter">Trimestre en cours</option>
+      <option value="year">Année en cours</option>
+    </Select>
   )
 }
 
@@ -281,26 +264,21 @@ function ScalePicker({
   onChange: (value: PlanningScale) => void
 }) {
   return (
-    <div className="relative inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-medium)] border border-brand-brass bg-brand-brass/[0.08] px-3 text-brand-brass transition-colors sm:h-8">
+    <div className="flex items-center gap-1.5 select-none">
       <span className="text-[10px] font-bold uppercase tracking-wider text-brand-brass opacity-85">
         Échelle
       </span>
-      <select
+      <Select
         value={scale}
-        onChange={(e) => onChange(e.target.value as PlanningScale)}
-        className="appearance-none border-0 bg-transparent pr-4 text-xs font-semibold text-brand-brass outline-none focus:outline-none focus:ring-0"
-        style={{
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C89A2B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "right center",
-          backgroundSize: "10px",
-        }}
+        onChange={(e) => onChange(e.target.value as any)}
+        size="sm"
+        className="text-brand-brass border-brand-brass bg-brand-brass/[0.08] hover:bg-brand-brass/[0.12] w-auto font-sans"
       >
-        <option value="week" className="bg-surface font-normal text-body">Semaine</option>
-        <option value="month" className="bg-surface font-normal text-body">Mois</option>
-        <option value="quarter" className="bg-surface font-normal text-body">Trimestre</option>
-        <option value="year" className="bg-surface font-normal text-body">Année</option>
-      </select>
+        <option value="week">Semaine</option>
+        <option value="month">Mois</option>
+        <option value="quarter">Trimestre</option>
+        <option value="year">Année</option>
+      </Select>
     </div>
   )
 }

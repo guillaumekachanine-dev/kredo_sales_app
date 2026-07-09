@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
+import { Select } from "@/components/ui/Select"
 import { createManualSignal } from "./create-manual-signal"
 import { AlertBlock } from "@/components/ui/AlertBlock"
 
@@ -141,11 +142,10 @@ export function AddSignalDrawer({
         {/* Catégorie */}
         <div>
           <label htmlFor="signal-category" className={labelCls}>Catégorie</label>
-          <select
+          <Select
             id="signal-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className={inputCls}
             disabled={isPending}
           >
             {CATEGORIES.map((cat) => (
@@ -153,7 +153,7 @@ export function AddSignalDrawer({
                 {cat.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Commentaire / Action recommandée */}

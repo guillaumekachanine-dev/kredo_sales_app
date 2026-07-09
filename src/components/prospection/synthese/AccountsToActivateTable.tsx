@@ -6,6 +6,7 @@ import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/compon
 import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { SearchToolbar } from "@/components/search/SearchToolbar"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import {
@@ -382,11 +383,11 @@ function ScanContactsSettings({ account }: { account: ProspectionPortfolioAccoun
     <div className="space-y-4">
       <DialogIntro account={account} detail="Concentrez le scan sur les décideurs et relais à forte valeur commerciale." />
       <FormSection label="Périmètre du scan">
-        <select className={DIALOG_FIELD_CLASS} defaultValue="committee">
+        <Select className={DIALOG_FIELD_CLASS} defaultValue="committee">
           <option value="committee">Buying committee existant</option>
           <option value="extended">Comité élargi et influenceurs</option>
           <option value="all">Tous les contacts connus</option>
-        </select>
+        </Select>
       </FormSection>
       <FormSection label="Rôles prioritaires">
         <div className="flex flex-wrap gap-2">
@@ -414,19 +415,19 @@ function NewsSettings({ account }: { account: ProspectionPortfolioAccount }) {
       <DialogIntro account={account} detail="Préparez une veille courte et exploitable pour nourrir l'approche commerciale." />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormSection label="Fenêtre temporelle">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="30d">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="30d">
             <option value="7d">7 derniers jours</option>
             <option value="30d">30 derniers jours</option>
             <option value="90d">90 derniers jours</option>
-          </select>
+          </Select>
         </FormSection>
         <FormSection label="Angle de veille">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="business">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="business">
             <option value="business">Business & croissance</option>
             <option value="tech">Tech & transformation</option>
             <option value="hr">RH & organisation</option>
             <option value="risk">Risques & conformité</option>
-          </select>
+          </Select>
         </FormSection>
       </div>
       <FormSection label="Sources à privilégier">
@@ -455,19 +456,19 @@ function PitchMailSettings({ account }: { account: ProspectionPortfolioAccount }
       <DialogIntro account={account} detail="Cadrez le message avant génération ou reprise dans le Cockpit Intel." />
       <div className="grid gap-4 sm:grid-cols-2">
         <FormSection label="Canal">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="email">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="email">
             <option value="email">Email</option>
             <option value="linkedin">LinkedIn</option>
             <option value="phone">Pitch téléphonique</option>
-          </select>
+          </Select>
         </FormSection>
         <FormSection label="Objectif">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="first-contact">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="first-contact">
             <option value="first-contact">Prise de contact</option>
             <option value="follow-up">Relance</option>
             <option value="meeting">Demande de rendez-vous</option>
             <option value="invitation">Invitation événement</option>
-          </select>
+          </Select>
         </FormSection>
       </div>
       <FormSection label="Ton du message">
@@ -499,18 +500,18 @@ function CampaignSettings({ account }: { account: ProspectionPortfolioAccount })
       </FormSection>
       <div className="grid gap-4 sm:grid-cols-2">
         <FormSection label="Canal principal">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="email">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="email">
             <option value="email">Email</option>
             <option value="linkedin">LinkedIn</option>
             <option value="phone">Téléphone</option>
-          </select>
+          </Select>
         </FormSection>
         <FormSection label="Cadence">
-          <select className={DIALOG_FIELD_CLASS} defaultValue="2-weeks">
+          <Select className={DIALOG_FIELD_CLASS} defaultValue="2-weeks">
             <option value="1-week">1 semaine</option>
             <option value="2-weeks">2 semaines</option>
             <option value="1-month">1 mois</option>
-          </select>
+          </Select>
         </FormSection>
       </div>
       <FormSection label="Canaux secondaires">

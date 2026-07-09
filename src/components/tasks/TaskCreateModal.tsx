@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useCallback } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
+import { Select } from "@/components/ui/Select"
 import { AgendaQuarterHourTimeField } from "@/components/agenda/AgendaQuarterHourTimeField"
 import {
   createTask,
@@ -262,11 +263,10 @@ export function TaskCreateModal({
                 <label className={fieldLabelClasses} htmlFor="task-linked-type">
                   Type d&apos;entité
                 </label>
-                <select
+                <Select
                   id="task-linked-type"
                   value={form.linkedEntityType}
                   onChange={(e) => handleEntityTypeChange(e.target.value)}
-                  className={inputClass()}
                 >
                   <option value="">Choisir…</option>
                   {LINK_ENTITY_TYPES.map((t) => (
@@ -274,7 +274,7 @@ export function TaskCreateModal({
                       {t.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {form.linkedEntityType && (
@@ -287,11 +287,11 @@ export function TaskCreateModal({
                       Chargement…
                     </div>
                   ) : (
-                    <select
+                    <Select
                       id="task-linked-id"
                       value={form.linkedEntityId}
                       onChange={(e) => setForm((p) => ({ ...p, linkedEntityId: e.target.value }))}
-                      className={inputClass(form.withLink && !!form.linkedEntityType && !form.linkedEntityId && !!error)}
+                      invalid={form.withLink && !!form.linkedEntityType && !form.linkedEntityId && !!error}
                     >
                       <option value="">Sélectionner…</option>
                       {entityOptions.map((o) => (
@@ -299,7 +299,7 @@ export function TaskCreateModal({
                           {o.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   )}
                 </div>
               )}

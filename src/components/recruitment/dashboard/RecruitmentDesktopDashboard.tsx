@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
+import { Select } from "@/components/ui/Select"
 
 export interface Candidate {
   id: string
@@ -139,24 +140,18 @@ export function RecruitmentDesktopDashboard({
         {/* Right side actions */}
         <div className="flex items-center gap-4">
           {/* Practice selection filter */}
-          <div className="relative">
-            <select
-              value={filterPractice}
-              onChange={(e) => setFilterPractice(e.target.value)}
-              className="text-xs border border-border bg-surface text-body rounded-lg py-1.5 px-3 pr-8 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
-            >
-              <option value="all">Toutes les practices</option>
-              <option value="AI">AI / RAG</option>
-              <option value="Cloud">Cloud / DevOps</option>
-              <option value="Data">Data Engineering</option>
-              <option value="Digital">Digital / Next.js</option>
-            </select>
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+          <Select
+            value={filterPractice}
+            onChange={(e) => setFilterPractice(e.target.value)}
+            size="sm"
+            className="text-xs font-semibold w-auto"
+          >
+            <option value="all">Toutes les practices</option>
+            <option value="AI">AI / RAG</option>
+            <option value="Cloud">Cloud / DevOps</option>
+            <option value="Data">Data Engineering</option>
+            <option value="Digital">Digital / Next.js</option>
+          </Select>
 <HeaderCalendar />
 
 <HeaderAlerts />
@@ -415,22 +410,16 @@ export function RecruitmentDesktopDashboard({
               </h2>
 
               {/* Urgence filter */}
-              <div className="relative">
-                <select
-                  value={filterUrgence}
-                  onChange={(e) => setFilterUrgence(e.target.value)}
-                  className="text-[10px] border border-border bg-surface text-body rounded-lg py-1 px-2.5 pr-7 appearance-none focus:outline-none focus:border-primary cursor-pointer font-semibold"
-                >
-                  <option value="all">Filtrer par urgence</option>
-                  <option value="high">Urgence Haute</option>
-                  <option value="normal">Urgence Moyenne</option>
-                </select>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
+              <Select
+                value={filterUrgence}
+                onChange={(e) => setFilterUrgence(e.target.value)}
+                size="sm"
+                className="text-[10px] font-semibold w-auto"
+              >
+                <option value="all">Filtrer par urgence</option>
+                <option value="high">Urgence Haute</option>
+                <option value="normal">Urgence Moyenne</option>
+              </Select>
             </div>
 
             <div className="overflow-x-auto max-h-[220px]">

@@ -173,7 +173,7 @@ export const AGENDA_CATEGORIES = [
   },
   {
     id: "management" as const,
-    label: "Management",
+    label: "Interne",
     subtitle: "Équipe, collaborateurs & RH",
     types: AGENDA_EVENT_TYPE_OPTIONS.filter((t) => t.category === "management"),
   },

@@ -983,7 +983,13 @@ function AccountsDesktop({
                                       className="grid grid-cols-[18px_180px_220px_150px_100px_1fr] gap-6 items-center py-1.5 px-3 rounded hover:bg-canvas/30 transition-colors cursor-pointer text-left w-full"
                                     >
                                       {/* Col 1: Account Logo */}
-                                      <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="xs" denseList />
+                                      <Image
+                                        src="/icons_set/comptes_liste_contacts.png"
+                                        alt=""
+                                        width={18}
+                                        height={18}
+                                        className="h-[18px] w-[18px] shrink-0 object-contain"
+                                      />
 
                                       {/* Col 2: Prénom NOM */}
                                       <span className="font-semibold text-heading truncate text-xs" title={contact.fullName}>
@@ -1740,7 +1746,7 @@ export function ProspectionAccountsView({
         fullWidthPanel
       />
       <FilterDropdown
-        label="Taille"
+        label="Effectifs"
         options={SIZE_OPTIONS}
         selected={filters.includeSize}
         onToggle={(value) => toggleListValue("incSize", value)}
@@ -1807,13 +1813,15 @@ export function ProspectionAccountsView({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setContactModal({ open: true })}
-              className="rounded border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+              className="rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
+              style={{ backgroundColor: "#2554B8" }}
             >
               + Contact
             </button>
             <button
               onClick={() => setCompanyModal({ open: true })}
-              className="rounded bg-primary px-3 py-1.5 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-colors"
+              className="rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
+              style={{ backgroundColor: "#348A98" }}
             >
               + Compte
             </button>
@@ -1822,7 +1830,7 @@ export function ProspectionAccountsView({
       </div>
 
       {/* Sub-tab selection */}
-      <div className={cn(device === "mobile" ? "grid grid-cols-[auto_1fr_auto] items-center gap-2" : undefined)}>
+      <div className={cn(device === "mobile" ? "grid grid-cols-[auto_1fr_auto] items-center gap-2" : "flex items-center gap-3")}>
         <PageViewSelector
           items={
             device === "mobile"
@@ -1831,14 +1839,19 @@ export function ProspectionAccountsView({
                   { value: "contacts", label: "Contacts" },
                 ]
               : [
-                  { value: "accounts", label: `Comptes (${filteredAccounts.length})` },
-                  { value: "contacts", label: `Contacts (${filteredContacts.length})` },
+                  { value: "accounts", label: "Comptes" },
+                  { value: "contacts", label: "Contacts" },
                 ]
           }
           value={subTab}
           onChange={(value) => setParam("tab", value)}
           ariaLabel="Sélection de la vue Comptes ou Contacts"
         />
+        {device !== "mobile" && (
+          <span className="text-xs font-bold text-muted ml-1">
+            {totalFiltered} {subTab === "accounts" ? "comptes" : "contacts"}
+          </span>
+        )}
         {device === "mobile" && mobileResultText ? (
           <span className="min-w-0 text-center text-xs font-bold text-heading">
             {mobileResultText}
@@ -1857,34 +1870,40 @@ export function ProspectionAccountsView({
       </div>
 
       {/* Search & quick filters */}
-      <SearchToolbar
-        device={device}
-        query={filters.q}
-        totalFiltered={totalFiltered}
-        totalAll={totalAll}
-        mobileCompact={isMobileSearch}
-        resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
-        placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
-        onQueryChange={(value) => setParam("q", value)}
-        onReset={() => clearAll(["tab"])}
-        hideReset={isMobileSearch}
-        hideChildrenWhenCompact={isMobileSearch}
-        hideCompactResult={isMobileSearch}
-        mobileAction={isMobileSearch ? (
-          <button
-            type="button"
-            onClick={() => setMobileFiltersOpen(true)}
-            aria-label="Ouvrir les filtres"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:text-heading"
-          >
-            <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
-            </svg>
-          </button>
-        ) : undefined}
-      >
-        {toolbarFilters}
-      </SearchToolbar>
+      <div className={cn(
+        device !== "mobile" && "sticky top-0 z-30 -mx-6 px-6 py-3 bg-canvas border-b border-border/10 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.01),0_2px_4px_-1px_rgba(0,0,0,0.01)]"
+      )}>
+        <SearchToolbar
+          device={device}
+          query={filters.q}
+          totalFiltered={totalFiltered}
+          totalAll={totalAll}
+          mobileCompact={isMobileSearch}
+          resultLabel={isMobileAccounts ? "comptes" : isMobileContacts ? "contacts" : undefined}
+          placeholder={subTab === "accounts" ? "Rechercher un compte, secteur…" : "Rechercher un contact, email…"}
+          onQueryChange={(value) => setParam("q", value)}
+          onReset={() => clearAll(["tab"])}
+          hideReset={isMobileSearch}
+          hideChildrenWhenCompact={isMobileSearch}
+          hideCompactResult={isMobileSearch}
+          inlineDesktop={device !== "mobile"}
+          hideResultsOnDesktop={device !== "mobile"}
+          mobileAction={isMobileSearch ? (
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(true)}
+              aria-label="Ouvrir les filtres"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-muted transition-colors hover:text-heading"
+            >
+              <svg aria-hidden className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M7 12h10M10 18h4" />
+              </svg>
+            </button>
+          ) : undefined}
+        >
+          {toolbarFilters}
+        </SearchToolbar>
+      </div>
 
       {isMobileSearch && mobileFiltersOpen && (
         <div className="fixed inset-0 z-[1000] bg-heading/30 backdrop-blur-sm" onClick={() => setMobileFiltersOpen(false)}>

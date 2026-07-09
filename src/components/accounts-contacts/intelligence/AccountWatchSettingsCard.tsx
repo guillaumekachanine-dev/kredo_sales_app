@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/Button"
+import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import {
   ACCOUNT_WATCH_LEVELS,
@@ -226,19 +227,18 @@ export function AccountWatchSettingsCard({
             >
               Niveau de veille
             </label>
-            <select
+            <Select
               id={isMobile ? "account-watch-level-mobile" : "account-watch-level-desktop"}
               value={draft.watchLevel}
               onChange={(event) => handleLevelChange(event.target.value as AccountWatchLevel)}
               disabled={isBusy}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-xs font-semibold text-heading outline-none transition-colors focus:border-primary"
             >
               {ACCOUNT_WATCH_LEVELS.map((level) => (
                 <option key={level} value={level}>
                   {ACCOUNT_WATCH_LEVEL_LABELS[level]}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="rounded border border-border/60 bg-canvas/40 px-3 py-2.5">

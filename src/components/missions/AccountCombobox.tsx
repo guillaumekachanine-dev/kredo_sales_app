@@ -20,6 +20,7 @@ interface AccountComboboxProps {
   openOnFocus?: boolean
   minSearchLength?: number
   searchLimit?: number
+  size?: "sm" | "md" | "lg"
 }
 
 export function AccountCombobox({
@@ -30,6 +31,7 @@ export function AccountCombobox({
   openOnFocus = false,
   minSearchLength = 2,
   searchLimit = 8,
+  size = "sm",
 }: AccountComboboxProps) {
   const [query, setQuery] = useState(value?.name ?? "")
   const [results, setResults] = useState<Array<{ id: string; name: string }>>([])
@@ -126,17 +128,12 @@ export function AccountCombobox({
     <span className="rounded-[var(--radius-small)] bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
       Nouveau
     </span>
-  ) : value && !value.isNew ? (
-    <span className="text-primary/70" aria-hidden="true">
-      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-      </svg>
-    </span>
   ) : null
 
   return (
     <Combobox
       type="text"
+      size={size}
       value={query}
       onValueChange={updateQuery}
       options={canOpen ? options : []}
