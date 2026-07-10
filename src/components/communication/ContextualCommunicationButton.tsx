@@ -18,9 +18,11 @@ type ContextualCommunicationButtonProps = Omit<ComponentProps<typeof Button>, "o
   entryPoint: CommunicationEntryPoint
   label?: string
   origin?: CommunicationComposerOrigin
+  scope?: CommunicationComposerRequest["scope"]
   companyId?: string | null
   companyName?: string | null
   contactId?: string | null
+  collaboratorId?: string | null
   primaryEntity?: CommunicationComposerRequest["primaryEntity"]
   refs?: Partial<CommunicationBrief["context"]>
   mustInclude?: string
@@ -45,9 +47,11 @@ export function ContextualCommunicationButton({
   entryPoint,
   label,
   origin,
+  scope,
   companyId,
   companyName,
   contactId,
+  collaboratorId,
   primaryEntity,
   refs,
   mustInclude,
@@ -74,9 +78,11 @@ export function ContextualCommunicationButton({
 
         openCommunicationComposer({
           origin: origin ?? DEFAULT_ORIGIN_BY_ENTRY_POINT[entryPoint],
+          scope,
           companyId,
           companyName,
           contactId,
+          collaboratorId,
           primaryEntity,
           preset: {
             channel: preset.channel,
