@@ -409,10 +409,75 @@
 .intelligence-drawer button.kredo-ready-spectrum-button {
   background-color: #E2931D !important;
   color: #0A0D1A !important;
+  background-image: none !important;
+  animation: none !important;
+  border-color: rgba(226, 147, 29, 0.72) !important;
+  box-shadow: 0 12px 24px rgba(226, 147, 29, 0.16) !important;
+  transform: none !important;
 }
 
 .intelligence-drawer button.kredo-ready-spectrum-button:hover {
   background-color: #C67E13 !important;
+  transform: none !important;
+}
+
+.intelligence-drawer button.kredo-ready-spectrum-button::after {
+  content: none !important;
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+.communication-composer-panel {
+  min-width: 0;
+}
+
+.communication-brief-status-strip {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.65rem;
+  overflow: hidden;
+  border: 1px solid rgba(36, 47, 82, 0.72);
+  border-radius: var(--radius-small);
+  background: rgba(18, 24, 45, 0.42);
+  padding: 0 0.85rem;
+  color: #B0C4DE;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.communication-brief-status-strip strong {
+  color: #E2931D;
+  font-weight: 650;
+}
+
+.communication-brief-rail {
+  position: sticky;
+  top: 0.25rem;
+  align-self: start;
+  width: 3rem;
+  min-height: 25rem;
+  border-right: 1px solid rgba(36, 47, 82, 0.72);
+  padding-top: 0.2rem;
+  padding-right: 0.65rem;
+}
+
+.communication-brief-premium button[aria-haspopup="listbox"] {
+  color: #E2931D;
+}
+
+.communication-brief-premium textarea::placeholder {
+  color: rgba(176, 196, 222, 0.42);
+}
+
+.communication-composer-action {
+  margin-top: 1.25rem;
+}
+
+.communication-composer-action .kredo-ready-spectrum-button {
+  letter-spacing: 0.02em;
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement

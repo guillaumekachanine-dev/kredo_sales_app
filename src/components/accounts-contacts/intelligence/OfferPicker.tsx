@@ -13,7 +13,6 @@ import { OfferPickerModal } from "./OfferPickerModal"
 // plat : 41 offres sur 8 practices sont illisibles listées en vrac.
 export function OfferPicker({
   offers,
-  suggestedPracticeSlugs,
   value,
   onChange,
   loading,
@@ -33,11 +32,11 @@ export function OfferPicker({
   const selected = useMemo(() => offers.find((o) => o.id === value) ?? null, [offers, value])
 
   const triggerCls = cn(
-    "flex w-full items-center justify-between gap-2 rounded-lg border px-3 text-left text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
-    isMobile ? "h-11" : "h-9",
+    "flex w-full items-center justify-between gap-2 rounded-lg border px-3 text-left font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
+    isMobile ? "h-11 text-xs" : "h-10 text-sm",
     !required || value ? "border-border/30 bg-surface/20" : "border-warning/30 bg-surface/10",
   )
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
+  const labelCls = "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted"
 
   return (
     <div>

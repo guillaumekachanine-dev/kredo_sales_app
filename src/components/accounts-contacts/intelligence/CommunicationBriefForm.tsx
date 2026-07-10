@@ -43,38 +43,94 @@ const PRACTICE_OPTIONS = [
   "Cybersecurity"
 ]
 
+const BRIEF_SECTIONS = [
+  { number: "1", title: "Quoi" },
+  { number: "2", title: "Qui" },
+  { number: "3", title: "Comment" },
+  { number: "4", title: "Contexte" },
+] as const
+
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
-    "w-full rounded-lg border border-border/30 bg-surface/20 px-3 text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0",
-    isMobile ? "h-11" : "h-9"
+    "w-full rounded-lg border border-border/35 bg-surface/20 px-3 font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0",
+    isMobile ? "h-11 text-xs" : "h-10 text-sm"
   )
   const textareaCls =
-    "w-full rounded-lg border border-border/30 bg-surface/20 px-3 py-2.5 text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0 min-h-[64px]"
-  const labelCls = "block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5"
+    "w-full rounded-lg border border-border/35 bg-surface/20 px-3 py-2.5 text-sm font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[64px]"
+  const labelCls = "block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted mb-1.5"
   return { selectCls, textareaCls, labelCls }
 }
 
 function SectionHeading({
+  number,
   title,
   meta,
 }: {
+  number?: string
   title: string
   meta?: string
 }) {
   return (
     <summary className="cursor-pointer select-none list-none marker:content-none [&::-webkit-details-marker]:hidden">
-      <div className="flex items-center justify-between gap-3 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          {/* Subtle gold bullet */}
-          <span className="size-1 rounded-full bg-primary" aria-hidden />
-          <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {number ? (
+            <span className="shrink-0 font-heading text-sm font-bold tabular-nums text-primary">
+              {number}
+            </span>
+          ) : (
+            <span className="size-1 rounded-full bg-primary" aria-hidden />
+          )}
+          <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-body">
             {title}
           </span>
-          {meta ? <span className="truncate text-[10px] text-muted font-medium ml-1">({meta})</span> : null}
+          <span className="h-px min-w-4 flex-1 bg-border/55" aria-hidden />
+          {meta ? <span className="max-w-[8rem] truncate text-[10px] font-medium text-muted">({meta})</span> : null}
         </div>
-        <span className="text-muted/60 transition-transform duration-200 group-open:rotate-180 text-xxs">▼</span>
+        <svg
+          className="size-4 shrink-0 text-muted/70 transition-transform duration-200 group-open:rotate-180"
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M5 12.5L10 7.5L15 12.5"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     </summary>
+  )
+}
+
+function SectionRail() {
+  return (
+    <aside className="communication-brief-rail" aria-label="Progression du formulaire">
+      <ol className="flex flex-col items-center gap-8">
+        {BRIEF_SECTIONS.map((section, index) => (
+          <li key={section.title} className="relative flex flex-col items-center">
+            {index > 0 ? (
+              <span className="absolute bottom-full mb-1 h-7 w-px bg-border/70" aria-hidden />
+            ) : null}
+            <span
+              className={cn(
+                "flex size-7 items-center justify-center rounded-full border text-xs font-semibold tabular-nums",
+                index === 0
+                  ? "border-primary text-primary"
+                  : "border-muted/45 text-muted",
+              )}
+              aria-hidden
+            >
+              {section.number}
+            </span>
+            <span className="sr-only">{section.title}</span>
+          </li>
+        ))}
+      </ol>
+    </aside>
   )
 }
 
@@ -360,10 +416,10 @@ export function CommunicationBriefForm({
   )
 
   const fieldToneFormalityAndLanguage = (
-    <div className="grid gap-3 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+    <div className="grid grid-cols-2 gap-3">
       {fieldTone}
       {fieldFormality}
-      <div>
+      <div className="col-span-2">
         {fieldLanguage}
       </div>
     </div>
@@ -435,40 +491,44 @@ export function CommunicationBriefForm({
   }
 
   return (
-    <div className="space-y-3">
-      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
-        <SectionHeading title="Quoi" />
-        <div className="pt-3 space-y-4">
-          {fieldScenario}
-          {fieldChannelAndLength}
-          {fieldOfferPicker}
-        </div>
-      </details>
+    <div className="communication-brief-premium grid grid-cols-[3rem_minmax(0,1fr)] gap-3">
+      <SectionRail />
 
-      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
-        <SectionHeading title="Qui" />
-        <div className="pt-3 space-y-4">
-          {fieldSenderAndPractice}
-          {fieldRecipient}
-          {fieldRecipientTypeAndPersona}
-          {fieldRelationAndObjective}
-        </div>
-      </details>
+      <div className="min-w-0 space-y-5">
+        <details open className="group border-b border-border/30 pb-5">
+          <SectionHeading number="01" title="Quoi" />
+          <div className="space-y-4 pt-4">
+            {fieldScenario}
+            {fieldChannelAndLength}
+            {fieldOfferPicker}
+          </div>
+        </details>
 
-      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
-        <SectionHeading title="Comment" />
-        <div className="pt-3 space-y-4">
-          {fieldToneFormalityAndLanguage}
-        </div>
-      </details>
+        <details open className="group border-b border-border/30 pb-5">
+          <SectionHeading number="02" title="Qui" />
+          <div className="space-y-4 pt-4">
+            {fieldSenderAndPractice}
+            {fieldRecipient}
+            {fieldRecipientTypeAndPersona}
+            {fieldRelationAndObjective}
+          </div>
+        </details>
 
-      <details open className="group rounded-2xl border border-border/30 bg-surface/30 p-3.5 transition-all duration-200 hover:border-border/50">
-        <SectionHeading title="Contexte" meta={contextMetaLabel} />
-        <div className="pt-3 space-y-4">
-          {fieldMustInclude}
-          {fieldMustExclude}
-        </div>
-      </details>
+        <details open className="group border-b border-border/30 pb-5">
+          <SectionHeading number="03" title="Comment" />
+          <div className="space-y-4 pt-4">
+            {fieldToneFormalityAndLanguage}
+          </div>
+        </details>
+
+        <details open className="group">
+          <SectionHeading number="04" title="Contexte" meta={contextMetaLabel} />
+          <div className="space-y-4 pt-4">
+            {fieldMustInclude}
+            {fieldMustExclude}
+          </div>
+        </details>
+      </div>
     </div>
   )
 }

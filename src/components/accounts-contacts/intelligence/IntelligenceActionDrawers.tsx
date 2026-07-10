@@ -12,7 +12,7 @@ import {
 import {
   buildCampaignPayload,
 } from "./intelligence-action-utils"
-import { buildDefaultBrief, CHANNEL_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
+import { buildDefaultBrief, CHANNEL_OPTIONS, LENGTH_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
 import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
@@ -239,6 +239,7 @@ export function PitchMailDrawerContent({
   }
 
   const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
+  const lengthLabel = LENGTH_OPTIONS.find((o) => o.value === brief.what.length)?.label ?? brief.what.length
   const scenarioLabel = SCENARIO_OPTIONS.find((o) => o.value === brief.what.scenario)?.label ?? brief.what.scenario
   // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) ; l'offre
   // n'est bloquante que pour les scénarios où requiresOffer === true (D-5,
@@ -278,11 +279,20 @@ export function PitchMailDrawerContent({
   }
 
   return (
-    <div className="space-y-5">
-      <div>
+    <div className={cn("space-y-5", !isMobile && "pb-1")}>
+      <div className="space-y-3">
         <h2 className="font-heading text-base font-bold text-heading">
           {isPitch ? "Génération de pitch" : "Rédaction assistée"}
         </h2>
+        {!isMobile ? (
+          <div className="communication-brief-status-strip" aria-label="Paramètres principaux">
+            <span>{company ? "Compte actif" : "Contexte actif"}</span>
+            <span aria-hidden="true">•</span>
+            <strong>{channelLabel}</strong>
+            <span aria-hidden="true">•</span>
+            <strong>{lengthLabel}</strong>
+          </div>
+        ) : null}
       </div>
 
       <CommunicationBriefForm
@@ -304,14 +314,14 @@ export function PitchMailDrawerContent({
       )}
 
       {/* CTA */}
-      <div className="pt-4 border-t border-border space-y-2">
+      <div className="communication-composer-action space-y-2 border-t border-border pt-4">
         <button
           type="button"
           onClick={handleGenerate}
           disabled={runStatus === "loading" || missingOfferRef}
           className={cn(
             "kredo-ready-spectrum-button w-full inline-flex items-center justify-center gap-2 rounded-[var(--radius-medium)] px-3 text-xs font-bold text-[#151515]",
-            isMobile ? "min-h-[44px]" : "min-h-[36px]",
+            isMobile ? "min-h-[44px]" : "min-h-[44px]",
             runStatus === "loading" || missingOfferRef
               ? "cursor-not-allowed opacity-80"
               : ""

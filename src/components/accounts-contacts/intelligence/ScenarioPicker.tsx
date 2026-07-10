@@ -25,10 +25,10 @@ export function ScenarioPicker({
   const selected = useMemo(() => getScenarioRegistryItem(value) ?? null, [value])
 
   const triggerCls = cn(
-    "flex w-full items-center justify-between gap-2 rounded-lg border border-border/30 bg-surface/20 px-3 text-left text-xs font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/50 focus:outline-none focus:ring-0",
-    isMobile ? "h-11" : "h-9",
+    "flex w-full items-center justify-between gap-2 rounded-lg border border-border/35 bg-surface/20 px-3 text-left font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0",
+    isMobile ? "h-11 text-xs" : "h-10 text-sm",
   )
-  const labelCls = "block text-[10px] font-bold uppercase tracking-wider text-muted mb-1"
+  const labelCls = "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted"
 
   return (
     <div>

@@ -192,15 +192,23 @@ function ComposerContent({
     )
   }
 
-  return (
-    <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-4">
-      <PitchMailDrawerContent
-        key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
-        data={context}
-        variant={variant}
-      />
-    </div>
+  const content = (
+    <PitchMailDrawerContent
+      key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
+      data={context}
+      variant={variant}
+    />
   )
+
+  if (variant === "mobile") {
+    return (
+      <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-4">
+        {content}
+      </div>
+    )
+  }
+
+  return <div className="communication-composer-panel">{content}</div>
 }
 
 function DesktopCommunicationDrawer({
