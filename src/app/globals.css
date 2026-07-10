@@ -465,7 +465,7 @@
 }
 
 .communication-brief-premium button[aria-haspopup="listbox"] {
-  color: #E2931D;
+  color: #F4F7FB;
 }
 
 .communication-brief-premium textarea::placeholder {
@@ -478,6 +478,78 @@
 
 .communication-composer-action .kredo-ready-spectrum-button {
   letter-spacing: 0.02em;
+}
+
+.communication-picker-modal {
+  --color-canvas: #0A0D1A !important;
+  --color-surface: #12182D !important;
+  --color-surface-hover: #1E2540 !important;
+  --color-border: #242F52 !important;
+  --color-heading: #E2931D !important;
+  --color-body: #B0C4DE !important;
+  --color-muted: #7A8CA3 !important;
+  --color-primary: #E2931D !important;
+  --color-primary-deep: #C67E13 !important;
+  --color-primary-fg: #0A0D1A !important;
+
+  background-color: #0A0D1A !important;
+  color: #B0C4DE !important;
+  border-color: #242F52 !important;
+}
+
+.communication-picker-modal::backdrop {
+  background: rgba(10, 13, 26, 0.72) !important;
+  backdrop-filter: blur(10px);
+}
+
+.communication-picker-modal .kredo-relief-hover:hover {
+  background-color: rgba(30, 37, 64, 0.78) !important;
+}
+
+.communication-picker-modal-header,
+.communication-picker-modal-body {
+  color: #B0C4DE !important;
+}
+
+.communication-picker-modal-header h2,
+.communication-picker-modal-header button:hover {
+  color: #E2931D !important;
+}
+
+.communication-picker-modal-header button:hover {
+  background-color: rgba(18, 24, 45, 0.9) !important;
+}
+
+.communication-picker-modal-body {
+  scrollbar-color: #242F52 #0A0D1A;
+}
+
+.communication-picker-modal-body button {
+  color: #B0C4DE;
+}
+
+.communication-picker-modal-body .bg-canvas\/50 {
+  background-color: rgba(18, 24, 45, 0.62) !important;
+}
+
+.communication-picker-modal-body .hover\:bg-canvas:hover {
+  background-color: rgba(30, 37, 64, 0.9) !important;
+}
+
+.communication-picker-modal-body .bg-primary\/8 {
+  background-color: rgba(226, 147, 29, 0.12) !important;
+}
+
+.communication-picker-modal-body .text-heading {
+  color: #E8EEF9 !important;
+}
+
+.communication-picker-modal-body .text-muted {
+  color: #7A8CA3 !important;
+}
+
+.communication-picker-modal-body .text-primary {
+  color: #E2931D !important;
 }
 
 /* Bloc de lecture (prose longue) DANS le cockpit : on réinitialise localement

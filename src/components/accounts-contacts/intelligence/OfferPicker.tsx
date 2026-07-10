@@ -18,6 +18,7 @@ export function OfferPicker({
   loading,
   required,
   isMobile,
+  hideLabel = false,
 }: {
   offers: SuggestedOffer[]
   suggestedPracticeSlugs: string[]
@@ -26,28 +27,29 @@ export function OfferPicker({
   loading: boolean
   required: boolean
   isMobile?: boolean
+  hideLabel?: boolean
 }) {
   const [modalOpen, setModalOpen] = useState(false)
 
   const selected = useMemo(() => offers.find((o) => o.id === value) ?? null, [offers, value])
 
   const triggerCls = cn(
-    "flex w-full items-center justify-between gap-2 rounded-lg border px-3 text-left font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
-    isMobile ? "h-11 text-xs" : "h-10 text-sm",
+    "flex w-full items-center justify-between gap-1 rounded-lg border pl-2.5 pr-1.5 text-left font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
+    isMobile ? "h-9 text-[10px]" : "h-7 text-[10px]",
     !required || value ? "border-border/30 bg-surface/20" : "border-warning/30 bg-surface/10",
   )
-  const labelCls = "mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted"
+  const labelCls = "mb-1 block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted"
 
   return (
     <div>
-      <label className={labelCls}>Offre catalogue {required ? "(obligatoire)" : "(recommandée)"}</label>
+      {!hideLabel ? <label className={labelCls}>Offre catalogue {required ? "(obligatoire)" : "(recommandée)"}</label> : null}
       <button
         type="button"
         onClick={() => setModalOpen(true)}
         disabled={loading}
         className={triggerCls}
       >
-        <span className="truncate">
+        <span className="min-w-0 flex-1 truncate pr-1">
           {loading
             ? "Chargement du catalogue…"
             : selected
@@ -59,7 +61,7 @@ export function OfferPicker({
           fill="none"
           stroke="currentColor"
           strokeWidth={2}
-          className="size-3.5 shrink-0 text-muted"
+          className="size-3 shrink-0 text-muted"
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
         </svg>

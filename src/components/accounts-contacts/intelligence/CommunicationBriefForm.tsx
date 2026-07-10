@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
@@ -52,13 +53,34 @@ const BRIEF_SECTIONS = [
 
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
-    "w-full rounded-lg border border-border/35 bg-surface/20 px-3 font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0",
-    isMobile ? "h-11 text-xs" : "h-10 text-sm"
+    "w-full rounded-lg border border-border/35 bg-surface/20 pl-2.5 pr-5 font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 [&>span]:text-[10px] [&>svg]:mr-[-2px] [&>svg]:size-3",
+    isMobile ? "h-9 text-[10px]" : "h-7 text-[10px]"
   )
   const textareaCls =
-    "w-full rounded-lg border border-border/35 bg-surface/20 px-3 py-2.5 text-sm font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[64px]"
-  const labelCls = "block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted mb-1.5"
+    "w-full rounded-lg border border-border/35 bg-surface/20 px-2.5 py-1.5 text-[10px] font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[44px]"
+  const labelCls = "mb-1 block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted"
   return { selectCls, textareaCls, labelCls }
+}
+
+function ParameterRow({
+  label,
+  children,
+  multiline = false,
+}: {
+  label: string
+  children: ReactNode
+  multiline?: boolean
+}) {
+  return (
+    <div className={cn("grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3", multiline ? "items-start" : "items-center")}>
+      <span className="block truncate pt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+        {label}
+      </span>
+      <div className="min-w-0">
+        {children}
+      </div>
+    </div>
+  )
 }
 
 function SectionHeading({
@@ -81,7 +103,7 @@ function SectionHeading({
           ) : (
             <span className="size-1 rounded-full bg-primary" aria-hidden />
           )}
-          <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-body">
+          <span className="shrink-0 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
             {title}
           </span>
           <span className="h-px min-w-4 flex-1 bg-border/55" aria-hidden />
@@ -227,63 +249,91 @@ export function CommunicationBriefForm({
     />
   )
 
+  const fieldChannel = (
+    <Select
+      value={brief.what.channel}
+      onChange={(e) => updateWhat({ channel: e.target.value as CommunicationChannel })}
+      className={selectCls}
+    >
+      {CHANNEL_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
+  )
+
+  const fieldLength = (
+    <Select
+      value={brief.what.length}
+      onChange={(e) => updateWhat({ length: e.target.value as CommunicationLength })}
+      className={selectCls}
+    >
+      {LENGTH_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label} ({o.hint})</option>
+      ))}
+    </Select>
+  )
+
   const fieldChannelAndLength = (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className={labelCls}>Canal</label>
-        <Select
-          value={brief.what.channel}
-          onChange={(e) => updateWhat({ channel: e.target.value as CommunicationChannel })}
-          className={selectCls}
-        >
-          {CHANNEL_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
+        {fieldChannel}
       </div>
       <div>
         <label className={labelCls}>Longueur</label>
-        <Select
-          value={brief.what.length}
-          onChange={(e) => updateWhat({ length: e.target.value as CommunicationLength })}
-          className={selectCls}
-        >
-          {LENGTH_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label} ({o.hint})</option>
-          ))}
-        </Select>
+        {fieldLength}
       </div>
     </div>
+  )
+
+  const fieldObjective = (
+    <Select
+      value={brief.who.objective}
+      onChange={(e) => updateObjective(e.target.value as CommunicationObjective)}
+      className={selectCls}
+    >
+      {OBJECTIVE_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
+  )
+
+  const fieldSenderRole = (
+    <Select
+      value={brief.who.sender.role}
+      onChange={(e) => updateSender({ role: e.target.value as CommunicationSenderRole })}
+      className={selectCls}
+    >
+      {SENDER_ROLE_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
+  )
+
+  const fieldPractice = (
+    <Select
+      value={brief.who.sender.practice || ""}
+      onChange={(e) => updateSender({ practice: e.target.value || undefined })}
+      className={selectCls}
+    >
+      <option value="">Non spécifié</option>
+      {PRACTICE_OPTIONS.map((opt) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </Select>
   )
 
   const fieldSenderAndPractice = (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className={labelCls}>J&apos;écris en tant que</label>
-        <Select
-          value={brief.who.sender.role}
-          onChange={(e) => updateSender({ role: e.target.value as CommunicationSenderRole })}
-          className={selectCls}
-        >
-          {SENDER_ROLE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
+        {fieldSenderRole}
       </div>
       <div>
         <label className={labelCls}>Practice (optionnel)</label>
-        <Select
-          value={brief.who.sender.practice || ""}
-          onChange={(e) => updateSender({ practice: e.target.value || undefined })}
-          className={selectCls}
-        >
-          <option value="">Non spécifié</option>
-          {PRACTICE_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </Select>
+        {fieldPractice}
       </div>
     </div>
   )
@@ -300,129 +350,106 @@ export function CommunicationBriefForm({
     </div>
   )
 
+  const fieldRecipientType = (
+    <Select
+      value={brief.who.recipient.type}
+      onChange={(e) => updateRecipient({ type: e.target.value as CommunicationRecipientType })}
+      className={selectCls}
+    >
+      {RECIPIENT_TYPE_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
+  )
+
+  const fieldPersona = (
+    <Select
+      value={brief.who.recipient.persona}
+      onChange={(e) => updateRecipient({ persona: e.target.value as CommunicationPersona })}
+      className={selectCls}
+    >
+      {PERSONA_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
+  )
+
   const fieldRecipientTypeAndPersona = (
     <div className="grid grid-cols-2 gap-3">
       <div>
         <label className={labelCls}>Type de destinataire</label>
-        <Select
-          value={brief.who.recipient.type}
-          onChange={(e) => updateRecipient({ type: e.target.value as CommunicationRecipientType })}
-          className={selectCls}
-        >
-          {RECIPIENT_TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
+        {fieldRecipientType}
       </div>
       <div>
         <label className={labelCls}>Fonction</label>
-        <Select
-          value={brief.who.recipient.persona}
-          onChange={(e) => updateRecipient({ persona: e.target.value as CommunicationPersona })}
-          className={selectCls}
-        >
-          {PERSONA_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
+        {fieldPersona}
       </div>
     </div>
   )
 
-  const fieldRelationAndObjective = (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className={labelCls}>Relation actuelle</label>
-        <Select
-          value={brief.who.recipient.relation}
-          onChange={(e) => updateRecipient({ relation: e.target.value as CommunicationRelation })}
-          className={selectCls}
-        >
-          {RELATION_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
-      </div>
-      <div>
-        <label className={labelCls}>Objectif</label>
-        <Select
-          value={brief.who.objective}
-          onChange={(e) => updateObjective(e.target.value as CommunicationObjective)}
-          className={selectCls}
-        >
-          {OBJECTIVE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </Select>
-      </div>
-    </div>
+  const fieldRelation = (
+    <Select
+      value={brief.who.recipient.relation}
+      onChange={(e) => updateRecipient({ relation: e.target.value as CommunicationRelation })}
+      className={selectCls}
+    >
+      {RELATION_OPTIONS.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
+    </Select>
   )
 
   const fieldTone = (
-    <div>
-      <label className={labelCls}>Ton</label>
-      <Select
-        value={brief.how.tone}
-        onChange={(e) => updateHow({ tone: e.target.value as CommunicationTone })}
-        className={selectCls}
-      >
-        {TONE_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </Select>
+    <Select
+      value={brief.how.tone}
+      onChange={(e) => updateHow({ tone: e.target.value as CommunicationTone })}
+      className={selectCls}
+    >
+      {TONE_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </Select>
+  )
+
+  const formalityControl = (
+    <div className="grid grid-cols-2 gap-1.5">
+      {(["vous", "tu"] as const).map((f) => (
+        <button
+          key={f}
+          type="button"
+          onClick={() => updateHow({ formality: f })}
+          className={cn(
+            "flex-1 rounded-lg border px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-all duration-150 cursor-pointer",
+            isMobile ? "min-h-[38px]" : "h-[28px]",
+            brief.how.formality === f
+              ? "border-primary bg-primary/20 text-primary font-bold shadow-[0_0_12px_rgba(226,147,29,0.05)]"
+              : "border-border/30 bg-surface/20 text-white hover:bg-surface/35"
+          )}
+        >
+          {f}
+        </button>
+      ))}
     </div>
   )
 
   const fieldFormality = (
     <div>
-      <div>
-        <span className={labelCls}>Formalité</span>
-        <div className="grid grid-cols-2 gap-1.5">
-          {(["vous", "tu"] as const).map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => updateHow({ formality: f })}
-              className={cn(
-                "flex-1 rounded-lg border px-3 text-xs font-semibold transition-all duration-150 cursor-pointer",
-                isMobile ? "min-h-[44px]" : "h-9",
-                brief.how.formality === f
-                  ? "border-primary bg-primary/20 text-primary font-bold shadow-[0_0_12px_rgba(226,147,29,0.05)]"
-                  : "border-border/30 bg-surface/20 text-body hover:bg-surface/35"
-              )}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
+      <span className={labelCls}>Formalité</span>
+      {formalityControl}
     </div>
   )
 
   const fieldLanguage = (
-    <div>
-      <label className={labelCls}>Langue</label>
-      <Select
-        value={brief.how.language}
-        onChange={(e) => updateHow({ language: e.target.value as "fr" | "en" })}
-        className={selectCls}
-      >
-        <option value="fr">🇫🇷 Français</option>
-        <option value="en">🇬🇧 Anglais</option>
-      </Select>
-    </div>
-  )
-
-  const fieldToneFormalityAndLanguage = (
-    <div className="grid grid-cols-2 gap-3">
-      {fieldTone}
-      {fieldFormality}
-      <div className="col-span-2">
-        {fieldLanguage}
-      </div>
-    </div>
+    <Select
+      value={brief.how.language}
+      onChange={(e) => updateHow({ language: e.target.value as "fr" | "en" })}
+      className={selectCls}
+    >
+      <option value="fr">🇫🇷 Français</option>
+      <option value="en">🇬🇧 Anglais</option>
+    </Select>
   )
 
   const fieldOfferPicker = isPitch ? (
@@ -438,27 +465,21 @@ export function CommunicationBriefForm({
   ) : null
 
   const fieldMustInclude = (
-    <div>
-      <label className={labelCls}>À intégrer impérativement</label>
-      <textarea
-        value={brief.context.mustInclude || ""}
-        onChange={(e) => updateContext({ mustInclude: e.target.value })}
-        placeholder="Instructions, faits ou arguments que le message doit contenir…"
-        className={textareaCls}
-      />
-    </div>
+    <textarea
+      value={brief.context.mustInclude || ""}
+      onChange={(e) => updateContext({ mustInclude: e.target.value })}
+      placeholder="Instructions, faits ou arguments que le message doit contenir…"
+      className={textareaCls}
+    />
   )
 
   const fieldMustExclude = (
-    <div>
-      <label className={labelCls}>À ne pas mentionner</label>
-      <textarea
-        value={brief.context.mustExclude || ""}
-        onChange={(e) => updateContext({ mustExclude: e.target.value })}
-        placeholder="Sujets, noms ou projets à exclure du message…"
-        className={textareaCls}
-      />
-    </div>
+    <textarea
+      value={brief.context.mustExclude || ""}
+      onChange={(e) => updateContext({ mustExclude: e.target.value })}
+      placeholder="Sujets, noms ou projets à exclure du message…"
+      className={textareaCls}
+    />
   )
 
   if (isMobile) {
@@ -468,10 +489,23 @@ export function CommunicationBriefForm({
       <div className="space-y-5">
         <div className="space-y-4">
           {fieldScenario}
+          <div>
+            <label className={labelCls}>Objectif</label>
+            {fieldObjective}
+          </div>
           {fieldOfferPicker}
-          {fieldRecipient}
-          {fieldTone}
-          {fieldMustInclude}
+          <div>
+            <label className={labelCls}>Destinataire</label>
+            {fieldRecipient}
+          </div>
+          <div>
+            <label className={labelCls}>Ton</label>
+            {fieldTone}
+          </div>
+          <div>
+            <label className={labelCls}>À intégrer impérativement</label>
+            {fieldMustInclude}
+          </div>
         </div>
         <details className="group rounded-lg border border-border bg-canvas/30 p-3">
           <SectionHeading title="Plus d'options" />
@@ -479,11 +513,23 @@ export function CommunicationBriefForm({
             {fieldChannelAndLength}
             {fieldSenderAndPractice}
             {fieldRecipientTypeAndPersona}
-            {fieldRelationAndObjective}
-            {fieldTone}
+            <div>
+              <label className={labelCls}>Relation actuelle</label>
+              {fieldRelation}
+            </div>
+            <div>
+              <label className={labelCls}>Ton</label>
+              {fieldTone}
+            </div>
             {fieldFormality}
-            {fieldLanguage}
-            {fieldMustExclude}
+            <div>
+              <label className={labelCls}>Langue</label>
+              {fieldLanguage}
+            </div>
+            <div>
+              <label className={labelCls}>À ne pas mentionner</label>
+              {fieldMustExclude}
+            </div>
           </div>
         </details>
       </div>
@@ -497,35 +543,60 @@ export function CommunicationBriefForm({
       <div className="min-w-0 space-y-5">
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="01" title="Quoi" />
-          <div className="space-y-4 pt-4">
-            {fieldScenario}
-            {fieldChannelAndLength}
-            {fieldOfferPicker}
+          <div className="space-y-2.5 pt-3">
+            <ParameterRow label="Scénario">
+              <ScenarioPicker
+                useCase={isPitch ? "pitch" : "mail"}
+                value={brief.what.scenario}
+                onChange={handleScenarioChange}
+                hideLabel
+              />
+            </ParameterRow>
+            <ParameterRow label="Objectif">{fieldObjective}</ParameterRow>
+            <ParameterRow label="Canal">{fieldChannel}</ParameterRow>
+            <ParameterRow label="Longueur">{fieldLength}</ParameterRow>
+            {fieldOfferPicker ? (
+              <ParameterRow label={requiresOffer ? "Offre catalogue" : "Offre recommandée"}>
+                <OfferPicker
+                  offers={offers ?? []}
+                  suggestedPracticeSlugs={suggestedPracticeSlugs ?? []}
+                  value={brief.context.offerRef}
+                  onChange={(offerId) => updateContext({ offerRef: offerId })}
+                  loading={offersLoading}
+                  required={requiresOffer}
+                  hideLabel
+                />
+              </ParameterRow>
+            ) : null}
           </div>
         </details>
 
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="02" title="Qui" />
-          <div className="space-y-4 pt-4">
-            {fieldSenderAndPractice}
-            {fieldRecipient}
-            {fieldRecipientTypeAndPersona}
-            {fieldRelationAndObjective}
+          <div className="space-y-2.5 pt-3">
+            <ParameterRow label="J'écris en tant que">{fieldSenderRole}</ParameterRow>
+            <ParameterRow label="Practice">{fieldPractice}</ParameterRow>
+            <ParameterRow label="Destinataire">{fieldRecipient}</ParameterRow>
+            <ParameterRow label="Type de destinataire">{fieldRecipientType}</ParameterRow>
+            <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+            <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
           </div>
         </details>
 
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="03" title="Comment" />
-          <div className="space-y-4 pt-4">
-            {fieldToneFormalityAndLanguage}
+          <div className="space-y-2.5 pt-3">
+            <ParameterRow label="Ton">{fieldTone}</ParameterRow>
+            <ParameterRow label="Formalité">{formalityControl}</ParameterRow>
+            <ParameterRow label="Langue">{fieldLanguage}</ParameterRow>
           </div>
         </details>
 
         <details open className="group">
           <SectionHeading number="04" title="Contexte" meta={contextMetaLabel} />
-          <div className="space-y-4 pt-4">
-            {fieldMustInclude}
-            {fieldMustExclude}
+          <div className="space-y-2.5 pt-3">
+            <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
+            <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
           </div>
         </details>
       </div>

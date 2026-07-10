@@ -108,7 +108,9 @@ export function OfferPickerModal({
     <AppDialog
       open={open}
       onOpenChange={handleOpenChange}
-      className="sm:max-w-2xl"
+      className="communication-picker-modal sm:max-w-2xl"
+      headerClassName="communication-picker-modal-header"
+      bodyClassName="communication-picker-modal-body"
       title={
         <div className="flex items-center gap-2">
           {step === "offers" && (

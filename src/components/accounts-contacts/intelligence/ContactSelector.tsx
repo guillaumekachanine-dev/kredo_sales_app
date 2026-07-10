@@ -16,8 +16,8 @@ export function ContactSelector({
   isMobile?: boolean
 }) {
   const selectCls = cn(
-    "w-full rounded-lg border border-border/35 bg-surface/20 px-3 font-medium text-body transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0",
-    isMobile ? "h-11 text-xs" : "h-10 text-sm"
+    "w-full rounded-lg border border-border/35 bg-surface/20 pl-2.5 pr-5 font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 [&>span]:text-[10px] [&>svg]:mr-[-2px] [&>svg]:size-3",
+    isMobile ? "h-9 text-[10px]" : "h-7 text-[10px]"
   )
 
   return (
