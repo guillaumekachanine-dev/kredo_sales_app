@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, N8nEntityType, PitchOutput } from "@/lib/n8n/types"
+import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, CommunicationScope, N8nEntityType, PitchOutput } from "@/lib/n8n/types"
 import type { AccountSummaryContent, ReportBrief } from "@/app/(app)/reports/_data/reports-types"
 import { AccountSummaryReportView } from "@/components/reports/AccountSummaryReportView"
 import { saveResultAsDocument } from "./save-as-document"
@@ -43,21 +43,43 @@ export type PitchMailAccountContext = {
     currentTitle: string | null
   } | null
   contacts: ClientIntelligenceContact[]
+  // ADR-0013 Lot 2 — défaut "account" si absent (les 5 call-sites hors Host
+  // n'ont pas besoin de le préciser, ils sont toujours account-scope).
+  scope?: CommunicationScope
+}
+
+// ADR-0013 Lot 3 — entityType/entityId ne sont plus des props externes :
+// aucun call-site ne les surchargeait jamais (vérifié), et les dériver ici
+// depuis brief.what.scope évite le bug où un run collaborateur/interne
+// partait avec entityType="company" par défaut (mauvaise résolution côté
+// n8n Hydrate Context).
+function resolveEntityForScope(
+  scope: CommunicationScope,
+  company: PitchMailAccountContext["company"],
+  collaborator: PitchMailAccountContext["collaborator"],
+): { entityType: N8nEntityType; entityId: string | undefined } {
+  switch (scope) {
+    case "collaborator":
+      return { entityType: "collaborator", entityId: collaborator?.id }
+    case "internal":
+      // entityId omis — /api/n8n/trigger résout automatiquement le workspace
+      // courant côté serveur quand entityType === "workspace".
+      return { entityType: "workspace", entityId: undefined }
+    case "account":
+    default:
+      return { entityType: "company", entityId: company?.id }
+  }
 }
 
 export function PitchMailDrawerContent({
   data,
   variant = "desktop",
   initialBrief,
-  entityType = "company",
-  entityId,
   contextMetaLabel = "(résolu automatiquement)",
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
   initialBrief?: CommunicationBrief
-  entityType?: N8nEntityType
-  entityId?: string
   contextMetaLabel?: string
 }) {
   const { company, collaborator, contacts } = data
@@ -162,11 +184,13 @@ export function PitchMailDrawerContent({
   }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleGenerate() {
-    // ADR-0013 — sans compte pivot, l'entité effective vient de entityId (passé
-    // explicitement par le Host pour scope collaborateur/interne) ou du collaborateur
-    // résolu. Garde-fou factuel plutôt qu'un appel API voué à échouer côté n8n.
-    const effectiveEntityId = entityId ?? company?.id ?? collaborator?.id
-    if (!effectiveEntityId) {
+    // ADR-0013 Lot 3 — entité effective dérivée de brief.what.scope (jamais figée
+    // au montage : reflète le scope réellement en vigueur au moment de générer).
+    // Garde-fou factuel plutôt qu'un appel API voué à échouer côté n8n — le scope
+    // "internal" n'a par construction aucune entité à résoudre.
+    const scope = brief.what.scope
+    const { entityType, entityId: effectiveEntityId } = resolveEntityForScope(scope, company, collaborator)
+    if (scope !== "internal" && !effectiveEntityId) {
       setErrorMsg("Aucune entité n'a pu être résolue pour cette génération.")
       setRunStatus("error")
       return

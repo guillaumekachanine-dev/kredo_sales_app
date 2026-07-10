@@ -6,7 +6,7 @@ import type { CommunicationBrief, CommunicationOutput } from "@/lib/n8n/types"
 
 // Type d'interaction — voir la contrainte interactions_type_check (migration 028)
 function interactionTypeFor(brief: CommunicationBrief): string {
-  if (brief.what.scenario === "profile_submission") return "envoi_cv"
+  if (brief.what.scenario === "profile_submission_to_client") return "envoi_cv"
   switch (brief.what.channel) {
     case "linkedin_invitation":
     case "linkedin_message":

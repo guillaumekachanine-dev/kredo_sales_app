@@ -31,7 +31,7 @@ describe("buildDefaultBrief", () => {
       company: { name: "Acme", lifecycleStatus: "client_actif" },
       contacts,
       communicationPreset: {
-        scenario: "profile_submission",
+        scenario: "profile_submission_to_client",
         mustInclude: "Présenter le profil Data Engineer",
         refs: {
           opportunityRef: "opportunity-1",
@@ -41,7 +41,7 @@ describe("buildDefaultBrief", () => {
     }, "Guillaume")
 
     expect(brief.what.channel).toBe("email")
-    expect(brief.what.scenario).toBe("profile_submission")
+    expect(brief.what.scenario).toBe("profile_submission_to_client")
     expect(brief.who.objective).toBe("submit_profile")
     expect(brief.who.recipient.type).toBe("active_client")
     expect(brief.context.mustInclude).toBe("Présenter le profil Data Engineer")

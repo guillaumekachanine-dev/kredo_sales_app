@@ -64,6 +64,13 @@ export function SpokenPitchView({ result }: { result: SpokenPitchOutput }) {
   )
 }
 
+const POWER_DYNAMIC_LABELS: Record<NonNullable<MeetingBriefingOutput["power_dynamic"]>, string> = {
+  peer: "Pair à pair",
+  subordinate: "Face à un subordonné",
+  superior: "Face à un supérieur",
+  client_external: "Face à un client externe",
+}
+
 export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput }) {
   return (
     <div className="space-y-4">
@@ -75,6 +82,35 @@ export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput 
         <span className="block text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Message clé</span>
         <p className="text-xs leading-relaxed text-heading font-semibold">{result.key_message}</p>
       </div>
+
+      {/* ADR-0013 Lot 3 — champs optionnels, absents des briefings commerciaux
+          existants, remplis par les prompts non commerciaux (delivery/interne/recrutement). */}
+      {(result.emotional_context || result.power_dynamic) && (
+        <div className="rounded border border-info/20 bg-info/[0.04] px-3 py-2.5 space-y-1.5">
+          {result.power_dynamic && (
+            <span className="inline-block rounded-full border border-info/25 bg-info/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-info">
+              {POWER_DYNAMIC_LABELS[result.power_dynamic]}
+            </span>
+          )}
+          {result.emotional_context && (
+            <p className="text-xs leading-relaxed text-body">{result.emotional_context}</p>
+          )}
+        </div>
+      )}
+
+      {result.postures && result.postures.length > 0 && (
+        <div>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Postures à adopter</span>
+          <div className="space-y-2">
+            {result.postures.map((p, i) => (
+              <div key={i} className="rounded border border-border bg-surface px-3 py-2">
+                <p className="text-xs font-semibold text-heading">{p.situation}</p>
+                <p className="mt-1 text-[11px] text-body leading-relaxed">{p.posture}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-2">Arguments</span>

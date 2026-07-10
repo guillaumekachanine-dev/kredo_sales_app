@@ -245,7 +245,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     requiredScopes: ["account"],
   },
   {
-    value: "profile_submission",
+    value: "profile_submission_to_client",
     label: "Envoi de profil",
     description: "Présente un profil consultant ou candidat en le contextualisant sur le besoin.",
     activityCategory: "commerce_actif",

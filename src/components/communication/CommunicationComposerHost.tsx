@@ -459,21 +459,30 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
         let collaboratorName = inferred.collaboratorName
         let collaboratorPractice = inferred.collaboratorPractice ?? null
         let collaboratorTitle = inferred.collaboratorTitle ?? null
+        let collaboratorSeniority: string | null = null
+        let collaboratorEmploymentStatus: string | null = null
 
-        // collaboratorId peut être passé directement (sans primaryEntity) — le
-        // résoudre dans ce cas plutôt que de dépendre uniquement de resolvePrimaryEntity.
-        if (!collaboratorName) {
-          const { data } = await supabase
-            .from("collaborators")
-            .select("id, practice, current_title, persons(full_name)")
-            .eq("id", collaboratorId)
-            .maybeSingle()
-          const person = data?.persons
-            ? (Array.isArray(data.persons) ? data.persons[0] : data.persons)
+        // ADR-0013 Lot 3 — collaboratorId peut être passé directement (sans
+        // primaryEntity) : toujours re-résoudre en direct plutôt que de
+        // dépendre uniquement de resolvePrimaryEntity, pour disposer des
+        // champs supplémentaires (seniority/employment_status) qui alimentent
+        // le mustInclude ci-dessous. Aucune RPC dédiée en Lot 3 (scope
+        // volontairement limité) — ces faits directs suffisent à ancrer les
+        // prompts management sans halluciner.
+        const { data: collaboratorRow } = await supabase
+          .from("collaborators")
+          .select("id, practice, current_title, seniority, employment_status, persons(full_name)")
+          .eq("id", collaboratorId)
+          .maybeSingle()
+        if (collaboratorRow) {
+          const person = collaboratorRow.persons
+            ? (Array.isArray(collaboratorRow.persons) ? collaboratorRow.persons[0] : collaboratorRow.persons)
             : null
-          collaboratorName = person?.full_name ?? undefined
-          collaboratorPractice = data?.practice ?? null
-          collaboratorTitle = data?.current_title ?? null
+          collaboratorName = person?.full_name ?? collaboratorName
+          collaboratorPractice = collaboratorRow.practice ?? collaboratorPractice
+          collaboratorTitle = collaboratorRow.current_title ?? collaboratorTitle
+          collaboratorSeniority = collaboratorRow.seniority ?? null
+          collaboratorEmploymentStatus = collaboratorRow.employment_status ?? null
         }
 
         if (sequence !== loadSequence.current) return
@@ -482,6 +491,17 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
           setError("Le collaborateur sélectionné n'a pas pu être résolu.")
           return
         }
+
+        const preset = mergePreset(currentRequest, inferred)
+        const collaboratorMustInclude = `[COLLABORATEUR_CONTEXT]
+Nom : ${collaboratorName}
+Poste : ${collaboratorTitle || "Non renseigné"}
+Practice : ${collaboratorPractice || "Non renseignée"}
+Séniorité : ${collaboratorSeniority || "Non renseignée"}
+Statut : ${collaboratorEmploymentStatus || "Non renseigné"}
+
+Le message généré doit s'appuyer sur ces informations réelles, sans inventer de détail supplémentaire sur ce collaborateur.`
+        preset.mustInclude = [collaboratorMustInclude, preset.mustInclude].filter(Boolean).join("\n\n")
 
         setContext({
           scope,
@@ -493,7 +513,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
             currentTitle: collaboratorTitle,
           },
           contacts: [],
-          communicationPreset: mergePreset(currentRequest, inferred),
+          communicationPreset: preset,
         })
         setInstanceKey((key) => key + 1)
         return

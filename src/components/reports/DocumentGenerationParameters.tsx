@@ -3,7 +3,18 @@
 import React from "react"
 import Link from "next/link"
 import type { DocumentDetail } from "@/app/(app)/reports/_data/reports-types"
-import { DOCUMENT_OBJECT_LABELS, getDocumentTypeLabel } from "./document-display"
+import { DOCUMENT_OBJECT_LABELS, getDocumentTypeLabel, getDocumentCategory } from "./document-display"
+import {
+  CHANNEL_OPTIONS,
+  SCENARIO_OPTIONS,
+  LENGTH_OPTIONS,
+  SENDER_ROLE_OPTIONS,
+  RECIPIENT_TYPE_OPTIONS,
+  PERSONA_OPTIONS,
+  RELATION_OPTIONS,
+  OBJECTIVE_OPTIONS,
+  TONE_OPTIONS,
+} from "@/components/accounts-contacts/intelligence/communication-brief-options"
 
 type DocumentGenerationParametersProps = {
   document: DocumentDetail
@@ -35,11 +46,201 @@ function formatSourceRef(value: unknown): string {
   return JSON.stringify(value) ?? "Source"
 }
 
+const getLabel = (options: { value: any; label: string }[], value: any) => {
+  return options.find((o) => o.value === value)?.label || value || "—"
+}
+
+const getLanguageLabel = (lang: string) => {
+  if (lang === "fr") return "Français"
+  if (lang === "en") return "Anglais"
+  return lang || "—"
+}
+
 export function DocumentGenerationParameters({ document }: DocumentGenerationParametersProps) {
   const latestVersion = document.versions[0] ?? null
   const appliedBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
 
-  // Extract Tone, Format, Objective if available
+  const isComm = getDocumentCategory(document.documentType) === "communication"
+
+  // Linked entities
+  const linkedCompanies = document.links.filter((l) => l.entityType === "company")
+  const linkedContacts = document.links.filter((l) => l.entityType === "contact")
+  const linkedOpportunities = document.links.filter((l) => l.entityType === "opportunity")
+
+  const hasLinkedEntities =
+    linkedCompanies.length > 0 || linkedContacts.length > 0 || linkedOpportunities.length > 0
+
+  if (isComm && appliedBrief && typeof appliedBrief === "object") {
+    const brief = appliedBrief as Record<string, any>
+    const what = brief.what || {}
+    const who = brief.who || {}
+    const sender = who.sender || {}
+    const recipient = who.recipient || {}
+    const how = brief.how || {}
+    const context = brief.context || {}
+
+    return (
+      <div className="space-y-5">
+        {/* Section 2 : Entité liée */}
+        {hasLinkedEntities && (
+          <div className="space-y-1.5 pb-3 border-b border-border/10">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+              Entités liées
+            </span>
+            <div className="space-y-1 text-[10px]">
+              {linkedCompanies.map((link, idx) => (
+                <div key={`comp-${idx}`} className="flex items-center justify-between gap-2">
+                  <span className="text-muted shrink-0">Compte</span>
+                  <Link
+                    href={`/prospection/accounts/${link.entityId}`}
+                    className="font-semibold text-body hover:text-primary transition-colors truncate text-right"
+                  >
+                    {link.label}
+                  </Link>
+                </div>
+              ))}
+              {linkedContacts.map((link, idx) => (
+                <div key={`cont-${idx}`} className="flex items-center justify-between gap-2">
+                  <span className="text-muted shrink-0">Contact</span>
+                  <span className="text-body font-semibold text-right truncate">{link.label}</span>
+                </div>
+              ))}
+              {linkedOpportunities.map((link, idx) => (
+                <div key={`opp-${idx}`} className="flex items-center justify-between gap-2">
+                  <span className="text-muted shrink-0">Opportunité</span>
+                  <span className="text-body font-semibold text-right truncate">{link.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section 3 : QUOI */}
+        <div className="space-y-1.5 pb-3 border-b border-border/10">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+            QUOI
+          </span>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Scénario</span>
+              <span className="text-body font-semibold text-right">{getLabel(SCENARIO_OPTIONS, what.scenario)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Objectif</span>
+              <span className="text-body font-semibold text-right">{getLabel(OBJECTIVE_OPTIONS, who.objective)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Canal</span>
+              <span className="text-body font-semibold text-right">{getLabel(CHANNEL_OPTIONS, what.channel)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Longueur</span>
+              <span className="text-body font-semibold text-right">{getLabel(LENGTH_OPTIONS, what.length)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4 : QUI */}
+        <div className="space-y-1.5 pb-3 border-b border-border/10">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+            QUI
+          </span>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Posture</span>
+              <span className="text-body font-semibold text-right">{getLabel(SENDER_ROLE_OPTIONS, sender.role)}</span>
+            </div>
+            {sender.practice && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted shrink-0">Practice</span>
+                <span className="text-body font-semibold text-right">{sender.practice}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Destinataire</span>
+              <span className="text-body font-semibold text-right truncate">
+                {recipient.displayName || recipient.companyName || "—"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Fonction</span>
+              <span className="text-body font-semibold text-right">{getLabel(PERSONA_OPTIONS, recipient.persona)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Statut</span>
+              <span className="text-body font-semibold text-right">{getLabel(RECIPIENT_TYPE_OPTIONS, recipient.type)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Relation</span>
+              <span className="text-body font-semibold text-right">{getLabel(RELATION_OPTIONS, recipient.relation)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 5 : COMMENT */}
+        <div className="space-y-1.5 pb-3 border-b border-border/10">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
+            COMMENT
+          </span>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Ton</span>
+              <span className="text-body font-semibold text-right">{getLabel(TONE_OPTIONS, how.tone)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Formalité</span>
+              <span className="text-body font-semibold text-right">{how.formality || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted shrink-0">Langue</span>
+              <span className="text-body font-semibold text-right">{getLanguageLabel(how.language)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 6 : CONTEXTE */}
+        <div className="space-y-3">
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-primary">
+            CONTEXTE
+          </span>
+          {context.mustInclude && (
+            <div>
+              <span className="font-semibold text-muted block text-[9px] uppercase tracking-[0.05em]">À intégrer</span>
+              <p className="text-xs text-body bg-canvas/30 p-2 rounded border border-border/10 whitespace-pre-wrap">
+                {context.mustInclude}
+              </p>
+            </div>
+          )}
+          {context.mustExclude && (
+            <div>
+              <span className="font-semibold text-muted block text-[9px] uppercase tracking-[0.05em]">À ne pas mentionner</span>
+              <p className="text-xs text-body bg-canvas/30 p-2 rounded border border-border/10 whitespace-pre-wrap">
+                {context.mustExclude}
+              </p>
+            </div>
+          )}
+          <div>
+            <span className="font-semibold text-muted block text-[9px] uppercase tracking-[0.05em] mb-1">
+              Sources utilisées
+            </span>
+            {latestVersion && latestVersion.sourceRefs && latestVersion.sourceRefs.length > 0 ? (
+              <ul className="text-xs space-y-1 pl-3 list-disc text-body">
+                {latestVersion.sourceRefs.map((ref, idx) => (
+                  <li key={idx} className="truncate" title={formatSourceRef(ref)}>
+                    {formatSourceRef(ref)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-muted">Aucune source explicite</span>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Extract Tone, Format, Objective if available (for standard reports)
   let tone: string | null = null
   let format: string | null = null
   let objective: string | null = null
@@ -47,7 +248,6 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
 
   if (appliedBrief && typeof appliedBrief === "object") {
     const brief = appliedBrief as Record<string, any>
-    // Communication briefs
     if (brief.preset && typeof brief.preset === "object") {
       tone = brief.preset.tone || null
       objective = brief.preset.objective || null
@@ -58,16 +258,6 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
     format = brief.format || brief.outputFormats?.join(", ") || null
     model = brief.model || brief.modelName || null
   }
-
-  // Quality flags & warnings
-  const qaFlags = latestVersion?.qaFlags || []
-  const failedFlags = qaFlags.filter((flag: any) => flag && typeof flag === "object" && !flag.passed)
-  const qualityStatus = qaFlags.length > 0 ? (failedFlags.length === 0 ? "Qualité OK" : "À vérifier") : null
-
-  // Linked entities
-  const linkedCompanies = document.links.filter(l => l.entityType === "company")
-  const linkedContacts = document.links.filter(l => l.entityType === "contact")
-  const linkedOpportunities = document.links.filter(l => l.entityType === "opportunity")
 
   return (
     <div className="space-y-4">
@@ -91,23 +281,6 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
         </span>
       </div>
 
-      {/* Modèle / Workflow / Run */}
-      <div>
-        <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted">
-          Moteur & Run
-        </span>
-        <div className="text-xs space-y-0.5">
-          <p className="text-body font-mono">
-            Modèle: <span className="text-heading font-semibold">{model || "KREDO-GPT-4o"}</span>
-          </p>
-          {latestVersion?.sourceRunId && (
-            <p className="text-xxs text-muted font-mono truncate" title={latestVersion.sourceRunId}>
-              Run: {latestVersion.sourceRunId}
-            </p>
-          )}
-        </div>
-      </div>
-
       {/* Contexte / Sources */}
       <div>
         <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1">
@@ -127,7 +300,7 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
       </div>
 
       {/* Entités liées (Comptes, Contacts, Opportunités) */}
-      {(linkedCompanies.length > 0 || linkedContacts.length > 0 || linkedOpportunities.length > 0) && (
+      {hasLinkedEntities && (
         <div>
           <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1">
             Entités liées
@@ -184,31 +357,6 @@ export function DocumentGenerationParameters({ document }: DocumentGenerationPar
                 <span className="font-semibold text-muted block uppercase tracking-[0.05em]">Objectif</span>
                 <span className="text-body font-semibold">{objective}</span>
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Qualité & Warnings */}
-      {qualityStatus && (
-        <div>
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5">
-            Statut Qualité
-          </span>
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5 text-xs text-body font-semibold">
-              <span className={`size-1.5 rounded-full ${failedFlags.length === 0 ? "bg-success" : "bg-warning"}`} />
-              <span>{qualityStatus}</span>
-            </div>
-
-            {failedFlags.length > 0 && (
-              <ul className="text-[10px] text-muted/80 space-y-1 list-disc pl-3 leading-snug">
-                {failedFlags.map((flag: any, idx: number) => (
-                  <li key={idx}>
-                    {flag.detail || flag.check || "Erreur non spécifiée"}
-                  </li>
-                ))}
-              </ul>
             )}
           </div>
         </div>

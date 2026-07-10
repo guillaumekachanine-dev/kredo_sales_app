@@ -331,7 +331,7 @@ const ENTRY_POINT_SCENARIOS: Record<CommunicationEntryPoint, {
   },
   candidate_positioning: {
     label: "Envoyer le profil",
-    scenario: "profile_submission",
+    scenario: "profile_submission_to_client",
     objective: "submit_profile",
     contextHint: "Présente le profil candidat au regard de l'opportunité ciblée, avec preuves concrètes et disponibilité.",
   },

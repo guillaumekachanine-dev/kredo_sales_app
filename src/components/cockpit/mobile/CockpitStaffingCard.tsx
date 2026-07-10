@@ -26,7 +26,7 @@ function composeForNeed(need: StaffingNeedVm) {
     companyName: need.client,
     primaryEntity: { type: "opportunity", id: need.id },
     preset: {
-      scenario: submission ? "profile_submission" : followUp ? "follow_up_no_reply" : "offer_introduction",
+      scenario: submission ? "profile_submission_to_client" : followUp ? "follow_up_no_reply" : "offer_introduction",
       objective: submission ? "submit_profile" : followUp ? "get_feedback" : "get_reply",
       mustInclude: `Besoin : ${need.title}. Étape : ${need.step}. Profils : ${need.positioned}. Échéance : ${need.due}.`,
       refs: { opportunityRef: need.id },

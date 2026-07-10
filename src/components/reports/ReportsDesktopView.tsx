@@ -174,8 +174,8 @@ function RunIaQualiteRow({ document }: { document: DocumentDetail }) {
             {ok
               ? "Tous les contrôles qualité sont passés avec succès."
               : details.length > 0
-              ? details.join(" · ")
-              : "Des anomalies qualité ont été détectées."}
+                ? details.join(" · ")
+                : "Des anomalies qualité ont été détectées."}
           </span>
         </span>
       </span>
@@ -228,7 +228,7 @@ export function ReportsDesktopView({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
-  
+
   // Custom interface states
   const [showFilters, setShowFilters] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -406,11 +406,10 @@ export function ReportsDesktopView({
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${
-              showFilters || activeFilterCount > 0
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${showFilters || activeFilterCount > 0
                 ? "border-primary/50 bg-surface text-primary"
                 : "border-border/40 bg-surface/30 text-muted hover:text-heading hover:bg-surface-hover/30"
-            }`}
+              }`}
           >
             <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
@@ -516,7 +515,7 @@ export function ReportsDesktopView({
 
       {/* Main 3-Column Editorial Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr_20rem] gap-6 items-start">
-        
+
         {/* Colonne Gauche: Bibliothèque */}
         <div className="space-y-4">
           <div className="space-y-1">
@@ -541,11 +540,10 @@ export function ReportsDesktopView({
               <button
                 key={chip.value}
                 onClick={() => handleFilterChange("documentType", chip.value)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer ${
-                  (chip.value === "all" && activeDocType === "all") || (chip.value !== "all" && activeDocType === chip.value)
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer ${(chip.value === "all" && activeDocType === "all") || (chip.value !== "all" && activeDocType === chip.value)
                     ? "bg-primary text-primary-fg font-bold"
                     : "bg-surface/30 text-muted border border-border/30 hover:text-heading hover:bg-surface-hover/30"
-                }`}
+                  }`}
               >
                 {chip.label}
               </button>
@@ -579,11 +577,10 @@ export function ReportsDesktopView({
                   <div
                     key={item.id}
                     onClick={() => handleSelectDocument(item.id)}
-                    className={`group relative flex items-start gap-2.5 rounded-xl border p-3 transition-all cursor-pointer ${
-                      isActive
+                    className={`group relative flex items-start gap-2.5 rounded-xl border p-3 transition-all cursor-pointer ${isActive
                         ? "border-primary bg-surface/60 shadow-[0_0_15px_rgba(255,191,0,0.1)]"
                         : "border-border/30 bg-surface/30 hover:border-border hover:bg-surface-hover/30"
-                    }`}
+                      }`}
                   >
                     {/* Left icon */}
                     <div className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${isActive ? "bg-primary/10" : "bg-surface-hover/30"}`}>
@@ -608,9 +605,8 @@ export function ReportsDesktopView({
                         <>
                           {/* Mail / Pitch — L1: client, L2: scénario, L3: titre */}
                           <div className="flex items-center gap-1 mb-0.5">
-                            <span className={`truncate text-xs font-bold leading-snug transition-colors ${
-                              isActive ? "text-primary" : "text-body group-hover:text-heading"
-                            }`}>
+                            <span className={`truncate text-xs font-bold leading-snug transition-colors ${isActive ? "text-primary" : "text-body group-hover:text-heading"
+                              }`}>
                               {entityLabel ?? "—"}
                             </span>
                             {item.isFavorite && (
@@ -622,9 +618,8 @@ export function ReportsDesktopView({
                               {item.scenarioLabel}
                             </p>
                           )}
-                          <p className={`text-[10px] truncate leading-snug transition-colors ${
-                            isActive ? "text-primary/80" : "text-muted/70 group-hover:text-body/80"
-                          }`}>
+                          <p className={`text-[10px] truncate leading-snug transition-colors ${isActive ? "text-primary/80" : "text-muted/70 group-hover:text-body/80"
+                            }`}>
                             {item.title}
                           </p>
                         </>
@@ -632,9 +627,8 @@ export function ReportsDesktopView({
                         <>
                           {/* Rapport — L1: titre, L2: client + type */}
                           <div className="flex items-center gap-1 mb-0.5">
-                            <span className={`block truncate text-xs font-bold leading-snug transition-colors ${
-                              isActive ? "text-primary" : "text-body group-hover:text-heading"
-                            }`}>
+                            <span className={`block truncate text-xs font-bold leading-snug transition-colors ${isActive ? "text-primary" : "text-body group-hover:text-heading"
+                              }`}>
                               {item.title}
                             </span>
                             {item.isFavorite && (
@@ -657,11 +651,10 @@ export function ReportsDesktopView({
                     </div>
 
                     {/* Category badge — top right */}
-                    <span className={`absolute top-2.5 right-2.5 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
-                      isActive
+                    <span className={`absolute top-2.5 right-2.5 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${isActive
                         ? "border-primary/20 bg-primary/10 text-primary"
                         : "border-border/30 bg-surface-hover/20 text-muted"
-                    }`}>
+                      }`}>
                       {cat}
                     </span>
                   </div>
@@ -981,11 +974,10 @@ export function ReportsDesktopView({
                   )}
                   <button
                     onClick={handleToggleFavorite}
-                    className={`w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${
-                      selectedDocument.isFavorite
+                    className={`w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${selectedDocument.isFavorite
                         ? "border-primary/20 bg-primary/10 text-primary"
                         : "border-border/40 bg-surface text-body hover:text-heading hover:bg-surface-hover/30"
-                    }`}
+                      }`}
                   >
                     <span>{selectedDocument.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span>
                   </button>

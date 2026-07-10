@@ -145,12 +145,11 @@ export type CommunicationScenario =
   | "signal_outreach"
   | "follow_up_no_reply"
   | "post_meeting"
-  // ⚠️ Conservé tel quel (pas de rename profile_submission_to_client en Lot 1) :
-  // le workflow n8n intel-020-communication a déjà ce libellé en dur dans son
-  // dictionnaire de prompts (SCENARIO_MISSIONS) — le renommer sans toucher au
-  // workflow casserait silencieusement le prompt spécifique de ce scénario en
-  // production (ADR-0013 §6.2 non-régression). Rename différé au Lot 3.
-  | "profile_submission"
+  // Renommé depuis "profile_submission" au Lot 3 (désambiguïsation ADR-0013
+  // §8.2) — différé des Lots 1-2 car le workflow n8n intel-020-communication
+  // avait l'ancien libellé en dur dans SCENARIO_MISSIONS ; le workflow a été
+  // mis à jour dans le même lot pour éviter toute régression silencieuse.
+  | "profile_submission_to_client"
   | "cross_sell"
   | "reactivation"
   | "proposal_follow_up"
@@ -457,6 +456,13 @@ export interface MeetingBriefingOutput {
   do_not_say: string[]
   source_refs: string[]
   warnings: string[]
+  // ADR-0013 Lot 3 — optionnels, remplis par les prompts non commerciaux
+  // (delivery/interne_management/recrutement). Absents pour les briefings
+  // commerciaux existants (meeting_prep_discovery/cross_sell) — non-régression
+  // : ces 3 champs n'apparaissaient dans aucun contrat de sortie avant ce lot.
+  postures?: Array<{ situation: string; posture: string }>
+  emotional_context?: string
+  power_dynamic?: "peer" | "subordinate" | "superior" | "client_external"
 }
 
 export type PitchOutput = SpokenPitchOutput | MeetingBriefingOutput

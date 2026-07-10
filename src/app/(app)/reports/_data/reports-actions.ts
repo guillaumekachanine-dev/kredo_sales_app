@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { Database, Json } from "@/types/database"
 import type { CommunicationBrief } from "@/lib/n8n/types"
 import { buildDefaultBrief } from "@/components/accounts-contacts/intelligence/communication-brief-options"
+import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import { getDocumentDetail } from "./get-document-detail"
 import type {
   CommunicationReuseMode,
@@ -140,6 +141,28 @@ function isCommunicationBrief(value: unknown): value is CommunicationBrief {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false
   const record = value as Partial<CommunicationBrief>
   return Boolean(record.what?.scenario && record.who?.recipient && record.how?.language && record.context)
+}
+
+// ADR-0013 Lot 3 — isCommunicationBrief ne vérifie qu'un sous-ensemble de
+// champs (historique) : un input_snapshot antérieur au Lot 2 satisfait le
+// prédicat mais n'a ni outputKind, ni activityCategory, ni scope (devenus
+// requis sur CommunicationBrief.what). Sans ce backfill, un mail réutilisé
+// via prepareCommunicationReuse se ferait passer pour un pitch côté front
+// (isPitch = brief.what.outputKind !== "written_message" → true sur undefined).
+// Ce flux est toujours account-scope (companyId résolu en amont, requis) —
+// scope reste donc toujours "account" ici.
+function normalizeLegacyBrief(brief: CommunicationBrief): CommunicationBrief {
+  if (brief.what.outputKind && brief.what.activityCategory && brief.what.scope) return brief
+  const registryItem = getScenarioRegistryItem(brief.what.scenario)
+  return {
+    ...brief,
+    what: {
+      ...brief.what,
+      outputKind: brief.what.outputKind ?? registryItem?.defaultOutputKind ?? "written_message",
+      activityCategory: brief.what.activityCategory ?? registryItem?.activityCategory ?? "commerce_actif",
+      scope: brief.what.scope ?? "account",
+    },
+  }
 }
 
 function appendInstruction(brief: CommunicationBrief, instruction: string): CommunicationBrief {
@@ -648,11 +671,12 @@ export async function prepareCommunicationReuse(
   }
 
   const latestVersion = document.versions[0] ?? null
-  const sourceBrief = isCommunicationBrief(latestVersion?.sourceRunInputSnapshot)
+  const rawSourceBrief = isCommunicationBrief(latestVersion?.sourceRunInputSnapshot)
     ? latestVersion.sourceRunInputSnapshot
     : isCommunicationBrief(latestVersion?.briefJson)
       ? latestVersion.briefJson
       : null
+  const sourceBrief = rawSourceBrief ? normalizeLegacyBrief(rawSourceBrief) : null
 
   let companyId =
     document.primaryEntity?.type === "company"
