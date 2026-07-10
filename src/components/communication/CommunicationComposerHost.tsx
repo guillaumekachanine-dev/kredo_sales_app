@@ -115,7 +115,7 @@ function CommunicationDrawerHeaderTitle({
               type="button"
               onClick={() => onModeChange(option)}
               className={cn(
-                "min-w-0 flex-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
+                "min-h-[32px] min-w-0 flex-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
                 active
                   ? "bg-primary/15 text-primary"
                   : "text-primary/70 hover:bg-surface-hover/50 hover:text-primary",
@@ -275,7 +275,7 @@ function ComposerContent({
 
   if (variant === "mobile") {
     return (
-      <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-4">
+      <div className="rounded-[var(--radius-medium)] border border-border/30 bg-surface/30 p-3">
         {content}
       </div>
     )

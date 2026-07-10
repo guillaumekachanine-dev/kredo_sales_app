@@ -29,10 +29,11 @@ const ACCOUNT_ACTIONS: PanelAction[] = [
 interface PanelActionsGridProps {
   sectorSlug?: string | null
   onActionClick?: (actionId: string) => void
+  onWriteEmailClick?: () => void
   tone?: "dark" | "light"
 }
 
-export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: PanelActionsGridProps) {
+export function PanelActionsGrid({ sectorSlug, onActionClick, onWriteEmailClick, tone = "dark" }: PanelActionsGridProps) {
   const isDark = tone === "dark"
   const actions = ACCOUNT_ACTIONS.map((action) => {
     if (action.id === "sector_playbook" && sectorSlug) {
@@ -90,6 +91,10 @@ export function PanelActionsGrid({ sectorSlug, onActionClick, tone = "dark" }: P
             disabled={isDisabled}
             onClick={action.active ? () => {
               if (action.id === "write_email") {
+                if (onWriteEmailClick) {
+                  onWriteEmailClick()
+                  return
+                }
                 openCommunicationComposer({ origin: "account_panel" })
                 return
               }

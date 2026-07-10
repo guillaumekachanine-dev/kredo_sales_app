@@ -160,6 +160,24 @@ function withDisabledContextSourceInstruction(brief: CommunicationBrief): Commun
   }
 }
 
+function MobileBriefActionSummary({
+  documentTypeLabel,
+  scenarioLabel,
+  objectiveLabel,
+}: {
+  documentTypeLabel: string
+  scenarioLabel: string
+  objectiveLabel: string
+}) {
+  return (
+    <div className="min-w-0 border-b border-border/35 pb-3" aria-label="Résumé de génération">
+      <p className="truncate text-[11px] font-bold uppercase tracking-[0.08em] text-primary">
+        {documentTypeLabel} / {scenarioLabel} / {objectiveLabel}
+      </p>
+    </div>
+  )
+}
+
 // Contrat minimal — satisfait aussi bien par ClientIntelligenceData (page compte)
 // que par AccountIntelligencePanelData (panneau global) : la génération pitch/mail
 // n'a jamais eu besoin des analyses/diagnostics complets, seulement du compte et
@@ -454,7 +472,13 @@ export function PitchMailDrawerContent({
           <span aria-hidden="true">•</span>
           <strong>{objectiveLabel}</strong>
         </div>
-      ) : null}
+      ) : (
+        <MobileBriefActionSummary
+          documentTypeLabel={documentTypeLabel}
+          scenarioLabel={scenarioLabel}
+          objectiveLabel={objectiveLabel}
+        />
+      )}
 
       <CommunicationBriefForm
         brief={brief}
@@ -502,6 +526,11 @@ export function PitchMailDrawerContent({
         {runStatus === "loading" && (
           <p className="text-[10px] text-muted text-center leading-normal">
             n8n travaille… le résultat apparaîtra automatiquement.
+          </p>
+        )}
+        {missingOfferRef && (
+          <p className="text-[10px] text-[var(--color-status-warning-ink)] text-center leading-normal">
+            Sélectionne une offre catalogue pour générer ce pitch.
           </p>
         )}
       </div>

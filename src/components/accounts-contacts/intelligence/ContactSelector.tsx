@@ -4,6 +4,38 @@ import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 
+function ContactOptionLabel({
+  contact,
+  isMobile,
+}: {
+  contact: ClientIntelligenceContact
+  isMobile: boolean
+}) {
+  if (!isMobile) {
+    return (
+      <>
+        {contact.fullName} {contact.jobTitle ? `(${contact.jobTitle})` : ""}
+      </>
+    )
+  }
+
+  return (
+    <span className="flex min-w-0 max-w-full items-baseline gap-1.5 truncate whitespace-nowrap">
+      <span className="min-w-0 shrink truncate font-semibold text-primary">
+        {contact.fullName}
+      </span>
+      {contact.jobTitle ? (
+        <>
+          <span className="shrink-0 text-muted">-</span>
+          <span className="min-w-0 flex-1 truncate text-[0.92em] font-medium text-body">
+            {contact.jobTitle}
+          </span>
+        </>
+      ) : null}
+    </span>
+  )
+}
+
 export function ContactSelector({
   contacts,
   value,
@@ -32,7 +64,7 @@ export function ContactSelector({
       <option value="">Générique - Madame, Monsieur</option>
       {contacts.map((contact) => (
         <option key={contact.id} value={contact.id}>
-          {contact.fullName} {contact.jobTitle ? `(${contact.jobTitle})` : ""}
+          <ContactOptionLabel contact={contact} isMobile={isMobile} />
         </option>
       ))}
     </Select>

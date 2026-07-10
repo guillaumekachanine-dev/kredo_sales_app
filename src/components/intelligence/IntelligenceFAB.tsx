@@ -26,6 +26,7 @@ import {
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 
 type AccountPanelAction = "pitch" | "summary" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
@@ -171,7 +172,7 @@ function QuickAccessLink({
   )
 }
 
-function AccountMobileContent() {
+function AccountMobileContent({ onWriteEmailClick }: { onWriteEmailClick: () => void }) {
   const { panelData } = useIntelligenceContext()
   const [activeAction, setActiveAction] = useState<AccountPanelAction>(null)
   if (!panelData) return null
@@ -214,6 +215,7 @@ function AccountMobileContent() {
         <MobileSectionHeading title="Actions" />
         <PanelActionsGrid
           sectorSlug={sector.hasStructuredSector ? sector.structuredSectorSlug : null}
+          onWriteEmailClick={onWriteEmailClick}
           onActionClick={(actionId) => {
             if (actionId === "generate_pitch") setActiveAction("pitch")
             if (actionId === "generate_report") setActiveAction("summary")
@@ -419,6 +421,15 @@ export function IntelligenceFAB() {
     setSelectedAccount(null)
   }
 
+  function openComposerFromCockpit() {
+    setIsOpen(false)
+    setActiveAction(null)
+    setPitchContext(null)
+    window.setTimeout(() => {
+      openCommunicationComposer({ origin: "cockpit_header" })
+    }, 280)
+  }
+
   return (
     <>
       <button
@@ -477,15 +488,17 @@ export function IntelligenceFAB() {
             </div>
           </div>
         ) : isAccountMode ? (
-          <AccountMobileContent key={`${entityContext?.entityId}-${isOpen}`} />
+          <AccountMobileContent
+            key={`${entityContext?.entityId}-${isOpen}`}
+            onWriteEmailClick={openComposerFromCockpit}
+          />
         ) : isGenericEntityMode ? (
           <GenericEntityMobileContent key={`${entityContext.entityType}:${entityContext.entityId}-${isOpen}`} />
         ) : (
           <RegistryMobileContent
             onActionClick={(actionId) => {
               if (actionId === "pitch") {
-                setSelectorSource("pitch")
-                setIsCompanySelectorOpen(true)
+                openComposerFromCockpit()
               } else if (actionId === "analyse") {
                 setSelectorSource("analyse")
                 setIsCompanySelectorOpen(true)

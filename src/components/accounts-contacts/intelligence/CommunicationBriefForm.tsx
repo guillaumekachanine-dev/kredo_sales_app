@@ -122,8 +122,7 @@ function useFieldClasses(isMobile: boolean) {
   )
   const textareaCls =
     "w-full rounded-lg border border-border/35 bg-surface/20 px-2.5 py-1.5 text-[10px] font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[44px]"
-  const labelCls = "mb-1 block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted"
-  return { selectCls, textareaCls, labelCls }
+  return { selectCls, textareaCls }
 }
 
 function ParameterRow({
@@ -136,7 +135,12 @@ function ParameterRow({
   multiline?: boolean
 }) {
   return (
-    <div className={cn("grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3", multiline ? "items-start" : "items-center")}>
+    <div
+      className={cn(
+        "grid grid-cols-[7.75rem_minmax(0,1fr)] gap-3 sm:grid-cols-[9.5rem_minmax(0,1fr)]",
+        multiline ? "items-start" : "items-center",
+      )}
+    >
       <span className="block truncate pt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
         {label}
       </span>
@@ -239,7 +243,7 @@ export function CommunicationBriefForm({
   suggestedPracticeSlugs?: string[]
   offersLoading?: boolean
 }) {
-  const { selectCls, textareaCls, labelCls } = useFieldClasses(isMobile)
+  const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) comme vérité
   // principale (channel et outputKind sont désormais deux dimensions distinctes).
@@ -333,6 +337,7 @@ export function CommunicationBriefForm({
       value={brief.what.scenario}
       onChange={handleScenarioChange}
       isMobile={isMobile}
+      hideLabel={isMobile}
     />
   )
 
@@ -358,20 +363,6 @@ export function CommunicationBriefForm({
         <option key={o.value} value={o.value}>{o.label} ({o.hint})</option>
       ))}
     </Select>
-  )
-
-  const fieldChannelMobile = (
-    <div>
-      <label className={labelCls}>Format</label>
-      {fieldChannel}
-    </div>
-  )
-
-  const fieldLengthMobile = (
-    <div>
-      <label className={labelCls}>Longueur</label>
-      {fieldLength}
-    </div>
   )
 
   const fieldObjective = (
@@ -413,21 +404,6 @@ export function CommunicationBriefForm({
     </Select>
   )
 
-  const fieldSenderAndPractice = (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className={labelCls}>Posture émetteur</label>
-        {fieldSenderRole}
-      </div>
-      <div>
-        <label className={labelCls}>
-          Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
-        </label>
-        {fieldPractice}
-      </div>
-    </div>
-  )
-
   const fieldRecipientControl = (
     <ContactSelector
       contacts={contacts}
@@ -459,19 +435,6 @@ export function CommunicationBriefForm({
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </Select>
-  )
-
-  const fieldRecipientTypeAndPersona = (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className={labelCls}>Statut du compte</label>
-        {fieldRecipientType}
-      </div>
-      <div>
-        <label className={labelCls}>Fonction</label>
-        {fieldPersona}
-      </div>
-    </div>
   )
 
   const fieldRelation = (
@@ -521,13 +484,6 @@ export function CommunicationBriefForm({
     </div>
   )
 
-  const fieldFormality = (
-    <div>
-      <span className={labelCls}>Formalité</span>
-      {formalityControl}
-    </div>
-  )
-
   const fieldLanguage = (
     <Select
       value={brief.how.language}
@@ -548,6 +504,7 @@ export function CommunicationBriefForm({
       loading={offersLoading}
       required={requiresOffer}
       isMobile={isMobile}
+      hideLabel={isMobile}
     />
   ) : null
 
@@ -574,7 +531,10 @@ export function CommunicationBriefForm({
       <button
         type="button"
         onClick={() => setAdvancedOpen(true)}
-        className="inline-flex h-7 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-border/35 bg-surface/20 px-2.5 text-left text-[10px] font-semibold text-white transition-colors hover:bg-surface/35 focus:border-primary/60 focus:outline-none"
+        className={cn(
+          "inline-flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-border/35 bg-surface/20 px-2.5 text-left text-[10px] font-semibold text-white transition-colors hover:bg-surface/35 focus:border-primary/60 focus:outline-none",
+          isMobile ? "h-9" : "h-7",
+        )}
       >
         <span className="min-w-0 truncate">Sources</span>
         <span className="shrink-0 text-[9px] font-medium text-primary">
@@ -654,58 +614,61 @@ export function CommunicationBriefForm({
   )
 
   if (isMobile) {
-    // Parcours condensé : 3 sélections essentielles + instructions, le reste
-    // hérite de valeurs par défaut modifiables via "Plus d'options" — § 6.3
+    // Parcours condensé : intention, cible et contrainte d'écriture en premier.
+    // Les réglages de sortie restent accessibles mais ne bloquent pas l'action.
     return (
       <div className="space-y-5">
-        <div className="space-y-4">
-          {fieldScenario}
-          <div>
-            <label className={labelCls}>Objectif</label>
-            {fieldObjective}
-          </div>
-          {fieldOfferPicker}
-          <div>
-            <label className={labelCls}>Destinataire</label>
-            {fieldRecipientControl}
-          </div>
-          <div>
-            <label className={labelCls}>Ton</label>
-            {fieldTone}
-          </div>
-          {fieldLengthMobile}
-          <div>
-            <label className={labelCls}>À intégrer impérativement</label>
-            {fieldMustInclude}
-          </div>
+        <div className="space-y-3">
+          <ParameterRow label="Scénario">{fieldScenario}</ParameterRow>
+          <ParameterRow label="Objectif">{fieldObjective}</ParameterRow>
+          {fieldOfferPicker ? (
+            <ParameterRow label={requiresOffer ? "Offre catalogue" : "Offre recommandée"}>
+              {fieldOfferPicker}
+            </ParameterRow>
+          ) : null}
+          <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
+          <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
         </div>
         <details className="group rounded-lg border border-border bg-canvas/30 p-3">
           <SectionHeading title="Plus d'options" />
-          <div className="pt-3 space-y-4">
-            {fieldChannelMobile}
-            {fieldSenderAndPractice}
-            {fieldRecipientTypeAndPersona}
-            <div>
-              <label className={labelCls}>Relation actuelle</label>
-              {fieldRelation}
-            </div>
-            <div>
-              <label className={labelCls}>Ton</label>
-              {fieldTone}
-            </div>
-            {fieldFormality}
-            <div>
-              <label className={labelCls}>Langue</label>
-              {fieldLanguage}
-            </div>
-            <div>
-              <label className={labelCls}>À ne pas mentionner</label>
-              {fieldMustExclude}
-            </div>
-            <div>
-              <label className={labelCls}>Paramètres avancés</label>
-              {fieldAdvancedContextSources}
-            </div>
+          <div className="pt-4 space-y-5">
+            <section className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                Sortie
+              </h3>
+              <ParameterRow label="Format">{fieldChannel}</ParameterRow>
+              <ParameterRow label="Ton">{fieldTone}</ParameterRow>
+              <ParameterRow label="Longueur">{fieldLength}</ParameterRow>
+              <ParameterRow label="Formalité">{formalityControl}</ParameterRow>
+              <ParameterRow label="Langue">{fieldLanguage}</ParameterRow>
+            </section>
+
+            <section className="space-y-3 border-t border-border/30 pt-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                Interlocuteur
+              </h3>
+              <ParameterRow label="Émetteur">{fieldSenderRole}</ParameterRow>
+              <ParameterRow
+                label={(
+                  <>
+                    Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
+                  </>
+                )}
+              >
+                {fieldPractice}
+              </ParameterRow>
+              <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
+              <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+              <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
+            </section>
+
+            <section className="space-y-3 border-t border-border/30 pt-4">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                Contexte utilisé
+              </h3>
+              <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
+              <ParameterRow label="Sources de contexte">{fieldAdvancedContextSources}</ParameterRow>
+            </section>
           </div>
         </details>
       </div>
