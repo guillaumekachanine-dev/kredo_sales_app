@@ -149,6 +149,11 @@ export const TONE_OPTIONS: { value: CommunicationTone; label: string }[] = [
   { value: "assertive", label: "Assertif" },
   { value: "pedagogical", label: "Pédagogue" },
   { value: "diplomatic", label: "Diplomatique" },
+  { value: "technical_expertise", label: "Technique / expertise" },
+  { value: "business_roi", label: "Business / ROI" },
+  { value: "enthusiastic_confident", label: "Enthousiaste / confiant" },
+  { value: "disappointed_confused", label: "Déçu / incompréhension" },
+  { value: "prudent", label: "Prudent" },
 ]
 
 // ─── Présélection automatique — § 6.5 ────────────────────────────────────────

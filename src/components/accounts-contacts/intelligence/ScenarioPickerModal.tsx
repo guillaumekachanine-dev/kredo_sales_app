@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { cn } from "@/lib/utils"
 import type { CommunicationScenario } from "@/lib/n8n/types"
@@ -18,62 +19,12 @@ const BACK_COLLAPSE_MS = 130
 // portée au survol, sans balayage animé). Voir .kredo-relief-hover, globals.css.
 const RELIEF_HOVER = "kredo-relief-hover"
 
-// Icônes outline dessinées à la main (pas de librairie d'icônes dans ce
-// projet) — même gabarit que la flèche retour d'OfferPickerModal.
-function CategoryIcon({ category }: { category: ActivityCategory }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.75,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  }
-  switch (category) {
-    case "commerce_prospection":
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="12" r="8" />
-          <circle cx="12" cy="12" r="4" />
-          <circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="none" />
-        </svg>
-      )
-    case "commerce_actif":
-      return (
-        <svg {...common}>
-          <path d="M4 12a8 8 0 0114-5.3" />
-          <path d="M20 6v5h-5" />
-          <path d="M20 12a8 8 0 01-14 5.3" />
-          <path d="M4 18v-5h5" />
-        </svg>
-      )
-    case "delivery":
-      return (
-        <svg {...common}>
-          <rect x="6" y="4" width="12" height="16" rx="2" />
-          <path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1" />
-          <path d="M9 12l2 2 4-4" />
-        </svg>
-      )
-    case "recrutement":
-      return (
-        <svg {...common}>
-          <circle cx="9" cy="8" r="3.5" />
-          <path d="M3 20a6 6 0 0112 0" />
-          <path d="M18 8v5" />
-          <path d="M15.5 10.5h5" />
-        </svg>
-      )
-    case "interne_management":
-      return (
-        <svg {...common}>
-          <circle cx="8.5" cy="8" r="3" />
-          <path d="M2.5 20a6 6 0 0112 0" />
-          <path d="M14 5.2a3 3 0 010 5.6" />
-          <path d="M17 20a5.2 5.2 0 00-3-4.7" />
-        </svg>
-      )
-  }
+const CATEGORY_IMAGE_SRC: Record<ActivityCategory, string> = {
+  recrutement: "/icons_set/recrutement%20%26%20staffing/candidate_CV_sent.png",
+  interne_management: "/icons_set/presentation_client_rt_2.png",
+  commerce_prospection: "/icons_set/contexte_client.png",
+  commerce_actif: "/icons_set/contacts_client.png",
+  delivery: "/icons_set/Data_%26_IA.png",
 }
 
 type CategoryGroup = {
@@ -202,8 +153,14 @@ export function ScenarioPickerModal({
                 leaving ? "kredo-offer-card-out" : "kredo-offer-card-in",
               )}
             >
-              <span className={cn("relative z-10 flex size-9 items-center justify-center", CATEGORY_TONE_CLASSES[category.dataviz].icon)}>
-                <CategoryIcon category={category.value} />
+              <span className="relative z-10 flex size-11 items-center justify-center">
+                <Image
+                  src={CATEGORY_IMAGE_SRC[category.value]}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 object-contain"
+                />
               </span>
               <span className="relative z-10 line-clamp-2 text-[11px] font-bold leading-tight text-heading">
                 {category.label}

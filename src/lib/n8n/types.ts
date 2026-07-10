@@ -331,6 +331,12 @@ export type CommunicationTone =
   | "assertive"
   | "pedagogical"
   | "diplomatic"
+  // Tons métier — enrichissement INTEL-020 (sans migration DB ni workflow n8n)
+  | "technical_expertise"
+  | "business_roi"
+  | "enthusiastic_confident"
+  | "disappointed_confused"
+  | "prudent"
 
 export interface CommunicationBrief {
   what: {
