@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
+import { cn } from "@/lib/utils"
 import {
   PitchMailDrawerContent,
   type PitchMailAccountContext,
@@ -17,6 +18,8 @@ import {
   type CommunicationComposerRequest,
   type CommunicationComposerScope,
 } from "@/lib/communication/communication-composer"
+import { openReportGeneration } from "@/lib/reports/report-generation"
+import { SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 
 interface CompanyRecord {
   id: string
@@ -59,9 +62,76 @@ type ComposerAccountContext = PitchMailAccountContext & {
   scope: CommunicationComposerScope
 }
 
+type ComposerDocumentMode = "mail" | "pitch"
+type ComposerHeaderOption = ComposerDocumentMode | "report"
+
 const MAIL_DRAWER_CHROME_CLASS = "intelligence-drawer text-body border-l border-border/40"
 const MAIL_DRAWER_HEADER_CLASS = "intelligence-drawer border-b border-border/40 [&_h2]:text-primary [&_p]:text-muted"
 const MAIL_DRAWER_CONTENT_CLASS = "intelligence-drawer [--drawer-header-fade-start:rgba(10,13,26,0.95)] [--drawer-header-fade-end:rgba(10,13,26,0)]"
+
+const COMPOSER_DOCUMENT_LABELS: Record<ComposerHeaderOption, string> = {
+  mail: "Rédiger un mail",
+  pitch: "Construire un pitch",
+  report: "Générer un rapport",
+}
+
+function getDocumentModeFromPreset(preset?: CommunicationComposerPreset): ComposerDocumentMode {
+  const scenario = SCENARIO_REGISTRY.find((item) => item.value === preset?.scenario)
+  return scenario && scenario.defaultOutputKind !== "written_message" ? "pitch" : "mail"
+}
+
+function CommunicationDrawerHeaderTitle({
+  mode,
+  clientName,
+  canSwitch,
+  onModeChange,
+}: {
+  mode: ComposerDocumentMode
+  clientName?: string
+  canSwitch: boolean
+  onModeChange: (mode: ComposerHeaderOption) => void
+}) {
+  if (!canSwitch) {
+    return (
+      <div className="min-w-0 space-y-1">
+        <p className="truncate font-heading text-base font-bold leading-6 text-primary">
+          {COMPOSER_DOCUMENT_LABELS[mode]}
+        </p>
+        {clientName ? (
+          <p className="truncate text-sm leading-5 text-muted">{clientName}</p>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-w-0 space-y-2">
+      <div className="flex min-w-0 rounded-lg border border-border/45 bg-surface/25 p-0.5">
+        {(Object.keys(COMPOSER_DOCUMENT_LABELS) as ComposerHeaderOption[]).map((option) => {
+          const active = option === mode
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onModeChange(option)}
+              className={cn(
+                "min-w-0 flex-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
+                active
+                  ? "bg-primary/15 text-primary"
+                  : "text-primary/70 hover:bg-surface-hover/50 hover:text-primary",
+              )}
+            >
+              <span className="block truncate">{option === "mail" ? "Mail" : option === "pitch" ? "Pitch" : "Rapport"}</span>
+            </button>
+          )
+        })}
+      </div>
+      {clientName ? (
+        <p className="truncate text-sm leading-5 text-muted">{clientName}</p>
+      ) : null}
+    </div>
+  )
+}
 
 function enrichFromActiveIntelligenceContext(
   request: CommunicationComposerRequest,
@@ -163,6 +233,7 @@ function ComposerContent({
   error,
   variant,
   instanceKey,
+  documentMode,
 }: {
   context: ComposerAccountContext | null
   scope: CommunicationComposerScope
@@ -171,6 +242,7 @@ function ComposerContent({
   error: string | null
   variant: "desktop" | "mobile"
   instanceKey: number
+  documentMode: ComposerDocumentMode
 }) {
   if (!context) {
     // ADR-0013 — le sélecteur de compte n'a de sens que pour le scope "account" :
@@ -194,9 +266,10 @@ function ComposerContent({
 
   const content = (
     <PitchMailDrawerContent
-      key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
+      key={`${instanceKey}:${documentMode}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
       data={context}
       variant={variant}
+      documentMode={documentMode}
     />
   )
 
@@ -221,14 +294,24 @@ function DesktopCommunicationDrawer({
   onAccountChange,
   error,
   instanceKey,
+  documentMode,
+  canSwitchDocumentMode,
+  onDocumentModeChange,
 }: DrawerVariantProps) {
+  const clientName = context?.company?.name ?? context?.collaborator?.name
+
   return (
     <AppDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Rédiger un email"
-      eyebrow="Assistance IA contextuelle"
-      subtitle={context?.company?.name ?? context?.collaborator?.name}
+      title={
+        <CommunicationDrawerHeaderTitle
+          mode={documentMode}
+          clientName={clientName}
+          canSwitch={canSwitchDocumentMode}
+          onModeChange={onDocumentModeChange}
+        />
+      }
       width="default"
       loading={loading}
       className={MAIL_DRAWER_CHROME_CLASS}
@@ -243,6 +326,7 @@ function DesktopCommunicationDrawer({
         error={error}
         variant="desktop"
         instanceKey={instanceKey}
+        documentMode={documentMode}
       />
     </AppDrawer>
   )
@@ -258,14 +342,24 @@ function MobileCommunicationDrawer({
   onAccountChange,
   error,
   instanceKey,
+  documentMode,
+  canSwitchDocumentMode,
+  onDocumentModeChange,
 }: DrawerVariantProps) {
+  const clientName = context?.company?.name ?? context?.collaborator?.name
+
   return (
     <AppDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Rédiger un email"
-      eyebrow="Assistant IA"
-      subtitle={context?.company?.name ?? context?.collaborator?.name}
+      title={
+        <CommunicationDrawerHeaderTitle
+          mode={documentMode}
+          clientName={clientName}
+          canSwitch={canSwitchDocumentMode}
+          onModeChange={onDocumentModeChange}
+        />
+      }
       side="bottom"
       loading={loading}
       showMobileCloseButton
@@ -281,6 +375,7 @@ function MobileCommunicationDrawer({
         error={error}
         variant="mobile"
         instanceKey={instanceKey}
+        documentMode={documentMode}
       />
     </AppDrawer>
   )
@@ -296,6 +391,9 @@ interface DrawerVariantProps {
   onAccountChange: (value: AccountValue | null) => void
   error: string | null
   instanceKey: number
+  documentMode: ComposerDocumentMode
+  canSwitchDocumentMode: boolean
+  onDocumentModeChange: (mode: ComposerHeaderOption) => void
 }
 
 export function CommunicationComposerHost({ device }: { device: DashboardDevice }) {
@@ -308,6 +406,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const [selectedAccount, setSelectedAccount] = useState<AccountValue | null>(null)
   const [context, setContext] = useState<ComposerAccountContext | null>(null)
   const [instanceKey, setInstanceKey] = useState(0)
+  const [documentMode, setDocumentMode] = useState<ComposerDocumentMode>("mail")
 
   const resolvePrimaryEntity = useCallback(async (
     currentRequest: CommunicationComposerRequest,
@@ -443,6 +542,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const hydrate = useCallback(async (rawRequest: CommunicationComposerRequest) => {
     const sequence = ++loadSequence.current
     const currentRequest = enrichFromActiveIntelligenceContext(rawRequest)
+    setDocumentMode(getDocumentModeFromPreset(currentRequest.preset))
     setRequest(currentRequest)
     setLoading(true)
     setError(null)
@@ -703,7 +803,29 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       setContext(null)
       setSelectedAccount(null)
       setRequest({ origin: "global" })
+      setDocumentMode("mail")
     }
+  }
+
+  function isFreeCreationRequest(currentRequest: CommunicationComposerRequest) {
+    return currentRequest.origin === "global" &&
+      !currentRequest.scope &&
+      !currentRequest.companyId &&
+      !currentRequest.companyName &&
+      !currentRequest.contactId &&
+      !currentRequest.collaboratorId &&
+      !currentRequest.primaryEntity &&
+      !currentRequest.preset
+  }
+
+  function handleDocumentModeChange(mode: ComposerHeaderOption) {
+    if (mode === "report") {
+      handleOpenChange(false)
+      openReportGeneration({ origin: "global" })
+      return
+    }
+
+    setDocumentMode(mode)
   }
 
   function handleAccountChange(value: AccountValue | null) {
@@ -733,6 +855,9 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     onAccountChange: handleAccountChange,
     error,
     instanceKey,
+    documentMode,
+    canSwitchDocumentMode: isFreeCreationRequest(request),
+    onDocumentModeChange: handleDocumentModeChange,
   }
 
   return device === "mobile" ? (

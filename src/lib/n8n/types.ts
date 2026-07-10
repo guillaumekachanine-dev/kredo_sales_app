@@ -338,6 +338,19 @@ export type CommunicationTone =
   | "disappointed_confused"
   | "prudent"
 
+export type CommunicationContextSourceId =
+  | "account_profile"
+  | "crm_contacts"
+  | "signal_intelligence"
+  | "opportunity_context"
+  | "interaction_history"
+  | "mission_context"
+  | "candidate_profile"
+  | "collaborator_context"
+  | "offer_catalog"
+  | "source_document"
+  | "previous_generation"
+
 export interface CommunicationBrief {
   what: {
     channel: CommunicationChannel
@@ -397,6 +410,9 @@ export interface CommunicationBrief {
     offerRef?: string
     // ADR-0013 Lot 2 — renseigné quand scope === "collaborator".
     collaboratorRef?: string
+    // Sources explicitement désactivées par l'utilisateur dans les paramètres
+    // avancés du drawer. Absence ou tableau vide = toutes les sources actives.
+    disabledContextSources?: CommunicationContextSourceId[]
   }
 }
 

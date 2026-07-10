@@ -29,7 +29,7 @@ export function ContactSelector({
       }}
       className={selectCls}
     >
-      <option value="">Non spécifié — « Madame, Monsieur »</option>
+      <option value="">Générique - Madame, Monsieur</option>
       {contacts.map((contact) => (
         <option key={contact.id} value={contact.id}>
           {contact.fullName} {contact.jobTitle ? `(${contact.jobTitle})` : ""}

@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
-import type { CommunicationBrief, CommunicationOutput, CommunicationQaFlag, CommunicationScope, N8nEntityType, PitchOutput } from "@/lib/n8n/types"
+import type {
+  CommunicationBrief,
+  CommunicationContextSourceId,
+  CommunicationOutput,
+  CommunicationQaFlag,
+  CommunicationScope,
+  N8nEntityType,
+  PitchOutput,
+} from "@/lib/n8n/types"
 import type { AccountSummaryContent, ReportBrief } from "@/app/(app)/reports/_data/reports-types"
 import { AccountSummaryReportView } from "@/components/reports/AccountSummaryReportView"
 import { saveResultAsDocument } from "./save-as-document"
@@ -12,14 +20,145 @@ import {
 import {
   buildCampaignPayload,
 } from "./intelligence-action-utils"
-import { buildDefaultBrief, CHANNEL_OPTIONS, LENGTH_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
-import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import { buildDefaultBrief, CHANNEL_OPTIONS, OBJECTIVE_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
+import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
 import { PitchResult } from "./PitchResult"
 import { getSuggestedOffers, type SuggestedOffer } from "./get-suggested-offers"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
+type ComposerDocumentMode = "mail" | "pitch"
+
+const CONTEXT_SOURCE_LABELS: Record<CommunicationContextSourceId, string> = {
+  account_profile: "Compte CRM",
+  crm_contacts: "Contacts CRM",
+  signal_intelligence: "Signaux et actualités",
+  opportunity_context: "Opportunités",
+  interaction_history: "Interactions et rendez-vous",
+  mission_context: "Missions et projets",
+  candidate_profile: "Profil candidat",
+  collaborator_context: "Collaborateur interne",
+  offer_catalog: "Offre catalogue",
+  source_document: "Document source",
+  previous_generation: "Génération précédente",
+}
+
+function findScrollableAncestor(element: HTMLElement | null): HTMLElement | null {
+  let parent = element?.parentElement ?? null
+
+  while (parent) {
+    const style = window.getComputedStyle(parent)
+    const canScrollY = /(auto|scroll)/.test(style.overflowY)
+
+    if (canScrollY && (parent.scrollTop > 0 || parent.scrollHeight > parent.clientHeight)) {
+      return parent
+    }
+
+    parent = parent.parentElement
+  }
+
+  return null
+}
+
+function animateScrollToTop(container: HTMLElement) {
+  const start = container.scrollTop
+  if (start <= 0) return undefined
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  if (reduceMotion) {
+    container.scrollTop = 0
+    return undefined
+  }
+
+  const duration = Math.min(1400, Math.max(900, start * 0.9))
+  const startedAt = performance.now()
+  let frame = 0
+
+  function easeInOutCubic(progress: number) {
+    return progress < 0.5
+      ? 4 * progress * progress * progress
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2
+  }
+
+  function tick(now: number) {
+    const progress = Math.min(1, (now - startedAt) / duration)
+    container.scrollTop = start * (1 - easeInOutCubic(progress))
+
+    if (progress < 1) {
+      frame = window.requestAnimationFrame(tick)
+    }
+  }
+
+  frame = window.requestAnimationFrame(tick)
+  return () => window.cancelAnimationFrame(frame)
+}
+
+function getDefaultScenarioForDocumentMode(mode: ComposerDocumentMode) {
+  if (mode === "pitch") {
+    return SCENARIO_REGISTRY.find((scenario) => scenario.value === "meeting_prep_discovery") ??
+      SCENARIO_REGISTRY.find((scenario) => scenario.useCase === "pitch")
+  }
+
+  return SCENARIO_REGISTRY.find((scenario) => scenario.value === "signal_outreach") ??
+    SCENARIO_REGISTRY.find((scenario) => scenario.useCase === "mail")
+}
+
+function applyDocumentModeToBrief(
+  brief: CommunicationBrief,
+  mode: ComposerDocumentMode,
+): CommunicationBrief {
+  const currentScenario = getScenarioRegistryItem(brief.what.scenario)
+  const currentMode = currentScenario && currentScenario.defaultOutputKind !== "written_message" ? "pitch" : "mail"
+  if (currentMode === mode) return brief
+
+  const nextScenario = getDefaultScenarioForDocumentMode(mode)
+  if (!nextScenario) return brief
+
+  return {
+    ...brief,
+    what: {
+      ...brief.what,
+      scenario: nextScenario.value,
+      channel: nextScenario.defaultChannel,
+      outputKind: nextScenario.defaultOutputKind,
+      activityCategory: nextScenario.activityCategory,
+    },
+    who: {
+      ...brief.who,
+      objective: nextScenario.defaultObjective,
+    },
+    context: {
+      ...brief.context,
+      ...(mode === "mail" ? { offerRef: undefined } : {}),
+    },
+  }
+}
+
+function withDisabledContextSourceInstruction(brief: CommunicationBrief): CommunicationBrief {
+  const disabledSources = brief.context.disabledContextSources ?? []
+  if (disabledSources.length === 0) return brief
+
+  const disabledLabels = disabledSources
+    .map((source) => CONTEXT_SOURCE_LABELS[source])
+    .filter(Boolean)
+
+  if (disabledLabels.length === 0) return brief
+
+  const instruction = [
+    "[SOURCES_DE_CONTEXTE_DESACTIVEES]",
+    "Ne pas utiliser les sources de contexte suivantes pour générer le document :",
+    ...disabledLabels.map((label) => `- ${label}`),
+  ].join("\n")
+
+  return {
+    ...brief,
+    context: {
+      ...brief.context,
+      mustExclude: [brief.context.mustExclude, instruction].filter(Boolean).join("\n\n"),
+    },
+  }
+}
 
 // Contrat minimal — satisfait aussi bien par ClientIntelligenceData (page compte)
 // que par AccountIntelligencePanelData (panneau global) : la génération pitch/mail
@@ -76,11 +215,13 @@ export function PitchMailDrawerContent({
   variant = "desktop",
   initialBrief,
   contextMetaLabel = "(résolu automatiquement)",
+  documentMode = "mail",
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
   initialBrief?: CommunicationBrief
   contextMetaLabel?: string
+  documentMode?: ComposerDocumentMode
 }) {
   const { company, collaborator, contacts } = data
   const isMobile = variant === "mobile"
@@ -90,7 +231,9 @@ export function PitchMailDrawerContent({
   // factuel plutôt qu'un nom de compte fantôme.
   const contextLabel = company?.name ?? collaborator?.name ?? "Contexte interne"
 
-  const [brief, setBrief] = useState<CommunicationBrief>(() => initialBrief ?? buildDefaultBrief(data, ""))
+  const [brief, setBrief] = useState<CommunicationBrief>(() => (
+    applyDocumentModeToBrief(initialBrief ?? buildDefaultBrief(data, ""), documentMode)
+  ))
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
@@ -103,6 +246,7 @@ export function PitchMailDrawerContent({
   const [offers, setOffers] = useState<SuggestedOffer[]>([])
   const [suggestedPracticeSlugs, setSuggestedPracticeSlugs] = useState<string[]>([])
   const [offersLoading, setOffersLoading] = useState(false)
+  const resultTopRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     // ADR-0013 — pas de catalogue d'offres suggérées sans compte pivot (scope
@@ -183,6 +327,22 @@ export function PitchMailDrawerContent({
     return () => { void supabase.removeChannel(channel) }
   }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (runStatus !== "done" || !result) return undefined
+
+    let stopAnimation: (() => void) | undefined
+    const frame = window.requestAnimationFrame(() => {
+      const scrollContainer = findScrollableAncestor(resultTopRef.current)
+      if (!scrollContainer) return
+      stopAnimation = animateScrollToTop(scrollContainer)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      stopAnimation?.()
+    }
+  }, [runStatus, result])
+
   async function handleGenerate() {
     // ADR-0013 Lot 3 — entité effective dérivée de brief.what.scope (jamais figée
     // au montage : reflète le scope réellement en vigueur au moment de générer).
@@ -203,6 +363,7 @@ export function PitchMailDrawerContent({
     setErrorMsg(null)
 
     try {
+      const generationBrief = withDisabledContextSourceInstruction(brief)
       const res = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -211,7 +372,7 @@ export function PitchMailDrawerContent({
           entityType,
           entityId: effectiveEntityId,
           companyId: entityType === "company" ? company?.id : undefined,
-          input: brief,
+          input: generationBrief,
         }),
       })
 
@@ -239,12 +400,13 @@ export function PitchMailDrawerContent({
   }
 
   const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
-  const lengthLabel = LENGTH_OPTIONS.find((o) => o.value === brief.what.length)?.label ?? brief.what.length
   const scenarioLabel = SCENARIO_OPTIONS.find((o) => o.value === brief.what.scenario)?.label ?? brief.what.scenario
+  const objectiveLabel = OBJECTIVE_OPTIONS.find((o) => o.value === brief.who.objective)?.label ?? brief.who.objective
   // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) ; l'offre
   // n'est bloquante que pour les scénarios où requiresOffer === true (D-5,
   // supersede ADR-0009 §6).
   const isPitch = brief.what.outputKind !== "written_message"
+  const documentTypeLabel = isPitch ? "Pitch" : "Mail"
   const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
   const missingOfferRef = requiresOffer && !brief.context.offerRef
 
@@ -252,48 +414,47 @@ export function PitchMailDrawerContent({
   if (runStatus === "done" && result) {
     if ("kind" in result) {
       return (
-        <PitchResult
+        <div ref={resultTopRef}>
+          <PitchResult
+            result={result}
+            qaFlags={qaFlags}
+            companyName={contextLabel}
+            scenarioLabel={scenarioLabel}
+            resultId={resultId}
+            isMobile={isMobile}
+            onReset={handleReset}
+          />
+        </div>
+      )
+    }
+    return (
+      <div ref={resultTopRef}>
+        <CommunicationResult
           result={result}
           qaFlags={qaFlags}
+          companyId={company?.id}
           companyName={contextLabel}
-          scenarioLabel={scenarioLabel}
+          channelLabel={channelLabel}
+          brief={brief}
           resultId={resultId}
           isMobile={isMobile}
           onReset={handleReset}
         />
-      )
-    }
-    return (
-      <CommunicationResult
-        result={result}
-        qaFlags={qaFlags}
-        companyId={company?.id}
-        companyName={contextLabel}
-        channelLabel={channelLabel}
-        brief={brief}
-        resultId={resultId}
-        isMobile={isMobile}
-        onReset={handleReset}
-      />
+      </div>
     )
   }
 
   return (
     <div className={cn("space-y-5", !isMobile && "pb-1")}>
-      <div className="space-y-3">
-        <h2 className="font-heading text-base font-bold text-heading">
-          {isPitch ? "Génération de pitch" : "Rédaction assistée"}
-        </h2>
-        {!isMobile ? (
-          <div className="communication-brief-status-strip" aria-label="Paramètres principaux">
-            <span>{company ? "Compte actif" : "Contexte actif"}</span>
-            <span aria-hidden="true">•</span>
-            <strong>{channelLabel}</strong>
-            <span aria-hidden="true">•</span>
-            <strong>{lengthLabel}</strong>
-          </div>
-        ) : null}
-      </div>
+      {!isMobile ? (
+        <div className="communication-brief-status-strip" aria-label="Paramètres principaux">
+          <strong>{documentTypeLabel}</strong>
+          <span aria-hidden="true">•</span>
+          <strong>{scenarioLabel}</strong>
+          <span aria-hidden="true">•</span>
+          <strong>{objectiveLabel}</strong>
+        </div>
+      ) : null}
 
       <CommunicationBriefForm
         brief={brief}

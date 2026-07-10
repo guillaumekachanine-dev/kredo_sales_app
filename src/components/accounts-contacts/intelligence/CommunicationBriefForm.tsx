@@ -1,12 +1,14 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import type {
   CommunicationBrief,
   CommunicationChannel,
+  CommunicationContextSourceId,
   CommunicationLength,
   CommunicationObjective,
   CommunicationPersona,
@@ -51,6 +53,68 @@ const BRIEF_SECTIONS = [
   { number: "4", title: "Contexte" },
 ] as const
 
+const CONTEXT_SOURCE_OPTIONS: {
+  id: CommunicationContextSourceId
+  label: string
+  description: string
+}[] = [
+  {
+    id: "account_profile",
+    label: "Compte CRM",
+    description: "Identité, statut, secteur et contexte client disponible.",
+  },
+  {
+    id: "crm_contacts",
+    label: "Contacts CRM",
+    description: "Contacts, fonctions, personas et relations connues.",
+  },
+  {
+    id: "signal_intelligence",
+    label: "Signaux et actualités",
+    description: "Signal de veille, résumé, source et action recommandée.",
+  },
+  {
+    id: "opportunity_context",
+    label: "Opportunités",
+    description: "Opportunité associée, besoin, étape et contexte commercial.",
+  },
+  {
+    id: "interaction_history",
+    label: "Interactions et rendez-vous",
+    description: "Historique d'échanges, réunions, relances et prochaines étapes.",
+  },
+  {
+    id: "mission_context",
+    label: "Missions et projets",
+    description: "Mission, projet actif, staffing ou contexte delivery.",
+  },
+  {
+    id: "candidate_profile",
+    label: "Profil candidat",
+    description: "Profil, positionnement, disponibilité et éléments de recrutement.",
+  },
+  {
+    id: "collaborator_context",
+    label: "Collaborateur interne",
+    description: "Collaborateur, practice, poste, séniorité et statut interne.",
+  },
+  {
+    id: "offer_catalog",
+    label: "Offre catalogue",
+    description: "Offre Kredo sélectionnée et practice associée.",
+  },
+  {
+    id: "source_document",
+    label: "Document source",
+    description: "Document ou contenu existant utilisé comme base.",
+  },
+  {
+    id: "previous_generation",
+    label: "Génération précédente",
+    description: "Run précédent, message antérieur ou variante à réutiliser.",
+  },
+]
+
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
     "w-full rounded-lg border border-border/35 bg-surface/20 pl-2.5 pr-5 font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 [&>span]:text-[10px] [&>svg]:mr-[-2px] [&>svg]:size-3",
@@ -67,7 +131,7 @@ function ParameterRow({
   children,
   multiline = false,
 }: {
-  label: string
+  label: ReactNode
   children: ReactNode
   multiline?: boolean
 }) {
@@ -176,6 +240,7 @@ export function CommunicationBriefForm({
   offersLoading?: boolean
 }) {
   const { selectCls, textareaCls, labelCls } = useFieldClasses(isMobile)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) comme vérité
   // principale (channel et outputKind sont désormais deux dimensions distinctes).
   const isPitch = brief.what.outputKind !== "written_message"
@@ -203,6 +268,28 @@ export function CommunicationBriefForm({
 
   function updateContext(patch: Partial<CommunicationBrief["context"]>) {
     onChange({ ...brief, context: { ...brief.context, ...patch } })
+  }
+
+  const disabledContextSources = brief.context.disabledContextSources ?? []
+  const disabledContextSourceSet = new Set(disabledContextSources)
+  const activeContextSourceCount = CONTEXT_SOURCE_OPTIONS.length - disabledContextSources.length
+
+  function toggleContextSource(sourceId: CommunicationContextSourceId) {
+    const nextDisabled = disabledContextSourceSet.has(sourceId)
+      ? disabledContextSources.filter((id) => id !== sourceId)
+      : [...disabledContextSources, sourceId]
+
+    updateContext({
+      disabledContextSources: nextDisabled.length > 0 ? nextDisabled : undefined,
+    })
+  }
+
+  function enableAllContextSources() {
+    updateContext({ disabledContextSources: undefined })
+  }
+
+  function disableAllContextSources() {
+    updateContext({ disabledContextSources: CONTEXT_SOURCE_OPTIONS.map((source) => source.id) })
   }
 
   function handleScenarioChange(scenario: CommunicationScenario) {
@@ -273,16 +360,17 @@ export function CommunicationBriefForm({
     </Select>
   )
 
-  const fieldChannelAndLength = (
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className={labelCls}>Canal</label>
-        {fieldChannel}
-      </div>
-      <div>
-        <label className={labelCls}>Longueur</label>
-        {fieldLength}
-      </div>
+  const fieldChannelMobile = (
+    <div>
+      <label className={labelCls}>Format</label>
+      {fieldChannel}
+    </div>
+  )
+
+  const fieldLengthMobile = (
+    <div>
+      <label className={labelCls}>Longueur</label>
+      {fieldLength}
     </div>
   )
 
@@ -328,26 +416,25 @@ export function CommunicationBriefForm({
   const fieldSenderAndPractice = (
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <label className={labelCls}>J&apos;écris en tant que</label>
+        <label className={labelCls}>Posture émetteur</label>
         {fieldSenderRole}
       </div>
       <div>
-        <label className={labelCls}>Practice (optionnel)</label>
+        <label className={labelCls}>
+          Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
+        </label>
         {fieldPractice}
       </div>
     </div>
   )
 
-  const fieldRecipient = (
-    <div>
-      <label className={labelCls}>Destinataire</label>
-      <ContactSelector
-        contacts={contacts}
-        value={brief.who.recipient.contactId}
-        onChange={handleContactChange}
-        isMobile={isMobile}
-      />
-    </div>
+  const fieldRecipientControl = (
+    <ContactSelector
+      contacts={contacts}
+      value={brief.who.recipient.contactId}
+      onChange={handleContactChange}
+      isMobile={isMobile}
+    />
   )
 
   const fieldRecipientType = (
@@ -377,7 +464,7 @@ export function CommunicationBriefForm({
   const fieldRecipientTypeAndPersona = (
     <div className="grid grid-cols-2 gap-3">
       <div>
-        <label className={labelCls}>Type de destinataire</label>
+        <label className={labelCls}>Statut du compte</label>
         {fieldRecipientType}
       </div>
       <div>
@@ -482,6 +569,90 @@ export function CommunicationBriefForm({
     />
   )
 
+  const fieldAdvancedContextSources = (
+    <>
+      <button
+        type="button"
+        onClick={() => setAdvancedOpen(true)}
+        className="inline-flex h-7 w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-border/35 bg-surface/20 px-2.5 text-left text-[10px] font-semibold text-white transition-colors hover:bg-surface/35 focus:border-primary/60 focus:outline-none"
+      >
+        <span className="min-w-0 truncate">Sources</span>
+        <span className="shrink-0 text-[9px] font-medium text-primary">
+          {activeContextSourceCount}/{CONTEXT_SOURCE_OPTIONS.length} actives
+        </span>
+      </button>
+
+      <AppDialog
+        open={advancedOpen}
+        onOpenChange={setAdvancedOpen}
+        className="communication-picker-modal sm:max-w-xl"
+        headerClassName="communication-picker-modal-header"
+        bodyClassName="communication-picker-modal-body"
+        title="Paramètres avancés"
+        description="Décoche les sources de contexte à exclure de la génération."
+        footer={
+          <div className="flex w-full items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={enableAllContextSources}
+              className="rounded-lg border border-border/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-body transition-colors hover:bg-surface-hover/40"
+            >
+              Tout activer
+            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={disableAllContextSources}
+                className="rounded-lg border border-border/45 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted transition-colors hover:bg-surface-hover/40"
+              >
+                Tout désactiver
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen(false)}
+                className="rounded-lg bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-fg transition-opacity hover:opacity-90"
+              >
+                Valider
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="space-y-2">
+          {CONTEXT_SOURCE_OPTIONS.map((source) => {
+            const checked = !disabledContextSourceSet.has(source.id)
+            return (
+              <label
+                key={source.id}
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+                  checked
+                    ? "border-primary/35 bg-primary/8"
+                    : "border-border/35 bg-surface/20 hover:bg-surface/35",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleContextSource(source.id)}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-[11px] font-bold leading-4 text-heading">
+                    {source.label}
+                  </span>
+                  <span className="mt-0.5 block text-[10px] leading-4 text-muted">
+                    {source.description}
+                  </span>
+                </span>
+              </label>
+            )
+          })}
+        </div>
+      </AppDialog>
+    </>
+  )
+
   if (isMobile) {
     // Parcours condensé : 3 sélections essentielles + instructions, le reste
     // hérite de valeurs par défaut modifiables via "Plus d'options" — § 6.3
@@ -496,12 +667,13 @@ export function CommunicationBriefForm({
           {fieldOfferPicker}
           <div>
             <label className={labelCls}>Destinataire</label>
-            {fieldRecipient}
+            {fieldRecipientControl}
           </div>
           <div>
             <label className={labelCls}>Ton</label>
             {fieldTone}
           </div>
+          {fieldLengthMobile}
           <div>
             <label className={labelCls}>À intégrer impérativement</label>
             {fieldMustInclude}
@@ -510,7 +682,7 @@ export function CommunicationBriefForm({
         <details className="group rounded-lg border border-border bg-canvas/30 p-3">
           <SectionHeading title="Plus d'options" />
           <div className="pt-3 space-y-4">
-            {fieldChannelAndLength}
+            {fieldChannelMobile}
             {fieldSenderAndPractice}
             {fieldRecipientTypeAndPersona}
             <div>
@@ -529,6 +701,10 @@ export function CommunicationBriefForm({
             <div>
               <label className={labelCls}>À ne pas mentionner</label>
               {fieldMustExclude}
+            </div>
+            <div>
+              <label className={labelCls}>Paramètres avancés</label>
+              {fieldAdvancedContextSources}
             </div>
           </div>
         </details>
@@ -553,8 +729,7 @@ export function CommunicationBriefForm({
               />
             </ParameterRow>
             <ParameterRow label="Objectif">{fieldObjective}</ParameterRow>
-            <ParameterRow label="Canal">{fieldChannel}</ParameterRow>
-            <ParameterRow label="Longueur">{fieldLength}</ParameterRow>
+            <ParameterRow label="Format">{fieldChannel}</ParameterRow>
             {fieldOfferPicker ? (
               <ParameterRow label={requiresOffer ? "Offre catalogue" : "Offre recommandée"}>
                 <OfferPicker
@@ -574,11 +749,19 @@ export function CommunicationBriefForm({
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="02" title="Qui" />
           <div className="space-y-2.5 pt-3">
-            <ParameterRow label="J'écris en tant que">{fieldSenderRole}</ParameterRow>
-            <ParameterRow label="Practice">{fieldPractice}</ParameterRow>
-            <ParameterRow label="Destinataire">{fieldRecipient}</ParameterRow>
-            <ParameterRow label="Type de destinataire">{fieldRecipientType}</ParameterRow>
+            <ParameterRow label="Émetteur">{fieldSenderRole}</ParameterRow>
+            <ParameterRow
+              label={(
+                <>
+                  Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
+                </>
+              )}
+            >
+              {fieldPractice}
+            </ParameterRow>
+            <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
             <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+            <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
             <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
           </div>
         </details>
@@ -587,6 +770,7 @@ export function CommunicationBriefForm({
           <SectionHeading number="03" title="Comment" />
           <div className="space-y-2.5 pt-3">
             <ParameterRow label="Ton">{fieldTone}</ParameterRow>
+            <ParameterRow label="Longueur">{fieldLength}</ParameterRow>
             <ParameterRow label="Formalité">{formalityControl}</ParameterRow>
             <ParameterRow label="Langue">{fieldLanguage}</ParameterRow>
           </div>
@@ -597,6 +781,7 @@ export function CommunicationBriefForm({
           <div className="space-y-2.5 pt-3">
             <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
             <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
+            <ParameterRow label="Paramètres avancés">{fieldAdvancedContextSources}</ParameterRow>
           </div>
         </details>
       </div>
