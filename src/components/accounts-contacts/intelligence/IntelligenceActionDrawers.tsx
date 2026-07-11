@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
@@ -22,6 +22,11 @@ import {
 } from "./intelligence-action-utils"
 import { buildDefaultBrief, CHANNEL_OPTIONS, OBJECTIVE_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
 import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
+import {
+  resolveBriefWithLoadedContext,
+  type ResolvedCommunicationContextBrief,
+} from "@/lib/communication/communication-context-brief"
+import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
 import { PitchResult } from "./PitchResult"
@@ -200,6 +205,7 @@ export type PitchMailAccountContext = {
     currentTitle: string | null
   } | null
   contacts: ClientIntelligenceContact[]
+  loadedCommunicationContext?: LoadedCommunicationContext | null
   // ADR-0013 Lot 2 — défaut "account" si absent (les 5 call-sites hors Host
   // n'ont pas besoin de le préciser, ils sont toujours account-scope).
   scope?: CommunicationScope
@@ -248,10 +254,14 @@ export function PitchMailDrawerContent({
   // collaborateur/interne) : jamais de valeur inventée, "Contexte interne" est
   // factuel plutôt qu'un nom de compte fantôme.
   const contextLabel = company?.name ?? collaborator?.name ?? "Contexte interne"
+  const loadedCommunicationContext = data.loadedCommunicationContext ?? null
 
-  const [brief, setBrief] = useState<CommunicationBrief>(() => (
-    applyDocumentModeToBrief(initialBrief ?? buildDefaultBrief(data, ""), documentMode)
-  ))
+  const initialResolvedBrief = useMemo<ResolvedCommunicationContextBrief>(() => {
+    const baseBrief = applyDocumentModeToBrief(initialBrief ?? buildDefaultBrief(data, ""), documentMode)
+    return resolveBriefWithLoadedContext(baseBrief, loadedCommunicationContext)
+  }, [data, documentMode, initialBrief, loadedCommunicationContext])
+
+  const [brief, setBrief] = useState<CommunicationBrief>(() => initialResolvedBrief.brief)
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
@@ -489,6 +499,10 @@ export function PitchMailDrawerContent({
         offers={offers}
         suggestedPracticeSlugs={suggestedPracticeSlugs}
         offersLoading={offersLoading}
+        communicationFacts={loadedCommunicationContext?.facts}
+        communicationResolution={initialResolvedBrief.resolution}
+        availableReferences={loadedCommunicationContext?.references}
+        sourceAvailability={loadedCommunicationContext?.sourceAvailability}
       />
 
       {/* Erreur */}

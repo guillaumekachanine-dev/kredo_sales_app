@@ -30,6 +30,11 @@ import {
   personaFromRelationshipRole,
 } from "./communication-brief-options"
 import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import type { CommunicationResolution } from "@/lib/communication/communication-options-resolver"
+import type {
+  CommunicationSourceAvailability,
+  LoadedCommunicationFacts,
+} from "@/lib/communication/communication-context-mappers"
 import { ContactSelector } from "./ContactSelector"
 import { OfferPicker } from "./OfferPicker"
 import { ScenarioPicker } from "./ScenarioPicker"
@@ -233,6 +238,10 @@ export function CommunicationBriefForm({
   offers,
   suggestedPracticeSlugs,
   offersLoading = false,
+  communicationFacts,
+  communicationResolution,
+  availableReferences,
+  sourceAvailability,
 }: {
   brief: CommunicationBrief
   onChange: (brief: CommunicationBrief) => void
@@ -242,6 +251,10 @@ export function CommunicationBriefForm({
   offers?: SuggestedOffer[]
   suggestedPracticeSlugs?: string[]
   offersLoading?: boolean
+  communicationFacts?: LoadedCommunicationFacts
+  communicationResolution?: CommunicationResolution | null
+  availableReferences?: Record<string, unknown>
+  sourceAvailability?: CommunicationSourceAvailability
 }) {
   const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -277,6 +290,15 @@ export function CommunicationBriefForm({
   const disabledContextSources = brief.context.disabledContextSources ?? []
   const disabledContextSourceSet = new Set(disabledContextSources)
   const activeContextSourceCount = CONTEXT_SOURCE_OPTIONS.length - disabledContextSources.length
+  const loadedSourceCount = sourceAvailability
+    ? Object.values(sourceAvailability).filter(Boolean).length
+    : undefined
+  const loadedReferenceCount = availableReferences
+    ? Object.values(availableReferences).filter(Boolean).length
+    : undefined
+  const contextSourcesAriaLabel = loadedSourceCount === undefined
+    ? "Sources"
+    : `Sources contextuelles (${loadedSourceCount} disponibles, ${loadedReferenceCount ?? 0} références chargées, scope ${communicationFacts?.scope ?? communicationResolution?.normalizedBrief.what.scope ?? brief.what.scope})`
 
   function toggleContextSource(sourceId: CommunicationContextSourceId) {
     const nextDisabled = disabledContextSourceSet.has(sourceId)
@@ -531,6 +553,7 @@ export function CommunicationBriefForm({
       <button
         type="button"
         onClick={() => setAdvancedOpen(true)}
+        aria-label={contextSourcesAriaLabel}
         className={cn(
           "inline-flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-border/35 bg-surface/20 px-2.5 text-left text-[10px] font-semibold text-white transition-colors hover:bg-surface/35 focus:border-primary/60 focus:outline-none",
           isMobile ? "h-9" : "h-7",

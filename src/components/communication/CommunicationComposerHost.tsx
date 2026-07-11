@@ -18,8 +18,10 @@ import {
   type CommunicationComposerRequest,
   type CommunicationComposerScope,
 } from "@/lib/communication/communication-composer"
+import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
+import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import { openReportGeneration } from "@/lib/reports/report-generation"
-import { SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
+import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 
 interface CompanyRecord {
   id: string
@@ -59,6 +61,7 @@ interface ResolvedEntityContext {
 
 type ComposerAccountContext = PitchMailAccountContext & {
   communicationPreset?: CommunicationComposerPreset
+  loadedCommunicationContext?: LoadedCommunicationContext | null
   scope: CommunicationComposerScope
 }
 
@@ -188,6 +191,33 @@ function mergePreset(
       ...(request.preset?.refs ?? {}),
     },
   }
+}
+
+async function loadFactsForComposer(
+  scope: CommunicationComposerScope,
+  request: CommunicationComposerRequest,
+  inferred: ResolvedEntityContext,
+  refs: NonNullable<CommunicationComposerPreset["refs"]>,
+): Promise<LoadedCommunicationContext | null> {
+  const scenario = request.preset?.scenario ? getScenarioRegistryItem(request.preset.scenario) : undefined
+  const result = await loadCommunicationContextForCurrentUser({
+    scope,
+    companyId: request.companyId ?? inferred.companyId,
+    contactId: request.contactId ?? request.preset?.contactId ?? inferred.contactId,
+    opportunityId: refs.opportunityRef,
+    missionId: refs.missionRef,
+    candidateId: refs.profileRef,
+    collaboratorId: request.collaboratorId ?? inferred.collaboratorId,
+    offerId: refs.offerRef,
+    requiresOffer: scenario?.requiresOffer,
+    internalRole: request.preset?.internalRole,
+    internalRelationship: request.preset?.internalRelationship,
+    internalDomain: request.preset?.internalDomain,
+    internalRecipientName: request.preset?.internalRecipientName,
+  })
+
+  if (result.error) throw new Error(result.error)
+  return result.context
 }
 
 function ComposerAccountSelector({
@@ -601,6 +631,8 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
         }
 
         const preset = mergePreset(currentRequest, inferred)
+        const loadedCommunicationContext = await loadFactsForComposer(scope, currentRequest, inferred, preset.refs ?? {})
+        if (sequence !== loadSequence.current) return
         const collaboratorMustInclude = `[COLLABORATEUR_CONTEXT]
 Nom : ${collaboratorName}
 Poste : ${collaboratorTitle || "Non renseigné"}
@@ -622,6 +654,7 @@ Le message généré doit s'appuyer sur ces informations réelles, sans inventer
           },
           contacts: [],
           communicationPreset: preset,
+          loadedCommunicationContext,
         })
         setInstanceKey((key) => key + 1)
         return
@@ -629,12 +662,16 @@ Le message généré doit s'appuyer sur ces informations réelles, sans inventer
 
       // ── Scope "internal" — aucune entité requise, contexte porté par le prompt ──
       if (scope === "internal") {
+        const preset = mergePreset(currentRequest, inferred)
+        const loadedCommunicationContext = await loadFactsForComposer(scope, currentRequest, inferred, preset.refs ?? {})
+        if (sequence !== loadSequence.current) return
         setContext({
           scope,
           company: null,
           collaborator: null,
           contacts: [],
-          communicationPreset: mergePreset(currentRequest, inferred),
+          communicationPreset: preset,
+          loadedCommunicationContext,
         })
         setInstanceKey((key) => key + 1)
         return
@@ -726,6 +763,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
             collaborator: null,
             contacts: [],
             communicationPreset: preset,
+            loadedCommunicationContext: null,
           })
           setInstanceKey((key) => key + 1)
           return
@@ -740,18 +778,6 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
         return
       }
 
-      const { data: contactRows, error: contactsError } = await supabase
-        .from("contacts")
-        .select("id, job_title, relationship_role, is_priority, persons(full_name, first_name, last_name, primary_email)")
-        .eq("company_id", companyId)
-        .order("is_priority", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(100)
-
-      if (contactsError) throw contactsError
-      if (sequence !== loadSequence.current) return
-
-      const contacts = mapContacts((contactRows ?? []) as unknown as ContactRecord[])
       const preset = mergePreset(currentRequest, inferred)
       if (signalMustInclude) {
         preset.mustInclude = [signalMustInclude, preset.mustInclude].filter(Boolean).join("\n\n")
@@ -759,6 +785,22 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       if (signalPractice) {
         preset.practice = signalPractice
       }
+
+      const [contactsResult, loadedCommunicationContext] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, job_title, relationship_role, is_priority, persons(full_name, first_name, last_name, primary_email)")
+          .eq("company_id", companyId)
+          .order("is_priority", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(100),
+        loadFactsForComposer(scope, { ...currentRequest, companyId, contactId: preset.contactId }, inferred, preset.refs ?? {}),
+      ])
+
+      if (contactsResult.error) throw contactsResult.error
+      if (sequence !== loadSequence.current) return
+
+      const contacts = mapContacts((contactsResult.data ?? []) as unknown as ContactRecord[])
 
       setSelectedAccount({ id: company.id, name: company.name, isNew: false })
       setContext({
@@ -771,6 +813,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
         collaborator: null,
         contacts,
         communicationPreset: preset,
+        loadedCommunicationContext,
       })
       setInstanceKey((key) => key + 1)
     } catch (caught) {

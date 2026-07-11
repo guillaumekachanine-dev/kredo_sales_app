@@ -61,6 +61,7 @@ export type CommunicationComposerPreset = {
   internalRole?: CommunicationInternalRecipientRole
   internalRelationship?: CommunicationInternalRelationship
   internalDomain?: CommunicationInternalDomain
+  internalRecipientName?: string
   mustInclude?: string
   mustExclude?: string
   practice?: string
