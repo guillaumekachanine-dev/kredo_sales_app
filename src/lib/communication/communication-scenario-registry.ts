@@ -19,7 +19,13 @@ import type {
 // alias locaux conservés pour ne pas casser les imports existants
 // (ScenarioPickerModal.tsx, communication-brief-options.ts).
 
-export type ActivityCategory = CommunicationActivityCategory
+// Compatibilité transitoire Lot 1 : la registry conserve ses cinq catégories
+// historiques jusqu'à son reclassement au Lot 2. Le contrat wire accepte déjà
+// les six catégories canoniques et la valeur legacy.
+export type ActivityCategory = Exclude<
+  CommunicationActivityCategory,
+  "management_consultants" | "internal_staff"
+>
 export type ScenarioOutputKind = CommunicationOutputKind
 export type ScenarioUseCase = "mail" | "pitch" | "both"
 
