@@ -1,8 +1,14 @@
 import type {
+  CanonicalCommunicationActivityCategory,
   CommunicationBrief,
   CommunicationChannel,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
   CommunicationLength,
   CommunicationObjective,
+  CommunicationOutputKind,
+  CommunicationRecipientType,
   CommunicationScenario,
   CommunicationScope,
   CommunicationTone,
@@ -44,10 +50,17 @@ export type CommunicationComposerScope = CommunicationScope
 export type CommunicationComposerPreset = {
   channel?: CommunicationChannel
   scenario?: CommunicationScenario
+  outputKind?: CommunicationOutputKind
+  activityCategory?: CanonicalCommunicationActivityCategory
+  recipientType?: CommunicationRecipientType
   objective?: CommunicationObjective
   length?: CommunicationLength
   tone?: CommunicationTone
   contactId?: string
+  collaboratorId?: string
+  internalRole?: CommunicationInternalRecipientRole
+  internalRelationship?: CommunicationInternalRelationship
+  internalDomain?: CommunicationInternalDomain
   mustInclude?: string
   mustExclude?: string
   practice?: string

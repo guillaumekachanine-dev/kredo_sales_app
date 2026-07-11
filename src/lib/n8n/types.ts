@@ -225,6 +225,27 @@ export type CommunicationScenario =
   | "investment_arbitrage_argument"
   | "project_status_pitch"
   | "direction_summary_pitch"
+  // INTEL-020 dynamique Lot 1 — Management consultants
+  | "performance_feedback_follow_up"
+  | "intercontract_action_plan_message"
+  | "annual_review_follow_up"
+  | "consultant_retention_follow_up"
+  | "performance_feedback_talk_track"
+  | "retention_conversation_talk_track"
+  | "career_opportunity_talk_track"
+  | "career_development_briefing"
+  | "retention_conversation_briefing"
+  // INTEL-020 dynamique Lot 1 — Interne Staff
+  | "manager_status_update"
+  | "cross_functional_coordination_request"
+  | "internal_decision_summary"
+  | "internal_alert_escalation"
+  | "practice_support_pitch"
+  | "presales_support_pitch"
+  | "staffing_priority_pitch"
+  | "cross_functional_alignment_briefing"
+  | "staffing_review_briefing"
+  | "presales_kickoff_briefing"
 
 export type CommunicationLength = "ultra_short" | "concise" | "standard" | "detailed"
 
@@ -239,16 +260,21 @@ export type CommunicationOutputKind =
   | "spoken_pitch"
   | "structured_briefing"
 
-// 5 catégories d'activité (remplace le family à 4 valeurs sales/recruitment/
-// delivery/internal — Delivery et Interne·Management sont désormais distincts,
-// ADR-0013 §3.2). Persistée dans input_snapshot pour permettre le monitoring
-// futur de l'activité de prospection sans re-lire la registry TS depuis SQL.
-export type CommunicationActivityCategory =
+// Catégories produites par le nouveau contrat INTEL-020. La valeur historique
+// reste acceptée en lecture jusqu'au reclassement de la registry au Lot 2.
+export type CanonicalCommunicationActivityCategory =
   | "commerce_prospection"
   | "commerce_actif"
   | "delivery"
   | "recrutement"
-  | "interne_management"
+  | "management_consultants"
+  | "internal_staff"
+
+export type LegacyCommunicationActivityCategory = "interne_management"
+
+export type CommunicationActivityCategory =
+  | CanonicalCommunicationActivityCategory
+  | LegacyCommunicationActivityCategory
 
 // Portée de résolution d'entité côté composer (ADR-0013 D-2) — "account" =
 // comportement historique (compte CRM requis), "collaborator" = contexte
@@ -273,7 +299,37 @@ export type CommunicationRecipientType =
   | "former_client"
   | "partner"
   | "candidate"
+  | "collaborator"
   | "internal"
+
+export type CommunicationInternalRecipientRole =
+  | "manager_n1"
+  | "recruitment"
+  | "practice_lead"
+  | "presales"
+  | "finance_admin"
+  | "delivery_management"
+  | "executive_management"
+  | "peer_business_manager"
+  | "other"
+
+export type CommunicationInternalRelationship =
+  | "hierarchical_up"
+  | "peer"
+  | "cross_functional"
+  | "executive_committee"
+  | "team"
+
+export type CommunicationInternalDomain =
+  | "commercial"
+  | "staffing"
+  | "recruitment"
+  | "delivery"
+  | "practice"
+  | "presales"
+  | "finance"
+  | "operations"
+  | "strategy"
 
 export type CommunicationPersona =
   | "ceo"
@@ -383,6 +439,9 @@ export interface CommunicationBrief {
       collaboratorId?: string
       displayName?: string
       companyName?: string
+      internalRole?: CommunicationInternalRecipientRole
+      internalRelationship?: CommunicationInternalRelationship
+      internalDomain?: CommunicationInternalDomain
     }
     objective: CommunicationObjective
   }
