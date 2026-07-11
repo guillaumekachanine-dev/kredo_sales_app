@@ -4,14 +4,12 @@ import { useMemo, useState } from "react"
 import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { cn } from "@/lib/utils"
-import type { CommunicationScenario } from "@/lib/n8n/types"
+import type { CommunicationOutputKind, CommunicationScenario } from "@/lib/n8n/types"
 import {
-  ACTIVITY_CATEGORY_OPTIONS,
-  SCENARIO_REGISTRY,
-  filterScenariosByUseCase,
   type ActivityCategory,
   type ScenarioRegistryItem,
 } from "@/lib/communication/communication-scenario-registry"
+import { getScenarioPurposeGroups } from "@/lib/communication/communication-purpose"
 
 const BACK_COLLAPSE_MS = 130
 
@@ -49,20 +47,20 @@ const CATEGORY_TONE_CLASSES: Record<1 | 2 | 3 | 4 | 5 | 6, { card: string; icon:
 }
 
 // Sélecteur de scénario en 2 étapes : catégorie d'activité (6 cartes) →
-// scénario (liste), filtré par useCase (mail ou pitch selon le mode du
-// composer). Réplique la structure et les animations d'OfferPickerModal
+// scénario (liste), filtré par finalité canonique outputKind. Réplique la
+// structure et les animations d'OfferPickerModal
 // (practice → offre) — copie contrôlée (ADR-0013 D-8), pas d'abstraction
 // générique prématurée pour deux usages.
 export function ScenarioPickerModal({
   open,
   onOpenChange,
-  useCase,
+  outputKind,
   value,
   onSelect,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  useCase: "mail" | "pitch"
+  outputKind: CommunicationOutputKind
   value: CommunicationScenario | undefined
   onSelect: (scenario: CommunicationScenario) => void
 }) {
@@ -71,14 +69,8 @@ export function ScenarioPickerModal({
   const [leaving, setLeaving] = useState(false)
 
   const categories = useMemo<CategoryGroup[]>(() => {
-    return ACTIVITY_CATEGORY_OPTIONS.map((cat) => ({
-      ...cat,
-      scenarios: filterScenariosByUseCase(
-        SCENARIO_REGISTRY.filter((item) => item.activityCategory === cat.value),
-        useCase,
-      ),
-    })).filter((group) => group.scenarios.length > 0)
-  }, [useCase])
+    return getScenarioPurposeGroups(outputKind)
+  }, [outputKind])
 
   const activeGroup = categories.find((c) => c.value === activeCategory) ?? null
 

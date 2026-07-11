@@ -6,6 +6,7 @@ import type {
   CommunicationBrief,
   CommunicationContextSourceId,
   CommunicationOutput,
+  CommunicationOutputKind,
   CommunicationQaFlag,
   CommunicationScope,
   N8nEntityType,
@@ -21,11 +22,15 @@ import {
   buildCampaignPayload,
 } from "./intelligence-action-utils"
 import { buildDefaultBrief, CHANNEL_OPTIONS, OBJECTIVE_OPTIONS, SCENARIO_OPTIONS } from "./communication-brief-options"
-import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
+import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import {
   resolveBriefWithLoadedContext,
   type ResolvedCommunicationContextBrief,
 } from "@/lib/communication/communication-context-brief"
+import {
+  applyCommunicationPurposeToBrief,
+  getCommunicationPurposeOption,
+} from "@/lib/communication/communication-purpose"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import { CommunicationBriefForm } from "./CommunicationBriefForm"
 import { CommunicationResult } from "./CommunicationResult"
@@ -33,7 +38,6 @@ import { PitchResult } from "./PitchResult"
 import { getSuggestedOffers, type SuggestedOffer } from "./get-suggested-offers"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
-type ComposerDocumentMode = "mail" | "pitch"
 
 const CONTEXT_SOURCE_LABELS: Record<CommunicationContextSourceId, string> = {
   account_profile: "Compte CRM",
@@ -97,47 +101,6 @@ function animateScrollToTop(container: HTMLElement) {
 
   frame = window.requestAnimationFrame(tick)
   return () => window.cancelAnimationFrame(frame)
-}
-
-function getDefaultScenarioForDocumentMode(mode: ComposerDocumentMode) {
-  if (mode === "pitch") {
-    return SCENARIO_REGISTRY.find((scenario) => scenario.value === "meeting_prep_discovery") ??
-      SCENARIO_REGISTRY.find((scenario) => scenario.useCase === "pitch")
-  }
-
-  return SCENARIO_REGISTRY.find((scenario) => scenario.value === "signal_outreach") ??
-    SCENARIO_REGISTRY.find((scenario) => scenario.useCase === "mail")
-}
-
-function applyDocumentModeToBrief(
-  brief: CommunicationBrief,
-  mode: ComposerDocumentMode,
-): CommunicationBrief {
-  const currentScenario = getScenarioRegistryItem(brief.what.scenario)
-  const currentMode = currentScenario && currentScenario.defaultOutputKind !== "written_message" ? "pitch" : "mail"
-  if (currentMode === mode) return brief
-
-  const nextScenario = getDefaultScenarioForDocumentMode(mode)
-  if (!nextScenario) return brief
-
-  return {
-    ...brief,
-    what: {
-      ...brief.what,
-      scenario: nextScenario.value,
-      channel: nextScenario.defaultChannel,
-      outputKind: nextScenario.defaultOutputKind,
-      activityCategory: nextScenario.activityCategory,
-    },
-    who: {
-      ...brief.who,
-      objective: nextScenario.defaultObjective,
-    },
-    context: {
-      ...brief.context,
-      ...(mode === "mail" ? { offerRef: undefined } : {}),
-    },
-  }
 }
 
 function withDisabledContextSourceInstruction(brief: CommunicationBrief): CommunicationBrief {
@@ -239,13 +202,13 @@ export function PitchMailDrawerContent({
   variant = "desktop",
   initialBrief,
   contextMetaLabel = "(résolu automatiquement)",
-  documentMode = "mail",
+  selectedOutputKind = "written_message",
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
   initialBrief?: CommunicationBrief
   contextMetaLabel?: string
-  documentMode?: ComposerDocumentMode
+  selectedOutputKind?: CommunicationOutputKind
 }) {
   const { company, collaborator, contacts } = data
   const isMobile = variant === "mobile"
@@ -257,11 +220,23 @@ export function PitchMailDrawerContent({
   const loadedCommunicationContext = data.loadedCommunicationContext ?? null
 
   const initialResolvedBrief = useMemo<ResolvedCommunicationContextBrief>(() => {
-    const baseBrief = applyDocumentModeToBrief(initialBrief ?? buildDefaultBrief(data, ""), documentMode)
-    return resolveBriefWithLoadedContext(baseBrief, loadedCommunicationContext)
-  }, [data, documentMode, initialBrief, loadedCommunicationContext])
+    const resolvedContextBrief = resolveBriefWithLoadedContext(
+      initialBrief ?? buildDefaultBrief(data, ""),
+      loadedCommunicationContext,
+    )
+    const purposeResolution = applyCommunicationPurposeToBrief(
+      resolvedContextBrief.brief,
+      selectedOutputKind,
+      loadedCommunicationContext?.facts,
+    )
+    return {
+      brief: purposeResolution.brief,
+      resolution: purposeResolution.resolution,
+    }
+  }, [data, initialBrief, loadedCommunicationContext, selectedOutputKind])
 
   const [brief, setBrief] = useState<CommunicationBrief>(() => initialResolvedBrief.brief)
+  const [purposeAdjustmentNotice, setPurposeAdjustmentNotice] = useState<string | null>(null)
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
@@ -275,6 +250,34 @@ export function PitchMailDrawerContent({
   const [suggestedPracticeSlugs, setSuggestedPracticeSlugs] = useState<string[]>([])
   const [offersLoading, setOffersLoading] = useState(false)
   const resultTopRef = useRef<HTMLDivElement | null>(null)
+  const selectedOutputKindRef = useRef<CommunicationOutputKind>(selectedOutputKind)
+
+  useEffect(() => {
+    if (selectedOutputKindRef.current === selectedOutputKind) return
+
+    setBrief((previousBrief) => {
+      const result = applyCommunicationPurposeToBrief(
+        previousBrief,
+        selectedOutputKind,
+        loadedCommunicationContext?.facts,
+      )
+      const changed =
+        previousBrief.what.scenario !== result.brief.what.scenario ||
+        previousBrief.what.channel !== result.brief.what.channel ||
+        previousBrief.what.length !== result.brief.what.length ||
+        previousBrief.who.objective !== result.brief.who.objective ||
+        previousBrief.how.tone !== result.brief.how.tone
+
+      setPurposeAdjustmentNotice(
+        changed
+          ? "Paramètres ajustés automatiquement pour rester compatibles avec la finalité choisie."
+          : null,
+      )
+      return result.brief
+    })
+
+    selectedOutputKindRef.current = selectedOutputKind
+  }, [loadedCommunicationContext?.facts, selectedOutputKind])
 
   useEffect(() => {
     // ADR-0013 — pas de catalogue d'offres suggérées sans compte pivot (scope
@@ -430,13 +433,15 @@ export function PitchMailDrawerContent({
   const channelLabel = CHANNEL_OPTIONS.find((o) => o.value === brief.what.channel)?.label ?? brief.what.channel
   const scenarioLabel = SCENARIO_OPTIONS.find((o) => o.value === brief.what.scenario)?.label ?? brief.what.scenario
   const objectiveLabel = OBJECTIVE_OPTIONS.find((o) => o.value === brief.who.objective)?.label ?? brief.who.objective
-  // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) ; l'offre
-  // n'est bloquante que pour les scénarios où requiresOffer === true (D-5,
-  // supersede ADR-0009 §6).
-  const isPitch = brief.what.outputKind !== "written_message"
-  const documentTypeLabel = isPitch ? "Pitch" : "Mail"
+  const purposeOption = getCommunicationPurposeOption(brief.what.outputKind)
+  const documentTypeLabel = purposeOption.shortLabel
   const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
   const missingOfferRef = requiresOffer && !brief.context.offerRef
+  const generateLabel = brief.what.outputKind === "spoken_pitch"
+    ? "Générer le pitch"
+    : brief.what.outputKind === "structured_briefing"
+      ? "Générer le briefing"
+      : "Générer le message"
 
   // ── Résultat généré ──────────────────────────────────────────────────────────
   if (runStatus === "done" && result) {
@@ -490,6 +495,12 @@ export function PitchMailDrawerContent({
         />
       )}
 
+      {purposeAdjustmentNotice ? (
+        <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[10px] leading-normal text-muted">
+          {purposeAdjustmentNotice}
+        </p>
+      ) : null}
+
       <CommunicationBriefForm
         brief={brief}
         onChange={setBrief}
@@ -531,11 +542,7 @@ export function PitchMailDrawerContent({
               <span className="h-3 w-3 rounded-full border-2 border-black/20 border-t-black animate-spin" />
               Génération en cours…
             </>
-          ) : isPitch ? (
-            "Générer le pitch"
-          ) : (
-            "Générer le message"
-          )}
+          ) : generateLabel}
         </button>
         {runStatus === "loading" && (
           <p className="text-[10px] text-muted text-center leading-normal">
@@ -544,7 +551,7 @@ export function PitchMailDrawerContent({
         )}
         {missingOfferRef && (
           <p className="text-[10px] text-[var(--color-status-warning-ink)] text-center leading-normal">
-            Sélectionne une offre catalogue pour générer ce pitch.
+            Sélectionne une offre catalogue pour générer cette finalité.
           </p>
         )}
       </div>

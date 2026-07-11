@@ -20,8 +20,12 @@ import {
 } from "@/lib/communication/communication-composer"
 import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
-import { openReportGeneration } from "@/lib/reports/report-generation"
-import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
+import type { CommunicationOutputKind } from "@/lib/n8n/types"
+import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import {
+  getCommunicationPurposeNavigationItems,
+  getOutputKindFromComposerPreset,
+} from "@/lib/communication/communication-purpose"
 
 interface CompanyRecord {
   id: string
@@ -65,66 +69,62 @@ type ComposerAccountContext = PitchMailAccountContext & {
   scope: CommunicationComposerScope
 }
 
-type ComposerDocumentMode = "mail" | "pitch"
-type ComposerHeaderOption = ComposerDocumentMode | "report"
-
 const MAIL_DRAWER_CHROME_CLASS = "intelligence-drawer text-body border-l border-border/40"
 const MAIL_DRAWER_HEADER_CLASS = "intelligence-drawer border-b border-border/40 [&_h2]:text-primary [&_p]:text-muted"
 const MAIL_DRAWER_CONTENT_CLASS = "intelligence-drawer [--drawer-header-fade-start:rgba(10,13,26,0.95)] [--drawer-header-fade-end:rgba(10,13,26,0)]"
 
-const COMPOSER_DOCUMENT_LABELS: Record<ComposerHeaderOption, string> = {
-  mail: "Rédiger un mail",
-  pitch: "Construire un pitch",
-  report: "Générer un rapport",
-}
-
-function getDocumentModeFromPreset(preset?: CommunicationComposerPreset): ComposerDocumentMode {
-  const scenario = SCENARIO_REGISTRY.find((item) => item.value === preset?.scenario)
-  return scenario && scenario.defaultOutputKind !== "written_message" ? "pitch" : "mail"
-}
-
-function CommunicationDrawerHeaderTitle({
-  mode,
+function CommunicationPurposeSwitcher({
+  outputKind,
+  variant,
   clientName,
-  canSwitch,
-  onModeChange,
+  onOutputKindChange,
 }: {
-  mode: ComposerDocumentMode
+  outputKind: CommunicationOutputKind
+  variant: "desktop" | "mobile"
   clientName?: string
-  canSwitch: boolean
-  onModeChange: (mode: ComposerHeaderOption) => void
+  onOutputKindChange: (outputKind: CommunicationOutputKind) => void
 }) {
-  if (!canSwitch) {
-    return (
-      <div className="min-w-0 space-y-1">
-        <p className="truncate font-heading text-base font-bold leading-6 text-primary">
-          {COMPOSER_DOCUMENT_LABELS[mode]}
-        </p>
-        {clientName ? (
-          <p className="truncate text-sm leading-5 text-muted">{clientName}</p>
-        ) : null}
-      </div>
-    )
-  }
+  const items = getCommunicationPurposeNavigationItems(variant)
+  const isMobile = variant === "mobile"
 
   return (
-    <div className="min-w-0 space-y-2">
-      <div className="flex min-w-0 rounded-lg border border-border/45 bg-surface/25 p-0.5">
-        {(Object.keys(COMPOSER_DOCUMENT_LABELS) as ComposerHeaderOption[]).map((option) => {
-          const active = option === mode
+    <div className={cn("min-w-0", isMobile ? "space-y-3" : "space-y-2")}>
+      <div
+        className={cn(
+          "grid min-w-0 grid-cols-3 rounded-lg border border-border/45 bg-surface/25 p-0.5",
+          isMobile ? "gap-1" : "gap-0.5",
+        )}
+        aria-label="Finalité de communication"
+      >
+        {items.map((option) => {
+          const active = option.value === outputKind
           return (
             <button
-              key={option}
+              key={option.value}
               type="button"
-              onClick={() => onModeChange(option)}
+              onClick={() => onOutputKindChange(option.value)}
               className={cn(
-                "min-h-[32px] min-w-0 flex-1 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] transition-colors",
+                "min-w-0 rounded-md px-2 text-left transition-colors",
+                isMobile
+                  ? "min-h-[44px] py-2"
+                  : "min-h-[32px] py-1",
                 active
-                  ? "bg-primary/15 text-primary"
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/25"
                   : "text-primary/70 hover:bg-surface-hover/50 hover:text-primary",
               )}
+              aria-pressed={active}
             >
-              <span className="block truncate">{option === "mail" ? "Mail" : option === "pitch" ? "Pitch" : "Rapport"}</span>
+              <span
+                className={cn(
+                  "block truncate font-bold",
+                  isMobile ? "text-[11px] leading-4" : "text-[10px] uppercase tracking-[0.08em]",
+                )}
+              >
+                {isMobile ? option.label : option.shortLabel}
+              </span>
+              <span className={cn("block truncate font-medium text-current/70", isMobile ? "text-[10px]" : "sr-only")}>
+                {option.subtitle}
+              </span>
             </button>
           )
         })}
@@ -263,7 +263,7 @@ function ComposerContent({
   error,
   variant,
   instanceKey,
-  documentMode,
+  outputKind,
 }: {
   context: ComposerAccountContext | null
   scope: CommunicationComposerScope
@@ -272,7 +272,7 @@ function ComposerContent({
   error: string | null
   variant: "desktop" | "mobile"
   instanceKey: number
-  documentMode: ComposerDocumentMode
+  outputKind: CommunicationOutputKind
 }) {
   if (!context) {
     // ADR-0013 — le sélecteur de compte n'a de sens que pour le scope "account" :
@@ -296,10 +296,10 @@ function ComposerContent({
 
   const content = (
     <PitchMailDrawerContent
-      key={`${instanceKey}:${documentMode}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
+      key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
       data={context}
       variant={variant}
-      documentMode={documentMode}
+      selectedOutputKind={outputKind}
     />
   )
 
@@ -324,9 +324,8 @@ function DesktopCommunicationDrawer({
   onAccountChange,
   error,
   instanceKey,
-  documentMode,
-  canSwitchDocumentMode,
-  onDocumentModeChange,
+  outputKind,
+  onOutputKindChange,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -335,11 +334,11 @@ function DesktopCommunicationDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={
-        <CommunicationDrawerHeaderTitle
-          mode={documentMode}
+        <CommunicationPurposeSwitcher
+          outputKind={outputKind}
+          variant="desktop"
           clientName={clientName}
-          canSwitch={canSwitchDocumentMode}
-          onModeChange={onDocumentModeChange}
+          onOutputKindChange={onOutputKindChange}
         />
       }
       width="default"
@@ -356,7 +355,7 @@ function DesktopCommunicationDrawer({
         error={error}
         variant="desktop"
         instanceKey={instanceKey}
-        documentMode={documentMode}
+        outputKind={outputKind}
       />
     </AppDrawer>
   )
@@ -372,9 +371,8 @@ function MobileCommunicationDrawer({
   onAccountChange,
   error,
   instanceKey,
-  documentMode,
-  canSwitchDocumentMode,
-  onDocumentModeChange,
+  outputKind,
+  onOutputKindChange,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -382,17 +380,17 @@ function MobileCommunicationDrawer({
     <AppDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={
-        <CommunicationDrawerHeaderTitle
-          mode={documentMode}
-          clientName={clientName}
-          canSwitch={canSwitchDocumentMode}
-          onModeChange={onDocumentModeChange}
-        />
-      }
       side="bottom"
       loading={loading}
       showMobileCloseButton
+      title={
+        <CommunicationPurposeSwitcher
+          outputKind={outputKind}
+          variant="mobile"
+          clientName={clientName}
+          onOutputKindChange={onOutputKindChange}
+        />
+      }
       className={`h-[92vh] max-h-[92vh] ${MAIL_DRAWER_CHROME_CLASS}`}
       headerClassName={MAIL_DRAWER_HEADER_CLASS}
       contentClassName={`${MAIL_DRAWER_CONTENT_CLASS} px-4`}
@@ -405,7 +403,7 @@ function MobileCommunicationDrawer({
         error={error}
         variant="mobile"
         instanceKey={instanceKey}
-        documentMode={documentMode}
+        outputKind={outputKind}
       />
     </AppDrawer>
   )
@@ -421,9 +419,8 @@ interface DrawerVariantProps {
   onAccountChange: (value: AccountValue | null) => void
   error: string | null
   instanceKey: number
-  documentMode: ComposerDocumentMode
-  canSwitchDocumentMode: boolean
-  onDocumentModeChange: (mode: ComposerHeaderOption) => void
+  outputKind: CommunicationOutputKind
+  onOutputKindChange: (outputKind: CommunicationOutputKind) => void
 }
 
 export function CommunicationComposerHost({ device }: { device: DashboardDevice }) {
@@ -436,7 +433,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const [selectedAccount, setSelectedAccount] = useState<AccountValue | null>(null)
   const [context, setContext] = useState<ComposerAccountContext | null>(null)
   const [instanceKey, setInstanceKey] = useState(0)
-  const [documentMode, setDocumentMode] = useState<ComposerDocumentMode>("mail")
+  const [outputKind, setOutputKind] = useState<CommunicationOutputKind>("written_message")
 
   const resolvePrimaryEntity = useCallback(async (
     currentRequest: CommunicationComposerRequest,
@@ -572,7 +569,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const hydrate = useCallback(async (rawRequest: CommunicationComposerRequest) => {
     const sequence = ++loadSequence.current
     const currentRequest = enrichFromActiveIntelligenceContext(rawRequest)
-    setDocumentMode(getDocumentModeFromPreset(currentRequest.preset))
+    setOutputKind(getOutputKindFromComposerPreset(currentRequest.preset))
     setRequest(currentRequest)
     setLoading(true)
     setError(null)
@@ -846,29 +843,8 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       setContext(null)
       setSelectedAccount(null)
       setRequest({ origin: "global" })
-      setDocumentMode("mail")
+      setOutputKind("written_message")
     }
-  }
-
-  function isFreeCreationRequest(currentRequest: CommunicationComposerRequest) {
-    return currentRequest.origin === "global" &&
-      !currentRequest.scope &&
-      !currentRequest.companyId &&
-      !currentRequest.companyName &&
-      !currentRequest.contactId &&
-      !currentRequest.collaboratorId &&
-      !currentRequest.primaryEntity &&
-      !currentRequest.preset
-  }
-
-  function handleDocumentModeChange(mode: ComposerHeaderOption) {
-    if (mode === "report") {
-      handleOpenChange(false)
-      openReportGeneration({ origin: "global" })
-      return
-    }
-
-    setDocumentMode(mode)
   }
 
   function handleAccountChange(value: AccountValue | null) {
@@ -898,9 +874,8 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     onAccountChange: handleAccountChange,
     error,
     instanceKey,
-    documentMode,
-    canSwitchDocumentMode: isFreeCreationRequest(request),
-    onDocumentModeChange: handleDocumentModeChange,
+    outputKind,
+    onOutputKindChange: setOutputKind,
   }
 
   return device === "mobile" ? (

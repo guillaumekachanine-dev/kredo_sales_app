@@ -39,6 +39,10 @@ import { ContactSelector } from "./ContactSelector"
 import { OfferPicker } from "./OfferPicker"
 import { ScenarioPicker } from "./ScenarioPicker"
 import type { SuggestedOffer } from "./get-suggested-offers"
+import {
+  defaultChannelForPurpose,
+  isChannelCompatibleWithPurpose,
+} from "@/lib/communication/communication-purpose"
 
 const PRACTICE_OPTIONS = [
   "Quality Engineering & Testing",
@@ -258,9 +262,7 @@ export function CommunicationBriefForm({
 }) {
   const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  // ADR-0013 Lot 2 — outputKind remplace isPitchChannel(channel) comme vérité
-  // principale (channel et outputKind sont désormais deux dimensions distinctes).
-  const isPitch = brief.what.outputKind !== "written_message"
+  const showsOfferPicker = brief.what.outputKind === "spoken_pitch" || brief.what.outputKind === "structured_briefing"
   const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
 
   function updateWhat(patch: Partial<CommunicationBrief["what"]>) {
@@ -320,13 +322,21 @@ export function CommunicationBriefForm({
 
   function handleScenarioChange(scenario: CommunicationScenario) {
     const item = getScenarioRegistryItem(scenario)
+    const nextOutputKind = item?.allowedOutputKinds.includes(brief.what.outputKind)
+      ? brief.what.outputKind
+      : item?.defaultOutputKind ?? brief.what.outputKind
+    const nextDefaultChannel = item?.defaultChannel && isChannelCompatibleWithPurpose(item.defaultChannel, nextOutputKind)
+      ? item.defaultChannel
+      : defaultChannelForPurpose(nextOutputKind)
     onChange({
       ...brief,
       what: {
         ...brief.what,
         scenario,
-        channel: item?.defaultChannel ?? brief.what.channel,
-        outputKind: item?.defaultOutputKind ?? brief.what.outputKind,
+        channel: isChannelCompatibleWithPurpose(brief.what.channel, nextOutputKind)
+          ? brief.what.channel
+          : nextDefaultChannel,
+        outputKind: nextOutputKind,
         activityCategory: item?.activityCategory ?? brief.what.activityCategory,
       },
       who: { ...brief.who, objective: item?.defaultObjective ?? brief.who.objective },
@@ -349,13 +359,9 @@ export function CommunicationBriefForm({
   //    accordéons QUOI/QUI/COMMENT/CONTEXTE) et mobile (3 champs essentiels
   //    + "Plus d'options") ────────────────────────────────────────────────
 
-  // ADR-0013 Lot 1 — la modale catégorie → scénario est filtrée par useCase à
-  // partir du canal courant (même proxy que isPitch ci-dessus). Le vrai champ
-  // outputKind/mode explicite arrive au Lot 2 ; en attendant, choisir un
-  // scénario de l'autre useCase repasse par le changement de canal existant.
   const fieldScenario = (
     <ScenarioPicker
-      useCase={isPitch ? "pitch" : "mail"}
+      outputKind={brief.what.outputKind}
       value={brief.what.scenario}
       onChange={handleScenarioChange}
       isMobile={isMobile}
@@ -517,7 +523,7 @@ export function CommunicationBriefForm({
     </Select>
   )
 
-  const fieldOfferPicker = isPitch ? (
+  const fieldOfferPicker = showsOfferPicker ? (
     <OfferPicker
       offers={offers ?? []}
       suggestedPracticeSlugs={suggestedPracticeSlugs ?? []}
@@ -708,7 +714,7 @@ export function CommunicationBriefForm({
           <div className="space-y-2.5 pt-3">
             <ParameterRow label="Scénario">
               <ScenarioPicker
-                useCase={isPitch ? "pitch" : "mail"}
+                outputKind={brief.what.outputKind}
                 value={brief.what.scenario}
                 onChange={handleScenarioChange}
                 hideLabel

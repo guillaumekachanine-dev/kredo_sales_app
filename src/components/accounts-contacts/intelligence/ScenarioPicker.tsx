@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
-import type { CommunicationScenario } from "@/lib/n8n/types"
+import type { CommunicationOutputKind, CommunicationScenario } from "@/lib/n8n/types"
 import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
 import { ScenarioPickerModal } from "./ScenarioPickerModal"
 
@@ -10,13 +10,13 @@ import { ScenarioPickerModal } from "./ScenarioPickerModal"
 // illisible) par un déclencheur ouvrant ScenarioPickerModal (catégorie →
 // scénario), même pattern qu'OfferPicker/OfferPickerModal.
 export function ScenarioPicker({
-  useCase,
+  outputKind,
   value,
   onChange,
   isMobile,
   hideLabel = false,
 }: {
-  useCase: "mail" | "pitch"
+  outputKind: CommunicationOutputKind
   value: CommunicationScenario
   onChange: (scenario: CommunicationScenario) => void
   isMobile?: boolean
@@ -50,7 +50,7 @@ export function ScenarioPicker({
       <ScenarioPickerModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        useCase={useCase}
+        outputKind={outputKind}
         value={value}
         onSelect={onChange}
       />
