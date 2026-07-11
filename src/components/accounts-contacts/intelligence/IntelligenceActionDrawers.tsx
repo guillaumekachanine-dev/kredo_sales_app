@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 import type {
   CommunicationBrief,
-  CommunicationContextSourceId,
   CommunicationOutput,
   CommunicationOutputKind,
   CommunicationQaFlag,
@@ -38,20 +37,6 @@ import { PitchResult } from "./PitchResult"
 import { getSuggestedOffers, type SuggestedOffer } from "./get-suggested-offers"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
-
-const CONTEXT_SOURCE_LABELS: Record<CommunicationContextSourceId, string> = {
-  account_profile: "Compte CRM",
-  crm_contacts: "Contacts CRM",
-  signal_intelligence: "Signaux et actualités",
-  opportunity_context: "Opportunités",
-  interaction_history: "Interactions et rendez-vous",
-  mission_context: "Missions et projets",
-  candidate_profile: "Profil candidat",
-  collaborator_context: "Collaborateur interne",
-  offer_catalog: "Offre catalogue",
-  source_document: "Document source",
-  previous_generation: "Génération précédente",
-}
 
 function findScrollableAncestor(element: HTMLElement | null): HTMLElement | null {
   let parent = element?.parentElement ?? null
@@ -101,31 +86,6 @@ function animateScrollToTop(container: HTMLElement) {
 
   frame = window.requestAnimationFrame(tick)
   return () => window.cancelAnimationFrame(frame)
-}
-
-function withDisabledContextSourceInstruction(brief: CommunicationBrief): CommunicationBrief {
-  const disabledSources = brief.context.disabledContextSources ?? []
-  if (disabledSources.length === 0) return brief
-
-  const disabledLabels = disabledSources
-    .map((source) => CONTEXT_SOURCE_LABELS[source])
-    .filter(Boolean)
-
-  if (disabledLabels.length === 0) return brief
-
-  const instruction = [
-    "[SOURCES_DE_CONTEXTE_DESACTIVEES]",
-    "Ne pas utiliser les sources de contexte suivantes pour générer le document :",
-    ...disabledLabels.map((label) => `- ${label}`),
-  ].join("\n")
-
-  return {
-    ...brief,
-    context: {
-      ...brief.context,
-      mustExclude: [brief.context.mustExclude, instruction].filter(Boolean).join("\n\n"),
-    },
-  }
 }
 
 function MobileBriefActionSummary({
@@ -394,7 +354,10 @@ export function PitchMailDrawerContent({
     setErrorMsg(null)
 
     try {
-      const generationBrief = withDisabledContextSourceInstruction(brief)
+      // Lot 7 — plus d'instruction textuelle "mustExclude" fabriquée à partir des
+      // sources décochées (command §5, faux mécanisme) : `context.disabledContextSources`
+      // est déjà la structure explicite transmise telle quelle ; le filtrage réel
+      // côté n8n reste au Lot 10.
       const res = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -403,7 +366,7 @@ export function PitchMailDrawerContent({
           entityType,
           entityId: effectiveEntityId,
           companyId: entityType === "company" ? company?.id : undefined,
-          input: generationBrief,
+          input: brief,
         }),
       })
 
@@ -511,7 +474,7 @@ export function PitchMailDrawerContent({
         suggestedPracticeSlugs={suggestedPracticeSlugs}
         offersLoading={offersLoading}
         communicationFacts={loadedCommunicationContext?.facts}
-        communicationResolution={initialResolvedBrief.resolution}
+        companyId={company?.id}
         availableReferences={loadedCommunicationContext?.references}
         sourceAvailability={loadedCommunicationContext?.sourceAvailability}
       />

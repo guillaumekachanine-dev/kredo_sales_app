@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
@@ -29,20 +29,31 @@ import {
   TONE_OPTIONS,
   personaFromRelationshipRole,
 } from "./communication-brief-options"
-import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
-import type { CommunicationResolution } from "@/lib/communication/communication-options-resolver"
+import {
+  ACTIVITY_CATEGORY_OPTIONS,
+  type ActivityCategory,
+} from "@/lib/communication/communication-scenario-registry"
+import { resolveCommunicationOptions, type CommunicationAdjustment } from "@/lib/communication/communication-options-resolver"
+import {
+  buildBriefFormModel,
+  mergeCommunicationFacts,
+  purgeIncompatibleReferences,
+} from "@/lib/communication/communication-brief-form-model"
 import type {
   CommunicationSourceAvailability,
   LoadedCommunicationFacts,
 } from "@/lib/communication/communication-context-mappers"
 import { ContactSelector } from "./ContactSelector"
+import { EntityRefSelect } from "./EntityRefSelect"
 import { OfferPicker } from "./OfferPicker"
 import { ScenarioPicker } from "./ScenarioPicker"
 import type { SuggestedOffer } from "./get-suggested-offers"
 import {
-  defaultChannelForPurpose,
-  isChannelCompatibleWithPurpose,
-} from "@/lib/communication/communication-purpose"
+  getAccountCandidates,
+  getAccountMissions,
+  getAccountOpportunities,
+  type EntityRefOption,
+} from "./get-account-crm-refs"
 
 const PRACTICE_OPTIONS = [
   "Quality Engineering & Testing",
@@ -123,6 +134,34 @@ const CONTEXT_SOURCE_OPTIONS: {
     description: "Run précédent, message antérieur ou variante à réutiliser.",
   },
 ]
+
+const ADJUSTMENT_FIELD_LABELS: Record<string, string> = {
+  scenario: "scénario",
+  outputKind: "finalité",
+  activityCategory: "catégorie",
+  scope: "scope",
+  channel: "canal",
+  length: "longueur",
+  tone: "ton",
+  objective: "objectif",
+  recipientType: "destinataire",
+  offerRef: "offre",
+  opportunityRef: "opportunité",
+  missionRef: "mission",
+  profileRef: "candidat",
+}
+
+function describeAdjustments(adjustments: CommunicationAdjustment[]): string | null {
+  if (adjustments.length === 0) return null
+  const labels = Array.from(new Set(adjustments.map((item) => ADJUSTMENT_FIELD_LABELS[item.field] ?? item.field)))
+  return `Ajusté automatiquement pour rester cohérent : ${labels.join(", ")}.`
+}
+
+function filterOptions<T extends { value: string }>(all: T[], allowed: string[]): T[] {
+  if (allowed.length === 0) return all
+  const filtered = all.filter((option) => allowed.includes(option.value))
+  return filtered.length > 0 ? filtered : all
+}
 
 function useFieldClasses(isMobile: boolean) {
   const selectCls = cn(
@@ -233,6 +272,44 @@ function SectionRail() {
   )
 }
 
+function CategorySelector({
+  value,
+  available,
+  onChange,
+  isMobile,
+}: {
+  value: ActivityCategory
+  available: ActivityCategory[]
+  onChange: (category: ActivityCategory) => void
+  isMobile: boolean
+}) {
+  const options = ACTIVITY_CATEGORY_OPTIONS.filter((option) => available.includes(option.value))
+
+  return (
+    <div className={cn("grid gap-1.5", isMobile ? "grid-cols-2" : "grid-cols-4")}>
+      {options.map((option) => {
+        const active = option.value === value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={cn(
+              "rounded-lg border px-2 text-center text-[9.5px] font-bold uppercase tracking-[0.04em] transition-all duration-150 cursor-pointer leading-tight",
+              isMobile ? "min-h-[44px] py-2" : "h-9 py-1",
+              active
+                ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(226,147,29,0.05)]"
+                : "border-border/30 bg-surface/20 text-white hover:bg-surface/35"
+            )}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function CommunicationBriefForm({
   brief,
   onChange,
@@ -243,7 +320,7 @@ export function CommunicationBriefForm({
   suggestedPracticeSlugs,
   offersLoading = false,
   communicationFacts,
-  communicationResolution,
+  companyId,
   availableReferences,
   sourceAvailability,
 }: {
@@ -256,14 +333,80 @@ export function CommunicationBriefForm({
   suggestedPracticeSlugs?: string[]
   offersLoading?: boolean
   communicationFacts?: LoadedCommunicationFacts
-  communicationResolution?: CommunicationResolution | null
+  // Lot 7 — nécessaire pour hydrater les sélecteurs d'entité pivot
+  // (opportunité/mission/candidat), absent tant que le scope n'est pas "account".
+  companyId?: string
   availableReferences?: Record<string, unknown>
   sourceAvailability?: CommunicationSourceAvailability
 }) {
   const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const showsOfferPicker = brief.what.outputKind === "spoken_pitch" || brief.what.outputKind === "structured_briefing"
-  const requiresOffer = getScenarioRegistryItem(brief.what.scenario)?.requiresOffer ?? false
+  const [structuralNotice, setStructuralNotice] = useState<string | null>(null)
+
+  // Lot 7 — le résolveur est ré-exécuté à chaque rendu à partir du brief et
+  // des facts réellement connus (dont les refs choisies manuellement dans ce
+  // formulaire) : source unique de vérité, pas d'état dupliqué à resynchroniser.
+  const mergedFacts = useMemo(() => mergeCommunicationFacts(communicationFacts, brief), [communicationFacts, brief])
+  const resolution = useMemo(() => resolveCommunicationOptions(mergedFacts, brief), [mergedFacts, brief])
+  const model = useMemo(
+    () => buildBriefFormModel(brief, resolution, sourceAvailability),
+    [brief, resolution, sourceAvailability],
+  )
+
+  const [opportunityOptions, setOpportunityOptions] = useState<EntityRefOption[]>([])
+  const [missionOptions, setMissionOptions] = useState<EntityRefOption[]>([])
+  const [candidateOptions, setCandidateOptions] = useState<EntityRefOption[]>([])
+  const [refsLoading, setRefsLoading] = useState(false)
+  const [candidatesLoading, setCandidatesLoading] = useState(false)
+
+  // Les listes ne sont pas remises à vide de façon synchrone quand elles
+  // deviennent hors-sujet (catégorie/scénario change) — elles sont simplement
+  // ignorées au rendu (cf. usages ci-dessous) puisqu'aucun sélecteur ne les
+  // affiche plus. Évite un setState synchrone en tête d'effet.
+  useEffect(() => {
+    if (!companyId || (!model.showOpportunity && !model.showMission)) return
+    let cancelled = false
+    async function loadRefs(id: string) {
+      setRefsLoading(true)
+      const [opportunityResult, missionResult] = await Promise.all([
+        model.showOpportunity ? getAccountOpportunities(id) : Promise.resolve({ options: [], error: null }),
+        model.showMission ? getAccountMissions(id) : Promise.resolve({ options: [], error: null }),
+      ])
+      if (cancelled) return
+      setOpportunityOptions(opportunityResult.options)
+      setMissionOptions(missionResult.options)
+      setRefsLoading(false)
+    }
+    void loadRefs(companyId)
+    return () => { cancelled = true }
+  }, [companyId, model.showOpportunity, model.showMission])
+
+  useEffect(() => {
+    if (!companyId || !model.showCandidate) return
+    let cancelled = false
+    async function loadCandidates(id: string) {
+      setCandidatesLoading(true)
+      const result = await getAccountCandidates(id)
+      if (cancelled) return
+      setCandidateOptions(result.options)
+      setCandidatesLoading(false)
+    }
+    void loadCandidates(companyId)
+    return () => { cancelled = true }
+  }, [companyId, model.showCandidate])
+
+  // ── Cascade centrale (handoff §10.4, command §4) — toute modification
+  //    structurante repasse par le résolveur, applique les defaults registry,
+  //    purge les références devenues incompatibles et signale l'ajustement. ──
+  function applyStructuralChange(patch: (current: CommunicationBrief) => CommunicationBrief) {
+    const patched = patch(brief)
+    const factsForResolve = mergeCommunicationFacts(communicationFacts, patched)
+    const resolved = resolveCommunicationOptions(factsForResolve, patched)
+    const purged = purgeIncompatibleReferences(resolved.normalizedBrief, resolved)
+    const allAdjustments = [...resolved.adjustments, ...purged.adjustments]
+    setStructuralNotice(describeAdjustments(allAdjustments))
+    onChange(purged.brief)
+  }
 
   function updateWhat(patch: Partial<CommunicationBrief["what"]>) {
     onChange({ ...brief, what: { ...brief.what, ...patch } })
@@ -271,10 +414,6 @@ export function CommunicationBriefForm({
 
   function updateSender(patch: Partial<CommunicationBrief["who"]["sender"]>) {
     onChange({ ...brief, who: { ...brief.who, sender: { ...brief.who.sender, ...patch } } })
-  }
-
-  function updateRecipient(patch: Partial<CommunicationBrief["who"]["recipient"]>) {
-    onChange({ ...brief, who: { ...brief.who, recipient: { ...brief.who.recipient, ...patch } } })
   }
 
   function updateObjective(objective: CommunicationObjective) {
@@ -289,20 +428,78 @@ export function CommunicationBriefForm({
     onChange({ ...brief, context: { ...brief.context, ...patch } })
   }
 
+  function handleCategoryChange(category: ActivityCategory) {
+    if (category === brief.what.activityCategory) return
+    applyStructuralChange((current) => ({ ...current, what: { ...current.what, activityCategory: category } }))
+  }
+
+  function handleScenarioChange(scenario: CommunicationScenario) {
+    applyStructuralChange((current) => ({ ...current, what: { ...current.what, scenario } }))
+  }
+
+  function handleRecipientTypeChange(type: CommunicationRecipientType) {
+    applyStructuralChange((current) => ({
+      ...current,
+      who: { ...current.who, recipient: { ...current.who.recipient, type } },
+    }))
+  }
+
+  function handleContactChange(contact: ClientIntelligenceContact | null) {
+    applyStructuralChange((current) => ({
+      ...current,
+      who: {
+        ...current.who,
+        recipient: {
+          ...current.who.recipient,
+          contactId: contact?.id,
+          displayName: contact?.fullName,
+          ...(contact ? { persona: personaFromRelationshipRole(contact.relationshipRole) } : {}),
+        },
+      },
+    }))
+  }
+
+  function handleOpportunityChange(id: string | undefined) {
+    applyStructuralChange((current) => ({ ...current, context: { ...current.context, opportunityRef: id } }))
+  }
+
+  function handleMissionChange(id: string | undefined) {
+    applyStructuralChange((current) => ({ ...current, context: { ...current.context, missionRef: id } }))
+  }
+
+  function handleCandidateChange(id: string | undefined) {
+    const option = candidateOptions.find((candidate) => candidate.id === id)
+    applyStructuralChange((current) => ({
+      ...current,
+      context: { ...current.context, profileRef: id },
+      who: model.candidateIsRecipient
+        ? {
+          ...current.who,
+          recipient: {
+            ...current.who.recipient,
+            displayName: option?.label ?? current.who.recipient.displayName,
+          },
+        }
+        : current.who,
+    }))
+  }
+
+  function handleOfferChange(offerId: string) {
+    applyStructuralChange((current) => ({ ...current, context: { ...current.context, offerRef: offerId } }))
+  }
+
   const disabledContextSources = brief.context.disabledContextSources ?? []
   const disabledContextSourceSet = new Set(disabledContextSources)
-  const activeContextSourceCount = CONTEXT_SOURCE_OPTIONS.length - disabledContextSources.length
-  const loadedSourceCount = sourceAvailability
-    ? Object.values(sourceAvailability).filter(Boolean).length
-    : undefined
+  const visibleContextSources = model.contextSources
+  const activeOptionalCount = visibleContextSources.filter((source) => source.visibility === "optional_on").length
+  const optionalSourceCount = visibleContextSources.filter((source) => source.visibility !== "locked_on" && source.visibility !== "unavailable").length
   const loadedReferenceCount = availableReferences
     ? Object.values(availableReferences).filter(Boolean).length
     : undefined
-  const contextSourcesAriaLabel = loadedSourceCount === undefined
-    ? "Sources"
-    : `Sources contextuelles (${loadedSourceCount} disponibles, ${loadedReferenceCount ?? 0} références chargées, scope ${communicationFacts?.scope ?? communicationResolution?.normalizedBrief.what.scope ?? brief.what.scope})`
+  const contextSourcesAriaLabel = `Sources contextuelles (${activeOptionalCount}/${optionalSourceCount} optionnelles actives, ${loadedReferenceCount ?? 0} références chargées)`
 
-  function toggleContextSource(sourceId: CommunicationContextSourceId) {
+  function toggleContextSource(sourceId: CommunicationContextSourceId, visibility: string) {
+    if (visibility === "locked_on" || visibility === "unavailable") return
     const nextDisabled = disabledContextSourceSet.has(sourceId)
       ? disabledContextSources.filter((id) => id !== sourceId)
       : [...disabledContextSources, sourceId]
@@ -317,47 +514,24 @@ export function CommunicationBriefForm({
   }
 
   function disableAllContextSources() {
-    updateContext({ disabledContextSources: CONTEXT_SOURCE_OPTIONS.map((source) => source.id) })
-  }
-
-  function handleScenarioChange(scenario: CommunicationScenario) {
-    const item = getScenarioRegistryItem(scenario)
-    const nextOutputKind = item?.allowedOutputKinds.includes(brief.what.outputKind)
-      ? brief.what.outputKind
-      : item?.defaultOutputKind ?? brief.what.outputKind
-    const nextDefaultChannel = item?.defaultChannel && isChannelCompatibleWithPurpose(item.defaultChannel, nextOutputKind)
-      ? item.defaultChannel
-      : defaultChannelForPurpose(nextOutputKind)
-    onChange({
-      ...brief,
-      what: {
-        ...brief.what,
-        scenario,
-        channel: isChannelCompatibleWithPurpose(brief.what.channel, nextOutputKind)
-          ? brief.what.channel
-          : nextDefaultChannel,
-        outputKind: nextOutputKind,
-        activityCategory: item?.activityCategory ?? brief.what.activityCategory,
-      },
-      who: { ...brief.who, objective: item?.defaultObjective ?? brief.who.objective },
-    })
-  }
-
-  function handleContactChange(contact: ClientIntelligenceContact | null) {
-    if (!contact) {
-      updateRecipient({ contactId: undefined, displayName: undefined })
-      return
-    }
-    updateRecipient({
-      contactId: contact.id,
-      displayName: contact.fullName,
-      persona: personaFromRelationshipRole(contact.relationshipRole),
-    })
+    const toggleable = visibleContextSources
+      .filter((source) => source.visibility === "optional_on" || source.visibility === "optional_off")
+      .map((source) => source.id)
+    updateContext({ disabledContextSources: toggleable.length > 0 ? toggleable : undefined })
   }
 
   // ── Champs — un bloc par field, réassemblés différemment sur desktop (4
   //    accordéons QUOI/QUI/COMMENT/CONTEXTE) et mobile (3 champs essentiels
   //    + "Plus d'options") ────────────────────────────────────────────────
+
+  const fieldCategory = model.showCategorySelector ? (
+    <CategorySelector
+      value={brief.what.activityCategory as ActivityCategory}
+      available={model.availableCategories}
+      onChange={handleCategoryChange}
+      isMobile={isMobile}
+    />
+  ) : null
 
   const fieldScenario = (
     <ScenarioPicker
@@ -366,6 +540,7 @@ export function CommunicationBriefForm({
       onChange={handleScenarioChange}
       isMobile={isMobile}
       hideLabel={isMobile}
+      allowedCategories={model.showCategorySelector ? [brief.what.activityCategory as ActivityCategory] : undefined}
     />
   )
 
@@ -375,7 +550,7 @@ export function CommunicationBriefForm({
       onChange={(e) => updateWhat({ channel: e.target.value as CommunicationChannel })}
       className={selectCls}
     >
-      {CHANNEL_OPTIONS.map((o) => (
+      {filterOptions(CHANNEL_OPTIONS, model.channels).map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </Select>
@@ -387,7 +562,7 @@ export function CommunicationBriefForm({
       onChange={(e) => updateWhat({ length: e.target.value as CommunicationLength })}
       className={selectCls}
     >
-      {LENGTH_OPTIONS.map((o) => (
+      {filterOptions(LENGTH_OPTIONS, model.lengths).map((o) => (
         <option key={o.value} value={o.value}>{o.label} ({o.hint})</option>
       ))}
     </Select>
@@ -399,7 +574,7 @@ export function CommunicationBriefForm({
       onChange={(e) => updateObjective(e.target.value as CommunicationObjective)}
       className={selectCls}
     >
-      {OBJECTIVE_OPTIONS.map((o) => (
+      {filterOptions(OBJECTIVE_OPTIONS, model.objectives).map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </Select>
@@ -441,22 +616,62 @@ export function CommunicationBriefForm({
     />
   )
 
-  const fieldRecipientType = (
+  const fieldOpportunity = model.showOpportunity ? (
+    <EntityRefSelect
+      options={opportunityOptions}
+      value={brief.context.opportunityRef}
+      onChange={handleOpportunityChange}
+      placeholder="Aucune opportunité liée"
+      loading={refsLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldMission = model.showMission ? (
+    <EntityRefSelect
+      options={missionOptions}
+      value={brief.context.missionRef}
+      onChange={handleMissionChange}
+      placeholder="Aucune mission liée"
+      loading={refsLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldCandidate = model.showCandidate ? (
+    <EntityRefSelect
+      options={candidateOptions}
+      value={brief.context.profileRef}
+      onChange={handleCandidateChange}
+      placeholder="Choisir un candidat…"
+      loading={candidatesLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldRecipientType = model.recipientTypeOptions.length > 1 ? (
     <Select
       value={brief.who.recipient.type}
-      onChange={(e) => updateRecipient({ type: e.target.value as CommunicationRecipientType })}
+      onChange={(e) => handleRecipientTypeChange(e.target.value as CommunicationRecipientType)}
       className={selectCls}
     >
-      {RECIPIENT_TYPE_OPTIONS.map((o) => (
+      {RECIPIENT_TYPE_OPTIONS.filter((o) => model.recipientTypeOptions.includes(o.value)).map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
     </Select>
+  ) : (
+    <span className={cn(
+      "flex items-center rounded-lg border border-border/25 bg-surface/10 px-2.5 text-[10px] font-semibold text-muted",
+      isMobile ? "h-9" : "h-7",
+    )}>
+      {RECIPIENT_TYPE_OPTIONS.find((o) => o.value === brief.who.recipient.type)?.label ?? brief.who.recipient.type}
+    </span>
   )
 
   const fieldPersona = (
     <Select
       value={brief.who.recipient.persona}
-      onChange={(e) => updateRecipient({ persona: e.target.value as CommunicationPersona })}
+      onChange={(e) => onChange({ ...brief, who: { ...brief.who, recipient: { ...brief.who.recipient, persona: e.target.value as CommunicationPersona } } })}
       className={selectCls}
     >
       {PERSONA_OPTIONS.map((o) => (
@@ -468,7 +683,7 @@ export function CommunicationBriefForm({
   const fieldRelation = (
     <Select
       value={brief.who.recipient.relation}
-      onChange={(e) => updateRecipient({ relation: e.target.value as CommunicationRelation })}
+      onChange={(e) => onChange({ ...brief, who: { ...brief.who, recipient: { ...brief.who.recipient, relation: e.target.value as CommunicationRelation } } })}
       className={selectCls}
     >
       {RELATION_OPTIONS.map((o) => (
@@ -483,7 +698,7 @@ export function CommunicationBriefForm({
       onChange={(e) => updateHow({ tone: e.target.value as CommunicationTone })}
       className={selectCls}
     >
-      {TONE_OPTIONS.map((option) => (
+      {filterOptions(TONE_OPTIONS, model.tones).map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
@@ -523,14 +738,14 @@ export function CommunicationBriefForm({
     </Select>
   )
 
-  const fieldOfferPicker = showsOfferPicker ? (
+  const fieldOfferPicker = model.showOffer ? (
     <OfferPicker
       offers={offers ?? []}
       suggestedPracticeSlugs={suggestedPracticeSlugs ?? []}
       value={brief.context.offerRef}
-      onChange={(offerId) => updateContext({ offerRef: offerId })}
+      onChange={handleOfferChange}
       loading={offersLoading}
-      required={requiresOffer}
+      required={model.offerRequired}
       isMobile={isMobile}
       hideLabel={isMobile}
     />
@@ -567,7 +782,7 @@ export function CommunicationBriefForm({
       >
         <span className="min-w-0 truncate">Sources</span>
         <span className="shrink-0 text-[9px] font-medium text-primary">
-          {activeContextSourceCount}/{CONTEXT_SOURCE_OPTIONS.length} actives
+          {activeOptionalCount}/{optionalSourceCount} optionnelles actives
         </span>
       </button>
 
@@ -578,7 +793,7 @@ export function CommunicationBriefForm({
         headerClassName="communication-picker-modal-header"
         bodyClassName="communication-picker-modal-body"
         title="Paramètres avancés"
-        description="Décoche les sources de contexte à exclure de la génération."
+        description="Décoche les sources de contexte optionnelles à exclure de la génération."
         footer={
           <div className="flex w-full items-center justify-between gap-2">
             <button
@@ -608,30 +823,47 @@ export function CommunicationBriefForm({
         }
       >
         <div className="space-y-2">
-          {CONTEXT_SOURCE_OPTIONS.map((source) => {
-            const checked = !disabledContextSourceSet.has(source.id)
+          {visibleContextSources.length === 0 ? (
+            <p className="px-1 py-2 text-[11px] text-muted">
+              Aucune source contextuelle n&apos;est pertinente pour ce scénario.
+            </p>
+          ) : null}
+          {visibleContextSources.map((sourceState) => {
+            const option = CONTEXT_SOURCE_OPTIONS.find((candidate) => candidate.id === sourceState.id)
+            if (!option) return null
+            const locked = sourceState.visibility === "locked_on"
+            const unavailable = sourceState.visibility === "unavailable"
+            const checked = sourceState.visibility === "locked_on" || sourceState.visibility === "optional_on"
+
             return (
               <label
-                key={source.id}
+                key={option.id}
                 className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                  checked
+                  "flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+                  unavailable
+                    ? "cursor-not-allowed border-border/20 bg-surface/10 opacity-60"
+                    : "cursor-pointer",
+                  !unavailable && checked
                     ? "border-primary/35 bg-primary/8"
-                    : "border-border/35 bg-surface/20 hover:bg-surface/35",
+                    : !unavailable
+                      ? "border-border/35 bg-surface/20 hover:bg-surface/35"
+                      : "",
                 )}
               >
                 <input
                   type="checkbox"
                   checked={checked}
-                  onChange={() => toggleContextSource(source.id)}
+                  disabled={locked || unavailable}
+                  onChange={() => toggleContextSource(sourceState.id, sourceState.visibility)}
                   className="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]"
                 />
                 <span className="min-w-0">
                   <span className="block text-[11px] font-bold leading-4 text-heading">
-                    {source.label}
+                    {option.label}
+                    {locked ? <span className="ml-1.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-primary">Obligatoire</span> : null}
                   </span>
                   <span className="mt-0.5 block text-[10px] leading-4 text-muted">
-                    {source.description}
+                    {unavailable ? "Non disponible pour ce contexte." : option.description}
                   </span>
                 </span>
               </label>
@@ -642,20 +874,37 @@ export function CommunicationBriefForm({
     </>
   )
 
+  const structuralNoticeBlock = structuralNotice ? (
+    <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-[10px] leading-normal text-muted">
+      {structuralNotice}
+    </p>
+  ) : null
+
   if (isMobile) {
     // Parcours condensé : intention, cible et contrainte d'écriture en premier.
     // Les réglages de sortie restent accessibles mais ne bloquent pas l'action.
     return (
       <div className="space-y-5">
         <div className="space-y-3">
+          {structuralNoticeBlock}
+          {fieldCategory ? <ParameterRow label="Catégorie">{fieldCategory}</ParameterRow> : null}
+          {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
+          {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
+          {fieldCandidate ? (
+            <ParameterRow label={model.candidateIsRecipient ? "Candidat destinataire" : "Candidat présenté"}>
+              {fieldCandidate}
+            </ParameterRow>
+          ) : null}
           <ParameterRow label="Scénario">{fieldScenario}</ParameterRow>
           <ParameterRow label="Objectif">{fieldObjective}</ParameterRow>
           {fieldOfferPicker ? (
-            <ParameterRow label={requiresOffer ? "Offre catalogue" : "Offre recommandée"}>
+            <ParameterRow label="Offre catalogue">
               {fieldOfferPicker}
             </ParameterRow>
           ) : null}
-          <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
+          {model.showContact ? (
+            <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
+          ) : null}
           <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
         </div>
         <details className="group rounded-lg border border-border bg-canvas/30 p-3">
@@ -686,9 +935,13 @@ export function CommunicationBriefForm({
               >
                 {fieldPractice}
               </ParameterRow>
-              <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
-              <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
-              <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
+              <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
+              {!model.candidateIsRecipient ? (
+                <>
+                  <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+                  <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
+                </>
+              ) : null}
             </section>
 
             <section className="space-y-3 border-t border-border/30 pt-4">
@@ -709,30 +962,17 @@ export function CommunicationBriefForm({
       <SectionRail />
 
       <div className="min-w-0 space-y-5">
+        {structuralNoticeBlock}
         <details open className="group border-b border-border/30 pb-5">
           <SectionHeading number="01" title="Quoi" />
           <div className="space-y-2.5 pt-3">
-            <ParameterRow label="Scénario">
-              <ScenarioPicker
-                outputKind={brief.what.outputKind}
-                value={brief.what.scenario}
-                onChange={handleScenarioChange}
-                hideLabel
-              />
-            </ParameterRow>
+            {fieldCategory ? <ParameterRow label="Catégorie">{fieldCategory}</ParameterRow> : null}
+            <ParameterRow label="Scénario">{fieldScenario}</ParameterRow>
             <ParameterRow label="Objectif">{fieldObjective}</ParameterRow>
             <ParameterRow label="Format">{fieldChannel}</ParameterRow>
             {fieldOfferPicker ? (
-              <ParameterRow label={requiresOffer ? "Offre catalogue" : "Offre recommandée"}>
-                <OfferPicker
-                  offers={offers ?? []}
-                  suggestedPracticeSlugs={suggestedPracticeSlugs ?? []}
-                  value={brief.context.offerRef}
-                  onChange={(offerId) => updateContext({ offerRef: offerId })}
-                  loading={offersLoading}
-                  required={requiresOffer}
-                  hideLabel
-                />
+              <ParameterRow label="Offre catalogue (obligatoire)">
+                {fieldOfferPicker}
               </ParameterRow>
             ) : null}
           </div>
@@ -751,10 +991,23 @@ export function CommunicationBriefForm({
             >
               {fieldPractice}
             </ParameterRow>
-            <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
-            <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
-            <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
-            <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
+            {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
+            {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
+            {fieldCandidate ? (
+              <ParameterRow label={model.candidateIsRecipient ? "Candidat destinataire" : "Candidat présenté"}>
+                {fieldCandidate}
+              </ParameterRow>
+            ) : null}
+            {model.showContact ? (
+              <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
+            ) : null}
+            <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
+            {!model.candidateIsRecipient ? (
+              <>
+                <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+                <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
+              </>
+            ) : null}
           </div>
         </details>
 

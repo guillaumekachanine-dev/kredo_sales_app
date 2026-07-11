@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { CommunicationOutputKind, CommunicationScenario } from "@/lib/n8n/types"
-import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import { getScenarioRegistryItem, type ActivityCategory } from "@/lib/communication/communication-scenario-registry"
 import { ScenarioPickerModal } from "./ScenarioPickerModal"
 
 // ADR-0013 Lot 1 — remplace le <Select> à plat (69+ scénarios en vrac,
@@ -15,12 +15,16 @@ export function ScenarioPicker({
   onChange,
   isMobile,
   hideLabel = false,
+  allowedCategories,
+  allowedScenarios,
 }: {
   outputKind: CommunicationOutputKind
   value: CommunicationScenario
   onChange: (scenario: CommunicationScenario) => void
   isMobile?: boolean
   hideLabel?: boolean
+  allowedCategories?: ActivityCategory[]
+  allowedScenarios?: CommunicationScenario[]
 }) {
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -53,6 +57,8 @@ export function ScenarioPicker({
         outputKind={outputKind}
         value={value}
         onSelect={onChange}
+        allowedCategories={allowedCategories}
+        allowedScenarios={allowedScenarios}
       />
     </div>
   )

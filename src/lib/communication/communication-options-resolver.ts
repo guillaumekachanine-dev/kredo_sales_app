@@ -220,13 +220,20 @@ export function resolveCommunicationOptions(
     : definition?.suggestedTones[0] ?? currentBrief.how.tone
   adjustment(adjustments, "tone", currentBrief.how.tone, tone, "tone excluded by scenario")
 
+  // Lot 7 — le choix utilisateur du destinataire (ex: candidat vs client sur un
+  // scénario recrutement) prime sur le fait déduit du lifecycle compte tant
+  // qu'il reste éligible pour le scénario résolu ; sinon repli sur le fait,
+  // puis sur le premier type éligible du scénario.
+  const currentRecipientType = currentBrief.who.recipient.type
   const recipientType = scope === "collaborator"
     ? "collaborator"
     : scope === "internal"
       ? "internal"
-      : facts.recipientType && definition?.eligibleRecipientTypes.includes(facts.recipientType)
-        ? facts.recipientType
-        : definition?.eligibleRecipientTypes[0] ?? currentBrief.who.recipient.type
+      : definition && currentRecipientType && definition.eligibleRecipientTypes.includes(currentRecipientType)
+        ? currentRecipientType
+        : facts.recipientType && definition?.eligibleRecipientTypes.includes(facts.recipientType)
+          ? facts.recipientType
+          : definition?.eligibleRecipientTypes[0] ?? currentBrief.who.recipient.type
   adjustment(adjustments, "recipientType", currentBrief.who.recipient.type, recipientType, "recipient type incompatible with scope")
 
   const normalizedBrief: CommunicationBrief = {

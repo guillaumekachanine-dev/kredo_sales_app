@@ -66,6 +66,23 @@ describe("communication scenario registry", () => {
     }
   })
 
+  it("narrows recrutement scenarios to their real recipient — candidate vs client (Lot 7)", () => {
+    const candidateDirected = [
+      "candidate_interview_invitation", "candidate_follow_up", "candidate_offer", "candidate_rejection",
+      "candidate_availability_check", "candidate_post_interview_feedback", "candidate_cv_completion_request",
+      "dormant_talent_pool_reactivation", "opportunity_to_candidate_pitch", "candidate_closing_pitch",
+      "recruiter_briefing_pre_interview", "mobility_salary_pitch",
+    ] as const
+    for (const id of candidateDirected) {
+      expect(getScenarioDefinition(id)?.eligibleRecipientTypes).toEqual(["candidate"])
+    }
+
+    const clientDirected = ["candidate_to_client_pitch", "atypical_candidate_defense"] as const
+    for (const id of clientDirected) {
+      expect(getScenarioDefinition(id)?.eligibleRecipientTypes).toEqual(["active_client", "prospect"])
+    }
+  })
+
   it("supports multi-finality scenarios without duplicate entries", () => {
     expect(getScenarioDefinition("collaborator_recognition")?.allowedOutputKinds)
       .toEqual(["written_message", "spoken_pitch"])

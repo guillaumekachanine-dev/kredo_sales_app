@@ -127,6 +127,22 @@ describe("resolveCommunicationOptions", () => {
     expect(JSON.stringify(legacy)).toBe(snapshot)
   })
 
+  it("preserves a manually chosen recipient type over a stale lifecycle fact when both are eligible (Lot 7)", () => {
+    const chosenProspect = brief({
+      what: { ...brief().what, scenario: "candidate_to_client_pitch", activityCategory: "recrutement", outputKind: "structured_briefing", channel: "meeting_briefing" },
+      who: { ...brief().who, recipient: { ...brief().who.recipient, type: "prospect" } },
+    })
+    const resolved = resolveCommunicationOptions({ hasCompany: true, recipientType: "active_client" }, chosenProspect)
+    expect(resolved.normalizedBrief.who.recipient.type).toBe("prospect")
+
+    const invalidChoice = brief({
+      what: { ...brief().what, scenario: "candidate_to_client_pitch", activityCategory: "recrutement", outputKind: "structured_briefing", channel: "meeting_briefing" },
+      who: { ...brief().who, recipient: { ...brief().who.recipient, type: "candidate" } },
+    })
+    const fallback = resolveCommunicationOptions({ hasCompany: true, recipientType: "active_client" }, invalidChoice)
+    expect(fallback.normalizedBrief.who.recipient.type).toBe("active_client")
+  })
+
   it("rejects an ambiguous legacy category instead of silently guessing", () => {
     const ambiguous = brief({
       what: {

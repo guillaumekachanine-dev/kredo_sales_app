@@ -75,6 +75,11 @@ type ScenarioSeed = Pick<ScenarioRegistryItem,
 > & {
   allowedOutputKinds?: CommunicationOutputKind[]
   allowedObjectives?: CommunicationObjective[]
+  // Lot 7 — override du destinataire éligible au niveau du scénario plutôt que
+  // de la catégorie (ex: recrutement mélange des scénarios adressés au candidat
+  // et d'autres adressés au client — le défaut de catégorie ne peut pas les
+  // distinguer). Absent = comportement historique (défaut de catégorie).
+  eligibleRecipientTypes?: CommunicationRecipientType[]
 }
 
 export const ACTIVITY_CATEGORY_OPTIONS: {
@@ -565,6 +570,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "invite_to_interview",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_follow_up",
@@ -577,6 +583,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "get_reply",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_offer",
@@ -589,6 +596,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "send_offer",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_rejection",
@@ -601,6 +609,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "reject_candidate",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_availability_check",
@@ -613,6 +622,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "request_action",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_post_interview_feedback",
@@ -625,6 +635,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "get_feedback",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_cv_completion_request",
@@ -637,6 +648,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "request_action",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "dormant_talent_pool_reactivation",
@@ -649,6 +661,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "reactivate",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_to_client_pitch",
@@ -661,6 +674,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "present_offer",
     requiresOffer: false,
     requiredScopes: ["account", "internal"],
+    eligibleRecipientTypes: ["active_client", "prospect"],
   },
   {
     value: "opportunity_to_candidate_pitch",
@@ -673,6 +687,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "submit_profile",
     requiresOffer: false,
     requiredScopes: ["account", "internal"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "candidate_closing_pitch",
@@ -685,6 +700,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "close_candidate",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "atypical_candidate_defense",
@@ -697,6 +713,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "advocate_for_candidate",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["active_client", "prospect"],
   },
   {
     value: "recruiter_briefing_pre_interview",
@@ -709,6 +726,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "align_internal",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
   {
     value: "mobility_salary_pitch",
@@ -721,6 +739,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "negotiate_terms",
     requiresOffer: false,
     requiredScopes: ["account"],
+    eligibleRecipientTypes: ["candidate"],
   },
 
   // ─── Interne · Management ──────────────────────────────────────────────
@@ -1051,7 +1070,27 @@ const OUTPUT_CHANNELS: Record<CommunicationOutputKind, CommunicationChannel[]> =
 function toScenarioDefinition(seed: ScenarioSeed): ScenarioRegistryItem {
   const allowedOutputKinds = MULTI_OUTPUT_KINDS[seed.value] ?? [seed.defaultOutputKind]
   const allowedChannels = Array.from(new Set(allowedOutputKinds.flatMap((kind) => OUTPUT_CHANNELS[kind])))
-  return { id: seed.value, value: seed.value, label: seed.label, description: seed.description, activityCategory: seed.activityCategory, allowedOutputKinds, defaultOutputKind: seed.defaultOutputKind, requiredScopes: seed.requiredScopes, ...CATEGORY_CONSTRAINTS[seed.activityCategory], allowedChannels, defaultChannel: seed.defaultChannel, allowedObjectives: seed.allowedObjectives ?? [seed.defaultObjective], defaultObjective: seed.defaultObjective, requiresOffer: OFFER_REQUIRED_SCENARIOS.has(seed.value), useCase: allowedOutputKinds.length > 1 ? "both" : seed.defaultOutputKind === "written_message" ? "mail" : "pitch" }
+  const categoryConstraints = CATEGORY_CONSTRAINTS[seed.activityCategory]
+  return {
+    id: seed.value,
+    value: seed.value,
+    label: seed.label,
+    description: seed.description,
+    activityCategory: seed.activityCategory,
+    allowedOutputKinds,
+    defaultOutputKind: seed.defaultOutputKind,
+    requiredScopes: seed.requiredScopes,
+    ...categoryConstraints,
+    // Lot 7 — un scénario peut restreindre le destinataire éligible au-delà du
+    // défaut de sa catégorie (ex: recrutement candidat vs recrutement client).
+    eligibleRecipientTypes: seed.eligibleRecipientTypes ?? categoryConstraints.eligibleRecipientTypes,
+    allowedChannels,
+    defaultChannel: seed.defaultChannel,
+    allowedObjectives: seed.allowedObjectives ?? [seed.defaultObjective],
+    defaultObjective: seed.defaultObjective,
+    requiresOffer: OFFER_REQUIRED_SCENARIOS.has(seed.value),
+    useCase: allowedOutputKinds.length > 1 ? "both" : seed.defaultOutputKind === "written_message" ? "mail" : "pitch",
+  }
 }
 
 export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [...SCENARIO_SEEDS, ...LOT_1_SCENARIO_SEEDS].map(toScenarioDefinition)

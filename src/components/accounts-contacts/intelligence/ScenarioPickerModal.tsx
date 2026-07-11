@@ -57,22 +57,57 @@ export function ScenarioPickerModal({
   outputKind,
   value,
   onSelect,
+  allowedCategories,
+  allowedScenarios,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   outputKind: CommunicationOutputKind
   value: CommunicationScenario | undefined
   onSelect: (scenario: CommunicationScenario) => void
+  // Lot 7 — restreint les catégories/scénarios proposés à ceux que le
+  // résolveur juge compatibles avec le scope/contexte actif (command §1 :
+  // "chaque étape doit proposer uniquement les valeurs compatibles"). Non
+  // fourni = comportement historique (tout le catalogue pour cette finalité).
+  allowedCategories?: ActivityCategory[]
+  allowedScenarios?: CommunicationScenario[]
 }) {
   const [step, setStep] = useState<"category" | "scenarios">("category")
   const [activeCategory, setActiveCategory] = useState<ActivityCategory | null>(null)
   const [leaving, setLeaving] = useState(false)
 
   const categories = useMemo<CategoryGroup[]>(() => {
-    return getScenarioPurposeGroups(outputKind)
-  }, [outputKind])
+    const groups = getScenarioPurposeGroups(outputKind)
+    const categoryFilter = allowedCategories ? new Set(allowedCategories) : null
+    const scenarioFilter = allowedScenarios ? new Set(allowedScenarios) : null
+
+    return groups
+      .filter((group) => !categoryFilter || categoryFilter.has(group.value))
+      .map((group) => ({
+        ...group,
+        scenarios: scenarioFilter
+          ? group.scenarios.filter((scenario) => scenarioFilter.has(scenario.value))
+          : group.scenarios,
+      }))
+      .filter((group) => group.scenarios.length > 0)
+  }, [outputKind, allowedCategories, allowedScenarios])
 
   const activeGroup = categories.find((c) => c.value === activeCategory) ?? null
+
+  // Lot 7 — quand le formulaire a déjà fixé la catégorie (sélecteur "catégorie
+  // métier" en amont), une seule carte resterait à choisir ici : on saute
+  // directement à la liste de scénarios plutôt que d'imposer un clic inutile.
+  // Pattern "ajuster l'état pendant le rendu" (react.dev) plutôt qu'un effect
+  // avec setState synchrone — l'ouverture est un changement de prop, pas un
+  // événement local déclenché par ce composant.
+  const [trackedOpen, setTrackedOpen] = useState(open)
+  if (open !== trackedOpen) {
+    setTrackedOpen(open)
+    if (open && categories.length === 1) {
+      setActiveCategory(categories[0].value)
+      setStep("scenarios")
+    }
+  }
 
   // Reset au moment de la fermeture (pas à l'ouverture) — même pattern
   // qu'OfferPickerModal : évite un setState synchrone dans un effect, la
@@ -114,7 +149,7 @@ export function ScenarioPickerModal({
       bodyClassName="communication-picker-modal-body"
       title={
         <div className="flex items-center gap-2">
-          {step === "scenarios" && (
+          {step === "scenarios" && categories.length > 1 && (
             <button
               type="button"
               onClick={handleBack}
