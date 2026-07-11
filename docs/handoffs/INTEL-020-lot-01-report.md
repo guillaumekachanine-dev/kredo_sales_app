@@ -1,4 +1,4 @@
-# INTEL-020 — Rapport Lot 1
+# INTEL-020 — Rapport Lot 1 — Terminé
 
 ## Baseline et décisions
 
@@ -24,9 +24,9 @@
 - `npx tsc --noEmit` : réussi après suppression du cache `.next` généré localement.
 - ESLint ciblé sur les cinq fichiers TypeScript concernés : réussi.
 - Tests ciblés : 9/9 réussis (`communication-legacy-normalizer` et non-régression `communication-brief-options`).
-- `npm run lint` : échec de baseline, 79 erreurs et 121 avertissements hors fichiers du lot.
-- `npm test` : 206/207 réussis ; échec préexistant de `mobile-account-custom-list.test.ts`, déjà observé sur la PR documentaire du Lot 0.
-- Migration : aucune. Limitation : validations globales non vertes pour des défauts hors périmètre ; statut `partial`.
+- `npm run lint` : échec de baseline, 79 erreurs et 121 avertissements hors fichiers du lot, reproduit sur `main` au SHA de baseline.
+- `npm test` : l'échec de `mobile-account-custom-list.test.ts` est reproduit sur `main` (199/200) ; il n'est ni introduit ni aggravé par le Lot 1.
+- Migration : aucune. Les validations propres au lot sont réussies ; les réserves de baseline sont non bloquantes et aucune dette n'est introduite par le Lot 1.
 
 ## Laissé au Lot 2
 
