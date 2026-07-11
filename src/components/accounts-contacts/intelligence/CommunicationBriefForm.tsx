@@ -43,6 +43,8 @@ import type {
   CommunicationSourceAvailability,
   LoadedCommunicationFacts,
 } from "@/lib/communication/communication-context-mappers"
+import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
+import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import { ContactSelector } from "./ContactSelector"
 import { EntityRefSelect } from "./EntityRefSelect"
 import { OfferPicker } from "./OfferPicker"
@@ -54,6 +56,8 @@ import {
   getAccountOpportunities,
   type EntityRefOption,
 } from "./get-account-crm-refs"
+import { getWorkspaceCollaborators, type CollaboratorOption } from "./get-collaborator-options"
+import { ManagementConsultantFields, type CollaboratorRpcContext } from "./ManagementConsultantFields"
 
 const PRACTICE_OPTIONS = [
   "Quality Engineering & Testing",
@@ -116,7 +120,7 @@ const CONTEXT_SOURCE_OPTIONS: {
   {
     id: "collaborator_context",
     label: "Collaborateur interne",
-    description: "Collaborateur, practice, poste, séniorité et statut interne.",
+    description: "Identité, poste, practice, séniorité, statut, disponibilité, manager, profil métier, compétences, activité et absences récentes.",
   },
   {
     id: "offer_catalog",
@@ -343,14 +347,26 @@ export function CommunicationBriefForm({
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [structuralNotice, setStructuralNotice] = useState<string | null>(null)
 
+  // Lot 8 — contrairement aux entités pivot du Lot 7 (booléens de présence
+  // suffisants), le consultant est l'entité PRIMAIRE du scope collaborator :
+  // command §2 exige de "charger son contexte via le RPC du Lot 4" à la
+  // sélection, pas seulement de dériver des facts client. Ce contexte
+  // rafraîchi prend le pas sur les props initiales une fois chargé.
+  const [refreshedCollaboratorContext, setRefreshedCollaboratorContext] = useState<LoadedCommunicationContext | null>(null)
+  const [collaboratorContextLoading, setCollaboratorContextLoading] = useState(false)
+
+  const effectiveFacts = refreshedCollaboratorContext?.facts ?? communicationFacts
+  const effectiveReferences = refreshedCollaboratorContext?.references ?? availableReferences
+  const effectiveSourceAvailability = refreshedCollaboratorContext?.sourceAvailability ?? sourceAvailability
+
   // Lot 7 — le résolveur est ré-exécuté à chaque rendu à partir du brief et
   // des facts réellement connus (dont les refs choisies manuellement dans ce
   // formulaire) : source unique de vérité, pas d'état dupliqué à resynchroniser.
-  const mergedFacts = useMemo(() => mergeCommunicationFacts(communicationFacts, brief), [communicationFacts, brief])
+  const mergedFacts = useMemo(() => mergeCommunicationFacts(effectiveFacts, brief), [effectiveFacts, brief])
   const resolution = useMemo(() => resolveCommunicationOptions(mergedFacts, brief), [mergedFacts, brief])
   const model = useMemo(
-    () => buildBriefFormModel(brief, resolution, sourceAvailability),
-    [brief, resolution, sourceAvailability],
+    () => buildBriefFormModel(brief, resolution, effectiveSourceAvailability),
+    [brief, resolution, effectiveSourceAvailability],
   )
 
   const [opportunityOptions, setOpportunityOptions] = useState<EntityRefOption[]>([])
@@ -358,6 +374,37 @@ export function CommunicationBriefForm({
   const [candidateOptions, setCandidateOptions] = useState<EntityRefOption[]>([])
   const [refsLoading, setRefsLoading] = useState(false)
   const [candidatesLoading, setCandidatesLoading] = useState(false)
+  const [collaboratorOptions, setCollaboratorOptions] = useState<CollaboratorOption[]>([])
+  const [collaboratorOptionsLoading, setCollaboratorOptionsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!model.showConsultant) return
+    let cancelled = false
+    async function loadCollaborators() {
+      setCollaboratorOptionsLoading(true)
+      const result = await getWorkspaceCollaborators()
+      if (!cancelled) {
+        setCollaboratorOptions(result.options)
+        setCollaboratorOptionsLoading(false)
+      }
+    }
+    void loadCollaborators()
+    return () => { cancelled = true }
+  }, [model.showConsultant])
+
+  useEffect(() => {
+    if (!model.showConsultant || !brief.context.collaboratorRef) return
+    let cancelled = false
+    async function loadCollaboratorContext(collaboratorId: string) {
+      setCollaboratorContextLoading(true)
+      const result = await loadCommunicationContextForCurrentUser({ scope: "collaborator", collaboratorId })
+      if (cancelled) return
+      setRefreshedCollaboratorContext(result.context)
+      setCollaboratorContextLoading(false)
+    }
+    void loadCollaboratorContext(brief.context.collaboratorRef)
+    return () => { cancelled = true }
+  }, [model.showConsultant, brief.context.collaboratorRef])
 
   // Les listes ne sont pas remises à vide de façon synchrone quand elles
   // deviennent hors-sujet (catégorie/scénario change) — elles sont simplement
@@ -400,7 +447,7 @@ export function CommunicationBriefForm({
   //    purge les références devenues incompatibles et signale l'ajustement. ──
   function applyStructuralChange(patch: (current: CommunicationBrief) => CommunicationBrief) {
     const patched = patch(brief)
-    const factsForResolve = mergeCommunicationFacts(communicationFacts, patched)
+    const factsForResolve = mergeCommunicationFacts(effectiveFacts, patched)
     const resolved = resolveCommunicationOptions(factsForResolve, patched)
     const purged = purgeIncompatibleReferences(resolved.normalizedBrief, resolved)
     const allAdjustments = [...resolved.adjustments, ...purged.adjustments]
@@ -459,6 +506,23 @@ export function CommunicationBriefForm({
     }))
   }
 
+  function handleCollaboratorChange(collaborator: CollaboratorOption | null) {
+    applyStructuralChange((current) => ({
+      ...current,
+      // Une mission choisie appartient au consultant précédent — purgée au
+      // changement de consultant plutôt que laissée incohérente (command §7).
+      context: { ...current.context, collaboratorRef: collaborator?.id, missionRef: undefined },
+      who: {
+        ...current.who,
+        recipient: {
+          ...current.who.recipient,
+          collaboratorId: collaborator?.id,
+          displayName: collaborator?.displayName,
+        },
+      },
+    }))
+  }
+
   function handleOpportunityChange(id: string | undefined) {
     applyStructuralChange((current) => ({ ...current, context: { ...current.context, opportunityRef: id } }))
   }
@@ -493,8 +557,8 @@ export function CommunicationBriefForm({
   const visibleContextSources = model.contextSources
   const activeOptionalCount = visibleContextSources.filter((source) => source.visibility === "optional_on").length
   const optionalSourceCount = visibleContextSources.filter((source) => source.visibility !== "locked_on" && source.visibility !== "unavailable").length
-  const loadedReferenceCount = availableReferences
-    ? Object.values(availableReferences).filter(Boolean).length
+  const loadedReferenceCount = effectiveReferences
+    ? Object.values(effectiveReferences).filter(Boolean).length
     : undefined
   const contextSourcesAriaLabel = `Sources contextuelles (${activeOptionalCount}/${optionalSourceCount} optionnelles actives, ${loadedReferenceCount ?? 0} références chargées)`
 
@@ -627,7 +691,10 @@ export function CommunicationBriefForm({
     />
   ) : null
 
-  const fieldMission = model.showMission ? (
+  // Lot 8 — en scope collaborator, la mission est sélectionnée depuis le
+  // contexte RPC du consultant (ManagementConsultantFields), pas depuis la
+  // liste "missions du compte" du Lot 7 (sans objet ici, aucun companyId).
+  const fieldMission = model.showMission && !model.showConsultant ? (
     <EntityRefSelect
       options={missionOptions}
       value={brief.context.missionRef}
@@ -645,6 +712,21 @@ export function CommunicationBriefForm({
       onChange={handleCandidateChange}
       placeholder="Choisir un candidat…"
       loading={candidatesLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldConsultant = model.showConsultant ? (
+    <ManagementConsultantFields
+      collaboratorOptions={collaboratorOptions}
+      collaboratorOptionsLoading={collaboratorOptionsLoading}
+      collaboratorId={brief.context.collaboratorRef}
+      onCollaboratorChange={handleCollaboratorChange}
+      missionRef={brief.context.missionRef}
+      onMissionChange={handleMissionChange}
+      showMission={model.showMission}
+      collaboratorContext={effectiveReferences?.collaboratorContext as CollaboratorRpcContext | undefined}
+      collaboratorContextLoading={collaboratorContextLoading}
       isMobile={isMobile}
     />
   ) : null
@@ -887,6 +969,9 @@ export function CommunicationBriefForm({
       <div className="space-y-5">
         <div className="space-y-3">
           {structuralNoticeBlock}
+          {/* Lot 8 command §8 — mobile : consultant en premier, avant même le
+              scénario, pour les briefs collaborator. */}
+          {fieldConsultant ? <ParameterRow label="Consultant">{fieldConsultant}</ParameterRow> : null}
           {fieldCategory ? <ParameterRow label="Catégorie">{fieldCategory}</ParameterRow> : null}
           {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
           {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
@@ -936,7 +1021,7 @@ export function CommunicationBriefForm({
                 {fieldPractice}
               </ParameterRow>
               <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
-              {!model.candidateIsRecipient ? (
+              {model.showPersonaRelation ? (
                 <>
                   <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
                   <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
@@ -991,18 +1076,24 @@ export function CommunicationBriefForm({
             >
               {fieldPractice}
             </ParameterRow>
-            {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
-            {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
-            {fieldCandidate ? (
-              <ParameterRow label={model.candidateIsRecipient ? "Candidat destinataire" : "Candidat présenté"}>
-                {fieldCandidate}
-              </ParameterRow>
-            ) : null}
-            {model.showContact ? (
-              <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
-            ) : null}
+            {fieldConsultant ? (
+              <ParameterRow label="Consultant">{fieldConsultant}</ParameterRow>
+            ) : (
+              <>
+                {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
+                {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
+                {fieldCandidate ? (
+                  <ParameterRow label={model.candidateIsRecipient ? "Candidat destinataire" : "Candidat présenté"}>
+                    {fieldCandidate}
+                  </ParameterRow>
+                ) : null}
+                {model.showContact ? (
+                  <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
+                ) : null}
+              </>
+            )}
             <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
-            {!model.candidateIsRecipient ? (
+            {model.showPersonaRelation ? (
               <>
                 <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
                 <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>

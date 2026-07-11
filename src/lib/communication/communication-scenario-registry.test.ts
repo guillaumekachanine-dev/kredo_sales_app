@@ -83,6 +83,34 @@ describe("communication scenario registry", () => {
     }
   })
 
+  it("differentiates management_consultants tones per situation instead of a uniform category default (Lot 8 command §5)", () => {
+    expect(getScenarioDefinition("collaborator_recognition")?.suggestedTones).toEqual(["warm", "enthusiastic_confident", "direct"])
+    expect(getScenarioDefinition("cra_absence_reminder")?.suggestedTones).toEqual(["direct", "diplomatic"])
+    expect(getScenarioDefinition("performance_feedback_talk_track")?.suggestedTones).toEqual(["direct", "pedagogical", "prudent"])
+    expect(getScenarioDefinition("disciplinary_meeting_posture")?.suggestedTones).toEqual(["assertive", "direct", "diplomatic", "prudent"])
+    expect(getScenarioDefinition("difficult_announcement_talk_track")?.suggestedTones).toEqual(["diplomatic", "prudent", "formal"])
+    expect(getScenarioDefinition("sensitive_meeting_briefing")?.suggestedTones).toEqual(["diplomatic", "prudent", "formal"])
+    expect(getScenarioDefinition("consultant_retention_follow_up")?.suggestedTones).toEqual(["warm", "diplomatic", "prudent"])
+    expect(getScenarioDefinition("intercontract_exit_pitch")?.suggestedTones).toEqual(["direct", "prudent", "pedagogical"])
+
+    // business_roi reste exclu partout en management, override ou pas (défaut de catégorie).
+    for (const id of ["collaborator_recognition", "disciplinary_meeting_posture", "consultant_retention_follow_up"] as const) {
+      expect(getScenarioDefinition(id)?.excludedTones).toContain("business_roi")
+    }
+
+    // Scénarios sans override explicite : conservent le défaut de catégorie.
+    expect(getScenarioDefinition("one_on_one_alignment")?.suggestedTones).toEqual(["diplomatic", "prudent", "warm"])
+  })
+
+  it("keeps every management_consultants scenario strictly scoped to a real collaborator (no persona/relation leakage)", () => {
+    const managementScenarios = getScenariosByActivityCategory("management_consultants")
+    expect(managementScenarios).toHaveLength(19)
+    for (const scenario of managementScenarios) {
+      expect(scenario.eligibleRecipientTypes).toEqual(["collaborator"])
+      expect(scenario.requiredScopes).toEqual(["collaborator"])
+    }
+  })
+
   it("supports multi-finality scenarios without duplicate entries", () => {
     expect(getScenarioDefinition("collaborator_recognition")?.allowedOutputKinds)
       .toEqual(["written_message", "spoken_pitch"])

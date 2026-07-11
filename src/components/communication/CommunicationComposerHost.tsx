@@ -8,6 +8,8 @@ import {
   PitchMailDrawerContent,
   type PitchMailAccountContext,
 } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
+import { CollaboratorSelect } from "@/components/accounts-contacts/intelligence/CollaboratorSelect"
+import { getWorkspaceCollaborators, type CollaboratorOption } from "@/components/accounts-contacts/intelligence/get-collaborator-options"
 import { createClient } from "@/lib/supabase/client"
 import { useIntelligenceContext } from "@/hooks/use-intelligence-context"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
@@ -255,11 +257,63 @@ function ComposerAccountSelector({
   )
 }
 
+// Lot 8 — mêmes rôle et emplacement que ComposerAccountSelector, pour le
+// scope "collaborator" ouvert sans consultant pré-résolu (ex: entrée
+// générique du composer, pas depuis ConsultantDrawer). Sans lui, ce scope
+// restait un cul-de-sac (erreur factuelle sans action possible).
+function ComposerCollaboratorSelector({
+  onSelect,
+  error,
+}: {
+  onSelect: (collaborator: CollaboratorOption) => void
+  error: string | null
+}) {
+  const [options, setOptions] = useState<CollaboratorOption[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const result = await getWorkspaceCollaborators()
+      if (!cancelled) {
+        setOptions(result.options)
+        setLoading(false)
+      }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[var(--radius-medium)] border border-primary-fg/15 bg-primary-fg/[0.07] p-4">
+        <p className="text-sm font-semibold text-primary-fg">Sélectionne le consultant concerné</p>
+        <div className="mt-3">
+          <CollaboratorSelect
+            options={options}
+            value={undefined}
+            onChange={(collaborator) => { if (collaborator) onSelect(collaborator) }}
+            loading={loading}
+          />
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-[var(--radius-medium)] border border-danger/30 bg-danger/10 px-3 py-2.5 text-xs text-primary-fg">
+          {error}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function ComposerContent({
   context,
   scope,
   selectedAccount,
   onAccountChange,
+  onCollaboratorSelect,
   error,
   variant,
   instanceKey,
@@ -269,15 +323,19 @@ function ComposerContent({
   scope: CommunicationComposerScope
   selectedAccount: AccountValue | null
   onAccountChange: (value: AccountValue | null) => void
+  onCollaboratorSelect: (collaborator: CollaboratorOption) => void
   error: string | null
   variant: "desktop" | "mobile"
   instanceKey: number
   outputKind: CommunicationOutputKind
 }) {
   if (!context) {
-    // ADR-0013 — le sélecteur de compte n'a de sens que pour le scope "account" :
-    // pour "collaborator"/"internal", rien à faire choisir manuellement, on
-    // affiche l'erreur factuelle de résolution telle quelle.
+    // Lot 8 — le scope "collaborator" gagne désormais son propre sélecteur de
+    // repli, symétrique à celui du scope "account". "internal" reste sans
+    // entité à choisir par construction (ADR-0013 D-2) : erreur factuelle.
+    if (scope === "collaborator") {
+      return <ComposerCollaboratorSelector onSelect={onCollaboratorSelect} error={error} />
+    }
     if (scope !== "account") {
       return (
         <div className="rounded-[var(--radius-medium)] border border-danger/30 bg-danger/10 px-3 py-2.5 text-xs text-primary-fg">
@@ -322,6 +380,7 @@ function DesktopCommunicationDrawer({
   scope,
   selectedAccount,
   onAccountChange,
+  onCollaboratorSelect,
   error,
   instanceKey,
   outputKind,
@@ -352,6 +411,7 @@ function DesktopCommunicationDrawer({
         scope={scope}
         selectedAccount={selectedAccount}
         onAccountChange={onAccountChange}
+        onCollaboratorSelect={onCollaboratorSelect}
         error={error}
         variant="desktop"
         instanceKey={instanceKey}
@@ -369,6 +429,7 @@ function MobileCommunicationDrawer({
   scope,
   selectedAccount,
   onAccountChange,
+  onCollaboratorSelect,
   error,
   instanceKey,
   outputKind,
@@ -400,6 +461,7 @@ function MobileCommunicationDrawer({
         scope={scope}
         selectedAccount={selectedAccount}
         onAccountChange={onAccountChange}
+        onCollaboratorSelect={onCollaboratorSelect}
         error={error}
         variant="mobile"
         instanceKey={instanceKey}
@@ -417,6 +479,7 @@ interface DrawerVariantProps {
   scope: CommunicationComposerScope
   selectedAccount: AccountValue | null
   onAccountChange: (value: AccountValue | null) => void
+  onCollaboratorSelect: (collaborator: CollaboratorOption) => void
   error: string | null
   instanceKey: number
   outputKind: CommunicationOutputKind
@@ -864,6 +927,17 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     })
   }
 
+  // Lot 8 — repli scope "collaborator" symétrique à handleAccountChange :
+  // ouverture générique du composer sans consultant pré-résolu.
+  function handleCollaboratorSelect(collaborator: CollaboratorOption) {
+    void hydrate({
+      ...request,
+      scope: "collaborator",
+      collaboratorId: collaborator.id,
+      primaryEntity: null,
+    })
+  }
+
   const drawerProps: DrawerVariantProps = {
     open,
     onOpenChange: handleOpenChange,
@@ -872,6 +946,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     scope: context?.scope ?? request.scope ?? "account",
     selectedAccount,
     onAccountChange: handleAccountChange,
+    onCollaboratorSelect: handleCollaboratorSelect,
     error,
     instanceKey,
     outputKind,

@@ -80,6 +80,11 @@ type ScenarioSeed = Pick<ScenarioRegistryItem,
   // et d'autres adressés au client — le défaut de catégorie ne peut pas les
   // distinguer). Absent = comportement historique (défaut de catégorie).
   eligibleRecipientTypes?: CommunicationRecipientType[]
+  // Lot 8 — override des tons suggérés au niveau du scénario (handoff §15.2 :
+  // reconnaissance, recadrage, annonce difficile, rétention... exigent des
+  // registres différents que le défaut uniforme de catégorie ne peut pas
+  // représenter). Absent = comportement historique (défaut de catégorie).
+  suggestedTones?: CommunicationTone[]
 }
 
 export const ACTIVITY_CATEGORY_OPTIONS: {
@@ -766,6 +771,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "request_action",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["direct", "diplomatic"],
   },
   {
     value: "one_on_one_alignment",
@@ -790,6 +796,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "acknowledge_contribution",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["warm", "enthusiastic_confident", "direct"],
   },
   {
     value: "assignment_change_notice",
@@ -886,6 +893,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "deliver_difficult_news",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["diplomatic", "prudent", "formal"],
   },
   {
     value: "disciplinary_meeting_posture",
@@ -898,6 +906,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "address_performance_issue",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["assertive", "direct", "diplomatic", "prudent"],
   },
   {
     value: "quarterly_business_review",
@@ -934,6 +943,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "align_internal",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["direct", "prudent", "pedagogical"],
   },
   {
     value: "sensitive_meeting_briefing",
@@ -946,6 +956,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "align_internal",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
+    suggestedTones: ["diplomatic", "prudent", "formal"],
   },
   {
     value: "internal_committee_pitch",
@@ -1004,6 +1015,8 @@ function createLot1Seed(
   activityCategory: "management_consultants" | "internal_staff",
   defaultOutputKind: CommunicationOutputKind,
   defaultObjective: CommunicationObjective,
+  // Lot 8 — override ponctuel des tons suggérés (handoff §15.2).
+  suggestedTones?: CommunicationTone[],
 ): ScenarioSeed {
   return {
     value,
@@ -1018,19 +1031,20 @@ function createLot1Seed(
     defaultObjective,
     requiresOffer: false,
     requiredScopes: [activityCategory === "management_consultants" ? "collaborator" : "internal"],
+    ...(suggestedTones ? { suggestedTones } : {}),
   }
 }
 
 const LOT_1_SCENARIO_SEEDS: ScenarioSeed[] = [
-  createLot1Seed("performance_feedback_follow_up", "Suivi de feedback de performance", "Formalise un suivi de feedback avec un collaborateur.", "management_consultants", "written_message", "address_performance_issue"),
-  createLot1Seed("intercontract_action_plan_message", "Plan d'action intercontrat", "Communique les prochaines étapes d'un plan intercontrat.", "management_consultants", "written_message", "request_action"),
+  createLot1Seed("performance_feedback_follow_up", "Suivi de feedback de performance", "Formalise un suivi de feedback avec un collaborateur.", "management_consultants", "written_message", "address_performance_issue", ["direct", "pedagogical", "prudent"]),
+  createLot1Seed("intercontract_action_plan_message", "Plan d'action intercontrat", "Communique les prochaines étapes d'un plan intercontrat.", "management_consultants", "written_message", "request_action", ["direct", "prudent", "pedagogical"]),
   createLot1Seed("annual_review_follow_up", "Suivi d'entretien annuel", "Récapitule les décisions après un entretien annuel.", "management_consultants", "written_message", "confirm_next_steps"),
-  createLot1Seed("consultant_retention_follow_up", "Suivi de rétention consultant", "Formalise les engagements issus d'un échange de rétention.", "management_consultants", "written_message", "confirm_next_steps"),
-  createLot1Seed("performance_feedback_talk_track", "Talk track feedback de performance", "Prépare un échange oral de feedback.", "management_consultants", "spoken_pitch", "address_performance_issue"),
-  createLot1Seed("retention_conversation_talk_track", "Talk track de rétention", "Prépare une conversation orale de rétention.", "management_consultants", "spoken_pitch", "manage_expectations"),
-  createLot1Seed("career_opportunity_talk_track", "Talk track opportunité de carrière", "Prépare la présentation orale d'une opportunité de carrière.", "management_consultants", "spoken_pitch", "manage_expectations"),
-  createLot1Seed("career_development_briefing", "Briefing développement de carrière", "Prépare un entretien de développement de carrière.", "management_consultants", "structured_briefing", "align_internal"),
-  createLot1Seed("retention_conversation_briefing", "Briefing entretien de rétention", "Prépare un entretien structuré de rétention.", "management_consultants", "structured_briefing", "manage_expectations"),
+  createLot1Seed("consultant_retention_follow_up", "Suivi de rétention consultant", "Formalise les engagements issus d'un échange de rétention.", "management_consultants", "written_message", "confirm_next_steps", ["warm", "diplomatic", "prudent"]),
+  createLot1Seed("performance_feedback_talk_track", "Talk track feedback de performance", "Prépare un échange oral de feedback.", "management_consultants", "spoken_pitch", "address_performance_issue", ["direct", "pedagogical", "prudent"]),
+  createLot1Seed("retention_conversation_talk_track", "Talk track de rétention", "Prépare une conversation orale de rétention.", "management_consultants", "spoken_pitch", "manage_expectations", ["warm", "diplomatic", "prudent"]),
+  createLot1Seed("career_opportunity_talk_track", "Talk track opportunité de carrière", "Prépare la présentation orale d'une opportunité de carrière.", "management_consultants", "spoken_pitch", "manage_expectations", ["enthusiastic_confident", "warm", "pedagogical"]),
+  createLot1Seed("career_development_briefing", "Briefing développement de carrière", "Prépare un entretien de développement de carrière.", "management_consultants", "structured_briefing", "align_internal", ["enthusiastic_confident", "warm", "pedagogical"]),
+  createLot1Seed("retention_conversation_briefing", "Briefing entretien de rétention", "Prépare un entretien structuré de rétention.", "management_consultants", "structured_briefing", "manage_expectations", ["warm", "diplomatic", "prudent"]),
   createLot1Seed("manager_status_update", "Point de statut au manager", "Communique une mise à jour de statut au manager.", "internal_staff", "written_message", "summarize_decisions"),
   createLot1Seed("cross_functional_coordination_request", "Demande de coordination transverse", "Sollicite une coordination avec une équipe Staff.", "internal_staff", "written_message", "request_action"),
   createLot1Seed("internal_decision_summary", "Synthèse de décision interne", "Récapitule les décisions et prochaines étapes internes.", "internal_staff", "written_message", "summarize_decisions"),
@@ -1084,6 +1098,9 @@ function toScenarioDefinition(seed: ScenarioSeed): ScenarioRegistryItem {
     // Lot 7 — un scénario peut restreindre le destinataire éligible au-delà du
     // défaut de sa catégorie (ex: recrutement candidat vs recrutement client).
     eligibleRecipientTypes: seed.eligibleRecipientTypes ?? categoryConstraints.eligibleRecipientTypes,
+    // Lot 8 — un scénario peut affiner les tons suggérés au-delà du défaut
+    // uniforme de sa catégorie (ex: reconnaissance vs recadrage en management).
+    suggestedTones: seed.suggestedTones ?? categoryConstraints.suggestedTones,
     allowedChannels,
     defaultChannel: seed.defaultChannel,
     allowedObjectives: seed.allowedObjectives ?? [seed.defaultObjective],

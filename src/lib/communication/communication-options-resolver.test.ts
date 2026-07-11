@@ -143,6 +143,56 @@ describe("resolveCommunicationOptions", () => {
     expect(fallback.normalizedBrief.who.recipient.type).toBe("active_client")
   })
 
+  it("resolves the full spread of management_consultants scenarios covered by Lot 8 (recognition, difficult feedback, intercontract, annual review, retention, sensitive briefing)", () => {
+    const managementBrief = (scenario: string, outputKind: "written_message" | "spoken_pitch" | "structured_briefing", channel: string) =>
+      brief({
+        what: {
+          channel: channel as never,
+          scenario: scenario as never,
+          outputKind,
+          length: "standard",
+          activityCategory: "management_consultants",
+          scope: "collaborator",
+        },
+        who: { ...brief().who, recipient: { type: "collaborator", persona: "other", relation: "unknown", collaboratorId: "collab-1" } },
+      })
+
+    const cases: [string, "written_message" | "spoken_pitch" | "structured_briefing", string][] = [
+      ["collaborator_recognition", "written_message", "internal_note"],
+      ["performance_feedback_talk_track", "spoken_pitch", "spoken_pitch_30s"],
+      ["intercontract_action_plan_message", "written_message", "internal_note"],
+      ["annual_review_follow_up", "written_message", "internal_note"],
+      ["consultant_retention_follow_up", "written_message", "internal_note"],
+      ["sensitive_meeting_briefing", "structured_briefing", "meeting_briefing"],
+    ]
+
+    for (const [scenario, outputKind, channel] of cases) {
+      const resolved = resolveCommunicationOptions({ hasCollaborator: true }, managementBrief(scenario, outputKind, channel))
+      expect(resolved.normalizedBrief.what.scenario).toBe(scenario)
+      expect(resolved.normalizedBrief.what.activityCategory).toBe("management_consultants")
+      expect(resolved.normalizedBrief.who.recipient.type).toBe("collaborator")
+      // Mission jamais requise (command §2 "seulement si la registry l'exige" —
+      // aucun scénario management ne l'exige aujourd'hui).
+      expect(resolved.requiredReferences).not.toContain("missionRef")
+      expect(resolved.optionalReferences).toContain("missionRef")
+    }
+  })
+
+  it("keeps a management_consultants multi-finality scenario as one entry across finalities", () => {
+    const asWritten = resolveCommunicationOptions({ hasCollaborator: true }, brief({
+      what: { ...brief().what, scenario: "assignment_change_notice", activityCategory: "management_consultants", scope: "collaborator", outputKind: "written_message", channel: "internal_note" },
+      who: { ...brief().who, recipient: { type: "collaborator", persona: "other", relation: "unknown", collaboratorId: "collab-1" } },
+    }))
+    expect(asWritten.normalizedBrief.what.scenario).toBe("assignment_change_notice")
+
+    const asSpoken = resolveCommunicationOptions({ hasCollaborator: true }, brief({
+      what: { ...brief().what, scenario: "assignment_change_notice", activityCategory: "management_consultants", scope: "collaborator", outputKind: "spoken_pitch", channel: "spoken_pitch_30s" },
+      who: { ...brief().who, recipient: { type: "collaborator", persona: "other", relation: "unknown", collaboratorId: "collab-1" } },
+    }))
+    expect(asSpoken.normalizedBrief.what.scenario).toBe("assignment_change_notice")
+    expect(asSpoken.normalizedBrief.what.outputKind).toBe("spoken_pitch")
+  })
+
   it("rejects an ambiguous legacy category instead of silently guessing", () => {
     const ambiguous = brief({
       what: {

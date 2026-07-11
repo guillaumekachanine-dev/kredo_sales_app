@@ -186,6 +186,125 @@ describe("purgeIncompatibleReferences", () => {
   })
 })
 
+function collaboratorBrief(overrides: Partial<CommunicationBrief> = {}): CommunicationBrief {
+  const base: CommunicationBrief = {
+    what: {
+      channel: "internal_note",
+      scenario: "collaborator_recognition",
+      outputKind: "written_message",
+      length: "standard",
+      activityCategory: "management_consultants",
+      scope: "collaborator",
+    },
+    who: {
+      sender: { role: "business_manager", name: "Guillaume" },
+      recipient: { type: "collaborator", persona: "other", relation: "unknown", collaboratorId: "collab-1", displayName: "Antoine F." },
+      objective: "acknowledge_contribution",
+    },
+    how: { tone: "warm", formality: "tu", language: "fr" },
+    context: { collaboratorRef: "collab-1" },
+  }
+  return {
+    ...base,
+    ...overrides,
+    what: { ...base.what, ...overrides.what },
+    who: {
+      ...base.who,
+      ...overrides.who,
+      sender: { ...base.who.sender, ...overrides.who?.sender },
+      recipient: { ...base.who.recipient, ...overrides.who?.recipient },
+    },
+    how: { ...base.how, ...overrides.how },
+    context: { ...base.context, ...overrides.context },
+  }
+}
+
+describe("buildBriefFormModel — management_consultants (Lot 8)", () => {
+  it("shows the consultant pivot and the optional mission pivot, hides every CRM field", () => {
+    const brief = collaboratorBrief()
+    const resolution = resolveCommunicationOptions({ hasCollaborator: true }, brief)
+    const model = buildBriefFormModel(resolution.normalizedBrief, resolution)
+    expect(model.showConsultant).toBe(true)
+    expect(model.showMission).toBe(true)
+    expect(model.showOpportunity).toBe(false)
+    expect(model.showCandidate).toBe(false)
+    expect(model.showOffer).toBe(false)
+    expect(model.showContact).toBe(false)
+    expect(model.showPersonaRelation).toBe(false)
+    expect(model.showCategorySelector).toBe(false)
+  })
+
+  it("resolves scenario-specific tones instead of the uniform category default (command §5)", () => {
+    const disciplinary = resolveCommunicationOptions({ hasCollaborator: true }, collaboratorBrief({
+      what: { ...collaboratorBrief().what, scenario: "disciplinary_meeting_posture", outputKind: "structured_briefing", channel: "meeting_briefing" },
+    }))
+    const disciplinaryModel = buildBriefFormModel(disciplinary.normalizedBrief, disciplinary)
+    expect(disciplinaryModel.tones).toEqual(["assertive", "direct", "diplomatic", "prudent"])
+
+    const recognition = resolveCommunicationOptions({ hasCollaborator: true }, collaboratorBrief())
+    const recognitionModel = buildBriefFormModel(recognition.normalizedBrief, recognition)
+    expect(recognitionModel.tones).toEqual(["warm", "enthusiastic_confident", "direct"])
+
+    // business_roi reste exclu même pour un scénario avec override (command §5 "respecter les exclusions").
+    expect(recognitionModel.tones).not.toContain("business_roi")
+  })
+})
+
+describe("buildContextSourceStates — management_consultants", () => {
+  it("locks collaborator_context (required) and exposes mission_context as optional", () => {
+    const resolution = resolveCommunicationOptions({ hasCollaborator: true }, collaboratorBrief())
+    const states = buildContextSourceStates(resolution, undefined, {
+      company: false, contact: false, opportunity: false, mission: true, candidate: false,
+      collaborator: true, offer: false, interactions: false, news: false, sector_analysis: false,
+      documents: false, agenda: true,
+    })
+    const byId = Object.fromEntries(states.map((s) => [s.id, s.visibility]))
+    expect(byId.collaborator_context).toBe("locked_on")
+    expect(byId.mission_context).toBe("optional_on")
+    // account_profile n'est ni requis ni optionnel pour management_consultants.
+    expect(byId.account_profile).toBeUndefined()
+  })
+})
+
+describe("purgeIncompatibleReferences — CRM field neutralization (Lot 8 command §7)", () => {
+  it("clears persona/relation/contactId/companyName once scope leaves account, without deleting them (compat historique)", () => {
+    const staleBrief = collaboratorBrief({
+      who: {
+        ...collaboratorBrief().who,
+        recipient: {
+          ...collaboratorBrief().who.recipient,
+          persona: "purchasing",
+          relation: "warm",
+          contactId: "contact-from-a-previous-account-scope-session",
+          companyName: "Ancien compte",
+        },
+      },
+    })
+    const resolution = resolveCommunicationOptions({ hasCollaborator: true }, staleBrief)
+    const purged = purgeIncompatibleReferences(resolution.normalizedBrief, resolution)
+    expect(purged.brief.who.recipient.persona).toBe("other")
+    expect(purged.brief.who.recipient.relation).toBe("unknown")
+    expect(purged.brief.who.recipient.contactId).toBeUndefined()
+    expect(purged.brief.who.recipient.companyName).toBeUndefined()
+    expect(purged.brief.who.recipient.collaboratorId).toBe("collab-1")
+    expect(purged.adjustments).toEqual(expect.arrayContaining([
+      expect.objectContaining({ field: "recipientCrmFields" }),
+    ]))
+  })
+
+  it("leaves an already-clean collaborator brief untouched (no noisy adjustments)", () => {
+    const resolution = resolveCommunicationOptions({ hasCollaborator: true }, collaboratorBrief())
+    const purged = purgeIncompatibleReferences(resolution.normalizedBrief, resolution)
+    expect(purged.adjustments).toHaveLength(0)
+  })
+
+  it("does not touch persona/relation for account-scope briefs", () => {
+    const resolution = resolveFor({ hasCompany: true })
+    const purged = purgeIncompatibleReferences(resolution.normalizedBrief, resolution)
+    expect(purged.adjustments).toHaveLength(0)
+  })
+})
+
 describe("mergeCommunicationFacts", () => {
   it("lets manually picked refs count as facts for the next resolution", () => {
     const withMission = brief({

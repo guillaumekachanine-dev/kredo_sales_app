@@ -27,9 +27,17 @@ export type BriefFormModel = {
   showCategorySelector: boolean
   availableCategories: ActivityCategory[]
   showContact: boolean
+  // Lot 8 — persona/relation sont des concepts CRM (contact externe) : sans
+  // objet pour un destinataire collaborateur ou interne (command Lot 8 §5,
+  // Lot 9 à venir). Distinct de showContact (le compte peut être en scope
+  // account sans que le destinataire soit un contact nominatif — recrutement
+  // candidat-destinataire par ex.).
+  showPersonaRelation: boolean
   showOpportunity: boolean
   showMission: boolean
   showCandidate: boolean
+  // Lot 8 — sélecteur de consultant (scope collaborator uniquement).
+  showConsultant: boolean
   // true = le candidat EST le destinataire (message adressé au candidat) ;
   // false = le candidat n'est qu'une référence de contexte (ex: pitch vers un
   // client à propos d'un candidat) — command §3.
@@ -112,9 +120,11 @@ export function buildBriefFormModel(
     showCategorySelector: scope === "account",
     availableCategories: resolution?.availableActivityCategories ?? [],
     showContact: scope === "account" && !candidateIsRecipient,
+    showPersonaRelation: scope === "account" && !candidateIsRecipient,
     showOpportunity: requiredRefs.has("opportunityRef") || optionalRefs.has("opportunityRef"),
     showMission: requiredRefs.has("missionRef") || optionalRefs.has("missionRef"),
     showCandidate: requiredRefs.has("profileRef") || optionalRefs.has("profileRef") || candidateIsRecipient,
+    showConsultant: scope === "collaborator",
     candidateIsRecipient,
     // Lot 7 — corrige l'écart documenté (handoff §5.4) : l'offre catalogue ne
     // dépend plus de outputKind (isPitch) mais uniquement de scenario.requiresOffer.
@@ -173,6 +183,14 @@ const REFERENCE_CONTEXT_KEYS = ["offerRef", "opportunityRef", "missionRef", "pro
 // choisie pour un scénario précédent (ex: une offre pour cold_call_pitch) doit
 // être retirée si le scénario résolu ne la reconnaît plus comme requise ou
 // optionnelle, avec un ajustement tracé plutôt qu'un état caché incohérent.
+//
+// Lot 8 — même principe appliqué au destinataire : un brief qui bascule hors
+// du scope "account" (ex: management_consultants) ne doit conserver aucun
+// champ CRM hérité (command §7 "aucun état CRM hérité ne doit subsister dans
+// un brief collaborator"). persona/relation restent non-optionnels dans le
+// contrat CommunicationBrief (compatibilité historique) : ils sont neutralisés
+// à "other"/"unknown" plutôt que supprimés — cf. communication-brief-options.ts
+// buildDefaultBrief, qui applique déjà cette même neutralisation à la création.
 export function purgeIncompatibleReferences(
   brief: CommunicationBrief,
   resolution: CommunicationResolution,
@@ -193,6 +211,33 @@ export function purgeIncompatibleReferences(
     }
   }
 
+  let nextRecipient = brief.who.recipient
+  if (brief.what.scope !== "account") {
+    const hasCrmFields = Boolean(
+      nextRecipient.contactId
+      || nextRecipient.companyName
+      || nextRecipient.persona !== "other"
+      || nextRecipient.relation !== "unknown",
+    )
+    if (hasCrmFields) {
+      adjustments.push({
+        field: "recipientCrmFields",
+        previousValue: [nextRecipient.persona, nextRecipient.relation].filter(Boolean).join("/"),
+        reason: "crm recipient fields not applicable outside account scope",
+      })
+      nextRecipient = {
+        ...nextRecipient,
+        contactId: undefined,
+        companyName: undefined,
+        persona: "other",
+        relation: "unknown",
+      }
+    }
+  }
+
   if (adjustments.length === 0) return { brief, adjustments }
-  return { brief: { ...brief, context: nextContext }, adjustments }
+  return {
+    brief: { ...brief, context: nextContext, who: { ...brief.who, recipient: nextRecipient } },
+    adjustments,
+  }
 }
