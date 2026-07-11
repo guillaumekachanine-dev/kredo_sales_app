@@ -2068,6 +2068,7 @@ export type Database = {
           id: string
           job_profile_id: string | null
           manager_id: string | null
+          manager_profile_id: string | null
           metadata: Json
           notes: string | null
           person_id: string
@@ -2089,6 +2090,7 @@ export type Database = {
           id?: string
           job_profile_id?: string | null
           manager_id?: string | null
+          manager_profile_id?: string | null
           metadata?: Json
           notes?: string | null
           person_id: string
@@ -2110,6 +2112,7 @@ export type Database = {
           id?: string
           job_profile_id?: string | null
           manager_id?: string | null
+          manager_profile_id?: string | null
           metadata?: Json
           notes?: string | null
           person_id?: string
@@ -2161,6 +2164,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["collaborator_id"]
+          },
+          {
+            foreignKeyName: "collaborators_manager_profile_id_fkey"
+            columns: ["manager_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "collaborators_person_id_fkey"
@@ -6458,6 +6468,14 @@ export type Database = {
           p_as_of_date?: string
           p_period_end: string
           p_period_start: string
+          p_workspace_id: string
+        }
+        Returns: Json
+      }
+      get_collaborator_communication_context: {
+        Args: {
+          p_collaborator_id: string
+          p_mission_id?: string
           p_workspace_id: string
         }
         Returns: Json
