@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { formatDateFr } from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
@@ -41,7 +42,8 @@ export function VeilleActualitesMobile({
   companies,
   watchedSignals,
 }: VeilleActualitesMobileProps) {
-  const [activeTab, setActiveTab] = useState<"globale" | "comptes">("globale")
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<"globale" | "comptes" | "historique">("globale")
   const [articles, setArticles] = useState<VeilleArticle[]>(initialArticles)
   const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(() => {
     return initialArticles.length > 0 ? initialArticles[0] : null
@@ -140,6 +142,64 @@ export function VeilleActualitesMobile({
     showToast("Signal qualifié et mis à jour.")
   }
 
+  const historyMobileView = (
+    <div className="px-4 space-y-4 pb-24">
+      <div className="flex items-center justify-between">
+        <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-heading">
+          Historique des briefings ({pastDigests.length})
+        </h2>
+      </div>
+
+      {pastDigests.length === 0 ? (
+        <div className="rounded-xl border border-border/20 bg-surface/10 p-8 text-center text-xs text-muted italic">
+          Aucun briefing passé disponible.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {pastDigests.map((d) => {
+            const isCurrent = digest?.id === d.id
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => {
+                  showToast(`Chargement du briefing du ${formatDateFr(d.digest_date)}...`)
+                  router.push(`?digestId=${d.id}`)
+                  setActiveTab("globale")
+                }}
+                className={cn(
+                  "w-full text-left p-4 rounded-xl border transition-all flex items-center justify-between gap-4 cursor-pointer",
+                  isCurrent
+                    ? "border-primary bg-primary/[0.03] shadow-sm"
+                    : "border-border/40 bg-surface/30 hover:border-border/60"
+                )}
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted">
+                      {formatDateFr(d.digest_date)}
+                    </span>
+                    {isCurrent && (
+                      <span className="rounded bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[8px] font-bold text-primary uppercase">
+                        Actuel
+                      </span>
+                    )}
+                  </div>
+                  <span className="block font-heading text-xs font-bold text-heading truncate">
+                    {d.titre_digest}
+                  </span>
+                </div>
+                <svg className="size-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
   const watchedMobileView = (
     <div className="px-4 space-y-4 pb-24">
       <div className="flex items-center justify-between">
@@ -232,15 +292,10 @@ export function VeilleActualitesMobile({
       )}
 
       {/* Mobile Sticky / Regular Header */}
-      <header className="sticky top-0 z-[var(--z-sticky)] bg-surface border-b border-border/60 px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-sm font-bold text-heading">
-            Veille & actualités
-          </h1>
-          <p className="text-[10px] text-muted">
-            Briefing commercial hebdomadaire
-          </p>
-        </div>
+      <header className="sticky top-0 z-[var(--z-sticky)] bg-surface border-b border-border/60 px-4 py-3 flex items-center justify-between min-h-[56px]">
+        <h1 className="font-heading text-lg font-bold text-heading flex items-center">
+          Veille & actualités
+        </h1>
         <button
           onClick={() => showToast("Mise à jour lancée...")}
           className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-muted hover:text-heading"
@@ -274,12 +329,18 @@ export function VeilleActualitesMobile({
               : "border-transparent text-muted"
           )}
         >
-          <span>Comptes surveillés</span>
-          {localWatchedSignals.length > 0 && (
-            <span className="rounded-full bg-[#E2931D]/10 border border-[#E2931D]/30 px-1.5 py-0.5 text-[9px] font-bold text-[#E2931D]">
-              {localWatchedSignals.length}
-            </span>
+          <span>Veille ciblée</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("historique")}
+          className={cn(
+            "flex-1 text-center py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
+            activeTab === "historique"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted"
           )}
+        >
+          Historique
         </button>
       </div>
 
@@ -287,7 +348,7 @@ export function VeilleActualitesMobile({
         <>
           {/* Chips filtres horizontaux */}
       <div className="px-4 overflow-x-auto scrollbar-none flex gap-2 pb-2">
-        {["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"].map((cat) => (
+        {["Tous", "Réglementaire", "Nominations", "Marché"].map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
@@ -305,33 +366,54 @@ export function VeilleActualitesMobile({
         {digest && selectedArticle ? (
           <>
             {/* Main selected signal: editorial cream paper-sheet */}
-            <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-4 space-y-4 shadow-sm">
-              <div className="flex items-center justify-between gap-2 border-b border-border/20 pb-3">
-                <div>
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block">
+            <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-4 space-y-3 shadow-sm">
+              <div className="flex items-start justify-between gap-3 border-b border-border/20 pb-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block leading-none">
                     {selectedArticle.categorie || "Signal"}
                   </span>
-                  <span className="text-[10px] text-muted">
-                    {getRelativeTimeFr(selectedArticle.published_at)}
-                  </span>
+                  {selectedArticle.source_name && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted leading-none">
+                      <span>via {selectedArticle.source_name}</span>
+                      {selectedArticle.url && (
+                        <a
+                          href={selectedArticle.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex size-3.5 items-center justify-center rounded bg-surface/50 border border-border/40 text-muted hover:text-primary transition-colors cursor-pointer"
+                          aria-label={`Lire la source sur ${selectedArticle.source_name}`}
+                          title="Ouvrir la source"
+                        >
+                          <svg className="size-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {matchedCompany && (
-                  <div className="flex items-center gap-1.5 bg-surface-hover/30 border border-border/25 rounded-md p-1 px-2">
-                    <CompanyLogo
-                      name={matchedCompany.name}
-                      logoPath={matchedCompany.logoPath}
-                      website={matchedCompany.website}
-                      size="sm"
-                    />
-                    <span className="text-[10px] font-bold text-heading truncate max-w-[80px]">
-                      {matchedCompany.name}
-                    </span>
-                  </div>
-                )}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="text-[10px] text-muted text-right">
+                    {getRelativeTimeFr(selectedArticle.published_at)}
+                  </span>
+                  {matchedCompany && (
+                    <div className="flex items-center gap-1 bg-surface-hover/30 border border-border/25 rounded-md p-1 px-1.5 max-w-[120px]">
+                      <CompanyLogo
+                        name={matchedCompany.name}
+                        logoPath={matchedCompany.logoPath}
+                        website={matchedCompany.website}
+                        size="xs"
+                      />
+                      <span className="text-[9px] font-bold text-heading truncate">
+                        {matchedCompany.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <h2 className="font-heading text-base font-bold text-heading leading-tight">
+              <h2 className="font-heading text-base font-bold text-heading leading-tight pt-0.5">
                 {selectedArticle.titre_fr}
               </h2>
 
@@ -341,25 +423,31 @@ export function VeilleActualitesMobile({
 
               {/* Pourquoi c'est important */}
               {selectedArticle.analyse_kredo && (
-                <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-3 space-y-1">
-                  <h3 className="font-heading text-[10px] font-bold text-primary">
+                <div className="rounded-lg bg-primary/[0.04] p-3 space-y-2">
+                  <h3 className="font-heading text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-primary shrink-0" aria-hidden="true" />
                     Pourquoi c&apos;est important
                   </h3>
-                  <p className="text-xxs leading-relaxed text-heading font-medium">
-                    {selectedArticle.analyse_kredo}
-                  </p>
+                  <div className="pl-3 border-l-2 border-primary/20">
+                    <p className="text-xxs leading-relaxed text-heading font-medium">
+                      {selectedArticle.analyse_kredo}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {/* Lecture commerciale */}
               {selectedArticle.action_commerciale && (
-                <div className="rounded-lg border border-border/60 bg-surface-hover/10 p-3 space-y-1">
-                  <h3 className="font-heading text-[10px] font-bold text-heading">
+                <div className="rounded-lg bg-success/[0.05] p-3 space-y-2">
+                  <h3 className="font-heading text-xs font-bold text-success uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-success shrink-0" aria-hidden="true" />
                     Lecture commerciale
                   </h3>
-                  <p className="text-xxs leading-relaxed text-body">
-                    {selectedArticle.action_commerciale}
-                  </p>
+                  <div className="pl-3 border-l-2 border-success/20">
+                    <p className="text-xxs leading-relaxed text-body">
+                      {selectedArticle.action_commerciale}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -463,57 +551,26 @@ export function VeilleActualitesMobile({
                       <div className="flex justify-between items-start gap-2">
                         <h4 className={`font-heading text-xxs font-bold leading-snug ${isSelected ? "text-primary" : "text-heading"
                           }`}>
-                          {article.titre_fr}
-                        </h4>
-                        {isSelected && <span className="text-primary font-bold">★</span>}
-                      </div>
+                        {article.titre_fr}
+                      </h4>
+                      {isSelected && <span className="text-primary font-bold">★</span>}
+                    </div>
 
-                      <p className="text-[10px] text-body line-clamp-2 leading-relaxed">
-                        {article.resume}
-                      </p>
+                    <p className="text-[10px] text-body line-clamp-2 leading-relaxed">
+                      {article.resume}
+                    </p>
 
-                      <div className="flex justify-between items-center text-[9px] text-muted pt-1 border-t border-border/10">
-                        <span className="uppercase font-bold tracking-wider text-primary">
-                          {article.categorie || "Signal"}
-                        </span>
-                        <span>{matched?.name || article.secteur_principal || "Transverse"}</span>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            </section>
-
-            {/* Past Digests */}
-            {pastDigests.length > 1 && (
-              <section className="rounded-xl border border-border/40 bg-surface/30 p-4 space-y-3">
-                <h3 className="font-heading text-xs font-bold text-heading">
-                  Briefings précédents
-                </h3>
-                <div className="divide-y divide-border/20">
-                  {pastDigests.slice(1).map((d) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => showToast(`Chargement du briefing du ${formatDateFr(d.digest_date)}...`)}
-                      className="w-full text-left py-3 flex items-center justify-between gap-4 transition-colors min-h-[44px]"
-                    >
-                      <div className="space-y-0.5">
-                        <span className="block text-[9px] text-muted">
-                          {formatDateFr(d.digest_date)}
-                        </span>
-                        <span className="block font-heading text-xxs font-bold text-heading line-clamp-1">
-                          {d.titre_digest}
-                        </span>
-                      </div>
-                      <svg className="size-4 text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
+                    <div className="flex justify-between items-center text-[9px] text-muted pt-1 border-t border-border/10">
+                      <span className="uppercase font-bold tracking-wider text-primary">
+                        {article.categorie || "Signal"}
+                      </span>
+                      <span>{matched?.name || article.secteur_principal || "Transverse"}</span>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
           </>
         ) : (
           /* Empty state */
@@ -582,8 +639,10 @@ export function VeilleActualitesMobile({
         )}
       </div>
     </>
-  ) : (
+  ) : activeTab === "comptes" ? (
     watchedMobileView
+  ) : (
+    historyMobileView
   )}
 
       {/* Dialog modals */}

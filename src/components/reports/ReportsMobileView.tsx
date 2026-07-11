@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import type { ReportsFilterState, ReportsListData } from "@/app/(app)/reports/_data/reports-types"
 
 type ReportsMobileViewProps = {
@@ -35,6 +36,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     startTransition(() => {
@@ -46,21 +48,39 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
     })
   }
 
-  const isDraftsActive = filters.status === "draft"
-  const isFavoritesActive = filters.favoritesOnly === true
-  const isRecentsActive = !isDraftsActive && !isFavoritesActive
+  const activeDocType = filters.documentType || "all"
+
+  const handleFilterClick = (value: string) => {
+    updateParams((params) => {
+      if (value === "all") {
+        params.delete("documentType")
+      } else {
+        params.set("documentType", value)
+      }
+    })
+  }
+
+  const isActive = (value: string) => {
+    if (value === "all") return activeDocType === "all"
+    return activeDocType === value
+  }
 
   return (
     <>
       <MobileActionPage
         header={(
           <MobilePageHeader
-            eyebrow="Intelligence"
-            title="Rapports & Rédaction"
+            title="Rapports & Rédactions"
+            className="[&_h1]:text-lg [&_h1]:font-bold [&_h1]:leading-snug [&>div]:items-center"
             actions={(
-              <Button size="sm" onClick={() => openReportGeneration({ origin: "reports_library" })}>
-                Produire un rapport
-              </Button>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="size-8 flex items-center justify-center p-0 text-xl font-bold rounded-lg border border-border bg-surface text-heading active:opacity-75 cursor-pointer shadow-sm"
+                aria-label="Nouveau document"
+              >
+                +
+              </button>
             )}
           />
         )}
@@ -80,45 +100,30 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           fullWidth
         />
 
-        <div className="-mx-4 overflow-x-auto px-4">
-          <div className="flex min-w-max items-center gap-2 whitespace-nowrap">
-            <Button
-              variant={isRecentsActive ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => {
-                updateParams((params) => {
-                  params.delete("status")
-                  params.delete("favoritesOnly")
-                })
-              }}
-            >
-              Récents
-            </Button>
-            <Button
-              variant={isDraftsActive ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => {
-                updateParams((params) => {
-                  params.set("status", "draft")
-                  params.delete("favoritesOnly")
-                })
-              }}
-            >
-              Brouillons
-            </Button>
-            <Button
-              variant={isFavoritesActive ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => {
-                updateParams((params) => {
-                  params.delete("status")
-                  params.set("favoritesOnly", "true")
-                })
-              }}
-            >
-              Favoris
-            </Button>
-          </div>
+        {/* Chips filtres horizontaux */}
+        <div className="-mx-4 overflow-x-auto scrollbar-none flex gap-2 pb-3 px-4">
+          {[
+            { label: "Tous", value: "all" },
+            { label: "Mails", value: "communication" },
+            { label: "Pitch", value: "commercial_pitch" },
+            { label: "Rapports", value: "financial" }
+          ].map((chip) => {
+            const active = isActive(chip.value)
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => handleFilterClick(chip.value)}
+                className={`rounded-full px-4 py-1.5 text-[10px] font-bold border shrink-0 min-h-[44px] transition-all cursor-pointer ${
+                  active
+                    ? "bg-primary/10 border-primary text-primary"
+                    : "bg-surface/20 border-border/20 text-muted"
+                }`}
+              >
+                {chip.label}
+              </button>
+            )
+          })}
         </div>
 
         {listError ? (
@@ -144,6 +149,88 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           onClose={() => setSelectedDocumentId(null)}
         />
       ) : null}
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[var(--z-modal)] flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 pt-20" onClick={() => setIsCreateModalOpen(false)}>
+          <div 
+            className="w-full max-w-sm rounded-2xl bg-[#070913] border border-white/5 p-5 space-y-4 shadow-2xl animate-in slide-in-from-top duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h3 className="font-heading text-sm font-bold text-[#E2931D]">
+                Nouveau document
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-[#E2931D] hover:opacity-85 p-1 transition-opacity cursor-pointer"
+                aria-label="Fermer"
+              >
+                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5 pt-1">
+              {[
+                {
+                  label: "Mail",
+                  imageSrc: "/icons_set/cockpit_intelligence/redaction_message_ai.png",
+                  action: () => {
+                    openCommunicationComposer({ origin: "global", preset: { channel: "email" } })
+                    setIsCreateModalOpen(false)
+                  }
+                },
+                {
+                  label: "Pitch",
+                  imageSrc: "/icons_set/cockpit_intelligence/generation_pitch.png",
+                  action: () => {
+                    openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })
+                    setIsCreateModalOpen(false)
+                  }
+                },
+                {
+                  label: "Rapport",
+                  imageSrc: "/icons_set/cockpit_intelligence/brief_hebdo.png",
+                  action: () => {
+                    openReportGeneration({ origin: "reports_library" })
+                    setIsCreateModalOpen(false)
+                  }
+                },
+                {
+                  label: "Fiche",
+                  imageSrc: "/icons_set/cockpit_intelligence/recherche_actualités.png",
+                  action: () => {
+                    openReportGeneration({ origin: "reports_library", reportType: "activity_commercial" })
+                    setIsCreateModalOpen(false)
+                  }
+                }
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={opt.action}
+                  className="group flex flex-col justify-between aspect-[1.1] rounded-2xl border border-white/5 bg-[#0D1222] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 active:translate-y-0 cursor-pointer"
+                >
+                  <div className="flex items-start">
+                    <img src={opt.imageSrc} className="size-11 object-contain" alt="" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="block text-[13px] font-bold leading-snug text-[#E2931D] transition-colors group-hover:text-primary">
+                      {opt.label}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-[#10B981]">
+                      <span className="size-1.5 rounded-full bg-[#10B981]" />
+                      DISPONIBLE
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -1175,14 +1175,6 @@ function AccountsMobile({
                         onClick={() => onOpenIdentity(account.id)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left transition-colors active:opacity-75"
                       >
-                        <CompanyLogo
-                          name={account.name}
-                          logoPath={account.logoPath}
-                          website={account.website}
-                          size="lg"
-                          denseList
-                          className="rounded-none border-0 bg-transparent"
-                        />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-[14px] font-bold leading-tight text-heading">
                             {account.name}
@@ -1191,6 +1183,14 @@ function AccountsMobile({
                             {accountSegment} - {accountStatus}
                           </div>
                         </div>
+                        <CompanyLogo
+                          name={account.name}
+                          logoPath={account.logoPath}
+                          website={account.website}
+                          size="lg"
+                          denseList
+                          className="rounded-none border-0 bg-transparent shrink-0"
+                        />
                       </button>
                     </div>
                   </div>
