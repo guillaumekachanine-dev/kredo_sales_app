@@ -454,6 +454,10 @@ export interface CommunicationBrief {
     mustInclude?: string
     mustExclude?: string
     signalRef?: string
+    // Lot 9 — référence compte facultative pour les scénarios internal_staff
+    // qui portent sur un client précis (escalade, coordination transverse...)
+    // sans jamais transformer scope en "account" (command §4).
+    companyRef?: string
     opportunityRef?: string
     interactionRef?: string
     missionRef?: string

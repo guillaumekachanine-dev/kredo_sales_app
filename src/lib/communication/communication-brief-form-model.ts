@@ -38,6 +38,13 @@ export type BriefFormModel = {
   showCandidate: boolean
   // Lot 8 — sélecteur de consultant (scope collaborator uniquement).
   showConsultant: boolean
+  // Lot 9 — bloc destinataire interne (rôle/relation/domaine/nom libre),
+  // scope internal uniquement.
+  showInternalRecipient: boolean
+  // Lot 9 — références internes facultatives (command §4), visibles seulement
+  // quand la registry les référence pour la catégorie active.
+  showCompanyRef: boolean
+  showCollaboratorRef: boolean
   // true = le candidat EST le destinataire (message adressé au candidat) ;
   // false = le candidat n'est qu'une référence de contexte (ex: pitch vers un
   // client à propos d'un candidat) — command §3.
@@ -125,6 +132,9 @@ export function buildBriefFormModel(
     showMission: requiredRefs.has("missionRef") || optionalRefs.has("missionRef"),
     showCandidate: requiredRefs.has("profileRef") || optionalRefs.has("profileRef") || candidateIsRecipient,
     showConsultant: scope === "collaborator",
+    showInternalRecipient: scope === "internal",
+    showCompanyRef: requiredRefs.has("companyRef") || optionalRefs.has("companyRef"),
+    showCollaboratorRef: requiredRefs.has("collaboratorRef") || optionalRefs.has("collaboratorRef"),
     candidateIsRecipient,
     // Lot 7 — corrige l'écart documenté (handoff §5.4) : l'offre catalogue ne
     // dépend plus de outputKind (isPitch) mais uniquement de scenario.requiresOffer.
@@ -177,7 +187,12 @@ export type ReferencePurgeResult = {
   adjustments: CommunicationAdjustment[]
 }
 
-const REFERENCE_CONTEXT_KEYS = ["offerRef", "opportunityRef", "missionRef", "profileRef"] as const
+// Lot 9 — companyRef/collaboratorRef rejoignent le mécanisme de purge
+// générique (command §4 "toute référence devenue incompatible est purgée") :
+// ce sont des références de CONTEXTE facultatives pour internal_staff (et
+// collaboratorRef pour management_consultants), pas des marqueurs de scope —
+// à ne pas confondre avec la neutralisation who.recipient plus bas.
+const REFERENCE_CONTEXT_KEYS = ["offerRef", "opportunityRef", "missionRef", "profileRef", "companyRef", "collaboratorRef"] as const
 
 // Lot 7 — cascade "changement de scénario" (handoff §10.4) : une référence
 // choisie pour un scénario précédent (ex: une offre pour cold_call_pitch) doit

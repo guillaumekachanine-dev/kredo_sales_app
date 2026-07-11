@@ -338,3 +338,122 @@ describe("mergeCommunicationFacts", () => {
     expect(merged.recipientType).toBe("active_client")
   })
 })
+
+function internalBrief(overrides: Partial<CommunicationBrief> = {}): CommunicationBrief {
+  const base: CommunicationBrief = {
+    what: {
+      channel: "internal_note",
+      scenario: "internal_arbitrage_request",
+      outputKind: "written_message",
+      length: "standard",
+      activityCategory: "internal_staff",
+      scope: "internal",
+    },
+    who: {
+      sender: { role: "business_manager", name: "Guillaume" },
+      recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: "manager_n1", internalRelationship: "hierarchical_up", internalDomain: "commercial" },
+      objective: "request_action",
+    },
+    how: { tone: "assertive", formality: "tu", language: "fr" },
+    context: {},
+  }
+  return {
+    ...base,
+    ...overrides,
+    what: { ...base.what, ...overrides.what },
+    who: {
+      ...base.who,
+      ...overrides.who,
+      sender: { ...base.who.sender, ...overrides.who?.sender },
+      recipient: { ...base.who.recipient, ...overrides.who?.recipient },
+    },
+    how: { ...base.how, ...overrides.how },
+    context: { ...base.context, ...overrides.context },
+  }
+}
+
+describe("buildBriefFormModel — internal_staff (Lot 9)", () => {
+  it("shows the internal recipient block, hides every CRM/offer field", () => {
+    const resolution = resolveCommunicationOptions({ internalRole: "manager_n1" }, internalBrief())
+    const model = buildBriefFormModel(resolution.normalizedBrief, resolution)
+    expect(model.showInternalRecipient).toBe(true)
+    expect(model.showCategorySelector).toBe(false)
+    expect(model.showContact).toBe(false)
+    expect(model.showPersonaRelation).toBe(false)
+    expect(model.showConsultant).toBe(false)
+    expect(model.showCandidate).toBe(false)
+    expect(model.showOffer).toBe(false)
+  })
+
+  it("exposes optional internal references (company/opportunity/mission/collaborator) — command §4", () => {
+    const resolution = resolveCommunicationOptions({ internalRole: "manager_n1" }, internalBrief())
+    const model = buildBriefFormModel(resolution.normalizedBrief, resolution)
+    expect(model.showCompanyRef).toBe(true)
+    expect(model.showOpportunity).toBe(true)
+    expect(model.showMission).toBe(true)
+    expect(model.showCollaboratorRef).toBe(true)
+    // candidateId volontairement non exposé ce lot (cf. rapport de lot).
+    expect(model.showCandidate).toBe(false)
+  })
+
+  it("resolves scenario-specific tones for the named cases (command §6)", () => {
+    const escalation = resolveCommunicationOptions({ internalRole: "manager_n1" }, internalBrief({
+      what: { ...internalBrief().what, scenario: "internal_alert_escalation" },
+    }))
+    expect(buildBriefFormModel(escalation.normalizedBrief, escalation).tones).toEqual(["prudent", "assertive"])
+
+    const coordination = resolveCommunicationOptions({ internalRole: "recruitment" }, internalBrief({
+      what: { ...internalBrief().what, scenario: "cross_functional_coordination_request" },
+      who: { ...internalBrief().who, recipient: { ...internalBrief().who.recipient, internalRole: "recruitment" } },
+    }))
+    expect(buildBriefFormModel(coordination.normalizedBrief, coordination).tones).toEqual(["direct", "diplomatic"])
+
+    const direction = resolveCommunicationOptions({ internalRole: "executive_management" }, internalBrief({
+      what: { ...internalBrief().what, scenario: "quarterly_business_review", outputKind: "structured_briefing", channel: "meeting_briefing" },
+      who: { ...internalBrief().who, recipient: { ...internalBrief().who.recipient, internalRole: "executive_management", internalRelationship: "executive_committee", internalDomain: "strategy" } },
+    }))
+    expect(buildBriefFormModel(direction.normalizedBrief, direction).tones).toEqual(["formal", "business_roi", "assertive"])
+
+    // Défaut de catégorie préservé quand aucun override n'est déclaré.
+    const arbitrage = resolveCommunicationOptions({ internalRole: "manager_n1" }, internalBrief())
+    expect(buildBriefFormModel(arbitrage.normalizedBrief, arbitrage).tones).toEqual(["business_roi", "assertive", "prudent"])
+  })
+
+  it("has no locked context source today (internal_staff declares zero required sources)", () => {
+    const resolution = resolveCommunicationOptions({ internalRole: "manager_n1" }, internalBrief())
+    const states = buildContextSourceStates(resolution, undefined, {
+      company: false, contact: false, opportunity: false, mission: false, candidate: false,
+      collaborator: false, offer: false, interactions: false, news: false, sector_analysis: false,
+      documents: false, agenda: false,
+    })
+    expect(states.every((source) => source.visibility !== "locked_on")).toBe(true)
+  })
+})
+
+describe("purgeIncompatibleReferences — internal_staff (Lot 9)", () => {
+  it("clears CRM recipient fields for an internal brief carrying stale account-scope state", () => {
+    const stale = internalBrief({
+      who: {
+        ...internalBrief().who,
+        recipient: { ...internalBrief().who.recipient, persona: "purchasing", relation: "warm", contactId: "old-contact" },
+      },
+    })
+    const resolution = resolveCommunicationOptions({ internalRole: "manager_n1" }, stale)
+    const purged = purgeIncompatibleReferences(resolution.normalizedBrief, resolution)
+    expect(purged.brief.who.recipient.persona).toBe("other")
+    expect(purged.brief.who.recipient.relation).toBe("unknown")
+    expect(purged.brief.who.recipient.contactId).toBeUndefined()
+    expect(purged.brief.who.recipient.internalRole).toBe("manager_n1")
+  })
+
+  it("keeps a company reference relevant to internal_staff and purges an offer reference left over from another category", () => {
+    const withRefs = internalBrief({ context: { companyRef: "company-1", offerRef: "offer-stale" } })
+    const resolution = resolveCommunicationOptions({ internalRole: "manager_n1" }, withRefs)
+    const purged = purgeIncompatibleReferences(resolution.normalizedBrief, resolution)
+    expect(purged.brief.context.companyRef).toBe("company-1")
+    // offerRef reste théoriquement dans optionalReferences (command §4), donc
+    // non purgé ici — la garde réelle empêchant son usage est showOffer
+    // (toujours false, gouverné par scenario.requiresOffer, jamais vrai en internal_staff).
+    expect(purged.brief.context.offerRef).toBe("offer-stale")
+  })
+})

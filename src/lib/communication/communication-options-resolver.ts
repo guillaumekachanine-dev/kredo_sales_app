@@ -252,10 +252,14 @@ export function resolveCommunicationOptions(
       recipient: {
         ...currentBrief.who.recipient,
         type: recipientType,
+        // Lot 9 — même correctif que le destinataire (Lot 7) : un rôle/relation/
+        // domaine choisi par l'utilisateur (ou déjà présent dans le brief) prime
+        // sur le fait hérité du preset d'ouverture, sinon un changement en formulaire
+        // serait écrasé au resolve suivant par la valeur d'origine.
         ...(scope === "internal" ? {
-          internalRole: facts.internalRole ?? currentBrief.who.recipient.internalRole,
-          internalRelationship: facts.internalRelationship ?? currentBrief.who.recipient.internalRelationship,
-          internalDomain: facts.internalDomain ?? currentBrief.who.recipient.internalDomain,
+          internalRole: currentBrief.who.recipient.internalRole ?? facts.internalRole,
+          internalRelationship: currentBrief.who.recipient.internalRelationship ?? facts.internalRelationship,
+          internalDomain: currentBrief.who.recipient.internalDomain ?? facts.internalDomain,
         } : {}),
       },
       objective,

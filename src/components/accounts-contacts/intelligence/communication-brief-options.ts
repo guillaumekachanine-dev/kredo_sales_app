@@ -1,6 +1,9 @@
 import type {
   CommunicationBrief,
   CommunicationChannel,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
   CommunicationLength,
   CommunicationObjective,
   CommunicationPersona,
@@ -111,6 +114,86 @@ export const RELATION_OPTIONS: { value: CommunicationRelation; label: string }[]
   { value: "active_client", label: "Client actif" },
   { value: "former", label: "Ancien client / ancien contact" },
 ]
+
+// Lot 9 — taxonomies du destinataire interne (scope "internal"). Valeurs
+// canoniques exactes de n8n/types.ts, aucune valeur inventée.
+export const INTERNAL_ROLE_OPTIONS: { value: CommunicationInternalRecipientRole; label: string }[] = [
+  { value: "manager_n1", label: "Manager N+1" },
+  { value: "recruitment", label: "Recrutement" },
+  { value: "practice_lead", label: "Responsable Practice" },
+  { value: "presales", label: "Avant-vente" },
+  { value: "finance_admin", label: "Finance / Administration" },
+  { value: "delivery_management", label: "Delivery Management" },
+  { value: "executive_management", label: "Direction Générale" },
+  { value: "peer_business_manager", label: "Business Manager pair" },
+  { value: "other", label: "Autre" },
+]
+
+export const INTERNAL_RELATIONSHIP_OPTIONS: { value: CommunicationInternalRelationship; label: string }[] = [
+  { value: "hierarchical_up", label: "Hiérarchique ascendante" },
+  { value: "peer", label: "Pair" },
+  { value: "cross_functional", label: "Transverse" },
+  { value: "executive_committee", label: "Comité de direction" },
+  { value: "team", label: "Équipe" },
+]
+
+export const INTERNAL_DOMAIN_OPTIONS: { value: CommunicationInternalDomain; label: string }[] = [
+  { value: "commercial", label: "Commercial" },
+  { value: "staffing", label: "Staffing" },
+  { value: "recruitment", label: "Recrutement" },
+  { value: "delivery", label: "Delivery" },
+  { value: "practice", label: "Practice" },
+  { value: "presales", label: "Avant-vente" },
+  { value: "finance", label: "Finance" },
+  { value: "operations", label: "Opérations" },
+  { value: "strategy", label: "Stratégie" },
+]
+
+// Lot 9 command §5 "appliquer les defaults nécessaires" — suggestion de
+// relation/domaine par défaut au choix du rôle, jamais imposée (l'utilisateur
+// reste libre de la changer, cf. cascade dans le formulaire).
+export function defaultInternalRelationshipForRole(role: CommunicationInternalRecipientRole): CommunicationInternalRelationship {
+  switch (role) {
+    case "manager_n1":
+      return "hierarchical_up"
+    case "executive_management":
+      return "executive_committee"
+    case "peer_business_manager":
+      return "peer"
+    case "recruitment":
+    case "practice_lead":
+    case "presales":
+    case "delivery_management":
+      return "cross_functional"
+    case "finance_admin":
+    case "other":
+    default:
+      return "team"
+  }
+}
+
+export function defaultInternalDomainForRole(role: CommunicationInternalRecipientRole): CommunicationInternalDomain {
+  switch (role) {
+    case "manager_n1":
+    case "peer_business_manager":
+      return "commercial"
+    case "recruitment":
+      return "recruitment"
+    case "practice_lead":
+      return "practice"
+    case "presales":
+      return "presales"
+    case "finance_admin":
+      return "finance"
+    case "delivery_management":
+      return "delivery"
+    case "executive_management":
+      return "strategy"
+    case "other":
+    default:
+      return "operations"
+  }
+}
 
 export const OBJECTIVE_OPTIONS: { value: CommunicationObjective; label: string }[] = [
   { value: "get_meeting", label: "Obtenir un rendez-vous" },

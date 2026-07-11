@@ -193,6 +193,72 @@ describe("resolveCommunicationOptions", () => {
     expect(asSpoken.normalizedBrief.what.outputKind).toBe("spoken_pitch")
   })
 
+  it("covers the six internal_staff destinataires named by Lot 9 (N+1, pair transverse, Practice, avant-vente, finance, direction)", () => {
+    const roleCases: [
+      "manager_n1" | "peer_business_manager" | "practice_lead" | "presales" | "finance_admin" | "executive_management",
+      "hierarchical_up" | "peer" | "cross_functional" | "executive_committee" | "team",
+      "commercial" | "recruitment" | "practice" | "presales" | "finance" | "strategy",
+    ][] = [
+      ["manager_n1", "hierarchical_up", "commercial"], // N+1 hiérarchique
+      ["peer_business_manager", "peer", "commercial"], // pair transverse (BM pair)
+      ["practice_lead", "cross_functional", "practice"], // Practice
+      ["presales", "cross_functional", "presales"], // avant-vente
+      ["finance_admin", "team", "finance"], // finance
+      ["executive_management", "executive_committee", "strategy"], // direction
+    ]
+
+    for (const [role, relationship, domain] of roleCases) {
+      const withRole = brief({
+        what: { ...brief().what, scenario: "internal_arbitrage_request", activityCategory: "internal_staff", scope: "internal", channel: "internal_note" },
+        who: { ...brief().who, recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: role, internalRelationship: relationship, internalDomain: domain } },
+      })
+      const resolved = resolveCommunicationOptions({ internalRole: role }, withRole)
+      expect(resolved.normalizedBrief.who.recipient.type).toBe("internal")
+      expect(resolved.normalizedBrief.who.recipient.internalRole).toBe(role)
+      expect(resolved.normalizedBrief.who.recipient.internalRelationship).toBe(relationship)
+      expect(resolved.normalizedBrief.who.recipient.internalDomain).toBe(domain)
+      expect(resolved.normalizedBrief.what.activityCategory).toBe("internal_staff")
+    }
+  })
+
+  it("preserves a manually chosen internal role/relationship/domain over a stale preset fact (Lot 9, same fix as recipientType)", () => {
+    const changedInForm = brief({
+      what: { ...brief().what, scenario: "internal_arbitrage_request", activityCategory: "internal_staff", scope: "internal", channel: "internal_note" },
+      who: { ...brief().who, recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: "finance_admin", internalRelationship: "team", internalDomain: "finance" } },
+    })
+    // Le fact vient d'un preset d'ouverture périmé ("manager_n1") — le choix
+    // fait dans le formulaire (finance_admin) doit rester prioritaire.
+    const resolved = resolveCommunicationOptions({ internalRole: "manager_n1" }, changedInForm)
+    expect(resolved.normalizedBrief.who.recipient.internalRole).toBe("finance_admin")
+  })
+
+  it("resolves the scenarios named by Lot 9 (arbitrage, staffing, escalade, QBR)", () => {
+    const cases = ["internal_arbitrage_request", "staffing_help_request", "internal_alert_escalation", "quarterly_business_review"] as const
+    for (const scenario of cases) {
+      const resolved = resolveCommunicationOptions({ internalRole: "manager_n1" }, brief({
+        what: { ...brief().what, scenario, activityCategory: "internal_staff", scope: "internal", channel: "internal_note" },
+        who: { ...brief().who, recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: "manager_n1", internalRelationship: "hierarchical_up", internalDomain: "commercial" } },
+      }))
+      expect(resolved.normalizedBrief.what.scenario).toBe(scenario)
+      expect(resolved.normalizedBrief.what.activityCategory).toBe("internal_staff")
+    }
+  })
+
+  it("keeps an internal_staff multi-finality scenario as one entry across finalities (QBR)", () => {
+    const asBriefing = resolveCommunicationOptions({ internalRole: "executive_management" }, brief({
+      what: { ...brief().what, scenario: "quarterly_business_review", activityCategory: "internal_staff", scope: "internal", outputKind: "structured_briefing", channel: "meeting_briefing" },
+      who: { ...brief().who, recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: "executive_management" } },
+    }))
+    expect(asBriefing.normalizedBrief.what.scenario).toBe("quarterly_business_review")
+
+    const asSpoken = resolveCommunicationOptions({ internalRole: "executive_management" }, brief({
+      what: { ...brief().what, scenario: "quarterly_business_review", activityCategory: "internal_staff", scope: "internal", outputKind: "spoken_pitch", channel: "spoken_pitch_30s" },
+      who: { ...brief().who, recipient: { type: "internal", persona: "other", relation: "unknown", internalRole: "executive_management" } },
+    }))
+    expect(asSpoken.normalizedBrief.what.scenario).toBe("quarterly_business_review")
+    expect(asSpoken.normalizedBrief.what.outputKind).toBe("spoken_pitch")
+  })
+
   it("rejects an ambiguous legacy category instead of silently guessing", () => {
     const ambiguous = brief({
       what: {

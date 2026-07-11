@@ -111,6 +111,35 @@ describe("communication scenario registry", () => {
     }
   })
 
+  it("differentiates internal_staff tones per situation and fixes the missing 'recruitment' eligible role (Lot 9 command §6)", () => {
+    expect(getScenarioDefinition("cross_functional_coordination_request")?.suggestedTones).toEqual(["direct", "diplomatic"])
+    expect(getScenarioDefinition("cross_functional_alignment_briefing")?.suggestedTones).toEqual(["direct", "diplomatic"])
+    expect(getScenarioDefinition("internal_alert_escalation")?.suggestedTones).toEqual(["prudent", "assertive"])
+    expect(getScenarioDefinition("practice_support_pitch")?.suggestedTones).toEqual(["technical_expertise", "business_roi", "direct"])
+    expect(getScenarioDefinition("presales_support_pitch")?.suggestedTones).toEqual(["technical_expertise", "business_roi", "enthusiastic_confident"])
+    expect(getScenarioDefinition("presales_kickoff_briefing")?.suggestedTones).toEqual(["technical_expertise", "business_roi", "enthusiastic_confident"])
+    expect(getScenarioDefinition("direction_summary_pitch")?.suggestedTones).toEqual(["formal", "business_roi", "assertive"])
+    expect(getScenarioDefinition("quarterly_business_review")?.suggestedTones).toEqual(["formal", "business_roi", "assertive"])
+
+    // Défaut de catégorie préservé pour les scénarios sans override explicite.
+    expect(getScenarioDefinition("manager_status_update")?.suggestedTones).toEqual(["business_roi", "assertive", "prudent"])
+    expect(getScenarioDefinition("internal_arbitrage_request")?.suggestedTones).toEqual(["business_roi", "assertive", "prudent"])
+
+    // "recruitment" manquait dans eligibleInternalRoles alors que le handoff
+    // §13.6 le cite comme destinataire réel (staffing_help_request,
+    // cross_functional_coordination_request) — corrigé ce lot.
+    expect(getScenarioDefinition("staffing_help_request")?.eligibleInternalRoles).toContain("recruitment")
+  })
+
+  it("exposes company/opportunity/mission/collaborator/offer as optional internal references, never required globally (Lot 9 command §4)", () => {
+    for (const scenario of getScenariosByActivityCategory("internal_staff")) {
+      expect(scenario.requiredReferences).toEqual([])
+      expect(scenario.optionalReferences).toEqual(
+        expect.arrayContaining(["companyRef", "opportunityRef", "missionRef", "collaboratorRef", "offerRef"]),
+      )
+    }
+  })
+
   it("supports multi-finality scenarios without duplicate entries", () => {
     expect(getScenarioDefinition("collaborator_recognition")?.allowedOutputKinds)
       .toEqual(["written_message", "spoken_pitch"])

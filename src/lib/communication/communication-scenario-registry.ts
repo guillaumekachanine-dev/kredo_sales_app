@@ -919,6 +919,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "summarize_decisions",
     requiresOffer: false,
     requiredScopes: ["internal"],
+    suggestedTones: ["formal", "business_roi", "assertive"],
   },
   {
     value: "resource_arbitrage_pitch",
@@ -1005,6 +1006,7 @@ const SCENARIO_SEEDS: ScenarioSeed[] = [
     defaultObjective: "summarize_decisions",
     requiresOffer: false,
     requiredScopes: ["internal"],
+    suggestedTones: ["formal", "business_roi", "assertive"],
   },
 ]
 
@@ -1046,15 +1048,15 @@ const LOT_1_SCENARIO_SEEDS: ScenarioSeed[] = [
   createLot1Seed("career_development_briefing", "Briefing développement de carrière", "Prépare un entretien de développement de carrière.", "management_consultants", "structured_briefing", "align_internal", ["enthusiastic_confident", "warm", "pedagogical"]),
   createLot1Seed("retention_conversation_briefing", "Briefing entretien de rétention", "Prépare un entretien structuré de rétention.", "management_consultants", "structured_briefing", "manage_expectations", ["warm", "diplomatic", "prudent"]),
   createLot1Seed("manager_status_update", "Point de statut au manager", "Communique une mise à jour de statut au manager.", "internal_staff", "written_message", "summarize_decisions"),
-  createLot1Seed("cross_functional_coordination_request", "Demande de coordination transverse", "Sollicite une coordination avec une équipe Staff.", "internal_staff", "written_message", "request_action"),
+  createLot1Seed("cross_functional_coordination_request", "Demande de coordination transverse", "Sollicite une coordination avec une équipe Staff.", "internal_staff", "written_message", "request_action", ["direct", "diplomatic"]),
   createLot1Seed("internal_decision_summary", "Synthèse de décision interne", "Récapitule les décisions et prochaines étapes internes.", "internal_staff", "written_message", "summarize_decisions"),
-  createLot1Seed("internal_alert_escalation", "Escalade d'alerte interne", "Alerte les parties prenantes Staff sur une situation à traiter.", "internal_staff", "written_message", "escalate_issue"),
-  createLot1Seed("practice_support_pitch", "Pitch d'appui Practice", "Prépare une demande orale d'appui Practice.", "internal_staff", "spoken_pitch", "secure_resources"),
-  createLot1Seed("presales_support_pitch", "Pitch d'appui avant-vente", "Prépare une demande orale d'appui avant-vente.", "internal_staff", "spoken_pitch", "secure_resources"),
+  createLot1Seed("internal_alert_escalation", "Escalade d'alerte interne", "Alerte les parties prenantes Staff sur une situation à traiter.", "internal_staff", "written_message", "escalate_issue", ["prudent", "assertive"]),
+  createLot1Seed("practice_support_pitch", "Pitch d'appui Practice", "Prépare une demande orale d'appui Practice.", "internal_staff", "spoken_pitch", "secure_resources", ["technical_expertise", "business_roi", "direct"]),
+  createLot1Seed("presales_support_pitch", "Pitch d'appui avant-vente", "Prépare une demande orale d'appui avant-vente.", "internal_staff", "spoken_pitch", "secure_resources", ["technical_expertise", "business_roi", "enthusiastic_confident"]),
   createLot1Seed("staffing_priority_pitch", "Pitch de priorité staffing", "Prépare une demande orale de priorisation staffing.", "internal_staff", "spoken_pitch", "secure_resources"),
-  createLot1Seed("cross_functional_alignment_briefing", "Briefing alignement transverse", "Prépare un alignement entre fonctions Staff.", "internal_staff", "structured_briefing", "align_internal"),
+  createLot1Seed("cross_functional_alignment_briefing", "Briefing alignement transverse", "Prépare un alignement entre fonctions Staff.", "internal_staff", "structured_briefing", "align_internal", ["direct", "diplomatic"]),
   createLot1Seed("staffing_review_briefing", "Briefing revue staffing", "Prépare une revue de staffing interne.", "internal_staff", "structured_briefing", "summarize_decisions"),
-  createLot1Seed("presales_kickoff_briefing", "Briefing lancement avant-vente", "Prépare le lancement d'une mobilisation avant-vente.", "internal_staff", "structured_briefing", "align_internal"),
+  createLot1Seed("presales_kickoff_briefing", "Briefing lancement avant-vente", "Prépare le lancement d'une mobilisation avant-vente.", "internal_staff", "structured_briefing", "align_internal", ["technical_expertise", "business_roi", "enthusiastic_confident"]),
 ]
 
 const ALL_LENGTHS: CommunicationLength[] = ["ultra_short", "concise", "standard", "detailed"]
@@ -1072,7 +1074,14 @@ const CATEGORY_CONSTRAINTS: Record<CanonicalCommunicationActivityCategory, Categ
   delivery: { eligibleRecipientTypes: ["active_client"], allowedLengths: ALL_LENGTHS, requiredFacts: ["mission_status"], optionalFacts: ["delivery_risk", "milestone_status"], requiredReferences: [], optionalReferences: ["missionRef", "opportunityRef"], requiredContextSources: ["mission_context"], optionalContextSources: ["account_profile", "interaction_history"], suggestedTones: ["diplomatic", "prudent", "assertive"], excludedTones: ["enthusiastic_confident"] },
   recrutement: { eligibleRecipientTypes: ["candidate", "active_client"], allowedLengths: ALL_LENGTHS, requiredFacts: ["candidate_or_opportunity_context"], optionalFacts: ["availability", "salary_expectation"], requiredReferences: [], optionalReferences: ["profileRef", "opportunityRef"], requiredContextSources: ["candidate_profile"], optionalContextSources: ["account_profile", "opportunity_context"], suggestedTones: ["warm", "direct", "diplomatic"], excludedTones: ["disappointed_confused"] },
   management_consultants: { eligibleRecipientTypes: ["collaborator"], allowedLengths: ALL_LENGTHS, requiredFacts: ["collaborator_context"], optionalFacts: ["assignment", "performance_context", "availability"], requiredReferences: ["collaboratorId"], optionalReferences: ["collaboratorRef", "missionRef"], requiredContextSources: ["collaborator_context"], optionalContextSources: ["mission_context"], suggestedTones: ["diplomatic", "prudent", "warm"], excludedTones: ["business_roi"] },
-  internal_staff: { eligibleRecipientTypes: ["internal"], allowedLengths: ALL_LENGTHS, requiredFacts: ["internal_request_context"], optionalFacts: ["linked_entity", "resource_need"], requiredReferences: [], optionalReferences: ["opportunityRef", "missionRef"], requiredContextSources: [], optionalContextSources: ["account_profile", "opportunity_context", "mission_context"], suggestedTones: ["business_roi", "assertive", "prudent"], excludedTones: ["disappointed_confused"], eligibleInternalRoles: ["manager_n1", "practice_lead", "presales", "finance_admin", "delivery_management", "executive_management", "peer_business_manager", "other"], eligibleInternalRelationships: ["hierarchical_up", "peer", "cross_functional", "executive_committee", "team"], eligibleInternalDomains: ["commercial", "staffing", "recruitment", "delivery", "practice", "presales", "finance", "operations", "strategy"] },
+  // Lot 9 — optionalReferences étendu à companyRef/collaboratorRef/offerRef
+  // (command §4 : compte, opportunité, mission, collaborateur et offre sont
+  // des références internes valides ; candidateId volontairement absent, cf.
+  // rapport de lot — pas de sélecteur company-agnostic disponible ce lot).
+  // eligibleInternalRoles corrigé : "recruitment" manquait alors que le
+  // handoff §13.6 le cite explicitement comme destinataire réel
+  // (staffing_help_request, cross_functional_coordination_request).
+  internal_staff: { eligibleRecipientTypes: ["internal"], allowedLengths: ALL_LENGTHS, requiredFacts: ["internal_request_context"], optionalFacts: ["linked_entity", "resource_need"], requiredReferences: [], optionalReferences: ["companyRef", "opportunityRef", "missionRef", "collaboratorRef", "offerRef"], requiredContextSources: [], optionalContextSources: ["account_profile", "opportunity_context", "mission_context", "source_document"], suggestedTones: ["business_roi", "assertive", "prudent"], excludedTones: ["disappointed_confused"], eligibleInternalRoles: ["manager_n1", "recruitment", "practice_lead", "presales", "finance_admin", "delivery_management", "executive_management", "peer_business_manager", "other"], eligibleInternalRelationships: ["hierarchical_up", "peer", "cross_functional", "executive_committee", "team"], eligibleInternalDomains: ["commercial", "staffing", "recruitment", "delivery", "practice", "presales", "finance", "operations", "strategy"] },
 }
 
 const OFFER_REQUIRED_SCENARIOS = new Set<CommunicationScenario>(["offer_introduction", "cross_sell", "cold_call_pitch", "meeting_prep_cross_sell", "proposal_defense_pitch", "renewal_pitch"])

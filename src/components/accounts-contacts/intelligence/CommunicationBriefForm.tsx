@@ -9,6 +9,9 @@ import type {
   CommunicationBrief,
   CommunicationChannel,
   CommunicationContextSourceId,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
   CommunicationLength,
   CommunicationObjective,
   CommunicationPersona,
@@ -20,6 +23,8 @@ import type {
 } from "@/lib/n8n/types"
 import {
   CHANNEL_OPTIONS,
+  defaultInternalDomainForRole,
+  defaultInternalRelationshipForRole,
   LENGTH_OPTIONS,
   OBJECTIVE_OPTIONS,
   PERSONA_OPTIONS,
@@ -58,6 +63,13 @@ import {
 } from "./get-account-crm-refs"
 import { getWorkspaceCollaborators, type CollaboratorOption } from "./get-collaborator-options"
 import { ManagementConsultantFields, type CollaboratorRpcContext } from "./ManagementConsultantFields"
+import {
+  InternalRecipientDetailsFields,
+  InternalRecipientFields,
+  InternalReferencesFields,
+  InternalRoleField,
+} from "./InternalStaffFields"
+import type { AccountValue } from "@/components/missions/AccountCombobox"
 
 const PRACTICE_OPTIONS = [
   "Quality Engineering & Testing",
@@ -376,9 +388,18 @@ export function CommunicationBriefForm({
   const [candidatesLoading, setCandidatesLoading] = useState(false)
   const [collaboratorOptions, setCollaboratorOptions] = useState<CollaboratorOption[]>([])
   const [collaboratorOptionsLoading, setCollaboratorOptionsLoading] = useState(false)
+  // Lot 9 — sélecteur de compte pour la référence interne facultative
+  // (command §4). Purement local à l'affichage : seul `context.companyRef`
+  // (une string) est persisté dans le brief, le nom n'est donc connu que
+  // depuis la dernière sélection faite dans ce formulaire.
+  const [internalCompanyValue, setInternalCompanyValue] = useState<AccountValue | null>(null)
+  // Lot 9 — les pickers opportunité/mission (Lot 7) sont company-scoped ; en
+  // scope internal il n'y a pas de companyId prop (aucun compte résolu par le
+  // Host), seulement la référence facultative choisie ici même.
+  const effectiveCompanyId = companyId ?? brief.context.companyRef
 
   useEffect(() => {
-    if (!model.showConsultant) return
+    if (!model.showConsultant && !model.showCollaboratorRef) return
     let cancelled = false
     async function loadCollaborators() {
       setCollaboratorOptionsLoading(true)
@@ -390,7 +411,7 @@ export function CommunicationBriefForm({
     }
     void loadCollaborators()
     return () => { cancelled = true }
-  }, [model.showConsultant])
+  }, [model.showConsultant, model.showCollaboratorRef])
 
   useEffect(() => {
     if (!model.showConsultant || !brief.context.collaboratorRef) return
@@ -411,7 +432,7 @@ export function CommunicationBriefForm({
   // ignorées au rendu (cf. usages ci-dessous) puisqu'aucun sélecteur ne les
   // affiche plus. Évite un setState synchrone en tête d'effet.
   useEffect(() => {
-    if (!companyId || (!model.showOpportunity && !model.showMission)) return
+    if (!effectiveCompanyId || (!model.showOpportunity && !model.showMission)) return
     let cancelled = false
     async function loadRefs(id: string) {
       setRefsLoading(true)
@@ -424,9 +445,9 @@ export function CommunicationBriefForm({
       setMissionOptions(missionResult.options)
       setRefsLoading(false)
     }
-    void loadRefs(companyId)
+    void loadRefs(effectiveCompanyId)
     return () => { cancelled = true }
-  }, [companyId, model.showOpportunity, model.showMission])
+  }, [effectiveCompanyId, model.showOpportunity, model.showMission])
 
   useEffect(() => {
     if (!companyId || !model.showCandidate) return
@@ -550,6 +571,60 @@ export function CommunicationBriefForm({
 
   function handleOfferChange(offerId: string) {
     applyStructuralChange((current) => ({ ...current, context: { ...current.context, offerRef: offerId } }))
+  }
+
+  // Lot 9 — changement de rôle : applique les defaults relation/domaine du
+  // rôle (command §5 "appliquer les defaults nécessaires"), immédiatement
+  // ajustables ensuite via leurs propres sélecteurs.
+  function handleInternalRoleChange(role: CommunicationInternalRecipientRole) {
+    applyStructuralChange((current) => ({
+      ...current,
+      who: {
+        ...current.who,
+        recipient: {
+          ...current.who.recipient,
+          internalRole: role,
+          internalRelationship: defaultInternalRelationshipForRole(role),
+          internalDomain: defaultInternalDomainForRole(role),
+        },
+      },
+    }))
+  }
+
+  function handleInternalRelationshipChange(relationship: CommunicationInternalRelationship) {
+    applyStructuralChange((current) => ({
+      ...current,
+      who: { ...current.who, recipient: { ...current.who.recipient, internalRelationship: relationship } },
+    }))
+  }
+
+  function handleInternalDomainChange(domain: CommunicationInternalDomain) {
+    applyStructuralChange((current) => ({
+      ...current,
+      who: { ...current.who, recipient: { ...current.who.recipient, internalDomain: domain } },
+    }))
+  }
+
+  function handleInternalNameChange(name: string | undefined) {
+    onChange({ ...brief, who: { ...brief.who, recipient: { ...brief.who.recipient, displayName: name } } })
+  }
+
+  function handleCompanyRefChange(value: AccountValue | null) {
+    setInternalCompanyValue(value)
+    applyStructuralChange((current) => ({
+      ...current,
+      context: { ...current.context, companyRef: value?.id ?? undefined },
+    }))
+  }
+
+  // Lot 9 — collaborateur comme RÉFÉRENCE de contexte (interne), distinct de
+  // handleCollaboratorChange (Lot 8) où le collaborateur EST le destinataire :
+  // ne touche jamais who.recipient.
+  function handleCollaboratorRefChange(collaborator: CollaboratorOption | null) {
+    applyStructuralChange((current) => ({
+      ...current,
+      context: { ...current.context, collaboratorRef: collaborator?.id },
+    }))
   }
 
   const disabledContextSources = brief.context.disabledContextSources ?? []
@@ -680,7 +755,10 @@ export function CommunicationBriefForm({
     />
   )
 
-  const fieldOpportunity = model.showOpportunity ? (
+  // Lot 9 — en scope internal, opportunité/mission vivent dans le bloc
+  // "Références internes" (InternalReferencesFields, dépendant de companyRef),
+  // pas ici (sans quoi elles seraient dupliquées dans le flux mobile principal).
+  const fieldOpportunity = model.showOpportunity && !model.showInternalRecipient ? (
     <EntityRefSelect
       options={opportunityOptions}
       value={brief.context.opportunityRef}
@@ -694,7 +772,7 @@ export function CommunicationBriefForm({
   // Lot 8 — en scope collaborator, la mission est sélectionnée depuis le
   // contexte RPC du consultant (ManagementConsultantFields), pas depuis la
   // liste "missions du compte" du Lot 7 (sans objet ici, aucun companyId).
-  const fieldMission = model.showMission && !model.showConsultant ? (
+  const fieldMission = model.showMission && !model.showConsultant && !model.showInternalRecipient ? (
     <EntityRefSelect
       options={missionOptions}
       value={brief.context.missionRef}
@@ -727,6 +805,66 @@ export function CommunicationBriefForm({
       showMission={model.showMission}
       collaboratorContext={effectiveReferences?.collaboratorContext as CollaboratorRpcContext | undefined}
       collaboratorContextLoading={collaboratorContextLoading}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  // Desktop — rôle/relation/domaine visibles ensemble (command §8).
+  const fieldInternalRecipient = model.showInternalRecipient ? (
+    <InternalRecipientFields
+      internalRole={brief.who.recipient.internalRole}
+      internalRelationship={brief.who.recipient.internalRelationship}
+      internalDomain={brief.who.recipient.internalDomain}
+      displayName={brief.who.recipient.displayName}
+      onRoleChange={handleInternalRoleChange}
+      onRelationshipChange={handleInternalRelationshipChange}
+      onDomainChange={handleInternalDomainChange}
+      onNameChange={handleInternalNameChange}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  // Mobile — rôle en priorité avec le scénario, relation/domaine/nom en
+  // second niveau replié (command §8).
+  const fieldInternalRoleOnly = model.showInternalRecipient ? (
+    <InternalRoleField
+      internalRole={brief.who.recipient.internalRole}
+      onRoleChange={handleInternalRoleChange}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldInternalDetails = model.showInternalRecipient ? (
+    <InternalRecipientDetailsFields
+      internalRelationship={brief.who.recipient.internalRelationship}
+      internalDomain={brief.who.recipient.internalDomain}
+      displayName={brief.who.recipient.displayName}
+      onRelationshipChange={handleInternalRelationshipChange}
+      onDomainChange={handleInternalDomainChange}
+      onNameChange={handleInternalNameChange}
+      isMobile={isMobile}
+    />
+  ) : null
+
+  const fieldInternalReferences = model.showInternalRecipient ? (
+    <InternalReferencesFields
+      showCompanyRef={model.showCompanyRef}
+      companyValue={internalCompanyValue}
+      onCompanyChange={handleCompanyRefChange}
+      showOpportunity={model.showOpportunity}
+      opportunityOptions={opportunityOptions}
+      opportunityRef={brief.context.opportunityRef}
+      onOpportunityChange={handleOpportunityChange}
+      showMission={model.showMission}
+      missionOptions={missionOptions}
+      missionRef={brief.context.missionRef}
+      onMissionChange={handleMissionChange}
+      refsLoading={refsLoading}
+      showCollaboratorRef={model.showCollaboratorRef}
+      collaboratorOptions={collaboratorOptions}
+      collaboratorOptionsLoading={collaboratorOptionsLoading}
+      collaboratorRef={brief.context.collaboratorRef}
+      onCollaboratorRefChange={handleCollaboratorRefChange}
       isMobile={isMobile}
     />
   ) : null
@@ -972,6 +1110,9 @@ export function CommunicationBriefForm({
           {/* Lot 8 command §8 — mobile : consultant en premier, avant même le
               scénario, pour les briefs collaborator. */}
           {fieldConsultant ? <ParameterRow label="Consultant">{fieldConsultant}</ParameterRow> : null}
+          {/* Lot 9 command §8 — mobile : rôle prioritaire avec le scénario ;
+              relation/domaine/nom repliés dans "Plus d'options". */}
+          {fieldInternalRoleOnly ? <ParameterRow label="Rôle du destinataire">{fieldInternalRoleOnly}</ParameterRow> : null}
           {fieldCategory ? <ParameterRow label="Catégorie">{fieldCategory}</ParameterRow> : null}
           {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
           {fieldMission ? <ParameterRow label="Mission">{fieldMission}</ParameterRow> : null}
@@ -1027,12 +1168,18 @@ export function CommunicationBriefForm({
                   <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
                 </>
               ) : null}
+              {fieldInternalDetails ? (
+                <ParameterRow label="Relation / domaine">{fieldInternalDetails}</ParameterRow>
+              ) : null}
             </section>
 
             <section className="space-y-3 border-t border-border/30 pt-4">
               <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
                 Contexte utilisé
               </h3>
+              {fieldInternalReferences ? (
+                <ParameterRow label="Références internes" multiline>{fieldInternalReferences}</ParameterRow>
+              ) : null}
               <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
               <ParameterRow label="Sources de contexte">{fieldAdvancedContextSources}</ParameterRow>
             </section>
@@ -1078,6 +1225,8 @@ export function CommunicationBriefForm({
             </ParameterRow>
             {fieldConsultant ? (
               <ParameterRow label="Consultant">{fieldConsultant}</ParameterRow>
+            ) : fieldInternalRecipient ? (
+              <ParameterRow label="Destinataire interne">{fieldInternalRecipient}</ParameterRow>
             ) : (
               <>
                 {fieldOpportunity ? <ParameterRow label="Opportunité">{fieldOpportunity}</ParameterRow> : null}
@@ -1115,6 +1264,9 @@ export function CommunicationBriefForm({
         <details open className="group">
           <SectionHeading number="04" title="Contexte" meta={contextMetaLabel} />
           <div className="space-y-2.5 pt-3">
+            {fieldInternalReferences ? (
+              <ParameterRow label="Références internes" multiline>{fieldInternalReferences}</ParameterRow>
+            ) : null}
             <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
             <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
             <ParameterRow label="Paramètres avancés">{fieldAdvancedContextSources}</ParameterRow>
