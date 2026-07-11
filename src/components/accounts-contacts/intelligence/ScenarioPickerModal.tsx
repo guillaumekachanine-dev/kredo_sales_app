@@ -21,7 +21,8 @@ const RELIEF_HOVER = "kredo-relief-hover"
 
 const CATEGORY_IMAGE_SRC: Record<ActivityCategory, string> = {
   recrutement: "/icons_set/recrutement%20%26%20staffing/candidate_CV_sent.png",
-  interne_management: "/icons_set/presentation_client_rt_2.png",
+  management_consultants: "/icons_set/recrutement%20%26%20staffing/candidate_CV_sent.png",
+  internal_staff: "/icons_set/presentation_client_rt_2.png",
   commerce_prospection: "/icons_set/contexte_client.png",
   commerce_actif: "/icons_set/contacts_client.png",
   delivery: "/icons_set/Data_%26_IA.png",
@@ -30,7 +31,7 @@ const CATEGORY_IMAGE_SRC: Record<ActivityCategory, string> = {
 type CategoryGroup = {
   value: ActivityCategory
   label: string
-  dataviz: 1 | 2 | 3 | 4 | 5
+  dataviz: 1 | 2 | 3 | 4 | 5 | 6
   scenarios: ScenarioRegistryItem[]
 }
 
@@ -38,15 +39,16 @@ type CategoryGroup = {
 // dans le code source — un template literal interpolé (`border-dataviz-${n}`)
 // ne serait jamais détecté et ne générerait aucun CSS. D'où cette table
 // exhaustive plutôt qu'une composition dynamique de classes.
-const CATEGORY_TONE_CLASSES: Record<1 | 2 | 3 | 4 | 5, { card: string; icon: string }> = {
+const CATEGORY_TONE_CLASSES: Record<1 | 2 | 3 | 4 | 5 | 6, { card: string; icon: string }> = {
   1: { card: "border-dataviz-1/35 bg-dataviz-1/[0.05] hover:border-dataviz-1/70", icon: "text-dataviz-1" },
   2: { card: "border-dataviz-2/35 bg-dataviz-2/[0.05] hover:border-dataviz-2/70", icon: "text-dataviz-2" },
   3: { card: "border-dataviz-3/35 bg-dataviz-3/[0.05] hover:border-dataviz-3/70", icon: "text-dataviz-3" },
   4: { card: "border-dataviz-4/35 bg-dataviz-4/[0.05] hover:border-dataviz-4/70", icon: "text-dataviz-4" },
   5: { card: "border-dataviz-5/35 bg-dataviz-5/[0.05] hover:border-dataviz-5/70", icon: "text-dataviz-5" },
+  6: { card: "border-dataviz-6/35 bg-dataviz-6/[0.05] hover:border-dataviz-6/70", icon: "text-dataviz-6" },
 }
 
-// Sélecteur de scénario en 2 étapes : catégorie d'activité (5 cartes) →
+// Sélecteur de scénario en 2 étapes : catégorie d'activité (6 cartes) →
 // scénario (liste), filtré par useCase (mail ou pitch selon le mode du
 // composer). Réplique la structure et les animations d'OfferPickerModal
 // (practice → offre) — copie contrôlée (ADR-0013 D-8), pas d'abstraction

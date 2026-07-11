@@ -45,7 +45,8 @@ function toLegacyFamily(category: ActivityCategory): "sales" | "recruitment" | "
       return "delivery"
     case "recrutement":
       return "recruitment"
-    case "interne_management":
+    case "management_consultants":
+    case "internal_staff":
       return "internal"
   }
 }

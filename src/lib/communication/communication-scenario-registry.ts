@@ -1,10 +1,18 @@
 import type {
-  CommunicationActivityCategory,
+  CanonicalCommunicationActivityCategory,
   CommunicationChannel,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
+  CommunicationLength,
   CommunicationObjective,
   CommunicationOutputKind,
+  CommunicationPersona,
+  CommunicationRecipientType,
+  CommunicationRelation,
   CommunicationScenario,
   CommunicationScope,
+  CommunicationTone,
 } from "@/lib/n8n/types"
 
 // ─── ADR-0013 — Catalogue de scénarios de communication ─────────────────────
@@ -22,39 +30,67 @@ import type {
 // Compatibilité transitoire Lot 1 : la registry conserve ses cinq catégories
 // historiques jusqu'à son reclassement au Lot 2. Le contrat wire accepte déjà
 // les six catégories canoniques et la valeur legacy.
-export type ActivityCategory = Exclude<
-  CommunicationActivityCategory,
-  "management_consultants" | "internal_staff"
->
+export type ActivityCategory = CanonicalCommunicationActivityCategory
 export type ScenarioOutputKind = CommunicationOutputKind
 export type ScenarioUseCase = "mail" | "pitch" | "both"
 
-export type ScenarioRegistryItem = {
-  value: CommunicationScenario
+export type CommunicationScenarioDefinition = {
+  id: CommunicationScenario
   label: string
   description: string
-  activityCategory: ActivityCategory
-  useCase: ScenarioUseCase
-  defaultOutputKind: ScenarioOutputKind
-  defaultChannel: CommunicationChannel
-  defaultObjective: CommunicationObjective
-  requiresOffer: boolean
+  activityCategory: CanonicalCommunicationActivityCategory
+  allowedOutputKinds: CommunicationOutputKind[]
+  defaultOutputKind: CommunicationOutputKind
   requiredScopes: CommunicationScope[]
+  eligibleRecipientTypes: CommunicationRecipientType[]
+  allowedChannels: CommunicationChannel[]
+  defaultChannel: CommunicationChannel
+  allowedObjectives: CommunicationObjective[]
+  defaultObjective: CommunicationObjective
+  allowedLengths: CommunicationLength[]
+  requiresOffer: boolean
+  requiredFacts: string[]
+  optionalFacts: string[]
+  requiredReferences: string[]
+  optionalReferences: string[]
+  requiredContextSources: string[]
+  optionalContextSources: string[]
+  suggestedTones: CommunicationTone[]
+  excludedTones: CommunicationTone[]
+  eligiblePersonas?: CommunicationPersona[]
+  eligibleRelations?: CommunicationRelation[]
+  eligibleInternalRoles?: CommunicationInternalRecipientRole[]
+  eligibleInternalRelationships?: CommunicationInternalRelationship[]
+  eligibleInternalDomains?: CommunicationInternalDomain[]
+}
+
+export type ScenarioRegistryItem = CommunicationScenarioDefinition & {
+  value: CommunicationScenario
+  useCase: ScenarioUseCase
+}
+
+type ScenarioSeed = Pick<ScenarioRegistryItem,
+  "value" | "label" | "description" | "activityCategory" | "useCase" |
+  "defaultOutputKind" | "defaultChannel" | "defaultObjective" | "requiresOffer" | "requiredScopes"
+> & {
+  allowedOutputKinds?: CommunicationOutputKind[]
+  allowedObjectives?: CommunicationObjective[]
 }
 
 export const ACTIVITY_CATEGORY_OPTIONS: {
   value: ActivityCategory
   label: string
-  dataviz: 1 | 2 | 3 | 4 | 5
+  dataviz: 1 | 2 | 3 | 4 | 5 | 6
 }[] = [
   { value: "commerce_prospection", label: "Commerce · Prospection", dataviz: 1 },
   { value: "commerce_actif", label: "Commerce · Périmètre actif", dataviz: 2 },
   { value: "delivery", label: "Delivery", dataviz: 3 },
   { value: "recrutement", label: "Recrutement", dataviz: 4 },
-  { value: "interne_management", label: "Interne · Management", dataviz: 5 },
+  { value: "management_consultants", label: "Management consultants", dataviz: 5 },
+  { value: "internal_staff", label: "Interne · Staff", dataviz: 6 },
 ]
 
-export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
+const SCENARIO_SEEDS: ScenarioSeed[] = [
   // ─── Commerce · Prospection ────────────────────────────────────────────
   {
     value: "signal_outreach",
@@ -692,7 +728,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "manager_collaborator_internal",
     label: "Communication manager/collaborateur",
     description: "Message interne d'un manager à un collaborateur.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -704,7 +740,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "cra_absence_reminder",
     label: "Rappel CRA ou absence",
     description: "Rappelle à un collaborateur de compléter son CRA ou de déclarer une absence.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "email",
@@ -716,10 +752,10 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "one_on_one_alignment",
     label: "Préparation point 1:1",
     description: "Prépare les messages clés d'un point d'alignement 1:1 avec un collaborateur.",
-    activityCategory: "interne_management",
-    useCase: "mail",
-    defaultOutputKind: "written_message",
-    defaultChannel: "internal_note",
+    activityCategory: "management_consultants",
+    useCase: "pitch",
+    defaultOutputKind: "structured_briefing",
+    defaultChannel: "meeting_briefing",
     defaultObjective: "align_internal",
     requiresOffer: false,
     requiredScopes: ["collaborator"],
@@ -728,7 +764,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "collaborator_recognition",
     label: "Félicitation / valorisation",
     description: "Valorise par écrit la contribution d'un collaborateur.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -740,7 +776,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "assignment_change_notice",
     label: "Annonce changement de mission",
     description: "Informe un collaborateur d'un changement de mission ou de planning.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -752,7 +788,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "internal_arbitrage_request",
     label: "Demande d'arbitrage manager",
     description: "Sollicite un arbitrage de la hiérarchie sur un sujet donné.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -764,7 +800,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "staffing_help_request",
     label: "Demande d'aide staffing",
     description: "Sollicite de l'aide en interne pour résoudre une problématique de staffing.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -776,7 +812,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "handover_note",
     label: "Note de passation",
     description: "Rédige une note de passation d'un dossier ou d'un compte.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -788,7 +824,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "internal_validation_before_send",
     label: "Demande de validation avant envoi client",
     description: "Sollicite une validation interne avant l'envoi d'un message au client.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "mail",
     defaultOutputKind: "written_message",
     defaultChannel: "internal_note",
@@ -800,7 +836,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "performance_review_prep",
     label: "Préparation entretien annuel",
     description: "Prépare la structure et les messages clés d'un entretien annuel.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -812,7 +848,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "weekly_briefing_prep",
     label: "Préparation point hebdo",
     description: "Prépare les messages clés d'un point hebdomadaire.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -824,7 +860,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "difficult_announcement_talk_track",
     label: "Talk track annonce difficile",
     description: "Trame orale pour une annonce difficile à un collaborateur (démission imprévue, PSE, réorganisation).",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -836,7 +872,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "disciplinary_meeting_posture",
     label: "Posture entretien de recadrage",
     description: "Prépare la posture et les messages clés d'un entretien de recadrage.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -848,7 +884,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "quarterly_business_review",
     label: "Business review trimestrielle",
     description: "Prépare le discours et la posture pour une business review trimestrielle devant son manager.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -860,7 +896,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "resource_arbitrage_pitch",
     label: "Pitch demande de moyens / arbitrage",
     description: "Argumentaire oral pour obtenir des moyens ou un arbitrage.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -872,7 +908,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "intercontract_exit_pitch",
     label: "Pitch sortie d'intercontrat",
     description: "Prépare la discussion de sortie d'intercontrat avec un collaborateur.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -884,7 +920,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "sensitive_meeting_briefing",
     label: "Brief avant point sensible",
     description: "Prépare la posture avant un point sensible avec un collaborateur.",
-    activityCategory: "interne_management",
+    activityCategory: "management_consultants",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -896,7 +932,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "internal_committee_pitch",
     label: "Pitch en comité interne",
     description: "Prépare une prise de parole devant un comité interne.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -908,7 +944,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "investment_arbitrage_argument",
     label: "Argumentaire arbitrage investissement",
     description: "Construit l'argumentaire oral pour un arbitrage d'investissement.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -920,7 +956,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "project_status_pitch",
     label: "Point d'avancement projet",
     description: "Prépare un point d'avancement projet à l'oral.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -932,7 +968,7 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
     value: "direction_summary_pitch",
     label: "Synthèse orale pour direction",
     description: "Prépare une synthèse orale à destination de la direction.",
-    activityCategory: "interne_management",
+    activityCategory: "internal_staff",
     useCase: "pitch",
     defaultOutputKind: "structured_briefing",
     defaultChannel: "meeting_briefing",
@@ -942,12 +978,116 @@ export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [
   },
 ]
 
+function createLot1Seed(
+  value: CommunicationScenario,
+  label: string,
+  description: string,
+  activityCategory: "management_consultants" | "internal_staff",
+  defaultOutputKind: CommunicationOutputKind,
+  defaultObjective: CommunicationObjective,
+): ScenarioSeed {
+  return {
+    value,
+    label,
+    description,
+    activityCategory,
+    useCase: defaultOutputKind === "written_message" ? "mail" : "pitch",
+    defaultOutputKind,
+    defaultChannel: defaultOutputKind === "written_message"
+      ? "internal_note"
+      : defaultOutputKind === "spoken_pitch" ? "spoken_pitch_30s" : "meeting_briefing",
+    defaultObjective,
+    requiresOffer: false,
+    requiredScopes: [activityCategory === "management_consultants" ? "collaborator" : "internal"],
+  }
+}
+
+const LOT_1_SCENARIO_SEEDS: ScenarioSeed[] = [
+  createLot1Seed("performance_feedback_follow_up", "Suivi de feedback de performance", "Formalise un suivi de feedback avec un collaborateur.", "management_consultants", "written_message", "address_performance_issue"),
+  createLot1Seed("intercontract_action_plan_message", "Plan d'action intercontrat", "Communique les prochaines étapes d'un plan intercontrat.", "management_consultants", "written_message", "request_action"),
+  createLot1Seed("annual_review_follow_up", "Suivi d'entretien annuel", "Récapitule les décisions après un entretien annuel.", "management_consultants", "written_message", "confirm_next_steps"),
+  createLot1Seed("consultant_retention_follow_up", "Suivi de rétention consultant", "Formalise les engagements issus d'un échange de rétention.", "management_consultants", "written_message", "confirm_next_steps"),
+  createLot1Seed("performance_feedback_talk_track", "Talk track feedback de performance", "Prépare un échange oral de feedback.", "management_consultants", "spoken_pitch", "address_performance_issue"),
+  createLot1Seed("retention_conversation_talk_track", "Talk track de rétention", "Prépare une conversation orale de rétention.", "management_consultants", "spoken_pitch", "manage_expectations"),
+  createLot1Seed("career_opportunity_talk_track", "Talk track opportunité de carrière", "Prépare la présentation orale d'une opportunité de carrière.", "management_consultants", "spoken_pitch", "manage_expectations"),
+  createLot1Seed("career_development_briefing", "Briefing développement de carrière", "Prépare un entretien de développement de carrière.", "management_consultants", "structured_briefing", "align_internal"),
+  createLot1Seed("retention_conversation_briefing", "Briefing entretien de rétention", "Prépare un entretien structuré de rétention.", "management_consultants", "structured_briefing", "manage_expectations"),
+  createLot1Seed("manager_status_update", "Point de statut au manager", "Communique une mise à jour de statut au manager.", "internal_staff", "written_message", "summarize_decisions"),
+  createLot1Seed("cross_functional_coordination_request", "Demande de coordination transverse", "Sollicite une coordination avec une équipe Staff.", "internal_staff", "written_message", "request_action"),
+  createLot1Seed("internal_decision_summary", "Synthèse de décision interne", "Récapitule les décisions et prochaines étapes internes.", "internal_staff", "written_message", "summarize_decisions"),
+  createLot1Seed("internal_alert_escalation", "Escalade d'alerte interne", "Alerte les parties prenantes Staff sur une situation à traiter.", "internal_staff", "written_message", "escalate_issue"),
+  createLot1Seed("practice_support_pitch", "Pitch d'appui Practice", "Prépare une demande orale d'appui Practice.", "internal_staff", "spoken_pitch", "secure_resources"),
+  createLot1Seed("presales_support_pitch", "Pitch d'appui avant-vente", "Prépare une demande orale d'appui avant-vente.", "internal_staff", "spoken_pitch", "secure_resources"),
+  createLot1Seed("staffing_priority_pitch", "Pitch de priorité staffing", "Prépare une demande orale de priorisation staffing.", "internal_staff", "spoken_pitch", "secure_resources"),
+  createLot1Seed("cross_functional_alignment_briefing", "Briefing alignement transverse", "Prépare un alignement entre fonctions Staff.", "internal_staff", "structured_briefing", "align_internal"),
+  createLot1Seed("staffing_review_briefing", "Briefing revue staffing", "Prépare une revue de staffing interne.", "internal_staff", "structured_briefing", "summarize_decisions"),
+  createLot1Seed("presales_kickoff_briefing", "Briefing lancement avant-vente", "Prépare le lancement d'une mobilisation avant-vente.", "internal_staff", "structured_briefing", "align_internal"),
+]
+
+const ALL_LENGTHS: CommunicationLength[] = ["ultra_short", "concise", "standard", "detailed"]
+
+type CategoryConstraints = Pick<CommunicationScenarioDefinition,
+  "eligibleRecipientTypes" | "allowedLengths" | "requiredFacts" | "optionalFacts" |
+  "requiredReferences" | "optionalReferences" | "requiredContextSources" |
+  "optionalContextSources" | "suggestedTones" | "excludedTones" |
+  "eligibleInternalRoles" | "eligibleInternalRelationships" | "eligibleInternalDomains"
+>
+
+const CATEGORY_CONSTRAINTS: Record<CanonicalCommunicationActivityCategory, CategoryConstraints> = {
+  commerce_prospection: { eligibleRecipientTypes: ["prospect", "partner"], allowedLengths: ALL_LENGTHS, requiredFacts: ["account_lifecycle"], optionalFacts: ["contact_role", "market_signal"], requiredReferences: [], optionalReferences: ["signalRef", "contactId"], requiredContextSources: ["account_profile"], optionalContextSources: ["crm_contacts", "signal_intelligence", "offer_catalog"], suggestedTones: ["direct", "warm", "business_roi"], excludedTones: ["disappointed_confused"] },
+  commerce_actif: { eligibleRecipientTypes: ["active_client", "former_client"], allowedLengths: ALL_LENGTHS, requiredFacts: ["account_lifecycle"], optionalFacts: ["opportunity_status", "mission_status"], requiredReferences: [], optionalReferences: ["opportunityRef", "missionRef", "profileRef", "offerRef"], requiredContextSources: ["account_profile"], optionalContextSources: ["crm_contacts", "opportunity_context", "mission_context", "offer_catalog"], suggestedTones: ["direct", "diplomatic", "business_roi"], excludedTones: [] },
+  delivery: { eligibleRecipientTypes: ["active_client"], allowedLengths: ALL_LENGTHS, requiredFacts: ["mission_status"], optionalFacts: ["delivery_risk", "milestone_status"], requiredReferences: [], optionalReferences: ["missionRef", "opportunityRef"], requiredContextSources: ["mission_context"], optionalContextSources: ["account_profile", "interaction_history"], suggestedTones: ["diplomatic", "prudent", "assertive"], excludedTones: ["enthusiastic_confident"] },
+  recrutement: { eligibleRecipientTypes: ["candidate", "active_client"], allowedLengths: ALL_LENGTHS, requiredFacts: ["candidate_or_opportunity_context"], optionalFacts: ["availability", "salary_expectation"], requiredReferences: [], optionalReferences: ["profileRef", "opportunityRef"], requiredContextSources: ["candidate_profile"], optionalContextSources: ["account_profile", "opportunity_context"], suggestedTones: ["warm", "direct", "diplomatic"], excludedTones: ["disappointed_confused"] },
+  management_consultants: { eligibleRecipientTypes: ["collaborator"], allowedLengths: ALL_LENGTHS, requiredFacts: ["collaborator_context"], optionalFacts: ["assignment", "performance_context", "availability"], requiredReferences: ["collaboratorId"], optionalReferences: ["collaboratorRef", "missionRef"], requiredContextSources: ["collaborator_context"], optionalContextSources: ["mission_context"], suggestedTones: ["diplomatic", "prudent", "warm"], excludedTones: ["business_roi"] },
+  internal_staff: { eligibleRecipientTypes: ["internal"], allowedLengths: ALL_LENGTHS, requiredFacts: ["internal_request_context"], optionalFacts: ["linked_entity", "resource_need"], requiredReferences: [], optionalReferences: ["opportunityRef", "missionRef"], requiredContextSources: [], optionalContextSources: ["account_profile", "opportunity_context", "mission_context"], suggestedTones: ["business_roi", "assertive", "prudent"], excludedTones: ["disappointed_confused"], eligibleInternalRoles: ["manager_n1", "practice_lead", "presales", "finance_admin", "delivery_management", "executive_management", "peer_business_manager", "other"], eligibleInternalRelationships: ["hierarchical_up", "peer", "cross_functional", "executive_committee", "team"], eligibleInternalDomains: ["commercial", "staffing", "recruitment", "delivery", "practice", "presales", "finance", "operations", "strategy"] },
+}
+
+const OFFER_REQUIRED_SCENARIOS = new Set<CommunicationScenario>(["offer_introduction", "cross_sell", "cold_call_pitch", "meeting_prep_cross_sell", "proposal_defense_pitch", "renewal_pitch"])
+const MULTI_OUTPUT_KINDS: Partial<Record<CommunicationScenario, CommunicationOutputKind[]>> = {
+  collaborator_recognition: ["written_message", "spoken_pitch"], assignment_change_notice: ["written_message", "spoken_pitch"], difficult_announcement_talk_track: ["spoken_pitch", "structured_briefing"], intercontract_exit_pitch: ["spoken_pitch", "structured_briefing"], quarterly_business_review: ["spoken_pitch", "structured_briefing"], resource_arbitrage_pitch: ["spoken_pitch", "structured_briefing"], internal_committee_pitch: ["spoken_pitch", "structured_briefing"], investment_arbitrage_argument: ["spoken_pitch", "structured_briefing"], project_status_pitch: ["spoken_pitch", "structured_briefing"], direction_summary_pitch: ["spoken_pitch", "structured_briefing"],
+}
+const OUTPUT_CHANNELS: Record<CommunicationOutputKind, CommunicationChannel[]> = { written_message: ["email", "linkedin_invitation", "linkedin_message", "internal_note"], spoken_pitch: ["spoken_pitch_30s"], structured_briefing: ["meeting_briefing"] }
+
+function toScenarioDefinition(seed: ScenarioSeed): ScenarioRegistryItem {
+  const allowedOutputKinds = MULTI_OUTPUT_KINDS[seed.value] ?? [seed.defaultOutputKind]
+  const allowedChannels = Array.from(new Set(allowedOutputKinds.flatMap((kind) => OUTPUT_CHANNELS[kind])))
+  return { id: seed.value, value: seed.value, label: seed.label, description: seed.description, activityCategory: seed.activityCategory, allowedOutputKinds, defaultOutputKind: seed.defaultOutputKind, requiredScopes: seed.requiredScopes, ...CATEGORY_CONSTRAINTS[seed.activityCategory], allowedChannels, defaultChannel: seed.defaultChannel, allowedObjectives: seed.allowedObjectives ?? [seed.defaultObjective], defaultObjective: seed.defaultObjective, requiresOffer: OFFER_REQUIRED_SCENARIOS.has(seed.value), useCase: allowedOutputKinds.length > 1 ? "both" : seed.defaultOutputKind === "written_message" ? "mail" : "pitch" }
+}
+
+export const SCENARIO_REGISTRY: ScenarioRegistryItem[] = [...SCENARIO_SEEDS, ...LOT_1_SCENARIO_SEEDS].map(toScenarioDefinition)
+
 export function getScenarioRegistryItem(value: CommunicationScenario): ScenarioRegistryItem | undefined {
   return SCENARIO_REGISTRY.find((item) => item.value === value)
 }
 
-export function getScenariosByCategory(category: ActivityCategory): ScenarioRegistryItem[] {
+export function getScenarioDefinition(id: CommunicationScenario): CommunicationScenarioDefinition | undefined {
+  return getScenarioRegistryItem(id)
+}
+
+export function getScenariosByActivityCategory(category: ActivityCategory): ScenarioRegistryItem[] {
   return SCENARIO_REGISTRY.filter((item) => item.activityCategory === category)
+}
+
+export const getScenariosByCategory = getScenariosByActivityCategory
+
+export function getScenariosByOutputKind(outputKind: CommunicationOutputKind): ScenarioRegistryItem[] {
+  return SCENARIO_REGISTRY.filter((item) => item.allowedOutputKinds.includes(outputKind))
+}
+
+export function getScenariosByScope(scope: CommunicationScope): ScenarioRegistryItem[] {
+  return SCENARIO_REGISTRY.filter((item) => item.requiredScopes.includes(scope))
+}
+
+export function isScenarioCompatibleWithOutputKind(id: CommunicationScenario, outputKind: CommunicationOutputKind): boolean {
+  return getScenarioDefinition(id)?.allowedOutputKinds.includes(outputKind) ?? false
+}
+
+export function isScenarioCompatibleWithScope(id: CommunicationScenario, scope: CommunicationScope): boolean {
+  return getScenarioDefinition(id)?.requiredScopes.includes(scope) ?? false
+}
+
+export function scenarioRequiresOffer(id: CommunicationScenario): boolean {
+  return getScenarioDefinition(id)?.requiresOffer ?? false
 }
 
 // useCase "both" n'existe pas encore dans le registre (aucun scénario n'est
