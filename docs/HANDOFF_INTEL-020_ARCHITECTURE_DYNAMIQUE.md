@@ -9,6 +9,8 @@
 **Audience :** Codex, Claude Code, Gemini, développeur humain, agent QA  
 **Statut :** handoff de référence avant découpage en prompts d'implémentation
 
+**Documents de référence :** [ADR-0015 — Architecture dynamique de communication](adr/ADR-0015-intel-020-dynamic-communication-architecture.md) · [Ledger d'implémentation INTEL-020](handoffs/INTEL-020-dynamic-implementation-ledger.md)
+
 ---
 
 ## 0. Règle de lecture et ordre de préséance
