@@ -193,6 +193,12 @@ export type AccountScanFieldValue = string | number | AccountScanSectorValue | n
 
 export type AccountScanTriggerInput = {
   schemaVersion: 1
+  // Discriminant lu par le nœud "Validate & Route" du workflow n8n
+  // intel-010-refresh (n8n/workflows/intel-010-refresh.json) — littéral, pas
+  // `string`, pour qu'un oubli de ce champ soit détecté à la compilation plutôt
+  // que de silencieusement envoyer `undefined` au workflow (cf. correctif
+  // Lot 2 : ce champ manquait ici alors que le workflow l'exigeait déjà).
+  operation: "account_scan"
   companyId: string
   informationMode: AccountScanInformationMode
   contactMode: AccountScanContactMode

@@ -38,6 +38,39 @@ describe("buildAccountScanInput", () => {
     expect(input.selectedSiren).toBeNull()
   })
 
+  // Régression : le workflow n8n intel-010-refresh exige input.operation ===
+  // "account_scan" (nœud "Validate & Route") depuis le Lot 1, mais ce champ
+  // manquait du contrat AccountScanTriggerInput et de cette fonction — le
+  // payload envoyé partait donc avec operation=undefined et le run échouait
+  // systématiquement. Ces deux tests figent explicitement la présence du champ.
+  it("always includes operation: \"account_scan\" (find mode)", () => {
+    const input = buildAccountScanInput(
+      { informationMode: "find", autoApplyOfficialMissing: true, websiteHint: null, locationHint: null },
+      { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+    )
+    expect(input.operation).toBe("account_scan")
+    expect(input).toMatchObject({
+      schemaVersion: 1,
+      operation: "account_scan",
+      informationMode: "find",
+      contactMode: "none",
+    })
+  })
+
+  it("always includes operation: \"account_scan\" (verify mode)", () => {
+    const input = buildAccountScanInput(
+      { informationMode: "verify", autoApplyOfficialMissing: false, websiteHint: null, locationHint: null },
+      { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+    )
+    expect(input.operation).toBe("account_scan")
+    expect(input).toMatchObject({
+      schemaVersion: 1,
+      operation: "account_scan",
+      informationMode: "verify",
+      contactMode: "none",
+    })
+  })
+
   it("builds a verify-mode payload carrying hints and selectedSiren", () => {
     const input = buildAccountScanInput(
       {

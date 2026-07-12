@@ -83,6 +83,7 @@ export function buildAccountScanInput(
 ): AccountScanTriggerInput {
   return {
     schemaVersion: 1,
+    operation: "account_scan",
     companyId: "", // renseigné par l'appelant via entityId du payload /api/n8n/trigger, pas ici
     informationMode: setup.informationMode,
     contactMode: "none",
