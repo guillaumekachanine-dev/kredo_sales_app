@@ -4,6 +4,9 @@ import {
   AUTO_APPLY_CONFIDENCE_THRESHOLD,
   bilanCategoryFromOperation,
   buildAccountScanInput,
+  buildAccountScanContactsInput,
+  candidateCanBePreselected,
+  clampMaxContacts,
   formatConfidencePercent,
   formatProposalValue,
   getAttributeLabel,
@@ -12,6 +15,7 @@ import {
   mergeProposalRows,
   type EnrichmentProposalDbRow,
 } from "../account-scan-utils"
+import type { AccountScanContactCandidate } from "@/lib/n8n/types"
 
 function registrySource(overrides: Partial<AccountScanSource> = {}): AccountScanSource {
   return {
@@ -97,6 +101,74 @@ describe("buildAccountScanInput", () => {
     )
     expect(input.websiteHint).toBeNull()
     expect(input.locationHint).toBeNull()
+  })
+})
+
+describe("buildAccountScanContactsInput", () => {
+  const knownCompany = { name: "Acme", legalName: "ACME SAS", website: "https://acme.example", siren: "123456789", nafCode: "6202A", sectorId: "sector-1" }
+
+  it("builds a contact identify payload and reuses the resolved SIREN", () => {
+    const input = buildAccountScanContactsInput(
+      { contactMode: "identify", requestedRoles: ["DSI / Direction IT", "  Data / IA  "], maxContacts: 5 },
+      knownCompany,
+      { selectedSiren: "987654321", websiteHint: "https://resolved.example", locationHint: "Paris" },
+    )
+
+    expect(input.operation).toBe("account_scan")
+    expect(input.informationMode).toBe("verify")
+    expect(input.contactMode).toBe("identify")
+    expect(input.selectedSiren).toBe("987654321")
+    expect(input.websiteHint).toBe("https://resolved.example")
+    expect(input.requestedRoles).toEqual(["DSI / Direction IT", "Data / IA"])
+    expect(input.maxContacts).toBe(5)
+    expect(input.autoApplyOfficialMissing).toBe(false)
+  })
+
+  it("builds a contact confirm payload", () => {
+    const input = buildAccountScanContactsInput(
+      { contactMode: "confirm", requestedRoles: ["Achats"], maxContacts: 3 },
+      knownCompany,
+    )
+
+    expect(input.contactMode).toBe("confirm")
+    expect(input.selectedSiren).toBe("123456789")
+    expect(input.requestedRoles).toEqual(["Achats"])
+  })
+
+  it("clamps maxContacts to the 1-10 range", () => {
+    expect(clampMaxContacts(0)).toBe(1)
+    expect(clampMaxContacts(11)).toBe(10)
+    expect(clampMaxContacts(Number.NaN)).toBe(5)
+  })
+})
+
+describe("candidateCanBePreselected", () => {
+  const base: AccountScanContactCandidate = {
+    candidateKey: "c1",
+    firstName: "A",
+    lastName: "B",
+    fullName: "A B",
+    jobTitle: "DSI",
+    department: "IT",
+    relationshipRole: "DSI",
+    email: "a@example.com",
+    emailStatus: "public",
+    phone: null,
+    linkedinUrl: null,
+    confidenceScore: 0.8,
+    sourceKeys: [],
+    evidence: null,
+    existingPersonId: null,
+    existingContactId: null,
+    suggestedAction: "create",
+  }
+
+  it("does not preselect inferred emails", () => {
+    expect(candidateCanBePreselected({ ...base, emailStatus: "inferred" })).toBe(false)
+  })
+
+  it("does not preselect ignored candidates", () => {
+    expect(candidateCanBePreselected({ ...base, suggestedAction: "ignore" })).toBe(false)
   })
 })
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { vi, describe, expect, it, beforeEach } from "vitest"
-import { applyAccountScanProposals, getLatestAccountScanRun } from "../account-scan-actions"
+import { applyAccountScanProposals, getLatestAccountScanRun, importAccountScanContacts } from "../account-scan-actions"
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -162,9 +162,11 @@ describe("getLatestAccountScanRun", () => {
     const result = await getLatestAccountScanRun("company-1")
     expect(result).toEqual({
       runId: "run-1",
+      runPhase: "information",
       status: "running",
       createdAt: "2026-07-12T00:00:00Z",
       errorMessage: null,
+      resultId: null,
       resultStatus: null,
       contentJson: null,
     })
@@ -183,7 +185,70 @@ describe("getLatestAccountScanRun", () => {
 
     const result = await getLatestAccountScanRun("company-1")
     expect(result?.status).toBe("succeeded")
+    expect(result?.runPhase).toBe("information")
     expect(result?.resultStatus).toBe("succeeded")
+    expect(result?.resultId).toBeNull()
     expect(result?.contentJson).toEqual({ schemaVersion: 1, resolution: { status: "resolved" } })
+  })
+
+  it("classifies a running contact scan from contactMode", async () => {
+    chain.maybeSingle.mockResolvedValueOnce({
+      data: { id: "run-contacts", status: "queued", created_at: "2026-07-12T00:00:00Z", error_message: null, input_snapshot: { operation: "account_scan", contactMode: "identify" } },
+      error: null,
+    })
+
+    const result = await getLatestAccountScanRun("company-1")
+    expect(result?.runPhase).toBe("contacts")
+    expect(result?.status).toBe("queued")
+  })
+})
+
+describe("importAccountScanContacts", () => {
+  let chain: any
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    chain = createFluentChain()
+    mockSupabase.from.mockReturnValue(chain)
+    mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null })
+  })
+
+  it("rejects an empty candidate key list without touching the network", async () => {
+    const res = await importAccountScanContacts({ resultId: "result-1", companyId: "company-1", candidateKeys: [] })
+    expect(res.error).toBe("Paramètres invalides")
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it("rejects when the selected result belongs to another company", async () => {
+    chain.single.mockResolvedValueOnce({ data: { workspace_id: "ws-1" }, error: null })
+    chain.maybeSingle.mockResolvedValueOnce({
+      data: { id: "result-1", workspace_id: "ws-1", company_id: "other-company", result_type: "account_scan", status: "succeeded" },
+      error: null,
+    })
+
+    const res = await importAccountScanContacts({ resultId: "result-1", companyId: "company-1", candidateKeys: ["c1"] })
+    expect(res.error).toMatch(/n'appartient pas/)
+    expect(mockRpc).not.toHaveBeenCalled()
+  })
+
+  it("calls the contact import RPC with only result id and candidate keys", async () => {
+    chain.single.mockResolvedValueOnce({ data: { workspace_id: "ws-1" }, error: null })
+    chain.maybeSingle.mockResolvedValueOnce({
+      data: { id: "result-1", workspace_id: "ws-1", company_id: "company-1", result_type: "account_scan", status: "succeeded" },
+      error: null,
+    })
+    mockRpc.mockResolvedValueOnce({
+      data: { created: 1, linked: 0, updated: 0, ignored: 0, conflict: 0, error: 0, items: [{ candidateKey: "c1", operation: "created", personId: "p1", contactId: "ct1", message: null }] },
+      error: null,
+    })
+
+    const res = await importAccountScanContacts({ resultId: "result-1", companyId: "company-1", candidateKeys: ["c1", "c1"] })
+    expect(res.error).toBeNull()
+    expect(res.created).toBe(1)
+    expect(mockRpc).toHaveBeenCalledWith("import_account_scan_contacts", {
+      p_result_id: "result-1",
+      p_candidate_keys: ["c1"],
+      p_allow_existing_updates: false,
+    })
   })
 })

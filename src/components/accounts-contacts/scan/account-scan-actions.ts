@@ -23,6 +23,25 @@ export type ApplyAccountScanProposalsResult = {
   results: ProposalOperationResult[]
 }
 
+export type ImportAccountScanContactsItem = {
+  candidateKey: string
+  operation: "created" | "linked" | "updated" | "ignored" | "conflict" | "error"
+  personId: string | null
+  contactId: string | null
+  message: string | null
+}
+
+export type ImportAccountScanContactsResult = {
+  error: string | null
+  created: number
+  linked: number
+  updated: number
+  ignored: number
+  conflict: number
+  errorCount: number
+  items: ImportAccountScanContactsItem[]
+}
+
 // Statuts d'enrichment_proposals encore "applicables" — un scan répété peut avoir
 // déjà supprimé/recréé la ligne (Lot 1 §5), une proposition rejetée ou en conflit
 // non résolu nécessite une décision humaine distincte, jamais une ré-application
@@ -112,9 +131,11 @@ export async function applyAccountScanProposals(input: {
 
 export type LatestAccountScanRun = {
   runId: string
+  runPhase: "information" | "contacts"
   status: string
   createdAt: string
   errorMessage: string | null
+  resultId: string | null
   resultStatus: string | null
   contentJson: Record<string, unknown> | null
 }
@@ -135,15 +156,18 @@ export async function getLatestAccountScanRun(companyId: string): Promise<Latest
 
   if (runError || !run) return null
 
-  const inputSnapshot = run.input_snapshot as { operation?: string } | null
+  const inputSnapshot = run.input_snapshot as { operation?: string; contactMode?: string } | null
   if (inputSnapshot?.operation !== "account_scan") return null
+  const runPhase = inputSnapshot.contactMode === "identify" || inputSnapshot.contactMode === "confirm" ? "contacts" : "information"
 
   if (run.status === "queued" || run.status === "running") {
     return {
       runId: run.id,
+      runPhase,
       status: run.status,
       createdAt: run.created_at,
       errorMessage: null,
+      resultId: null,
       resultStatus: null,
       contentJson: null,
     }
@@ -152,9 +176,11 @@ export async function getLatestAccountScanRun(companyId: string): Promise<Latest
   if (run.status === "failed" || run.status === "cancelled") {
     return {
       runId: run.id,
+      runPhase,
       status: run.status,
       createdAt: run.created_at,
       errorMessage: run.error_message,
+      resultId: null,
       resultStatus: null,
       contentJson: null,
     }
@@ -162,17 +188,114 @@ export async function getLatestAccountScanRun(companyId: string): Promise<Latest
 
   const { data: result } = await supabase
     .from("ai_intelligence_results")
-    .select("status, content_json")
+    .select("id, status, content_json")
     .eq("run_id", run.id)
     .eq("result_type", "account_scan")
     .maybeSingle()
 
   return {
     runId: run.id,
+    runPhase,
     status: run.status,
     createdAt: run.created_at,
     errorMessage: run.error_message,
+    resultId: result?.id ?? null,
     resultStatus: result?.status ?? null,
     contentJson: (result?.content_json as Record<string, unknown> | null) ?? null,
+  }
+}
+
+export async function importAccountScanContacts(input: {
+  resultId: string
+  companyId: string
+  candidateKeys: string[]
+  allowExistingUpdates?: boolean
+}): Promise<ImportAccountScanContactsResult> {
+  const empty: ImportAccountScanContactsResult = {
+    error: null,
+    created: 0,
+    linked: 0,
+    updated: 0,
+    ignored: 0,
+    conflict: 0,
+    errorCount: 0,
+    items: [],
+  }
+
+  const { resultId, companyId, candidateKeys, allowExistingUpdates } = input
+  const uniqueKeys = Array.from(new Set(candidateKeys.map((key) => key.trim()).filter(Boolean)))
+
+  if (!resultId || !companyId || uniqueKeys.length === 0) {
+    return { ...empty, error: "Paramètres invalides" }
+  }
+
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return { ...empty, error: "Non authentifié" }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .single()
+
+  if (profileError || !profile?.workspace_id) {
+    return { ...empty, error: "Workspace introuvable pour l'utilisateur courant" }
+  }
+
+  const { data: result, error: resultError } = await supabase
+    .from("ai_intelligence_results")
+    .select("id, workspace_id, company_id, result_type, status")
+    .eq("id", resultId)
+    .maybeSingle()
+
+  if (resultError || !result) {
+    return { ...empty, error: "Résultat contacts introuvable" }
+  }
+
+  if (
+    result.workspace_id !== profile.workspace_id ||
+    result.company_id !== companyId ||
+    result.result_type !== "account_scan" ||
+    result.status !== "succeeded"
+  ) {
+    return { ...empty, error: "Ce résultat contacts n'appartient pas au compte courant ou n'est pas importable." }
+  }
+
+  const { data, error } = await supabase.rpc("import_account_scan_contacts" as never, {
+    p_result_id: resultId,
+    p_candidate_keys: uniqueKeys,
+    p_allow_existing_updates: allowExistingUpdates === true,
+  } as never)
+
+  if (error) {
+    return { ...empty, error: `Erreur RPC : ${error.message}` }
+  }
+
+  const raw = (data ?? {}) as {
+    created?: number
+    linked?: number
+    updated?: number
+    ignored?: number
+    conflict?: number
+    error?: number
+    items?: ImportAccountScanContactsItem[]
+  }
+
+  revalidatePath(`/prospection/accounts/${companyId}`)
+  revalidatePath("/prospection/accounts")
+
+  return {
+    error: null,
+    created: raw.created ?? 0,
+    linked: raw.linked ?? 0,
+    updated: raw.updated ?? 0,
+    ignored: raw.ignored ?? 0,
+    conflict: raw.conflict ?? 0,
+    errorCount: raw.error ?? 0,
+    items: raw.items ?? [],
   }
 }

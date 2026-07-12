@@ -4,30 +4,46 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { createClient } from "@/lib/supabase/client"
 import type { AccountScanOutput, AccountScanResolutionCandidate } from "@/lib/n8n/types"
+import { cn } from "@/lib/utils"
 import { AccountScanSetup, type AccountScanSetupCompany } from "./AccountScanSetup"
+import { AccountScanContactsSetup } from "./AccountScanContactsSetup"
 import { AccountScanResolutionPicker } from "./AccountScanResolutionPicker"
 import { AccountScanStatus } from "./AccountScanStatus"
 import { AccountScanDesktopResults } from "./AccountScanDesktopResults"
 import { AccountScanMobileResults } from "./AccountScanMobileResults"
-import { applyAccountScanProposals, getLatestAccountScanRun } from "./account-scan-actions"
+import { AccountScanContactsDesktopResults } from "./AccountScanContactsDesktopResults"
+import { AccountScanContactsMobileResults } from "./AccountScanContactsMobileResults"
+import {
+  applyAccountScanProposals,
+  getLatestAccountScanRun,
+  importAccountScanContacts,
+  type ImportAccountScanContactsResult,
+} from "./account-scan-actions"
 import {
   type AccountScanBilanCategory,
+  type AccountScanContactsSetupValues,
   type AccountScanProposalRow,
   type AccountScanSetupValues,
   bilanCategoryFromOperation,
+  buildAccountScanContactsInput,
   buildAccountScanInput,
+  candidateCanBePreselected,
   isAutoApplyEligible,
   mergeProposalRows,
 } from "./account-scan-utils"
 
 type Phase =
   | "loading"
-  | "setup"
-  | "queued"
-  | "running"
-  | "ambiguous"
+  | "information_setup"
+  | "information_queued"
+  | "information_running"
+  | "information_ambiguous"
+  | "information_review"
+  | "contacts_setup"
+  | "contacts_queued"
+  | "contacts_running"
+  | "contacts_review"
   | "not_found"
-  | "review"
   | "error"
 
 interface AccountScanDialogProps {
@@ -41,20 +57,108 @@ interface AccountScanDialogProps {
   }
   isMobile: boolean
   onApplied: () => void
+  onOpenContact?: (contactId: string) => void
 }
 
-// Fallback de relecture ponctuelle si Realtime ne remonte pas (§6) — UNE seule
-// relecture, jamais un polling en boucle.
 const FALLBACK_RECHECK_DELAY_MS = 20000
 
-export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApplied }: AccountScanDialogProps) {
+function StepIndicator({
+  phase,
+  onInformation,
+  onContacts,
+}: {
+  phase: Phase
+  onInformation: () => void
+  onContacts: () => void
+}) {
+  const active = phase.startsWith("contacts") ? "contacts" : "information"
+
+  return (
+    <div className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-[11px] font-bold">
+      <button
+        type="button"
+        onClick={onInformation}
+        className={cn(
+          "rounded-full border px-2.5 py-1 transition-colors",
+          active === "information" ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted hover:text-heading"
+        )}
+      >
+        1. Informations
+      </button>
+      <span className="text-muted">→</span>
+      <button
+        type="button"
+        onClick={onContacts}
+        className={cn(
+          "rounded-full border px-2.5 py-1 transition-colors",
+          active === "contacts" ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted hover:text-heading"
+        )}
+      >
+        2. Contacts
+      </button>
+    </div>
+  )
+}
+
+function InformationActions({
+  isMobile,
+  onContacts,
+  onNewScan,
+  onClose,
+}: {
+  isMobile: boolean
+  onContacts: () => void
+  onNewScan: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        onClick={onNewScan}
+        className={cn("rounded border border-border bg-surface px-3 text-xs font-bold text-body hover:bg-canvas/40", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
+      >
+        Nouveau scan des informations
+      </button>
+      <button
+        type="button"
+        onClick={onClose}
+        className={cn("rounded border border-border bg-surface px-3 text-xs font-bold text-body hover:bg-canvas/40", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
+      >
+        Fermer
+      </button>
+      <button
+        type="button"
+        onClick={onContacts}
+        className={cn("rounded border border-primary bg-primary px-3 text-xs font-bold text-primary-fg hover:bg-primary/90", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
+      >
+        Rechercher des contacts
+      </button>
+    </div>
+  )
+}
+
+export function AccountScanDialog({
+  open,
+  onOpenChange,
+  company,
+  isMobile,
+  onApplied,
+  onOpenContact,
+}: AccountScanDialogProps) {
   const [phase, setPhase] = useState<Phase>("loading")
   const [runId, setRunId] = useState<string | null>(null)
-  const [scanOutput, setScanOutput] = useState<AccountScanOutput | null>(null)
+  const [informationRunId, setInformationRunId] = useState<string | null>(null)
+  const [informationOutput, setInformationOutput] = useState<AccountScanOutput | null>(null)
+  const [contactsOutput, setContactsOutput] = useState<AccountScanOutput | null>(null)
+  const [contactsResultId, setContactsResultId] = useState<string | null>(null)
   const [candidates, setCandidates] = useState<AccountScanResolutionCandidate[]>([])
   const [proposalRows, setProposalRows] = useState<AccountScanProposalRow[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedContactKeys, setSelectedContactKeys] = useState<Set<string>>(new Set())
   const [applying, setApplying] = useState(false)
+  const [importingContacts, setImportingContacts] = useState(false)
+  const [importResult, setImportResult] = useState<ImportAccountScanContactsResult | null>(null)
   const [bilanByProposalId, setBilanByProposalId] = useState<Map<string, AccountScanBilanCategory>>(new Map())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -68,10 +172,8 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydratedOnceRef = useRef(false)
   const removeChannelRef = useRef<(() => void) | null>(null)
-  // Miroir de `phase` en ref : lu (pas souscrit) par l'effet Realtime pour
-  // décider s'il faut souscrire, sans que phase soit une dépendance de cet
-  // effet (cf. note sur la re-souscription queued→running plus bas).
   const phaseRef = useRef<Phase>("loading")
+
   useEffect(() => {
     phaseRef.current = phase
   }, [phase])
@@ -89,6 +191,15 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
       removeChannelRef.current = null
     }
   }, [])
+
+  const knownCompany = {
+    name: company.name,
+    legalName: company.legalName,
+    website: company.website,
+    siren: informationOutput?.resolution.siren ?? company.siren,
+    nafCode: company.nafCode,
+    sectorId: company.sectorId,
+  }
 
   const applyProposalIds = useCallback(async (targetRunId: string, ids: string[]) => {
     if (ids.length === 0) return
@@ -134,9 +245,8 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
 
     const rows = mergeProposalRows(data ?? [], output)
     setProposalRows(rows)
-    setPhase("review")
+    setPhase("information_review")
 
-    // Auto-application (§11) — une seule fois par run.
     if (lastSetupRef.current.autoApplyOfficialMissing && autoAppliedRunIdRef.current !== targetRunId) {
       autoAppliedRunIdRef.current = targetRunId
       const eligibleIds = rows
@@ -149,13 +259,17 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
         )
         .map((row) => row.id)
 
-      if (eligibleIds.length > 0) {
-        void applyProposalIds(targetRunId, eligibleIds)
-      }
+      if (eligibleIds.length > 0) void applyProposalIds(targetRunId, eligibleIds)
     }
   }, [company.id, applyProposalIds])
 
-  const handleTerminalResult = useCallback((targetRunId: string, resultStatus: string | null, contentJson: Record<string, unknown> | null) => {
+  const handleTerminalResult = useCallback((
+    targetRunId: string,
+    runPhase: "information" | "contacts",
+    resultStatus: string | null,
+    resultId: string | null,
+    contentJson: Record<string, unknown> | null,
+  ) => {
     clearFallbackTimer()
     teardownRealtimeChannel()
 
@@ -172,11 +286,21 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
       return
     }
 
-    setScanOutput(output)
+    if (runPhase === "contacts") {
+      setContactsOutput(output)
+      setContactsResultId(resultId)
+      setSelectedContactKeys(new Set(output.contactCandidates.filter(candidateCanBePreselected).map((candidate) => candidate.candidateKey)))
+      setImportResult(null)
+      setPhase("contacts_review")
+      return
+    }
+
+    setInformationRunId(targetRunId)
+    setInformationOutput(output)
 
     if (output.resolution.status === "ambiguous") {
       setCandidates(output.resolution.candidates)
-      setPhase("ambiguous")
+      setPhase("information_ambiguous")
       return
     }
 
@@ -192,14 +316,14 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
     const latest = await getLatestAccountScanRun(company.id)
 
     if (!latest) {
-      setPhase("setup")
+      setPhase("information_setup")
       return
     }
 
     setRunId(latest.runId)
 
     if (latest.status === "queued" || latest.status === "running") {
-      setPhase(latest.status)
+      setPhase(`${latest.runPhase}_${latest.status}` as Phase)
       return
     }
 
@@ -209,27 +333,32 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
       return
     }
 
-    handleTerminalResult(latest.runId, latest.resultStatus, latest.contentJson)
+    handleTerminalResult(latest.runId, latest.runPhase, latest.resultStatus, latest.resultId, latest.contentJson)
   }, [company.id, handleTerminalResult])
 
-  // ── Restauration au montage / réouverture ────────────────────────────────
   useEffect(() => {
     if (!open) return
-    if (hydratedOnceRef.current && phase !== "queued" && phase !== "running") return
+    if (
+      hydratedOnceRef.current &&
+      phase !== "information_queued" &&
+      phase !== "information_running" &&
+      phase !== "contacts_queued" &&
+      phase !== "contacts_running"
+    ) return
     hydratedOnceRef.current = true
     void hydrateFromLatestRun()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, company.id])
 
-  // ── Realtime : statut du run + résultat ──────────────────────────────────
-  // Clé uniquement sur runId (pas sur phase) : la transition queued→running est
-  // gérée à l'intérieur du callback, pas en recréant le canal — sinon la
-  // transition elle-même (déclenchée PAR ce canal) provoquerait sa propre
-  // destruction/recréation, avec une fenêtre où un événement pourrait être
-  // manqué entre les deux.
   useEffect(() => {
     if (!runId) return
-    if (phaseRef.current !== "queued" && phaseRef.current !== "running") return
+    const currentPhase = phaseRef.current
+    const isTracked = currentPhase === "information_queued" ||
+      currentPhase === "information_running" ||
+      currentPhase === "contacts_queued" ||
+      currentPhase === "contacts_running"
+    if (!isTracked) return
+    const runPhase = currentPhase.startsWith("contacts") ? "contacts" : "information"
 
     const supabase = createClient()
     const channel = supabase
@@ -240,7 +369,7 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
         (payload) => {
           const row = payload.new as { status: string; error_message: string | null }
           if (row.status === "running") {
-            setPhase((p) => (p === "queued" ? "running" : p))
+            setPhase((p) => (p === `${runPhase}_queued` ? `${runPhase}_running` as Phase : p))
           } else if (row.status === "failed" || row.status === "cancelled") {
             clearFallbackTimer()
             teardownRealtimeChannel()
@@ -253,9 +382,9 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
         "postgres_changes",
         { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
         (payload) => {
-          const row = payload.new as { status: string; content_json: Record<string, unknown>; result_type: string }
+          const row = payload.new as { id: string; status: string; content_json: Record<string, unknown>; result_type: string }
           if (row.result_type !== "account_scan") return
-          handleTerminalResult(runId, row.status, row.content_json)
+          handleTerminalResult(runId, runPhase, row.status, row.id, row.content_json)
         }
       )
       .subscribe()
@@ -266,7 +395,7 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
       void (async () => {
         const latest = await getLatestAccountScanRun(company.id)
         if (latest && latest.runId === runId && latest.resultStatus) {
-          handleTerminalResult(runId, latest.resultStatus, latest.contentJson)
+          handleTerminalResult(runId, latest.runPhase, latest.resultStatus, latest.resultId, latest.contentJson)
         }
       })()
     }, FALLBACK_RECHECK_DELAY_MS)
@@ -277,26 +406,58 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
     }
   }, [runId, company.id, clearFallbackTimer, teardownRealtimeChannel, handleTerminalResult])
 
-  async function triggerScan(setup: AccountScanSetupValues) {
+  async function triggerInformationScan(setup: AccountScanSetupValues) {
     lastSetupRef.current = setup
     setErrorMessage(null)
-    setScanOutput(null)
+    setInformationOutput(null)
     setProposalRows([])
     setSelectedIds(new Set())
     setBilanByProposalId(new Map())
-    setPhase("queued") // feedback immédiat, avant même la réponse HTTP (§5)
+    setPhase("information_queued")
 
     try {
-      const knownCompany = {
-        name: company.name,
-        legalName: company.legalName,
-        website: company.website,
-        siren: company.siren,
-        nafCode: company.nafCode,
-        sectorId: company.sectorId,
-      }
       const input = buildAccountScanInput(setup, knownCompany)
+      const res = await fetch("/api/n8n/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowId: "intel-010-refresh",
+          entityType: "company",
+          entityId: company.id,
+          companyId: company.id,
+          input,
+        }),
+      })
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+      }
+
+      const { runId: newRunId } = (await res.json()) as { runId: string }
+      setRunId(newRunId)
+      setInformationRunId(newRunId)
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Erreur inattendue lors du déclenchement")
+      setPhase("error")
+    }
+  }
+
+  async function triggerContactsScan(setup: AccountScanContactsSetupValues) {
+    if (phase === "contacts_queued" || phase === "contacts_running") return
+    setErrorMessage(null)
+    setContactsOutput(null)
+    setContactsResultId(null)
+    setSelectedContactKeys(new Set())
+    setImportResult(null)
+    setPhase("contacts_queued")
+
+    try {
+      const input = buildAccountScanContactsInput(setup, knownCompany, {
+        selectedSiren: informationOutput?.resolution.siren ?? company.siren,
+        websiteHint: company.website,
+        locationHint: company.hqLocation,
+      })
       const res = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -322,22 +483,28 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
     }
   }
 
-  function handleLaunch(setup: AccountScanSetupValues) {
-    void triggerScan(setup)
-  }
-
-  function handleSelectSiren(siren: string) {
-    void triggerScan({ ...lastSetupRef.current, selectedSiren: siren })
-  }
-
-  function handleBackToSetup() {
+  function handleBackToInformationSetup() {
     setErrorMessage(null)
-    setPhase("setup")
+    setPhase("information_setup")
+  }
+
+  function handleGoToContactsSetup() {
+    setErrorMessage(null)
+    setPhase("contacts_setup")
+  }
+
+  function handleGoToInformationReview() {
+    setErrorMessage(null)
+    if (informationOutput) {
+      setPhase("information_review")
+    } else {
+      setPhase("information_setup")
+    }
   }
 
   function handleApplySelected() {
-    if (!runId) return
-    void applyProposalIds(runId, Array.from(selectedIds))
+    if (!informationRunId) return
+    void applyProposalIds(informationRunId, Array.from(selectedIds))
   }
 
   function handleToggleSelect(id: string) {
@@ -356,31 +523,111 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
     })
   }
 
+  function handleToggleContactKey(candidateKey: string) {
+    const candidate = contactsOutput?.contactCandidates.find((item) => item.candidateKey === candidateKey)
+    if (candidate && !candidateCanBePreselected(candidate)) return
+    setSelectedContactKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(candidateKey)) next.delete(candidateKey)
+      else next.add(candidateKey)
+      return next
+    })
+  }
+
+  function handleToggleAllContactKeys(candidateKeys: string[]) {
+    setSelectedContactKeys((prev) => {
+      const allSelected = candidateKeys.length > 0 && candidateKeys.every((key) => prev.has(key))
+      return allSelected ? new Set() : new Set(candidateKeys)
+    })
+  }
+
+  async function handleImportContacts() {
+    if (!contactsResultId || selectedContactKeys.size === 0) return
+    setImportingContacts(true)
+    const result = await importAccountScanContacts({
+      resultId: contactsResultId,
+      companyId: company.id,
+      candidateKeys: Array.from(selectedContactKeys),
+      allowExistingUpdates: false,
+    })
+    setImportingContacts(false)
+    setImportResult(result)
+    if (!result.error) {
+      setSelectedContactKeys(new Set())
+      onApplied()
+    }
+  }
+
+  function handleSelectSiren(siren: string) {
+    void triggerInformationScan({ ...lastSetupRef.current, selectedSiren: siren })
+  }
+
   let body: ReactNode
   if (phase === "loading") {
     body = <AccountScanStatus kind="running" message="Chargement…" isMobile={isMobile} />
-  } else if (phase === "setup") {
-    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={handleLaunch} />
-  } else if (phase === "queued" || phase === "running") {
-    body = <AccountScanStatus kind={phase} isMobile={isMobile} />
-  } else if (phase === "ambiguous") {
+  } else if (phase === "information_setup") {
+    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={(setup) => void triggerInformationScan(setup)} />
+  } else if (phase === "contacts_setup") {
+    body = (
+      <AccountScanContactsSetup
+        companyName={company.name}
+        isMobile={isMobile}
+        launching={false}
+        onLaunch={(setup) => void triggerContactsScan(setup)}
+        onBackToInformation={handleGoToInformationReview}
+      />
+    )
+  } else if (phase === "information_queued" || phase === "information_running") {
+    body = <AccountScanStatus kind={phase === "information_queued" ? "queued" : "running"} isMobile={isMobile} />
+  } else if (phase === "contacts_queued" || phase === "contacts_running") {
+    body = <AccountScanStatus kind={phase === "contacts_queued" ? "queued" : "running"} message="Recherche et vérification des contacts publics en cours…" isMobile={isMobile} />
+  } else if (phase === "information_ambiguous") {
     body = (
       <AccountScanResolutionPicker
         candidates={candidates}
         isMobile={isMobile}
         relaunching={false}
         onSelect={handleSelectSiren}
-        onCancel={handleBackToSetup}
+        onCancel={handleBackToInformationSetup}
       />
     )
   } else if (phase === "not_found") {
-    body = <AccountScanStatus kind="not_found" isMobile={isMobile} onRetry={handleBackToSetup} />
+    body = <AccountScanStatus kind="not_found" isMobile={isMobile} onRetry={handleBackToInformationSetup} />
   } else if (phase === "error") {
-    body = <AccountScanStatus kind="error" message={errorMessage} isMobile={isMobile} onRetry={handleBackToSetup} />
-  } else if (scanOutput) {
+    body = <AccountScanStatus kind="error" message={errorMessage} isMobile={isMobile} onRetry={handleBackToInformationSetup} />
+  } else if (phase === "contacts_review" && contactsOutput) {
     body = isMobile ? (
+      <AccountScanContactsMobileResults
+        output={contactsOutput}
+        selectedKeys={selectedContactKeys}
+        importing={importingContacts}
+        importResult={importResult}
+        onToggleSelect={handleToggleContactKey}
+        onImportSelected={() => void handleImportContacts()}
+        onBackToInformation={handleGoToInformationReview}
+        onRelaunchContacts={handleGoToContactsSetup}
+        onClose={() => onOpenChange(false)}
+      />
+    ) : (
+      <AccountScanContactsDesktopResults
+        output={contactsOutput}
+        resultId={contactsResultId}
+        selectedKeys={selectedContactKeys}
+        importing={importingContacts}
+        importResult={importResult}
+        onToggleSelect={handleToggleContactKey}
+        onToggleSelectAll={handleToggleAllContactKeys}
+        onImportSelected={() => void handleImportContacts()}
+        onBackToInformation={handleGoToInformationReview}
+        onRelaunchContacts={handleGoToContactsSetup}
+        onClose={() => onOpenChange(false)}
+        onOpenContact={onOpenContact}
+      />
+    )
+  } else if (informationOutput) {
+    const results = isMobile ? (
       <AccountScanMobileResults
-        output={scanOutput}
+        output={informationOutput}
         proposalRows={proposalRows}
         selectedIds={selectedIds}
         onToggleSelect={handleToggleSelect}
@@ -390,7 +637,7 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
       />
     ) : (
       <AccountScanDesktopResults
-        output={scanOutput}
+        output={informationOutput}
         proposalRows={proposalRows}
         selectedIds={selectedIds}
         onToggleSelect={handleToggleSelect}
@@ -400,18 +647,43 @@ export function AccountScanDialog({ open, onOpenChange, company, isMobile, onApp
         bilanByProposalId={bilanByProposalId}
       />
     )
+    body = (
+      <>
+        {results}
+        <InformationActions
+          isMobile={isMobile}
+          onContacts={handleGoToContactsSetup}
+          onNewScan={handleBackToInformationSetup}
+          onClose={() => onOpenChange(false)}
+        />
+        <button
+          type="button"
+          onClick={handleBackToInformationSetup}
+          className="mt-2 text-[11px] font-semibold text-muted hover:text-heading"
+        >
+          Retour au choix du scan
+        </button>
+      </>
+    )
   } else {
-    body = <AccountScanStatus kind="error" message="Résultat introuvable." isMobile={isMobile} onRetry={handleBackToSetup} />
+    body = <AccountScanStatus kind="error" message="Résultat introuvable." isMobile={isMobile} onRetry={handleBackToInformationSetup} />
   }
+
+  const wide = phase === "information_review" || phase === "contacts_review"
 
   return (
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Scan rapide"
-      className={phase === "review" && !isMobile ? "max-w-4xl" : "max-w-lg"}
-      bodyClassName={phase === "review" ? "text-xs" : undefined}
+      className={wide && !isMobile ? "max-w-5xl" : "max-w-lg"}
+      bodyClassName={wide ? "text-xs" : undefined}
     >
+      <StepIndicator
+        phase={phase}
+        onInformation={handleGoToInformationReview}
+        onContacts={handleGoToContactsSetup}
+      />
       {body}
     </AppDialog>
   )

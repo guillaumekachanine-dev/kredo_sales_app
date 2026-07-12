@@ -4,6 +4,8 @@
 
 import type {
   AccountScanCompanyField,
+  AccountScanContactCandidate,
+  AccountScanContactMode,
   AccountScanFactAttribute,
   AccountScanInformationMode,
   AccountScanOutput,
@@ -77,6 +79,12 @@ export type AccountScanSetupValues = {
   selectedSiren?: string | null
 }
 
+export type AccountScanContactsSetupValues = {
+  contactMode: Exclude<AccountScanContactMode, "none">
+  requestedRoles: string[]
+  maxContacts: number
+}
+
 export function buildAccountScanInput(
   setup: AccountScanSetupValues,
   knownCompany: AccountScanKnownCompany,
@@ -95,6 +103,48 @@ export function buildAccountScanInput(
     locationHint: setup.locationHint?.trim() || null,
     autoApplyOfficialMissing: setup.autoApplyOfficialMissing,
   }
+}
+
+export function clampMaxContacts(value: number): number {
+  if (!Number.isFinite(value)) return 5
+  return Math.max(1, Math.min(10, Math.trunc(value)))
+}
+
+export function buildAccountScanContactsInput(
+  setup: AccountScanContactsSetupValues,
+  knownCompany: AccountScanKnownCompany,
+  context: {
+    selectedSiren?: string | null
+    websiteHint?: string | null
+    locationHint?: string | null
+  } = {},
+): AccountScanTriggerInput {
+  return {
+    schemaVersion: 1,
+    operation: "account_scan",
+    companyId: "",
+    informationMode: "verify",
+    contactMode: setup.contactMode,
+    requestedFields: [],
+    requestedFacts: [],
+    requestedRoles: setup.requestedRoles.map((role) => role.trim()).filter(Boolean),
+    maxContacts: clampMaxContacts(setup.maxContacts),
+    knownCompany,
+    selectedSiren: context.selectedSiren ?? knownCompany.siren ?? null,
+    websiteHint: context.websiteHint?.trim() || knownCompany.website || null,
+    locationHint: context.locationHint?.trim() || null,
+    autoApplyOfficialMissing: false,
+  }
+}
+
+export function candidateCanBePreselected(candidate: AccountScanContactCandidate): boolean {
+  return candidate.suggestedAction !== "ignore" && candidate.emailStatus !== "inferred"
+}
+
+export type AccountScanRunPhase = "information" | "contacts"
+
+export function phaseFromContactMode(contactMode: unknown): AccountScanRunPhase {
+  return contactMode === "identify" || contactMode === "confirm" ? "contacts" : "information"
 }
 
 // ─── Éligibilité à l'auto-application (§11) ─────────────────────────────────

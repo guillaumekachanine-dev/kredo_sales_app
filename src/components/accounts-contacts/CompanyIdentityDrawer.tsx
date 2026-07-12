@@ -1509,6 +1509,7 @@ export function CompanyIdentityDrawer({
           }}
           isMobile={isMobileViewport}
           onApplied={handleScanApplied}
+          onOpenContact={onOpenContactIdentity}
         />
       ) : null}
     </AppDrawer>

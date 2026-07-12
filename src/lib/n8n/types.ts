@@ -204,6 +204,8 @@ export type AccountScanTriggerInput = {
   contactMode: AccountScanContactMode
   requestedFields: AccountScanCompanyField[]
   requestedFacts: AccountScanFactAttribute[]
+  requestedRoles?: string[]
+  maxContacts?: number
   knownCompany: {
     name: string
     legalName?: string | null
@@ -290,26 +292,23 @@ export type AccountScanFactProposal = {
 }
 
 export type AccountScanContactCandidate = {
-  schemaVersion: 1
-  person: {
-    fullName: string
-    firstName?: string | null
-    lastName?: string | null
-    primaryEmail?: string | null
-    phone?: string | null
-    publicProfileUrl?: string | null
-    location?: string | null
-  }
-  contact: {
-    companyId: string
-    jobTitle?: string | null
-    department?: string | null
-    relationshipRole?: string | null
-    decisionPower?: string | null
-  }
+  candidateKey: string
+  firstName: string | null
+  lastName: string | null
+  fullName: string
+  jobTitle: string | null
+  department: string | null
+  relationshipRole: string | null
+  email: string | null
+  emailStatus: "public" | "confirmed" | "inferred" | "unknown"
+  phone: string | null
+  linkedinUrl: string | null
   confidenceScore: number
   sourceKeys: string[]
-  justification: string
+  evidence: string | null
+  existingPersonId: string | null
+  existingContactId: string | null
+  suggestedAction: "create" | "link" | "update" | "ignore"
 }
 
 export type AccountScanOutput = {

@@ -90,7 +90,7 @@ export function AccountScanSetup({ company, isMobile, launching, onLaunch }: Acc
           <input type="checkbox" disabled className="mt-0.5 h-4 w-4 shrink-0" />
           <span className="min-w-0">
             <span className="block text-xs font-bold text-heading">Rechercher ou confirmer des contacts publics</span>
-            <span className="mt-0.5 block text-[11px] font-semibold text-muted">Disponible au prochain lot</span>
+            <span className="mt-0.5 block text-[11px] font-semibold text-muted">Disponible après les résultats informations</span>
           </span>
         </div>
       </fieldset>
