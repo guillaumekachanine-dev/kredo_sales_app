@@ -134,3 +134,72 @@ Vérifié sans modification nécessaire : `saveRun()` (`src/lib/n8n/runs.ts`) st
 ### Validation réalisée avant import
 
 `node --check` (fonction englobante `async function` pour matcher le mode d'exécution réel des nœuds Code n8n) sur les 5 nœuds modifiés (`Validate Brief`, `Hydrate Context`, `Assemble Prompt`, `Parse & Validate Output`, `Quality Check`) + exécution réelle via harnais Node avec mocks (`this.helpers.httpRequestWithAuthentication`, `$()`, `$env`) — 46 assertions couvrant compte sans offre, compte avec offre obligatoire (accept/reject + fusion), recrutement candidat, delivery avec mission, management consultant (routage RPC + sélection du bon system prompt), Staff interne sans référence (zéro appel RPC), Staff interne avec référence facultative (enrichissement via RPC existante), source optionnelle désactivée (filtrage réel), brief legacy (3 normalisations simultanées), scope incohérent avec la catégorie (rejeté, 3 variantes), champ obligatoire par scope manquant (rejeté, 2 variantes), isolation workspace (chaque appel RPC scopé par construction), et régression de la liste `SCENARIOS_REQUIRING_OFFER`. JSON final re-chargé et chaque nœud modifié re-extrait/re-syntax-checké après écriture pour exclure toute corruption d'échappement.
+
+## 12. Lot 11 — prompts (4 couches) et QA (réparation / rejet / ancrage)
+
+Réécriture éditoriale et QA des nœuds Code, sans nouveau workflow, sans migration.
+
+### Manifeste de scénarios (généré, C1)
+
+La registry TS (`src/lib/communication/communication-scenario-registry.ts`) est la
+source de vérité. `scripts/generate-communication-manifest.mjs` (script npm
+`npm run gen:comm-manifest`) en dérive :
+- l'artefact versionné `n8n/workflows/intel-020-communication.manifest.json` ;
+- un bloc `const SCENARIO_MANIFEST = [...]` inliné dans le nœud `Assemble Prompt`
+  entre `// MANIFEST:START` / `// MANIFEST:END`.
+
+Un nœud Code n8n ne peut pas importer le TS de l'app au runtime (sandbox VPS) :
+le manifeste est donc matérialisé **au build-time**. **Après toute modification de
+la registry, relancer `npm run gen:comm-manifest` et recommiter le workflow**, sinon
+le test de drift échoue (`node scripts/generate-communication-manifest.mjs --check`).
+
+### Assemble Prompt — 4 couches composées
+
+1. Règles globales (identité **sourcée**, jamais inventée ; aucune spécialisation
+   affirmée ; interdiction d'inventer ; préséance des règles sur les préférences).
+2. Forme + contrat de sortie par `outputKind` (écrit / pitch oral / briefing).
+3. Garde-fous par `activityCategory` (le chemin **écrit** est aussi différencié :
+   commerce ≠ delivery ≠ recrutement ≠ management ≠ interne).
+4. Mission par scénario : **21 flagship bespoke** + template dérivé du manifeste
+   pour la longue traîne. Durées (`SPOKEN_DURATION`) et profondeurs (`BRIEFING_DEPTH`)
+   réellement pilotées par `length` (fin du « 30 s » codé en dur).
+
+### QA (Quality Check) — réparation déterministe, rejet bloquant, ancrage
+
+- Réparation **déterministe uniquement** (fences ```` ```json ````) dans Parse —
+  aucun second appel LLM.
+- Checks : placeholders, données techniques, **ancrage contextuel non naïf**
+  (jetons distinctifs + `source_refs`, seuil conservateur), exclusions, vocabulaire
+  commercial hors commerce, engagement de prix, contrôles par finalité.
+- Un échec **bloquant** (placeholder, fuite technique, exclusion violée, ancrage nul
+  sur contexte riche) fait émettre à `Prepare Callback` un `status: 'failed'` avec
+  `errorMessage` **lisible et sans fuite technique** + `qaFlags` — jamais un faux
+  succès. L'UI (`IntelligenceActionDrawers.tsx`) affiche ces `qaFlags` au lieu du
+  message générique « logs n8n ».
+
+### Test avant activation (en plus des §6/§11)
+
+1. `signal_outreach` sur un compte riche → générer, vérifier un texte réellement
+   ancré (nom du compte / mission citée) et `status = succeeded`.
+2. Forcer un contexte pauvre (nouveau prospect) → doit rester `succeeded` (ancrage
+   non exigé).
+3. Pitch oral `detailed` → vérifier une durée cible ~5 minutes (pas 30 s).
+4. Briefing `management_consultants` → contenu sans vocabulaire commercial, avec
+   posture/contexte émotionnel.
+5. Message de reconnaissance consultant → ne doit PAS être flaggé pour absence de
+   CTA commercial.
+
+### Validation réalisée avant import
+
+`node --check` sur les 5 nœuds Code modifiés + harnais Node réel
+(`node n8n/workflows/__tests__/intel-020-communication.test.js`) → **81 assertions,
+0 échec** : couverture des 92 scénarios (mission non vide), drift registry ⇔
+manifeste ⇔ inliné, durée/profondeur pilotées, identité non inventée, injection
+neutralisée, ancrage bloquant, placeholder/exclusion bloquants, réparation vs rejet,
+routage `resultType`, 5 tons métier injectés. `npx tsc --noEmit` / `npm run build`
+/ `eslint` verts.
+
+> ⚠️ **Commit Git ≠ déploiement n8n.** Ce lot ne modifie que le JSON du workflow
+> (inerte tant que non ré-importé sur le VPS), les tests, le générateur et une
+> touche UI. Réimporter `intel-020-communication.json` sur le VPS pour activer les
+> nouveaux prompts. Le secret HMAC est déjà configuré (Sessions 19+).

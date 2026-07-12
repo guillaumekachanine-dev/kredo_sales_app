@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:types": "node scripts/generate-db-types.mjs",
+    "gen:comm-manifest": "node scripts/generate-communication-manifest.mjs",
     "logos:attach": "node --env-file=.env.local scripts/attach-company-logos.mjs",
     "test": "vitest run"
   },

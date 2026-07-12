@@ -308,7 +308,12 @@ export function PitchMailDrawerContent({
             setQaFlags(row.qa_flags || [])
             setRunStatus("done")
           } else if (row.status === "failed") {
-            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
+            // INTEL-020 Lot 11 — surface la raison réelle du rejet (contrôle
+            // qualité ou erreur de génération) via les qa_flags échoués, déjà
+            // formulés de façon lisible et sans fuite technique côté n8n.
+            const failedFlags = (row.qa_flags || []).filter((f) => !f.passed)
+            const reason = failedFlags.map((f) => f.detail).filter(Boolean).join(" ")
+            setErrorMsg(reason || "La génération n'a pas abouti. Réessaie dans un instant.")
             setRunStatus("error")
           }
         }
