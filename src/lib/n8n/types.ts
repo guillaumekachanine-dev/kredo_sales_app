@@ -206,6 +206,41 @@ export type AccountScanTriggerInput = {
     nafCode?: string | null
     sectorId?: string | null
   }
+  // Lot 1 — résolution d'entité juridique (registre officiel).
+  // selectedSiren permet un second appel après un résultat "ambiguous" : l'utilisateur
+  // a choisi un candidat, on ne relance pas la recherche par nom.
+  selectedSiren?: string | null
+  websiteHint?: string | null
+  locationHint?: string | null
+  autoApplyOfficialMissing: boolean
+}
+
+// ─── Résolution d'entité juridique (Lot 1) ──────────────────────────────────
+// Absent du contrat AccountScanOutput livré au Lot 0 — ajouté ici car le Lot 1
+// ne doit jamais générer de propositions tant que l'entité n'est pas résolue
+// sans ambiguïté (cf. INTEL-010-refresh account_scan §3). Extension additive,
+// ne modifie aucun champ existant.
+
+export type AccountScanResolutionStatus = "resolved" | "ambiguous" | "not_found"
+
+export type AccountScanResolutionMatchMethod =
+  | "selected_siren"
+  | "known_siren"
+  | "name_location_match"
+
+export type AccountScanResolutionCandidate = {
+  siren: string
+  legalName: string
+  nafCode?: string | null
+  hqLocation?: string | null
+  matchScore: number
+}
+
+export type AccountScanResolution = {
+  status: AccountScanResolutionStatus
+  siren?: string | null
+  matchMethod?: AccountScanResolutionMatchMethod | null
+  candidates: AccountScanResolutionCandidate[]
 }
 
 export type AccountScanSource = {
@@ -277,6 +312,7 @@ export type AccountScanOutput = {
   workspaceId: string
   companyId: string
   status: "succeeded" | "failed"
+  resolution: AccountScanResolution
   sources: AccountScanSource[]
   fieldProposals: AccountScanFieldProposal[]
   factProposals: AccountScanFactProposal[]
