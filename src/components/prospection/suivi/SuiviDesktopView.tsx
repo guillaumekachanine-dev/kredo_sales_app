@@ -10,6 +10,7 @@ import { openReportGeneration } from "@/lib/reports/report-generation"
 import { getCalendarEventsForSuivi, CalendarEventItem } from "@/lib/prospection/suivi-actions"
 import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
 import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 // Taxonomie hiérarchisée des événements de l'activité (ESN)
 const EVENT_CATEGORIES = [
@@ -405,6 +406,13 @@ export function SuiviDesktopView({ data }: { data: SuiviData }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <ContextualCommunicationButton
+            intent="signal_outreach"
+            origin="prospection_priority"
+            label="Rédiger / préparer"
+            variant="secondary"
+            mustInclude="Point d'entrée depuis le suivi prospection : proposer une prise de contact ou une préparation commerciale sans supposer de signal ni d'opportunité absente."
+          />
           <Button
             variant="primary"
             size="sm"

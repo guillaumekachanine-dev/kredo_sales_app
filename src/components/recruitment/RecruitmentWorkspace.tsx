@@ -19,6 +19,7 @@ import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import type { RecruitmentWorkspaceRow } from "@/app/(app)/recruitment/_data/get-recruitment-workspace"
 import { updateHiringStep } from "@/app/(app)/recruitment/_actions/update-hiring-step"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { RecruitmentListView } from "./RecruitmentListView"
 import { RecruitmentKanbanView } from "./RecruitmentKanbanView"
 import { RecruitmentPlanningView, type PlanningScale } from "./RecruitmentPlanningView"
@@ -38,43 +39,12 @@ interface RecruitmentWorkspaceProps {
 
 // ── Period helpers ─────────────────────────────────────────────────────────────
 
-function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
-}
-
 function getMondayOfWeek(date: Date): Date {
   const day = date.getDay()
   const monday = new Date(date)
   monday.setDate(date.getDate() - (day === 0 ? 6 : day - 1))
   monday.setHours(0, 0, 0, 0)
   return monday
-}
-
-function formatDD(d: Date) {
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
-}
-
-function getPeriodLabel(period: PeriodDisplay): string {
-  const today = new Date()
-  if (period === "week") {
-    const monday = getMondayOfWeek(today)
-    const sunday = new Date(monday)
-    sunday.setDate(monday.getDate() + 6)
-    const weekNum = getISOWeek(today)
-    return `semaine ${weekNum} - ${formatDD(monday)} au ${formatDD(sunday)}`
-  }
-  if (period === "month") {
-    return today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
-  }
-  if (period === "quarter") {
-    const q = Math.ceil((today.getMonth() + 1) / 3)
-    return `T${q} ${today.getFullYear()}`
-  }
-  return String(today.getFullYear())
 }
 
 function getPeriodStart(period: PeriodDisplay): Date | null {
@@ -142,6 +112,27 @@ function RecruitmentMobileCards({
                 </span>
               ))}
             </div>
+            <div className="mt-3">
+              <ContextualCommunicationButton
+                intent="recruiter_preparation"
+                origin="opportunity"
+                label="Préparer"
+                fullWidth
+                className="h-11 min-h-11 text-xs"
+                candidateId={row.candidateId}
+                candidateName={row.candidateName}
+                opportunityId={row.opportunityId}
+                opportunityTitle={row.opportunityTitle}
+                companyId={row.companyId}
+                companyName={row.clientName}
+                primaryEntity={{ type: "candidate", id: row.candidateId }}
+                mustInclude={[
+                  `Entretien planifié: ${row.candidateName}`,
+                  `Besoin: ${row.opportunityTitle}`,
+                  row.clientName ? `Client: ${row.clientName}` : null,
+                ].filter(Boolean).join("\n")}
+              />
+            </div>
           </SurfaceCard>
         ))}
       </div>
@@ -176,6 +167,27 @@ function RecruitmentMobileCards({
                       <p className="mt-2 text-[10px] text-muted">
                         {row.clientName} · {row.opportunityTitle}
                       </p>
+                      <div className="mt-3">
+                        <ContextualCommunicationButton
+                          intent="candidate_feedback"
+                          origin="opportunity"
+                          label="Feedback"
+                          fullWidth
+                          className="h-11 min-h-11 text-xs"
+                          candidateId={row.candidateId}
+                          candidateName={row.candidateName}
+                          opportunityId={row.opportunityId}
+                          opportunityTitle={row.opportunityTitle}
+                          companyId={row.companyId}
+                          companyName={row.clientName}
+                          primaryEntity={{ type: "candidate", id: row.candidateId }}
+                          mustInclude={[
+                            `Candidat: ${row.candidateName}`,
+                            `Étape: ${stage.label}`,
+                            `Besoin: ${row.opportunityTitle}`,
+                          ].filter(Boolean).join("\n")}
+                        />
+                      </div>
                     </div>
                   ))
                 )}
@@ -210,6 +222,27 @@ function RecruitmentMobileCards({
             <p>{row.opportunityTitle}</p>
             <p className="text-muted">{row.clientName}</p>
             <p className="text-muted">{row.availability || "—"}</p>
+          </div>
+          <div className="mt-3">
+            <ContextualCommunicationButton
+              intent="candidate_interview"
+              origin="opportunity"
+              label="Inviter"
+              fullWidth
+              className="h-11 min-h-11 text-xs"
+              candidateId={row.candidateId}
+              candidateName={row.candidateName}
+              opportunityId={row.opportunityId}
+              opportunityTitle={row.opportunityTitle}
+              companyId={row.companyId}
+              companyName={row.clientName}
+              primaryEntity={{ type: "candidate", id: row.candidateId }}
+              mustInclude={[
+                `Candidat: ${row.candidateName}`,
+                row.currentTitle ? `Profil: ${row.currentTitle}` : null,
+                `Besoin: ${row.opportunityTitle}`,
+              ].filter(Boolean).join("\n")}
+            />
           </div>
         </SurfaceCard>
       ))}
@@ -270,7 +303,7 @@ function ScalePicker({
       </span>
       <Select
         value={scale}
-        onChange={(e) => onChange(e.target.value as any)}
+        onChange={(e) => onChange(e.target.value as PlanningScale)}
         size="sm"
         className="text-brand-brass border-brand-brass bg-brand-brass/[0.08] hover:bg-brand-brass/[0.12] w-auto font-sans"
       >

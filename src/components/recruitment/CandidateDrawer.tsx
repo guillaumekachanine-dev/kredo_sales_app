@@ -5,6 +5,7 @@ import { AppDrawer } from '@/components/ui/AppDrawer'
 import { Button } from '@/components/ui/Button'
 import { CandidateProfileEditor } from '@/components/recruitment/CandidateProfileEditor'
 import { CandidateReferenceProfile } from '@/components/recruitment/CandidateReferenceProfile'
+import { ContextualCommunicationButton } from '@/components/communication/ContextualCommunicationButton'
 import {
   HiringProcessStepper,
   findActiveProcess,
@@ -163,7 +164,15 @@ export function CandidateDrawer({
 
   useEffect(() => {
     if (!open || !candidateId) return
-    void loadDrawerData(candidateId)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void loadDrawerData(candidateId)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
   }, [candidateId, loadDrawerData, open, reloadKey])
 
   const hiringProcess = drawerData
@@ -206,14 +215,29 @@ export function CandidateDrawer({
       className="max-w-[620px]"
       headerActions={
         !editing && drawerData && activeTab === 'profil' ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            leftIcon={<EditIcon />}
-            onClick={() => setEditing(true)}
-          >
-            Modifier
-          </Button>
+          <div className="flex items-center gap-2">
+            <ContextualCommunicationButton
+              intent="candidate_contact"
+              origin="opportunity"
+              label="Contacter"
+              candidateId={candidateId}
+              candidateName={name}
+              primaryEntity={candidateId ? { type: 'candidate', id: candidateId } : undefined}
+              mustInclude={[
+                `Candidat: ${name}`,
+                subtitle ? `Profil: ${subtitle}` : null,
+                hiringProcess?.job_profile?.title ? `Processus actif: ${hiringProcess.job_profile.title}` : null,
+              ].filter(Boolean).join('\n')}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              leftIcon={<EditIcon />}
+              onClick={() => setEditing(true)}
+            >
+              Modifier
+            </Button>
+          </div>
         ) : null
       }
     >

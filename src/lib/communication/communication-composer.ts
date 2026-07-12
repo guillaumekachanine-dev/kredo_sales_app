@@ -77,6 +77,9 @@ export type CommunicationComposerRequest = {
   contactId?: string | null
   collaboratorId?: string | null
   primaryEntity?: CommunicationComposerPrimaryEntity | null
+  initialBrief?: CommunicationBrief
+  selectedOutputKind?: CommunicationOutputKind
+  contextReferences?: Partial<CommunicationBrief["context"]>
   preset?: CommunicationComposerPreset
 }
 

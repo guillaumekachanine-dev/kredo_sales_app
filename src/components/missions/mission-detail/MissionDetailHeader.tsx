@@ -247,24 +247,48 @@ export function MissionDetailHeader({
             </div>
           </div>
           {mission.status === "active" ? (
-            <ContextualCommunicationButton
-              entryPoint="active_mission"
-              companyId={company?.id}
-              companyName={company?.name}
-              primaryEntity={{ type: "mission", id: mission.id }}
-              label="Proposer une extension"
-              variant="primary"
-              fullWidth
-              aria-label={`Proposer une extension pour la mission ${mission.title}`}
-              refs={{
-                missionRef: mission.id,
-                angle: [
-                  `Mission active: ${mission.title}`,
-                  mission.role_title ? `Rôle: ${mission.role_title}` : null,
-                  mission.end_date ? `Fin prévue: ${formatDateNumeric(mission.end_date)}` : null,
-                ].filter(Boolean).join("\n") || undefined,
-              }}
-            />
+            <div className="flex flex-col gap-2">
+              <ContextualCommunicationButton
+                entryPoint="active_mission"
+                companyId={company?.id}
+                companyName={company?.name}
+                missionId={mission.id}
+                missionTitle={mission.title}
+                primaryEntity={{ type: "mission", id: mission.id }}
+                label="Proposer une extension"
+                variant="primary"
+                fullWidth
+                aria-label={`Proposer une extension pour la mission ${mission.title}`}
+                refs={{
+                  missionRef: mission.id,
+                  angle: [
+                    `Mission active: ${mission.title}`,
+                    mission.role_title ? `Rôle: ${mission.role_title}` : null,
+                    mission.end_date ? `Fin prévue: ${formatDateNumeric(mission.end_date)}` : null,
+                  ].filter(Boolean).join("\n") || undefined,
+                }}
+              />
+              {company ? (
+                <ContextualCommunicationButton
+                  intent="steering_committee"
+                  origin="mission"
+                  label="Préparer COPIL"
+                  companyId={company.id}
+                  companyName={company.name}
+                  missionId={mission.id}
+                  missionTitle={mission.title}
+                  primaryEntity={{ type: "mission", id: mission.id }}
+                  fullWidth
+                  className="h-9 min-h-9"
+                  mustInclude={[
+                    `Mission: ${mission.title}`,
+                    `Client: ${company.name}`,
+                    riskLevel !== "faible" ? `Risque actuel: ${riskLevel}` : null,
+                    mission.end_date ? `Fin prévue: ${formatDateNumeric(mission.end_date)}` : null,
+                  ].filter(Boolean).join("\n")}
+                />
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
@@ -298,6 +322,46 @@ export function MissionDetailHeader({
                   {riskDescription}
                 </p>
               </div>
+              {company ? (
+                <div className="grid gap-2 border-t border-border/40 pt-3 sm:grid-cols-2">
+                  <ContextualCommunicationButton
+                    intent="delivery_risk_message"
+                    origin="mission"
+                    label="Communiquer sur le risque"
+                    companyId={company.id}
+                    companyName={company.name}
+                    missionId={mission.id}
+                    missionTitle={mission.title}
+                    primaryEntity={{ type: "mission", id: mission.id }}
+                    fullWidth
+                    className="h-11 min-h-11 text-xs"
+                    mustInclude={[
+                      `Mission: ${mission.title}`,
+                      `Client: ${company.name}`,
+                      `Niveau de risque: ${riskLevel}`,
+                      riskDescription ? `Commentaire: ${riskDescription}` : null,
+                    ].filter(Boolean).join("\n")}
+                  />
+                  <ContextualCommunicationButton
+                    intent="delivery_risk_briefing"
+                    origin="mission"
+                    label="Préparer l’escalade"
+                    companyId={company.id}
+                    companyName={company.name}
+                    missionId={mission.id}
+                    missionTitle={mission.title}
+                    primaryEntity={{ type: "mission", id: mission.id }}
+                    fullWidth
+                    className="h-11 min-h-11 text-xs"
+                    mustInclude={[
+                      `Mission: ${mission.title}`,
+                      `Client: ${company.name}`,
+                      `Niveau de risque: ${riskLevel}`,
+                      riskDescription ? `Commentaire: ${riskDescription}` : null,
+                    ].filter(Boolean).join("\n")}
+                  />
+                </div>
+              ) : null}
               <div className="flex justify-end gap-2 pt-3 border-t border-border/40">
                 <button
                   type="button"

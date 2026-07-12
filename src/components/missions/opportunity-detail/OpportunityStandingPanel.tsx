@@ -153,6 +153,10 @@ function StandingProfileList({
               entryPoint="candidate_positioning"
               companyId={companyId}
               companyName={companyName}
+              opportunityId={opportunityId}
+              opportunityTitle={opportunityTitle}
+              candidateId={profile.id}
+              candidateName={profile.full_name}
               primaryEntity={{ type: "opportunity", id: opportunityId }}
               label="Envoyer le profil"
               className="h-8 min-h-8 px-2.5 text-[11px]"
@@ -203,6 +207,57 @@ export function OpportunityStandingPanel({
         <PanelTitle title="Staffing" iconSrc="/icons_set/recrutement.png" />
         <div className="flex items-center gap-2 shrink-0">
           {headerActions}
+          {companyId || companyName ? (
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
+              <ContextualCommunicationButton
+                intent="proposal_follow_up"
+                origin="opportunity"
+                label="Relancer"
+                companyId={companyId}
+                companyName={companyName}
+                opportunityId={opportunityId}
+                opportunityTitle={opportunityTitle}
+                primaryEntity={{ type: "opportunity", id: opportunityId }}
+                className="h-8 min-h-8 px-2.5 text-[11px]"
+                mustInclude={[
+                  opportunityTitle ? `Opportunité: ${opportunityTitle}` : null,
+                  companyName ? `Compte: ${companyName}` : null,
+                ].filter(Boolean).join("\n")}
+              />
+              <ContextualCommunicationButton
+                intent="proposal_defense"
+                origin="opportunity"
+                label="Soutenance"
+                companyId={companyId}
+                companyName={companyName}
+                opportunityId={opportunityId}
+                opportunityTitle={opportunityTitle}
+                primaryEntity={{ type: "opportunity", id: opportunityId }}
+                className="h-8 min-h-8 px-2.5 text-[11px]"
+                mustInclude={[
+                  opportunityTitle ? `Opportunité: ${opportunityTitle}` : null,
+                  companyName ? `Compte: ${companyName}` : null,
+                  practice ? `Practice: ${practice}` : null,
+                ].filter(Boolean).join("\n")}
+              />
+              <ContextualCommunicationButton
+                intent="price_objection"
+                origin="opportunity"
+                label="Prix"
+                companyId={companyId}
+                companyName={companyName}
+                opportunityId={opportunityId}
+                opportunityTitle={opportunityTitle}
+                primaryEntity={{ type: "opportunity", id: opportunityId }}
+                className="h-8 min-h-8 px-2.5 text-[11px]"
+                mustInclude={[
+                  opportunityTitle ? `Opportunité: ${opportunityTitle}` : null,
+                  companyName ? `Compte: ${companyName}` : null,
+                  "Préparer une réponse courte à une objection de prix.",
+                ].filter(Boolean).join("\n")}
+              />
+            </div>
+          ) : null}
           {isEditing ? (
             <div className="flex items-center gap-1.5 shrink-0">
               <button

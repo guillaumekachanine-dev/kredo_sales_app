@@ -305,14 +305,16 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
                 Ouvrir le pitch
               </Button>
               <ContextualCommunicationButton
-                entryPoint="sector_offer"
+                intent="sector_rebound"
                 companyId={primaryCompany?.id}
                 companyName={primaryCompany?.name}
+                sectorId={sector.id}
+                sectorName={sector.name}
                 primaryEntity={primaryCompany ? { type: "company", id: primaryCompany.id } : { type: "sector", id: sector.id }}
-                label="Présenter cette offre"
+                label="Rédiger l’approche"
                 variant="secondary"
                 refs={sectorOfferRefs}
-                aria-label={`Présenter l'offre ${sector.name}`}
+                aria-label={`Rédiger une approche sectorielle ${sector.name}`}
               />
             </div>
           </div>
@@ -569,11 +571,13 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
                       </button>
                       <div className="mt-4 flex justify-end border-t border-border pt-3">
                         <ContextualCommunicationButton
-                          entryPoint="sector_offer"
+                          intent={action.key === "meeting_brief" ? "sector_persona_preparation" : "sector_rebound"}
                           companyId={primaryCompany?.id}
                           companyName={primaryCompany?.name}
+                          sectorId={sector.id}
+                          sectorName={sector.name}
                           primaryEntity={primaryCompany ? { type: "company", id: primaryCompany.id } : { type: "sector", id: sector.id }}
-                          label="Présenter cette offre"
+                          label={action.key === "meeting_brief" ? "Préparer" : "Rédiger"}
                           refs={{
                             angle: [
                               sectorOfferRefs.angle,

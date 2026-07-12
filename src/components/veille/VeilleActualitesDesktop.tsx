@@ -4,6 +4,7 @@ import { useState } from "react"
 import { formatDateFr } from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { SignalListCard } from "./SignalListCard"
 import {
   QualifySignalDialog,
@@ -82,19 +83,17 @@ export function VeilleActualitesDesktop({
     ]
     const mustInclude = parts.filter(Boolean).join("\n")
 
-    openCommunicationComposer({
+    const preset = buildCommunicationEntryPreset("signal_outreach", {
       origin: "veille_signal",
       companyId: matchedCompany?.id || null,
       companyName: matchedCompany?.name || null,
-      preset: {
-        scenario: "signal_outreach",
-        channel: "email",
-        objective: "get_meeting",
-        tone: "direct",
-        length: "standard",
-        mustInclude,
-      },
+      signalId: article.id,
+      sectorName: article.secteur_principal ?? article.categorie ?? null,
+      mustInclude,
     })
+    if (preset.ok) {
+      openCommunicationComposer(preset.request)
+    }
   }
 
   // Filter articles based on search & category chip
@@ -312,11 +311,13 @@ export function VeilleActualitesDesktop({
               )}
 
               <ContextualCommunicationButton
-                entryPoint="signal_card"
+                intent="signal_outreach"
+                origin="veille_signal"
                 companyId={selectedWatchedSignal.company.id}
                 companyName={selectedWatchedSignal.company.name}
+                signalId={selectedWatchedSignal.id}
                 refs={{ signalRef: selectedWatchedSignal.id }}
-                label="Générer un pitch"
+                label="Rédiger"
                 variant="primary"
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-md transition-all cursor-pointer hover:scale-[1.02]"
               />

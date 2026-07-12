@@ -66,6 +66,7 @@ interface ResolvedEntityContext {
 }
 
 type ComposerAccountContext = PitchMailAccountContext & {
+  initialBrief?: CommunicationComposerRequest["initialBrief"]
   communicationPreset?: CommunicationComposerPreset
   loadedCommunicationContext?: LoadedCommunicationContext | null
   scope: CommunicationComposerScope
@@ -190,7 +191,9 @@ function mergePreset(
     contactId: request.contactId ?? request.preset?.contactId ?? inferred.contactId,
     refs: {
       ...inferred.refs,
+      ...(request.contextReferences ?? {}),
       ...(request.preset?.refs ?? {}),
+      ...(request.initialBrief?.context ?? {}),
     },
   }
 }
@@ -357,6 +360,7 @@ function ComposerContent({
       key={`${instanceKey}:${context.company?.id ?? context.collaborator?.id ?? "internal"}:${context.communicationPreset?.contactId ?? "none"}`}
       data={context}
       variant={variant}
+      initialBrief={context.initialBrief}
       selectedOutputKind={outputKind}
     />
   )
@@ -632,7 +636,7 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const hydrate = useCallback(async (rawRequest: CommunicationComposerRequest) => {
     const sequence = ++loadSequence.current
     const currentRequest = enrichFromActiveIntelligenceContext(rawRequest)
-    setOutputKind(getOutputKindFromComposerPreset(currentRequest.preset))
+    setOutputKind(currentRequest.selectedOutputKind ?? currentRequest.initialBrief?.what.outputKind ?? getOutputKindFromComposerPreset(currentRequest.preset))
     setRequest(currentRequest)
     setLoading(true)
     setError(null)
@@ -713,6 +717,7 @@ Le message généré doit s'appuyer sur ces informations réelles, sans inventer
             currentTitle: collaboratorTitle,
           },
           contacts: [],
+          initialBrief: currentRequest.initialBrief,
           communicationPreset: preset,
           loadedCommunicationContext,
         })
@@ -730,6 +735,7 @@ Le message généré doit s'appuyer sur ces informations réelles, sans inventer
           company: null,
           collaborator: null,
           contacts: [],
+          initialBrief: currentRequest.initialBrief,
           communicationPreset: preset,
           loadedCommunicationContext,
         })
@@ -822,6 +828,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
             company: null,
             collaborator: null,
             contacts: [],
+            initialBrief: currentRequest.initialBrief,
             communicationPreset: preset,
             loadedCommunicationContext: null,
           })
@@ -872,6 +879,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
         },
         collaborator: null,
         contacts,
+        initialBrief: currentRequest.initialBrief,
         communicationPreset: preset,
         loadedCommunicationContext,
       })

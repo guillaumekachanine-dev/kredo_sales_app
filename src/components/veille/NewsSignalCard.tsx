@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDateFr } from "@/lib/formatters"
-import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type { VeilleArticle } from "@/app/(app)/veille/_data/veille-data"
 
 interface NewsSignalCardProps {
@@ -91,26 +91,16 @@ export function NewsSignalCard({ article, onOpen }: NewsSignalCardProps) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              openCommunicationComposer({
-                origin: "veille_signal",
-                preset: {
-                  scenario: "signal_outreach",
-                  channel: "email",
-                  objective: "get_meeting",
-                  tone: "direct",
-                  length: "standard",
-                  mustInclude: buildMustInclude(article),
-                },
-              })
-            }}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface px-3 text-xs font-semibold text-body hover:bg-surface-hover hover:text-heading transition-colors"
-          >
-            {"Générer un pitch"}
-          </button>
+          <ContextualCommunicationButton
+            intent="signal_outreach"
+            origin="veille_signal"
+            label="Rédiger"
+            className="min-h-[44px] px-3 text-xs"
+            signalId={article.id}
+            sectorName={article.secteur_principal ?? article.categorie ?? undefined}
+            refs={{ signalRef: article.id }}
+            mustInclude={buildMustInclude(article)}
+          />
 
           <button
             type="button"

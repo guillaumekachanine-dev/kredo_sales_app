@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { formatDateFr } from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import {
   QualifySignalDialog,
   CreateAccountNoteDialog,
@@ -94,19 +95,17 @@ export function VeilleActualitesMobile({
     ]
     const mustInclude = parts.filter(Boolean).join("\n")
 
-    openCommunicationComposer({
+    const preset = buildCommunicationEntryPreset("signal_outreach", {
       origin: "veille_signal",
       companyId: matchedCompany?.id || null,
       companyName: matchedCompany?.name || null,
-      preset: {
-        scenario: "signal_outreach",
-        channel: "email",
-        objective: "get_meeting",
-        tone: "direct",
-        length: "standard",
-        mustInclude,
-      },
+      signalId: article.id,
+      sectorName: article.secteur_principal ?? article.categorie ?? null,
+      mustInclude,
     })
+    if (preset.ok) {
+      openCommunicationComposer(preset.request)
+    }
   }
 
   // Filter articles based on category chip
@@ -263,11 +262,13 @@ export function VeilleActualitesMobile({
                   Détails
                 </button>
                 <ContextualCommunicationButton
-                  entryPoint="signal_card"
+                  intent="signal_outreach"
+                  origin="veille_signal"
                   companyId={sig.company.id}
                   companyName={sig.company.name}
+                  signalId={sig.id}
                   refs={{ signalRef: sig.id }}
-                  label="Pitch"
+                  label="Rédiger"
                   variant="primary"
                   className="flex-1 min-h-[36px] inline-flex items-center justify-center rounded-lg bg-primary text-xxs font-bold text-primary-fg hover:bg-primary-deep shadow-sm transition-all cursor-pointer"
                 />

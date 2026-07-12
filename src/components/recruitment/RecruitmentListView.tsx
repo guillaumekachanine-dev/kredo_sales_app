@@ -10,6 +10,7 @@ import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { updateCandidateStatus } from "@/app/(app)/recruitment/_actions/update-candidate-status"
 import { Select } from "@/components/ui/Select"
 import type { StructuredListColumn } from "@/components/ui/StructuredList"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 interface RecruitmentListViewProps {
   rows: RecruitmentWorkspaceRow[]
@@ -188,11 +189,52 @@ const actionColumn: StructuredListColumn<RecruitmentWorkspaceRow> = {
   header: "Prochaine action",
   width: "15rem",
   render: (row) => (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-2">
       <span className="line-clamp-2 text-[11px] font-medium text-body">
         {row.nextAction || "Aucune action"}
       </span>
       <span className="text-[10px] text-muted">MAJ {formatDate(row.updatedAt)}</span>
+      <div className="flex flex-wrap gap-1.5">
+        <ContextualCommunicationButton
+          intent="candidate_interview"
+          origin="opportunity"
+          label="Inviter"
+          className="h-8 min-h-8 px-2.5 text-[11px]"
+          candidateId={row.candidateId}
+          candidateName={row.candidateName}
+          opportunityId={row.opportunityId}
+          opportunityTitle={row.opportunityTitle}
+          companyId={row.companyId}
+          companyName={row.clientName}
+          primaryEntity={{ type: "candidate", id: row.candidateId }}
+          mustInclude={[
+            `Candidat: ${row.candidateName}`,
+            row.currentTitle ? `Profil: ${row.currentTitle}` : null,
+            `Besoin: ${row.opportunityTitle}`,
+            row.clientName ? `Client: ${row.clientName}` : null,
+            row.nextAction ? `Prochaine action: ${row.nextAction}` : null,
+          ].filter(Boolean).join("\n")}
+        />
+        <ContextualCommunicationButton
+          intent="candidate_to_client"
+          origin="opportunity"
+          label="Client"
+          className="h-8 min-h-8 px-2.5 text-[11px]"
+          candidateId={row.candidateId}
+          candidateName={row.candidateName}
+          opportunityId={row.opportunityId}
+          opportunityTitle={row.opportunityTitle}
+          companyId={row.companyId}
+          companyName={row.clientName}
+          primaryEntity={{ type: "opportunity", id: row.opportunityId }}
+          mustInclude={[
+            `Candidat: ${row.candidateName}`,
+            row.currentTitle ? `Profil: ${row.currentTitle}` : null,
+            `Besoin: ${row.opportunityTitle}`,
+            row.summary ? `Synthèse: ${row.summary}` : null,
+          ].filter(Boolean).join("\n")}
+        />
+      </div>
     </div>
   ),
 }
@@ -280,7 +322,7 @@ export function RecruitmentListView({ rows }: RecruitmentListViewProps) {
               className="text-[11px] font-bold uppercase tracking-widest"
               style={{ color: "var(--color-heading)" }}
             >
-              Processus d'embauche en cours
+              Processus d&apos;embauche en cours
             </h3>
             <span
               className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"

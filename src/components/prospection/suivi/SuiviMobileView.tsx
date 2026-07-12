@@ -1,6 +1,4 @@
 "use client"
-
-import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
@@ -11,6 +9,7 @@ import {
   AiSparkBars,
   StatusDot,
 } from "./suivi-parts"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 
 // ── Suivi des Actions — Vue Mobile ───────────────────────────────────────────
 // Organisation fidèle à la maquette mobile :
@@ -21,8 +20,6 @@ import {
 
 export function SuiviMobileView({ data }: { data: SuiviData }) {
   const { dashboardPersonnel, fluxActions, prospectsUrgents, actionsCritiques, relancesIA } = data
-
-  const [relancerOpen, setRelancerOpen] = useState(false)
 
   const urgentsPct = dashboardPersonnel.actionsUrgentesTotal > 0
     ? Math.round((dashboardPersonnel.actionsUrgentesCount / dashboardPersonnel.actionsUrgentesTotal) * 100)
@@ -208,16 +205,19 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
             </div>
           ))}
 
-          <button
-            type="button"
-            onClick={() => setRelancerOpen(true)}
-            className="w-full h-11 rounded-lg bg-primary text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors hover:bg-primary-deep"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            Relancer via IA
-          </button>
+          <ContextualCommunicationButton
+            intent="prospection_follow_up"
+            origin="prospection_priority"
+            label="Relancer via IA"
+            variant="primary"
+            fullWidth
+            className="h-11 min-h-11 text-sm"
+            companyName={prospectsUrgents[0]?.company}
+            sectorName={prospectsUrgents[0]?.sector}
+            mustInclude={prospectsUrgents[0]
+              ? `Prospect prioritaire : ${prospectsUrgents[0].company}\nRaison : ${prospectsUrgents[0].raison}\nSecteur : ${prospectsUrgents[0].sector}`
+              : "Relance prioritaire depuis le suivi prospection mobile."}
+          />
         </SurfaceCard>
       </section>
 
@@ -248,35 +248,6 @@ export function SuiviMobileView({ data }: { data: SuiviData }) {
             ))}
           </div>
         </section>
-      )}
-
-      {/* ── Bottom Sheet : Relancer via IA ──────────────────────────────── */}
-      {relancerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm"
-          onClick={() => setRelancerOpen(false)}
-        >
-          <div
-            className="bg-surface border-t border-border rounded-t-2xl shadow-2xl w-full p-6 pb-8 max-w-md animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-1 bg-border rounded-full mx-auto mb-5" />
-            <h3 className="text-sm font-bold text-heading mb-2">Relancer via IA</h3>
-            <p className="text-xs text-body leading-relaxed mb-5">
-              Le moteur IA va analyser les prospects en attente et générer des séquences
-              de relance personnalisées via n8n. Confirmer pour lancer l&apos;analyse.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                onClick={() => setRelancerOpen(false)}
-                className="w-full h-11 bg-primary hover:bg-primary-deep text-white font-bold text-sm rounded-lg transition-colors"
-              >
-                Lancer l&apos;analyse IA
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )
