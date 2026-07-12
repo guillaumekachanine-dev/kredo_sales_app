@@ -17,6 +17,10 @@ const WORKFLOW_PATH = path.join(__dirname, "..", "intel-020-communication.json")
 const workflow = JSON.parse(fs.readFileSync(WORKFLOW_PATH, "utf-8"));
 const nodesByName = Object.fromEntries(workflow.nodes.map((n) => [n.name, n]));
 
+// Env partagé pour tous les appels Hydrate Context — SUPABASE_SERVICE_ROLE_KEY est
+// désormais requis (bug live post-Lot 10 : plus de credential store n8n dans ce nœud).
+const SUPABASE_TEST_ENV = { SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "service-role-test-key" };
+
 let failures = 0;
 let passed = 0;
 
@@ -42,13 +46,15 @@ function runCodeNode(nodeName, { registry, env, rpcMock, mode }) {
 
   const calls = [];
   const helpers = {
-    httpRequestWithAuthentication: {
-      call: async (_ctx, credentialType, options) => {
-        calls.push({ credentialType, options });
-        const rpcName = options.url.split("/rpc/")[1];
-        const fixture = rpcMock(rpcName, options.body);
-        return fixture;
-      },
+    // Bug live post-Lot 10 : httpRequestWithAuthentication n'est pas supporté
+    // dans le sandbox Code node sur ce VPS — Hydrate Context appelle désormais
+    // le helper nu httpRequest (pas de wrapper .call), auth construite à la
+    // main via des headers. Le mock reflète l'appel réel : pas de credentialType.
+    httpRequest: async (options) => {
+      calls.push({ options });
+      const rpcName = options.url.split("/rpc/")[1];
+      const fixture = rpcMock(rpcName, options.body);
+      return fixture;
     },
   };
 
@@ -149,7 +155,7 @@ async function main() {
     check("1. compte sans offre — scope=account", vb.scope === "account");
     check("1. compte sans offre — requiresOffer=false", vb.requiresOffer === false);
     const registry = { "Validate Brief": vb };
-    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("1. compte sans offre — 1 seul appel RPC (pas de get_pitch_context)", calls.length === 1 && calls[0].options.url.includes("get_communication_context"), JSON.stringify(calls.map((c) => c.options.url)));
     check("1. compte sans offre — ctx.company présent", Boolean(result[0].json.company));
   }
@@ -169,7 +175,7 @@ async function main() {
     const vb = await runValidateBrief({ body: { input: briefWithOffer } });
     check("2. offre obligatoire — requiresOffer=true", vb.requiresOffer === true);
     const registry = { "Validate Brief": vb };
-    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("2. offre obligatoire — 2 appels RPC (communication + pitch context, fusion)", calls.length === 2, JSON.stringify(calls.map((c) => c.options.url)));
     check("2. offre obligatoire — ctx fusionné contient company (général) ET offer (pitch)", Boolean(result[0].json.company) && Boolean(result[0].json.offer), JSON.stringify(result[0].json));
     check("2. offre obligatoire — ctx.pricingGrid présent (spécifique à get_pitch_context)", Array.isArray(result[0].json.pricingGrid) && result[0].json.pricingGrid.length > 0);
@@ -196,7 +202,7 @@ async function main() {
     });
     const vb = await runValidateBrief({ body: { input: brief } });
     const registry = { "Validate Brief": vb };
-    const { calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("4. delivery avec mission — missionRef transmis au RPC", calls[0].options.body.p_mission_id === "mission-1");
   }
 
@@ -213,7 +219,7 @@ async function main() {
     check("5. management consultant — scope=collaborator", vb.scope === "collaborator");
     check("5. management consultant — collaboratorId résolu", vb.collaboratorId === "collab-1");
     const registry = { "Validate Brief": vb };
-    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("5. management consultant — 1 seul appel, get_collaborator_communication_context", calls.length === 1 && calls[0].options.url.includes("get_collaborator_communication_context"), JSON.stringify(calls.map((c) => c.options.url)));
     check("5. management consultant — jamais get_communication_context/get_pitch_context", !calls.some((c) => /get_communication_context|get_pitch_context/.test(c.options.url)));
     check("5. management consultant — ctx.collaborator présent", Boolean(result[0].json.collaborator));
@@ -223,7 +229,7 @@ async function main() {
     const briefingBrief = { ...brief, what: { ...brief.what, scenario: "disciplinary_meeting_posture", outputKind: "structured_briefing", channel: "meeting_briefing" } };
     const vb2 = await runValidateBrief({ body: { entityType: "collaborator", entityId: "collab-1", input: briefingBrief } });
     const registry2 = { "Validate Brief": vb2 };
-    await runCodeNode("Hydrate Context", { registry: registry2, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    await runCodeNode("Hydrate Context", { registry: registry2, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     await runCodeNode("Resolve Sender", { registry: registry2, env: {}, rpcMock: baseRpcMock() }).catch(() => {
       registry2["Resolve Sender"] = { full_name: "Guillaume K." };
     });
@@ -248,7 +254,7 @@ async function main() {
     const vb = await runValidateBrief({ body: { entityType: "workspace", entityId: "workspace-1", input: brief } });
     check("6. staff interne sans référence — scope=internal", vb.scope === "internal");
     const registry = { "Validate Brief": vb };
-    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("6/12. staff interne sans référence — ZÉRO appel RPC (absence d'hydratation inutile)", calls.length === 0, JSON.stringify(calls));
     check("6. staff interne sans référence — ctx.internalRecipient construit depuis le brief", result[0].json.internalRecipient && result[0].json.internalRecipient.role === "manager_n1");
   }
@@ -265,7 +271,7 @@ async function main() {
     const vb = await runValidateBrief({ body: { entityType: "workspace", entityId: "workspace-1", input: brief } });
     check("7. staff interne avec référence — companyId résolu depuis context.companyRef", vb.companyId === "company-9");
     const registry = { "Validate Brief": vb };
-    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { result, calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("7. staff interne avec référence — 1 appel RPC (enrichissement compte facultatif)", calls.length === 1 && calls[0].options.url.includes("get_communication_context"), JSON.stringify(calls.map((c) => c.options.url)));
     check("7. staff interne avec référence — ctx.internalRecipient ET ctx.company présents ensemble", Boolean(result[0].json.internalRecipient) && Boolean(result[0].json.company));
   }
@@ -279,7 +285,7 @@ async function main() {
     check("8. source désactivée — absente de activeSources", !vb.activeSources.includes("signal_intelligence"));
     check("8. source désactivée — autres sources restent actives", vb.activeSources.includes("account_profile"));
     const registry = { "Validate Brief": vb };
-    const { result } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock((rpcName, body) => {
+    const { result } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock((rpcName, body) => {
       if (rpcName === "get_communication_context") return { company: { name: "Acme" }, sectorNews: [{ title: "News" }], sectorIntelligence: { name: "Tech" }, activeOpportunities: [], activeMissions: [], recentInteractions: [] };
     }) });
     check("8. source désactivée — ctx.sectorNews absent après filtrage", result[0].json.sectorNews === undefined);
@@ -349,7 +355,7 @@ async function main() {
     const brief = mergeBrief(makeValidateBriefInput({ body: {} }).body.input, { context: { opportunityRef: "opp-from-elsewhere" } });
     const vb = await runValidateBrief({ body: { workspaceId: "workspace-42", input: brief } });
     const registry = { "Validate Brief": vb };
-    const { calls } = await runCodeNode("Hydrate Context", { registry, env: { SUPABASE_URL: "https://x.supabase.co" }, rpcMock: baseRpcMock() });
+    const { calls } = await runCodeNode("Hydrate Context", { registry, env: SUPABASE_TEST_ENV, rpcMock: baseRpcMock() });
     check("11. isolation workspace — chaque appel RPC est scopé au workspace du run (p_workspace_id)", calls.every((c) => c.options.body.p_workspace_id === "workspace-42"), JSON.stringify(calls.map((c) => c.options.body.p_workspace_id)));
   }
 

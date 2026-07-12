@@ -28,7 +28,7 @@ Le contrat INTEL-020 (§7.3) proposait initialement le nœud Supabase natif pour
 - Un seul pattern d'accès Supabase = plus prévisible à déboguer.
 - Le nœud Supabase natif de n8n a un schéma de paramètres qui varie selon la version installée — HTTP Request direct contre `/rest/v1/...` avec la clé `service_role` est stable dans le temps.
 
-⚠️ **Exception introduite au Lot 10 (§11)** : "Hydrate Context" est devenu un nœud **Code** (au lieu de HTTP Request). Le routage par scope (0, 1 ou 2 appels RPC selon `account`/`collaborator`/`internal`, fusion compte+offre, zéro appel pour `internal` sans référence facultative) n'est pas exprimable dans une seule expression d'URL/body de nœud HTTP Request. L'authentification reste strictement identique (même credential `supabaseApi`, via `this.helpers.httpRequestWithAuthentication` — l'équivalent Code-node officiel du même mécanisme) : aucune reconfiguration VPS requise pour cette raison précise.
+⚠️ **Exception introduite au Lot 10 (§11)** : "Hydrate Context" est devenu un nœud **Code** (au lieu de HTTP Request). Le routage par scope (0, 1 ou 2 appels RPC selon `account`/`collaborator`/`internal`, fusion compte+offre, zéro appel pour `internal` sans référence facultative) n'est pas exprimable dans une seule expression d'URL/body de nœud HTTP Request. **Correction (§13, bug live)** : l'affirmation initiale « aucune reconfiguration VPS requise » était fausse — `this.helpers.httpRequestWithAuthentication` n'est pas supporté dans le sandbox Code node sur les versions n8n < 1.42.0, donc le credential `supabaseApi` n'est **pas** accessible depuis ce nœud. L'authentification est désormais construite à la main via `SUPABASE_SERVICE_ROLE_KEY` (§2, ci-dessus — déjà documentée, jamais câblée avant §13).
 
 ## 4. Le "signal épinglé" (`brief.context.signalRef`) n'est pas branché en V1
 
@@ -203,3 +203,21 @@ routage `resultType`, 5 tons métier injectés. `npx tsc --noEmit` / `npm run bu
 > (inerte tant que non ré-importé sur le VPS), les tests, le générateur et une
 > touche UI. Réimporter `intel-020-communication.json` sur le VPS pour activer les
 > nouveaux prompts. Le secret HMAC est déjà configuré (Sessions 19+).
+
+## 13. Correctif bug live — "Hydrate Context" incompatible avec le sandbox Code node
+
+**Symptôme observé sur le VPS** (canvas d'exécution réelle) : le workflow bascule en branche d'échec au nœud `Hydrate Context`, message d'erreur :
+```
+The function "helpers.httpRequestWithAuthentication" is not supported in the Code Node
+```
+
+**Cause** : `this.helpers.httpRequestWithAuthentication` — utilisé pour réutiliser le credential natif `supabaseApi` depuis un nœud Code (introduit au Lot 10, §11 ci-dessus) — n'est pas exposé dans le sandbox du nœud Code sur les versions n8n **antérieures à 1.42.0**. C'est un problème connu et documenté côté n8n (corrigé en 1.42.0), pas une erreur de configuration côté KREDO. Le credential store natif n'est donc accessible qu'aux nœuds **HTTP Request** classiques (`Update Run Status`, `Resolve Sender`, `Call LLM`, `Callback`, `Callback (Failure)`, tous non affectés), jamais aux nœuds Code.
+
+**Correctif** : `Hydrate Context` utilise désormais `this.helpers.httpRequest` (helper HTTP nu, sans wrapper d'authentification — supporté par le nœud Code sur toutes les versions n8n, confirmé par la doc/communauté n8n). L'authentification Supabase (`apikey` + `Authorization: Bearer`) est construite à la main dans le code du nœud à partir de `$env.SUPABASE_SERVICE_ROLE_KEY` — variable déjà exigée au §2 de ce document depuis le Lot 0, mais jamais effectivement lue par aucun nœud Code avant ce correctif.
+
+**Action requise avant réimport** :
+1. Vérifier que `SUPABASE_SERVICE_ROLE_KEY` est bien positionnée dans l'environnement du conteneur n8n (§2) — c'était déjà une exigence documentée, à confirmer concrètement si l'erreur ci-dessus s'est produite.
+2. Réimporter `intel-020-communication.json` sur le VPS (le JSON committé n'est actif qu'après réimport — un commit Git ne déploie rien sur n8n).
+3. Rejouer un scénario `account` simple (ex. `signal_outreach`) et vérifier que `Hydrate Context` s'exécute sans passer par la branche d'échec.
+
+**Validation réalisée dans cette session** : harnais Node (`node n8n/workflows/__tests__/intel-020-communication.test.js`) mis à jour pour mocker `this.helpers.httpRequest` (plus `httpRequestWithAuthentication.call`) et pour exiger `SUPABASE_SERVICE_ROLE_KEY` dans l'environnement de test → **81 passed, 0 failed** (inchangé). `node --check` sur le nœud modifié → OK. JSON du workflow rechargé, 16 nœuds, connexions intactes. Aucun autre nœud Code de ce workflow ni d'aucun autre workflow du repo n'utilise `httpRequestWithAuthentication` (grep confirmé) — bug contenu à ce seul nœud.
