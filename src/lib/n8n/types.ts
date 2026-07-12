@@ -128,6 +128,163 @@ export type AccountWatchRefreshWebhookPayload = {
   callbackUrl: string
 }
 
+// ─── Scan rapide d'un compte (V1) ───────────────────────────────────────────
+
+export type AccountScanInformationMode = "find" | "verify"
+
+export type AccountScanContactMode = "none" | "identify" | "confirm"
+
+export type AccountScanCompanyField =
+  | "legal_name"
+  | "siren"
+  | "naf_code"
+  | "description"
+  | "website"
+  | "hq_location"
+  | "sector"
+  | "employee_count"
+  | "revenue"
+
+export type AccountScanFactAttribute =
+  | "business_model"
+  | "primary_activity"
+  | "technology"
+  | "competitor"
+  | "partner"
+  | "market"
+  | "strategic_priority"
+  | "transformation_program"
+  | "establishment_count"
+  | "growth_trend"
+  | "geographic_reach"
+  | "value_proposition"
+  | "differentiators"
+  | "market_position"
+  | "marketing_position"
+  | "target_customers"
+
+export type AccountScanSourceType =
+  | "official_site"
+  | "press_release"
+  | "job_board"
+  | "professional_profile"
+  | "regulatory_filing"
+  | "news_media"
+  | "public_tender"
+  | "internal_crm"
+  | "human_note"
+  | "other"
+
+export type AccountScanCollectionMethod =
+  | "manual"
+  | "api"
+  | "import"
+  | "llm_extraction"
+  | "human_entry"
+  | "system_sync"
+
+export type AccountScanSectorValue = {
+  sectorId: string
+  name: string
+  slug?: string
+}
+
+export type AccountScanFieldValue = string | number | AccountScanSectorValue | null
+
+export type AccountScanTriggerInput = {
+  schemaVersion: 1
+  companyId: string
+  informationMode: AccountScanInformationMode
+  contactMode: AccountScanContactMode
+  requestedFields: AccountScanCompanyField[]
+  requestedFacts: AccountScanFactAttribute[]
+  knownCompany: {
+    name: string
+    legalName?: string | null
+    website?: string | null
+    siren?: string | null
+    nafCode?: string | null
+    sectorId?: string | null
+  }
+}
+
+export type AccountScanSource = {
+  schemaVersion: 1
+  sourceKey: string
+  sourceType: AccountScanSourceType
+  sourceName: string
+  sourceUrl?: string
+  canonicalUrl?: string
+  publishedAt?: string
+  collectedAt: string
+  evidenceExcerpt?: string
+  reliabilityScore: number
+  collectionMethod: AccountScanCollectionMethod
+}
+
+export type AccountScanFieldProposal = {
+  schemaVersion: 1
+  targetType: "company"
+  targetId: string
+  attributeName: AccountScanCompanyField
+  oldValue: AccountScanFieldValue
+  proposedValue: AccountScanFieldValue
+  normalizedValue: AccountScanFieldValue
+  confidenceScore: number
+  sourceKeys: string[]
+  justification: string
+}
+
+export type AccountScanFactProposal = {
+  schemaVersion: 1
+  targetType: "company" | "contact" | "person"
+  targetId: string
+  attributeName: AccountScanFactAttribute
+  oldValue: string | null
+  proposedValue: string
+  normalizedValue: string
+  confidenceScore: number
+  sourceKeys: string[]
+  justification: string
+}
+
+export type AccountScanContactCandidate = {
+  schemaVersion: 1
+  person: {
+    fullName: string
+    firstName?: string | null
+    lastName?: string | null
+    primaryEmail?: string | null
+    phone?: string | null
+    publicProfileUrl?: string | null
+    location?: string | null
+  }
+  contact: {
+    companyId: string
+    jobTitle?: string | null
+    department?: string | null
+    relationshipRole?: string | null
+    decisionPower?: string | null
+  }
+  confidenceScore: number
+  sourceKeys: string[]
+  justification: string
+}
+
+export type AccountScanOutput = {
+  schemaVersion: 1
+  runId: string
+  workspaceId: string
+  companyId: string
+  status: "succeeded" | "failed"
+  sources: AccountScanSource[]
+  fieldProposals: AccountScanFieldProposal[]
+  factProposals: AccountScanFactProposal[]
+  contactCandidates: AccountScanContactCandidate[]
+  warnings: string[]
+  errorMessage?: string
+}
+
 // ─── INTEL-020 — Rédaction assistée (V1) ─────────────────────────────────────
 // Cadre QUOI/QUI/COMMENT/CONTEXTE — contrat canonique INTEL-020-REDACTION-ASSISTEE-V1.md § 5.5
 // Le brief est stocké tel quel dans ai_intelligence_runs.input_snapshot (pas de colonne dédiée).

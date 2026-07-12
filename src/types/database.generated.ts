@@ -203,6 +203,13 @@ export type Database = {
             foreignKeyName: "account_issues_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -300,6 +307,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_roadmap_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "account_roadmap_actions_company_id_fkey"
@@ -568,6 +582,13 @@ export type Database = {
             foreignKeyName: "account_score_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_score_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -580,104 +601,6 @@ export type Database = {
           },
           {
             foreignKeyName: "account_score_runs_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      account_watch_settings: {
-        Row: {
-          cadence: string
-          company_id: string
-          created_at: string
-          id: string
-          include_jobs: boolean
-          include_news: boolean
-          include_official_site: boolean
-          include_public_records: boolean
-          include_social_manual: boolean
-          include_tenders: boolean
-          is_enabled: boolean
-          last_error: string | null
-          last_run_at: string | null
-          last_status: string | null
-          metadata: Json
-          next_run_at: string | null
-          query_aliases: string[]
-          updated_at: string
-          watch_level: string
-          workspace_id: string
-        }
-        Insert: {
-          cadence?: string
-          company_id: string
-          created_at?: string
-          id?: string
-          include_jobs?: boolean
-          include_news?: boolean
-          include_official_site?: boolean
-          include_public_records?: boolean
-          include_social_manual?: boolean
-          include_tenders?: boolean
-          is_enabled?: boolean
-          last_error?: string | null
-          last_run_at?: string | null
-          last_status?: string | null
-          metadata?: Json
-          next_run_at?: string | null
-          query_aliases?: string[]
-          updated_at?: string
-          watch_level?: string
-          workspace_id?: string
-        }
-        Update: {
-          cadence?: string
-          company_id?: string
-          created_at?: string
-          id?: string
-          include_jobs?: boolean
-          include_news?: boolean
-          include_official_site?: boolean
-          include_public_records?: boolean
-          include_social_manual?: boolean
-          include_tenders?: boolean
-          is_enabled?: boolean
-          last_error?: string | null
-          last_run_at?: string | null
-          last_status?: string | null
-          metadata?: Json
-          next_run_at?: string | null
-          query_aliases?: string[]
-          updated_at?: string
-          watch_level?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "account_watch_settings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "account_watch_settings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "v_ai_intelligence_summary"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "account_watch_settings_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "v_mission_quarterly_revenue"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "account_watch_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -798,6 +721,13 @@ export type Database = {
             foreignKeyName: "account_signals_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_signals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -831,6 +761,111 @@ export type Database = {
           },
           {
             foreignKeyName: "account_signals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      account_watch_settings: {
+        Row: {
+          cadence: string
+          company_id: string
+          created_at: string
+          id: string
+          include_jobs: boolean
+          include_news: boolean
+          include_official_site: boolean
+          include_public_records: boolean
+          include_social_manual: boolean
+          include_tenders: boolean
+          is_enabled: boolean
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          metadata: Json
+          next_run_at: string | null
+          query_aliases: string[]
+          updated_at: string
+          watch_level: string
+          workspace_id: string
+        }
+        Insert: {
+          cadence?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          include_jobs?: boolean
+          include_news?: boolean
+          include_official_site?: boolean
+          include_public_records?: boolean
+          include_social_manual?: boolean
+          include_tenders?: boolean
+          is_enabled?: boolean
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          query_aliases?: string[]
+          updated_at?: string
+          watch_level?: string
+          workspace_id?: string
+        }
+        Update: {
+          cadence?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          include_jobs?: boolean
+          include_news?: boolean
+          include_official_site?: boolean
+          include_public_records?: boolean
+          include_social_manual?: boolean
+          include_tenders?: boolean
+          is_enabled?: boolean
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          query_aliases?: string[]
+          updated_at?: string
+          watch_level?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_watch_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_watch_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_ai_intelligence_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_watch_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_watch_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_mission_quarterly_revenue"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "account_watch_settings_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -913,6 +948,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_intelligence_logs_company_id_fkey"
@@ -1041,6 +1083,13 @@ export type Database = {
             foreignKeyName: "ai_intelligence_results_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -1140,6 +1189,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_intelligence_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_intelligence_runs_company_id_fkey"
@@ -1282,6 +1338,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "calendar_events_company_id_fkey"
@@ -1709,6 +1772,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "client_closures_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "client_closures_company_id_fkey"
@@ -2209,6 +2279,7 @@ export type Database = {
           legal_name: string | null
           lifecycle_status: string
           metadata: Json
+          naf_code: string | null
           name: string
           next_action_at: string | null
           next_action_label: string | null
@@ -2218,6 +2289,7 @@ export type Database = {
           sector: string | null
           sector_id: string | null
           segment: string | null
+          siren: string | null
           size_band: string | null
           tags: string[]
           updated_at: string
@@ -2237,6 +2309,7 @@ export type Database = {
           legal_name?: string | null
           lifecycle_status?: string
           metadata?: Json
+          naf_code?: string | null
           name: string
           next_action_at?: string | null
           next_action_label?: string | null
@@ -2246,6 +2319,7 @@ export type Database = {
           sector?: string | null
           sector_id?: string | null
           segment?: string | null
+          siren?: string | null
           size_band?: string | null
           tags?: string[]
           updated_at?: string
@@ -2265,6 +2339,7 @@ export type Database = {
           legal_name?: string | null
           lifecycle_status?: string
           metadata?: Json
+          naf_code?: string | null
           name?: string
           next_action_at?: string | null
           next_action_label?: string | null
@@ -2274,6 +2349,7 @@ export type Database = {
           sector?: string | null
           sector_id?: string | null
           segment?: string | null
+          siren?: string | null
           size_band?: string | null
           tags?: string[]
           updated_at?: string
@@ -2342,6 +2418,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "company_relationships_company_id_fkey"
@@ -2439,6 +2522,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "contacts_company_id_fkey"
@@ -3503,6 +3593,13 @@ export type Database = {
             foreignKeyName: "interactions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -3913,6 +4010,13 @@ export type Database = {
             foreignKeyName: "missions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -4302,6 +4406,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_ai_intelligence_summary"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "opportunities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "opportunities_company_id_fkey"
@@ -5197,6 +5308,13 @@ export type Database = {
             foreignKeyName: "projects_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -6011,6 +6129,13 @@ export type Database = {
             foreignKeyName: "account_score_runs_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "v_crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_score_runs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["company_id"]
           },
@@ -6171,6 +6296,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_crm_account_list: {
+        Row: {
+          description: string | null
+          employee_count: number | null
+          has_study: boolean | null
+          hq_location: string | null
+          id: string | null
+          legacy_folio_score: number | null
+          lifecycle_status: string | null
+          logo_path: string | null
+          name: string | null
+          nb_contacts: number | null
+          nb_with_email: number | null
+          priority: string | null
+          revenue: string | null
+          sector: string | null
+          segment: string | null
+          size_band: string | null
+          website: string | null
+        }
+        Insert: {
+          description?: string | null
+          employee_count?: number | null
+          has_study?: never
+          hq_location?: string | null
+          id?: string | null
+          legacy_folio_score?: number | null
+          lifecycle_status?: string | null
+          logo_path?: never
+          name?: string | null
+          nb_contacts?: never
+          nb_with_email?: never
+          priority?: string | null
+          revenue?: string | null
+          sector?: string | null
+          segment?: string | null
+          size_band?: string | null
+          website?: string | null
+        }
+        Update: {
+          description?: string | null
+          employee_count?: number | null
+          has_study?: never
+          hq_location?: string | null
+          id?: string | null
+          legacy_folio_score?: number | null
+          lifecycle_status?: string | null
+          logo_path?: never
+          name?: string | null
+          nb_contacts?: never
+          nb_with_email?: never
+          priority?: string | null
+          revenue?: string | null
+          sector?: string | null
+          segment?: string | null
+          size_band?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
       v_financial_model_activity_rates: {
         Row: {
@@ -6568,6 +6753,16 @@ export type Database = {
           to: "proposal_operation_result"
           isOneToOne: true
           isSetofReturn: false
+        }
+      }
+      validate_and_apply_enrichment_proposals: {
+        Args: { p_proposal_ids: string[]; p_reason?: string }
+        Returns: Database["public"]["CompositeTypes"]["proposal_operation_result"][]
+        SetofOptions: {
+          from: "*"
+          to: "proposal_operation_result"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
     }
