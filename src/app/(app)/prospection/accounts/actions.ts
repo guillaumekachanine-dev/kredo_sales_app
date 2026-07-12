@@ -248,7 +248,7 @@ export async function getCompanyIdentity(companyId: string) {
     const [companyResult, contactsResult, oppsResult, missionsResult, interactionResult] = await Promise.all([
       supabase
         .from("companies")
-        .select("id, name, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, tags, metadata, created_at, updated_at")
+        .select("id, name, legal_name, siren, naf_code, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, tags, metadata, created_at, updated_at")
         .eq("id", companyId)
         .maybeSingle(),
       supabase

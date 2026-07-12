@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react"
 import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
@@ -10,11 +11,9 @@ import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligen
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import { getOpportunityStageLabel, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
-import { getCommunicationEntryPoint, type CommunicationEntryPoint } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import { lifecycleLabel } from "@/components/accounts-contacts/intelligence/intelligence-parts"
 import { formatEuro, formatDate } from "@/lib/formatters"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
-import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { normalizeContactRelationshipRole, relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
 import { useMissionsTabStore } from "@/lib/tabs/missions-tab-store"
 import {
@@ -22,6 +21,13 @@ import {
   persistCrmLauncherAccountIds,
   toggleCrmLauncherAccountId,
 } from "@/lib/crm/account-launcher-preferences"
+
+// Chargement différé : le bundle du scan (résultats desktop/mobile, DataTable…)
+// n'est chargé que si l'utilisateur clique effectivement sur "Scan".
+const AccountScanDialog = dynamic(
+  () => import("@/components/accounts-contacts/scan/AccountScanDialog").then((m) => m.AccountScanDialog),
+  { ssr: false }
+)
 
 interface CompanyIdentityDrawerProps {
   companyId: string | null
@@ -35,6 +41,8 @@ type IdentityData = {
     id: string
     name: string
     legal_name: string | null
+    siren: string | null
+    naf_code: string | null
     lifecycle_status: string
     sector: string | null
     segment: string | null
@@ -343,6 +351,7 @@ export function CompanyIdentityDrawer({
   const [transitionPending, startTransition] = useTransition()
   const [contactFilter, setContactFilter] = useState<"all" | "decideur" | "sponsor">("all")
   const [isDocumentsModalOpen, setIsDocumentsModalOpen] = useState(false)
+  const [isScanDialogOpen, setIsScanDialogOpen] = useState(false)
   const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [favoritePending, setFavoritePending] = useState(false)
   const prevCompanyIdRef = useRef<string | null>(null)
@@ -366,6 +375,17 @@ export function CompanyIdentityDrawer({
       title: data?.company.name ?? "Mission",
       subtitle: mission.title,
     })
+  }
+
+  // Rafraîchissement silencieux après application de propositions du Scan
+  // rapide (§12) — pas de startTransition/skeleton : la modale de scan reste
+  // ouverte, seules les données affichées derrière doivent se mettre à jour.
+  const handleScanApplied = async () => {
+    if (!companyId) return
+    const response = await getCompanyIdentity(companyId)
+    if (!response.error) {
+      setData(response.data as unknown as IdentityData)
+    }
   }
 
   useEffect(() => {
@@ -612,34 +632,10 @@ export function CompanyIdentityDrawer({
             <div className="grid grid-cols-3 gap-2 border-t border-white/12 pt-2.5 text-[11px]">
               <button
                 type="button"
-                onClick={() => {
-                  const entryPoint: CommunicationEntryPoint =
-                    data.company.lifecycle_status === "ancien_client" ? "former_client" : "account_row"
-                  const preset = getCommunicationEntryPoint(entryPoint)
-                  openCommunicationComposer({
-                    origin: "account",
-                    companyId: data.company.id,
-                    companyName: data.company.name,
-                    primaryEntity: { type: "company", id: data.company.id },
-                    preset: {
-                      channel: preset.channel,
-                      scenario: preset.scenario,
-                      objective: preset.objective,
-                      tone: preset.tone,
-                      length: preset.length,
-                      refs: {
-                        angle: [
-                          data.company.sector ? `Secteur: ${data.company.sector}` : null,
-                          data.company.segment ? `Segment: ${data.company.segment}` : null,
-                          data.company.lifecycle_status ? `Cycle de vie: ${data.company.lifecycle_status}` : null,
-                        ].filter(Boolean).join(" · ") || undefined,
-                      },
-                      mustInclude: preset.contextHint || undefined,
-                    },
-                  })
-                }}
+                onClick={() => setIsScanDialogOpen(true)}
                 className="flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-md px-2 text-[10px] font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
                 style={{ backgroundColor: "#1E5E99" }}
+                title="Scanner les informations du compte"
               >
                 <Image
                   src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
@@ -648,7 +644,7 @@ export function CompanyIdentityDrawer({
                   height={16}
                   className="h-4 w-4 shrink-0 object-contain"
                 />
-                <span>Rédiger</span>
+                <span>Scan</span>
               </button>
 
               <button
@@ -1494,6 +1490,25 @@ export function CompanyIdentityDrawer({
           companyId={data.company.id}
           companyName={data.company.name}
           isMobile={isMobileViewport}
+        />
+      ) : null}
+
+      {data ? (
+        <AccountScanDialog
+          open={isScanDialogOpen}
+          onOpenChange={setIsScanDialogOpen}
+          company={{
+            id: data.company.id,
+            name: data.company.name,
+            legalName: data.company.legal_name,
+            website: data.company.website,
+            hqLocation: data.company.hq_location,
+            siren: data.company.siren,
+            nafCode: data.company.naf_code,
+            sectorId: null,
+          }}
+          isMobile={isMobileViewport}
+          onApplied={handleScanApplied}
         />
       ) : null}
     </AppDrawer>
