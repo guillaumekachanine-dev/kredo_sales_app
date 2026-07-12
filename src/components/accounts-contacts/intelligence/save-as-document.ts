@@ -225,6 +225,23 @@ export async function saveResultAsDocumentWithSupabaseClient(
   )
 
   if (!creation.success) {
+    // Deux callbacks identiques peuvent franchir le premier contrôle d'existence
+    // en même temps. L'index unique sur source_result_id désigne alors le gagnant ;
+    // le perdant relit ce document pour rester idempotent au lieu de répondre 500.
+    const { data: concurrentDocument, error: concurrentDocumentError } = await supabase
+      .from("intelligence_documents")
+      .select("id")
+      .eq("source_result_id", result.id)
+      .maybeSingle()
+
+    if (!concurrentDocumentError && concurrentDocument) {
+      revalidateReportsSafely()
+      return {
+        success: true,
+        documentId: (concurrentDocument as ExistingDocumentRow).id,
+        alreadyExists: true,
+      }
+    }
     return creation
   }
 

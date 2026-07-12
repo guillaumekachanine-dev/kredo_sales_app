@@ -255,6 +255,50 @@ describe("communication entry preset builder", () => {
     expect(result.brief.context.opportunityRef).toBe(uuid.opportunity)
   })
 
+  it("does not leak CRM recipient fields into collaborator or internal presets", () => {
+    const collaborator = buildCommunicationEntryPreset("consultant_recognition", {
+      collaboratorId: uuid.collaborator,
+      collaboratorName: "Jean Consultant",
+      companyId: uuid.company,
+      companyName: "Acme",
+      contactId: uuid.contact,
+      contactName: "Alice Contact",
+    })
+    expect(collaborator.ok).toBe(true)
+    if (!collaborator.ok) return
+    expect(collaborator.brief.who.recipient).toMatchObject({
+      type: "collaborator",
+      collaboratorId: uuid.collaborator,
+      displayName: "Jean Consultant",
+    })
+    expect(collaborator.brief.who.recipient.contactId).toBeUndefined()
+    expect(collaborator.brief.who.recipient.companyName).toBeUndefined()
+
+    const internal = buildCommunicationEntryPreset("staffing_help", {
+      companyId: uuid.company,
+      companyName: "Acme",
+      contactId: uuid.contact,
+      contactName: "Alice Contact",
+      opportunityId: uuid.opportunity,
+      candidateId: uuid.candidate,
+      candidateName: "Jane Candidate",
+      internalRole: "recruitment",
+      internalRelationship: "cross_functional",
+      internalDomain: "staffing",
+    })
+    expect(internal.ok).toBe(true)
+    if (!internal.ok) return
+    expect(internal.brief.who.recipient).toMatchObject({
+      type: "internal",
+      internalRole: "recruitment",
+    })
+    expect(internal.brief.who.recipient.contactId).toBeUndefined()
+    expect(internal.brief.who.recipient.companyName).toBeUndefined()
+    expect(internal.brief.who.recipient.displayName).toBeUndefined()
+    expect(internal.brief.context.companyRef).toBe(uuid.company)
+    expect(internal.brief.context.profileRef).toBe(uuid.candidate)
+  })
+
   it("builds finance invoice follow-up only with structured invoice facts", () => {
     const result = buildCommunicationEntryPreset("finance_invoice_follow_up", {
       companyId: uuid.company,

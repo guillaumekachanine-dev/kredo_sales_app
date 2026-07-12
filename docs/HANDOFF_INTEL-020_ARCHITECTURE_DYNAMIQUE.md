@@ -2247,3 +2247,11 @@ Ajoute :
 
 Travaille lot par lot, mets à jour le ledger, ne commence jamais le lot suivant sans validation.
 ```
+
+---
+
+# 29. Mise à jour Lot 15 — 12 juillet 2026
+
+Le Lot 15 a ajouté une matrice déterministe des 21 parcours et deux protections de stabilisation : les presets `collaborator` et `internal` ne recopient plus les champs CRM dans le destinataire, et l'auto-sauvegarde documentaire est maintenant protégée par l'unicité de `source_result_id` et une récupération du document gagnant en cas de callback concurrent.
+
+Supabase est vérifié en lecture et écriture pour cette correction : publication Realtime, enum `prise_de_parole`, RPC collaborateur et index unique documentaire sont présents. Le workflow local est cohérent avec le manifeste de 92 scénarios, mais son état déployé n8n et les six runs LLM ne sont pas validés : la session ne possède ni accès administrateur VPS n8n ni session applicative authentifiée/Playwright. Le statut est donc **partial**, jamais `done`. Le détail, la matrice, les commandes et la checklist de déploiement sont dans le [rapport Lot 15](handoffs/INTEL-020-lot-15-report.md).

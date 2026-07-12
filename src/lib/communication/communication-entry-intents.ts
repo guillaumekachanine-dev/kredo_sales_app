@@ -761,7 +761,16 @@ function buildBrief(definition: CommunicationEntryIntentDefinition, context: Com
       definition.scenario === "candidate_to_client_pitch" ||
       definition.scenario === "atypical_candidate_defense"
     ) ? "active_client" : definition.activityCategory === "recrutement" ? "candidate" : definition.activityCategory === "commerce_actif" || definition.activityCategory === "delivery" ? "active_client" : "prospect")
-  const displayName = context.contactName ?? context.candidateName ?? context.collaboratorName ?? context.internalRecipientName ?? undefined
+  const isAccountScope = definition.scope === "account"
+  const isCollaboratorScope = definition.scope === "collaborator"
+  const isInternalScope = definition.scope === "internal"
+  const displayName = isCollaboratorScope
+    ? context.collaboratorName ?? undefined
+    : isInternalScope
+      ? context.internalRecipientName ?? undefined
+      : recipientType === "candidate"
+        ? context.candidateName ?? undefined
+        : context.contactName ?? undefined
 
   return {
     what: {
@@ -781,13 +790,13 @@ function buildBrief(definition: CommunicationEntryIntentDefinition, context: Com
         type: recipientType,
         persona: "other",
         relation: definition.activityCategory === "commerce_actif" || definition.activityCategory === "delivery" ? "active_client" : "unknown",
-        contactId: context.contactId ?? undefined,
-        collaboratorId: context.collaboratorId ?? undefined,
+        contactId: isAccountScope ? context.contactId ?? undefined : undefined,
+        collaboratorId: isCollaboratorScope ? context.collaboratorId ?? undefined : undefined,
         displayName,
-        companyName: context.companyName ?? undefined,
-        internalRole: context.internalRole ?? undefined,
-        internalRelationship: context.internalRelationship ?? undefined,
-        internalDomain: context.internalDomain ?? undefined,
+        companyName: isAccountScope ? context.companyName ?? undefined : undefined,
+        internalRole: isInternalScope ? context.internalRole ?? undefined : undefined,
+        internalRelationship: isInternalScope ? context.internalRelationship ?? undefined : undefined,
+        internalDomain: isInternalScope ? context.internalDomain ?? undefined : undefined,
       },
       objective: scenario?.defaultObjective ?? "get_meeting",
     },
