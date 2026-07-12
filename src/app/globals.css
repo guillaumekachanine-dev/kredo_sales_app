@@ -1177,6 +1177,38 @@ dialog.kredo-drawer-bottom {
   animation: kredo-offer-card-out 130ms ease-in forwards;
 }
 
+/* Hub "Quoi" (catégorie → scénario → objectif) — fondu de l'ensemble du
+   panneau à chaque changement d'étape (opacité seule : la distribution
+   progressive des cartes porte le mouvement vertical, pas de transform
+   cumulée). */
+@keyframes kredo-quoi-panel-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes kredo-quoi-panel-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.kredo-quoi-panel-in {
+  animation: kredo-quoi-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.kredo-quoi-panel-out {
+  animation: kredo-quoi-panel-out 190ms ease-in forwards;
+}
+
 /* Mise en relief — lift + ombre au survol, courbe "expo-out" lente et sans
    à-coup (pas de rebond) pour une sensation premium plutôt que réactive. */
 .kredo-relief-hover {
@@ -1230,7 +1262,9 @@ dialog.kredo-drawer-bottom {
   }
 
   .kredo-offer-card-in,
-  .kredo-offer-card-out {
+  .kredo-offer-card-out,
+  .kredo-quoi-panel-in,
+  .kredo-quoi-panel-out {
     animation: none;
   }
 

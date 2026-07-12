@@ -36,6 +36,7 @@ import {
 } from "./communication-brief-options"
 import {
   ACTIVITY_CATEGORY_OPTIONS,
+  getScenarioRegistryItem,
   type ActivityCategory,
 } from "@/lib/communication/communication-scenario-registry"
 import { resolveCommunicationOptions, type CommunicationAdjustment } from "@/lib/communication/communication-options-resolver"
@@ -53,7 +54,7 @@ import type { LoadedCommunicationContext } from "@/lib/communication/communicati
 import { ContactSelector } from "./ContactSelector"
 import { EntityRefSelect } from "./EntityRefSelect"
 import { OfferPicker } from "./OfferPicker"
-import { ScenarioPicker } from "./ScenarioPicker"
+import { QuoiHubModal } from "./QuoiHubModal"
 import type { SuggestedOffer } from "./get-suggested-offers"
 import {
   getAccountCandidates,
@@ -288,41 +289,31 @@ function SectionRail() {
   )
 }
 
-function CategorySelector({
-  value,
-  available,
-  onChange,
+// Déclencheur commun des trois champs du hub "Quoi" (Catégorie / Scénario /
+// Objectif) : bouton compact identique à l'ancien sélecteur de scénario, qui
+// ouvre la modale hub à l'étape correspondante.
+function QuoiFieldTrigger({
+  label,
+  onClick,
   isMobile,
+  placeholder = "Choisir…",
 }: {
-  value: ActivityCategory
-  available: ActivityCategory[]
-  onChange: (category: ActivityCategory) => void
+  label: string | undefined
+  onClick: () => void
   isMobile: boolean
+  placeholder?: string
 }) {
-  const options = ACTIVITY_CATEGORY_OPTIONS.filter((option) => available.includes(option.value))
-
+  const triggerCls = cn(
+    "flex w-full items-center justify-between gap-1 rounded-lg border border-border/35 bg-surface/20 pl-2.5 pr-1.5 text-left font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0",
+    isMobile ? "h-9 text-[10px]" : "h-7 text-[10px]",
+  )
   return (
-    <div className={cn("grid gap-1.5", isMobile ? "grid-cols-2" : "grid-cols-4")}>
-      {options.map((option) => {
-        const active = option.value === value
-        return (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "rounded-lg border px-2 text-center text-[9.5px] font-bold uppercase tracking-[0.04em] transition-all duration-150 cursor-pointer leading-tight",
-              isMobile ? "min-h-[44px] py-2" : "h-9 py-1",
-              active
-                ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(226,147,29,0.05)]"
-                : "border-border/30 bg-surface/20 text-white hover:bg-surface/35"
-            )}
-          >
-            {option.label}
-          </button>
-        )
-      })}
-    </div>
+    <button type="button" onClick={onClick} className={triggerCls}>
+      <span className={cn("min-w-0 flex-1 truncate pr-1", !label && "text-muted")}>{label ?? placeholder}</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="size-3 shrink-0 text-muted">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+      </svg>
+    </button>
   )
 }
 
@@ -358,6 +349,14 @@ export function CommunicationBriefForm({
   const { selectCls, textareaCls } = useFieldClasses(isMobile)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [structuralNotice, setStructuralNotice] = useState<string | null>(null)
+  // Hub "Quoi" : une seule modale ouverte à l'étape choisie par la ligne cliquée.
+  const [quoiHub, setQuoiHub] = useState<{ open: boolean; step: "category" | "scenarios" | "objective" }>({
+    open: false,
+    step: "category",
+  })
+  function openQuoi(step: "category" | "scenarios" | "objective") {
+    setQuoiHub({ open: true, step })
+  }
 
   // Lot 8 — contrairement aux entités pivot du Lot 7 (booléens de présence
   // suffisants), le consultant est l'entité PRIMAIRE du scope collaborator :
@@ -663,23 +662,29 @@ export function CommunicationBriefForm({
   //    accordéons QUOI/QUI/COMMENT/CONTEXTE) et mobile (3 champs essentiels
   //    + "Plus d'options") ────────────────────────────────────────────────
 
+  // Hub "Quoi" — une seule modale (catégorie → scénario → objectif). Chaque
+  // ligne ci-dessous n'est plus qu'un déclencheur ouvrant la modale à l'étape
+  // voulue ; la modale gère elle-même l'enchaînement et les transitions.
+  const categoryLabel = ACTIVITY_CATEGORY_OPTIONS.find((o) => o.value === brief.what.activityCategory)?.label
+  const scenarioLabel = getScenarioRegistryItem(brief.what.scenario)?.label
+  const objectiveOptions = filterOptions(OBJECTIVE_OPTIONS, model.objectives)
+  const objectiveLabel = objectiveOptions.find((o) => o.value === brief.who.objective)?.label
+
   const fieldCategory = model.showCategorySelector ? (
-    <CategorySelector
-      value={brief.what.activityCategory as ActivityCategory}
-      available={model.availableCategories}
-      onChange={handleCategoryChange}
+    <QuoiFieldTrigger
+      label={categoryLabel}
+      onClick={() => openQuoi("category")}
       isMobile={isMobile}
+      placeholder="Choisir une catégorie…"
     />
   ) : null
 
   const fieldScenario = (
-    <ScenarioPicker
-      outputKind={brief.what.outputKind}
-      value={brief.what.scenario}
-      onChange={handleScenarioChange}
+    <QuoiFieldTrigger
+      label={scenarioLabel}
+      onClick={() => openQuoi("scenarios")}
       isMobile={isMobile}
-      hideLabel={isMobile}
-      allowedCategories={model.showCategorySelector ? [brief.what.activityCategory as ActivityCategory] : undefined}
+      placeholder="Choisir un scénario…"
     />
   )
 
@@ -708,15 +713,34 @@ export function CommunicationBriefForm({
   )
 
   const fieldObjective = (
-    <Select
-      value={brief.who.objective}
-      onChange={(e) => updateObjective(e.target.value as CommunicationObjective)}
-      className={selectCls}
-    >
-      {filterOptions(OBJECTIVE_OPTIONS, model.objectives).map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </Select>
+    <QuoiFieldTrigger
+      label={objectiveLabel}
+      onClick={() => openQuoi("objective")}
+      isMobile={isMobile}
+      placeholder="Définir l'objectif…"
+    />
+  )
+
+  const quoiHubModal = (
+    <QuoiHubModal
+      open={quoiHub.open}
+      onOpenChange={(open) => setQuoiHub((state) => ({ ...state, open }))}
+      outputKind={brief.what.outputKind}
+      initialStep={quoiHub.step}
+      showCategory={model.showCategorySelector}
+      availableCategories={
+        model.showCategorySelector
+          ? model.availableCategories
+          : [brief.what.activityCategory as ActivityCategory]
+      }
+      categoryValue={brief.what.activityCategory as ActivityCategory}
+      onSelectCategory={handleCategoryChange}
+      scenarioValue={brief.what.scenario}
+      onSelectScenario={handleScenarioChange}
+      objectiveOptions={objectiveOptions}
+      objectiveValue={brief.who.objective}
+      onSelectObjective={updateObjective}
+    />
   )
 
   const fieldSenderRole = (
@@ -1185,6 +1209,7 @@ export function CommunicationBriefForm({
             </section>
           </div>
         </details>
+        {quoiHubModal}
       </div>
     )
   }
@@ -1273,6 +1298,7 @@ export function CommunicationBriefForm({
           </div>
         </details>
       </div>
+      {quoiHubModal}
     </div>
   )
 }
