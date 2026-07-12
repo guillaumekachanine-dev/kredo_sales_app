@@ -12,6 +12,8 @@ export interface EventResource {
   created_at?: string
 }
 
+type EventTimelineItem = EventDrawerDetail["timeline"][number]
+
 export interface EventDrawerDetail {
   id: string
   title: string
@@ -22,10 +24,15 @@ export interface EventDrawerDetail {
   description: string | null
   location: string | null
   meeting_url: string | null
-  metadata: any
+  metadata: unknown
   company: { id: string; name: string } | null
   contact: { id: string; full_name: string; email: string | null; phone: string | null; job_title: string | null } | null
   opportunity: { id: string; title: string } | null
+  mission: {
+    id: string
+    title: string
+    collaborator: { id: string; full_name: string | null } | null
+  } | null
   candidate: { id: string; full_name: string; status: string } | null
   preparatory_task: { id: string; title: string; due_date: string | null; priority: string; status: string } | null
   timeline: Array<{
@@ -62,6 +69,7 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
       company_id,
       contact_id,
       opportunity_id,
+      mission_id,
       candidate_id,
       companies ( id, name ),
       contacts (
@@ -70,6 +78,14 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
         persons ( id, full_name, primary_email, phone )
       ),
       opportunities ( id, title ),
+      missions (
+        id,
+        title,
+        collaborators (
+          id,
+          persons ( id, full_name )
+        )
+      ),
       candidates (
         id,
         status,
@@ -92,7 +108,7 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
     .maybeSingle()
 
   // 3. Determine timeline context and fetch timeline events
-  let timeline: any[] = []
+  let timeline: EventTimelineItem[] = []
   let timelineContext: EventDrawerDetail["timelineContext"] = { type: "none", name: "" }
 
   if (event.opportunity_id) {
@@ -101,6 +117,14 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
       .from("calendar_events")
       .select("id, title, starts_at, ends_at, event_type, description")
       .eq("opportunity_id", event.opportunity_id)
+      .order("starts_at", { ascending: false })
+    timeline = data || []
+  } else if (event.mission_id) {
+    timelineContext = { type: "opportunity", name: event.missions?.title || "Mission" }
+    const { data } = await supabase
+      .from("calendar_events")
+      .select("id, title, starts_at, ends_at, event_type, description")
+      .eq("mission_id", event.mission_id)
       .order("starts_at", { ascending: false })
     timeline = data || []
   } else if (event.candidate_id) {
@@ -131,6 +155,12 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
   const candidatePerson = event.candidates?.persons
     ? Array.isArray(event.candidates.persons) ? event.candidates.persons[0] : event.candidates.persons
     : null
+  const missionCollaborator = event.missions?.collaborators
+    ? Array.isArray(event.missions.collaborators) ? event.missions.collaborators[0] : event.missions.collaborators
+    : null
+  const missionCollaboratorPerson = missionCollaborator?.persons
+    ? Array.isArray(missionCollaborator.persons) ? missionCollaborator.persons[0] : missionCollaborator.persons
+    : null
 
   return {
     id: event.id,
@@ -154,6 +184,18 @@ export async function getEventDetailForDrawer(eventId: string): Promise<EventDra
         }
       : null,
     opportunity: event.opportunities ? { id: event.opportunities.id, title: event.opportunities.title } : null,
+    mission: event.missions
+      ? {
+          id: event.missions.id,
+          title: event.missions.title,
+          collaborator: missionCollaborator
+            ? {
+                id: missionCollaborator.id,
+                full_name: missionCollaboratorPerson?.full_name ?? null,
+              }
+            : null,
+        }
+      : null,
     candidate: event.candidates
       ? {
           id: event.candidates.id,

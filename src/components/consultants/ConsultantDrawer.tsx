@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/ui/StatusPill'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { RegisterIntelligenceEntity } from '@/components/intelligence/RegisterIntelligenceEntity'
+import { CommunicationIntentMenu } from '@/components/communication/CommunicationIntentMenu'
 import {
   computeMetrics,
   type DrawerAbsence,
@@ -697,6 +698,17 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
 
   const name     = drawerData ? resolveFullName(drawerData) : '…'
   const subtitle = drawerData?.current_title ?? undefined
+  const activeMissions = drawerData?.missions.filter((mission) => mission.status === 'active') ?? []
+  const reliableMission = activeMissions.length === 1 ? activeMissions[0] : null
+  const consultantContextLines = drawerData
+    ? [
+        `Collaborateur : ${name}`,
+        drawerData.current_title ? `Poste : ${drawerData.current_title}` : null,
+        drawerData.practice ? `Practice : ${drawerData.practice}` : null,
+        drawerData.seniority ? `Séniorité : ${drawerData.seniority}` : null,
+        reliableMission ? `Mission explicitement connue : ${reliableMission.title}` : null,
+      ].filter(Boolean).join('\n')
+    : undefined
 
   return (
     <AppDrawer
@@ -712,6 +724,33 @@ export function ConsultantDrawer({ collaboratorId, open, onOpenChange }: Consult
           entityId={collaboratorId}
           label={name}
         />
+      )}
+      {!loading && drawerData && collaboratorId && (
+        <div className="-mt-2 mb-4 flex justify-end">
+          <CommunicationIntentMenu
+            label="Rédiger / préparer"
+            origin="consultant"
+            scope="collaborator"
+            collaboratorId={collaboratorId}
+            collaboratorName={name}
+            primaryEntity={{ type: 'collaborator', id: collaboratorId }}
+            missionId={reliableMission?.id ?? null}
+            missionTitle={reliableMission?.title ?? null}
+            mustInclude={consultantContextLines}
+            items={[
+              { intent: 'consultant_message', label: 'Message' },
+              { intent: 'consultant_recognition', label: 'Reconnaissance' },
+              { intent: 'consultant_one_to_one', label: 'Point 1:1' },
+              { intent: 'consultant_feedback_follow_up', label: 'Feedback écrit' },
+              { intent: 'consultant_feedback_talk_track', label: 'Feedback oral' },
+              { intent: 'consultant_assignment_change', label: 'Changement mission' },
+              { intent: 'consultant_intercontract_message', label: 'Plan intercontrat' },
+              { intent: 'consultant_retention_briefing', label: 'Rétention' },
+              { intent: 'consultant_annual_review', label: 'Entretien annuel' },
+              { intent: 'consultant_sensitive_meeting', label: 'Échange sensible' },
+            ]}
+          />
+        </div>
       )}
       {/* ── Barre d'onglets ──────────────────────────────────────────── */}
       {!loading && drawerData && (

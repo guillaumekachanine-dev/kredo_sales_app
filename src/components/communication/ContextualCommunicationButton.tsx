@@ -17,7 +17,12 @@ import {
   COMMUNICATION_ENTRY_INTENTS,
   type CommunicationEntryIntent,
 } from "@/lib/communication/communication-entry-intents"
-import type { CommunicationBrief } from "@/lib/n8n/types"
+import type {
+  CommunicationBrief,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
+} from "@/lib/n8n/types"
 
 type ContextualCommunicationButtonProps = Omit<ComponentProps<typeof Button>, "onClick" | "children"> & {
   entryPoint?: CommunicationEntryPoint
@@ -37,13 +42,32 @@ type ContextualCommunicationButtonProps = Omit<ComponentProps<typeof Button>, "o
   missionTitle?: string | null
   candidateId?: string | null
   candidateName?: string | null
+  collaboratorName?: string | null
   offerId?: string | null
   signalId?: string | null
   sectorId?: string | null
   sectorName?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventType?: string | null
+  eventStartsAt?: string | null
+  eventLocation?: string | null
+  eventMeetingUrl?: string | null
+  eventParticipants?: string[] | null
+  eventDescription?: string | null
+  invoiceId?: string | null
+  invoiceReference?: string | null
+  invoiceAmount?: string | null
+  invoiceDueDate?: string | null
+  invoiceStatus?: string | null
+  internalRole?: CommunicationInternalRecipientRole
+  internalRelationship?: CommunicationInternalRelationship
+  internalDomain?: CommunicationInternalDomain
+  internalRecipientName?: string | null
   refs?: Partial<CommunicationBrief["context"]>
   mustInclude?: string
   stopPropagation?: boolean
+  onOpened?: () => void
 }
 
 const DEFAULT_ORIGIN_BY_ENTRY_POINT: Record<CommunicationEntryPoint, CommunicationComposerOrigin> = {
@@ -91,13 +115,32 @@ export function ContextualCommunicationButton({
   missionTitle,
   candidateId,
   candidateName,
+  collaboratorName,
   offerId,
   signalId,
   sectorId,
   sectorName,
+  eventId,
+  eventTitle,
+  eventType,
+  eventStartsAt,
+  eventLocation,
+  eventMeetingUrl,
+  eventParticipants,
+  eventDescription,
+  invoiceId,
+  invoiceReference,
+  invoiceAmount,
+  invoiceDueDate,
+  invoiceStatus,
+  internalRole,
+  internalRelationship,
+  internalDomain,
+  internalRecipientName,
   refs,
   mustInclude,
   stopPropagation = true,
+  onOpened,
   variant = "secondary",
   size = "sm",
   className,
@@ -131,10 +174,29 @@ export function ContextualCommunicationButton({
             missionTitle,
             candidateId: candidateId ?? refs?.profileRef,
             candidateName,
+            collaboratorId: collaboratorId ?? refs?.collaboratorRef,
+            collaboratorName,
             offerId: offerId ?? refs?.offerRef,
             signalId: signalId ?? refs?.signalRef,
             sectorId,
             sectorName,
+            eventId,
+            eventTitle,
+            eventType,
+            eventStartsAt,
+            eventLocation,
+            eventMeetingUrl,
+            eventParticipants,
+            eventDescription,
+            invoiceId,
+            invoiceReference,
+            invoiceAmount,
+            invoiceDueDate,
+            invoiceStatus,
+            internalRole,
+            internalRelationship,
+            internalDomain,
+            internalRecipientName,
             mustInclude: [legacyPreset?.contextHint, refs?.angle, mustInclude].filter(Boolean).join("\n\n") || undefined,
             origin: origin ?? (entryPoint ? DEFAULT_ORIGIN_BY_ENTRY_POINT[entryPoint] : "global"),
           })
@@ -150,6 +212,7 @@ export function ContextualCommunicationButton({
                 ...refs,
               },
             })
+            onOpened?.()
             return
           }
         }
@@ -174,6 +237,7 @@ export function ContextualCommunicationButton({
               mustInclude: [legacyPreset.contextHint, mustInclude].filter(Boolean).join("\n\n") || undefined,
             },
           })
+          onOpened?.()
         }
       }}
     >

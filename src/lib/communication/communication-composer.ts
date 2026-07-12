@@ -28,6 +28,8 @@ export type CommunicationComposerOrigin =
   | "meeting_follow_up"
   | "contact"
   | "account"
+  | "consultant"
+  | "finance"
   | "opportunity"
   | "mission"
   | "project"

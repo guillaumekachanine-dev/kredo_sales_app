@@ -1,10 +1,12 @@
 "use client"
 
-import React, { useEffect, useState, useTransition } from "react"
+import React, { useEffect, useState } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { CommunicationIntentMenu } from "@/components/communication/CommunicationIntentMenu"
 import { useEventDrawerStore, type EventDrawerTab } from "@/hooks/use-event-drawer-store"
 import { getEventDetailForDrawer, getEventResourceSignedUrl, type EventDrawerDetail, type EventResource } from "@/lib/agenda/event-drawer-actions"
 import { AGENDA_EVENT_TYPES } from "@/lib/agenda/agenda-config"
+import type { CommunicationEntryIntent } from "@/lib/communication/communication-entry-intents"
 import { formatDateTime } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
@@ -29,6 +31,28 @@ function resolveEventCategory(eventType: string, hasOpportunity: boolean): Categ
     return "management"
   }
   return "foisonnement"
+}
+
+function resolveAgendaCommunicationIntent(data: EventDrawerDetail): CommunicationEntryIntent {
+  if (data.candidate && ["entretien_candidat", "preparation_candidat", "sourcing_candidats"].includes(data.event_type)) {
+    return "recruiter_preparation"
+  }
+  if (data.mission?.collaborator && data.event_type === "ead_collab") {
+    return "consultant_annual_review"
+  }
+  if (data.mission?.collaborator && ["suivi_mission_collab", "preparation_collab"].includes(data.event_type)) {
+    return "consultant_one_to_one"
+  }
+  if (data.mission?.collaborator && data.event_type === "entretien_rh") {
+    return "consultant_sensitive_meeting"
+  }
+  if (data.company && data.opportunity && data.event_type === "soutenance") {
+    return "proposal_defense"
+  }
+  if (data.company) {
+    return "discovery_preparation"
+  }
+  return "agenda_event_preparation"
 }
 
 const CATEGORY_DETAILS: Record<CategoryId, {
@@ -401,11 +425,25 @@ interface TabOutputProps {
   data: EventDrawerDetail
 }
 
+function isEventResource(value: unknown): value is EventResource {
+  if (!value || typeof value !== "object") return false
+
+  const resource = value as Partial<EventResource>
+  return typeof resource.name === "string" && typeof resource.type === "string"
+}
+
+function getEventResources(metadata: unknown): EventResource[] {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return []
+
+  const resources = (metadata as { resources?: unknown }).resources
+  return Array.isArray(resources) ? resources.filter(isEventResource) : []
+}
+
 function TabOutput({ data }: TabOutputProps) {
   const [downloadingName, setDownloadingName] = useState<string | null>(null)
 
   // Parse resources from metadata
-  const resources: EventResource[] = data.metadata?.resources || []
+  const resources = getEventResources(data.metadata)
 
   const handleResourceClick = async (res: EventResource) => {
     if (res.type === "link" && res.url) {
@@ -651,32 +689,50 @@ export function EventDrawer() {
   const [data, setData] = useState<EventDrawerDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
   useEffect(() => {
-    if (!isOpen || !eventId) {
-      setData(null)
-      return
-    }
+    let cancelled = false
 
-    setLoading(true)
-    setError(null)
+    async function loadEventDetail() {
+      await Promise.resolve()
+      if (cancelled) return
 
-    startTransition(async () => {
+      if (!isOpen || !eventId) {
+        setData(null)
+        setLoading(false)
+        setError(null)
+        return
+      }
+
+      setLoading(true)
+      setError(null)
+
       try {
         const detail = await getEventDetailForDrawer(eventId)
+        if (cancelled) return
+
         if (!detail) {
           setError("Événement introuvable ou accès refusé.")
+          setData(null)
         } else {
           setData(detail)
         }
       } catch (err) {
+        if (cancelled) return
         console.error("Error loading event drawer details:", err)
         setError("Erreur lors de la récupération des données.")
+        setData(null)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
-    })
+    }
+
+    void loadEventDetail()
+
+    return () => {
+      cancelled = true
+    }
   }, [isOpen, eventId])
 
   const handleNavigateEvent = (id: string) => {
@@ -694,6 +750,14 @@ export function EventDrawer() {
   const natureText = data
     ? AGENDA_EVENT_TYPES[data.event_type]?.label || data.event_type
     : "Détails"
+  const agendaIntent = data ? resolveAgendaCommunicationIntent(data) : null
+  const eventParticipants = data
+    ? [
+        data.contact?.full_name,
+        data.candidate?.full_name,
+        data.mission?.collaborator?.full_name,
+      ].filter((name): name is string => Boolean(name))
+    : []
 
   const TABS: Array<{ id: EventDrawerTab; label: string }> = [
     { id: "details", label: "Détails" },
@@ -730,6 +794,54 @@ export function EventDrawer() {
     >
       {data && (
         <div className="flex flex-col h-full w-full">
+          {agendaIntent && (
+            <div className="-mt-2 mb-4 flex justify-end">
+              <CommunicationIntentMenu
+                label="Préparer avec l’IA"
+                origin="calendar_event"
+                scope={agendaIntent.startsWith("consultant_") ? "collaborator" : agendaIntent === "agenda_event_preparation" ? "internal" : "account"}
+                companyId={data.company?.id ?? null}
+                companyName={data.company?.name ?? null}
+                contactId={data.contact?.id ?? null}
+                contactName={data.contact?.full_name ?? null}
+                opportunityId={data.opportunity?.id ?? null}
+                opportunityTitle={data.opportunity?.title ?? null}
+                missionId={data.mission?.id ?? null}
+                missionTitle={data.mission?.title ?? null}
+                candidateId={data.candidate?.id ?? null}
+                candidateName={data.candidate?.full_name ?? null}
+                collaboratorId={data.mission?.collaborator?.id ?? null}
+                collaboratorName={data.mission?.collaborator?.full_name ?? null}
+                eventId={data.id}
+                eventTitle={data.title}
+                eventType={data.event_type}
+                eventStartsAt={data.starts_at}
+                eventLocation={data.location}
+                eventMeetingUrl={data.meeting_url}
+                eventParticipants={eventParticipants}
+                eventDescription={data.description}
+                primaryEntity={{ type: "calendar_event", id: data.id }}
+                internalDomain="operations"
+                mustInclude={[
+                  "[AGENDA_CONTEXT]",
+                  `Titre : ${data.title}`,
+                  `Type : ${data.event_type}`,
+                  `Début : ${formatDateTime(data.starts_at)}`,
+                  data.location ? `Lieu : ${data.location}` : null,
+                  data.meeting_url ? `Lien réunion : ${data.meeting_url}` : null,
+                  data.description ? `Description : ${data.description}` : null,
+                ].filter(Boolean).join("\n")}
+                refs={{
+                  ...(data.company?.id ? { companyRef: data.company.id } : {}),
+                  ...(data.opportunity?.id ? { opportunityRef: data.opportunity.id } : {}),
+                  ...(data.mission?.id ? { missionRef: data.mission.id } : {}),
+                  ...(data.candidate?.id ? { profileRef: data.candidate.id } : {}),
+                  ...(data.mission?.collaborator?.id ? { collaboratorRef: data.mission.collaborator.id } : {}),
+                }}
+                items={[{ intent: agendaIntent }]}
+              />
+            </div>
+          )}
           {/* Tab Selection Row */}
           <div
             className="-mt-4 mb-4 flex gap-1 border-b"

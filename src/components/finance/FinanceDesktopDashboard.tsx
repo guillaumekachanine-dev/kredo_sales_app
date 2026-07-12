@@ -11,6 +11,11 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
 import type { PageQuickAction } from "@/components/ui/page-quick-actions"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import {
+  buildCommunicationEntryPreset,
+  type CommunicationEntryIntent,
+} from "@/lib/communication/communication-entry-intents"
 import { formatEuroCompact } from "@/lib/formatters"
 import { PnlBarChart } from "./PnlBarChart"
 import Link from "next/link"
@@ -20,7 +25,6 @@ import { FinanceTabs, type FinanceTabId } from "./FinanceTabs"
 import { FinanceExecutiveHero } from "./FinanceExecutiveHero"
 import { FinanceWaterfallChart } from "./FinanceWaterfallChart"
 import { PipelineForecastChart } from "./PipelineForecastChart"
-import { FinanceScenarioCards } from "./FinanceScenarioCards"
 import { PracticeContributionGrid } from "./PracticeContributionGrid"
 import { MissionProfitabilityTable } from "./MissionProfitabilityTable"
 
@@ -28,12 +32,6 @@ import type {
   FinanceDashboardData,
   FinanceAlert,
 } from "@/lib/finance/finance-data"
-
-const IconAlert = () => (
-  <svg className="size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-  </svg>
-)
 
 const IconSimulation = () => (
   <svg className="size-full" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -64,6 +62,31 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
 
   // Filtres P&L Combo Chart
   const [viewWindow, setViewWindow] = useState<string>("6")
+  const financeSummary = [
+    `CA YTD : ${formatEuroCompact(executive.revenueYtd)}`,
+    `Marge brute YTD : ${formatEuroCompact(executive.grossMarginYtd)}`,
+    `Pipe pondéré : ${formatEuroCompact(executive.weightedPipe)}`,
+    `Atterrissage projeté : ${formatEuroCompact(executive.projectedLanding)}`,
+  ].join("\n")
+
+  function openFinanceIntent(intent: CommunicationEntryIntent, alert?: FinanceAlert | null) {
+    const isDirectionIntent = intent === "direction_summary" || intent === "finance_investment_arbitrage"
+    const isManagerIntent = intent === "manager_status_update" || intent === "manager_arbitrage"
+    const result = buildCommunicationEntryPreset(intent, {
+      origin: "finance",
+      missionId: alert?.metadata?.missionId ?? undefined,
+      internalRole: isDirectionIntent ? "executive_management" : isManagerIntent ? "manager_n1" : "finance_admin",
+      internalRelationship: isDirectionIntent ? "executive_committee" : isManagerIntent ? "hierarchical_up" : "cross_functional",
+      internalDomain: "finance",
+      mustInclude: [
+        "[FINANCE_CONTEXT]",
+        financeSummary,
+        alert ? `Alerte : ${alert.title}\n${alert.message}` : null,
+        alert?.metadata?.practice ? `Practice : ${alert.metadata.practice}` : null,
+      ].filter(Boolean).join("\n"),
+    })
+    if (result.ok) openCommunicationComposer(result.request)
+  }
 
   const quickActions: PageQuickAction[] = [
     {
@@ -79,6 +102,20 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
       variant: "secondary",
       icon: <IconSimulation />,
       onClick: () => setIsSimulationOpen(true),
+    },
+    {
+      id: "direction-summary",
+      label: "Synthèse direction",
+      variant: "secondary",
+      icon: <IconSummary />,
+      onClick: () => openFinanceIntent("direction_summary"),
+    },
+    {
+      id: "manager-arbitrage",
+      label: "Arbitrage N+1",
+      variant: "secondary",
+      icon: <IconSummary />,
+      onClick: () => openFinanceIntent("manager_arbitrage"),
     },
   ]
 
@@ -286,7 +323,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                   Cascade de rentabilité YTD (Waterfall)
                 </h2>
                 <p className="mt-0.5 text-xs text-muted">
-                  Du chiffre d'affaires consolidé au résultat opérationnel final
+                  Du chiffre d&apos;affaires consolidé au résultat opérationnel final
                 </p>
               </div>
               <div className="p-5">
@@ -327,7 +364,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                   Suivi de rentabilité par mission (YTD)
                 </h2>
                 <p className="mt-0.5 text-xs text-muted">
-                  Chiffres réels cumulés basés sur les comptes d'activité (CRA) validés
+                  Chiffres réels cumulés basés sur les comptes d&apos;activité (CRA) validés
                 </p>
               </div>
               <MissionProfitabilityTable rows={missionProfitability} />
@@ -345,7 +382,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
                   Atterrissage de CA & Simulation de scénarios
                 </h2>
                 <p className="mt-0.5 text-xs text-muted">
-                  Atterrissage calculé par rapport à l'objectif annuel
+                  Atterrissage calculé par rapport à l&apos;objectif annuel
                 </p>
               </div>
               <div className="p-5 flex flex-col gap-6">
@@ -406,6 +443,13 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
               <Button
                 variant="primary"
                 size="sm"
+                onClick={() => openFinanceIntent("finance_resource_arbitrage", activeAlert)}
+              >
+                Préparer avec l’IA
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={confirmAlertAction}
               >
                 {(activeAlert.type === "margin" || activeAlert.type === "practice") ? "Lancer la simulation" : "Confirmer"}
@@ -418,7 +462,7 @@ export function FinanceDesktopDashboard({ data }: { data: FinanceDashboardData }
           <p className="leading-relaxed text-sm text-body">{activeAlert?.message}</p>
           {(activeAlert?.type === "margin" || activeAlert?.type === "practice") && (
             <p className="text-xs text-muted italic">
-              Cette action va ouvrir l'outil de simulation financière interactive pour vous permettre d'ajuster le TJM, le CJM ou d'ajouter une opportunité.
+              Cette action va ouvrir l&apos;outil de simulation financière interactive pour vous permettre d&apos;ajuster le TJM, le CJM ou d&apos;ajouter une opportunité.
             </p>
           )}
         </div>

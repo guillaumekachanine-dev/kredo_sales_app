@@ -4,14 +4,17 @@ import { useState } from "react"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
-import { MobileActionCard } from "@/components/ui/mobile/MobileActionCard"
 import { Button } from "@/components/ui/Button"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
 import { formatEuroCompact, formatPct } from "@/lib/formatters"
-import { openReportGeneration } from "@/lib/reports/report-generation"
+import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import {
+  buildCommunicationEntryPreset,
+  type CommunicationEntryIntent,
+} from "@/lib/communication/communication-entry-intents"
 import type { FinanceDashboardData, FinanceAlert } from "@/lib/finance/finance-data"
 
 const IconAlert = () => (
@@ -50,6 +53,34 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
 
   // Risques de marge
   const marginRisks = alerts.filter((a) => a.type === "margin" || a.type === "activity")
+  const financeSummary = [
+    `CA YTD : ${formatEuroCompact(executive.revenueYtd)}`,
+    `Marge YTD : ${formatEuroCompact(executive.grossMarginYtd)}`,
+    `Pipe pondéré : ${formatEuroCompact(executive.weightedPipe)}`,
+    `Atterrissage projeté : ${formatEuroCompact(executive.projectedLanding)}`,
+  ].join("\n")
+
+  function openFinanceIntent(intent: CommunicationEntryIntent, alert?: FinanceAlert | null) {
+    const isDirectionIntent = intent === "direction_summary" || intent === "finance_investment_arbitrage"
+    const isManagerIntent = intent === "manager_status_update" || intent === "manager_arbitrage"
+    const result = buildCommunicationEntryPreset(intent, {
+      origin: "finance",
+      missionId: alert?.metadata?.missionId ?? undefined,
+      internalRole: isDirectionIntent ? "executive_management" : isManagerIntent ? "manager_n1" : "finance_admin",
+      internalRelationship: isDirectionIntent ? "executive_committee" : isManagerIntent ? "hierarchical_up" : "cross_functional",
+      internalDomain: "finance",
+      mustInclude: [
+        "[FINANCE_CONTEXT]",
+        financeSummary,
+        alert ? `Alerte : ${alert.title}\n${alert.message}` : null,
+        alert?.metadata?.practice ? `Practice : ${alert.metadata.practice}` : null,
+      ].filter(Boolean).join("\n"),
+    })
+    if (result.ok) {
+      openCommunicationComposer(result.request)
+      setActiveModal(null)
+    }
+  }
 
   return (
     <>
@@ -113,6 +144,19 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18.75" />
             </svg>
             <span>Analyser le pipe commercial</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="md"
+            fullWidth
+            onClick={() => openFinanceIntent("manager_arbitrage")}
+            className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
+          >
+            <svg className="size-4 text-brand-brass" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h8M8 12h5M8 17h8M5 7h.01M5 12h.01M5 17h.01" />
+            </svg>
+            <span>Arbitrage N+1 IA</span>
           </Button>
         </div>
 
@@ -181,11 +225,11 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
             variant="secondary"
             size="md"
             fullWidth
-            onClick={() => openReportGeneration({ origin: "global", reportType: "financial" })}
+            onClick={() => openFinanceIntent("direction_summary")}
             className="h-12 rounded-xl flex items-center justify-center gap-2 font-semibold cursor-pointer"
           >
             <IconSummary />
-            <span>Rapport financier global</span>
+            <span>Synthèse direction IA</span>
           </Button>
         </div>
       </MobileActionPage>
@@ -213,6 +257,14 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
                 <div className="flex-1">
                   <h4 className="text-xs font-bold text-heading">{alert.title}</h4>
                   <p className="text-[11px] text-body mt-0.5 leading-relaxed">{alert.message}</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openFinanceIntent("finance_resource_arbitrage", alert)}
+                    className="mt-2 min-h-10 px-0 text-primary hover:bg-transparent"
+                  >
+                    Préparer avec l’IA
+                  </Button>
                 </div>
               </div>
             ))

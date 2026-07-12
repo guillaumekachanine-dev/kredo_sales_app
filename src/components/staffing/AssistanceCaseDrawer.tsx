@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
+import { CommunicationIntentMenu } from "@/components/communication/CommunicationIntentMenu"
 import {
   AgendaEventDrawer,
   type AgendaEventDrawerInitialValues,
@@ -384,6 +385,23 @@ export function AssistanceCaseDrawer() {
         : null,
     [currentPositioning, opportunity],
   )
+  const currentCandidateName = currentPositioning
+    ? currentPositioning.candidate.person?.full_name ||
+      `${currentPositioning.candidate.person?.first_name ?? ""} ${currentPositioning.candidate.person?.last_name ?? ""}`.trim() ||
+      null
+    : null
+  const currentCollaborator = currentPositioning?.candidate.person?.collaborators?.[0] ?? null
+  const staffingContextLines = opportunity
+    ? [
+        `Besoin : ${opportunity.title}`,
+        opportunity.company?.name ? `Compte : ${opportunity.company.name}` : null,
+        opportunity.priority ? `Priorité : ${opportunity.priority}` : null,
+        opportunity.practice ? `Practice : ${opportunity.practice}` : null,
+        opportunity.required_headcount ? `Nombre de profils requis : ${opportunity.required_headcount}` : null,
+        opportunity.next_action_label ? `Prochaine action besoin : ${opportunity.next_action_label}` : null,
+        currentCandidateName ? `Profil sélectionné : ${currentCandidateName}` : null,
+      ].filter(Boolean).join("\n")
+    : undefined
 
   const candidateEvents = useMemo(() => {
     if (!currentPositioning) return []
@@ -751,6 +769,40 @@ export function AssistanceCaseDrawer() {
       loading={loading && !opportunity}
     >
       {loading && !opportunity && <DrawerSkeleton />}
+
+      {!loading && opportunity && !isCandidateEditing && (
+        <div className="-mt-2 mb-4 flex justify-end px-1">
+          <CommunicationIntentMenu
+            label="Rédiger / préparer"
+            origin="staffing_context"
+            scope="internal"
+            companyId={opportunity.company?.id ?? null}
+            companyName={opportunity.company?.name ?? null}
+            opportunityId={opportunity.id}
+            opportunityTitle={opportunity.title}
+            candidateId={currentPositioning?.candidate.id ?? null}
+            candidateName={currentCandidateName}
+            collaboratorId={currentCollaborator?.id ?? null}
+            collaboratorName={currentCandidateName}
+            internalDomain="staffing"
+            mustInclude={staffingContextLines}
+            refs={{
+              ...(opportunity.company?.id ? { companyRef: opportunity.company.id } : {}),
+              opportunityRef: opportunity.id,
+              ...(currentPositioning?.candidate.id ? { profileRef: currentPositioning.candidate.id } : {}),
+              ...(currentCollaborator?.id ? { collaboratorRef: currentCollaborator.id } : {}),
+            }}
+            items={[
+              { intent: "staffing_help", label: "Demander de l’aide" },
+              { intent: "staffing_priority", label: "Faire prioriser" },
+              { intent: "staffing_review", label: "Préparer la revue" },
+              { intent: "practice_support", label: "Appui Practice" },
+              { intent: "presales_support", label: "Appui avant-vente" },
+              { intent: "presales_kickoff", label: "Kickoff avant-vente" },
+            ]}
+          />
+        </div>
+      )}
 
       {!loading && opportunity && !isCandidateEditing && (
         <div

@@ -1,6 +1,9 @@
 import type {
   CanonicalCommunicationActivityCategory,
   CommunicationBrief,
+  CommunicationInternalDomain,
+  CommunicationInternalRecipientRole,
+  CommunicationInternalRelationship,
   CommunicationOutputKind,
   CommunicationRecipientType,
   CommunicationScenario,
@@ -43,6 +46,37 @@ export type CommunicationEntryIntent =
   | "atypical_candidate_defense"
   | "opportunity_to_candidate"
   | "recruiter_preparation"
+  | "consultant_message"
+  | "consultant_recognition"
+  | "consultant_one_to_one"
+  | "consultant_feedback_follow_up"
+  | "consultant_feedback_talk_track"
+  | "consultant_assignment_change"
+  | "consultant_intercontract_message"
+  | "consultant_intercontract_talk_track"
+  | "consultant_retention_briefing"
+  | "consultant_retention_follow_up"
+  | "consultant_annual_review"
+  | "consultant_annual_review_follow_up"
+  | "consultant_sensitive_meeting"
+  | "consultant_disciplinary_meeting"
+  | "consultant_difficult_announcement"
+  | "staffing_help"
+  | "staffing_priority"
+  | "staffing_review"
+  | "manager_status_update"
+  | "manager_arbitrage"
+  | "manager_business_review"
+  | "internal_committee"
+  | "internal_decision_summary"
+  | "practice_support"
+  | "presales_support"
+  | "presales_kickoff"
+  | "finance_invoice_follow_up"
+  | "finance_resource_arbitrage"
+  | "finance_investment_arbitrage"
+  | "direction_summary"
+  | "agenda_event_preparation"
 
 export type CommunicationEntryEntityKind =
   | "company"
@@ -50,9 +84,12 @@ export type CommunicationEntryEntityKind =
   | "opportunity"
   | "mission"
   | "candidate"
+  | "collaborator"
   | "offer"
   | "signal"
   | "sector"
+  | "event"
+  | "invoice"
 
 export type CommunicationEntryIntentDefinition = {
   label: string
@@ -75,11 +112,30 @@ export type CommunicationEntryContext = {
   missionTitle?: string | null
   candidateId?: string | null
   candidateName?: string | null
+  collaboratorId?: string | null
+  collaboratorName?: string | null
   offerId?: string | null
   signalId?: string | null
   sectorId?: string | null
   sectorName?: string | null
+  eventId?: string | null
+  eventTitle?: string | null
+  eventType?: string | null
+  eventStartsAt?: string | null
+  eventLocation?: string | null
+  eventMeetingUrl?: string | null
+  eventParticipants?: string[] | null
+  eventDescription?: string | null
+  invoiceId?: string | null
+  invoiceReference?: string | null
+  invoiceAmount?: string | null
+  invoiceDueDate?: string | null
+  invoiceStatus?: string | null
   recipientType?: CommunicationRecipientType
+  internalRole?: CommunicationInternalRecipientRole
+  internalRelationship?: CommunicationInternalRelationship
+  internalDomain?: CommunicationInternalDomain
+  internalRecipientName?: string | null
   mustInclude?: string | null
   origin?: CommunicationComposerRequest["origin"]
 }
@@ -306,6 +362,285 @@ export const COMMUNICATION_ENTRY_INTENTS = {
     requiredEntityKinds: ["candidate"],
     optionalReferenceKinds: ["opportunity", "company"],
   },
+  consultant_message: {
+    label: "Message consultant",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "manager_collaborator_internal",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_recognition: {
+    label: "Reconnaissance",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "collaborator_recognition",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_one_to_one: {
+    label: "Point 1:1",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "one_on_one_alignment",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_feedback_follow_up: {
+    label: "Feedback écrit",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "performance_feedback_follow_up",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_feedback_talk_track: {
+    label: "Feedback oral",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "performance_feedback_talk_track",
+    outputKind: "spoken_pitch",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_assignment_change: {
+    label: "Changement de mission",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "assignment_change_notice",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_intercontract_message: {
+    label: "Plan intercontrat",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "intercontract_action_plan_message",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: [],
+  },
+  consultant_intercontract_talk_track: {
+    label: "Sortie d’intercontrat",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "intercontract_exit_pitch",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: [],
+  },
+  consultant_retention_briefing: {
+    label: "Rétention",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "retention_conversation_briefing",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: [],
+  },
+  consultant_retention_follow_up: {
+    label: "Suivi rétention",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "consultant_retention_follow_up",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: [],
+  },
+  consultant_annual_review: {
+    label: "Entretien annuel",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "performance_review_prep",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_annual_review_follow_up: {
+    label: "Suivi annuel",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "annual_review_follow_up",
+    outputKind: "written_message",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_sensitive_meeting: {
+    label: "Échange sensible",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "sensitive_meeting_briefing",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_disciplinary_meeting: {
+    label: "Recadrage",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "disciplinary_meeting_posture",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  consultant_difficult_announcement: {
+    label: "Annonce difficile",
+    activityCategory: "management_consultants",
+    scope: "collaborator",
+    scenario: "difficult_announcement_talk_track",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["collaborator"],
+    optionalReferenceKinds: ["mission"],
+  },
+  staffing_help: {
+    label: "Demander de l’aide",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "staffing_help_request",
+    outputKind: "written_message",
+    requiredEntityKinds: ["opportunity"],
+    optionalReferenceKinds: ["company", "mission", "candidate", "collaborator", "offer"],
+  },
+  staffing_priority: {
+    label: "Faire prioriser",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "staffing_priority_pitch",
+    outputKind: "spoken_pitch",
+    requiredEntityKinds: ["opportunity"],
+    optionalReferenceKinds: ["company", "mission", "candidate", "collaborator", "offer"],
+  },
+  staffing_review: {
+    label: "Préparer la revue",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "staffing_review_briefing",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission", "candidate", "collaborator", "offer"],
+  },
+  manager_status_update: {
+    label: "Point de statut",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "manager_status_update",
+    outputKind: "written_message",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission", "collaborator"],
+  },
+  manager_arbitrage: {
+    label: "Demander un arbitrage",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "internal_arbitrage_request",
+    outputKind: "written_message",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission", "collaborator"],
+  },
+  manager_business_review: {
+    label: "Business review",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "quarterly_business_review",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission"],
+  },
+  internal_committee: {
+    label: "Préparer le comité",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "internal_committee_pitch",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission"],
+  },
+  internal_decision_summary: {
+    label: "Synthèse décisions",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "internal_decision_summary",
+    outputKind: "written_message",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission"],
+  },
+  practice_support: {
+    label: "Appui Practice",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "practice_support_pitch",
+    outputKind: "spoken_pitch",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission", "offer"],
+  },
+  presales_support: {
+    label: "Appui avant-vente",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "presales_support_pitch",
+    outputKind: "spoken_pitch",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "offer"],
+  },
+  presales_kickoff: {
+    label: "Kickoff avant-vente",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "presales_kickoff_briefing",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "offer"],
+  },
+  finance_invoice_follow_up: {
+    label: "Relancer la facture",
+    activityCategory: "commerce_actif",
+    scope: "account",
+    scenario: "invoice_follow_up",
+    outputKind: "written_message",
+    requiredEntityKinds: ["company", "invoice"],
+    optionalReferenceKinds: ["contact"],
+  },
+  finance_resource_arbitrage: {
+    label: "Préparer un arbitrage",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "resource_arbitrage_pitch",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "mission", "opportunity", "collaborator"],
+  },
+  finance_investment_arbitrage: {
+    label: "Demande d’investissement",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "investment_arbitrage_argument",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "mission", "opportunity"],
+  },
+  direction_summary: {
+    label: "Synthèse direction",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "direction_summary_pitch",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: [],
+    optionalReferenceKinds: ["company", "opportunity", "mission"],
+  },
+  agenda_event_preparation: {
+    label: "Préparer avec l’IA",
+    activityCategory: "internal_staff",
+    scope: "internal",
+    scenario: "weekly_briefing_prep",
+    outputKind: "structured_briefing",
+    requiredEntityKinds: ["event"],
+    optionalReferenceKinds: ["company", "contact", "opportunity", "mission", "candidate", "collaborator"],
+  },
 } satisfies Record<CommunicationEntryIntent, CommunicationEntryIntentDefinition>
 
 function hasEntity(kind: CommunicationEntryEntityKind, context: CommunicationEntryContext) {
@@ -320,12 +655,18 @@ function hasEntity(kind: CommunicationEntryEntityKind, context: CommunicationEnt
       return Boolean(context.missionId)
     case "candidate":
       return Boolean(context.candidateId)
+    case "collaborator":
+      return Boolean(context.collaboratorId)
     case "offer":
       return Boolean(context.offerId)
     case "signal":
       return Boolean(context.signalId)
     case "sector":
       return Boolean(context.sectorId || context.sectorName)
+    case "event":
+      return Boolean(context.eventId)
+    case "invoice":
+      return Boolean(context.invoiceId || context.invoiceReference)
   }
 }
 
@@ -341,12 +682,18 @@ function entityLabel(kind: CommunicationEntryEntityKind) {
       return "mission"
     case "candidate":
       return "candidat"
+    case "collaborator":
+      return "collaborateur"
     case "offer":
       return "offre"
     case "signal":
       return "signal"
     case "sector":
       return "secteur"
+    case "event":
+      return "événement"
+    case "invoice":
+      return "facture"
   }
 }
 
@@ -356,12 +703,15 @@ function buildContextReferences(context: CommunicationEntryContext): Partial<Com
     ...(context.opportunityId ? { opportunityRef: context.opportunityId } : {}),
     ...(context.missionId ? { missionRef: context.missionId } : {}),
     ...(context.candidateId ? { profileRef: context.candidateId } : {}),
+    ...(context.collaboratorId ? { collaboratorRef: context.collaboratorId } : {}),
     ...(context.offerId ? { offerRef: context.offerId } : {}),
     ...(context.signalId ? { signalRef: context.signalId } : {}),
   }
 }
 
 function buildPrimaryEntity(context: CommunicationEntryContext): CommunicationComposerPrimaryEntity | null {
+  if (context.eventId) return { type: "calendar_event", id: context.eventId }
+  if (context.collaboratorId) return { type: "collaborator", id: context.collaboratorId }
   if (context.missionId) return { type: "mission", id: context.missionId }
   if (context.opportunityId) return { type: "opportunity", id: context.opportunityId }
   if (context.candidateId) return { type: "candidate", id: context.candidateId }
@@ -377,7 +727,23 @@ function buildMustInclude(definition: CommunicationEntryIntentDefinition, contex
     context.opportunityTitle ? `Opportunité : ${context.opportunityTitle}` : null,
     context.missionTitle ? `Mission : ${context.missionTitle}` : null,
     context.candidateName ? `Candidat : ${context.candidateName}` : null,
+    context.collaboratorName ? `Collaborateur : ${context.collaboratorName}` : null,
     context.sectorName ? `Secteur : ${context.sectorName}` : null,
+    context.eventTitle ? `Événement : ${context.eventTitle}` : null,
+    context.eventType ? `Type événement : ${context.eventType}` : null,
+    context.eventStartsAt ? `Date événement : ${context.eventStartsAt}` : null,
+    context.eventLocation ? `Lieu : ${context.eventLocation}` : null,
+    context.eventMeetingUrl ? `Lien réunion : ${context.eventMeetingUrl}` : null,
+    context.eventParticipants?.length ? `Participants connus : ${context.eventParticipants.join(", ")}` : null,
+    context.eventDescription ? `Description événement : ${context.eventDescription}` : null,
+    context.invoiceReference ? `Facture : ${context.invoiceReference}` : null,
+    context.invoiceAmount ? `Montant facture : ${context.invoiceAmount}` : null,
+    context.invoiceDueDate ? `Échéance facture : ${context.invoiceDueDate}` : null,
+    context.invoiceStatus ? `Statut facture : ${context.invoiceStatus}` : null,
+    context.internalRole ? `Rôle destinataire interne : ${context.internalRole}` : null,
+    context.internalRelationship ? `Relation interne : ${context.internalRelationship}` : null,
+    context.internalDomain ? `Domaine interne : ${context.internalDomain}` : null,
+    context.internalRecipientName ? `Destinataire interne : ${context.internalRecipientName}` : null,
     context.mustInclude,
   ].filter(Boolean)
 
@@ -391,10 +757,11 @@ function buildMustInclude(definition: CommunicationEntryIntentDefinition, contex
 function buildBrief(definition: CommunicationEntryIntentDefinition, context: CommunicationEntryContext): CommunicationBrief {
   const scenario = getScenarioDefinition(definition.scenario)
   const recipientType = context.recipientType ??
-    (definition.activityCategory === "recrutement" && (
+    (definition.scope === "collaborator" ? "collaborator" : definition.scope === "internal" ? "internal" : definition.activityCategory === "recrutement" && (
       definition.scenario === "candidate_to_client_pitch" ||
       definition.scenario === "atypical_candidate_defense"
-    ) ? "active_client" : definition.activityCategory === "recrutement" ? "candidate" : "prospect")
+    ) ? "active_client" : definition.activityCategory === "recrutement" ? "candidate" : definition.activityCategory === "commerce_actif" || definition.activityCategory === "delivery" ? "active_client" : "prospect")
+  const displayName = context.contactName ?? context.candidateName ?? context.collaboratorName ?? context.internalRecipientName ?? undefined
 
   return {
     what: {
@@ -415,14 +782,18 @@ function buildBrief(definition: CommunicationEntryIntentDefinition, context: Com
         persona: "other",
         relation: definition.activityCategory === "commerce_actif" || definition.activityCategory === "delivery" ? "active_client" : "unknown",
         contactId: context.contactId ?? undefined,
-        displayName: context.contactName ?? context.candidateName ?? undefined,
+        collaboratorId: context.collaboratorId ?? undefined,
+        displayName,
         companyName: context.companyName ?? undefined,
+        internalRole: context.internalRole ?? undefined,
+        internalRelationship: context.internalRelationship ?? undefined,
+        internalDomain: context.internalDomain ?? undefined,
       },
       objective: scenario?.defaultObjective ?? "get_meeting",
     },
     how: {
       tone: scenario?.suggestedTones[0] ?? "direct",
-      formality: "vous",
+      formality: definition.scope === "collaborator" || definition.scope === "internal" ? "tu" : "vous",
       language: "fr",
     },
     context: {
@@ -441,7 +812,11 @@ function buildFacts(definition: CommunicationEntryIntentDefinition, context: Com
     hasOpportunity: hasEntity("opportunity", context),
     hasMission: hasEntity("mission", context),
     hasCandidate: hasEntity("candidate", context),
+    hasCollaborator: hasEntity("collaborator", context),
     hasOffer: hasEntity("offer", context),
+    internalRole: context.internalRole,
+    internalRelationship: context.internalRelationship,
+    internalDomain: context.internalDomain,
   }
 }
 
