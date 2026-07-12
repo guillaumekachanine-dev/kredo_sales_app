@@ -152,7 +152,7 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
 
   const latestVersion = document.versions[0] ?? null
   const appliedBrief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
-  const isPitch = document.documentType === "commercial_pitch"
+  const isPitch = document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole"
   const pitchLabel = isPitch ? getPitchBriefLabel(appliedBrief) : null
   const qaFlags = useMemo(
     () => buildQaFlags(latestVersion?.qaFlags ?? []),
@@ -319,6 +319,7 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
                 <PitchDocumentContent
                   contentJson={document.currentContentJson}
                   contentText={document.currentContentText}
+                  briefJson={appliedBrief}
                 />
               ) : document.currentContentText ? (
                 <div className="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">

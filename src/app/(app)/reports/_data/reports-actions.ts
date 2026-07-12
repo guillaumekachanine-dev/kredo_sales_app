@@ -666,7 +666,7 @@ export async function prepareCommunicationReuse(
   if ("error" in detailResult) return { error: detailResult.error ?? "Document introuvable" }
 
   const document = detailResult.data
-  if (!["communication", "commercial_pitch", "campaign", "internal_note"].includes(document.documentType)) {
+  if (!["communication", "commercial_pitch", "prise_de_parole", "campaign", "internal_note"].includes(document.documentType)) {
     return { error: "Cette action est disponible uniquement sur les communications enregistrées" }
   }
 

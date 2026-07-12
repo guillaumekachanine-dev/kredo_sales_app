@@ -29,6 +29,7 @@ describe("intelligence resource classification", () => {
 
   it("classifies the real result_type values produced in prod (vérifiés en base 2026-07-07)", () => {
     expect(classifyIntelligenceResultType("commercial_pitch")).toBe("communications")
+    expect(classifyIntelligenceResultType("prise_de_parole")).toBe("communications")
     expect(classifyIntelligenceResultType("activity_commercial")).toBe("reports")
     expect(classifyIntelligenceResultType("activity_recruitment")).toBe("reports")
     expect(classifyIntelligenceResultType("weekly_manager")).toBe("reports")

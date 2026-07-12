@@ -18,6 +18,7 @@ import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
 import { ACCOUNT_ISSUES_MAP_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
+import { isEligibleDocumentResultType } from "@/lib/communication/communication-result-documents"
 import type { Database } from "@/types/database"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
 
@@ -26,21 +27,6 @@ function getServiceClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-}
-
-function isEligibleDocumentResult(resultType: string) {
-  return [
-    "communication",
-    "client_summary",
-    "commercial_pitch",
-    "commercial_strategy",
-    "campaign",
-    "pitch",
-    "pitch_mail",
-    "activity_commercial",
-    "activity_recruitment",
-    "weekly_manager",
-  ].includes(resultType)
 }
 
 export async function POST(request: Request) {
@@ -129,7 +115,7 @@ export async function POST(request: Request) {
     }
   }
 
-  if (status === "succeeded" && isEligibleDocumentResult(resultType)) {
+  if (status === "succeeded" && isEligibleDocumentResultType(resultType)) {
     const documentResult = await saveResultAsDocumentWithSupabaseClient(supabase, resultId)
     if (!documentResult.success) {
       console.error("[callback] auto saveResultAsDocument failed:", documentResult.error)

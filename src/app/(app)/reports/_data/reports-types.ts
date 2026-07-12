@@ -157,7 +157,8 @@ export const REPORTS_DEFAULT_PAGE_SIZE = 24
 // ============================================================
 // Sous-ensemble de intelligence_document_type dédié aux rapports (par
 // opposition aux documents de rédaction assistée INTEL-020 : communication,
-// commercial_pitch, campaign, internal_note qui restent hors REPORT-001).
+// commercial_pitch, prise_de_parole, campaign, internal_note qui restent hors
+// REPORT-001).
 // client_summary est partagé : c'était déjà le type de la synthèse client
 // INTEL-021, qui devient le premier rapport du moteur transverse (Lot 1).
 
@@ -687,4 +688,3 @@ export type FinancialReportDocumentContent = {
   generatedAt: string
   facts: FinancialReportFacts
 }
-

@@ -14,6 +14,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   client_summary: "Synthèse client",
   commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
+  prise_de_parole: "Prise de parole",
   campaign: "Campagne",
   internal_note: "Note interne",
   activity_commercial: "Activité commerciale",

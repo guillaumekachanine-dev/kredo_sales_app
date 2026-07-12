@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition, type CSSProperties } from "react"
 import { useRouter } from "next/navigation"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
@@ -31,6 +31,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   client_summary: "Synthèse client",
   commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
+  prise_de_parole: "Prise de parole",
   campaign: "Campagne",
   internal_note: "Note interne",
   activity_commercial: "Activité commerciale",
@@ -167,7 +168,7 @@ export function DocumentMobileDetail({
   )
   const failedFlags = qaFlags.filter((flag) => !flag.passed)
   const appliedBrief = document?.versions[0]?.sourceRunInputSnapshot ?? document?.versions[0]?.briefJson ?? null
-  const isPitch = document?.documentType === "commercial_pitch"
+  const isPitch = document?.documentType === "commercial_pitch" || document?.documentType === "prise_de_parole"
   const pitchLabel = isPitch ? getPitchBriefLabel(appliedBrief) : null
   const drawerError = loadState.status === "error"
     ? {
@@ -332,17 +333,17 @@ export function DocumentMobileDetail({
                     backgroundColor: "#FAF9F6",
                     color: "#4A5568",
                     colorScheme: "light",
-                    ["--color-canvas" as any]: "#FAF9F6",
-                    ["--color-surface" as any]: "#FFFFFF",
-                    ["--color-surface-hover" as any]: "#F5F4F0",
-                    ["--color-border" as any]: "#E3DFD5",
-                    ["--color-heading" as any]: "#1C2333",
-                    ["--color-body" as any]: "#4A5568",
-                    ["--color-muted" as any]: "#718096",
-                    ["--color-primary" as any]: "#A67A1E",
-                    ["--color-primary-deep" as any]: "#8C6615",
-                    ["--color-primary-fg" as any]: "#FAF9F6",
-                  }}
+                    "--color-canvas": "#FAF9F6",
+                    "--color-surface": "#FFFFFF",
+                    "--color-surface-hover": "#F5F4F0",
+                    "--color-border": "#E3DFD5",
+                    "--color-heading": "#1C2333",
+                    "--color-body": "#4A5568",
+                    "--color-muted": "#718096",
+                    "--color-primary": "#A67A1E",
+                    "--color-primary-deep": "#8C6615",
+                    "--color-primary-fg": "#FAF9F6",
+                  } as CSSProperties}
                 >
                   {document.documentType === "client_summary" ? (
                     <ClientSummaryDocumentContent
@@ -361,6 +362,7 @@ export function DocumentMobileDetail({
                     <PitchDocumentContent
                       contentJson={document.currentContentJson}
                       contentText={document.currentContentText}
+                      briefJson={appliedBrief}
                       fallbackClassName="text-sm whitespace-pre-wrap text-body"
                     />
                   ) : document.currentContentText ? (

@@ -28,7 +28,7 @@ const ACTIONS: Array<{ mode: CommunicationReuseMode; label: string }> = [
 ]
 
 function isCommunicationDocument(document: DocumentDetail) {
-  return ["communication", "commercial_pitch", "campaign", "internal_note"].includes(document.documentType)
+  return ["communication", "commercial_pitch", "prise_de_parole", "campaign", "internal_note"].includes(document.documentType)
 }
 
 export function DocumentCommunicationActions({

@@ -2,42 +2,35 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import type { CommunicationQaFlag, MeetingBriefingOutput, PitchOutput, SpokenPitchOutput } from "@/lib/n8n/types"
+import type { CommunicationBrief, CommunicationQaFlag, MeetingBriefingOutput, PitchOutput, SpokenPitchOutput } from "@/lib/n8n/types"
+import {
+  buildResultContentText,
+  buildResultPresentationFromBrief,
+  buildResultPresentationModel,
+  type ResultPresentationModel,
+} from "@/lib/communication/communication-result-documents"
 import { saveResultAsDocument } from "./save-as-document"
 
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
-export function buildCopyText(result: PitchOutput): string {
-  if (result.kind === "spoken_pitch") {
-    return [result.hook, result.problem_recognition, result.offer_link, result.ask, result.alt_close]
-      .filter(Boolean)
-      .join("\n\n")
-  }
-  const lines = [
-    `Objectif : ${result.objective}`,
-    `Message clé : ${result.key_message}`,
-    "",
-    "Arguments :",
-    ...result.arguments.map((a) => `- ${a.title} — ${a.evidence}`),
-    "",
-    "Objections attendues :",
-    ...result.expected_objections.map((o) => `- "${o.objection}" → ${o.response}`),
-  ]
-  if (result.cross_sell_hypotheses.length) {
-    lines.push("", "Cross-sell possible :", ...result.cross_sell_hypotheses.map((h) => `- ${h}`))
-  }
-  if (result.close_options.length) {
-    lines.push("", "Sorties possibles du RDV :", ...result.close_options.map((c) => `- ${c}`))
-  }
-  return lines.join("\n")
+const DEFAULT_PRESENTATION = buildResultPresentationModel({})
+
+export function buildCopyText(result: PitchOutput, presentation: ResultPresentationModel = DEFAULT_PRESENTATION): string {
+  return buildResultContentText(result, null, presentation) ?? ""
 }
 
-export function SpokenPitchView({ result }: { result: SpokenPitchOutput }) {
+export function SpokenPitchView({
+  result,
+  presentation = DEFAULT_PRESENTATION,
+}: {
+  result: SpokenPitchOutput
+  presentation?: ResultPresentationModel
+}) {
   const blocks: { label: string; text: string }[] = [
     { label: "Accroche", text: result.hook },
     { label: "Diagnostic", text: result.problem_recognition },
-    { label: "Lien vers l'offre", text: result.offer_link },
-    { label: "Ask", text: result.ask },
+    { label: presentation.spokenCentralLabel, text: result.offer_link },
+    { label: "Demande", text: result.ask },
     { label: "Repli", text: result.alt_close },
   ]
 
@@ -47,7 +40,9 @@ export function SpokenPitchView({ result }: { result: SpokenPitchOutput }) {
         <div className="h-1.5 flex-1 rounded-full bg-canvas overflow-hidden">
           <div className="h-full rounded-full bg-primary" style={{ width: "100%" }} />
         </div>
-        <span className="text-[10px] font-bold text-muted whitespace-nowrap">~30 s · {result.word_count || "?"} mots</span>
+        <span className="text-[10px] font-bold text-muted whitespace-nowrap">
+          ~{presentation.lengthLabel} · {result.word_count || "?"} mots
+        </span>
       </div>
       {blocks.map((b) => (
         <div key={b.label} className="rounded border border-border bg-canvas/40 px-3 py-2.5">
@@ -71,11 +66,19 @@ const POWER_DYNAMIC_LABELS: Record<NonNullable<MeetingBriefingOutput["power_dyna
   client_external: "Face à un client externe",
 }
 
-export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput }) {
+export function MeetingBriefingView({
+  result,
+  presentation = DEFAULT_PRESENTATION,
+}: {
+  result: MeetingBriefingOutput
+  presentation?: ResultPresentationModel
+}) {
   return (
     <div className="space-y-4">
       <div className="rounded border border-border bg-canvas/40 px-3 py-2.5">
-        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">Objectif du RDV</span>
+        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">
+          {presentation.briefingObjectiveLabel}
+        </span>
         <p className="text-xs leading-relaxed text-body">{result.objective}</p>
       </div>
       <div className="rounded border border-primary/20 bg-primary/5 px-3 py-2.5">
@@ -138,7 +141,7 @@ export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput 
 
       {result.cross_sell_hypotheses.length > 0 && (
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">Cross-sell possible</span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">{presentation.briefingCrossSellLabel}</span>
           <ul className="space-y-1 text-xs text-body">
             {result.cross_sell_hypotheses.map((h, i) => <li key={i}>▸ {h}</li>)}
           </ul>
@@ -147,7 +150,7 @@ export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput 
 
       {result.data_points_to_mention.length > 0 && (
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">Chiffres à citer</span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">{presentation.briefingDataPointsLabel}</span>
           <ul className="space-y-1 text-xs text-body">
             {result.data_points_to_mention.map((d, i) => <li key={i}>▸ {d}</li>)}
           </ul>
@@ -156,7 +159,7 @@ export function MeetingBriefingView({ result }: { result: MeetingBriefingOutput 
 
       {result.close_options.length > 0 && (
         <div>
-          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">Sorties possibles du RDV</span>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-muted mb-1">{presentation.briefingCloseOptionsLabel}</span>
           <ul className="space-y-1 text-xs text-body">
             {result.close_options.map((c, i) => <li key={i}>▸ {c}</li>)}
           </ul>
@@ -177,6 +180,7 @@ export function PitchResult({
   qaFlags,
   companyName,
   scenarioLabel,
+  brief,
   resultId,
   isMobile = false,
   onReset,
@@ -185,6 +189,7 @@ export function PitchResult({
   qaFlags: CommunicationQaFlag[]
   companyName: string
   scenarioLabel: string
+  brief: CommunicationBrief
   resultId: string | null
   isMobile?: boolean
   onReset: () => void
@@ -193,9 +198,10 @@ export function PitchResult({
   const [documentStatus, setDocumentStatus] = useState<SaveStatus>("idle")
   const failedFlags = qaFlags.filter((f) => !f.passed)
   const allPassed = failedFlags.length === 0
+  const presentation = buildResultPresentationFromBrief(brief)
 
   function handleCopy() {
-    void navigator.clipboard.writeText(buildCopyText(result)).then(() => {
+    void navigator.clipboard.writeText(buildCopyText(result, presentation)).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -216,7 +222,7 @@ export function PitchResult({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="font-heading text-base font-bold text-heading">
-            {result.kind === "spoken_pitch" ? "Pitch oral 30 s" : "Fiche de préparation RDV"}
+            {presentation.headingLabel}
           </h2>
           <p className="text-[11px] text-muted mt-0.5">{companyName} · {scenarioLabel}</p>
         </div>
@@ -249,7 +255,11 @@ export function PitchResult({
         </ul>
       )}
 
-      {result.kind === "spoken_pitch" ? <SpokenPitchView result={result} /> : <MeetingBriefingView result={result} />}
+      {result.kind === "spoken_pitch" ? (
+        <SpokenPitchView result={result} presentation={presentation} />
+      ) : (
+        <MeetingBriefingView result={result} presentation={presentation} />
+      )}
 
       {result.source_refs.length > 0 && (
         <div>

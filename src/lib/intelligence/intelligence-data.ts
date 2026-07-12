@@ -654,7 +654,7 @@ export async function getClientIntelligence(
     supabase
       .from("intelligence_documents")
       .select<PitchDocumentRow>("id,title,status,current_content_json,created_at")
-      .eq("document_type", "commercial_pitch")
+      .in("document_type", ["commercial_pitch", "prise_de_parole"])
       .eq("primary_entity_type", "company")
       .eq("primary_entity_id", companyId)
       .order("created_at", { ascending: false })

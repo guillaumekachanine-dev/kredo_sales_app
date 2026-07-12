@@ -421,6 +421,7 @@ export function PitchMailDrawerContent({
             qaFlags={qaFlags}
             companyName={contextLabel}
             scenarioLabel={scenarioLabel}
+            brief={brief}
             resultId={resultId}
             isMobile={isMobile}
             onReset={handleReset}

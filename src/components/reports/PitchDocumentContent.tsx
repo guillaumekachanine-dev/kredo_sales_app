@@ -8,10 +8,12 @@ import {
   SpokenPitchView,
   buildCopyText,
 } from "@/components/accounts-contacts/intelligence/PitchResult"
+import { buildResultPresentationFromSnapshot } from "@/lib/communication/communication-result-documents"
 
 type PitchDocumentContentProps = {
   contentJson: unknown
   contentText: string | null
+  briefJson?: unknown | null
   fallbackClassName?: string
 }
 
@@ -32,21 +34,27 @@ export function parsePitchContent(value: unknown): PitchOutput | null {
 
 // Bug corrigé : PitchOutput (spoken_pitch/meeting_briefing) n'a jamais de champ
 // `body` — la section "Contenu" tombait donc systématiquement sur "aucun contenu
-// texte disponible" pour les documents commercial_pitch. Réutilise le même rendu
-// que la génération en direct (PitchResult) pour rester visuellement cohérent.
-export function PitchDocumentContent({ contentJson, contentText, fallbackClassName }: PitchDocumentContentProps) {
+// texte disponible" pour les documents commercial_pitch / prise_de_parole.
+// Réutilise le même rendu que la génération en direct (PitchResult) pour rester
+// visuellement cohérent.
+export function PitchDocumentContent({ contentJson, contentText, briefJson, fallbackClassName }: PitchDocumentContentProps) {
   const [copied, setCopied] = useState(false)
   const result = parsePitchContent(contentJson)
+  const presentation = buildResultPresentationFromSnapshot(briefJson)
 
   if (result) {
     return (
       <div className="space-y-3">
-        {result.kind === "spoken_pitch" ? <SpokenPitchView result={result} /> : <MeetingBriefingView result={result} />}
+        {result.kind === "spoken_pitch" ? (
+          <SpokenPitchView result={result} presentation={presentation} />
+        ) : (
+          <MeetingBriefingView result={result} presentation={presentation} />
+        )}
         <Button
           variant="secondary"
           size="sm"
           onClick={() => {
-            void navigator.clipboard.writeText(buildCopyText(result)).then(() => {
+            void navigator.clipboard.writeText(buildCopyText(result, presentation)).then(() => {
               setCopied(true)
               setTimeout(() => setCopied(false), 2000)
             })

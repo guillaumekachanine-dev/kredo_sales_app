@@ -8,6 +8,15 @@ import {
   createReportsServiceClient,
   saveAsDocumentWithClient,
 } from "@/app/(app)/reports/_data/reports-actions"
+import {
+  buildCommunicationDocumentTitle,
+  buildDocumentEntities,
+  buildDocumentScopeJson,
+  buildFallbackDocumentTitle,
+  buildResultContentText,
+  buildResultPresentationFromSnapshot,
+  mapResultTypeToDocumentType,
+} from "@/lib/communication/communication-result-documents"
 
 type DocumentMutationResult =
   | { success: true; documentId: string; alreadyExists?: boolean; error?: never }
@@ -31,7 +40,13 @@ type ResultRow = Pick<
 
 type RunRow = Pick<
   Database["public"]["Tables"]["ai_intelligence_runs"]["Row"],
-  "id" | "input_snapshot" | "owner_id" | "workspace_id"
+  | "company_id"
+  | "id"
+  | "input_snapshot"
+  | "owner_id"
+  | "primary_entity_id"
+  | "primary_entity_type"
+  | "workspace_id"
 >
 
 type ExistingDocumentRow = {
@@ -39,31 +54,6 @@ type ExistingDocumentRow = {
 }
 
 type DocumentType = Database["public"]["Enums"]["intelligence_document_type"]
-
-function mapResultTypeToDocumentType(resultType: string): DocumentType | null {
-  switch (resultType) {
-    case "communication":
-      return "communication"
-    case "client_summary":
-      return "client_summary"
-    case "commercial_pitch":
-    case "pitch":
-    case "pitch_mail":
-      return "commercial_pitch"
-    case "commercial_strategy":
-      return "commercial_strategy"
-    case "campaign":
-      return "campaign"
-    case "activity_commercial":
-      return "activity_commercial"
-    case "activity_recruitment":
-      return "activity_recruitment"
-    case "weekly_manager":
-      return "weekly_manager"
-    default:
-      return null
-  }
-}
 
 // Rapports périodiques REPORT-001 (Lot 2+) : facts.period.{startDate,endDate}
 // est calculé en base (RPC get_activity_*_facts) — jamais par le LLM. Les
@@ -92,30 +82,6 @@ function normalizeText(value: string | null | undefined) {
   return trimmed ? trimmed : null
 }
 
-function getBodyText(contentJson: Json): string | null {
-  if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
-    return null
-  }
-
-  const body = (contentJson as Record<string, unknown>).body
-  return typeof body === "string" && body.trim() ? body.trim() : null
-}
-
-function getFirstSubject(contentJson: Json): string | null {
-  if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
-    return null
-  }
-
-  const subjects = (contentJson as Record<string, unknown>).subjects
-  if (!Array.isArray(subjects)) return null
-
-  const first = subjects.find(
-    (subject): subject is string => typeof subject === "string" && subject.trim().length > 0
-  )
-
-  return first?.trim() ?? null
-}
-
 function getContentDataCutoffAt(contentJson: Json): string | null {
   if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
     return null
@@ -130,42 +96,8 @@ function getContentDataCutoffAt(contentJson: Json): string | null {
   return typeof dataCutoffAt === "string" && dataCutoffAt.trim() ? dataCutoffAt : null
 }
 
-function getBriefScope(inputSnapshot: Json): Json | null {
-  if (!inputSnapshot || typeof inputSnapshot !== "object" || Array.isArray(inputSnapshot)) {
-    return null
-  }
-
-  const scope = (inputSnapshot as Record<string, unknown>).scope
-  return scope && typeof scope === "object" && !Array.isArray(scope)
-    ? (scope as Json)
-    : null
-}
-
 function buildFallbackTitle(documentType: DocumentType) {
-  switch (documentType) {
-    case "communication":
-      return "Communication IA"
-    case "client_summary":
-      return "Synthèse client IA"
-    case "commercial_pitch":
-      return "Pitch commercial IA"
-    case "commercial_strategy":
-      return "Stratégie commerciale IA"
-    case "campaign":
-      return "Campagne IA"
-    case "internal_note":
-      return "Note IA"
-    case "activity_commercial":
-      return "Rapport d'activité commerciale"
-    case "activity_recruitment":
-      return "Rapport d'activité recrutement"
-    case "weekly_manager":
-      return "Brief hebdomadaire"
-    default:
-      // Types de rapports REPORT-001 (Lot 1+) — pas encore générés via ce
-      // chemin (saveResultAsDocumentWithSupabaseClient sert INTEL-020/021/022).
-      return "Rapport IA"
-  }
+  return buildFallbackDocumentTitle(documentType)
 }
 
 function revalidateReportsSafely() {
@@ -178,12 +110,13 @@ function revalidateReportsSafely() {
   }
 }
 
-function buildDocumentTitle(result: ResultRow, documentType: DocumentType) {
-  return (
-    normalizeText(result.title) ??
-    getFirstSubject(result.content_json) ??
-    buildFallbackTitle(documentType)
-  )
+function buildDocumentTitle(result: ResultRow, documentType: DocumentType, inputSnapshot: Json) {
+  return buildCommunicationDocumentTitle({
+    documentType,
+    resultTitle: normalizeText(result.title) ?? buildFallbackTitle(documentType),
+    contentJson: result.content_json,
+    inputSnapshot,
+  })
 }
 
 function asArray(value: Json): unknown[] {
@@ -243,7 +176,7 @@ export async function saveResultAsDocumentWithSupabaseClient(
 
   const { data: runRecord, error: runError } = await supabase
     .from("ai_intelligence_runs")
-    .select("id, input_snapshot, owner_id, workspace_id")
+    .select("company_id, id, input_snapshot, owner_id, primary_entity_id, primary_entity_type, workspace_id")
     .eq("id", result.run_id)
     .maybeSingle()
 
@@ -257,20 +190,27 @@ export async function saveResultAsDocumentWithSupabaseClient(
 
   const run = runRecord as RunRow
   const documentOwnerId = actorUserId ?? result.owner_id ?? run.owner_id
-  const contentText = normalizeText(result.content_text) ?? getBodyText(result.content_json)
+  const presentation = buildResultPresentationFromSnapshot(run.input_snapshot)
+  const contentText = buildResultContentText(result.content_json, result.content_text, presentation)
   const isClientSummary = documentType === "client_summary"
   const contentPeriod = getContentPeriod(result.content_json)
+  const documentEntities = buildDocumentEntities({
+    inputSnapshot: run.input_snapshot,
+    companyId: result.company_id ?? run.company_id,
+    runPrimaryEntityType: run.primary_entity_type,
+    runPrimaryEntityId: run.primary_entity_id,
+  })
 
   const creation = await saveAsDocumentWithClient(
     supabase,
     documentOwnerId,
     {
-      title: buildDocumentTitle(result, documentType),
+      title: buildDocumentTitle(result, documentType, run.input_snapshot),
       documentType,
       origin: "generated",
       contentText,
       contentJson: result.content_json,
-      scopeJson: getBriefScope(run.input_snapshot),
+      scopeJson: buildDocumentScopeJson(run.input_snapshot),
       dataCutoffAt: getContentDataCutoffAt(result.content_json),
       periodStart: isClientSummary ? null : contentPeriod.start,
       periodEnd: isClientSummary ? null : contentPeriod.end,
@@ -278,12 +218,8 @@ export async function saveResultAsDocumentWithSupabaseClient(
       sourceRefs: asArray(result.source_refs),
       qaFlags: asArray(result.qa_flags),
       sourceResultId: result.id,
-      links: result.company_id
-        ? [{ entityType: "company", entityId: result.company_id }]
-        : [],
-      primaryEntity: result.company_id
-        ? { entityType: "company", entityId: result.company_id }
-        : null,
+      links: documentEntities.links,
+      primaryEntity: documentEntities.primaryEntity,
     },
     { workspaceId: result.workspace_id ?? run.workspace_id }
   )

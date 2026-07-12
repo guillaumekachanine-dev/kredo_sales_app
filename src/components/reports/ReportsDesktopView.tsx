@@ -1,6 +1,6 @@
 "use client"
 
-import type { FormEvent } from "react"
+import type { CSSProperties, FormEvent } from "react"
 import { useState, useTransition, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -116,10 +116,16 @@ function extractMoteur(doc: DocumentDetail): string {
   const latestVersion = doc.versions[0] ?? null
   const brief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
   if (brief && typeof brief === "object") {
-    const b = brief as Record<string, any>
-    return b.model || b.modelName || "KREDO-GPT-4o"
+    const b = brief as Record<string, unknown>
+    return typeof b.model === "string" ? b.model : typeof b.modelName === "string" ? b.modelName : "KREDO-GPT-4o"
   }
   return "KREDO-GPT-4o"
+}
+
+type QaFlagLike = {
+  passed?: boolean
+  detail?: string
+  check?: string
 }
 
 function extractQualiteStatus(doc: DocumentDetail): {
@@ -128,13 +134,13 @@ function extractQualiteStatus(doc: DocumentDetail): {
   details: string[]
 } {
   const latestVersion = doc.versions[0] ?? null
-  const qaFlags: any[] = (latestVersion?.qaFlags as any[]) || []
+  const qaFlags = Array.isArray(latestVersion?.qaFlags) ? (latestVersion.qaFlags as QaFlagLike[]) : []
   if (qaFlags.length === 0) return { label: null, ok: true, details: [] }
   const failed = qaFlags.filter((f) => f && typeof f === "object" && !f.passed)
   return {
     label: failed.length === 0 ? "Qualité OK" : "À vérifier",
     ok: failed.length === 0,
-    details: failed.map((f: any) => f.detail || f.check || "Anomalie non spécifiée"),
+    details: failed.map((f) => f.detail || f.check || "Anomalie non spécifiée"),
   }
 }
 
@@ -535,6 +541,7 @@ export function ReportsDesktopView({
               { label: "Rapports", value: "financial" },
               { label: "Synthèses", value: "client_summary" },
               { label: "Pitchs", value: "commercial_pitch" },
+              { label: "Prises de parole", value: "prise_de_parole" },
               { label: "Mails", value: "communication" }
             ].map((chip) => (
               <button
@@ -562,7 +569,7 @@ export function ReportsDesktopView({
               {reportsData.items.map((item) => {
                 const isActive = item.id === selectedDocumentId
                 const cat = getDocumentTypeLabel(item.documentType)
-                const isMailOrPitch = cat === "mail" || cat === "pitch"
+                const isMailOrPitch = cat === "mail" || cat === "pitch" || cat === "prise de parole"
 
                 const entityLabel = item.primaryEntity?.label ?? null
                 const typeLabel = DOCUMENT_OBJECT_LABELS[item.documentType]
@@ -588,7 +595,7 @@ export function ReportsDesktopView({
                         <svg className="size-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                      ) : cat === "pitch" ? (
+                      ) : cat === "pitch" || cat === "prise de parole" ? (
                         <svg className="size-3.5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                         </svg>
@@ -754,23 +761,23 @@ export function ReportsDesktopView({
               {/* Editorial Paper Sheet Document Preview */}
               <div
                 className="paper-sheet p-6 rounded-2xl border border-border/40 shadow-2xl relative overflow-hidden transition-all duration-300 min-h-[58vh] max-h-[72vh] overflow-y-auto"
-                style={{
-                  transform: `scale(${zoomLevel / 100})`,
-                  transformOrigin: "top center",
-                  backgroundColor: "#FAF9F6",
-                  color: "#4A5568",
-                  colorScheme: "light",
-                  ["--color-canvas" as any]: "#FAF9F6",
-                  ["--color-surface" as any]: "#FFFFFF",
-                  ["--color-surface-hover" as any]: "#F5F4F0",
-                  ["--color-border" as any]: "#E3DFD5",
-                  ["--color-heading" as any]: "#1C2333",
-                  ["--color-body" as any]: "#4A5568",
-                  ["--color-muted" as any]: "#718096",
-                  ["--color-primary" as any]: "#A67A1E",
-                  ["--color-primary-deep" as any]: "#8C6615",
-                  ["--color-primary-fg" as any]: "#FAF9F6",
-                }}
+	                style={{
+	                  transform: `scale(${zoomLevel / 100})`,
+	                  transformOrigin: "top center",
+	                  backgroundColor: "#FAF9F6",
+	                  color: "#4A5568",
+	                  colorScheme: "light",
+	                  "--color-canvas": "#FAF9F6",
+	                  "--color-surface": "#FFFFFF",
+	                  "--color-surface-hover": "#F5F4F0",
+	                  "--color-border": "#E3DFD5",
+	                  "--color-heading": "#1C2333",
+	                  "--color-body": "#4A5568",
+	                  "--color-muted": "#718096",
+	                  "--color-primary": "#A67A1E",
+	                  "--color-primary-deep": "#8C6615",
+	                  "--color-primary-fg": "#FAF9F6",
+	                } as CSSProperties}
               >
                 {isEditing ? (
                   <DocumentEditor
@@ -846,10 +853,11 @@ export function ReportsDesktopView({
                           contentJson={selectedDocument.currentContentJson}
                           contentText={selectedDocument.currentContentText}
                         />
-                      ) : selectedDocument.documentType === "commercial_pitch" ? (
+                      ) : selectedDocument.documentType === "commercial_pitch" || selectedDocument.documentType === "prise_de_parole" ? (
                         <PitchDocumentContent
                           contentJson={selectedDocument.currentContentJson}
                           contentText={selectedDocument.currentContentText}
+                          briefJson={selectedDocument.versions[0]?.sourceRunInputSnapshot ?? selectedDocument.versions[0]?.briefJson ?? null}
                           fallbackClassName="text-xs whitespace-pre-wrap leading-relaxed"
                         />
                       ) : selectedDocument.currentContentText ? (

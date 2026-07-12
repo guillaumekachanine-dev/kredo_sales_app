@@ -106,6 +106,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
             { label: "Tous", value: "all" },
             { label: "Mails", value: "communication" },
             { label: "Pitch", value: "commercial_pitch" },
+            { label: "Prise de parole", value: "prise_de_parole" },
             { label: "Rapports", value: "financial" }
           ].map((chip) => {
             const active = isActive(chip.value)

@@ -205,7 +205,7 @@ function isFinancialDocument(document: DocumentDetail) {
 }
 
 function isCommunicationDocument(document: DocumentDetail) {
-  return ["communication", "commercial_pitch", "campaign", "internal_note"].includes(document.documentType)
+  return ["communication", "commercial_pitch", "prise_de_parole", "campaign", "internal_note"].includes(document.documentType)
 }
 
 function DocumentContent({ document }: { document: DocumentDetail }) {
@@ -227,11 +227,13 @@ function DocumentContent({ document }: { document: DocumentDetail }) {
     )
   }
 
-  if (document.documentType === "commercial_pitch") {
+  if (document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole") {
+    const latestVersion = document.versions[0] ?? null
     return (
       <PitchDocumentContent
         contentJson={document.currentContentJson}
         contentText={document.currentContentText}
+        briefJson={latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null}
         fallbackClassName="rounded-[var(--radius-medium)] border border-border bg-canvas/40 px-3 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body"
       />
     )
@@ -544,7 +546,7 @@ export function CompanyDocumentsModal({
             (type === "client_summary" && !title.includes("fiche"))
           )
         case "pitchs":
-          return type === "commercial_pitch" || title.includes("pitch")
+          return type === "commercial_pitch" || type === "prise_de_parole" || title.includes("pitch")
         case "devis":
           return title.includes("devis") || title.includes("chiffrage") || title.includes("proposition")
         case "relances":
@@ -846,7 +848,7 @@ export function CompanyDocumentsModal({
                               </div>
                             ) : (
                               <h3 className="mt-2 text-base font-bold leading-snug text-white">
-                                {selectedDetail?.documentType === "commercial_pitch"
+                                {selectedDetail?.documentType === "commercial_pitch" || selectedDetail?.documentType === "prise_de_parole"
                                   ? getPitchBriefLabel(selectedDetail.versions[0]?.sourceRunInputSnapshot ?? selectedDetail.versions[0]?.briefJson) ?? selectedDoc.title
                                   : selectedDoc.title}
                               </h3>

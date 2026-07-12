@@ -6822,6 +6822,7 @@ export type Database = {
         | "delivery_profitability"
         | "account_portfolio"
         | "commercial_strategy"
+        | "prise_de_parole"
       intelligence_document_version_origin:
         | "generated"
         | "regenerated"
@@ -7047,6 +7048,7 @@ export const Constants = {
         "delivery_profitability",
         "account_portfolio",
         "commercial_strategy",
+        "prise_de_parole",
       ],
       intelligence_document_version_origin: [
         "generated",

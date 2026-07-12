@@ -18,6 +18,7 @@ export const ANALYSIS_RESULT_TYPES = [
 export const COMMUNICATION_RESULT_TYPES = [
   "communication",
   "commercial_pitch", // ADR-0009 — vrai result_type produit (remplace pitch/pitch_mail)
+  "prise_de_parole",  // INTEL-020 Lot 12 — pitch/briefing non commercial sauvegardable
   "pitch",            // legacy pré-rename intel-020-pitch-mail — alias de compat, cf. save-as-document.ts/api/n8n/callback
   "pitch_mail",       // idem
 ] as const

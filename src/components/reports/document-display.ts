@@ -17,6 +17,7 @@ type ReportDocumentType =
 type CommunicationDocumentType =
   | "communication"
   | "commercial_pitch"
+  | "prise_de_parole"
   | "campaign"
   | "internal_note"
 
@@ -43,6 +44,7 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   client_summary: "Synthèse client",
   commercial_strategy: "Stratégie commerciale",
   commercial_pitch: "Pitch commercial",
+  prise_de_parole: "Prise de parole",
   campaign: "Campagne",
   internal_note: "Note interne",
   activity_commercial: "Activité commerciale",
@@ -59,6 +61,7 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
 const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentType, string> = {
   communication: "mail",
   commercial_pitch: "pitch",
+  prise_de_parole: "prise de parole",
   campaign: "pitch",
   internal_note: "mail",
   client_summary: "rapport",
