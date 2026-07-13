@@ -71,7 +71,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Identifier les décideurs clés et enrichir les fiches contacts.",
     icon: "scan_contact",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   deep_analysis: {
     id: "deep_analysis",
@@ -145,7 +145,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Classer les opportunités par probabilité de closing et valeur.",
     icon: "prioritize",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   detect_risks: {
     id: "detect_risks",
@@ -177,7 +177,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Cartographier les compétences recherchées et les écarts.",
     icon: "analyze_skills",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   project_portfolio_review: {
     id: "project_portfolio_review",
@@ -225,7 +225,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Décrypter les marges par mission, client et consultant.",
     icon: "analyze_margins",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   forecast_revenue: {
     id: "forecast_revenue",
@@ -233,7 +233,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Projeter le chiffre d'affaires sur les prochains trimestres.",
     icon: "forecast",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   detect_anomalies: {
     id: "detect_anomalies",
@@ -249,7 +249,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Identifier les étapes de recrutement qui bloquent le plus de candidats.",
     icon: "report",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   weekly_brief: {
     id: "weekly_brief",
@@ -273,7 +273,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Vue synthétique de l'état du pipe et des risques de dérapage.",
     icon: "sparkle",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   prepare_day: {
     id: "prepare_day",

@@ -5,7 +5,16 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Select } from "@/components/ui/Select"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { AgendaEventTypePicker } from "./AgendaEventTypePicker"
-import { AGENDA_EVENT_TYPES, COMMERCE_TYPES, MANAGEMENT_TYPES, RECRUTEMENT_TYPES } from "@/lib/agenda/agenda-config"
+import {
+  AGENDA_EVENT_TYPES,
+  COMMERCE_TYPES,
+  getCategoryForType,
+  PROSPECTION_TYPES,
+  CLIENT_ACTIF_TYPES,
+  RECRUTEMENT_TYPES,
+  MANAGEMENT_TYPES,
+  INTERNE_TYPES,
+} from "@/lib/agenda/agenda-config"
 import { addOneHourToTime, normalizeTimeToQuarterHour } from "@/lib/agenda/agenda-time-utils"
 import type {
   AgendaContextOption,
@@ -20,9 +29,11 @@ import {
   updateAgendaEvent,
   deleteAgendaEvent,
   getContactsByCompany,
-  getAgendaContextOptions,
   getOpportunitiesForSelect,
   getCandidatesForSelect,
+  getAgendaContextOptions,
+  getCollaboratorsForSelect,
+  getMissionsForSelect,
 } from "@/lib/agenda/agenda-actions"
 import { cn } from "@/lib/utils"
 
@@ -48,6 +59,8 @@ export interface AgendaEventDrawerInitialValues {
   external_contact_name?: string
   opportunity_id?: string
   candidate_id?: string
+  collaborator_id?: string
+  mission_id?: string
 }
 
 type ContextLinkType = "opportunity" | "contract" | "mail" | "signal" | "campaign" | "offer"
@@ -65,6 +78,8 @@ interface FormState {
   external_contact_name: string
   opportunity_id: string
   candidate_id: string
+  collaborator_id: string
+  mission_id: string
   link_context: boolean
   context_type: ContextLinkType
   context_id: string
@@ -88,6 +103,8 @@ const INITIAL_FORM: FormState = {
   external_contact_name: "",
   opportunity_id: "",
   candidate_id: "",
+  collaborator_id: "",
+  mission_id: "",
   link_context: false,
   context_type: "opportunity",
   context_id: "",
@@ -105,9 +122,11 @@ const PRIORITY_OPTIONS = [
 ]
 
 const CATEGORY_LABELS: Record<string, string> = {
-  commerce: "Commerce",
+  prospection: "Prospection",
+  client_actif: "Client actif",
   recrutement: "Recrutement",
-  management: "Interne",
+  management: "Management",
+  interne: "Interne",
 }
 
 const CONTEXT_LINK_TYPES: Array<{ value: ContextLinkType; label: string; emptyLabel: string }> = [
@@ -174,6 +193,9 @@ export function AgendaEventDrawer({
   const [serverError, setServerError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  const [collaborators, setCollaborators] = useState<{ id: string; full_name: string }[]>([])
+  const [missions, setMissions] = useState<{ id: string; title: string; collaborator_id: string | null }[]>([])
+
   const loadContactsForCompany = useEffectEvent(async (nextCompanyId?: string | null) => {
     if (!nextCompanyId) {
       setContacts([])
@@ -239,6 +261,8 @@ export function AgendaEventDrawer({
         external_contact_name: metadata.externalContactName,
         opportunity_id: event.opportunity_id || "",
         candidate_id: event.candidate_id || "",
+        collaborator_id: event.collaborator_id || "",
+        mission_id: event.mission_id || "",
         link_context: Boolean(metadata.linkedContext),
         context_type: metadata.linkedContext?.type || "opportunity",
         context_id: metadata.linkedContext?.id || "",
@@ -273,12 +297,15 @@ export function AgendaEventDrawer({
   useEffect(() => {
     getOpportunitiesForSelect().then(setOpportunities)
     getCandidatesForSelect().then(setCandidates)
+    getCollaboratorsForSelect().then(setCollaborators)
+    getMissionsForSelect().then(setMissions)
   }, [])
 
   const companyId = form.company?.id
 
   const syncContextOptions = useEffectEvent(async (kind: ContextLinkType, nextCompanyId?: string | null) => {
     setLoadingContextOptions(true)
+    const { getAgendaContextOptions } = await import("@/lib/agenda/agenda-actions")
     const data = await getAgendaContextOptions(kind, nextCompanyId)
     setContextOptions(data)
     setLoadingContextOptions(false)
@@ -355,6 +382,11 @@ export function AgendaEventDrawer({
       if (end <= start) errs.end_time = "L'heure de fin doit être postérieure au début."
     }
 
+    const currentCategory = getCategoryForType(form.event_type)
+    if (currentCategory === "management" && !form.collaborator_id) {
+      errs.collaborator_id = "Le collaborateur est obligatoire."
+    }
+
     if (allowPreparatoryTask && form.create_task) {
       if (!form.task_title.trim()) errs.task_title = "Le titre de la tâche est obligatoire."
       if (!form.task_date) errs.task_date = "La date d'échéance est obligatoire."
@@ -383,10 +415,17 @@ export function AgendaEventDrawer({
       const taskDueIso = shouldCreateTask
         ? new Date(`${form.task_date}T${form.task_time || "08:30"}`).toISOString()
         : ""
-      const selectedContactIds = form.contact_ids.filter(Boolean)
+
+      const currentCategory = getCategoryForType(form.event_type)
+      const isProspection = currentCategory === "prospection"
+      const isClientActif = currentCategory === "client_actif"
+      const isRecrutement = currentCategory === "recrutement"
+      const isManagement = currentCategory === "management"
+
+      const selectedContactIds = (isProspection || isClientActif) ? form.contact_ids.filter(Boolean) : []
       const metadata = {
         contact_ids: selectedContactIds,
-        external_contact_name: form.external_contact_name.trim() || null,
+        external_contact_name: (isProspection || isClientActif) ? (form.external_contact_name.trim() || null) : null,
         linked_context: form.link_context && form.context_id
           ? { type: form.context_type, id: form.context_id }
           : null,
@@ -399,10 +438,16 @@ export function AgendaEventDrawer({
         starts_at: startsAt,
         ends_at: endsAt,
         description: form.description.trim(),
-        company_id: form.company?.id || null,
-        contact_id: selectedContactIds[0] || form.contact_id || null,
-        opportunity_id: form.opportunity_id || null,
-        candidate_id: form.candidate_id || null,
+        company_id: isRecrutement
+          ? (opportunities.find((o) => o.id === form.opportunity_id)?.company_id || null)
+          : (isProspection || isClientActif)
+            ? (form.company?.id || null)
+            : null,
+        contact_id: (isProspection || isClientActif) ? (selectedContactIds[0] || form.contact_id || null) : null,
+        opportunity_id: isRecrutement ? (form.opportunity_id || null) : null,
+        candidate_id: isRecrutement ? (form.candidate_id || null) : null,
+        collaborator_id: isManagement ? (form.collaborator_id || null) : null,
+        mission_id: isManagement ? (form.mission_id || null) : null,
         create_task: shouldCreateTask,
         task_title: shouldCreateTask ? form.task_title.trim() : "",
         task_due_date: taskDueIso,
@@ -439,13 +484,13 @@ export function AgendaEventDrawer({
   }
 
   const isView = mode === "view"
-  const isManagement = MANAGEMENT_TYPES.has(form.event_type)
-  const isRecrutement = RECRUTEMENT_TYPES.has(form.event_type)
-  const isCommerce = COMMERCE_TYPES.has(form.event_type)
+  const category = getCategoryForType(form.event_type)
+  const isProspection = category === "prospection"
+  const isClientActif = category === "client_actif"
+  const isRecrutement = category === "recrutement"
+  const isManagement = category === "management"
+  const isInterne = category === "interne"
   const currentTypeConfig = AGENDA_EVENT_TYPES[form.event_type]
-
-  // Suppress unused variable warning for isManagement (kept for future section)
-  void isManagement
 
   return (
     <>
@@ -453,7 +498,32 @@ export function AgendaEventDrawer({
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         value={form.event_type}
-        onChange={(v) => setField("event_type", v)}
+        onChange={(v) => {
+          const oldCat = getCategoryForType(form.event_type)
+          const newCat = getCategoryForType(v)
+
+          setForm((prev) => {
+            const next = { ...prev, event_type: v }
+            if (oldCat !== newCat) {
+              // Purge fields from other categories to avoid saving trailing state
+              next.company = null
+              next.contact_id = ""
+              next.contact_ids = []
+              next.external_contact_name = ""
+              next.opportunity_id = ""
+              next.candidate_id = ""
+              next.collaborator_id = ""
+              next.mission_id = ""
+            }
+            return next
+          })
+          setErrors((prev) => {
+            const next = { ...prev }
+            delete next.event_type
+            delete next.collaborator_id
+            return next
+          })
+        }}
       />
 
       <AppDrawer
@@ -583,126 +653,130 @@ export function AgendaEventDrawer({
               {errors.title && <p className="mt-1 text-[11px] text-danger">{errors.title}</p>}
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-heading mb-1.5">Compte associé</label>
-              {isView ? (
-                <input
-                  type="text"
-                  value={event?.company?.name || "—"}
-                  disabled
-                  className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
-                />
-              ) : (
-                <AccountCombobox
-                  value={form.company}
-                  onChange={(val) => {
-                    setField("company", val)
-                    setField("contact_id", "")
-                    setField("contact_ids", [])
-                    const nextCompanyId = val?.id ?? null
-                    if (nextCompanyId) {
-                      setLoadingContacts(true)
-                      getContactsByCompany(nextCompanyId).then((data) => {
-                        setContacts(data)
-                        setLoadingContacts(false)
-                      })
-                    } else {
-                      setContacts([])
-                    }
-                  }}
-                  allowCreate={false}
-                  openOnFocus
-                  minSearchLength={0}
-                />
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-heading mb-1.5">
-                Contact associé
-                {loadingContacts && <span className="text-[10px] text-muted ml-1">(chargement…)</span>}
-              </label>
-              {isView ? (
-                <div className="min-h-9 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-70">
-                  {[
-                    ...contacts
-                      .filter((contact) => form.contact_ids.includes(contact.id))
-                      .map((contact) => contact.full_name),
-                    form.external_contact_name,
-                  ].filter(Boolean).join(", ") || "—"}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (!e.target.value) return
-                      if (e.target.value === "__other__") {
-                        setField("external_contact_name", form.external_contact_name || "Contact externe")
-                        return
+            {(isProspection || isClientActif) && (
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">Compte associé</label>
+                {isView ? (
+                  <input
+                    type="text"
+                    value={event?.company?.name || "—"}
+                    disabled
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                  />
+                ) : (
+                  <AccountCombobox
+                    value={form.company}
+                    onChange={(val) => {
+                      setField("company", val)
+                      setField("contact_id", "")
+                      setField("contact_ids", [])
+                      const nextCompanyId = val?.id ?? null
+                      if (nextCompanyId) {
+                        setLoadingContacts(true)
+                        getContactsByCompany(nextCompanyId).then((data) => {
+                          setContacts(data)
+                          setLoadingContacts(false)
+                        })
+                      } else {
+                        setContacts([])
                       }
-                      toggleContact(e.target.value)
                     }}
-                    disabled={isPending || loadingContacts || !form.company}
-                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
-                  >
-                    <option value="">
-                      {form.company ? "Ajouter un contact présent…" : "Sélectionnez d'abord un compte"}
-                    </option>
-                    {contacts
-                      .filter((contact) => !form.contact_ids.includes(contact.id))
-                      .map((contact) => (
-                        <option key={contact.id} value={contact.id}>
-                           {contact.full_name} {contact.job_title ? `— ${contact.job_title}` : ""}
-                        </option>
-                      ))}
-                    <option value="__other__">Autre contact…</option>
-                  </select>
+                    allowCreate={false}
+                    openOnFocus
+                    minSearchLength={0}
+                  />
+                )}
+              </div>
+            )}
 
-                  {form.contact_ids.length > 0 || form.external_contact_name ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {form.contact_ids.map((contactId) => {
-                        const contact = contacts.find((candidate) => candidate.id === contactId)
-                        return (
+            {(isProspection || isClientActif) && (
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">
+                  Contact associé
+                  {loadingContacts && <span className="text-[10px] text-muted ml-1">(chargement…)</span>}
+                </label>
+                {isView ? (
+                  <div className="min-h-9 rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-70">
+                    {[
+                      ...contacts
+                        .filter((contact) => form.contact_ids.includes(contact.id))
+                        .map((contact) => contact.full_name),
+                      form.external_contact_name,
+                    ].filter(Boolean).join(", ") || "—"}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (!e.target.value) return
+                        if (e.target.value === "__other__") {
+                          setField("external_contact_name", form.external_contact_name || "Contact externe")
+                          return
+                        }
+                        toggleContact(e.target.value)
+                      }}
+                      disabled={isPending || loadingContacts || !form.company}
+                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60 cursor-pointer"
+                    >
+                      <option value="">
+                        {form.company ? "Ajouter un contact présent…" : "Sélectionnez d'abord un compte"}
+                      </option>
+                      {contacts
+                        .filter((contact) => !form.contact_ids.includes(contact.id))
+                        .map((contact) => (
+                          <option key={contact.id} value={contact.id}>
+                             {contact.full_name} {contact.job_title ? `— ${contact.job_title}` : ""}
+                          </option>
+                        ))}
+                      <option value="__other__">Autre contact…</option>
+                    </select>
+
+                    {form.contact_ids.length > 0 || form.external_contact_name ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {form.contact_ids.map((contactId) => {
+                          const contact = contacts.find((candidate) => candidate.id === contactId)
+                          return (
+                            <button
+                              key={contactId}
+                              type="button"
+                              onClick={() => toggleContact(contactId)}
+                              className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-1 text-[11px] font-semibold text-primary"
+                              title="Retirer ce contact"
+                            >
+                              {contact?.full_name || "Contact"}
+                              <span aria-hidden="true">×</span>
+                            </button>
+                          )
+                        })}
+                        {form.external_contact_name ? (
                           <button
-                            key={contactId}
                             type="button"
-                            onClick={() => toggleContact(contactId)}
-                            className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/8 px-2 py-1 text-[11px] font-semibold text-primary"
+                            onClick={removeExternalContact}
+                            className="inline-flex items-center gap-1 rounded-full border border-border bg-canvas px-2 py-1 text-[11px] font-semibold text-heading"
                             title="Retirer ce contact"
                           >
-                            {contact?.full_name || "Contact"}
+                            {form.external_contact_name}
                             <span aria-hidden="true">×</span>
                           </button>
-                        )
-                      })}
-                      {form.external_contact_name ? (
-                        <button
-                          type="button"
-                          onClick={removeExternalContact}
-                          className="inline-flex items-center gap-1 rounded-full border border-border bg-canvas px-2 py-1 text-[11px] font-semibold text-heading"
-                          title="Retirer ce contact"
-                        >
-                          {form.external_contact_name}
-                          <span aria-hidden="true">×</span>
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        ) : null}
+                      </div>
+                    ) : null}
 
-                  {form.external_contact_name ? (
-                    <input
-                      type="text"
-                      value={form.external_contact_name}
-                      onChange={(e) => setField("external_contact_name", e.target.value)}
-                      disabled={isPending}
-                      placeholder="Nom du contact non répertorié"
-                      className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60"
-                    />
-                  ) : null}
-                </div>
-              )}
-            </div>
+                    {form.external_contact_name ? (
+                      <input
+                        type="text"
+                        value={form.external_contact_name}
+                        onChange={(e) => setField("external_contact_name", e.target.value)}
+                        disabled={isPending}
+                        placeholder="Nom du contact non répertorié"
+                        className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading placeholder:text-muted/50 outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-60"
+                      />
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* ── SECTION 2: DATE & HEURES ── */}
@@ -742,30 +816,137 @@ export function AgendaEventDrawer({
             </div>
           </section>
 
-          {/* ── SECTION 4: CANDIDAT (RECRUTEMENT) ── */}
+          {/* ── SECTION: RECRUTEMENT ── */}
           {isRecrutement && (
             <section className="flex flex-col gap-3">
               <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
-                Candidat
+                Candidat & Besoin
               </p>
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">
+                  Besoin associé
+                </label>
+                {isView ? (
+                  <input
+                    type="text"
+                    value={opportunities.find((o) => o.id === form.opportunity_id)?.title || "—"}
+                    disabled
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                  />
+                ) : (
+                  <Select
+                    value={form.opportunity_id}
+                    onChange={(e) => setField("opportunity_id", e.target.value)}
+                    disabled={isPending}
+                    size="sm"
+                  >
+                    <option value="">Aucun besoin sélectionné</option>
+                    {opportunities.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.title}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
               <div>
                 <label className="block text-xs font-medium text-heading mb-1.5">
                   Candidat lié
                 </label>
-                <Select
-                  value={form.candidate_id}
-                  onChange={(e) => setField("candidate_id", e.target.value)}
-                  disabled={isView || isPending}
-                  size="sm"
-                >
-                  <option value="">Aucun candidat sélectionné</option>
-                  {candidates.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.full_name}
-                      {c.status ? ` (${c.status})` : ""}
-                    </option>
-                  ))}
-                </Select>
+                {isView ? (
+                  <input
+                    type="text"
+                    value={candidates.find((c) => c.id === form.candidate_id)?.full_name || "—"}
+                    disabled
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                  />
+                ) : (
+                  <Select
+                    value={form.candidate_id}
+                    onChange={(e) => setField("candidate_id", e.target.value)}
+                    disabled={isPending}
+                    size="sm"
+                  >
+                    <option value="">Aucun candidat sélectionné</option>
+                    {candidates.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.full_name}
+                        {c.status ? ` (${c.status})` : ""}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ── SECTION: MANAGEMENT ── */}
+          {isManagement && (
+            <section className="flex flex-col gap-3">
+              <p className="text-[10px] font-semibold tracking-widest uppercase text-muted">
+                Suivi collaborateur
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">
+                  Mission associée
+                </label>
+                {isView ? (
+                  <input
+                    type="text"
+                    value={missions.find((m) => m.id === form.mission_id)?.title || "—"}
+                    disabled
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                  />
+                ) : (
+                  <Select
+                    value={form.mission_id}
+                    onChange={(e) => {
+                      const missionId = e.target.value
+                      setField("mission_id", missionId)
+                      const selectedMission = missions.find(m => m.id === missionId)
+                      if (selectedMission?.collaborator_id) {
+                        setField("collaborator_id", selectedMission.collaborator_id)
+                      }
+                    }}
+                    disabled={isPending}
+                    size="sm"
+                  >
+                    <option value="">Aucune mission sélectionnée</option>
+                    {missions.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-heading mb-1.5">
+                  Collaborateur&nbsp;<span className="text-danger">*</span>
+                </label>
+                {isView ? (
+                  <input
+                    type="text"
+                    value={collaborators.find((c) => c.id === form.collaborator_id)?.full_name || "—"}
+                    disabled
+                    className="w-full rounded-md border border-border bg-canvas px-3 py-2 text-xs text-heading opacity-60"
+                  />
+                ) : (
+                  <Select
+                    value={form.collaborator_id}
+                    onChange={(e) => setField("collaborator_id", e.target.value)}
+                    disabled={isPending}
+                    size="sm"
+                  >
+                    <option value="">Sélectionner un collaborateur…</option>
+                    {collaborators.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.full_name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+                {errors.collaborator_id && <p className="mt-1 text-[11px] text-danger">{errors.collaborator_id}</p>}
               </div>
             </section>
           )}

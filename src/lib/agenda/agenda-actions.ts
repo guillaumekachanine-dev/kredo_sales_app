@@ -39,6 +39,17 @@ type AgendaCompanyRelationRow = {
   name: string
 }
 
+type AgendaCollaboratorRelationRow = {
+  id: string
+  persons: AgendaPersonRow | AgendaPersonRow[] | null
+}
+
+type AgendaMissionRelationRow = {
+  id: string
+  title: string
+  collaborator_id: string | null
+}
+
 type AgendaEventRow = {
   id: string
   title: string
@@ -52,10 +63,14 @@ type AgendaEventRow = {
   contact_id: string | null
   opportunity_id: string | null
   candidate_id: string | null
+  collaborator_id: string | null
+  mission_id: string | null
   companies: AgendaCompanyRelationRow | null
   contacts: AgendaContactRelationRow | null
   opportunities: AgendaOpportunityRelationRow | null
   candidates: AgendaCandidateRelationRow | null
+  collaborator: AgendaCollaboratorRelationRow | null
+  mission: AgendaMissionRelationRow | null
   metadata: Json | null
 }
 
@@ -94,6 +109,8 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
       contact_id,
       opportunity_id,
       candidate_id,
+      collaborator_id,
+      mission_id,
       metadata,
       companies ( id, name ),
       contacts (
@@ -105,7 +122,12 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
       candidates (
         id,
         persons ( id, full_name )
-      )
+      ),
+      collaborator:collaborators (
+        id,
+        persons ( id, full_name )
+      ),
+      mission:missions ( id, title, collaborator_id )
     `)
     .lt("starts_at", endRange)
     .gt("ends_at", startRange)
@@ -131,7 +153,7 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
     if (t.calendar_event_id) tasksMap.set(t.calendar_event_id, t)
   })
 
-  return (events as AgendaEventRow[]).map((e) => {
+  return (events as unknown as AgendaEventRow[]).map((e) => {
     const contactPerson = e.contacts?.persons
       ? Array.isArray(e.contacts.persons)
         ? e.contacts.persons[0]
@@ -142,6 +164,12 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
       ? Array.isArray(e.candidates.persons)
         ? e.candidates.persons[0]
         : e.candidates.persons
+      : null
+
+    const collaboratorPerson = e.collaborator?.persons
+      ? Array.isArray(e.collaborator.persons)
+        ? e.collaborator.persons[0]
+        : e.collaborator.persons
       : null
 
     return {
@@ -170,6 +198,14 @@ export async function getAgendaEvents(startRange: string, endRange: string): Pro
       candidate: e.candidates
         ? { id: e.candidates.id, full_name: candidatePerson?.full_name || "" }
         : null,
+      collaborator_id: e.collaborator_id,
+      collaborator: e.collaborator
+        ? { id: e.collaborator.id, full_name: collaboratorPerson?.full_name || "" }
+        : null,
+      mission_id: e.mission_id,
+      mission: e.mission
+        ? { id: e.mission.id, title: e.mission.title, collaborator_id: e.mission.collaborator_id }
+        : null,
       preparatory_task: tasksMap.get(e.id) || null,
       metadata: e.metadata || null,
     } satisfies AgendaEvent
@@ -193,6 +229,8 @@ export async function createAgendaEvent(input: AgendaEventFormInput) {
     p_contact_id:     input.contact_id || undefined,
     p_opportunity_id: input.opportunity_id || undefined,
     p_candidate_id:   input.candidate_id || undefined,
+    p_collaborator_id: input.collaborator_id || undefined,
+    p_mission_id:     input.mission_id || undefined,
     p_create_task:    input.create_task,
     p_task_title:     input.task_title || undefined,
     p_task_due_date:  input.task_due_date || undefined,
@@ -230,6 +268,8 @@ export async function updateAgendaEvent(input: AgendaEventFormInput) {
       contact_id:     input.contact_id || null,
       opportunity_id: input.opportunity_id || null,
       candidate_id:   input.candidate_id || null,
+      collaborator_id: input.collaborator_id || null,
+      mission_id:     input.mission_id || null,
       metadata:       input.metadata || {},
     })
     .eq("id", input.id)
@@ -336,7 +376,7 @@ export async function getOpportunitiesForSelect() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("opportunities")
-    .select("id, title")
+    .select("id, title, company_id")
     .order("title", { ascending: true })
 
   if (error) {
@@ -344,6 +384,48 @@ export async function getOpportunitiesForSelect() {
     return []
   }
   return (data || []) as AgendaSelectOpportunity[]
+}
+
+export async function getCollaboratorsForSelect() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("collaborators")
+    .select("id, persons ( id, full_name )")
+    .order("created_at", { ascending: true })
+
+  if (error) {
+    console.error("getCollaboratorsForSelect error:", error)
+    return []
+  }
+
+  type CollaboratorSelectRow = {
+    id: string
+    persons: AgendaPersonRow | AgendaPersonRow[] | null
+  }
+
+  return ((data || []) as unknown as CollaboratorSelectRow[])
+    .map((c) => {
+      const person = Array.isArray(c.persons) ? c.persons[0] : c.persons
+      return {
+        id: c.id,
+        full_name: person?.full_name || "",
+      }
+    })
+    .sort((a, b) => a.full_name.localeCompare(b.full_name, "fr"))
+}
+
+export async function getMissionsForSelect() {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("missions")
+    .select("id, title, collaborator_id")
+    .order("title", { ascending: true })
+
+  if (error) {
+    console.error("getMissionsForSelect error:", error)
+    return []
+  }
+  return data || []
 }
 
 export async function getAgendaContextOptions(

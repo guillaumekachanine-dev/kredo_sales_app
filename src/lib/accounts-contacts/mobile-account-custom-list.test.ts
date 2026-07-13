@@ -52,9 +52,11 @@ describe("mobile account custom list helpers", () => {
 
     expect(mergeMobilePriorityAccountIdsIntoUiPrefs(uiPrefs, ["account-a"])).toEqual({
       theme: "light",
+      crm_account_launcher: {
+        pinned_company_ids: ["account-a"],
+      },
       mobile_account_quick_search: {
         last_query: "acme",
-        pinned_company_ids: ["account-a"],
       },
     })
   })

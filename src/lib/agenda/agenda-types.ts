@@ -22,6 +22,10 @@ export interface AgendaEvent {
   opportunity?: { id: string; title: string } | null
   candidate_id: string | null
   candidate?: { id: string; full_name: string } | null
+  collaborator_id?: string | null
+  collaborator?: { id: string; full_name: string } | null
+  mission_id?: string | null
+  mission?: { id: string; title: string; collaborator_id?: string | null } | null
   preparatory_task?: {
     id: string
     title: string
@@ -42,6 +46,7 @@ export interface AgendaSelectContact {
 export interface AgendaSelectOpportunity {
   id: string
   title: string
+  company_id?: string | null
 }
 
 export interface AgendaSelectCandidate {
@@ -67,6 +72,8 @@ export interface AgendaEventFormInput {
   contact_id: string | null
   opportunity_id: string | null
   candidate_id: string | null
+  collaborator_id: string | null
+  mission_id: string | null
   create_task: boolean
   task_title: string
   task_due_date: string

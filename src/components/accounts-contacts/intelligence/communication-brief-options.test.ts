@@ -29,7 +29,7 @@ describe("buildDefaultBrief", () => {
     expect(brief.who.sender.name).toBe("Guillaume")
     expect(brief.who.recipient.contactId).toBe("contact-decideur")
     expect(brief.who.recipient.displayName).toBe("Alice Martin")
-    expect(brief.who.recipient.persona).toBe("other")
+    expect(brief.who.recipient.persona).toBe("cto_cio")
     expect(brief.who.recipient.relation).toBe("warm")
   })
 

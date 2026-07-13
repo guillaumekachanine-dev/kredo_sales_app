@@ -31,12 +31,14 @@ type CalendarEventRow = {
   contact_id: string | null
   opportunity_id: string | null
   candidate_id: string | null
+  collaborator_id: string | null
   mission_id: string | null
   opportunity_candidate_id: string | null
   company: NamedRelation
   contact: ({ id: string; job_title: string | null; person: NamedRelation } | null)
   opportunity: NamedRelation
   candidate: ({ id: string; person: NamedRelation } | null)
+  collaborator: ({ id: string; person: NamedRelation } | null)
   organizer: { id: string; full_name: string | null } | null
   mission: { id: string; title: string; collaborator_id: string | null } | null
 }
@@ -113,8 +115,9 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
   const timebox = buildTimebox(row, query.timezone)
   const contactPerson = row.contact?.person?.full_name?.trim() || null
   const candidatePerson = row.candidate?.person?.full_name?.trim() || null
-  const personId = row.candidate?.id ?? row.contact?.id ?? null
-  const personLabel = candidatePerson ?? contactPerson
+  const collaboratorPerson = row.collaborator?.person?.full_name?.trim() || null
+  const personId = row.candidate?.id ?? row.collaborator?.id ?? row.contact?.id ?? null
+  const personLabel = candidatePerson ?? collaboratorPerson ?? contactPerson
 
   const relatedLinks: AgendaDeepLink[] = []
   if (row.company_id && row.company?.name) {
@@ -131,6 +134,11 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
   if (row.candidate_id) {
     relatedLinks.push(buildLink("recruitment", `/recruitment?candidateId=${row.candidate_id}`, candidatePerson ?? "Candidat", row.id))
   }
+  if (row.collaborator_id) {
+    relatedLinks.push(
+      buildLink("consultants", `/consultants?collaboratorId=${row.collaborator_id}`, collaboratorPerson ?? "Collaborateur", row.id),
+    )
+  }
 
   return {
     id: `scheduled_event:calendar_event:${row.id}`,
@@ -138,7 +146,11 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
     sourceType: "calendar_event",
     sourceId: row.id,
     workspaceId: row.workspace_id,
-    domain: row.candidate_id || row.opportunity_candidate_id ? "recruitment" : row.mission_id ? "missions" : "agenda",
+    domain: row.candidate_id || row.opportunity_candidate_id
+      ? "recruitment"
+      : row.mission_id || row.collaborator_id
+        ? "missions"
+        : "agenda",
     title: row.title,
     subtitle: row.company?.name ?? row.opportunity?.title ?? personLabel,
     description: row.description,
@@ -171,7 +183,7 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
     tags: readMetadataTags(metadata),
     metadata: {
       ...metadata,
-      relatedCollaboratorId: row.mission?.collaborator_id ?? readMetadataString(metadata, "collaborator_id"),
+      relatedCollaboratorId: row.collaborator_id ?? row.mission?.collaborator_id ?? readMetadataString(metadata, "collaborator_id"),
       opportunityCandidateId: row.opportunity_candidate_id,
     },
     eventType: row.event_type,
@@ -205,12 +217,14 @@ async function loadRowsFromSupabase(
       contact_id,
       opportunity_id,
       candidate_id,
+      collaborator_id,
       mission_id,
       opportunity_candidate_id,
       company:companies ( id, name ),
       contact:contacts ( id, job_title, person:persons ( id, full_name ) ),
       opportunity:opportunities ( id, title ),
       candidate:candidates ( id, person:persons ( id, full_name ) ),
+      collaborator:collaborators ( id, person:persons ( id, full_name ) ),
       organizer:profiles!calendar_events_organizer_id_fkey ( id, full_name ),
       mission:missions ( id, title, collaborator_id )
     `)

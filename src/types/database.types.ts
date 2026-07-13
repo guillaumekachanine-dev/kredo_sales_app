@@ -603,6 +603,7 @@ export type Database = {
         Row: {
           all_day: boolean
           candidate_id: string | null
+          collaborator_id: string | null
           company_id: string | null
           contact_id: string | null
           created_at: string
@@ -613,6 +614,7 @@ export type Database = {
           location: string | null
           meeting_url: string | null
           metadata: Json
+          mission_id: string | null
           opportunity_id: string | null
           organizer_id: string | null
           starts_at: string
@@ -624,6 +626,7 @@ export type Database = {
         Insert: {
           all_day?: boolean
           candidate_id?: string | null
+          collaborator_id?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -634,6 +637,7 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           metadata?: Json
+          mission_id?: string | null
           opportunity_id?: string | null
           organizer_id?: string | null
           starts_at: string
@@ -645,6 +649,7 @@ export type Database = {
         Update: {
           all_day?: boolean
           candidate_id?: string | null
+          collaborator_id?: string | null
           company_id?: string | null
           contact_id?: string | null
           created_at?: string
@@ -655,6 +660,7 @@ export type Database = {
           location?: string | null
           meeting_url?: string | null
           metadata?: Json
+          mission_id?: string | null
           opportunity_id?: string | null
           organizer_id?: string | null
           starts_at?: string
@@ -3847,6 +3853,7 @@ export type Database = {
         Args: {
           p_all_day?: boolean
           p_candidate_id?: string
+          p_collaborator_id?: string
           p_company_id?: string
           p_contact_id?: string
           p_create_task?: boolean
@@ -3856,6 +3863,7 @@ export type Database = {
           p_location?: string
           p_meeting_url?: string
           p_metadata?: Json
+          p_mission_id?: string
           p_opportunity_id?: string
           p_starts_at: string
           p_task_due_date?: string
