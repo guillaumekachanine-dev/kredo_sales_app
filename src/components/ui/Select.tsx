@@ -10,6 +10,8 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   invalid?: boolean
   fullWidth?: boolean
   hideIndicator?: boolean
+  dropdownWidthMode?: "trigger" | "dynamic"
+  maxDropdownWidth?: string
 }
 
 type SelectItem =
@@ -133,6 +135,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       required,
       "aria-label": ariaLabel,
       "aria-labelledby": ariaLabelledBy,
+      dropdownWidthMode = "trigger",
+      maxDropdownWidth,
       ...props
     },
     ref,
@@ -476,7 +480,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 inset: "auto",
                 top: `${coords.top}px`,
                 left: `${coords.left}px`,
-                width: `${coords.width}px`,
+                width: dropdownWidthMode === "dynamic" ? "max-content" : `${coords.width}px`,
+                minWidth: dropdownWidthMode === "dynamic" ? `${coords.width}px` : undefined,
+                maxWidth: dropdownWidthMode === "dynamic" ? (maxDropdownWidth || "350px") : undefined,
                 margin: 0,
                 backgroundColor: "var(--color-surface)",
                 color: "var(--color-body)",

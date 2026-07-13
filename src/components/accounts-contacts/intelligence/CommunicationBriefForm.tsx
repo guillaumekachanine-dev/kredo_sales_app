@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import type {
   CommunicationBrief,
@@ -32,7 +33,7 @@ import {
   RELATION_OPTIONS,
   SENDER_ROLE_OPTIONS,
   TONE_OPTIONS,
-  personaFromRelationshipRole,
+  personaFromJobTitle,
 } from "./communication-brief-options"
 import {
   ACTIVITY_CATEGORY_OPTIONS,
@@ -462,6 +463,53 @@ export function CommunicationBriefForm({
     return () => { cancelled = true }
   }, [companyId, model.showCandidate])
 
+  useEffect(() => {
+    const contactId = brief.who.recipient.contactId
+    if (!contactId) return
+
+    let cancelled = false
+    async function checkRelation(targetId: string) {
+      const supabase = createClient()
+      const [interactionsRes, eventsRes] = await Promise.all([
+        supabase.from("interactions").select("id", { count: "exact", head: true }).eq("contact_id", targetId),
+        supabase.from("calendar_events").select("id", { count: "exact", head: true }).eq("contact_id", targetId)
+      ])
+      if (cancelled) return
+      const count = (interactionsRes.count || 0) + (eventsRes.count || 0)
+      
+      if (count === 0) {
+        if (brief.who.recipient.relation !== "unknown") {
+          applyStructuralChange((current) => ({
+            ...current,
+            who: {
+              ...current.who,
+              recipient: {
+                ...current.who.recipient,
+                relation: "unknown"
+              }
+            }
+          }))
+        }
+      } else {
+        if (brief.who.recipient.relation === "unknown") {
+          applyStructuralChange((current) => ({
+            ...current,
+            who: {
+              ...current.who,
+              recipient: {
+                ...current.who.recipient,
+                relation: "established"
+              }
+            }
+          }))
+        }
+      }
+    }
+    
+    void checkRelation(contactId)
+    return () => { cancelled = true }
+  }, [brief.who.recipient.contactId])
+
   // ── Cascade centrale (handoff §10.4, command §4) — toute modification
   //    structurante repasse par le résolveur, applique les defaults registry,
   //    purge les références devenues incompatibles et signale l'ajustement. ──
@@ -520,7 +568,7 @@ export function CommunicationBriefForm({
           ...current.who.recipient,
           contactId: contact?.id,
           displayName: contact?.fullName,
-          ...(contact ? { persona: personaFromRelationshipRole(contact.relationshipRole) } : {}),
+          ...(contact ? { persona: personaFromJobTitle(contact.jobTitle, contact.relationshipRole) } : {}),
         },
       },
     }))
@@ -1155,7 +1203,14 @@ export function CommunicationBriefForm({
           {model.showContact ? (
             <ParameterRow label="Destinataire">{fieldRecipientControl}</ParameterRow>
           ) : null}
-          <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
+          <div className="space-y-1 mt-2.5">
+            <span className="block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+              À intégrer impérativement
+            </span>
+            <div className="w-full">
+              {fieldMustInclude}
+            </div>
+          </div>
         </div>
         <details className="group rounded-lg border border-border bg-canvas/30 p-3">
           <SectionHeading title="Plus d'options" />
@@ -1176,19 +1231,21 @@ export function CommunicationBriefForm({
                 Interlocuteur
               </h3>
               <ParameterRow label="Émetteur">{fieldSenderRole}</ParameterRow>
-              <ParameterRow
-                label={(
-                  <>
-                    Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
-                  </>
-                )}
-              >
-                {fieldPractice}
-              </ParameterRow>
-              <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
+              {(brief.who.sender.role === "practice_lead" || brief.who.sender.role === "consultant") && (
+                <ParameterRow
+                  label={(
+                    <>
+                      Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
+                    </>
+                  )}
+                >
+                  {fieldPractice}
+                </ParameterRow>
+              )}
+              <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
               {model.showPersonaRelation ? (
                 <>
-                  <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+                  <ParameterRow label="Pouvoir décisionnel">{fieldPersona}</ParameterRow>
                   <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
                 </>
               ) : null}
@@ -1204,7 +1261,14 @@ export function CommunicationBriefForm({
               {fieldInternalReferences ? (
                 <ParameterRow label="Références internes" multiline>{fieldInternalReferences}</ParameterRow>
               ) : null}
-              <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
+              <div className="space-y-1 mt-2">
+                <span className="block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  À ne pas mentionner
+                </span>
+                <div className="w-full">
+                  {fieldMustExclude}
+                </div>
+              </div>
               <ParameterRow label="Sources de contexte">{fieldAdvancedContextSources}</ParameterRow>
             </section>
           </div>
@@ -1239,15 +1303,17 @@ export function CommunicationBriefForm({
           <SectionHeading number="02" title="Qui" />
           <div className="space-y-2.5 pt-3">
             <ParameterRow label="Émetteur">{fieldSenderRole}</ParameterRow>
-            <ParameterRow
-              label={(
-                <>
-                  Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
-                </>
-              )}
-            >
-              {fieldPractice}
-            </ParameterRow>
+            {(brief.who.sender.role === "practice_lead" || brief.who.sender.role === "consultant") && (
+              <ParameterRow
+                label={(
+                  <>
+                    Practice <span className="text-[7px] tracking-[0.06em] text-muted/75">(optionnel)</span>
+                  </>
+                )}
+              >
+                {fieldPractice}
+              </ParameterRow>
+            )}
             {fieldConsultant ? (
               <ParameterRow label="Consultant">{fieldConsultant}</ParameterRow>
             ) : fieldInternalRecipient ? (
@@ -1266,10 +1332,10 @@ export function CommunicationBriefForm({
                 ) : null}
               </>
             )}
-            <ParameterRow label="Statut du destinataire">{fieldRecipientType}</ParameterRow>
+            <ParameterRow label="Statut du compte">{fieldRecipientType}</ParameterRow>
             {model.showPersonaRelation ? (
               <>
-                <ParameterRow label="Fonction">{fieldPersona}</ParameterRow>
+                <ParameterRow label="Pouvoir décisionnel">{fieldPersona}</ParameterRow>
                 <ParameterRow label="Relation actuelle">{fieldRelation}</ParameterRow>
               </>
             ) : null}
@@ -1288,12 +1354,26 @@ export function CommunicationBriefForm({
 
         <details open className="group">
           <SectionHeading number="04" title="Contexte" meta={contextMetaLabel} />
-          <div className="space-y-2.5 pt-3">
+          <div className="space-y-3 pt-3">
             {fieldInternalReferences ? (
               <ParameterRow label="Références internes" multiline>{fieldInternalReferences}</ParameterRow>
             ) : null}
-            <ParameterRow label="À intégrer impérativement" multiline>{fieldMustInclude}</ParameterRow>
-            <ParameterRow label="À ne pas mentionner" multiline>{fieldMustExclude}</ParameterRow>
+            <div className="space-y-1">
+              <span className="block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+                À intégrer impérativement
+              </span>
+              <div className="w-full">
+                {fieldMustInclude}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <span className="block text-[8.5px] font-semibold uppercase tracking-[0.1em] text-muted">
+                À ne pas mentionner
+              </span>
+              <div className="w-full">
+                {fieldMustExclude}
+              </div>
+            </div>
             <ParameterRow label="Paramètres avancés">{fieldAdvancedContextSources}</ParameterRow>
           </div>
         </details>

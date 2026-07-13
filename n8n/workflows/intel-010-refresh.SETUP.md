@@ -166,3 +166,67 @@ commencé).
 ## 9. Activation
 
 Une fois le test §8 validé de bout en bout : activer ce workflow (toggle en haut à droite).
+
+## 10. Lot 3 — Fiabilisation de la chaîne Contacts (2026-07-13)
+
+Le Lot 3 durcit la phase Contacts (`contactMode: "identify"/"confirm"`), livrée au Lot 1
+mais jamais réellement fiabilisée : le LLM proposait `confidenceScore`/`suggestedAction` de
+son propre chef, sans aucune visibilité sur le CRM (`existingPersonId`/`existingContactId`
+restaient toujours `null`).
+
+**Nouveau nœud `Load Workspace Contacts`** (httpRequest, inséré entre `Parse & Validate LLM
+Output` et `Build Proposals & Sources`) : charge `contacts?workspace_id=eq...&select=...,
+person:persons(...)` (tout le workspace, pas seulement le compte scanné — nécessaire pour
+distinguer "personne déjà connue ailleurs" de "personne totalement nouvelle", limité à 2000
+lignes). **Piège évité** : ce nœud est inséré *dans* la chaîne linéaire existante juste avant
+`Build Proposals & Sources`, ce qui change ce que `$input` représente pour ce dernier (sa
+propre réponse HTTP, pas le contexte attendu). Corrigé en faisant lire `Build Proposals &
+Sources` son `ctx` depuis `$('Parse & Validate LLM Output').item.json` explicitement (déjà le
+pattern utilisé par `Reconcile & Prepare Writes` vis-à-vis de `Merge Scan Result`) plutôt que
+`$input.first().json`.
+
+**Contrat LLM simplifié** (`Assemble Extraction Prompt` / `Parse & Validate LLM Output`) : le
+LLM ne fournit plus `confidence_score` ni `suggested_action` pour les contacts — un candidat
+sans `full_name` OU sans `evidence` non vide est désormais rejeté silencieusement (pas
+d'exception qui ferait échouer tout le scan pour un seul mauvais candidat).
+
+**Rapprochement CRM + score déterministe** (`Build Proposals & Sources`) : même ordre de
+priorité que le RPC d'import (email normalisé > LinkedIn normalisé > nom normalisé + compte).
+`existingPersonId`/`existingContactId`/`suggestedAction` sont désormais calculés par recoupement
+réel avec `Load Workspace Contacts`, jamais devinés par le LLM. Confiance plafonnée par type de
+source retenue (site officiel/registre 0.95, presse 0.80, aucune source forte 0.55) et par un
+plafond additionnel de 0.45 si `emailStatus === "inferred"` — un email deviné ne peut jamais
+faire passer un candidat en « haute confiance ». Tout candidat sans source (`sourceKeys.length
+=== 0`) ou sans preuve est éliminé avant callback. Déduplication interne par identité normalisée
+(email/LinkedIn/nom) : deux candidats LLM visant la même personne fusionnent, le plus confiant
+gagne. `candidateKey` dérive de champs **normalisés** (accents/casse/espaces/paramètres d'URL
+retirés) : il reste stable entre deux scans du même compte, contrairement à la V1 qui hashait
+les champs bruts.
+
+**Validation réelle** (pas seulement `node --check`) : harnais Node (`vm` + mocks `$`/`$input`)
+couvrant les 9 scénarios du §12 de la commande Lot 3 — candidat neuf, match cross-compte
+(`link`, `existingContactId=null`), match à ce compte sans nouveauté (`link`), match à ce
+compte avec donnée divergente (`update`), plafonds de confiance (site officiel vs email
+inféré), stabilité de `candidateKey` entre deux variantes de casse/espaces, dédoublonnage
+interne, rejet d'un candidat sans source, non-régression `contactMode: "none"` (Phase 1
+inchangée).
+
+**RPC `import_account_scan_contacts` durci en parallèle** (migrations
+`20260713090000_harden_import_account_scan_contacts.sql` +
+`20260713090100_fixup_import_account_scan_contacts_role_default.sql`) : verrou advisory
+transactionnel par identité (email/LinkedIn/nom) empêchant deux imports concurrents du même
+candidat de créer un doublon ; verrouillage `FOR UPDATE` des lignes `persons`/`contacts`
+trouvées ; distinction réelle `already_exists` (rien de nouveau) / `updated` (champ vide
+comblé, ou conflit avec `allowExistingUpdates=true`) / `conflicting` (valeur CRM non vide
+différente, `allowExistingUpdates=false` — la mise à jour est refusée et signalée, jamais
+silencieusement ignorée) ; normalisation LinkedIn (schéma/www/query/fragment/slash final) et
+nom (accents via `unaccent`) pour un rapprochement robuste aux variantes de collecte. Testé en
+direct sur des fixtures réelles (email/LinkedIn/nom+compte dupliqués, conflit bloqué par
+défaut puis débloqué explicitement, réimport idempotent) via `mcp__supabase__execute_sql`
+avec simulation de session authentifiée (`SET LOCAL request.jwt.claims`).
+
+**Non fait dans ce lot** : import/activation du workflow mis à jour sur le VPS n8n (le Lot 1
+n'était déjà qu'importé de mémoire — à réimporter avec le JSON à jour). Verrou anti-scan
+concurrent au niveau du run entier (toujours best-effort, cf. §"Risques restants" du Lot 1).
+Découverte automatique de site officiel toujours absente (fournisseur de recherche payant hors
+périmètre).

@@ -238,7 +238,7 @@ describe("importAccountScanContacts", () => {
       error: null,
     })
     mockRpc.mockResolvedValueOnce({
-      data: { created: 1, linked: 0, updated: 0, ignored: 0, conflict: 0, error: 0, items: [{ candidateKey: "c1", operation: "created", personId: "p1", contactId: "ct1", message: null }] },
+      data: { created: 1, linked: 0, updated: 0, already_exists: 0, ignored: 0, conflicting: 0, error: 0, items: [{ candidateKey: "c1", operation: "created", personId: "p1", contactId: "ct1", message: null }] },
       error: null,
     })
 
@@ -250,5 +250,31 @@ describe("importAccountScanContacts", () => {
       p_candidate_keys: ["c1"],
       p_allow_existing_updates: false,
     })
+  })
+
+  // Régression Lot 3 : le RPC renvoie désormais les clés already_exists/conflicting
+  // (plus de "conflict") — ce test fige le mapping snake_case -> camelCase.
+  it("maps already_exists and conflicting RPC keys to the camelCase bilan", async () => {
+    chain.single.mockResolvedValueOnce({ data: { workspace_id: "ws-1" }, error: null })
+    chain.maybeSingle.mockResolvedValueOnce({
+      data: { id: "result-1", workspace_id: "ws-1", company_id: "company-1", result_type: "account_scan", status: "succeeded" },
+      error: null,
+    })
+    mockRpc.mockResolvedValueOnce({
+      data: {
+        created: 0, linked: 0, updated: 0, already_exists: 2, ignored: 0, conflicting: 1, error: 0,
+        items: [
+          { candidateKey: "c1", operation: "already_exists", personId: "p1", contactId: "ct1", message: null },
+          { candidateKey: "c2", operation: "conflicting", personId: "p2", contactId: "ct2", message: "CRM values differ" },
+        ],
+      },
+      error: null,
+    })
+
+    const res = await importAccountScanContacts({ resultId: "result-1", companyId: "company-1", candidateKeys: ["c1", "c2"] })
+    expect(res.error).toBeNull()
+    expect(res.alreadyExists).toBe(2)
+    expect(res.conflicting).toBe(1)
+    expect(res.items.map((i) => i.operation)).toEqual(["already_exists", "conflicting"])
   })
 })

@@ -25,7 +25,7 @@ export type ApplyAccountScanProposalsResult = {
 
 export type ImportAccountScanContactsItem = {
   candidateKey: string
-  operation: "created" | "linked" | "updated" | "ignored" | "conflict" | "error"
+  operation: "created" | "linked" | "updated" | "already_exists" | "ignored" | "conflicting" | "error"
   personId: string | null
   contactId: string | null
   message: string | null
@@ -36,8 +36,9 @@ export type ImportAccountScanContactsResult = {
   created: number
   linked: number
   updated: number
+  alreadyExists: number
   ignored: number
-  conflict: number
+  conflicting: number
   errorCount: number
   items: ImportAccountScanContactsItem[]
 }
@@ -216,8 +217,9 @@ export async function importAccountScanContacts(input: {
     created: 0,
     linked: 0,
     updated: 0,
+    alreadyExists: 0,
     ignored: 0,
-    conflict: 0,
+    conflicting: 0,
     errorCount: 0,
     items: [],
   }
@@ -279,8 +281,9 @@ export async function importAccountScanContacts(input: {
     created?: number
     linked?: number
     updated?: number
+    already_exists?: number
     ignored?: number
-    conflict?: number
+    conflicting?: number
     error?: number
     items?: ImportAccountScanContactsItem[]
   }
@@ -293,8 +296,9 @@ export async function importAccountScanContacts(input: {
     created: raw.created ?? 0,
     linked: raw.linked ?? 0,
     updated: raw.updated ?? 0,
+    alreadyExists: raw.already_exists ?? 0,
     ignored: raw.ignored ?? 0,
-    conflict: raw.conflict ?? 0,
+    conflicting: raw.conflicting ?? 0,
     errorCount: raw.error ?? 0,
     items: raw.items ?? [],
   }

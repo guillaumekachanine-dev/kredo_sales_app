@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import type { AccountScanContactCandidate, AccountScanOutput } from "@/lib/n8n/types"
 import type { ImportAccountScanContactsResult } from "./account-scan-actions"
-import { candidateCanBePreselected, formatConfidencePercent, getConfidenceTone } from "./account-scan-utils"
+import { candidateCanBeSelected, formatConfidencePercent, getConfidenceTone } from "./account-scan-utils"
 
 interface AccountScanContactsMobileResultsProps {
   output: AccountScanOutput
@@ -40,7 +40,7 @@ function ContactCard({
   selected: boolean
   onToggle: () => void
 }) {
-  const selectable = candidateCanBePreselected(candidate)
+  const selectable = candidateCanBeSelected(candidate)
 
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
@@ -126,7 +126,7 @@ export function AccountScanContactsMobileResults({
         )}>
           {importResult.error
             ? importResult.error
-            : `Créé ${importResult.created} · Rattaché ${importResult.linked} · Mis à jour ${importResult.updated} · Ignoré ${importResult.ignored}`}
+            : `Créé ${importResult.created} · Rattaché ${importResult.linked} · Mis à jour ${importResult.updated} · Déjà à jour ${importResult.alreadyExists} · Conflit ${importResult.conflicting} · Ignoré ${importResult.ignored}`}
         </div>
       )}
 

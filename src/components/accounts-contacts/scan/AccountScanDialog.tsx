@@ -27,7 +27,8 @@ import {
   bilanCategoryFromOperation,
   buildAccountScanContactsInput,
   buildAccountScanInput,
-  candidateCanBePreselected,
+  candidateCanBeSelected,
+  candidateShouldBeDefaultSelected,
   isAutoApplyEligible,
   mergeProposalRows,
 } from "./account-scan-utils"
@@ -289,7 +290,7 @@ export function AccountScanDialog({
     if (runPhase === "contacts") {
       setContactsOutput(output)
       setContactsResultId(resultId)
-      setSelectedContactKeys(new Set(output.contactCandidates.filter(candidateCanBePreselected).map((candidate) => candidate.candidateKey)))
+      setSelectedContactKeys(new Set(output.contactCandidates.filter(candidateShouldBeDefaultSelected).map((candidate) => candidate.candidateKey)))
       setImportResult(null)
       setPhase("contacts_review")
       return
@@ -525,7 +526,7 @@ export function AccountScanDialog({
 
   function handleToggleContactKey(candidateKey: string) {
     const candidate = contactsOutput?.contactCandidates.find((item) => item.candidateKey === candidateKey)
-    if (candidate && !candidateCanBePreselected(candidate)) return
+    if (candidate && !candidateCanBeSelected(candidate)) return
     setSelectedContactKeys((prev) => {
       const next = new Set(prev)
       if (next.has(candidateKey)) next.delete(candidateKey)

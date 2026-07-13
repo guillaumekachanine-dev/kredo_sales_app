@@ -60,6 +60,8 @@ export function ContactSelector({
         onChange(contact)
       }}
       className={selectCls}
+      dropdownWidthMode="dynamic"
+      maxDropdownWidth="400px"
     >
       <option value="">Générique - Madame, Monsieur</option>
       {contacts.map((contact) => (

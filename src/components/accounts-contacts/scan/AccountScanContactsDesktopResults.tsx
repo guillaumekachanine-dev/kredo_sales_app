@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import type { AccountScanContactCandidate, AccountScanOutput } from "@/lib/n8n/types"
 import type { ImportAccountScanContactsResult } from "./account-scan-actions"
-import { SOURCE_TYPE_LABELS, candidateCanBePreselected, formatConfidencePercent, getConfidenceTone } from "./account-scan-utils"
+import { SOURCE_TYPE_LABELS, candidateCanBeSelected, formatConfidencePercent, getConfidenceTone } from "./account-scan-utils"
 
 interface AccountScanContactsDesktopResultsProps {
   output: AccountScanOutput
@@ -68,8 +68,9 @@ function ImportSummary({
         <StatusPill label={`Créé ${result.created}`} variant="success" />
         <StatusPill label={`Rattaché ${result.linked}`} variant="info" />
         <StatusPill label={`Mis à jour ${result.updated}`} variant="warning" />
+        <StatusPill label={`Déjà à jour ${result.alreadyExists}`} variant="neutral" />
         <StatusPill label={`Ignoré ${result.ignored}`} variant="neutral" />
-        <StatusPill label={`Conflit ${result.conflict}`} variant={result.conflict > 0 ? "danger" : "neutral"} />
+        <StatusPill label={`Conflit ${result.conflicting}`} variant={result.conflicting > 0 ? "danger" : "neutral"} />
         <StatusPill label={`Erreur ${result.errorCount}`} variant={result.errorCount > 0 ? "danger" : "neutral"} />
       </div>
       {onOpenContact && result.items.length > 0 && (
@@ -105,7 +106,7 @@ export function AccountScanContactsDesktopResults({
   onOpenContact,
 }: AccountScanContactsDesktopResultsProps) {
   const candidates = output.contactCandidates
-  const selectableKeys = candidates.filter(candidateCanBePreselected).map((candidate) => candidate.candidateKey)
+  const selectableKeys = candidates.filter(candidateCanBeSelected).map((candidate) => candidate.candidateKey)
   const allSelected = selectableKeys.length > 0 && selectableKeys.every((key) => selectedKeys.has(key))
 
   return (
@@ -161,7 +162,7 @@ export function AccountScanContactsDesktopResults({
           </thead>
           <tbody className="divide-y divide-border bg-surface">
             {candidates.map((candidate) => {
-              const selectable = candidateCanBePreselected(candidate)
+              const selectable = candidateCanBeSelected(candidate)
               return (
                 <tr key={candidate.candidateKey}>
                   <td className="px-3 py-2 align-top">

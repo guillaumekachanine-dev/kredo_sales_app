@@ -107,7 +107,7 @@ export const PERSONA_OPTIONS: { value: CommunicationPersona; label: string }[] =
 ]
 
 export const RELATION_OPTIONS: { value: CommunicationRelation; label: string }[] = [
-  { value: "unknown", label: "Inconnu" },
+  { value: "unknown", label: "Aucune" },
   { value: "cold", label: "Contact froid" },
   { value: "warm", label: "Contact tiède" },
   { value: "established", label: "Relation établie" },
@@ -289,6 +289,113 @@ export function personaFromRelationshipRole(relationshipRole: string | null): Co
   }
 }
 
+export function personaFromJobTitle(jobTitle: string | null, relationshipRole?: string | null): CommunicationPersona {
+  if (!jobTitle) {
+    return relationshipRole ? personaFromRelationshipRole(relationshipRole) : "other"
+  }
+
+  const title = jobTitle.toLowerCase().trim()
+
+  if (
+    title.includes("ceo") ||
+    title.includes("dg") ||
+    title.includes("directeur général") ||
+    title.includes("directrice général") ||
+    title.includes("président") ||
+    title.includes("founder") ||
+    title.includes("fondateur") ||
+    title.includes("fondatrice") ||
+    title.includes("chief executive")
+  ) {
+    return "ceo"
+  }
+
+  if (
+    title.includes("cto") ||
+    title.includes("cio") ||
+    title.includes("dsi") ||
+    title.includes("directeur des systèmes") ||
+    title.includes("directrice des systèmes") ||
+    title.includes("directeur technique") ||
+    title.includes("directrice technique") ||
+    title.includes("cdo") ||
+    title.includes("digital")
+  ) {
+    return "cto_cio"
+  }
+
+  if (
+    title.includes("ciso") ||
+    title.includes("rssi") ||
+    title.includes("sécurité") ||
+    title.includes("security")
+  ) {
+    return "ciso"
+  }
+
+  if (
+    title.includes("rh") ||
+    title.includes("hr") ||
+    title.includes("drh") ||
+    title.includes("recrut") ||
+    title.includes("recruitment") ||
+    title.includes("talent") ||
+    title.includes("ressources humaines")
+  ) {
+    return "hr_talent"
+  }
+
+  if (
+    title.includes("achat") ||
+    title.includes("purchas") ||
+    title.includes("procurement") ||
+    title.includes("acheteur") ||
+    title.includes("acheteuse")
+  ) {
+    return "purchasing"
+  }
+
+  if (
+    title.includes("architect") ||
+    title.includes("développeur") ||
+    title.includes("developer") ||
+    title.includes("dev") ||
+    title.includes("tech") ||
+    title.includes("ingénieur") ||
+    title.includes("engineer") ||
+    title.includes("expert")
+  ) {
+    return "technical"
+  }
+
+  if (
+    title.includes("directeur") ||
+    title.includes("directrice") ||
+    title.includes("head of") ||
+    title.includes("vp") ||
+    title.includes("vice president") ||
+    title.includes("manager") ||
+    title.includes("lead") ||
+    title.includes("responsable")
+  ) {
+    return "business_director"
+  }
+
+  if (
+    title.includes("projet") ||
+    title.includes("project") ||
+    title.includes("product") ||
+    title.includes("consultant") ||
+    title.includes("analyst") ||
+    title.includes("owner") ||
+    title.includes("coord")
+  ) {
+    return "operational"
+  }
+
+  return relationshipRole ? personaFromRelationshipRole(relationshipRole) : "other"
+}
+
 type DefaultBriefData = {
   // ADR-0013 — nul pour scope "collaborator"/"internal" (aucun compte pivot).
   company?: { lifecycleStatus: string; name: string } | null
@@ -333,7 +440,7 @@ export function buildDefaultBrief(
       recipient: {
         type: company ? recipientTypeFromLifecycle(company.lifecycleStatus) : "internal",
         persona: selectedContact
-          ? personaFromRelationshipRole(selectedContact.relationshipRole)
+          ? personaFromJobTitle(selectedContact.jobTitle, selectedContact.relationshipRole)
           : "other",
         relation: company ? relationFromLifecycle(company.lifecycleStatus) : "unknown",
         contactId: selectedContact?.id,

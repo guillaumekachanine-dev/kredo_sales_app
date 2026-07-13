@@ -958,30 +958,31 @@ export function CompanyIdentityDrawer({
                             key={contact.id}
                             onClick={() => onOpenContactIdentity?.(contact.id)}
                             className={cn(
-                              "flex items-center gap-2 rounded-lg border border-border/40 bg-canvas/20 px-3 py-2 text-[11px] text-body transition-colors",
+                              "relative flex items-center gap-2 overflow-hidden rounded-lg border border-border/40 bg-canvas/20 px-3 py-2 text-[11px] text-body transition-colors",
                               onOpenContactIdentity ? "cursor-pointer hover:border-primary/30 hover:bg-primary/[0.04]" : ""
                             )}
                           >
                             {accentColor ? (
                               <span
-                                className="h-8 w-1 rounded-full shrink-0"
+                                className="absolute bottom-[-1px] left-[-1px] top-[-1px] w-1 rounded-l-lg"
                                 style={{ backgroundColor: accentColor }}
                                 aria-hidden="true"
                               />
                             ) : null}
                             <Image
-                              src="/icons_set/cockpit_intelligence/compte_contact.png"
+                              src="/icons_set/comptes_liste_contacts.png"
                               alt=""
-                              width={18}
-                              height={18}
-                              className="h-[18px] w-[18px] shrink-0 object-contain"
+                              width={22}
+                              height={22}
+                              className="h-[22px] w-[22px] shrink-0 object-contain"
                             />
 
                             <span
-                              className="min-w-0 flex-1 truncate text-[11px] font-bold leading-none text-heading"
+                              className="min-w-0 flex-1 truncate text-[11px] leading-none text-heading"
                               title={lineParts.join(" - ")}
                             >
-                              {lineParts.join(" - ")}
+                              <span className="font-bold">{lineName}</span>
+                              {contact.job_title ? <span className="font-normal"> - {contact.job_title}</span> : null}
                             </span>
 
                             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -1010,7 +1011,7 @@ export function CompanyIdentityDrawer({
                                   title={person.primary_email}
                                 >
                                   <Image
-                                    src="/icons_set/contact_phone.png"
+                                    src="/icons_set/contact_mail.png"
                                     alt="Email"
                                     width={16}
                                     height={16}

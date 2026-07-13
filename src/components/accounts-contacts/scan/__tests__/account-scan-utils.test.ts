@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest"
 import type { AccountScanOutput, AccountScanSource } from "@/lib/n8n/types"
 import {
   AUTO_APPLY_CONFIDENCE_THRESHOLD,
+  AUTO_SELECT_CONFIDENCE_THRESHOLD,
   bilanCategoryFromOperation,
   buildAccountScanInput,
   buildAccountScanContactsInput,
-  candidateCanBePreselected,
+  candidateCanBeSelected,
+  candidateShouldBeDefaultSelected,
   clampMaxContacts,
   formatConfidencePercent,
   formatProposalValue,
@@ -142,7 +144,7 @@ describe("buildAccountScanContactsInput", () => {
   })
 })
 
-describe("candidateCanBePreselected", () => {
+describe("candidateCanBeSelected — checkbox enablement (weak rule)", () => {
   const base: AccountScanContactCandidate = {
     candidateKey: "c1",
     firstName: "A",
@@ -156,19 +158,73 @@ describe("candidateCanBePreselected", () => {
     phone: null,
     linkedinUrl: null,
     confidenceScore: 0.8,
-    sourceKeys: [],
+    sourceKeys: ["s1"],
     evidence: null,
     existingPersonId: null,
     existingContactId: null,
     suggestedAction: "create",
   }
 
+  it("allows manual selection of an inferred-email candidate (the RPC never imports the email itself)", () => {
+    expect(candidateCanBeSelected({ ...base, emailStatus: "inferred" })).toBe(true)
+  })
+
+  it("allows manual selection of a low-confidence candidate", () => {
+    expect(candidateCanBeSelected({ ...base, confidenceScore: 0.1 })).toBe(true)
+  })
+
+  it("allows manual selection of an update-action candidate", () => {
+    expect(candidateCanBeSelected({ ...base, suggestedAction: "update" })).toBe(true)
+  })
+
+  it("never allows selecting an ignored candidate", () => {
+    expect(candidateCanBeSelected({ ...base, suggestedAction: "ignore" })).toBe(false)
+  })
+})
+
+describe(`candidateShouldBeDefaultSelected — auto-preselection (§11 strict rule, threshold ${AUTO_SELECT_CONFIDENCE_THRESHOLD})`, () => {
+  const base: AccountScanContactCandidate = {
+    candidateKey: "c1",
+    firstName: "A",
+    lastName: "B",
+    fullName: "A B",
+    jobTitle: "DSI",
+    department: "IT",
+    relationshipRole: "DSI",
+    email: "a@example.com",
+    emailStatus: "public",
+    phone: null,
+    linkedinUrl: null,
+    confidenceScore: 0.8,
+    sourceKeys: ["s1"],
+    evidence: null,
+    existingPersonId: null,
+    existingContactId: null,
+    suggestedAction: "create",
+  }
+
+  it("preselects a high-confidence, sourced, create-action, non-inferred-email candidate", () => {
+    expect(candidateShouldBeDefaultSelected(base)).toBe(true)
+  })
+
   it("does not preselect inferred emails", () => {
-    expect(candidateCanBePreselected({ ...base, emailStatus: "inferred" })).toBe(false)
+    expect(candidateShouldBeDefaultSelected({ ...base, emailStatus: "inferred" })).toBe(false)
   })
 
   it("does not preselect ignored candidates", () => {
-    expect(candidateCanBePreselected({ ...base, suggestedAction: "ignore" })).toBe(false)
+    expect(candidateShouldBeDefaultSelected({ ...base, suggestedAction: "ignore" })).toBe(false)
+  })
+
+  it("does not preselect update candidates (a CRM value would be corrected, needs human eyes)", () => {
+    expect(candidateShouldBeDefaultSelected({ ...base, suggestedAction: "update" })).toBe(false)
+  })
+
+  it(`does not preselect below the ${AUTO_SELECT_CONFIDENCE_THRESHOLD} confidence threshold`, () => {
+    expect(candidateShouldBeDefaultSelected({ ...base, confidenceScore: 0.69 })).toBe(false)
+  })
+
+  it("does not preselect a candidate with zero sources", () => {
+    expect(candidateShouldBeDefaultSelected({ ...base, sourceKeys: [] })).toBe(false)
   })
 })
 

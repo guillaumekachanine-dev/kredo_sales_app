@@ -137,8 +137,35 @@ export function buildAccountScanContactsInput(
   }
 }
 
-export function candidateCanBePreselected(candidate: AccountScanContactCandidate): boolean {
-  return candidate.suggestedAction !== "ignore" && candidate.emailStatus !== "inferred"
+// ─── Sélection des candidats contacts (§11) ─────────────────────────────────
+// Deux règles distinctes, volontairement séparées :
+//  - candidateCanBeSelected : gouverne la case à cocher (peut-on sélectionner
+//    manuellement ce candidat ?). Large — exclut seulement "ignore" (le RPC le
+//    traiterait comme no-op de toute façon) et l'email inféré comme email
+//    n'est jamais importé par le RPC quel que soit ce champ, mais le contact
+//    lui-même peut toujours être créé sans email par une action explicite.
+//  - candidateShouldBeDefaultSelected : gouverne la présélection AUTOMATIQUE
+//    à l'ouverture des résultats. Stricte (§11 : confiance >= 0.70, email non
+//    inféré, action create/link uniquement — jamais update/ignore, au moins
+//    une source) — un candidat "update" implique une correction d'une valeur
+//    CRM existante, jamais pré-cochée sans lecture humaine du delta.
+// Avant ce correctif, une seule fonction faible gouvernait les deux usages :
+// la présélection par défaut cochait aussi des candidats "update" ou à faible
+// confiance, ce que §11 interdit explicitement.
+
+export function candidateCanBeSelected(candidate: AccountScanContactCandidate): boolean {
+  return candidate.suggestedAction !== "ignore"
+}
+
+export const AUTO_SELECT_CONFIDENCE_THRESHOLD = 0.7
+
+export function candidateShouldBeDefaultSelected(candidate: AccountScanContactCandidate): boolean {
+  return (
+    (candidate.suggestedAction === "create" || candidate.suggestedAction === "link") &&
+    candidate.emailStatus !== "inferred" &&
+    candidate.confidenceScore >= AUTO_SELECT_CONFIDENCE_THRESHOLD &&
+    candidate.sourceKeys.length > 0
+  )
 }
 
 export type AccountScanRunPhase = "information" | "contacts"
