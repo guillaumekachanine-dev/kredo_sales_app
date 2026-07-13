@@ -189,6 +189,35 @@ function wrappedLlmResponseFixture() {
   return response
 }
 
+function envelopedLlmResponseFixture() {
+  const response = llmResponseFixture()
+  const payload = JSON.parse(response.content[0].text)
+  response.content[0].text = JSON.stringify({
+    schema_version: 1,
+    executiveSummary: payload.executiveSummary,
+    diagnostic: {
+      correlations: payload.correlations,
+      priorities: payload.priorities,
+      watchList: payload.watchList,
+      strengths: payload.strengths,
+    },
+  })
+  return response
+}
+
+function groupedCorrelationsLlmResponseFixture() {
+  const response = llmResponseFixture()
+  const payload = JSON.parse(response.content[0].text)
+  const [correlation] = payload.correlations
+  response.content[0].text = JSON.stringify({
+    ...payload,
+    correlations: {
+      warning: [{ ...correlation, severity: undefined }],
+    },
+  })
+  return response
+}
+
 async function main() {
   check("workflow JSON valide et inactif par défaut", workflow.active === false)
   check("workflow principal contient quinze nœuds", workflow.nodes.length === 15, String(workflow.nodes.length))
@@ -248,6 +277,18 @@ async function main() {
   check(
     "parseur extrait le JSON d'une réponse LLM entourée",
     parsedWrapped[0].json.diagnostic.schema_version === 1,
+  )
+
+  const parsedEnvelope = await runCodeNode("Parse & Validate Output", registry, envelopedLlmResponseFixture())
+  check(
+    "parseur accepte une enveloppe diagnostic",
+    parsedEnvelope[0].json.diagnostic.correlations.length === 1,
+  )
+
+  const parsedGrouped = await runCodeNode("Parse & Validate Output", registry, groupedCorrelationsLlmResponseFixture())
+  check(
+    "parseur aplatit les corrélations groupées par sévérité",
+    parsedGrouped[0].json.diagnostic.correlations[0].severity === "warning",
   )
 
   registry["Parse & Validate Output"] = parsed[0].json
