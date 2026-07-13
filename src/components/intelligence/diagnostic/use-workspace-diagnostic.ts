@@ -40,7 +40,9 @@ export function useWorkspaceDiagnostic(initialSnapshot: WorkspaceDiagnosticSnaps
       }
       if (row.status !== "succeeded") return
 
-      const parsed = parseWorkspaceDiagnostic(row.content_json)
+      const parsed = parseWorkspaceDiagnostic(row.content_json, {
+        allowMonoAxisCorrelations: true,
+      })
       if (!parsed.ok) {
         setRunState("error")
         setError("Le diagnostic reçu ne respecte pas le contrat attendu.")

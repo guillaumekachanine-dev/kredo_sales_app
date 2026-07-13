@@ -16,6 +16,10 @@ export type WorkspaceDiagnosticParseResult =
   | { ok: true; value: WorkspaceDiagnostic }
   | { ok: false; error: string }
 
+interface WorkspaceDiagnosticParseOptions {
+  allowMonoAxisCorrelations?: boolean
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
@@ -66,10 +70,16 @@ function parseSeverity(value: unknown, path: string): WorkspaceDiagnosticSeverit
   return severity as WorkspaceDiagnosticSeverity
 }
 
-function parseCorrelation(value: unknown, path: string): WorkspaceDiagnosticCorrelation {
+function parseCorrelation(
+  value: unknown,
+  path: string,
+  options: WorkspaceDiagnosticParseOptions,
+): WorkspaceDiagnosticCorrelation {
   if (!isRecord(value)) throw new Error(`${path} doit être un objet`)
   const axes = parseAxes(value.axes, `${path}.axes`)
-  if (axes.length < 2) throw new Error(`${path}.axes doit croiser au moins deux axes`)
+  if (!options.allowMonoAxisCorrelations && axes.length < 2) {
+    throw new Error(`${path}.axes doit croiser au moins deux axes`)
+  }
   const evidenceRefs = requiredArray(value.evidenceRefs, `${path}.evidenceRefs`)
     .map((item, index) => parseEvidenceRef(item, `${path}.evidenceRefs[${index}]`))
   if (evidenceRefs.length === 0) throw new Error(`${path}.evidenceRefs ne peut pas être vide`)
@@ -121,7 +131,10 @@ function parseStrength(value: unknown, path: string): WorkspaceDiagnosticStrengt
   }
 }
 
-export function parseWorkspaceDiagnostic(input: unknown): WorkspaceDiagnosticParseResult {
+export function parseWorkspaceDiagnostic(
+  input: unknown,
+  options: WorkspaceDiagnosticParseOptions = {},
+): WorkspaceDiagnosticParseResult {
   try {
     if (!isRecord(input)) throw new Error("Le diagnostic doit être un objet")
     if (input.schema_version !== WORKSPACE_DIAGNOSTIC_SCHEMA_VERSION) {
@@ -129,7 +142,7 @@ export function parseWorkspaceDiagnostic(input: unknown): WorkspaceDiagnosticPar
     }
 
     const correlations = requiredArray(input.correlations, "correlations")
-      .map((item, index) => parseCorrelation(item, `correlations[${index}]`))
+      .map((item, index) => parseCorrelation(item, `correlations[${index}]`, options))
     const priorities = requiredArray(input.priorities, "priorities")
       .map((item, index) => parsePriority(item, `priorities[${index}]`))
     const watchList = requiredArray(input.watchList, "watchList")

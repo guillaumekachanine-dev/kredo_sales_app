@@ -51,6 +51,13 @@ describe("parseWorkspaceDiagnostic", () => {
     if (!result.ok) expect(result.error).toContain("au moins deux axes")
   })
 
+  it("accepte une pseudo-corrélation mono-axe en mode affichage", () => {
+    const input = validDiagnostic()
+    input.correlations[0].axes = ["commerce"]
+    const result = parseWorkspaceDiagnostic(input, { allowMonoAxisCorrelations: true })
+    expect(result.ok).toBe(true)
+  })
+
   it("rejette une priorité non reliée à une corrélation existante", () => {
     const input = validDiagnostic()
     input.priorities[0].relatedCorrelationIds = ["unknown"]

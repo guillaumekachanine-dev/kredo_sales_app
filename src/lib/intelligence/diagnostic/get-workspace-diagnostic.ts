@@ -41,7 +41,9 @@ export async function getWorkspaceDiagnostic(): Promise<WorkspaceDiagnosticSnaps
   if (!data) return null
 
   const row = data as DiagnosticDocumentRow
-  const parsed = parseWorkspaceDiagnostic(row.current_content_json)
+  const parsed = parseWorkspaceDiagnostic(row.current_content_json, {
+    allowMonoAxisCorrelations: true,
+  })
   if (!parsed.ok) {
     console.error("[workspace-diagnostic] invalid persisted content", {
       documentId: row.id,
