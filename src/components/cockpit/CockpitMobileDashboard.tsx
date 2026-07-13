@@ -27,6 +27,8 @@ import type { AgendaEvent } from "@/lib/agenda/agenda-types"
 import { IconStage, IconContact, IconRadar, IconContactCard } from "./mobile/icons"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { cn } from "@/lib/utils"
+import { DiagnosticMobileSection } from "@/components/intelligence/diagnostic/DiagnosticMobileSection"
+import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/workspace-diagnostic-types"
 
 import "./mobile/cockpit-mobile.css"
 
@@ -35,6 +37,7 @@ interface CockpitMobileDashboardProps {
   staffingData: StaffingDashboardData
   syntheseData: SyntheseData
   calendarEvents: AgendaEvent[]
+  diagnostic: WorkspaceDiagnosticSnapshot | null
 }
 
 export function CockpitMobileDashboard({
@@ -42,6 +45,7 @@ export function CockpitMobileDashboard({
   staffingData,
   syntheseData,
   calendarEvents,
+  diagnostic,
 }: CockpitMobileDashboardProps) {
   const router = useRouter()
 
@@ -251,6 +255,8 @@ export function CockpitMobileDashboard({
         }
       >
         <div className="screen-scroll-container">
+          <DiagnosticMobileSection initialSnapshot={diagnostic} />
+
           {/* Section 1: Agenda */}
           <div className="-mx-4 mb-0">
             <CockpitAgendaStrip

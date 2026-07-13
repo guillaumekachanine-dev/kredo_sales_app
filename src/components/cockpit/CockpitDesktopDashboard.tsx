@@ -12,6 +12,7 @@ import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { CockpitFlowCanvas } from "@/components/cockpit/CockpitFlowCanvas"
 import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
 import { CockpitPitchMailDrawer } from "./CockpitPitchMailDrawer"
+import { DiagnosticSection } from "@/components/intelligence/diagnostic/DiagnosticSection"
 import "./cockpit-desktop.css"
 
 import type {
@@ -21,6 +22,7 @@ import type {
   CockpitRenewalItem,
   CockpitStatus,
 } from "@/lib/cockpit/cockpit-data"
+import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/workspace-diagnostic-types"
 
 function deltaTone(status: CockpitStatus): "positive" | "negative" | "neutral" {
   if (status === "success") return "positive"
@@ -559,8 +561,10 @@ function RailSummary({
 
 export function CockpitDesktopDashboard({
   data,
+  diagnostic,
 }: {
   data: CockpitDashboardData
+  diagnostic: WorkspaceDiagnosticSnapshot | null
 }) {
   const [isSimulationOpen, setIsSimulationOpen] = useState(false)
   const [isPitchMailOpen, setIsPitchMailOpen] = useState(false)
@@ -600,6 +604,7 @@ export function CockpitDesktopDashboard({
             />
           </div>
         }
+        toolbar={<DiagnosticSection initialSnapshot={diagnostic} />}
         kpis={
           <div className="grid gap-4 xl:grid-cols-4">
             {data.kpis.map((kpi) => (

@@ -14,6 +14,7 @@ export type N8nWorkflowId =
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
   | "intel-032-strategy"            // ADR-0012 Lot 5 : stratégie commerciale (étape 4 chaîne de décision)
   | "intel-033-account-watch-refresh" // Veille spécifique compte : rafraîchissement manuel
+  | "intel-040-workspace-diagnostic" // ADR-0014 Lot 5 : diagnostic macro du centre de profit
   // Rapports (REPORT-001)
   | "report-account-summary"        // REPORT-001 Lot 1 : fiche de synthèse compte
   | "report-activity-commercial"    // REPORT-001 Lot 2 : rapport d'activité commerciale

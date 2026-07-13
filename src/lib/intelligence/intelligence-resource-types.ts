@@ -28,6 +28,7 @@ export const REPORT_RESULT_TYPES = [
   "activity_commercial",  // REPORT-001 Lot 2
   "activity_recruitment", // REPORT-001 Lot 2
   "weekly_manager",       // ADR-0010
+  "workspace_diagnostic", // ADR-0014 Lot 5
 ] as const
 // Note : "report" (générique) retiré — jamais produit en base et sans aucune
 // autre référence dans le code (contrairement à "roadmap", qui reste un

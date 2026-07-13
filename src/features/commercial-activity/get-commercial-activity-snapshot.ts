@@ -119,7 +119,13 @@ function getBucketKey(value: string, grain: CommercialActivitySnapshot["range"][
 function labelBucket(key: string, grain: CommercialActivitySnapshot["range"]["grain"]) {
   const date = new Date(`${key}T12:00:00Z`)
   if (grain === "day") return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(date)
-  if (grain === "week") return `S. ${getWeekStartDateKey(key).slice(8)}`
+  if (grain === "week") {
+    const thursday = new Date(date)
+    thursday.setUTCDate(thursday.getUTCDate() + 3)
+    const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4))
+    const week = 1 + Math.round((thursday.getTime() - firstThursday.getTime()) / (7 * MS_DAY))
+    return `S. ${week}`
+  }
   return new Intl.DateTimeFormat("fr-FR", { month: "short", year: "numeric" }).format(date)
 }
 
@@ -172,8 +178,8 @@ export async function getCommercialActivitySnapshot(filters: CommercialActivityF
   const [eventsResult, interactionsResult, opportunitiesResult, candidatesResult, milestonesResult] = await Promise.all([
     supabase.from("calendar_events").select("id,status,event_type,starts_at,ends_at,metadata,company_id,contact_id,opportunity_id,candidate_id,opportunity_candidate_id,mission_id").eq("workspace_id", workspaceId).gte("starts_at", queryFrom).lt("starts_at", queryTo),
     supabase.from("interactions").select("id,calendar_event_id,company_id,contact_id,opportunity_id,type,occurred_at").eq("workspace_id", workspaceId).gte("occurred_at", queryFrom).lt("occurred_at", queryTo),
-    supabase.from("opportunities").select("id,company_id,stage,created_at,opened_at,closed_at,estimated_gain,acv").eq("workspace_id", workspaceId).or(`created_at.gte.${currentFrom.toISOString()},closed_at.gte.${currentFrom.toISOString()}`).lt("created_at", queryTo),
-    supabase.from("opportunity_candidates").select("opportunity_id,sent_to_client_at,status,status_changed_at").eq("workspace_id", workspaceId).or(`sent_to_client_at.gte.${currentFrom.toISOString()},status_changed_at.gte.${currentFrom.toISOString()}`),
+    supabase.from("opportunities").select("id,company_id,stage,created_at,opened_at,closed_at,estimated_gain,acv").eq("workspace_id", workspaceId).or(`and(created_at.gte.${currentFrom.toISOString()},created_at.lt.${queryTo}),and(closed_at.gte.${currentFrom.toISOString()},closed_at.lt.${queryTo})`),
+    supabase.from("opportunity_candidates").select("opportunity_id,sent_to_client_at,status,status_changed_at").eq("workspace_id", workspaceId).or(`and(sent_to_client_at.gte.${currentFrom.toISOString()},sent_to_client_at.lt.${queryTo}),and(status_changed_at.gte.${currentFrom.toISOString()},status_changed_at.lt.${queryTo})`),
     supabase.from("candidate_hiring_milestones").select("step,result,completed_at").eq("workspace_id", workspaceId).gte("completed_at", currentFrom.toISOString()).lt("completed_at", currentTo.toISOString()),
   ])
 
@@ -266,7 +272,7 @@ export async function getCommercialActivitySnapshot(filters: CommercialActivityF
     const period = isWithin(interaction.occurred_at, currentFrom, currentTo) ? "current" : "previous"
     if (!interaction.company_id && !interaction.contact_id && !interaction.opportunity_id && period === "current") interactionsWithoutRelation += 1
     // An interaction with a calendar_event_id is never added to activity volume or duration.
-    if (!interaction.calendar_event_id && interaction.company_id) activityByPeriod[period].accounts.add(interaction.company_id)
+    if (interaction.company_id) activityByPeriod[period].accounts.add(interaction.company_id)
     if (period === "current" && interaction.company_id && interaction.contact_id) {
       const company = companies.get(interaction.company_id)
       if (company) {

@@ -33,6 +33,7 @@ describe("intelligence resource classification", () => {
     expect(classifyIntelligenceResultType("activity_commercial")).toBe("reports")
     expect(classifyIntelligenceResultType("activity_recruitment")).toBe("reports")
     expect(classifyIntelligenceResultType("weekly_manager")).toBe("reports")
+    expect(classifyIntelligenceResultType("workspace_diagnostic")).toBe("reports")
   })
 
   it("keeps legacy pitch/pitch_mail aliases classified (pré-rename intel-020-pitch-mail)", () => {

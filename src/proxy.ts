@@ -43,12 +43,14 @@ export async function proxy(request: NextRequest) {
   const { data: claimsData } = await supabase.auth.getClaims()
   const user = claimsData?.claims ?? null
 
-  // Routes publiques : login + callback + callback n8n (appelé par n8n, pas de
-  // session Supabase — sécurisé par sa propre vérification HMAC, pas le middleware)
+  // Routes publiques : login + callbacks machine-to-machine. Ces endpoints
+  // n'ont pas de session Supabase et assurent leur propre vérification HMAC.
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth/callback") ||
-    pathname.startsWith("/api/n8n/callback")
+    pathname.startsWith("/api/n8n/callback") ||
+    pathname === "/api/reports/weekly-manager/cron-trigger" ||
+    pathname === "/api/reports/workspace-diagnostic/cron-trigger"
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

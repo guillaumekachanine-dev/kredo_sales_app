@@ -70,6 +70,7 @@ const RESULT_DOCUMENT_TYPE_BY_RESULT_TYPE: Record<string, IntelligenceDocumentTy
   activity_commercial: "activity_commercial",
   activity_recruitment: "activity_recruitment",
   weekly_manager: "weekly_manager",
+  workspace_diagnostic: "workspace_diagnostic",
 } satisfies Record<string, IntelligenceDocumentType>
 
 const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
@@ -89,6 +90,7 @@ const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
   staffing_capacity: "Staffing & capacite",
   delivery_profitability: "Delivery & rentabilite",
   account_portfolio: "Revue de portefeuille comptes",
+  workspace_diagnostic: "Diagnostic du centre de profit",
 } satisfies Record<IntelligenceDocumentType, string>
 
 const LENGTH_LABELS = {

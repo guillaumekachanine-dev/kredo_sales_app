@@ -1,0 +1,141 @@
+{
+  "name": "ADR-0014 Lot 5 — Diagnostic macro hebdomadaire (cron)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "cron-1",
+      "name": "Schedule — Lundi 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { rawBody: JSON.stringify({}) } }];"
+      },
+      "id": "cron-2",
+      "name": "Build Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "cron-3",
+      "name": "Sign Request",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kredo-green.vercel.app/api/reports/workspace-diagnostic/cron-trigger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "cron-4",
+      "name": "Call Cron Trigger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 10000
+    }
+  ],
+  "connections": {
+    "Schedule — Lundi 07:00": {
+      "main": [
+        [
+          {
+            "node": "Build Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Body": {
+      "main": [
+        [
+          {
+            "node": "Sign Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Request": {
+      "main": [
+        [
+          {
+            "node": "Call Cron Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "versionId": "019f5d01-ebaa-7551-8aca-02e5a74ed43b",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -26,6 +26,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   staffing_capacity: "Staffing & capacité",
   delivery_profitability: "Delivery & rentabilité",
   account_portfolio: "Revue de portefeuille comptes",
+  workspace_diagnostic: "Diagnostic du centre de profit",
 }
 
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {

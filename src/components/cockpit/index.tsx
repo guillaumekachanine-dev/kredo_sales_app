@@ -5,16 +5,18 @@ import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { getAgendaEvents } from "@/lib/agenda/agenda-actions"
 import { CockpitDesktopDashboard } from "./CockpitDesktopDashboard"
 import { CockpitMobileDashboard } from "./CockpitMobileDashboard"
+import { getWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/get-workspace-diagnostic"
 
 // Server Component: sniffs device and loads dataset in parallel (ADR-0006)
 export async function SyntheseCockpitSection() {
-  const [device, data] = await Promise.all([
+  const [device, data, diagnostic] = await Promise.all([
     getDashboardDevice(),
     getCockpitDashboardData(),
+    getWorkspaceDiagnostic(),
   ])
 
   if (device === "desktop") {
-    return <CockpitDesktopDashboard data={data} />
+    return <CockpitDesktopDashboard data={data} diagnostic={diagnostic} />
   }
 
   // Mobile layout loads extra contextual data
@@ -40,6 +42,7 @@ export async function SyntheseCockpitSection() {
       staffingData={staffingData}
       syntheseData={syntheseData}
       calendarEvents={calendarEvents}
+      diagnostic={diagnostic}
     />
   )
 }

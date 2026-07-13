@@ -66,6 +66,7 @@ describe("communication result document mapping", () => {
     expect(mapResultTypeToDocumentType("commercial_pitch")).toBe("commercial_pitch")
     expect(mapResultTypeToDocumentType("prise_de_parole")).toBe("prise_de_parole")
     expect(mapResultTypeToDocumentType("pitch")).toBe("commercial_pitch")
+    expect(mapResultTypeToDocumentType("workspace_diagnostic")).toBe("workspace_diagnostic")
     expect(mapResultTypeToDocumentType("unknown")).toBeNull()
   })
 })

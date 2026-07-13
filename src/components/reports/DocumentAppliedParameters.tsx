@@ -50,6 +50,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   staffing_capacity: "Staffing & capacité",
   delivery_profitability: "Delivery & rentabilité",
   account_portfolio: "Revue de portefeuille comptes",
+  workspace_diagnostic: "Diagnostic du centre de profit",
 }
 
 const AUDIENCE_LABELS: Record<string, string> = {
