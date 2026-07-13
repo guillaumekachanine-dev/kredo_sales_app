@@ -16,7 +16,11 @@ const TABS: { id: AutomationsTabId; label: string }[] = [
 
 export function AutomationsTabs({ activeTab, onChange }: AutomationsTabsProps) {
   return (
-    <div className="mb-4 flex border-b border-border" role="tablist" aria-label="Sections Automatisations">
+    <div 
+      className="inline-flex items-center gap-1.5 bg-surface-raised border border-border/50 p-1.5 rounded-full" 
+      role="tablist" 
+      aria-label="Sections Automatisations"
+    >
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id
         return (
@@ -27,13 +31,13 @@ export function AutomationsTabs({ activeTab, onChange }: AutomationsTabsProps) {
             aria-selected={isActive}
             onClick={() => onChange(tab.id)}
             className={cn(
-              "relative cursor-pointer px-6 py-3 text-sm font-semibold transition-colors duration-200",
-              isActive ? "text-primary" : "text-muted hover:text-body"
+              "cursor-pointer px-5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ease-out",
+              isActive 
+                ? "bg-surface text-heading shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.03)] border border-border/30 font-bold" 
+                : "text-muted hover:text-body border border-transparent"
             )}
-            style={{ marginBottom: "-1px" }}
           >
             {tab.label}
-            {isActive ? <div className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-full bg-primary" /> : null}
           </button>
         )
       })}

@@ -65,16 +65,41 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
                 y1={y}
                 y2={y}
                 stroke="var(--color-border)"
-                strokeOpacity={i === 0 ? 0.9 : 0.3}
-                strokeWidth={i === 0 ? 1.5 : 1}
-                strokeDasharray={i === 0 ? undefined : "4 6"}
+                strokeOpacity={i === 0 ? 0.7 : 0.12}
+                strokeWidth={i === 0 ? 1 : 0.75}
+                strokeDasharray={i === 0 ? undefined : "3 4"}
               />
-              <text x={mL - 6} y={y + 3} textAnchor="end" fill="var(--color-muted)" fontSize={9} fontWeight={600}>
+              <text 
+                x={mL - 8} 
+                y={y + 3} 
+                textAnchor="end" 
+                fill="var(--color-muted)" 
+                fontSize={8} 
+                className="font-mono font-medium"
+              >
                 {formatCostEstimate(tick)}
               </text>
             </g>
           )
         })}
+
+        {/* Vertical tracking line for selected bar */}
+        {selected ? (() => {
+          const idx = selectedIdx ?? 0
+          const gx = mL + idx * groupW + groupW / 2
+          return (
+            <line
+              x1={gx}
+              x2={gx}
+              y1={mT}
+              y2={baseline}
+              stroke="var(--color-primary)"
+              strokeOpacity={0.25}
+              strokeWidth={1}
+              strokeDasharray="2 3"
+            />
+          )
+        })() : null}
 
         {points.map((point, i) => {
           const gx = mL + i * groupW + (groupW - barW) / 2
@@ -83,7 +108,11 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
           const isSelected = selectedIdx === i
 
           return (
-            <g key={point.day} onClick={() => setSelectedIdx(isSelected ? null : i)} style={{ cursor: "pointer" }}>
+            <g 
+              key={point.day} 
+              onClick={() => setSelectedIdx(isSelected ? null : i)} 
+              className="cursor-pointer group"
+            >
               <rect x={mL + i * groupW} y={mT} width={groupW} height={plotH} fill="transparent" />
               {isGap ? (
                 <rect
@@ -92,8 +121,9 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
                   width={barW}
                   height={6}
                   fill="var(--color-muted)"
-                  opacity={0.35}
-                  rx={1.5}
+                  opacity={isSelected ? 0.6 : 0.2}
+                  className="transition-all duration-200"
+                  rx={2}
                 />
               ) : (
                 <rect
@@ -102,8 +132,9 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
                   width={barW}
                   height={height}
                   fill="var(--color-dataviz-1)"
-                  opacity={isSelected ? 1 : 0.8}
-                  rx={1.5}
+                  opacity={isSelected ? 1 : 0.6}
+                  className="transition-all duration-200 group-hover:opacity-90"
+                  rx={2}
                 />
               )}
               {i % labelEvery === 0 ? (
@@ -112,8 +143,8 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
                   y={H - 8}
                   textAnchor="middle"
                   fill={isSelected ? "var(--color-heading)" : "var(--color-muted)"}
-                  fontSize={9}
-                  fontWeight={isSelected ? 700 : 600}
+                  fontSize={8}
+                  className={isSelected ? "font-mono font-bold" : "font-mono font-medium"}
                 >
                   {formatDayLabel(point.day)}
                 </text>
@@ -135,23 +166,25 @@ export function CostTimelineChart({ points }: { points: CostTimelinePoint[] }) {
                   y={tooltipY}
                   width={TW}
                   height={TH}
-                  rx={6}
+                  rx={8}
                   fill="var(--color-surface)"
                   stroke="var(--color-border)"
+                  strokeWidth={1}
+                  className="shadow-md"
                 />
-                <text x={tooltipX + 10} y={tooltipY + 18} fill="var(--color-heading)" fontSize={10} fontWeight={700}>
+                <text x={tooltipX + 12} y={tooltipY + 18} fill="var(--color-heading)" fontSize={10} className="font-bold">
                   {formatDayFull(selected.day)}
                 </text>
-                <text x={tooltipX + 10} y={tooltipY + 36} fill="var(--color-muted)" fontSize={9} fontWeight={600}>
+                <text x={tooltipX + 12} y={tooltipY + 34} fill="var(--color-muted)" fontSize={8} className="font-mono">
                   {selected.runs} run{selected.runs > 1 ? "s" : ""}
                 </text>
                 <text
-                  x={tooltipX + TW - 10}
-                  y={tooltipY + 36}
+                  x={tooltipX + TW - 12}
+                  y={tooltipY + 35}
                   textAnchor="end"
                   fill="var(--color-heading)"
                   fontSize={10}
-                  fontWeight={700}
+                  className="font-mono font-bold"
                 >
                   {selected.costEstimate !== null ? formatCostEstimate(selected.costEstimate) : "non mesuré"}
                 </text>

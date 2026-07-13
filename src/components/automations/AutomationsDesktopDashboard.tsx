@@ -1,11 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
-import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { AlertBlock } from "@/components/ui/AlertBlock"
-import { StatusPill } from "@/components/ui/StatusPill"
 import {
   DataTable,
   sortDataTableRows,
@@ -30,41 +28,105 @@ import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
 import { CostTimelineChart } from "./CostTimelineChart"
 import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
 
+interface TechKpiCardProps {
+  label: string
+  value: string | number
+  subtext?: string
+  statusDot?: "success" | "warning" | "danger" | "none"
+  statusDotPulse?: boolean
+}
+
+function TechKpiCard({ label, value, subtext, statusDot = "none", statusDotPulse = false }: TechKpiCardProps) {
+  const dotColorClass = {
+    success: "bg-success",
+    warning: "bg-warning",
+    danger: "bg-danger",
+    none: "",
+  }[statusDot]
+
+  return (
+    <SurfaceCard padding="compact" className="border-border/50 bg-surface flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center justify-between gap-2 border-b border-border/20 pb-2 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</span>
+          {statusDot !== "none" && (
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              {statusDotPulse && (
+                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", dotColorClass)} />
+              )}
+              <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", dotColorClass)} />
+            </span>
+          )}
+        </div>
+        <p className="font-mono text-2xl font-extrabold text-heading tracking-tight mt-1">{value}</p>
+      </div>
+      {subtext && (
+        <p className="text-[10px] text-muted/70 mt-2 border-t border-border/20 pt-1.5 leading-normal">
+          {subtext}
+        </p>
+      )}
+    </SurfaceCard>
+  )
+}
+
 function WorkflowHealthCard({ workflow }: { workflow: WorkflowHealthRow }) {
   const severity = workflowSeverity(workflow)
   const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
 
+  const dotColorClass = severity === "critical" ? "bg-danger" : severity === "attention" ? "bg-warning" : "bg-success"
+
   return (
     <SurfaceCard
       accent={severity === "critical" ? "danger" : severity === "attention" ? "warning" : "none"}
-      padding="default"
+      padding="compact"
+      className="border-border/60"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-heading">{workflow.label}</p>
-          <p className="mt-0.5 font-mono text-xs text-muted">{workflow.runType}</p>
+      <div className="flex items-start justify-between gap-3 border-b border-border/30 pb-2.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className={cn("inline-flex size-2 rounded-full shrink-0", dotColorClass, severity !== "healthy" && "animate-pulse")} />
+            <p className="truncate text-xs font-bold text-heading">{workflow.label}</p>
+          </div>
+          <p className="mt-0.5 font-mono text-[9px] text-muted tracking-tight truncate">{workflow.runType}</p>
         </div>
-        <StatusPill label={severityLabel(severity)} variant={severityStatusVariant(severity)} />
+        <span className={cn(
+          "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+          severity === "critical" ? "bg-danger/10 text-danger" : severity === "attention" ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
+        )}>
+          {severityLabel(severity)}
+        </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+      <div className="mt-3 grid grid-cols-3 gap-2 border-b border-border/30 pb-3 text-left">
         <div>
-          <p className="text-lg font-bold text-heading">
+          <p className="text-[9px] uppercase font-bold tracking-wider text-muted">Succès 30j</p>
+          <p className="mt-0.5 font-mono text-sm font-extrabold text-heading">
             {workflow.successRatePct30d !== null ? `${workflow.successRatePct30d}%` : "—"}
           </p>
-          <p className="text-[11px] text-muted">Succès 30j</p>
         </div>
-        <div>
-          <p className="text-lg font-bold text-heading">{workflow.runs30d}</p>
-          <p className="text-[11px] text-muted">Runs 30j</p>
+        <div className="border-x border-border/30 px-2.5">
+          <p className="text-[9px] uppercase font-bold tracking-wider text-muted">Runs 30j</p>
+          <p className="mt-0.5 font-mono text-sm font-extrabold text-heading">{workflow.runs30d}</p>
         </div>
-        <div>
-          <p className="text-lg font-bold text-heading">{formatDurationMs(workflow.p50DurationMs)}</p>
-          <p className="text-[11px] text-muted">p50</p>
+        <div className="pl-1">
+          <p className="text-[9px] uppercase font-bold tracking-wider text-muted">p50 Latence</p>
+          <p className="mt-0.5 font-mono text-sm font-extrabold text-heading">{formatDurationMs(workflow.p50DurationMs)}</p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted">
+      {workflow.successRatePct30d !== null && (
+        <div className="h-1 w-full bg-canvas rounded-full overflow-hidden mt-3">
+          <div 
+            className={cn(
+              "h-full rounded-full transition-all duration-300",
+              severity === "critical" ? "bg-danger" : severity === "attention" ? "bg-warning" : "bg-success"
+            )}
+            style={{ width: `${workflow.successRatePct30d}%` }}
+          />
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[10px] text-muted/80">
         <span>Dernier run : {formatRelativeTime(workflow.lastRunAt)}</span>
         <span>
           {workflow.hasTokensGap
@@ -76,9 +138,12 @@ function WorkflowHealthCard({ workflow }: { workflow: WorkflowHealthRow }) {
       </div>
 
       {stuckTotal > 0 ? (
-        <p className="mt-2 text-xs font-medium text-danger">
-          {stuckTotal} run{stuckTotal > 1 ? "s" : ""} actuellement bloqué{stuckTotal > 1 ? "s" : ""}
-        </p>
+        <div className="mt-2.5 rounded bg-danger/[0.04] border border-danger/10 px-2 py-1 flex items-center gap-1.5">
+          <span className="size-1.5 rounded-full bg-danger animate-pulse shrink-0" />
+          <p className="text-[10px] font-semibold text-danger">
+            {stuckTotal} run{stuckTotal > 1 ? "s" : ""} bloqué{stuckTotal > 1 ? "s" : ""}
+          </p>
+        </div>
       ) : null}
     </SurfaceCard>
   )
@@ -88,21 +153,23 @@ function WorkflowCostBar({ workflow, maxCost }: { workflow: WorkflowHealthRow; m
   const widthPct = workflow.totalCost30d !== null && maxCost > 0 ? Math.max(2, (workflow.totalCost30d / maxCost) * 100) : 0
 
   return (
-    <div className="flex items-center gap-3">
-      <p className="w-48 shrink-0 truncate text-xs text-body">{workflow.label}</p>
-      <div className="h-6 flex-1 overflow-hidden rounded-[var(--radius-small)] bg-canvas">
+    <div className="flex flex-col gap-1 py-2 border-b border-border/20 last:border-0 last:pb-0 first:pt-0">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="font-semibold text-heading truncate">{workflow.label}</span>
+        <span className="font-mono font-bold text-heading shrink-0">
+          {workflow.hasTokensGap ? "—" : formatCostEstimate(workflow.totalCost30d)}
+        </span>
+      </div>
+      <div className="h-1.5 w-full bg-canvas rounded-full overflow-hidden mt-0.5">
         {workflow.hasTokensGap ? (
-          <div className="flex h-full items-center px-2 text-[10px] text-muted">Coût non mesuré</div>
+          <div className="h-full bg-muted/20 rounded-full" style={{ width: "100%" }} />
         ) : (
           <div
-            className="flex h-full items-center justify-end bg-[var(--color-dataviz-1)] px-2 opacity-80"
+            className="h-full bg-primary/80 rounded-full transition-all duration-300"
             style={{ width: `${widthPct}%` }}
           />
         )}
       </div>
-      <p className="w-20 shrink-0 text-right text-xs font-medium text-heading">
-        {workflow.hasTokensGap ? "—" : formatCostEstimate(workflow.totalCost30d)}
-      </p>
     </div>
   )
 }
@@ -115,8 +182,6 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 
   // Realtime : les mises à jour de statut d'un run déjà présent dans le journal
-  // (queued→running→succeeded/failed) sont reflétées en place — pas de refetch
-  // complet de la page à chaque transition.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -164,28 +229,56 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
     {
       id: "workflow",
       header: "Workflow",
-      cell: (row) => <span className="font-medium text-heading">{row.runTypeLabel}</span>,
+      cell: (row) => <span className="font-semibold text-heading text-xs">{row.runTypeLabel}</span>,
       sortable: true,
       accessor: (row) => row.runTypeLabel,
     },
     {
       id: "status",
       header: "Statut",
-      cell: (row) => <StatusPill label={runStatusLabel(row.status)} variant={runStatusVariant(row.status)} />,
+      cell: (row) => {
+        const status = row.status
+        const variant = runStatusVariant(status)
+        const label = runStatusLabel(status)
+        
+        const dotColorMap: Record<string, string> = {
+          success: "bg-success",
+          danger: "bg-danger animate-pulse",
+          inProgress: "bg-primary animate-pulse",
+          warning: "bg-warning",
+          neutral: "bg-muted",
+          draft: "bg-muted/60",
+        }
+        
+        return (
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-canvas border border-border/50 text-[9px] font-bold uppercase tracking-wider text-heading">
+            <span className={cn("size-1.5 rounded-full shrink-0", dotColorMap[variant] ?? "bg-muted")} />
+            {label}
+          </div>
+        )
+      },
       sortable: true,
       accessor: (row) => row.status,
     },
     {
       id: "createdAt",
       header: "Déclenché",
-      cell: (row) => formatDateTime(row.createdAt),
+      cell: (row) => (
+        <span className="font-mono text-xs text-body">
+          {formatDateTime(row.createdAt)}
+        </span>
+      ),
       sortable: true,
       accessor: (row) => new Date(row.createdAt),
     },
     {
       id: "duration",
       header: "Durée",
-      cell: (row) => formatDurationMs(row.durationMs),
+      cell: (row) => (
+        <span className="font-mono text-xs text-body font-medium">
+          {formatDurationMs(row.durationMs)}
+        </span>
+      ),
       align: "right",
       sortable: true,
       accessor: (row) => row.durationMs ?? 0,
@@ -193,20 +286,27 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
     {
       id: "cost",
       header: "Coût",
-      cell: (row) =>
-        row.hasTokensGap ? (
-          <span className="text-muted">callback incomplet</span>
-        ) : row.hasPricingGap ? (
-          <span className="text-muted">non tarifé</span>
-        ) : (
-          formatCostEstimate(row.costEstimate)
-        ),
+      cell: (row) => (
+        <span className="font-mono text-xs text-heading font-bold">
+          {row.hasTokensGap ? (
+            <span className="text-muted font-normal text-[10px]">incomplet</span>
+          ) : row.hasPricingGap ? (
+            <span className="text-muted font-normal text-[10px]">non tarifé</span>
+          ) : (
+            formatCostEstimate(row.costEstimate)
+          )}
+        </span>
+      ),
       align: "right",
     },
     {
       id: "entity",
       header: "Compte",
-      cell: (row) => row.companyName ?? "—",
+      cell: (row) => (
+        <span className="text-xs font-medium text-body truncate max-w-[12rem] block">
+          {row.companyName ?? "—"}
+        </span>
+      ),
     },
   ], [])
 
@@ -214,45 +314,78 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
 
   const { costs } = data
 
+  const headerTitle = (
+    <div className="flex items-center gap-2">
+      <span>Automatisations</span>
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/[0.06] border border-primary/10 text-[9px] font-mono font-bold text-primary uppercase tracking-wider">
+        Engine v1.2
+      </span>
+      <span className="flex items-center gap-1.5 text-xs text-muted font-normal ml-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+        </span>
+        Live Telemetry
+      </span>
+    </div>
+  )
+
   return (
     <DesktopAnalyticalPage
-      title="Automatisations"
+      title={headerTitle}
       eyebrow="Santé & exécution IA"
       kpis={
         activeTab === "sante" ? (
           <div className="grid grid-cols-4 gap-4">
-            <KpiCard label="Exécutions (30j)" value={data.kpis.runs30d} />
-            <KpiCard
+            <TechKpiCard 
+              label="Exécutions (30j)" 
+              value={data.kpis.runs30d} 
+              subtext="Volume total d'appels n8n + LLM"
+            />
+            <TechKpiCard
               label="Taux de succès (30j)"
               value={data.kpis.successRatePct30d !== null ? `${data.kpis.successRatePct30d}%` : "—"}
+              statusDot={data.kpis.successRatePct30d !== null && data.kpis.successRatePct30d >= 90 ? "success" : "warning"}
+              subtext="Moyenne glissante de complétion"
             />
-            <KpiCard
+            <TechKpiCard
               label="Runs bloqués"
               value={data.kpis.stuckNow}
-              accent={data.kpis.stuckNow > 0 ? "brass" : "none"}
-              context={data.kpis.stuckNow > 0 ? "Repris automatiquement sous 10 min (ops-004)" : "Aucun run bloqué"}
+              statusDot={data.kpis.stuckNow > 0 ? "warning" : "success"}
+              statusDotPulse={data.kpis.stuckNow > 0}
+              subtext={data.kpis.stuckNow > 0 ? "Reprise sous 10 min (ops-004)" : "Aucun blocage actif"}
             />
-            <KpiCard
+            <TechKpiCard
               label="Runs repris (7j)"
               value={data.kpis.reapedLast7d}
-              context="Notifiés in-app à leur propriétaire"
+              subtext="Runs interrompus relancés avec succès"
             />
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-4">
-            <KpiCard label="Aujourd'hui" value={formatCostEstimate(costs.kpis.costToday)} />
-            <KpiCard label="7 derniers jours" value={formatCostEstimate(costs.kpis.cost7d)} />
-            <KpiCard
+            <TechKpiCard 
+              label="Aujourd'hui" 
+              value={formatCostEstimate(costs.kpis.costToday)} 
+              subtext="Facturation estimée du jour"
+            />
+            <TechKpiCard 
+              label="7 derniers jours" 
+              value={formatCostEstimate(costs.kpis.cost7d)} 
+              subtext="Consommation cumulée sur la semaine"
+            />
+            <TechKpiCard
               label="30 derniers jours"
               value={formatCostEstimate(costs.kpis.cost30d)}
-              delta={costs.kpis.cost30dDeltaPct !== null ? `${costs.kpis.cost30dDeltaPct > 0 ? "+" : ""}${costs.kpis.cost30dDeltaPct}%` : undefined}
-              deltaTone={costs.kpis.cost30dDeltaPct === null ? "neutral" : costs.kpis.cost30dDeltaPct > 0 ? "negative" : "positive"}
-              context={costs.kpis.cost30dDeltaPct === null ? "Historique insuffisant pour un delta" : "vs. 30 jours précédents"}
+              subtext={costs.kpis.cost30dDeltaPct === null 
+                ? "Historique insuffisant pour un delta" 
+                : `${costs.kpis.cost30dDeltaPct > 0 ? "Hausse" : "Baisse"} de ${Math.abs(costs.kpis.cost30dDeltaPct)}% vs 30j précédents`
+              }
+              statusDot={costs.kpis.cost30dDeltaPct !== null && costs.kpis.cost30dDeltaPct > 0 ? "warning" : "none"}
             />
-            <KpiCard
+            <TechKpiCard
               label="Cumul total"
               value={formatCostEstimate(costs.kpis.costAllTime)}
-              context={costs.kpis.dataSince ? `Depuis le ${new Date(costs.kpis.dataSince).toLocaleDateString("fr-FR")}` : undefined}
+              subtext={costs.kpis.dataSince ? `Mesuré depuis le ${new Date(costs.kpis.dataSince).toLocaleDateString("fr-FR")}` : undefined}
             />
           </div>
         )
@@ -260,69 +393,84 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
       rail={
         activeTab === "sante" ? (
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Alertes</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-2 mb-1">Alertes Système</h2>
             {alerts.length === 0 ? (
-              <AlertBlock variant="success" title="Tous les workflows sont sains" />
+              <div className="flex items-center gap-2 rounded-[var(--radius-medium)] border border-success/20 bg-success/[0.03] p-3 text-success">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Workflows sains</span>
+              </div>
             ) : (
               alerts.map((workflow) => {
                 const severity = workflowSeverity(workflow)
                 const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
+                const isCritical = severity === "critical"
                 return (
-                  <AlertBlock
+                  <div 
                     key={workflow.runType}
-                    variant={severity === "critical" ? "danger" : "warning"}
-                    title={workflow.label}
-                    description={
-                      stuckTotal > 0
-                        ? `${stuckTotal} run(s) actuellement bloqué(s)`
-                        : `Taux de succès 30j : ${workflow.successRatePct30d ?? "—"}%`
-                    }
-                  />
+                    className={cn(
+                      "flex flex-col gap-1 p-3 rounded-[var(--radius-medium)] border-l-4 border bg-surface",
+                      isCritical 
+                        ? "border-danger/30 border-l-danger" 
+                        : "border-warning/30 border-l-warning"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-heading truncate">{workflow.label}</span>
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                        isCritical ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"
+                      )}>
+                        {isCritical ? "Critique" : "Alerte"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted leading-normal">
+                      {stuckTotal > 0
+                        ? `${stuckTotal} run(s) bloqué(s) (reprise auto)`
+                        : `Taux succès 30j : ${workflow.successRatePct30d ?? "—"}%`}
+                    </p>
+                  </div>
                 )
               })
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Coût par utilisateur</h2>
-            {costs.byOwner.length === 0 ? (
-              <p className="text-sm text-muted">Aucune donnée sur la période.</p>
-            ) : (
-              costs.byOwner.map((owner) => (
-                <SurfaceCard key={owner.ownerName} padding="compact">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm text-body">{owner.ownerName}</p>
-                    <p className="text-sm font-semibold text-heading">{formatCostEstimate(owner.costEstimate)}</p>
-                  </div>
-                  <p className="text-[11px] text-muted">{owner.runs} run(s)</p>
-                </SurfaceCard>
-              ))
-            )}
+          <div className="sticky top-6 flex flex-col gap-3">
+            <VeilleSimulatorCard baseline={costs.veilleSimulator} />
           </div>
         )
       }
       lowerContent={
         activeTab === "sante" ? (
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Journal d&apos;exécution</h2>
-            <DataTable
-              rows={sortedJournal}
-              columns={columns}
-              getRowId={(row) => row.id}
-              sort={sort}
-              onSortChange={setSort}
-              ariaLabel="Journal d'exécution des workflows IA"
-              onRowClick={(row) => {
-                setSelectedRun(row)
-                setDialogOpen(true)
-              }}
-              emptyState={<p className="p-6 text-center text-sm text-muted">Aucune exécution récente.</p>}
-            />
+            <div className="flex items-center gap-2 border-b border-border/40 pb-2 mb-1">
+              <span className="inline-flex size-2 bg-primary rounded-full" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Journal d&apos;exécution</h2>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-border/50 bg-surface shadow-sm">
+              <DataTable
+                rows={sortedJournal}
+                columns={columns}
+                getRowId={(row) => row.id}
+                sort={sort}
+                onSortChange={setSort}
+                ariaLabel="Journal d'exécution des workflows IA"
+                onRowClick={(row) => {
+                  setSelectedRun(row)
+                  setDialogOpen(true)
+                }}
+                emptyState={<p className="p-6 text-center text-sm text-muted">Aucune exécution récente.</p>}
+              />
+            </div>
           </div>
         ) : null
       }
     >
-      <AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />
+      <div className="mb-5 flex justify-start">
+        <AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />
+      </div>
 
       {activeTab === "sante" ? (
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
@@ -332,21 +480,25 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <SurfaceCard padding="default">
-            <h2 className="mb-3 text-sm font-semibold text-heading">Coût par jour (60 derniers jours)</h2>
+          <SurfaceCard padding="default" className="border-border/60">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-2.5 mb-4">
+              <span className="inline-flex size-2 bg-primary rounded-full" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coût par jour (60 derniers jours)</h2>
+            </div>
             <CostTimelineChart points={costs.timeline} />
           </SurfaceCard>
 
-          <SurfaceCard padding="default">
-            <h2 className="mb-4 text-sm font-semibold text-heading">Coût par workflow (30 derniers jours)</h2>
-            <div className="flex flex-col gap-2.5">
+          <SurfaceCard padding="default" className="border-border/60">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-2.5 mb-4">
+              <span className="inline-flex size-2 bg-primary rounded-full" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coût par workflow (30 derniers jours)</h2>
+            </div>
+            <div className="flex flex-col gap-1">
               {costRankedWorkflows.map((workflow) => (
                 <WorkflowCostBar key={workflow.runType} workflow={workflow} maxCost={maxTotalCost30d} />
               ))}
             </div>
           </SurfaceCard>
-
-          <VeilleSimulatorCard baseline={costs.veilleSimulator} />
         </div>
       )}
 

@@ -90,7 +90,7 @@ export function DesktopAnalyticalPage({
           )}
         >
           <div className="min-w-0">{children}</div>
-          {rail ? <aside className="min-w-0">{rail}</aside> : null}
+          {rail ? <aside className="min-w-0 self-stretch">{rail}</aside> : null}
         </div>
 
         {lowerContent ? <section className="min-w-0">{lowerContent}</section> : null}
