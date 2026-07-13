@@ -379,7 +379,7 @@ export function IntelligencePanel() {
   return (
     <aside
       data-theme="cockpit"
-      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-primary kredo-intelligence-panel"
+      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-brand-primary kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
       <div className="relative space-y-5 p-5">

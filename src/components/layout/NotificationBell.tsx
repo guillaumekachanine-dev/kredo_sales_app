@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { formatDateTime } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
@@ -26,6 +27,8 @@ export function NotificationBell() {
   const supabase = useMemo(() => createClient(), [])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
+  /** Tracks whether the panel is currently visible in the DOM (for exit animation). */
+  const [mounted, setMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -60,6 +63,12 @@ export function NotificationBell() {
     }
   }, [supabase])
 
+  // When `open` becomes true, mount immediately. When it becomes false,
+  // we keep `mounted` true so the exit animation plays, and unmount via onAnimationEnd.
+  useEffect(() => {
+    if (open) setMounted(true)
+  }, [open])
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -90,15 +99,19 @@ export function NotificationBell() {
         onClick={() => setOpen((v) => !v)}
         aria-label={unreadCount > 0 ? `${unreadCount} notification(s) non lue(s)` : "Notifications"}
         aria-expanded={open}
-        className="relative inline-flex size-8 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-muted transition-colors hover:bg-surface-hover hover:text-heading"
+        className={cn(
+          "relative inline-flex size-8 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-muted transition-all duration-200 hover:bg-surface-hover hover:text-heading hover:shadow-sm",
+          open && "bg-surface-hover text-heading shadow-sm ring-1 ring-primary/20",
+        )}
       >
-        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-          />
-        </svg>
+        <Image
+          src="/icons_set/logo_n8n.png"
+          alt="n8n"
+          width={18}
+          height={18}
+          className="pointer-events-none select-none"
+          aria-hidden
+        />
         {unreadCount > 0 && (
           <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
@@ -106,8 +119,19 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 rounded-[var(--radius-medium)] border border-border bg-surface shadow-[var(--shadow-overlay-md)]">
+      {mounted && (
+        <div
+          className={cn(
+            "absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 rounded-[var(--radius-medium)] border border-border bg-surface shadow-[var(--shadow-overlay-md)]",
+            open
+              ? "animate-[notifPanelIn_280ms_cubic-bezier(0.16,1,0.3,1)_forwards]"
+              : "animate-[notifPanelOut_220ms_cubic-bezier(0.55,0,1,0.45)_forwards]",
+          )}
+          style={{ transformOrigin: "top right" }}
+          onAnimationEnd={() => {
+            if (!open) setMounted(false)
+          }}
+        >
           <div className="border-b border-border px-3 py-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Notifications</span>
           </div>
