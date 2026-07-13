@@ -9,6 +9,7 @@ Le Lot 16 implémente le **lancement neutre de la rédaction assistée** depuis 
 ### A. Contrat de lancement neutre
 - Le type `CommunicationComposerRequest` a été enrichi avec `launchMode?: "contextual" | "neutral"`.
 - Le mode neutre désactive l'acquisition automatique de contextes CRM actifs de la page courante (compte, contact, opportunité, etc.). Pour cela, la fonction `enrichFromActiveIntelligenceContext` dans `CommunicationComposerHost.tsx` a été court-circuitée si `request.launchMode === "neutral"`.
+- Un helper pur [neutral-launch.ts](file:///Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/lib/communication/neutral-launch.ts) centralise désormais les familles, les objectifs suggérés, les canaux secondaires et la construction du brief neutre. La modale ne duplique plus le mapping canaux/finalités.
 
 ### B. Primitives visuelles partagées
 - Pour éviter la duplication visuelle des familles, scénarios et objectifs, les constantes de styles, images de catégories et composants de base (`CategoryCard`, `ScenarioCard`, `ObjectiveCard`, `StepDots`, `CheckIcon`) ont été extraits de [QuoiHubModal.tsx](file:///Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/accounts-contacts/intelligence/QuoiHubModal.tsx) et relocalisés dans un fichier partagé : [QuoiHubShared.tsx](file:///Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/accounts-contacts/intelligence/QuoiHubShared.tsx).
@@ -30,6 +31,7 @@ Le Lot 16 implémente le **lancement neutre de la rédaction assistée** depuis 
 - À l'événement de lancement neutre, le Host réinitialise l'état complet du drawer, n'appelle pas l'hydratation automatique et ouvre la modale neutre.
 - Lors de la complétion de la modale, le brief canonique est construit, la modale est fermée, le Host appelle `hydrate` avec ce brief et ouvre le drawer unifié.
 - Si le scope résolu est `account` (ou `collaborator`), n'ayant pas de compte (ou consultant) associé au départ, le drawer affiche le sélecteur correspondant après la configuration métier, puis charge le contexte une fois l'entité sélectionnée.
+- Le lancement neutre annule aussi toute hydratation contextualisée en cours, remet le résumé de brief à zéro au prochain lancement et conserve le brief choisi pendant le sélecteur de compte/consultant.
 
 ### E. Résumé dans l'en-tête du drawer
 - L'en-tête du drawer affiche désormais de manière dynamique sous le sélecteur de finalité le résumé textuel : `Famille • Scénario • Objectif • Format` (sans identifiant technique brut). Les changements locaux en direct dans le formulaire sont immédiatement répercutés dans ce résumé via la remontée d'état `onBriefChange`.
@@ -49,10 +51,16 @@ Le Lot 16 implémente le **lancement neutre de la rédaction assistée** depuis 
   1. Le comportement contextualisé par défaut de `launchMode`.
   2. La non-enrichissement du contexte CRM actif en mode neutre.
   3. L'enrichissement attendu en mode contextualisé classique.
-- Exécution de tous les tests unitaires de communication :
+  4. L'ordre des six familles canoniques.
+  5. Les scénarios d'une famille sans préfiltrage par finalité.
+  6. L'objectif suggéré en première position.
+  7. Le filtrage des formats secondaires par scénario et finalité.
+  8. La construction du brief via registry/résolveur/purge.
+  9. Le rejet explicite d'une combinaison invalide.
+- Exécution des tests ciblés launcher/host/resolver :
   ```bash
-  npx vitest run src/lib/communication/
-  # Résultat : 13 fichiers de tests passés, 166 tests passés (0 échec).
+  npm test -- src/lib/communication/neutral-launch.test.ts src/lib/communication/communication-options-resolver.test.ts src/lib/communication/communication-brief-form-model.test.ts src/lib/communication/communication-purpose.test.ts src/lib/communication/communication-flow-e2e-matrix.test.ts src/lib/communication/communication-entry-intents.test.ts
+  # Résultat : 6 fichiers de tests passés, 127 tests passés (0 échec).
   ```
 
 ### B. Tests d'intégration et Build
@@ -64,6 +72,7 @@ Le Lot 16 implémente le **lancement neutre de la rédaction assistée** depuis 
 - Validation de la compilation TypeScript globale et du build de production Next.js :
   ```bash
   npx tsc --noEmit # OK (0 erreur)
+  npx eslint src/components/communication/CommunicationComposerHost.tsx src/components/communication/NeutralCommunicationLaunchModal.tsx src/lib/communication/communication-composer.ts src/lib/communication/neutral-launch.ts src/lib/communication/neutral-launch.test.ts src/components/intelligence/IntelligenceFAB.tsx src/components/cockpit/CockpitPitchMailDrawer.tsx src/components/accounts-contacts/intelligence/QuoiHubModal.tsx src/components/accounts-contacts/intelligence/QuoiHubShared.tsx src/components/accounts-contacts/intelligence/IntelligenceActionDrawers.tsx # OK
   npm run build # OK (Compilation et optimisation réussies)
   ```
 - Validation des formatages git :
@@ -72,4 +81,5 @@ Le Lot 16 implémente le **lancement neutre de la rédaction assistée** depuis 
   ```
 
 ### C. Limite des smokes de session authentifiée
-- La validation des parcours UI authentifiés de bout en bout et Playwright reste limitée localement en l'absence de session utilisateur mockée/active.
+- Browser plugin non disponible dans la session et Playwright non installé dans le repo.
+- Le serveur local `localhost:3000` répond, mais `/cockpit` redirige en `307` vers `/login?next=%2Fcockpit`; le HTML obtenu est le formulaire de connexion. Aucun smoke Desktop/Mobile authentifié n'a donc été déclaré réussi.

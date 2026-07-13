@@ -1,6 +1,5 @@
 "use client"
 
-import { ReactNode } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import type { ActivityCategory } from "@/lib/communication/communication-scenario-registry"

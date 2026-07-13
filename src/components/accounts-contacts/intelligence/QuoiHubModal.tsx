@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { cn } from "@/lib/utils"
 import type {

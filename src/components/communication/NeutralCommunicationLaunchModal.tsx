@@ -17,17 +17,15 @@ import {
   type ActivityCategory,
   type ScenarioRegistryItem,
 } from "@/lib/communication/communication-scenario-registry"
+import { CHANNEL_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import {
-  CHANNEL_OPTIONS,
-  OBJECTIVE_OPTIONS,
-  buildDefaultBrief,
-} from "@/components/accounts-contacts/intelligence/communication-brief-options"
-import {
-  resolveCommunicationOptions,
-} from "@/lib/communication/communication-options-resolver"
-import {
-  purgeIncompatibleReferences,
-} from "@/lib/communication/communication-brief-form-model"
+  NEUTRAL_LAUNCH_FAMILIES,
+  buildNeutralCommunicationBrief,
+  getNeutralObjectiveOptions,
+  getNeutralScenariosByFamily,
+  getNeutralSecondaryChannelOptions,
+  type NeutralFamilyGroup,
+} from "@/lib/communication/neutral-launch"
 import {
   STEP_LEAVE_MS,
   RELIEF_HOVER,
@@ -39,20 +37,7 @@ import {
 
 type NeutralHubStep = "category" | "scenarios" | "objective" | "format"
 
-type FamilyGroup = {
-  value: ActivityCategory
-  label: string
-  dataviz: 1 | 2 | 3 | 4 | 5 | 6
-}
-
-export const FAMILIES: FamilyGroup[] = [
-  { value: "commerce_prospection", label: "Prospection", dataviz: 1 },
-  { value: "commerce_actif", label: "Client actif", dataviz: 2 },
-  { value: "recrutement", label: "Recrutement", dataviz: 4 },
-  { value: "delivery", label: "Delivery", dataviz: 3 },
-  { value: "management_consultants", label: "Management", dataviz: 5 },
-  { value: "internal_staff", label: "Interne", dataviz: 6 },
-]
+export const FAMILIES: NeutralFamilyGroup[] = NEUTRAL_LAUNCH_FAMILIES
 
 type FormatPrincipalOption = {
   value: CommunicationOutputKind
@@ -114,7 +99,7 @@ export function NeutralCommunicationLaunchModal({
   const [selectedScenario, setSelectedScenario] = useState<CommunicationScenario | undefined>(undefined)
   const [selectedObjective, setSelectedObjective] = useState<CommunicationObjective | undefined>(undefined)
   const [selectedOutputKind, setSelectedOutputKind] = useState<CommunicationOutputKind | null>(null)
-  const [selectedChannel, setSelectedChannel] = useState<CommunicationChannel | null>(null)
+  const [, setSelectedChannel] = useState<CommunicationChannel | null>(null)
 
   const [leaving, setLeaving] = useState(false)
   const leaveTimer = useRef<number | null>(null)
@@ -125,7 +110,6 @@ export function NeutralCommunicationLaunchModal({
     }
   }, [])
 
-  // Reset complete when modal opens/closes
   const [trackedOpen, setTrackedOpen] = useState(open)
   if (open !== trackedOpen) {
     setTrackedOpen(open)
@@ -183,40 +167,18 @@ export function NeutralCommunicationLaunchModal({
     navigate("format")
   }
 
-  const allowedObjectives = useMemo<CommunicationObjective[]>(() => {
-    if (!scenarioItem) return []
-    return scenarioItem.allowedObjectives
-  }, [scenarioItem])
-
   const objectiveOptions = useMemo(() => {
-    const list = OBJECTIVE_OPTIONS.filter((o) => allowedObjectives.includes(o.value))
-    const suggestedValue = scenarioItem?.defaultObjective
-    const suggested = list.find((o) => o.value === suggestedValue)
-    const rest = list.filter((o) => o.value !== suggestedValue)
-    return [
-      ...(suggested ? [{ ...suggested, suggested: true }] : []),
-      ...rest.map((o) => ({ ...o, suggested: false })),
-    ]
-  }, [allowedObjectives, scenarioItem])
+    return getNeutralObjectiveOptions(selectedScenario)
+  }, [selectedScenario])
 
   const allowedOutputKinds = useMemo<CommunicationOutputKind[]>(() => {
     if (!scenarioItem) return []
     return scenarioItem.allowedOutputKinds
   }, [scenarioItem])
 
-  const allowedChannels = useMemo<CommunicationChannel[]>(() => {
-    if (!scenarioItem || !selectedOutputKind) return []
-    const channelsForOutput: Record<CommunicationOutputKind, CommunicationChannel[]> = {
-      written_message: ["email", "linkedin_invitation", "linkedin_message", "internal_note"],
-      spoken_pitch: ["spoken_pitch_30s"],
-      structured_briefing: ["meeting_briefing"],
-    }
-    return scenarioItem.allowedChannels.filter((c) => channelsForOutput[selectedOutputKind].includes(c))
-  }, [scenarioItem, selectedOutputKind])
-
   const secondaryChannelOptions = useMemo(() => {
-    return CHANNEL_OPTIONS.filter((c) => allowedChannels.includes(c.value))
-  }, [allowedChannels])
+    return getNeutralSecondaryChannelOptions(selectedScenario, selectedOutputKind)
+  }, [selectedScenario, selectedOutputKind])
 
   function handleSelectOutputKind(kind: CommunicationOutputKind) {
     if (!allowedOutputKinds.includes(kind)) return
@@ -227,33 +189,15 @@ export function NeutralCommunicationLaunchModal({
   function handleSelectChannel(channel: CommunicationChannel) {
     setSelectedChannel(channel)
 
-    // Build the final canon brief
     if (!selectedScenario || !selectedObjective || !selectedOutputKind) return
 
-    const tempBrief = buildDefaultBrief({ scope: scenarioItem?.requiredScopes[0] || "account" }, "")
-    const brief: CommunicationBrief = {
-      ...tempBrief,
-      what: {
-        ...tempBrief.what,
-        scope: scenarioItem?.requiredScopes[0] || "account",
-        activityCategory: activeCategory,
-        scenario: selectedScenario,
-        outputKind: selectedOutputKind,
-        channel: channel,
-      },
-      who: {
-        ...tempBrief.who,
-        objective: selectedObjective,
-      },
-    }
-
-    const facts = {
-      scope: brief.what.scope,
-    }
-    const resolved = resolveCommunicationOptions(facts, brief)
-    const purged = purgeIncompatibleReferences(resolved.normalizedBrief, resolved)
-
-    onComplete(purged.brief)
+    onComplete(buildNeutralCommunicationBrief({
+      activityCategory: activeCategory,
+      scenario: selectedScenario,
+      objective: selectedObjective,
+      outputKind: selectedOutputKind,
+      channel,
+    }))
   }
 
   function handleBack() {
@@ -290,7 +234,7 @@ export function NeutralCommunicationLaunchModal({
   const canGoBack = step !== "category"
 
   const scenariosList = useMemo(() => {
-    return SCENARIO_REGISTRY.filter((s) => s.activityCategory === activeCategory)
+    return getNeutralScenariosByFamily(activeCategory)
   }, [activeCategory])
 
   const viewProps: NeutralLaunchViewProps = {
