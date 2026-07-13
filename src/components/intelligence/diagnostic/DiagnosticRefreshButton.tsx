@@ -22,6 +22,7 @@ export function DiagnosticRefreshButton({
       loadingLabel="Analyse en cours"
       onClick={onRefresh}
       fullWidth={fullWidth}
+      className="kredo-diagnostic-refresh-button"
     >
       Actualiser le diagnostic
     </Button>

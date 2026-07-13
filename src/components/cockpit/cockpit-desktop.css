@@ -40,16 +40,13 @@
   --color-status-info:        #257C8C;
 
   /* ── Domaines Kredo ── */
-  --color-domain-need:              #E5A600; /* Besoin ambre */
   --color-domain-candidate:         #8E3FA7; /* Candidat pourpre */
   --color-domain-collaborator:      #5F8750; /* Collaborateur sauge */
   --color-domain-account:           #247B8D; /* Compte cyan petrol */
   --color-domain-recruitment:       #A33C78; /* Recrutement magenta froid */
-  --color-domain-mission-at:        #3F6FA7; /* Mission AT bleu acier */
   --color-domain-fixed-project:     #5A58A8; /* Forfait indigo */
   --color-domain-finance:           #6B7D2F; /* Finance olive */
   --color-domain-intelligence:      #173D89; /* Intelligence cobalt nuit */
-  --color-domain-ai:                #6B5CF6; /* AI prisme */
 
   /* ── Motion & Profondeur Tokens ── */
   --motion-duration-fast: 120ms;
@@ -110,10 +107,6 @@
 
 /* ── Domain Left Rails (Cobalt Stratifié) ── */
 
-.kredo-cockpit-desktop .kredo-rail-need {
-  border-left: 4px solid var(--color-domain-need) !important;
-}
-
 .kredo-cockpit-desktop .kredo-rail-candidate {
   border-left: 4px solid var(--color-domain-candidate) !important;
 }
@@ -126,22 +119,8 @@
   border-left: 4px solid var(--color-domain-account) !important;
 }
 
-.kredo-cockpit-desktop .kredo-rail-mission {
-  border-left: 4px solid var(--color-domain-mission-at) !important;
-}
-
 .kredo-cockpit-desktop .kredo-rail-finance {
   border-left: 4px solid var(--color-domain-finance) !important;
-}
-
-.kredo-cockpit-desktop .kredo-rail-ai {
-  border-left: 4px solid var(--color-domain-ai) !important;
-}
-
-/* Special AI Insight Card Outline */
-.kredo-cockpit-desktop .kredo-ai-insight-card {
-  border-left: 4px solid var(--color-domain-ai) !important;
-  position: relative;
 }
 
 /* ── Fine border adjustments ── */
@@ -160,6 +139,48 @@
   border-radius: var(--radius-large);
   background-color: var(--color-canvas);
   color: var(--color-primary);
+}
+
+.kredo-cockpit-desktop .kredo-diagnostic-refresh-button {
+  overflow: visible;
+  border-color: transparent;
+  background: #ffc107;
+  color: #151515;
+  box-shadow: 0 8px 24px rgba(201, 154, 46, 0.22);
+}
+
+.kredo-cockpit-desktop .kredo-diagnostic-refresh-button:hover {
+  background: #ffca2c;
+}
+
+.kredo-cockpit-desktop .kredo-diagnostic-refresh-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg,
+      #5b57f5,
+      #7c4fff,
+      #b84dff,
+      #ff004d,
+      #ff7a00,
+      #ffb700,
+      #33d17a,
+      #00c2ff,
+      #4f6bff,
+      #5b57f5,
+      #b84dff,
+      #5b57f5);
+  background-size: 400% 400%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: kredo-ready-gradient-flow 3s linear infinite;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* ── Disable permanent shadows ── */

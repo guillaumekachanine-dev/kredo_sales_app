@@ -1,25 +1,16 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { InsightCard } from "@/components/ui/InsightCard"
 import { AlertBlock } from "@/components/ui/AlertBlock"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
-import { CockpitFlowCanvas } from "@/components/cockpit/CockpitFlowCanvas"
-import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
-import { CockpitPitchMailDrawer } from "./CockpitPitchMailDrawer"
+import { StatusPill } from "@/components/ui/StatusPill"
 import { DiagnosticSection } from "@/components/intelligence/diagnostic/DiagnosticSection"
 import "./cockpit-desktop.css"
 
 import type {
-  CockpitAttentionItem,
   CockpitDashboardData,
-  CockpitHealthAxis,
-  CockpitRenewalItem,
   CockpitStatus,
 } from "@/lib/cockpit/cockpit-data"
 import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/workspace-diagnostic-types"
@@ -30,231 +21,9 @@ function deltaTone(status: CockpitStatus): "positive" | "negative" | "neutral" {
   return "neutral"
 }
 
-function pillVariant(status: CockpitStatus): StatusPillVariant {
-  if (status === "success") return "success"
-  if (status === "warning") return "warning"
-  if (status === "danger") return "danger"
-  return "neutral"
-}
-
 function euroTick(value: number) {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
   return `${Math.round(value / 1_000)} k€`
-}
-
-function CockpitHeaderActionButton({
-  label,
-  iconSrc,
-  amber = false,
-  href,
-  onClick,
-}: {
-  label: string
-  iconSrc: string
-  amber?: boolean
-  href?: string
-  onClick?: () => void
-}) {
-  const className = amber
-    ? "kredo-cockpit-header-action kredo-cockpit-header-action-amber"
-    : "kredo-cockpit-header-action"
-
-  const content = (
-    <>
-      <span className="kredo-cockpit-header-action__icon-shell" aria-hidden="true">
-        <Image src={iconSrc} alt="" width={22} height={22} className="h-[22px] w-[22px] object-contain" />
-      </span>
-      <span>{label}</span>
-    </>
-  )
-
-  if (href) {
-    return (
-      <Link href={href} className={className}>
-        {content}
-      </Link>
-    )
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={className}>
-      {content}
-    </button>
-  )
-}
-
-function HealthConstellation({ axes }: { axes: CockpitHealthAxis[] }) {
-  const center = 170
-  const outerRadius = 108
-  const labelRadius = 145
-  const ringLevels = [0.25, 0.5, 0.75, 1]
-  const polygon = axes
-    .map((axis, index) => {
-      const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
-      const radius = outerRadius * (axis.score / 100)
-      const x = center + Math.cos(angle) * radius
-      const y = center + Math.sin(angle) * radius
-      return `${x},${y}`
-    })
-    .join(" ")
-
-  return (
-    <SurfaceCard className="h-full">
-      <div className="flex h-full flex-col gap-6 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-              Lecture Multi-Axes
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-heading">
-              Situation du centre de profit
-            </h2>
-          </div>
-          <StatusPill
-            label={`${Math.round(axes.reduce((sum, axis) => sum + axis.score, 0) / axes.length)}/100`}
-            variant="inProgress"
-          />
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-[24rem_minmax(0,1fr)]">
-          <div className="grid gap-3">
-            {axes.map((axis) => (
-              <div
-                key={axis.id}
-                className="rounded-[var(--radius-large)] border border-border bg-canvas/60 p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-heading">{axis.label}</p>
-                  <StatusPill
-                    label={`${axis.score}`}
-                    variant={pillVariant(axis.status)}
-                  />
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface">
-                  <div
-                    className={[
-                      "h-full rounded-full",
-                      axis.status === "success"
-                        ? "bg-success"
-                        : axis.status === "danger"
-                          ? "bg-danger"
-                          : "bg-warning",
-                    ].join(" ")}
-                    style={{ width: `${axis.score}%` }}
-                  />
-                </div>
-                <p className="mt-3 text-sm leading-6 text-body">{axis.detail}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="overflow-hidden rounded-[var(--radius-large)] border border-border bg-primary/[0.04] p-4">
-            <svg viewBox="0 0 340 340" className="mx-auto aspect-square w-full max-w-[28rem]">
-              {ringLevels.map((level) => (
-                <circle
-                  key={level}
-                  cx={center}
-                  cy={center}
-                  r={outerRadius * level}
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-border"
-                  strokeDasharray="3 7"
-                />
-              ))}
-
-              {axes.map((axis, index) => {
-                const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
-                const x2 = center + Math.cos(angle) * outerRadius
-                const y2 = center + Math.sin(angle) * outerRadius
-                const lx = center + Math.cos(angle) * labelRadius
-                const ly = center + Math.sin(angle) * labelRadius
-
-                return (
-                  <g key={axis.id}>
-                    <line
-                      x1={center}
-                      y1={center}
-                      x2={x2}
-                      y2={y2}
-                      stroke="currentColor"
-                      className="text-border"
-                    />
-                    <text
-                      x={lx}
-                      y={ly}
-                      textAnchor="middle"
-                      className="fill-[var(--color-text-secondary)] text-[11px] font-semibold"
-                    >
-                      {axis.label}
-                    </text>
-                  </g>
-                )
-              })}
-
-              <polygon
-                points={polygon}
-                fill="var(--color-brand-primary)"
-                fillOpacity="0.18"
-                stroke="var(--color-brand-primary)"
-                strokeOpacity="0.75"
-                strokeWidth="2"
-              />
-
-              {axes.map((axis, index) => {
-                const angle = ((Math.PI * 2) / axes.length) * index - Math.PI / 2
-                const radius = outerRadius * (axis.score / 100)
-                const x = center + Math.cos(angle) * radius
-                const y = center + Math.sin(angle) * radius
-
-                return (
-                  <circle
-                    key={axis.id}
-                    cx={x}
-                    cy={y}
-                    r="5"
-                    fill="currentColor"
-                    className={
-                      axis.status === "success"
-                        ? "text-success"
-                        : axis.status === "danger"
-                          ? "text-danger"
-                          : "text-warning"
-                    }
-                  />
-                )
-              })}
-
-              <circle
-                cx={center}
-                cy={center}
-                r="30"
-                fill="var(--color-bg-surface)"
-                stroke="currentColor"
-                className="text-border"
-              />
-              <text
-                x={center}
-                y={center - 4}
-                textAnchor="middle"
-                className="fill-[var(--color-text-primary)] text-[12px] font-semibold"
-              >
-                Santé
-              </text>
-              <text
-                x={center}
-                y={center + 15}
-                textAnchor="middle"
-                className="fill-[var(--color-brand-primary)] text-[18px] font-bold"
-              >
-                {Math.round(axes.reduce((sum, axis) => sum + axis.score, 0) / axes.length)}
-              </text>
-            </svg>
-          </div>
-        </div>
-      </div>
-    </SurfaceCard>
-  )
 }
 
 function RevenueTrajectory({
@@ -407,115 +176,12 @@ function RevenueTrajectory({
   )
 }
 
-function AttentionStack({ items }: { items: CockpitAttentionItem[] }) {
-  return (
-    <SurfaceCard className="h-full">
-      <div className="flex h-full flex-col gap-4 p-5">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Arbitrages
-          </p>
-          <h2 className="mt-2 text-lg font-semibold text-heading">
-            Points de tension
-          </h2>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {items.map((item) => {
-            const railClass =
-              item.href === "/finance"
-                ? "kredo-rail-finance"
-                : item.href === "/staffing"
-                  ? "kredo-rail-need"
-                  : item.href.startsWith("/prospection")
-                    ? "kredo-rail-account"
-                    : item.href.startsWith("/missions")
-                      ? "kredo-rail-mission"
-                      : ""
-
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={[
-                  "rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover",
-                  railClass,
-                ].filter(Boolean).join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-heading">{item.title}</p>
-                    <p className="mt-1 text-sm text-body">{item.subtitle}</p>
-                  </div>
-                  <StatusPill label={item.actionLabel} variant={pillVariant(item.status)} />
-                </div>
-                <p className="mt-3 text-sm leading-6 text-body">{item.detail}</p>
-              </Link>
-            )
-          })}
-        </div>
-      </div>
-    </SurfaceCard>
-  )
-}
-
-function RenewalWatch({ renewals }: { renewals: CockpitRenewalItem[] }) {
-  return (
-    <SurfaceCard className="h-full">
-      <div className="flex h-full flex-col gap-4 p-6">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Continuité Delivery
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-heading">
-            Renouvellements et sorties à surveiller
-          </h2>
-        </div>
-
-        <div className="grid gap-3">
-          {renewals.map((item) => (
-            <div
-              key={item.id}
-              className="grid items-center gap-3 rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 md:grid-cols-[minmax(0,1.3fr)_auto_auto_auto] kredo-rail-mission"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-heading">{item.company}</p>
-                <p className="mt-1 truncate text-sm text-body">{item.title}</p>
-              </div>
-              <StatusPill label={item.dueLabel} variant={pillVariant(item.status)} />
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Marge</p>
-                <p className="mt-1 text-sm font-semibold text-heading">{item.marginLabel}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">CA trim.</p>
-                <p className="mt-1 text-sm font-semibold text-heading">{item.revenueLabel}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </SurfaceCard>
-  )
-}
-
 function RailSummary({
-  headline,
-  recommendation,
   accounts,
   financeWatch,
-}: Pick<CockpitDashboardData, "headline" | "recommendation" | "accounts" | "financeWatch">) {
+}: Pick<CockpitDashboardData, "accounts" | "financeWatch">) {
   return (
     <div className="flex flex-col gap-4">
-      <InsightCard
-        className="kredo-ai-insight-card"
-        eyebrow="Lecture IA"
-        title="Ce qui compte maintenant"
-        summary={headline}
-        recommendation={recommendation}
-        sourceLabel="finance · staffing · prospection · missions"
-      />
-
       <SurfaceCard>
         <div className="flex flex-col gap-4 p-5">
           <div>
@@ -566,98 +232,53 @@ export function CockpitDesktopDashboard({
   data: CockpitDashboardData
   diagnostic: WorkspaceDiagnosticSnapshot | null
 }) {
-  const [isSimulationOpen, setIsSimulationOpen] = useState(false)
-  const [isPitchMailOpen, setIsPitchMailOpen] = useState(false)
-
   return (
-    <>
-      <DesktopAnalyticalPage
-        className="kredo-cockpit-desktop"
-        eyebrow="Centre de profit"
-        title="Cockpit"
-        maxWidth="full"
-        railWidth="wide"
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/missions"
-              className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
-            >
-              Voir les missions
-            </Link>
-            <Link
-              href="/prospection/accounts"
-              className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
-            >
-              Voir les comptes
-            </Link>
-            <CockpitHeaderActionButton
-              label="Simulation financière"
-              iconSrc="/icons_set/conditions_financieres_3.png"
-              amber
-              onClick={() => setIsSimulationOpen(true)}
-            />
-            <CockpitHeaderActionButton
-              label="Rédaction mail/pitch"
-              iconSrc="/icons_set/intel_mailing.png"
-              onClick={() => setIsPitchMailOpen(true)}
-            />
-          </div>
-        }
-        toolbar={<DiagnosticSection initialSnapshot={diagnostic} />}
-        kpis={
-          <div className="grid gap-4 xl:grid-cols-4">
-            {data.kpis.map((kpi) => (
-              <KpiCard
-                key={kpi.id}
-                label={kpi.label}
-                value={kpi.value}
-                context={kpi.detail}
-                delta={kpi.trendBadge}
-                deltaTone={deltaTone(kpi.status)}
-                accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
-              />
-            ))}
-          </div>
-        }
-        rail={
-          <RailSummary
-            headline={data.headline}
-            recommendation={data.recommendation}
-            accounts={data.accounts}
-            financeWatch={data.financeWatch}
-          />
-        }
-        lowerContent={
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <RenewalWatch renewals={data.renewals} />
-            <AttentionStack items={data.attentionItems} />
-          </div>
-        }
-      >
-        <div className="grid gap-6">
-          <HealthConstellation axes={data.healthAxes} />
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <RevenueTrajectory {...data.trajectory} />
-            <SurfaceCard className="h-full">
-              <div className="p-6">
-                <CockpitFlowCanvas flow={data.flow} />
-              </div>
-            </SurfaceCard>
-          </div>
+    <DesktopAnalyticalPage
+      className="kredo-cockpit-desktop"
+      eyebrow="Centre de profit"
+      title="Cockpit"
+      maxWidth="full"
+      railWidth="wide"
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/missions"
+            className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
+          >
+            Voir les missions
+          </Link>
+          <Link
+            href="/prospection/accounts"
+            className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-sm font-semibold text-heading transition-colors hover:bg-surface-hover hover:text-heading cursor-pointer"
+          >
+            Voir les comptes
+          </Link>
         </div>
-      </DesktopAnalyticalPage>
-
-      <FinancialModelingDesktopDialog
-        open={isSimulationOpen}
-        onOpenChange={setIsSimulationOpen}
-      />
-
-      <CockpitPitchMailDrawer
-        open={isPitchMailOpen}
-        onOpenChange={setIsPitchMailOpen}
-      />
-    </>
+      }
+      toolbar={<DiagnosticSection initialSnapshot={diagnostic} />}
+      kpis={
+        <div className="grid gap-4 xl:grid-cols-4">
+          {data.kpis.map((kpi) => (
+            <KpiCard
+              key={kpi.id}
+              label={kpi.label}
+              value={kpi.value}
+              context={kpi.detail}
+              delta={kpi.trendBadge}
+              deltaTone={deltaTone(kpi.status)}
+              accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
+            />
+          ))}
+        </div>
+      }
+      rail={
+        <RailSummary
+          accounts={data.accounts}
+          financeWatch={data.financeWatch}
+        />
+      }
+    >
+      <RevenueTrajectory {...data.trajectory} />
+    </DesktopAnalyticalPage>
   )
 }
