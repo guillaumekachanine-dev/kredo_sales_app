@@ -1,216 +1,248 @@
-/* ============================================================
-   KREDO — Refonte Cockpit Desktop · Palette "Cobalt Stratifié"
-   Contient les variables de la Direction A et les styles de motion.
-   ============================================================ */
-
 .kredo-cockpit-desktop {
-  /* ── Direction A : Cobalt Stratifié Color Overrides ── */
-  --color-primary:            #244FB3; /* Cobalt directeur */
-  --color-primary-deep:       #1E4596;
-  --color-brand-primary:      #244FB3;
-  --color-brand-primary-deep: #13244B; /* Navy conseil */
-  --color-brand-brass:        #C99A2E; /* Brass franc */
-  --color-brand-brass-hover:  #A67A1E;
-  
-  --color-canvas:             #F4F1EA; /* Canvas lin */
-  --color-bg-canvas:          #F4F1EA;
-  --color-surface:            #FFFDF8; /* Surface ivoire */
-  --color-bg-surface:         #FFFDF8;
-  --color-surface-hover:      #EDF0F7; /* Surface hover */
-  --color-bg-surface-hover:   #EDF0F7;
-  
-  --color-border:             #D8DFEA; /* Bord graphite */
-  --color-border-default:     #D8DFEA;
-  --color-border-strong:      #B9C5D9;
-  
-  --color-heading:            #18223A; /* Navy conseil text */
-  --color-text-primary:       #18223A;
-  --color-body:               #506078;
-  --color-text-secondary:     #506078;
-  --color-muted:              #8390A3;
-  --color-text-muted:         #8390A3;
-  
-  --color-success:            #287657; /* Succès forêt */
-  --color-status-success:     #287657;
-  --color-warning:            #B57B18; /* Warning ocre */
-  --color-status-warning:     #B57B18;
-  --color-danger:             #B64242; /* Danger brique */
-  --color-status-danger:      #B64242;
-  --color-info:               #257C8C; /* Compte cyan petrol / info */
-  --color-status-info:        #257C8C;
-
-  /* ── Domaines Kredo ── */
-  --color-domain-candidate:         #8E3FA7; /* Candidat pourpre */
-  --color-domain-collaborator:      #5F8750; /* Collaborateur sauge */
-  --color-domain-account:           #247B8D; /* Compte cyan petrol */
-  --color-domain-recruitment:       #A33C78; /* Recrutement magenta froid */
-  --color-domain-fixed-project:     #5A58A8; /* Forfait indigo */
-  --color-domain-finance:           #6B7D2F; /* Finance olive */
-  --color-domain-intelligence:      #173D89; /* Intelligence cobalt nuit */
-
-  /* ── Motion & Profondeur Tokens ── */
+  --color-canvas: #0D1828;
+  --color-bg-canvas: #0D1828;
+  --color-surface: #132238;
+  --color-bg-surface: #132238;
+  --color-surface-hover: #172A45;
+  --color-bg-surface-hover: #172A45;
+  --color-border: #2D405B;
+  --color-border-default: #2D405B;
+  --color-border-strong: #425a7b;
+  --color-heading: #F1F4F8;
+  --color-text-primary: #F1F4F8;
+  --color-body: #c3cedd;
+  --color-text-secondary: #94A3B8;
+  --color-muted: #94A3B8;
+  --color-text-muted: #94A3B8;
+  --color-primary: #4F73B8;
+  --color-primary-deep: #3f61a2;
+  --color-primary-fg: #F1F4F8;
+  --color-brand-primary: #4F73B8;
+  --color-brand-primary-deep: #3f61a2;
+  --color-brand-brass: #B48732;
+  --color-brand-brass-hover: #a77c2d;
+  --color-secondary-fg: #F1F4F8;
+  --color-success: #3E8A6B;
+  --color-status-success: #3E8A6B;
+  --color-warning: #B56D35;
+  --color-status-warning: #B56D35;
+  --color-danger: #B95555;
+  --color-status-danger: #B95555;
+  --color-info: #7A62AE;
+  --color-status-info: #7A62AE;
+  --color-domain-fixed-project: #7A62AE;
+  --focus-ring-color: #94A3B8;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
   --motion-duration-fast: 120ms;
-  --motion-duration-standard: 180ms;
-  --motion-duration-emphasis: 280ms;
-  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  
-  --shadow-interactive: 0 10px 26px -18px rgba(19, 36, 75, 0.42);
-  --shadow-panel: 0 20px 46px -28px rgba(19, 36, 75, 0.50);
-
+  --motion-duration-standard: 160ms;
+  --motion-ease-standard: ease;
   --radius-small: 6px;
   --radius-medium: 6px;
   --radius-large: 8px;
-  --radius-xlarge: 8px;
-}
-
-/* ── Global Page Overrides (Only under desktop cockpit wrapper) ── */
-
-.kredo-cockpit-desktop {
+  --radius-xlarge: 10px;
   min-height: 100%;
-  background-color: var(--color-canvas);
+  background: var(--color-canvas);
+  color: var(--color-body);
 }
 
-/* ── Interactive Elements Transition & Hover ── */
-
-.kredo-cockpit-desktop .kredo-interactive-card,
-.kredo-cockpit-desktop a[href],
-.kredo-cockpit-desktop button:not(:disabled) {
-  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
-              box-shadow var(--motion-duration-standard) var(--motion-ease-standard),
-              background-color var(--motion-duration-standard) var(--motion-ease-standard),
-              border-color var(--motion-duration-standard) var(--motion-ease-standard);
-  outline: none;
+.kredo-cockpit-desktop__frame {
+  width: min(100%, 1520px);
+  margin: 0 auto;
+  padding: 28px 28px 32px;
 }
 
-/* Focus Clavier Visible */
-.kredo-cockpit-desktop a[href]:focus-visible,
-.kredo-cockpit-desktop button:not(:disabled):focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent), 0 0 0 5px var(--color-canvas);
-  border-color: var(--color-primary);
+.kredo-cockpit-desktop__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
-/* Hover Lift Effect */
-.kredo-cockpit-desktop .kredo-interactive-card:hover,
-.kredo-cockpit-desktop a[href]:hover,
-.kredo-cockpit-desktop button:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-interactive);
-}
-
-/* Active pressed state */
-.kredo-cockpit-desktop .kredo-interactive-card:active,
-.kredo-cockpit-desktop a[href]:active,
-.kredo-cockpit-desktop button:not(:disabled):active {
-  transform: translateY(0) scale(0.99);
-}
-
-/* ── Domain Left Rails (Cobalt Stratifié) ── */
-
-.kredo-cockpit-desktop .kredo-rail-candidate {
-  border-left: 4px solid var(--color-domain-candidate) !important;
-}
-
-.kredo-cockpit-desktop .kredo-rail-collaborator {
-  border-left: 4px solid var(--color-domain-collaborator) !important;
-}
-
-.kredo-cockpit-desktop .kredo-rail-account {
-  border-left: 4px solid var(--color-domain-account) !important;
-}
-
-.kredo-cockpit-desktop .kredo-rail-finance {
-  border-left: 4px solid var(--color-domain-finance) !important;
-}
-
-/* ── Fine border adjustments ── */
-.kredo-cockpit-desktop border-border,
-.kredo-cockpit-desktop .border {
-  border-color: var(--color-border);
-}
-
-/* ── Icon containers slightly rounded square ── */
-.kredo-cockpit-desktop .kredo-icon-container {
+.kredo-cockpit-desktop__diagnostic-status,
+.kredo-cockpit-desktop__section-caption,
+.kredo-cockpit-desktop__account-indicator {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  min-height: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.kredo-cockpit-desktop__diagnostic-status {
+  border-color: color-mix(in srgb, var(--color-success) 55%, var(--color-border));
+  color: #9fd3bc;
+}
+
+.kredo-cockpit-desktop__kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.kredo-cockpit-desktop__kpi-card,
+.kredo-cockpit-desktop__panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xlarge);
+  background: var(--color-surface);
+}
+
+.kredo-cockpit-desktop__kpi-card {
+  min-width: 0;
+  padding: 15px 16px 13px;
+  border-left-width: 3px;
+}
+
+.kredo-cockpit-desktop__kpi-card[data-accent="success"] { border-left-color: var(--color-success); }
+.kredo-cockpit-desktop__kpi-card[data-accent="brass"] { border-left-color: var(--color-brand-brass); }
+.kredo-cockpit-desktop__kpi-card[data-accent="primary"] { border-left-color: var(--color-primary); }
+.kredo-cockpit-desktop__kpi-card[data-accent="danger"] { border-left-color: var(--color-danger); }
+
+.kredo-cockpit-desktop__primary-grid,
+.kredo-cockpit-desktop__secondary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.kredo-cockpit-desktop__secondary-grid { grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr); }
+.kredo-cockpit-desktop__trajectory-stack { display: grid; gap: 16px; min-width: 0; }
+
+.kredo-cockpit-desktop__diagnostic > div {
+  height: 100%;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.kredo-cockpit-desktop__diagnostic .grid { gap: 18px; padding: 18px; }
+.kredo-cockpit-desktop__diagnostic .kredo-diagnostic-refresh-button {
+  border-color: var(--color-primary);
+  background: transparent;
+  color: #adc2ec;
+  box-shadow: none;
+}
+.kredo-cockpit-desktop__diagnostic .kredo-diagnostic-refresh-button:hover { background: var(--color-surface-hover); }
+.kredo-cockpit-desktop__diagnostic details { padding-block: 10px; }
+.kredo-cockpit-desktop__diagnostic details > div { padding-top: 10px; }
+.kredo-cockpit-desktop__diagnostic .rounded-full { border-radius: 6px; background: var(--color-primary); }
+
+.kredo-cockpit-desktop__accounts,
+.kredo-cockpit-desktop__today,
+.kredo-cockpit-desktop__trajectory,
+.kredo-cockpit-desktop__horizons { padding: 18px; }
+
+.kredo-cockpit-desktop__section-caption { flex-shrink: 0; font-size: 10px; }
+.kredo-cockpit-desktop__account {
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
   border-radius: var(--radius-large);
-  background-color: var(--color-canvas);
-  color: var(--color-primary);
+  padding: 12px;
+  background: var(--color-surface-hover);
+}
+.kredo-cockpit-desktop__account[data-accent="danger"] { border-left-color: var(--color-danger); }
+.kredo-cockpit-desktop__account[data-accent="brass"] { border-left-color: var(--color-brand-brass); }
+.kredo-cockpit-desktop__account[data-accent="success"] { border-left-color: var(--color-success); }
+.kredo-cockpit-desktop__account[data-accent="violet"] { border-left-color: var(--color-info); }
+.kredo-cockpit-desktop__account-indicator { max-width: 46%; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+
+.kredo-cockpit-desktop__text-link,
+.kredo-cockpit-desktop__list-link,
+.kredo-cockpit-desktop__action-link {
+  color: #aac0e8;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.kredo-cockpit-desktop__action-link {
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 5px 9px;
+  color: #adc2ec;
+}
+.kredo-cockpit-desktop__list-link { display: inline-block; margin-top: 16px; }
+
+.kredo-cockpit-desktop__horizon-card {
+  min-width: 0;
+  min-height: 126px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  padding: 12px;
+  background: var(--color-surface-hover);
 }
 
-.kredo-cockpit-desktop .kredo-diagnostic-refresh-button {
-  overflow: visible;
-  border-color: transparent;
-  background: #ffc107;
-  color: #151515;
-  box-shadow: 0 8px 24px rgba(201, 154, 46, 0.22);
+.kredo-cockpit-desktop__metric-label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.kredo-cockpit-desktop .kredo-diagnostic-refresh-button:hover {
-  background: #ffca2c;
+.kredo-cockpit-desktop__today { display: flex; min-width: 0; flex-direction: column; }
+.kredo-cockpit-desktop__today-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.kredo-cockpit-desktop__time {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: #adc2ec;
+  font-size: 10px;
+  font-weight: 700;
+}
+.kredo-cockpit-desktop__operational-alert,
+.kredo-cockpit-desktop__no-alert {
+  display: block;
+  margin-top: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  padding: 12px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.kredo-cockpit-desktop__operational-alert[data-status="danger"] { border-color: color-mix(in srgb, var(--color-danger) 65%, var(--color-border)); color: #e9aaaa; }
+.kredo-cockpit-desktop__operational-alert[data-status="warning"] { border-color: color-mix(in srgb, var(--color-warning) 65%, var(--color-border)); color: #e2b989; }
+
+.kredo-cockpit-desktop a[href],
+.kredo-cockpit-desktop button:not(:disabled) {
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard), border-color var(--motion-duration-fast) var(--motion-ease-standard), color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+.kredo-cockpit-desktop a[href]:hover,
+.kredo-cockpit-desktop button:not(:disabled):hover { background-color: var(--color-surface-hover); }
+.kredo-cockpit-desktop a[href]:focus-visible,
+.kredo-cockpit-desktop button:not(:disabled):focus-visible,
+.kredo-cockpit-desktop summary:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
-.kredo-cockpit-desktop .kredo-diagnostic-refresh-button::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: linear-gradient(135deg,
-      #5b57f5,
-      #7c4fff,
-      #b84dff,
-      #ff004d,
-      #ff7a00,
-      #ffb700,
-      #33d17a,
-      #00c2ff,
-      #4f6bff,
-      #5b57f5,
-      #b84dff,
-      #5b57f5);
-  background-size: 400% 400%;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: kredo-ready-gradient-flow 3s linear infinite;
-  pointer-events: none;
-  z-index: 2;
+@media (max-width: 1180px) {
+  .kredo-cockpit-desktop__frame { padding-inline: 20px; }
+  .kredo-cockpit-desktop__primary-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+  .kredo-cockpit-desktop__secondary-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+  .kredo-cockpit-desktop__diagnostic .grid { grid-template-columns: minmax(0, 1fr); }
+  .kredo-cockpit-desktop__diagnostic aside { border-top: 1px solid var(--color-border); border-left: 0; padding: 14px 0 0; }
 }
 
-/* ── Disable permanent shadows ── */
-.kredo-cockpit-desktop .shadow-sm,
-.kredo-cockpit-desktop .shadow,
-.kredo-cockpit-desktop .shadow-md,
-.kredo-cockpit-desktop .shadow-lg {
-  box-shadow: none !important;
+@media (max-width: 900px) {
+  .kredo-cockpit-desktop__header { flex-direction: column; }
+  .kredo-cockpit-desktop__primary-grid,
+  .kredo-cockpit-desktop__secondary-grid { grid-template-columns: 1fr; }
+  .kredo-cockpit-desktop__kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* ── Tables Custom Hover & Left Rail ── */
-.kredo-cockpit-desktop tr {
-  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
-              background-color var(--motion-duration-standard) var(--motion-ease-standard);
-}
-
-.kredo-cockpit-desktop tr:hover {
-  background-color: var(--color-surface-hover) !important;
-  transform: translateX(2px);
-}
-
-/* Reduced Motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .kredo-cockpit-desktop *,
-  .kredo-cockpit-desktop .kredo-interactive-card,
-  .kredo-cockpit-desktop a[href],
-  .kredo-cockpit-desktop button:not(:disabled) {
-    animation: none !important;
-    transition-duration: 0ms !important;
-    transform: none !important;
-    scroll-behavior: auto !important;
-  }
+  .kredo-cockpit-desktop *::before,
+  .kredo-cockpit-desktop *::after { animation: none !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
 }
