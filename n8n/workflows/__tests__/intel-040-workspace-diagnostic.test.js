@@ -178,6 +178,17 @@ function llmResponseFixture() {
   }
 }
 
+function wrappedLlmResponseFixture() {
+  const response = llmResponseFixture()
+  response.content[0].text = [
+    "Voici le diagnostic demandé :",
+    "```json",
+    response.content[0].text,
+    "```",
+  ].join("\n")
+  return response
+}
+
 async function main() {
   check("workflow JSON valide et inactif par défaut", workflow.active === false)
   check("workflow principal contient quinze nœuds", workflow.nodes.length === 15, String(workflow.nodes.length))
@@ -232,6 +243,12 @@ async function main() {
   check("parseur ajoute generatedAt", typeof diagnostic.generatedAt === "string")
   check("parseur ajoute le rang déterministe", diagnostic.priorities[0].rank === 1)
   check("parseur ajoute le libellé de période", diagnostic.periodLabel.startsWith("Semaine du"))
+
+  const parsedWrapped = await runCodeNode("Parse & Validate Output", registry, wrappedLlmResponseFixture())
+  check(
+    "parseur extrait le JSON d'une réponse LLM entourée",
+    parsedWrapped[0].json.diagnostic.schema_version === 1,
+  )
 
   registry["Parse & Validate Output"] = parsed[0].json
   const quality = await runCodeNode("Quality Check", registry, parsed[0].json)
