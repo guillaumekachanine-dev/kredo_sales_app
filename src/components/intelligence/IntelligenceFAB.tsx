@@ -426,7 +426,10 @@ export function IntelligenceFAB() {
     setActiveAction(null)
     setPitchContext(null)
     window.setTimeout(() => {
-      openCommunicationComposer({ origin: "cockpit_header" })
+      openCommunicationComposer({
+        origin: "cockpit_header",
+        launchMode: "neutral",
+      })
     }, 280)
   }
 

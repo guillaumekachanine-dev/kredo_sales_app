@@ -163,12 +163,14 @@ export function PitchMailDrawerContent({
   initialBrief,
   contextMetaLabel = "(résolu automatiquement)",
   selectedOutputKind = "written_message",
+  onBriefChange,
 }: {
   data: PitchMailAccountContext
   variant?: "desktop" | "mobile"
   initialBrief?: CommunicationBrief
   contextMetaLabel?: string
   selectedOutputKind?: CommunicationOutputKind
+  onBriefChange?: (brief: CommunicationBrief) => void
 }) {
   const { company, collaborator, contacts } = data
   const isMobile = variant === "mobile"
@@ -197,6 +199,10 @@ export function PitchMailDrawerContent({
 
   const [brief, setBrief] = useState<CommunicationBrief>(() => initialResolvedBrief.brief)
   const [purposeAdjustmentNotice, setPurposeAdjustmentNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    onBriefChange?.(brief)
+  }, [brief, onBriefChange])
 
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)

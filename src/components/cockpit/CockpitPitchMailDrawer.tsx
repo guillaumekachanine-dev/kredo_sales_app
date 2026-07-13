@@ -13,7 +13,10 @@ export function CockpitPitchMailDrawer({
   useEffect(() => {
     if (!open) return
 
-    openCommunicationComposer({ origin: "cockpit_header" })
+    openCommunicationComposer({
+      origin: "cockpit_header",
+      launchMode: "neutral",
+    })
     onOpenChange(false)
   }, [open, onOpenChange])
 

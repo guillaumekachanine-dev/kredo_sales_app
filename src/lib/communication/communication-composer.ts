@@ -70,8 +70,11 @@ export type CommunicationComposerPreset = {
   refs?: Partial<CommunicationBrief["context"]>
 }
 
+export type CommunicationComposerLaunchMode = "contextual" | "neutral"
+
 export type CommunicationComposerRequest = {
   origin: CommunicationComposerOrigin
+  launchMode?: CommunicationComposerLaunchMode
   // Défaut "account" si omis — rétro-compatible avec tous les call-sites existants.
   scope?: CommunicationComposerScope
   companyId?: string | null

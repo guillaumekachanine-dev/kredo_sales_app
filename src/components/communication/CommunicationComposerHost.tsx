@@ -23,11 +23,15 @@ import {
 import { loadCommunicationContextForCurrentUser } from "@/lib/communication/communication-context-actions"
 import type { LoadedCommunicationContext } from "@/lib/communication/communication-context-loader"
 import type { CommunicationOutputKind } from "@/lib/n8n/types"
-import { getScenarioRegistryItem } from "@/lib/communication/communication-scenario-registry"
+import { getScenarioRegistryItem, SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"
 import {
   getCommunicationPurposeNavigationItems,
   getOutputKindFromComposerPreset,
 } from "@/lib/communication/communication-purpose"
+import { NeutralCommunicationLaunchModal } from "./NeutralCommunicationLaunchModal"
+import { FAMILIES } from "./NeutralCommunicationLaunchModal"
+import { OBJECTIVE_OPTIONS, CHANNEL_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
+import type { CommunicationBrief } from "@/lib/n8n/types"
 
 interface CompanyRecord {
   id: string
@@ -80,11 +84,13 @@ function CommunicationPurposeSwitcher({
   outputKind,
   variant,
   clientName,
+  summary,
   onOutputKindChange,
 }: {
   outputKind: CommunicationOutputKind
   variant: "desktop" | "mobile"
   clientName?: string
+  summary?: string
   onOutputKindChange: (outputKind: CommunicationOutputKind) => void
 }) {
   const items = getCommunicationPurposeNavigationItems(variant)
@@ -132,6 +138,11 @@ function CommunicationPurposeSwitcher({
           )
         })}
       </div>
+      {summary ? (
+        <p className="text-[10.5px] font-semibold text-primary/80 truncate tracking-wide">
+          {summary}
+        </p>
+      ) : null}
       {clientName ? (
         <p className="truncate text-sm leading-5 text-muted">{clientName}</p>
       ) : null}
@@ -139,9 +150,13 @@ function CommunicationPurposeSwitcher({
   )
 }
 
-function enrichFromActiveIntelligenceContext(
+export function enrichFromActiveIntelligenceContext(
   request: CommunicationComposerRequest,
 ): CommunicationComposerRequest {
+  if (request.launchMode === "neutral") {
+    return request
+  }
+
   if (request.companyId || request.companyName || request.primaryEntity || request.contactId) {
     return request
   }
@@ -321,6 +336,7 @@ function ComposerContent({
   variant,
   instanceKey,
   outputKind,
+  onBriefChange,
 }: {
   context: ComposerAccountContext | null
   scope: CommunicationComposerScope
@@ -331,6 +347,7 @@ function ComposerContent({
   variant: "desktop" | "mobile"
   instanceKey: number
   outputKind: CommunicationOutputKind
+  onBriefChange?: (brief: CommunicationBrief) => void
 }) {
   if (!context) {
     // Lot 8 — le scope "collaborator" gagne désormais son propre sélecteur de
@@ -362,6 +379,7 @@ function ComposerContent({
       variant={variant}
       initialBrief={context.initialBrief}
       selectedOutputKind={outputKind}
+      onBriefChange={onBriefChange}
     />
   )
 
@@ -389,6 +407,8 @@ function DesktopCommunicationDrawer({
   instanceKey,
   outputKind,
   onOutputKindChange,
+  summary,
+  onBriefChange,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -401,6 +421,7 @@ function DesktopCommunicationDrawer({
           outputKind={outputKind}
           variant="desktop"
           clientName={clientName}
+          summary={summary}
           onOutputKindChange={onOutputKindChange}
         />
       }
@@ -420,6 +441,7 @@ function DesktopCommunicationDrawer({
         variant="desktop"
         instanceKey={instanceKey}
         outputKind={outputKind}
+        onBriefChange={onBriefChange}
       />
     </AppDrawer>
   )
@@ -438,6 +460,8 @@ function MobileCommunicationDrawer({
   instanceKey,
   outputKind,
   onOutputKindChange,
+  summary,
+  onBriefChange,
 }: DrawerVariantProps) {
   const clientName = context?.company?.name ?? context?.collaborator?.name
 
@@ -453,6 +477,7 @@ function MobileCommunicationDrawer({
           outputKind={outputKind}
           variant="mobile"
           clientName={clientName}
+          summary={summary}
           onOutputKindChange={onOutputKindChange}
         />
       }
@@ -470,6 +495,7 @@ function MobileCommunicationDrawer({
         variant="mobile"
         instanceKey={instanceKey}
         outputKind={outputKind}
+        onBriefChange={onBriefChange}
       />
     </AppDrawer>
   )
@@ -488,6 +514,21 @@ interface DrawerVariantProps {
   instanceKey: number
   outputKind: CommunicationOutputKind
   onOutputKindChange: (outputKind: CommunicationOutputKind) => void
+  summary?: string
+  onBriefChange?: (brief: CommunicationBrief) => void
+}
+
+function getBriefSummary(brief: CommunicationBrief | null): string {
+  if (!brief) return ""
+  const family = FAMILIES.find((f) => f.value === brief.what.activityCategory)
+  const familyLabel = family?.label ?? brief.what.activityCategory ?? "Inconnue"
+  const scenario = SCENARIO_REGISTRY.find((s) => s.value === brief.what.scenario)
+  const scenarioLabel = scenario?.label ?? brief.what.scenario ?? "Inconnu"
+  const objective = OBJECTIVE_OPTIONS.find((o) => o.value === brief.who.objective)
+  const objectiveLabel = objective?.label ?? brief.who.objective ?? "Inconnu"
+  const channel = CHANNEL_OPTIONS.find((c) => c.value === brief.what.channel)
+  const channelLabel = channel?.label ?? brief.what.channel ?? "Inconnu"
+  return `${familyLabel} • ${scenarioLabel} • ${objectiveLabel} • ${channelLabel}`
 }
 
 export function CommunicationComposerHost({ device }: { device: DashboardDevice }) {
@@ -501,6 +542,10 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const [context, setContext] = useState<ComposerAccountContext | null>(null)
   const [instanceKey, setInstanceKey] = useState(0)
   const [outputKind, setOutputKind] = useState<CommunicationOutputKind>("written_message")
+
+  const [neutralPickerOpen, setNeutralPickerOpen] = useState(false)
+  const [neutralDraft, setNeutralDraft] = useState<CommunicationBrief | null>(null)
+  const [currentBrief, setCurrentBrief] = useState<CommunicationBrief | null>(null)
 
   const resolvePrimaryEntity = useCallback(async (
     currentRequest: CommunicationComposerRequest,
@@ -892,13 +937,40 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     }
   }, [resolvePrimaryEntity, supabase])
 
+  const handleNeutralModalComplete = useCallback((brief: CommunicationBrief) => {
+    setNeutralPickerOpen(false)
+    setNeutralDraft(brief)
+    setOpen(true)
+    void hydrate({
+      origin: request.origin,
+      launchMode: "neutral",
+      scope: brief.what.scope,
+      initialBrief: brief,
+    })
+  }, [hydrate, request.origin])
+
   useEffect(() => {
     function handleOpen(event: Event) {
       const customEvent = event as CustomEvent<CommunicationComposerRequest>
       const nextRequest = customEvent.detail ?? { origin: "global" }
-      setOpen(true)
-      setSelectedAccount(null)
-      void hydrate(nextRequest)
+
+      if (nextRequest.launchMode === "neutral") {
+        // Reset complet
+        setOpen(false)
+        setLoading(false)
+        setError(null)
+        setContext(null)
+        setSelectedAccount(null)
+        setOutputKind("written_message")
+        setNeutralDraft(null)
+
+        setRequest(nextRequest)
+        setNeutralPickerOpen(true)
+      } else {
+        setOpen(true)
+        setSelectedAccount(null)
+        void hydrate(nextRequest)
+      }
     }
 
     window.addEventListener(COMMUNICATION_COMPOSER_EVENT, handleOpen)
@@ -915,6 +987,7 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       setSelectedAccount(null)
       setRequest({ origin: "global" })
       setOutputKind("written_message")
+      setNeutralDraft(null)
     }
   }
 
@@ -946,6 +1019,10 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     })
   }
 
+  const summary = useMemo(() => {
+    return getBriefSummary(currentBrief)
+  }, [currentBrief])
+
   const drawerProps: DrawerVariantProps = {
     open,
     onOpenChange: handleOpenChange,
@@ -959,11 +1036,23 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
     instanceKey,
     outputKind,
     onOutputKindChange: setOutputKind,
+    summary,
+    onBriefChange: setCurrentBrief,
   }
 
-  return device === "mobile" ? (
-    <MobileCommunicationDrawer {...drawerProps} />
-  ) : (
-    <DesktopCommunicationDrawer {...drawerProps} />
+  return (
+    <>
+      {device === "mobile" ? (
+        <MobileCommunicationDrawer {...drawerProps} />
+      ) : (
+        <DesktopCommunicationDrawer {...drawerProps} />
+      )}
+      <NeutralCommunicationLaunchModal
+        open={neutralPickerOpen}
+        onOpenChange={setNeutralPickerOpen}
+        onComplete={handleNeutralModalComplete}
+        device={device}
+      />
+    </>
   )
 }
