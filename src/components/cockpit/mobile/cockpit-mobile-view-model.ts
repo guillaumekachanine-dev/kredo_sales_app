@@ -1,4 +1,3 @@
-import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
@@ -124,7 +123,6 @@ function parseFrenchDateToCompact(label: string): string {
 }
 
 export function buildCockpitMobileViewModel(
-  data: CockpitDashboardData,
   staffingData: StaffingDashboardData,
   syntheseData: SyntheseData,
   calendarEvents: AgendaEvent[]
@@ -366,8 +364,7 @@ export function buildCockpitMobileViewModel(
     priorities.push(...defaultPriorities)
   }
 
-  // Count active staffingAlerts
-  const alertCount = data.staffingAlerts.length || 3
+  const alertCount = staffingData.priorities.length
 
   return {
     header: {
@@ -390,4 +387,3 @@ export function buildCockpitMobileViewModel(
     },
   }
 }
-

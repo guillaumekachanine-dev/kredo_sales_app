@@ -1,5 +1,5 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { getCockpitDashboardData } from "@/lib/cockpit/cockpit-data"
+import { getCockpitDesktopSnapshot } from "@/lib/cockpit/cockpit-desktop-data"
 import { getStaffingDashboardData } from "@/lib/staffing/staffing-data"
 import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { getAgendaEvents } from "@/lib/agenda/agenda-actions"
@@ -7,15 +7,15 @@ import { CockpitDesktopDashboard } from "./CockpitDesktopDashboard"
 import { CockpitMobileDashboard } from "./CockpitMobileDashboard"
 import { getWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/get-workspace-diagnostic"
 
-// Server Component: sniffs device and loads dataset in parallel (ADR-0006)
+// Server Component: selects the device branch before loading branch-specific data (ADR-0006).
 export async function SyntheseCockpitSection() {
-  const [device, data, diagnostic] = await Promise.all([
-    getDashboardDevice(),
-    getCockpitDashboardData(),
-    getWorkspaceDiagnostic(),
-  ])
+  const device = await getDashboardDevice()
 
   if (device === "desktop") {
+    const [data, diagnostic] = await Promise.all([
+      getCockpitDesktopSnapshot(),
+      getWorkspaceDiagnostic(),
+    ])
     return <CockpitDesktopDashboard data={data} diagnostic={diagnostic} />
   }
 
@@ -30,15 +30,15 @@ export async function SyntheseCockpitSection() {
   friday.setDate(monday.getDate() + 4)
   friday.setHours(23, 59, 59, 999)
 
-  const [staffingData, syntheseData, calendarEvents] = await Promise.all([
+  const [staffingData, syntheseData, calendarEvents, diagnostic] = await Promise.all([
     getStaffingDashboardData(),
     getSyntheseData(),
     getAgendaEvents(monday.toISOString(), friday.toISOString()),
+    getWorkspaceDiagnostic(),
   ])
 
   return (
     <CockpitMobileDashboard
-      data={data}
       staffingData={staffingData}
       syntheseData={syntheseData}
       calendarEvents={calendarEvents}

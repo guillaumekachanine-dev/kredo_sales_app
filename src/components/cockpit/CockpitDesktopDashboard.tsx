@@ -10,9 +10,9 @@ import { DiagnosticSection } from "@/components/intelligence/diagnostic/Diagnost
 import "./cockpit-desktop.css"
 
 import type {
-  CockpitDashboardData,
+  CockpitDesktopSnapshot,
   CockpitStatus,
-} from "@/lib/cockpit/cockpit-data"
+} from "@/lib/cockpit/cockpit-desktop-types"
 import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/workspace-diagnostic-types"
 
 function deltaTone(status: CockpitStatus): "positive" | "negative" | "neutral" {
@@ -21,7 +21,8 @@ function deltaTone(status: CockpitStatus): "positive" | "negative" | "neutral" {
   return "neutral"
 }
 
-function euroTick(value: number) {
+function euroTick(value: number | null) {
+  if (value === null || !Number.isFinite(value)) return "—"
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} M€`
   return `${Math.round(value / 1_000)} k€`
 }
@@ -32,16 +33,13 @@ function RevenueTrajectory({
   ytdRevenueTarget,
   ytdMarginActual,
   ytdMarginTarget,
-}: CockpitDashboardData["trajectory"]) {
+}: CockpitDesktopSnapshot["trajectory"]) {
   const width = 640
   const height = 260
   const paddingX = 28
   const paddingTop = 20
   const paddingBottom = 30
-  const maxRevenue = Math.max(
-    ...points.map((point) => Math.max(point.revenueActual ?? 0, point.revenueTarget)),
-    1,
-  )
+  const maxRevenue = Math.max(...points.map((point) => Math.max(point.revenueActual ?? 0, point.revenueTarget)), 1)
 
   const xFor = (index: number) =>
     paddingX + (index * (width - paddingX * 2)) / Math.max(1, points.length - 1)
@@ -62,8 +60,10 @@ function RevenueTrajectory({
     })
     .join(" ")
 
-  const delta = ytdRevenueActual - ytdRevenueTarget
-  const deltaLabel = `${delta >= 0 ? "+" : ""}${euroTick(delta)}`
+  const delta = ytdRevenueActual !== null && ytdRevenueTarget !== null
+    ? ytdRevenueActual - ytdRevenueTarget
+    : null
+  const deltaLabel = delta === null ? "Données en attente" : `${delta >= 0 ? "+" : ""}${euroTick(delta)}`
 
   return (
     <SurfaceCard className="h-full">
@@ -79,7 +79,7 @@ function RevenueTrajectory({
           </div>
           <StatusPill
             label={deltaLabel}
-            variant={delta >= 0 ? "success" : "warning"}
+            variant={delta !== null && delta >= 0 ? "success" : "warning"}
           />
         </div>
 
@@ -168,7 +168,7 @@ function RevenueTrajectory({
             <p className="mt-2 text-2xl font-bold text-heading">
               {ytdMarginActual !== null ? `${ytdMarginActual.toFixed(1)}%` : "—"}
             </p>
-            <p className="mt-1 text-sm text-body">cible {ytdMarginTarget}%</p>
+            {ytdMarginTarget !== null ? <p className="mt-1 text-sm text-body">cible {ytdMarginTarget}%</p> : null}
           </div>
         </div>
       </div>
@@ -178,8 +178,11 @@ function RevenueTrajectory({
 
 function RailSummary({
   accounts,
-  financeWatch,
-}: Pick<CockpitDashboardData, "accounts" | "financeWatch">) {
+  alerts,
+}: {
+  accounts: CockpitDesktopSnapshot["accountsToAnimate"]
+  alerts: CockpitDesktopSnapshot["alerts"]
+}) {
   return (
     <div className="flex flex-col gap-4">
       <SurfaceCard>
@@ -195,32 +198,75 @@ function RailSummary({
           <div className="flex flex-col gap-3">
             {accounts.map((item) => (
               <Link
-                key={item.id}
-                href={`/prospection/accounts/${item.id}`}
+                key={item.companyId}
+                href={item.primaryAction.href}
                 className="rounded-[var(--radius-large)] border border-border bg-canvas/55 p-4 transition-colors hover:bg-surface-hover kredo-rail-account"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-heading">{item.name}</p>
+                    <p className="text-sm font-semibold text-heading">{item.companyName}</p>
                     <p className="mt-1 text-sm text-body">{item.sector}</p>
                   </div>
-                  <StatusPill label={item.scoreLabel} variant="info" />
+                  {item.scoreLabel ? <StatusPill label={item.scoreLabel} variant="info" /> : null}
                 </div>
-                <p className="mt-3 text-sm text-body">{item.lifecycleLabel}</p>
+                <p className="mt-3 text-sm text-body">{item.reasonLabel}</p>
+                {item.exposureLabel ? <p className="mt-1 text-xs text-muted">{item.exposureLabel}</p> : null}
               </Link>
             ))}
           </div>
         </div>
       </SurfaceCard>
 
-      {financeWatch.length > 0 ? (
+      {alerts.length > 0 ? (
         <AlertBlock
-          variant="warning"
-          title="Facturation à surveiller"
-          description={`${financeWatch[0].clientName} · ${financeWatch[0].detail} · ${financeWatch[0].valueLabel}`}
-          href="/finance"
+          variant={alerts[0].status === "danger" ? "danger" : "warning"}
+          title="Alerte opérationnelle"
+          description={`${alerts[0].title}${alerts[0].detail ? ` · ${alerts[0].detail}` : ""}`}
+          href={alerts[0].action.href}
         />
       ) : null}
+    </div>
+  )
+}
+
+function ExecutionOverview({
+  today,
+  horizons,
+  alerts,
+}: Pick<CockpitDesktopSnapshot, "today" | "horizons" | "alerts">) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      <SurfaceCard>
+        <div className="p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Aujourd’hui</p>
+          <h2 className="mt-2 text-lg font-semibold text-heading">Engagements importants</h2>
+          <div className="mt-4 space-y-3">
+            {today.length ? today.map((item) => (
+              <Link key={item.id} href={item.action.href} className="block border-b border-border pb-3 last:border-0 last:pb-0 hover:text-primary">
+                <p className="text-sm font-semibold text-heading">{item.moment ? `${item.moment} · ` : ""}{item.title}</p>
+                {item.detail ? <p className="mt-1 text-sm text-body">{item.detail}</p> : null}
+              </Link>
+            )) : <p className="text-sm text-body">Aucun engagement important planifié.</p>}
+          </div>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <div className="p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Horizon</p>
+          <h2 className="mt-2 text-lg font-semibold text-heading">30 / 60 / 90 jours</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {horizons.map((horizon) => (
+              <div key={horizon.days} className="border-l border-border pl-3 first:border-l-0 first:pl-0">
+                <p className="text-sm font-semibold text-heading">{horizon.label}</p>
+                <p className="mt-1 text-sm text-body">{horizon.items.length} échéance{horizon.items.length > 1 ? "s" : ""}</p>
+                {horizon.items[0] ? <Link href={horizon.items[0].action.href} className="mt-2 block text-xs text-primary hover:underline">{horizon.items[0].label}</Link> : null}
+              </div>
+            ))}
+          </div>
+          {alerts.length ? <p className="mt-4 text-sm text-body">{alerts.length} alerte{alerts.length > 1 ? "s" : ""} opérationnelle{alerts.length > 1 ? "s" : ""} à traiter.</p> : null}
+        </div>
+      </SurfaceCard>
     </div>
   )
 }
@@ -229,7 +275,7 @@ export function CockpitDesktopDashboard({
   data,
   diagnostic,
 }: {
-  data: CockpitDashboardData
+  data: CockpitDesktopSnapshot
   diagnostic: WorkspaceDiagnosticSnapshot | null
 }) {
   return (
@@ -264,21 +310,24 @@ export function CockpitDesktopDashboard({
               label={kpi.label}
               value={kpi.value}
               context={kpi.detail}
-              delta={kpi.trendBadge}
+              delta={undefined}
               deltaTone={deltaTone(kpi.status)}
-              accent={kpi.id === "c-weighted-pipe" ? "brass" : "none"}
+              accent={kpi.id === "weighted-pipeline" ? "brass" : "none"}
             />
           ))}
         </div>
       }
       rail={
         <RailSummary
-          accounts={data.accounts}
-          financeWatch={data.financeWatch}
+          accounts={data.accountsToAnimate}
+          alerts={data.alerts}
         />
       }
     >
-      <RevenueTrajectory {...data.trajectory} />
+      <div className="space-y-4">
+        <RevenueTrajectory {...data.trajectory} />
+        <ExecutionOverview today={data.today} horizons={data.horizons} alerts={data.alerts} />
+      </div>
     </DesktopAnalyticalPage>
   )
 }

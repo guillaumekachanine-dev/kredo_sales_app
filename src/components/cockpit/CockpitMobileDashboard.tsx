@@ -20,7 +20,6 @@ import { CockpitProspectionCard } from "./mobile/CockpitProspectionCard"
 import { CockpitQuickActionsSheet } from "./mobile/CockpitQuickActionsSheet"
 import { CockpitContextSheet, ContextSheetKind } from "./mobile/CockpitContextSheet"
 
-import type { CockpitDashboardData } from "@/lib/cockpit/cockpit-data"
 import type { StaffingDashboardData } from "@/lib/staffing/staffing-data"
 import type { SyntheseData } from "@/lib/prospection/synthese-data"
 import type { AgendaEvent } from "@/lib/agenda/agenda-types"
@@ -33,7 +32,6 @@ import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/
 import "./mobile/cockpit-mobile.css"
 
 interface CockpitMobileDashboardProps {
-  data: CockpitDashboardData
   staffingData: StaffingDashboardData
   syntheseData: SyntheseData
   calendarEvents: AgendaEvent[]
@@ -41,7 +39,6 @@ interface CockpitMobileDashboardProps {
 }
 
 export function CockpitMobileDashboard({
-  data,
   staffingData,
   syntheseData,
   calendarEvents,
@@ -51,8 +48,8 @@ export function CockpitMobileDashboard({
 
   // 1. Build View Model
   const vm = useMemo(
-    () => buildCockpitMobileViewModel(data, staffingData, syntheseData, calendarEvents),
-    [data, staffingData, syntheseData, calendarEvents]
+    () => buildCockpitMobileViewModel(staffingData, syntheseData, calendarEvents),
+    [staffingData, syntheseData, calendarEvents]
   )
 
   // 2. States
