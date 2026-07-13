@@ -23,6 +23,7 @@ import {
   getPitchBriefLabel,
 } from "@/components/reports/document-display"
 import { cn } from "@/lib/utils"
+import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
 
 interface CompanyDocumentsModalProps {
   open: boolean
@@ -640,53 +641,28 @@ export function CompanyDocumentsModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-md animate-in fade-in duration-200">
-      <div
-        className={cn(
-          "bg-[#0f122c] border border-white/10 text-white shadow-2xl flex flex-col overflow-hidden",
-          isMobile
-            ? "fixed inset-0 rounded-none w-full h-full"
-            : "rounded-3xl w-full max-w-5xl h-[80vh] max-h-[750px]"
-        )}
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/5 px-6 py-4">
-          <div className="flex items-center gap-2">
-            {step !== "categories" && (
-              <button
-                onClick={handleBack}
-                className="flex items-center justify-center size-9 rounded-lg hover:bg-white/5 text-muted hover:text-white transition-colors cursor-pointer"
-                aria-label="Retour"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                </svg>
-              </button>
-            )}
-            <div>
-              <h2 className="font-heading text-lg font-bold leading-tight">
-                {step === "categories"
-                  ? "Consulter les documents"
-                  : step === "list"
-                  ? getCategoryLabel(activeCategory!)
-                  : selectedDoc?.title}
-              </h2>
-              <p className="text-xs text-muted leading-tight mt-0.5">{companyName}</p>
-            </div>
-          </div>
-
+    <>
+      <IntelligenceSplitModalShell
+        open={open}
+        onClose={handleClose}
+        isMobile={isMobile}
+        title={step === "categories" ? "Consulter les documents" : step === "list" ? getCategoryLabel(activeCategory!) : selectedDoc?.title ?? "Consulter les documents"}
+        subtitle={companyName}
+        leftPane={null}
+        rightPane={null}
+        headerActions={step !== "categories" ? (
           <button
-            onClick={handleClose}
-            className="flex items-center justify-center size-9 rounded-lg hover:bg-white/5 text-muted hover:text-white transition-colors cursor-pointer"
-            aria-label="Fermer la modale"
+            type="button"
+            onClick={handleBack}
+            className="flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-white/5 hover:text-white"
+            aria-label="Retour"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
-        </div>
-
-        {/* Modal Body */}
+        ) : null}
+        content={(
         <div className="flex-1 overflow-hidden relative">
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -1008,7 +984,8 @@ export function CompanyDocumentsModal({
             </div>
           )}
         </div>
-      </div>
+        )}
+      />
       <ConfirmDialog
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
@@ -1020,6 +997,6 @@ export function CompanyDocumentsModal({
         onConfirm={handleDeleteDocument}
         isLoading={deletePending}
       />
-    </div>
+    </>
   )
 }

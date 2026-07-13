@@ -1,16 +1,13 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
-import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { automationsDashboardConfig } from "@/lib/dashboard/configs/automations-dashboard.config"
-import { mockAutomationsDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { Suspense } from "react"
+import { AutomationsSection } from "@/components/automations"
+import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 
-export default async function AutomationsPage() {
-  const device = await getDashboardDevice()
+export const dynamic = "force-dynamic"
 
+export default function AutomationsPage() {
   return (
-    <SectionDashboardTemplate
-      device={device}
-      config={automationsDashboardConfig}
-      data={mockAutomationsDashboardData}
-    />
+    <Suspense fallback={<DashboardSkeleton />}>
+      <AutomationsSection />
+    </Suspense>
   )
 }

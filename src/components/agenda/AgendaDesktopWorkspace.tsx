@@ -1,13 +1,12 @@
 "use client"
 
 import React, { useMemo, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
-import { IconButton } from "@/components/ui/IconButton"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { useEventDrawerStore } from "@/hooks/use-event-drawer-store"
-import type { AgendaGroupedItem, AgendaItem, AgendaSnapshot, ScheduledEventItem } from "@/lib/agenda/agenda-types"
+import type { AgendaItem, AgendaSnapshot } from "@/lib/agenda/agenda-types"
 import { getTodayDateKey } from "@/lib/agenda/agenda-temporal"
 import { AgendaEventDrawer } from "./AgendaEventDrawer"
 import { AgendaPrioritiesAndDeadlines } from "./AgendaPrioritiesAndDeadlines"
@@ -17,16 +16,19 @@ import { AgendaTimeGrid } from "./AgendaTimeGrid"
 import { AgendaToolbar } from "./AgendaToolbar"
 import {
   buildAgendaToolbarHref,
-  formatAgendaRangeShortLabel,
   isAgendaGroupHidden,
   resolveAgendaDesktopInteraction,
-  type AgendaAllDayPlacement,
   type AgendaDesktopPresentation,
   type AgendaScheduledPlacement,
 } from "./agenda-desktop-model"
 import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
 import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+
+const CommercialActivityModal = dynamic(
+  () => import("@/features/commercial-activity/CommercialActivityModal").then((module) => module.CommercialActivityModal),
+  { ssr: false },
+)
 
 interface AgendaDesktopWorkspaceProps {
   snapshot: AgendaSnapshot
@@ -163,87 +165,7 @@ export function AgendaDesktopWorkspace({
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [optimisticStatus, setOptimisticStatus] = useState<Record<string, "completed" | "pending">>({})
   const [createTaskItem, setCreateTaskItem] = useState<AgendaItem | null>(null)
-
-  // ── Calculs dynamiques pour les 4 KPIs Activité ──
-  const dbEvents = useMemo(() => {
-    return snapshot.items.filter(
-      (item) => item.type === "scheduled_event" && item.sourceType === "calendar_event"
-    ) as ScheduledEventItem[]
-  }, [snapshot.items])
-
-  const getEventCategory = (item: ScheduledEventItem) => {
-    const type = item.eventType
-    if (["sourcing_candidats", "entretien_candidat", "preparation_candidat"].includes(type)) {
-      return "recrutement"
-    }
-    if (["appel_prospection", "rdv_prospection", "mailing_prospection"].includes(type)) {
-      return "prospection"
-    }
-    if (["rdv_client_suivi", "appel_qualification", "suivi_mission_client"].includes(type)) {
-      return "foisonnement"
-    }
-    if (["soutenance", "atelier_client", "presentation_rt"].includes(type)) {
-      const hasOpportunity = item.relatedLinks.some(link => link.href.includes("/missions/opps/"))
-      if (hasOpportunity) return "prospection"
-      return "foisonnement"
-    }
-    if (["suivi_mission_collab", "ead_collab", "entretien_rh", "preparation_collab"].includes(type)) {
-      return "foisonnement"
-    }
-    return "foisonnement"
-  }
-
-  const {
-    totalEvents,
-    foisonnementCount,
-    prospectionCount,
-    recrutementCount,
-    totalCategorized,
-    fPct,
-    pPct,
-    rPct,
-    needsTreated,
-    displayDeals,
-    displayRecrutements
-  } = useMemo(() => {
-    const totalEvents = dbEvents.length
-    const foisonnementCount = dbEvents.filter(e => getEventCategory(e) === "foisonnement").length
-    const prospectionCount = dbEvents.filter(e => getEventCategory(e) === "prospection").length
-    const recrutementCount = dbEvents.filter(e => getEventCategory(e) === "recrutement").length
-    const totalCategorized = foisonnementCount + prospectionCount + recrutementCount
-
-    const fPct = totalCategorized > 0 ? (foisonnementCount / totalCategorized) * 100 : 0
-    const pPct = totalCategorized > 0 ? (prospectionCount / totalCategorized) * 100 : 0
-    const rPct = totalCategorized > 0 ? (recrutementCount / totalCategorized) * 100 : 0
-
-    const needsTreated = dbEvents.filter(e => e.relatedLinks.some(link => link.href.includes("/missions/opps/"))).length
-
-    const signedDeals = dbEvents.filter(e =>
-      e.businessStatus === "completed" &&
-      (e.title.toLowerCase().includes("sign") || e.title.toLowerCase().includes("contrat") || e.title.toLowerCase().includes("closing") || e.title.toLowerCase().includes("gagné"))
-    ).length
-
-    const recruitmentsCompleted = dbEvents.filter(e =>
-      e.eventType === "entretien_candidat" && e.businessStatus === "completed"
-    ).length
-
-    const displayDeals = signedDeals > 0 ? signedDeals : 1
-    const displayRecrutements = recruitmentsCompleted > 0 ? recruitmentsCompleted : 2
-
-    return {
-      totalEvents,
-      foisonnementCount,
-      prospectionCount,
-      recrutementCount,
-      totalCategorized,
-      fPct,
-      pPct,
-      rPct,
-      needsTreated,
-      displayDeals,
-      displayRecrutements
-    }
-  }, [dbEvents])
+  const [commercialActivityOpen, setCommercialActivityOpen] = useState(false)
 
   const optimisticPresentation = useMemo(
     () => applyOptimisticStatusToPresentation(presentation, optimisticStatus),
@@ -280,10 +202,6 @@ export function AgendaDesktopWorkspace({
     }
 
     setSelectedItemId(interaction.itemId)
-  }
-
-  const handleGroupSelection = (group: AgendaGroupedItem) => {
-    handleItemSelection(group.primaryItem)
   }
 
   const handleHideForSession = (itemId: string) => {
@@ -411,6 +329,15 @@ export function AgendaDesktopWorkspace({
               </Button>
 
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setCommercialActivityOpen(true)}
+                className="shadow-none cursor-pointer"
+              >
+                Activité commerciale
+              </Button>
+
+              <Button
                 variant="primary"
                 size="sm"
                 onClick={() => setCreateDrawerOpen(true)}
@@ -425,127 +352,6 @@ export function AgendaDesktopWorkspace({
             <AgendaPartialDataNotice sources={displayedPresentation.partialErrorSources} />
           ) : null}
 
-          {/* ── Section : KPIs Activité (remontée sous le Header) ─────────────────── */}
-          <div className="grid grid-cols-4 gap-4 select-none">
-            {/* Carte 1 : Total événements semaine */}
-            <SurfaceCard className="p-4 min-h-[90px] flex flex-col justify-between border-l-4 border-l-primary">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Activité Hebdomadaire</span>
-                <span className="text-[11px] font-semibold text-body">Total événements</span>
-              </div>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-extrabold text-heading tracking-tight">{totalEvents}</span>
-                <span className="text-[9px] text-muted font-medium">réalisés ou planifiés</span>
-              </div>
-            </SurfaceCard>
-
-            {/* Carte 2 : Répartition par activité */}
-            <SurfaceCard className="p-4 min-h-[90px] flex items-center justify-between gap-3">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Catégorisation</span>
-                <span className="text-[11px] font-semibold text-body truncate">Répartition par activité</span>
-                <div className="flex flex-col gap-0.5 mt-1 text-[8px] font-medium text-body">
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                    <span className="truncate">Foisonnement : <span className="font-bold text-heading">{foisonnementCount}</span></span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span className="truncate">Prospection : <span className="font-bold text-heading">{prospectionCount}</span></span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                    <span className="truncate">Recrutement : <span className="font-bold text-heading">{recrutementCount}</span></span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Donut Chart SVG (compact) */}
-              <div className="relative w-12 h-12 shrink-0 flex items-center justify-center">
-                <svg className="w-12 h-12 -rotate-90" viewBox="0 0 42 42">
-                  <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border)" strokeWidth="6" className="opacity-30" />
-                  {totalCategorized === 0 ? (
-                    <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="var(--border)" strokeWidth="6" />
-                  ) : (
-                    <>
-                      {fPct > 0 && (
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#6366f1"
-                          strokeWidth="6"
-                          strokeDasharray={`${fPct} ${100 - fPct}`}
-                          strokeDashoffset="0"
-                        />
-                      )}
-                      {pPct > 0 && (
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#10b981"
-                          strokeWidth="6"
-                          strokeDasharray={`${pPct} ${100 - pPct}`}
-                          strokeDashoffset={-fPct}
-                        />
-                      )}
-                      {rPct > 0 && (
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#f59e0b"
-                          strokeWidth="6"
-                          strokeDasharray={`${rPct} ${100 - rPct}`}
-                          strokeDashoffset={-(fPct + pPct)}
-                        />
-                      )}
-                    </>
-                  )}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[9px] font-extrabold text-heading">{totalCategorized}</span>
-                  <span className="text-[6px] text-muted uppercase">act.</span>
-                </div>
-              </div>
-            </SurfaceCard>
-
-            {/* Carte 3 : Besoins traités */}
-            <SurfaceCard className="p-4 min-h-[90px] flex flex-col justify-between border-l-4 border-l-sky-400">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Opportunités</span>
-                <span className="text-[11px] font-semibold text-body">Besoins traités</span>
-              </div>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-extrabold text-sky-500 tracking-tight">{needsTreated}</span>
-                <span className="text-[9px] text-muted font-medium">reliés à un événement</span>
-              </div>
-            </SurfaceCard>
-
-            {/* Carte 4 : Signatures */}
-            <SurfaceCard className="p-4 min-h-[90px] flex flex-col justify-between border-l-4 border-l-emerald-500">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Conversions</span>
-                <span className="text-[11px] font-semibold text-body">Signatures</span>
-              </div>
-              <div className="flex flex-col gap-0.5 mt-1">
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted font-medium">Deals signés</span>
-                  <span className="font-extrabold text-heading text-xs">{displayDeals}</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted font-medium">Recrutements</span>
-                  <span className="font-extrabold text-heading text-xs">{displayRecrutements}</span>
-                </div>
-              </div>
-            </SurfaceCard>
-          </div>
-
-          {/* ── Section des Filtres (déplacée sous les KPIs) ───────────────────── */}
           <AgendaToolbar
             route={displayedPresentation.route}
             filterOptions={displayedPresentation.filterOptions}
@@ -642,6 +448,7 @@ export function AgendaDesktopWorkspace({
           router.refresh()
         }}
       />
+      {commercialActivityOpen ? <CommercialActivityModal open={commercialActivityOpen} onClose={() => setCommercialActivityOpen(false)} /> : null}
     </>
   )
 }

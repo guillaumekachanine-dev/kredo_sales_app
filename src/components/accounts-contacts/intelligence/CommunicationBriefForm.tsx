@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
@@ -187,8 +187,40 @@ function useFieldClasses(isMobile: boolean) {
     isMobile ? "h-9 text-[10px]" : "h-7 text-[10px]"
   )
   const textareaCls =
-    "w-full rounded-lg border border-border/35 bg-surface/20 px-2.5 py-1.5 text-[10px] font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[44px]"
+    "w-full rounded-lg border border-border/35 bg-surface/20 px-2.5 py-1.5 text-[10px] font-medium text-white transition-all duration-150 hover:bg-surface/30 focus:bg-surface/40 focus:border-primary/60 focus:outline-none focus:ring-0 min-h-[44px] resize-none [field-sizing:content]"
   return { selectCls, textareaCls }
+}
+
+/** Textarea that auto-grows to fit its content.
+ *  Uses CSS `field-sizing: content` (Chrome 123+, Firefox 132+) and a JS
+ *  fallback for Safari which doesn't support it yet. */
+function AutoTextarea(props: React.ComponentProps<"textarea">) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const resize = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    // Only run the JS fallback when CSS field-sizing is NOT supported
+    if ("fieldSizing" in el.style) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [])
+
+  // Sync height on mount and when the value prop changes
+  useEffect(() => {
+    resize()
+  }, [props.value, resize])
+
+  return (
+    <textarea
+      {...props}
+      ref={ref}
+      onInput={(e) => {
+        resize()
+        props.onInput?.(e)
+      }}
+    />
+  )
 }
 
 function ParameterRow({
@@ -1044,7 +1076,7 @@ export function CommunicationBriefForm({
   ) : null
 
   const fieldMustInclude = (
-    <textarea
+    <AutoTextarea
       value={brief.context.mustInclude || ""}
       onChange={(e) => updateContext({ mustInclude: e.target.value })}
       placeholder="Instructions, faits ou arguments que le message doit contenir…"
@@ -1053,7 +1085,7 @@ export function CommunicationBriefForm({
   )
 
   const fieldMustExclude = (
-    <textarea
+    <AutoTextarea
       value={brief.context.mustExclude || ""}
       onChange={(e) => updateContext({ mustExclude: e.target.value })}
       placeholder="Sujets, noms ou projets à exclure du message…"
