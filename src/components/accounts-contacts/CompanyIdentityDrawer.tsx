@@ -637,13 +637,15 @@ export function CompanyIdentityDrawer({
                 style={{ backgroundColor: "#1E5E99" }}
                 title="Scanner les informations du compte"
               >
-                <Image
-                  src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 shrink-0 object-contain"
-                />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+                  <Image
+                    src="/icons_set/scan_infos_drawer.png"
+                    alt=""
+                    width={13}
+                    height={13}
+                    className="h-[13px] w-[13px] object-contain"
+                  />
+                </span>
                 <span>Scan</span>
               </button>
 
@@ -654,13 +656,15 @@ export function CompanyIdentityDrawer({
                 style={{ backgroundColor: "#1E5E99" }}
                 title="Ouvrir la veille du compte"
               >
-                <Image
-                  src="/icons_set/cockpit_intelligence/AI_veille.png"
-                  alt=""
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 shrink-0 object-contain"
-                />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+                  <Image
+                    src="/icons_set/intel_actualite_client.png"
+                    alt=""
+                    width={13}
+                    height={13}
+                    className="h-[13px] w-[13px] object-contain"
+                  />
+                </span>
                 <span>Veille</span>
               </button>
 

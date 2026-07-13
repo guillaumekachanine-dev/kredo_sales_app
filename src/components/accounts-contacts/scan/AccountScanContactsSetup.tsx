@@ -7,14 +7,8 @@ import { clampMaxContacts, type AccountScanContactsSetupValues } from "./account
 
 const ROLE_OPTIONS = [
   "Direction générale",
-  "DSI / Direction IT",
-  "Data / IA",
-  "Infrastructure / Cloud",
-  "Cybersécurité",
+  "IT",
   "Achats",
-  "Ressources humaines",
-  "Transformation",
-  "Direction métier",
 ]
 
 interface AccountScanContactsSetupProps {
@@ -33,7 +27,7 @@ export function AccountScanContactsSetup({
   onBackToInformation,
 }: AccountScanContactsSetupProps) {
   const [contactMode, setContactMode] = useState<Exclude<AccountScanContactMode, "none">>("identify")
-  const [requestedRoles, setRequestedRoles] = useState<string[]>(["Direction générale", "DSI / Direction IT"])
+  const [requestedRoles, setRequestedRoles] = useState<string[]>(["Direction générale", "IT"])
   const [maxContacts, setMaxContacts] = useState(5)
 
   function toggleRole(role: string) {
@@ -53,20 +47,13 @@ export function AccountScanContactsSetup({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-heading text-base font-bold text-heading">Recherche contacts — {companyName}</h2>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-body">
-          Identifie des contacts publics ou vérifie les contacts déjà rattachés au compte. Les résultats restent en revue avant import CRM.
-        </p>
-      </div>
-
       <fieldset className="space-y-2">
         <legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted">
           Mode contacts
         </legend>
         {[
-          { value: "identify" as const, label: "Identifier de nouveaux contacts", hint: "Recherche des interlocuteurs publics non encore rattachés." },
-          { value: "confirm" as const, label: "Vérifier les contacts existants", hint: "Contrôle les contacts connus et propose des compléments sourcés." },
+          { value: "identify" as const, label: "Identifier de nouveaux contacts" },
+          { value: "confirm" as const, label: "Vérifier les contacts existants" },
         ].map((option) => (
           <label
             key={option.value}
@@ -87,7 +74,6 @@ export function AccountScanContactsSetup({
             />
             <span className="min-w-0">
               <span className="block text-xs font-bold text-heading">{option.label}</span>
-              <span className="mt-0.5 block text-[11px] leading-relaxed text-muted">{option.hint}</span>
             </span>
           </label>
         ))}

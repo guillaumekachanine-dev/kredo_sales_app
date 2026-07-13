@@ -65,38 +65,60 @@ const FALLBACK_RECHECK_DELAY_MS = 20000
 
 function StepIndicator({
   phase,
+  companyName,
   onInformation,
   onContacts,
 }: {
   phase: Phase
+  companyName: string
   onInformation: () => void
   onContacts: () => void
 }) {
   const active = phase.startsWith("contacts") ? "contacts" : "information"
 
   return (
-    <div className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-[11px] font-bold">
-      <button
-        type="button"
-        onClick={onInformation}
-        className={cn(
-          "rounded-full border px-2.5 py-1 transition-colors",
-          active === "information" ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted hover:text-heading"
-        )}
-      >
-        1. Informations
-      </button>
-      <span className="text-muted">→</span>
-      <button
-        type="button"
-        onClick={onContacts}
-        className={cn(
-          "rounded-full border px-2.5 py-1 transition-colors",
-          active === "contacts" ? "border-primary bg-primary/10 text-primary" : "border-border bg-surface text-muted hover:text-heading"
-        )}
-      >
-        2. Contacts
-      </button>
+    <div className="flex flex-col gap-2">
+      {/* Titre dynamique */}
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+        Scan rapide — {active === "contacts" ? `Contacts · ${companyName}` : `Informations · ${companyName}`}
+      </p>
+      {/* Boutons mode */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onInformation}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:brightness-105 active:scale-[0.98]",
+            active === "information"
+              ? "text-white"
+              : "border border-border bg-surface text-muted hover:text-heading"
+          )}
+          style={active === "information" ? { backgroundColor: "#1C40A3" } : undefined}
+        >
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons_set/scan_infos_drawer.png" alt="" width={13} height={13} className="h-[13px] w-[13px] object-contain" />
+          </span>
+          Informations
+        </button>
+        <button
+          type="button"
+          onClick={onContacts}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:brightness-105 active:scale-[0.98]",
+            active === "contacts"
+              ? "text-white"
+              : "border border-border bg-surface text-muted hover:text-heading"
+          )}
+          style={active === "contacts" ? { backgroundColor: "#1C40A3" } : undefined}
+        >
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons_set/AI_scan_contact.png" alt="" width={13} height={13} className="h-[13px] w-[13px] object-contain" />
+          </span>
+          Contacts
+        </button>
+      </div>
     </div>
   )
 }
@@ -676,15 +698,17 @@ export function AccountScanDialog({
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Scan rapide"
+      title={
+        <StepIndicator
+          phase={phase}
+          companyName={company.name}
+          onInformation={handleGoToInformationReview}
+          onContacts={handleGoToContactsSetup}
+        />
+      }
       className={wide && !isMobile ? "max-w-5xl" : "max-w-lg"}
       bodyClassName={wide ? "text-xs" : undefined}
     >
-      <StepIndicator
-        phase={phase}
-        onInformation={handleGoToInformationReview}
-        onContacts={handleGoToContactsSetup}
-      />
       {body}
     </AppDialog>
   )

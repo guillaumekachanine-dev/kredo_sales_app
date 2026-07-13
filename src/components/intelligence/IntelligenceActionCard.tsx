@@ -7,10 +7,12 @@ import { useIntelligenceContext, type IntelligenceEntityContext } from "@/hooks/
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { cockpitIconForAction } from "./cockpit-action-icons"
+import { isDeterministicIntelligenceAction } from "./action-results/IntelligenceActionResultContent"
 
 interface IntelligenceActionCardProps {
   action: IntelligenceAction
   tone?: "dark" | "light"
+  onActionClick?: (actionId: string) => void
 }
 
 type CommunicationActionConfig = {
@@ -159,7 +161,7 @@ function buildCommunicationRequest(
   }
 }
 
-export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceActionCardProps) {
+export function IntelligenceActionCard({ action, tone = "dark", onActionClick }: IntelligenceActionCardProps) {
   const isDark = tone === "dark"
   const entityContext = useIntelligenceContext((state) => state.entityContext)
   const communicationRequest = buildCommunicationRequest(action, entityContext)
@@ -168,11 +170,17 @@ export function IntelligenceActionCard({ action, tone = "dark" }: IntelligenceAc
   const isActivityReport = action.id === "activity_report"
   const isWeeklyBrief = action.id === "weekly_brief"
   const isSupportedReportAction = isCommonReport || isActivityReport || isWeeklyBrief
-  const isInteractive = isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
+  const isDeterministicAction = isDeterministicIntelligenceAction(action.id)
+  const isInteractive = isDeterministicAction || isWriteEmail || isSupportedReportAction || Boolean(communicationRequest)
   const isComingSoon = action.status === "coming_soon" && !isInteractive
   const iconSrc = cockpitIconForAction(action.id, action.icon)
 
   function handleClick() {
+    if (isDeterministicAction) {
+      onActionClick?.(action.id)
+      return
+    }
+
     if (communicationRequest) {
       openCommunicationComposer(communicationRequest)
       return

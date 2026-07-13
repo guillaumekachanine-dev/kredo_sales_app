@@ -230,3 +230,27 @@ n'était déjà qu'importé de mémoire — à réimporter avec le JSON à jour)
 concurrent au niveau du run entier (toujours best-effort, cf. §"Risques restants" du Lot 1).
 Découverte automatique de site officiel toujours absente (fournisseur de recherche payant hors
 périmètre).
+
+## Correctif Monitoring IA Lot 1 (2026-07-13) — tokens/modèle jamais émis au callback
+
+**Bug trouvé lors de l'audit de coûts (ADR monitoring IA, Lot 0)** : `v_workflow_cost_stats`
+montrait `has_tokens_gap=true` pour ce workflow — `Prepare Callback` renvoyait un
+`modelUsed` **codé en dur** (`'claude-sonnet-5'`, même quand aucun appel LLM n'avait eu lieu)
+et n'émettait **jamais** `tokensInput`/`tokensOutput`, alors que `Parse & Validate LLM Output`
+extrayait pourtant correctement `llmUsage: { inputTokens, outputTokens, model }` depuis la
+réponse Claude. Le trou : `Reconcile & Prepare Writes` reconstruit un objet explicite (pas un
+spread de `ctx`) et laissait tomber `llmUsage` en route.
+
+**Corrigé** (2 nœuds) :
+- `Reconcile & Prepare Writes` : ajout de `llmUsage: ctx.llmUsage || null` dans l'objet retourné.
+- `Prepare Callback` : `modelProvider`/`modelUsed` dérivés de `recon.llmUsage` (plus jamais de
+  valeur fantôme quand aucun LLM n'a été appelé — cas de l'entité juridique non résolue) ;
+  `tokensInput`/`tokensOutput` ajoutés au `callbackBody`.
+
+**Validation** : simulation Node des deux branches (entité résolue → LLM appelé, tokens/modèle
+réels propagés jusqu'au callback ; entité non résolue/ambiguë → `llmUsage=null`,
+`tokensInput`/`tokensOutput`/`modelUsed`/`modelProvider` tous `null` au lieu du `modelUsed`
+fantôme précédent). `node --check` sur les 2 nœuds modifiés.
+
+**À réimporter sur le VPS n8n avec les autres correctifs en attente** — sans ce réimport,
+`v_workflow_cost_stats.has_tokens_gap` reste `true` pour ce workflow.

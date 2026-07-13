@@ -20,6 +20,11 @@ import { IconButton } from "@/components/ui/IconButton"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { PitchMailDrawerContent, SummaryDrawerContent } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import {
+  IntelligenceActionResultContent,
+  isDeterministicIntelligenceAction,
+  type DeterministicIntelligenceActionId,
+} from "./action-results/IntelligenceActionResultContent"
+import {
   applyCommunicationEntryPoint,
   buildDefaultBrief,
 } from "@/components/accounts-contacts/intelligence/communication-brief-options"
@@ -159,6 +164,7 @@ function AccountPanelContent() {
 
 function GenericEntityPanelContent() {
   const { entityContext } = useIntelligenceContext()
+  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
     entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
 
@@ -168,6 +174,26 @@ function GenericEntityPanelContent() {
   )
 
   if (!entityContext || !resolved || !nonCompanyType) return null
+
+  if (activeActionId) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setActiveActionId(null)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
+          <IntelligenceActionResultContent actionId={activeActionId} />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -188,7 +214,14 @@ function GenericEntityPanelContent() {
           <SectionHeading title="Actions" />
           <div className="grid grid-cols-2 gap-2">
             {resolved.contextualActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="dark"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </section>
@@ -205,7 +238,14 @@ function GenericEntityPanelContent() {
           </summary>
           <div className="grid grid-cols-2 gap-2">
             {resolved.commonActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="dark"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </details>
@@ -216,7 +256,28 @@ function GenericEntityPanelContent() {
 
 function RegistryPanelContent() {
   const pathname = usePathname()
+  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const resolved = useMemo(() => resolveIntelligenceActions(pathname), [pathname])
+
+  if (activeActionId) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setActiveActionId(null)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-fg/60 transition-colors hover:text-primary-fg"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+        <div data-theme="cockpit" className="rounded-lg border border-border bg-surface p-4">
+          <IntelligenceActionResultContent actionId={activeActionId} />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -225,7 +286,14 @@ function RegistryPanelContent() {
           <SectionHeading title={resolved.label} />
           <div className="grid grid-cols-2 gap-2">
             {resolved.contextualActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="dark"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </section>
@@ -249,7 +317,14 @@ function RegistryPanelContent() {
           </summary>
           <div className="grid grid-cols-2 gap-2">
             {resolved.commonActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="dark" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="dark"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </details>
@@ -304,7 +379,7 @@ export function IntelligencePanel() {
   return (
     <aside
       data-theme="cockpit"
-      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-[#484DF5] kredo-intelligence-panel"
+      className="h-full w-[var(--layout-intelligence-width)] shrink-0 overflow-y-auto border-l border-primary-fg/10 bg-primary kredo-intelligence-panel"
       aria-label="Cockpit Intelligence"
     >
       <div className="relative space-y-5 p-5">

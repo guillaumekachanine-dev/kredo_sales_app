@@ -153,7 +153,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Identifier les risques sur les opportunités et engagements actifs.",
     icon: "detect_risks",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   initiate_quote: {
     id: "initiate_quote",
@@ -209,7 +209,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Analyser les indicateurs d'activité et formuler des recommandations.",
     icon: "recommendations",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   forecast_availability: {
     id: "forecast_availability",
@@ -265,7 +265,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Recommander les actions les plus impactantes à mener cette semaine.",
     icon: "prioritize",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   pipeline_insights: {
     id: "pipeline_insights",
@@ -281,7 +281,7 @@ const ACTIONS: Record<string, IntelligenceAction> = {
     description: "Structurer les priorités et rendez-vous du jour.",
     icon: "prioritize",
     category: "contextual",
-    status: "coming_soon",
+    status: "active",
   },
   flag_unprepared_meetings: {
     id: "flag_unprepared_meetings",

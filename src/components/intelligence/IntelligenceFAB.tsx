@@ -27,6 +27,11 @@ import { AccountCombobox, type AccountValue } from "@/components/missions/Accoun
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
 import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import {
+  IntelligenceActionResultContent,
+  isDeterministicIntelligenceAction,
+  type DeterministicIntelligenceActionId,
+} from "./action-results/IntelligenceActionResultContent"
 
 type AccountPanelAction = "pitch" | "summary" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
@@ -248,6 +253,7 @@ function AccountMobileContent({ onWriteEmailClick }: { onWriteEmailClick: () => 
 
 function GenericEntityMobileContent() {
   const { entityContext } = useIntelligenceContext()
+  const [activeActionId, setActiveActionId] = useState<DeterministicIntelligenceActionId | null>(null)
   const nonCompanyType: Exclude<IntelligenceEntityType, "company"> | null =
     entityContext && entityContext.entityType !== "company" ? entityContext.entityType : null
 
@@ -257,6 +263,26 @@ function GenericEntityMobileContent() {
   )
 
   if (!entityContext || !resolved || !nonCompanyType) return null
+
+  if (activeActionId) {
+    return (
+      <div className="space-y-4">
+        <button
+          type="button"
+          onClick={() => setActiveActionId(null)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 transition-colors hover:text-white"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Retour
+        </button>
+        <div className="rounded-lg border border-border bg-surface p-4 text-body">
+          <IntelligenceActionResultContent actionId={activeActionId} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -274,7 +300,14 @@ function GenericEntityMobileContent() {
           <MobileSectionHeading title="Actions" />
           <div className="grid grid-cols-2 gap-2">
             {resolved.contextualActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="light"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </section>
@@ -285,7 +318,14 @@ function GenericEntityMobileContent() {
           <MobileSectionHeading title="Plus d'actions" />
           <div className="grid grid-cols-2 gap-2">
             {resolved.commonActions.map((action) => (
-              <IntelligenceActionCard key={action.id} action={action} tone="light" />
+              <IntelligenceActionCard
+                key={action.id}
+                action={action}
+                tone="light"
+                onActionClick={(actionId) => {
+                  if (isDeterministicIntelligenceAction(actionId)) setActiveActionId(actionId)
+                }}
+              />
             ))}
           </div>
         </section>
@@ -402,6 +442,7 @@ export function IntelligenceFAB() {
   const [selectorSource, setSelectorSource] = useState<"pitch" | "analyse" | null>(null)
   const [pitchContext, setPitchContext] = useState<PitchMailAccountContext | null>(null)
   const [activeAction, setActiveAction] = useState<"pitch" | null>(null)
+  const [activeDeterministicAction, setActiveDeterministicAction] = useState<DeterministicIntelligenceActionId | null>(null)
 
   const handleCompanyActionSelected = (val: AccountValue) => {
     setIsCompanySelectorOpen(false)
@@ -424,6 +465,7 @@ export function IntelligenceFAB() {
   function openComposerFromCockpit() {
     setIsOpen(false)
     setActiveAction(null)
+    setActiveDeterministicAction(null)
     setPitchContext(null)
     window.setTimeout(() => {
       openCommunicationComposer({ origin: "cockpit_header" })
@@ -452,23 +494,40 @@ export function IntelligenceFAB() {
           setIsOpen(next)
           if (!next) {
             setActiveAction(null)
+            setActiveDeterministicAction(null)
             setPitchContext(null)
           }
         }}
         title="Cockpit Intelligence"
         side="bottom"
         eyebrow={eyebrow}
-        className="sm:hidden border-t border-white/15 bg-[#484DF5] text-white [--color-heading:#FFFFFF] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
+        className="sm:hidden border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]"
         headerClassName="border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"
         headerStyle={COCKPIT_PANEL_STYLE}
-        contentClassName="bg-[#484DF5] text-white [--drawer-header-fade-start:rgba(72,77,245,0.96)] [--drawer-header-fade-end:rgba(72,77,245,0)]"
+        contentClassName="bg-primary text-white"
         icon={
           <span className="inline-flex size-5 items-center justify-center text-white">
             <SparkleIcon />
           </span>
         }
       >
-        {activeAction === "pitch" && pitchContext ? (
+        {activeDeterministicAction ? (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setActiveDeterministicAction(null)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white/70 transition-colors hover:text-white"
+            >
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Retour
+            </button>
+            <div className="rounded-lg border border-border bg-surface p-4 text-body">
+              <IntelligenceActionResultContent actionId={activeDeterministicAction} />
+            </div>
+          </div>
+        ) : activeAction === "pitch" && pitchContext ? (
           <div className="space-y-4">
             <button
               type="button"
@@ -507,7 +566,7 @@ export function IntelligenceFAB() {
               } else if (actionId === "brief") {
                 alert("Brief hebdomadaire : cette action sera configurée plus tard.")
               } else if (actionId === "rdv") {
-                alert("Préparer un RDV : cette action sera configurée plus tard.")
+                setActiveDeterministicAction("prepare_day")
               }
             }}
           />
@@ -521,7 +580,7 @@ export function IntelligenceFAB() {
           className="fixed inset-0 m-auto w-[90%] max-w-sm rounded-2xl border border-white/20 bg-slate-800 p-5 shadow-2xl backdrop:bg-black/60 outline-none z-[100] flex flex-col gap-4 text-white"
         >
           <div className="flex items-start justify-between">
-            <h3 className="font-heading text-sm font-bold text-[#FFC107]">
+            <h3 className="font-heading text-sm font-bold text-brand-brass">
               Sélectionner un compte
             </h3>
             <button
@@ -560,7 +619,7 @@ export function IntelligenceFAB() {
           className="fixed inset-0 m-auto w-[90%] max-w-sm rounded-2xl border border-white/20 bg-slate-800 p-5 shadow-2xl backdrop:bg-black/60 outline-none z-[100] flex flex-col gap-4 text-white"
         >
           <div className="flex items-start justify-between">
-            <h3 className="font-heading text-sm font-bold text-[#FFC107]">
+            <h3 className="font-heading text-sm font-bold text-brand-brass">
               Consulter un playbook
             </h3>
             <button

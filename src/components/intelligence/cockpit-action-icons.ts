@@ -2,7 +2,7 @@ import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-regist
 
 const COCKPIT_ICON_BASE = "/icons_set/cockpit_intelligence"
 
-export const COCKPIT_PANEL_INDIGO = "#484DF5"
+export const COCKPIT_PANEL_INDIGO = "var(--color-primary)"
 
 export const cockpitActionIcons = {
   alert: `${COCKPIT_ICON_BASE}/alerte_ai.png`,

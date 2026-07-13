@@ -39,22 +39,14 @@ export function AccountScanSetup({ company, isMobile, launching, onLaunch }: Acc
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-heading text-base font-bold text-heading">Scan rapide — {company.name}</h2>
-        <p className="mt-0.5 text-[11px] text-body leading-relaxed">
-          Recherche ou vérifie les informations principales du compte à partir du registre officiel et du
-          site de l&apos;entreprise, puis propose des mises à jour à valider.
-        </p>
-      </div>
-
       <fieldset className="space-y-2">
         <legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted">
           Scan des informations
         </legend>
         {(
           [
-            { value: "find" as const, label: "Trouver les informations manquantes", hint: "Ne cherche que les champs vides du compte." },
-            { value: "verify" as const, label: "Vérifier les informations existantes", hint: "Recontrôle aussi les champs déjà renseignés." },
+            { value: "find" as const, label: "Trouver les informations manquantes" },
+            { value: "verify" as const, label: "Vérifier les informations existantes" },
           ]
         ).map((option) => (
           <label
@@ -76,23 +68,9 @@ export function AccountScanSetup({ company, isMobile, launching, onLaunch }: Acc
             />
             <span className="min-w-0">
               <span className="block text-xs font-bold text-heading">{option.label}</span>
-              <span className="mt-0.5 block text-[11px] text-muted leading-relaxed">{option.hint}</span>
             </span>
           </label>
         ))}
-      </fieldset>
-
-      <fieldset className="space-y-2">
-        <legend className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-          Scan des contacts
-        </legend>
-        <div className="flex items-start gap-2.5 rounded-lg border border-border bg-canvas/30 px-3 py-2.5 opacity-70">
-          <input type="checkbox" disabled className="mt-0.5 h-4 w-4 shrink-0" />
-          <span className="min-w-0">
-            <span className="block text-xs font-bold text-heading">Rechercher ou confirmer des contacts publics</span>
-            <span className="mt-0.5 block text-[11px] font-semibold text-muted">Disponible après les résultats informations</span>
-          </span>
-        </div>
       </fieldset>
 
       <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-surface px-3 py-2.5 hover:bg-canvas/40">
