@@ -29,9 +29,9 @@ import {
   getOutputKindFromComposerPreset,
 } from "@/lib/communication/communication-purpose"
 import { NeutralCommunicationLaunchModal } from "./NeutralCommunicationLaunchModal"
+import { FAMILIES } from "./NeutralCommunicationLaunchModal"
 import { OBJECTIVE_OPTIONS, CHANNEL_OPTIONS } from "@/components/accounts-contacts/intelligence/communication-brief-options"
 import type { CommunicationBrief } from "@/lib/n8n/types"
-import { NEUTRAL_LAUNCH_FAMILIES } from "@/lib/communication/neutral-launch"
 
 interface CompanyRecord {
   id: string
@@ -520,7 +520,7 @@ interface DrawerVariantProps {
 
 function getBriefSummary(brief: CommunicationBrief | null): string {
   if (!brief) return ""
-  const family = NEUTRAL_LAUNCH_FAMILIES.find((f) => f.value === brief.what.activityCategory)
+  const family = FAMILIES.find((f) => f.value === brief.what.activityCategory)
   const familyLabel = family?.label ?? brief.what.activityCategory ?? "Inconnue"
   const scenario = SCENARIO_REGISTRY.find((s) => s.value === brief.what.scenario)
   const scenarioLabel = scenario?.label ?? brief.what.scenario ?? "Inconnu"
@@ -940,8 +940,6 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
   const handleNeutralModalComplete = useCallback((brief: CommunicationBrief) => {
     setNeutralPickerOpen(false)
     setNeutralDraft(brief)
-    setCurrentBrief(brief)
-    setOutputKind(brief.what.outputKind)
     setOpen(true)
     void hydrate({
       origin: request.origin,
@@ -958,7 +956,6 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
 
       if (nextRequest.launchMode === "neutral") {
         // Reset complet
-        loadSequence.current += 1
         setOpen(false)
         setLoading(false)
         setError(null)
@@ -966,15 +963,12 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
         setSelectedAccount(null)
         setOutputKind("written_message")
         setNeutralDraft(null)
-        setCurrentBrief(null)
 
         setRequest(nextRequest)
         setNeutralPickerOpen(true)
       } else {
         setOpen(true)
         setSelectedAccount(null)
-        setNeutralDraft(null)
-        setCurrentBrief(null)
         void hydrate(nextRequest)
       }
     }
@@ -994,7 +988,6 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
       setRequest({ origin: "global" })
       setOutputKind("written_message")
       setNeutralDraft(null)
-      setCurrentBrief(null)
     }
   }
 
@@ -1027,8 +1020,8 @@ Le message généré DOIT obligatoirement s'appuyer sur ce signal de veille.`
   }
 
   const summary = useMemo(() => {
-    return getBriefSummary(currentBrief ?? neutralDraft)
-  }, [currentBrief, neutralDraft])
+    return getBriefSummary(currentBrief)
+  }, [currentBrief])
 
   const drawerProps: DrawerVariantProps = {
     open,
