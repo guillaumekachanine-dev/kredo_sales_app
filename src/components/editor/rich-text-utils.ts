@@ -17,6 +17,20 @@ export const DEFAULT_DOCUMENT: RichTextDocument = {
   ]
 }
 
+// Échappe le texte utilisateur avant injection dans du HTML rendu via
+// dangerouslySetInnerHTML (KredoRichTextViewer). Le modèle RichTextDocument
+// stocke le texte brut dans `inline.text` et les styles dans des champs
+// structurés séparés (marks/align) : échapper le texte est donc sans perte,
+// seuls nos tags contrôlés (strong/em/span/ul/ol/p) produisent du HTML.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
 export function documentToHtml(doc: RichTextDocument): string {
   if (!doc || !doc.blocks || doc.blocks.length === 0) return ""
 
@@ -27,7 +41,7 @@ export function documentToHtml(doc: RichTextDocument): string {
 
       const content = block.children
         .map((inline) => {
-          let html = inline.text
+          let html = escapeHtml(inline.text)
           if (inline.marks) {
             if (inline.marks.bold) {
               html = `<strong>${html}</strong>`

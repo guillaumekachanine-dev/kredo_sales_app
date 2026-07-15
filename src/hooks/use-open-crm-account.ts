@@ -35,7 +35,6 @@ export function useOpenCrmAccount() {
     } else if (destination === "opportunities") {
       // 3. Fallback : Ouvrir le drawer d'identité du compte car il n'existe pas de
       // sous-onglet direct ou de drawer dédié uniquement aux opportunités d'une entreprise.
-      console.log(`[useOpenCrmAccount] Fallback opportunities -> ouverture drawer compte pour ${companyName} (${companyId})`)
       openCompanyDrawer(companyId)
     }
   }

@@ -29,6 +29,14 @@ type AccountViewRow = {
   nb_contacts: number | null
 }
 
+// Neutralise les caractères qui ont une signification dans la grammaire de
+// filtre PostgREST (`.or(...)`) : sans ça, un `q` forgé peut injecter des
+// conditions supplémentaires ou casser la requête. La RLS confine déjà au
+// workspace, mais on ferme la porte à toute évasion de filtre intra-workspace.
+function sanitizeOrFilterTerm(value: string): string {
+  return value.replace(/[,()*\\":]/g, " ").trim().slice(0, 100)
+}
+
 function toNumber(value: number | string | null): number | null {
   if (typeof value === "number") return value
   if (typeof value === "string") {
@@ -117,8 +125,9 @@ export async function GET(request: Request) {
     } 
     
     else if (mode === "search") {
-      if (!q.trim()) {
-        // Fallback personal si query de recherche vide
+      const safeTerm = sanitizeOrFilterTerm(q)
+      if (!safeTerm) {
+        // Fallback personal si query de recherche vide (ou vidée après sanitize)
         return GET(new Request(`${request.url.split("?")[0]}?mode=personal&limit=${limit}`))
       }
 
@@ -126,7 +135,7 @@ export async function GET(request: Request) {
       const { data: dbAccounts, error: dbError } = await (supabase as any)
         .from("v_crm_account_list")
         .select("id, name, sector, lifecycle_status, legacy_folio_score, website, logo_path, nb_contacts")
-        .or(`name.ilike.%${q}%,sector.ilike.%${q}%`)
+        .or(`name.ilike.%${safeTerm}%,sector.ilike.%${safeTerm}%`)
         .limit(limit)
 
       if (dbError) throw dbError

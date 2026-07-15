@@ -93,30 +93,31 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 35 tables + 2 vues
+### Schéma public — 71 tables + 17 vues
 > ⚠️ Migrations en double numérotation : les slots 018/019 sont occupés deux fois (seeds + référentiels). Supabase utilise le timestamp comme clé primaire, pas le nom. Se référer à la liste complète ci-dessus.
+> 📏 Réconciliation effectuée le 2026-07-16 (Session 26 suite) contre le schéma live via `list_tables`/`information_schema`/`pg_policies`/`pg_enum` — la section précédente ("35 tables + 2 vues") datait d'avant la Session 6 et n'avait jamais suivi les 20 sessions suivantes. Row counts = snapshot du jour, à considérer comme indicatifs (dérivent vite, notamment `account_signals`/`ai_intelligence_*`/`enrichment_proposals`).
 
 #### Domaine Core
 | Table | Rows | Description |
 |---|---|---|
 | `workspaces` | 1 | Tenant racine (id, name, owner_id, settings JSONB) |
-| `profiles` | 1 | Étend auth.users (id, workspace_id, full_name, email, role, ui_prefs) |
-| `audit_log` | ~1426 | Traçabilité auto — lecture seule côté client |
-| `tasks` | 0 | Actions transverses polymorphes (entity_type / entity_id) |
+| `profiles` | 1 | Étend auth.users (id, workspace_id, full_name, email, role, ui_prefs) — RLS 2 policies (SELECT/UPDATE), pas de INSERT/DELETE client |
+| `audit_log` | 4856 | Traçabilité auto — RLS 1 policy (SELECT), lecture seule côté client |
+| `tasks` | 27 | Actions transverses polymorphes (entity_type / entity_id) |
 
 `profiles.role` valeurs : `owner` · `admin` · `sales` · `recruiter` · `viewer`
 
 #### Domaine CRM & Humain
 | Table | Rows | Description |
 |---|---|---|
-| `companies` | 96 | Comptes (lifecycle_status, priority, tags[], metadata JSONB) |
-| `persons` | 659 | Party model — `full_name` est une **colonne générée** (TRIM first+last) |
-| `contacts` | 643 | Person dans son rôle chez un compte (relationship_role, decision_power) |
-| `collaborators` | 16 | Person dans son rôle consultant interne (status ; rémunération/coût → `collaborator_compensation`) |
-| `candidates` | 0 | Person dans son rôle recrutement (status, expected_daily_rate) |
+| `companies` | 96 | Comptes (lifecycle_status, priority, tags[], metadata JSONB, sector_id → `sector_intelligence`) |
+| `persons` | 701 | Party model — `full_name` est une **colonne générée** (TRIM first+last) |
+| `contacts` | 644 | Person dans son rôle chez un compte (relationship_role, decision_power, department) |
+| `collaborators` | 23 | Person dans son rôle consultant interne (status, job_profile_id ; rémunération/coût → `collaborator_compensation`) |
+| `candidates` | 38 | Person dans son rôle recrutement (status, expected_daily_rate, job_profile_id, practice_id) |
 | `company_relationships` | 0 | Arêtes organigramme client (reporte_a, influence, collabore_avec) |
-| `skills` | 20 | Référentiel contrôlé (name canonique + aliases[], category) |
-| `person_skills` | 0 | Compétences (level 1-5, years, confidence 0-1, source) |
+| `skills` | 130 | Référentiel contrôlé (name canonique + aliases[], category) |
+| `person_skills` | 247 | Compétences (level 1-5, years, confidence 0-1, source) |
 
 `companies.lifecycle_status` : `cible` · `prospect` · `client_actif` · `client_dormant` · `ancien_client` · `partenaire` · `non_prioritaire` · `exclu`
 
@@ -124,15 +125,34 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 `skills.category` : `langage` · `framework` · `cloud` · `data` · `devops` · `methode` · `fonctionnel` · `secteur` · `soft_skill` · `langue` · `certification`
 
+`companies.size_band` — colonne **GÉNÉRÉE** à partir de `employee_count` (tranches 1-20/21-100/101-500/501-1000/1001-5000/+5k). `companies.legacy_folio_score` (ex-`ai_score`, renommé migration 027/ADR-0011 Lot 0) : score legacy FOLIO déprécié, non recalculé — voir [[ai-cost-monitoring-initiative]] et section ADR-0011 dans le journal de sessions.
+
+#### Domaine Référentiels — Offres & Profils
+| Table | Rows | Description |
+|---|---|---|
+| `offer_practices` | 8 | Practices Kredo (slug/name) — `cloud-engineering`, `cybersecurity`, `data-ai`, `digital-business-solutions`, `digital-experience`, `legacy-systems-mainframe`, `project-agile-delivery`, `quality-engineering-testing` |
+| `offer_engagement_types` | 5 | Modalités d'engagement (slug/name) — `audit`, `centre_competences`, `conseil`, `forfait`, `regie` |
+| `offers` | 41 | Catalogue d'offres commerciales, rattachées à une `offer_practices` |
+| `offer_pricing_grids` | 120 | Grille tarifaire par practice/engagement_type/job_profile (seed pgvector, migration 019) — ⚠️ `offer_id` quasi jamais peuplé en pratique (0/120 constaté Session 20) : la jointure grille↔offre passe par `practice_id`, pas `offer_id` |
+| `job_profiles` | 65 | Référentiel profils recrutement (migration 018b) — FK depuis `candidates`, `collaborators`, `candidate_hiring_processes`, `offer_pricing_grids`, `financial_models`, `client_pricing_agreement_lines` |
+
+⚠️ `missions.practice` reste un **texte libre historique** (`Cloud`/`Cybersecurity`/`Data`/…) sans FK vers `offer_practices.slug` — mapping heuristique en CASE SQL dans plusieurs RPC (`get_pitch_context`, `get_commercial_strategy_context`), dette documentée et volontairement non corrigée (pas de `missions.practice_id`).
+
+#### Domaine Recrutement — Process
+| Table | Rows | Description |
+|---|---|---|
+| `candidate_hiring_processes` | 29 | Une tentative de recrutement interne (`current_step` aligné `HIRING_KANBAN_STAGES`, Session 13) — un candidat peut avoir plusieurs process (relances) |
+| `candidate_hiring_milestones` | 115 | Jalons d'un process (plusieurs possibles par étape : reports, retries) |
+
 #### Domaine Sales
 | Table | Rows | Description |
 |---|---|---|
-| `opportunities` | 9 | Pipe commercial — pivot central de l'app |
-| `opportunity_skills` | 20 | Besoins compétences côté demande (importance, min_level, weight) |
-| `opportunity_contacts` | 0 | Interlocuteurs décideurs par opportunité (role) |
-| `opportunity_candidates` | 0 | Pipeline présentation profils (status de présentation) |
-| `interactions` | 0 | Historique relationnel fusionné (type, sentiment, occurred_at) |
-| `match_scores` | 0 | Résultats matching IA (overall_score, scores JSONB, model_version) |
+| `opportunities` | 24 | Pipe commercial — pivot central de l'app |
+| `opportunity_skills` | 55 | Besoins compétences côté demande (importance, min_level, weight) |
+| `opportunity_contacts` | 18 | Interlocuteurs décideurs par opportunité (role) — max 2 par opportunité (trigger `enforce_opportunity_contacts_max_two`, migration `limit_opportunity_contacts_to_two`) |
+| `opportunity_candidates` | 34 | Pipeline présentation profils (status de présentation) |
+| `interactions` | 140 | Historique relationnel fusionné (type, sentiment, occurred_at, calendar_event_id) |
+| `match_scores` | 18 | Résultats matching IA (overall_score, scores JSONB, model_version) |
 
 **`opportunities.stage` — valeurs CANONIQUES à utiliser :**
 `detection` · `qualification` · `besoin_confirme` · `recherche_profil` · `cv_envoyes` · `entretien_client` · `negociation` · `gagne` · `perdu` · `abandonne`
@@ -146,47 +166,90 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 `opportunities.opportunity_type` : `regie` · `forfait` · `centre_de_service` · `conseil` · `audit` · `staffing` · `extension` · `renouvellement` · `upsell` · `cross_sell`
 
+#### Domaine Agenda
+| Table | Rows | Description |
+|---|---|---|
+| `calendar_events` | 475 | Source de vérité du module Agenda — 16 types en 3 familles Commerce/Management/Recrutement (migration 026, Session 10), `mission_id` (migration 041) |
+
 #### Domaine Intelligence sectorielle
 | Table | Rows | Description |
 |---|---|---|
-| `sector_intelligence` | 0 | Référentiel sectoriel (name, slug, attractiveness_score, market_size_eur_bn, practices_fit JSONB, playbook JSONB) — UNIQUE(workspace_id, slug) |
-| `sector_news` | 0 | Actualités par secteur (published_at, relevance_score, is_trigger_event, tags[]) |
-| `sector_events` | 0 | Événements commerciaux (event_type, event_date, commercial_opportunity) |
-| `sector_pain_points` | 0 | Points de douleur consolidés (frequency_count, source_company_ids uuid[]) |
-| `sector_regulatory_items` | 0 | Réglementations (urgency, deadline_date, is_commercial_window) |
+| `sector_intelligence` | 14 | Référentiel sectoriel (name, slug, attractiveness_score, market_size_eur_bn, practices_fit JSONB, playbook JSONB) — UNIQUE(workspace_id, slug). Rattachement `companies.sector_id` volontairement partiel (27/95 comptes, ADR-0012 Lot 3) — voir [[folio-data-reality]] |
+| `sector_news` | 7 | Actualités par secteur (published_at, relevance_score, is_trigger_event, tags[]) |
+| `sector_events` | 15 | Événements commerciaux (event_type, event_date, commercial_opportunity) |
+| `sector_pain_points` | 22 | Points de douleur consolidés (frequency_count, source_company_ids uuid[]) |
+| `sector_regulatory_items` | 13 | Réglementations (urgency, deadline_date, is_commercial_window) |
 
-⚠️ **RLS sector tables** : policy unique `workspace_isolation FOR ALL` (pas le motif 4-policies standard). Toutes FK vers `sector_intelligence.id`. Triggers `trg_*_updated_at` uniquement (pas de log_audit).
+⚠️ **RLS sector tables** : policy unique `FOR ALL` (pas le motif 4-policies standard, confirmé live). Toutes FK vers `sector_intelligence.id`. Triggers `trg_*_updated_at` uniquement (pas de log_audit).
 
 #### Domaine Intelligence commerciale (ADR-0007 / ADR-0008)
 | Table | Rows | Description |
 |---|---|---|
-| `ai_intelligence_runs` | — | Une exécution d'analyse / compte (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`) |
-| `ai_intelligence_results` | — | Un résultat **par phase** (`UNIQUE(run_id,phase)`, phase 1–10) — **`content_json` = source unique** (pas de html) |
-| `ai_intelligence_logs` | — | Append-only (coûts, erreurs, retries) — pas de policy update/delete client |
-| `intelligence_documents` | 0 | Couche documentaire exploitable — distincte de ai_intelligence_results |
-| `intelligence_document_versions` | 0 | Historique append-only des versions d'un document |
-| `intelligence_document_links` | 0 | Relation N:M polymorphe entre un document et les entités métier Kredo |
+| `ai_intelligence_runs` | 137 | Une exécution d'analyse / rapport / scan (cycle de vie, `current_phase`, coûts/tokens, `input_snapshot`, `primary_entity_type`/`primary_entity_id`) |
+| `ai_intelligence_results` | 113 | Un résultat **par phase** (`UNIQUE(run_id,phase)`) — **`content_json` = source unique** (pas de html) ; `result_type` = la vraie clé de classification (pas `phase`, pollué — cf. [[folio-data-reality]]) |
+| `ai_intelligence_logs` | 0 | Append-only (coûts, erreurs, retries) — RLS 2 policies (INSERT/SELECT), pas de update/delete client |
+| `intelligence_documents` | 59 | Couche documentaire exploitable par l'utilisateur — distincte de `ai_intelligence_results` (immuable, technique) |
+| `intelligence_document_versions` | 59 | Historique append-only des versions d'un document |
+| `intelligence_document_links` | 55 | Relation N:M polymorphe entre un document et les entités métier Kredo |
 
+`intelligence_document_type` (enum, 17 valeurs) : `communication` · `client_summary` · `commercial_pitch` · `campaign` · `internal_note` · `activity_commercial` · `activity_recruitment` · `weekly_manager` · `planning_deadlines` · `financial` · `quarterly_review` · `staffing_capacity` · `delivery_profitability` · `account_portfolio` · `commercial_strategy` · `prise_de_parole` · `workspace_diagnostic`
 
-**Vue `v_ai_intelligence_summary`** (`security_invoker`) : par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches` sur `companies.metadata`), dernier run, compteurs.
+`intelligence_provenance` (enum, ADR-0012 D-3) : `relational` · `human_verified` · `engine_researched` · `folio_legacy` · `inferred`
 
-**Phases** : `1=analyse client · 2=sectorielle (rattachée au SECTEUR, mutualisée) · 3=diagnostic process · 4=roadmap · 5=pitch` (ordre d'impl. `1→2→4→5→3`). `ai_run_status`/`ai_result_status` : `queued · running · succeeded · failed · cancelled` + `needs_review` **orthogonal**. Scoring = **fonction déterministe versionnée 1–10** (le LLM note des facettes, KREDO calcule).
+**Phases** : `1=analyse client · 2=sectorielle (rattachée au SECTEUR, mutualisée) · 3=diagnostic process · 4=roadmap · 5=pitch` (ordre d'impl. `1→2→4→5→3`). `ai_run_status`/`ai_result_status` (enums) : `queued · running · succeeded · failed · cancelled` + `needs_review` **orthogonal**. Scoring legacy FOLIO déprécié (`companies.legacy_folio_score`) — remplacé par le Score de Priorité Commerciale ADR-0011 (domaine dédié ci-dessous).
 
-**Surface (ADR-0008)** : Hub `/prospection/accounts/[companyId]` (`index/DesktopView/MobileView`) lit `content_json` + fallback `companies.metadata` ; drawer `CompanyIdentityDrawer` = Quick View. Référentiel `offers` (lot B) à venir. ⚠️ Échelle score à trancher : 1–10 (ADR-0007) vs `/5` (UI actuelle).
+**Surface (ADR-0008/0012)** : Hub `/prospection/accounts/[companyId]` en 5 étapes (Connaissance→Secteur→Enjeux→Stratégie→Roadmap, ADR-0012) lit `content_json` + fallback `companies.metadata` ; drawer `CompanyIdentityDrawer` = Quick View.
+
+#### Domaine Intelligence — Enrichissement & Sources
+| Table | Rows | Description |
+|---|---|---|
+| `intelligence_sources` | 42 | Sources factuelles individuelles (site officiel, registre légal SIRENE, presse…) rattachées aux faits/signaux |
+| `intelligence_source_links` | 89 | Liaison N:M polymorphe source ↔ entité métier |
+| `enrichment_proposals` | 71 | Propositions d'enrichissement CRM issues du scan compte (`intel-010-refresh`) — cycle `proposed → validated/rejected → applied/conflicting` |
+| `account_facts` | 22 | Faits structurés publiés (cardinality single/multi), `source_proposal_id` → traçabilité |
+| `account_signals` | 745 | Signaux d'achat — backfill FOLIO/`sector_news`/`sector_regulatory_items` (Session 21 Lot 1, migration `043_account_signals_backfill_v2`) |
+| `account_watch_settings` | 3 | Cadrage minimal de veille par compte (cadence, état du dernier run) — ne stocke ni sources ni résultats bruts |
+
+⚠️ **RLS `intelligence_sources`/`intelligence_source_links`/`enrichment_proposals`/`account_facts`/`account_signals`** : **1 seule policy (SELECT)**, écriture exclusivement via fonctions `SECURITY DEFINER` scopées workspace (`apply_enrichment_proposal`, `decide_enrichment_proposal`, `validate_and_apply_enrichment_proposal(s)`, `import_account_scan_contacts`) — vérifié et documenté Session 26 (audit sécurité, cf. journal de sessions).
+
+#### Domaine Scoring de Priorité Commerciale (ADR-0011)
+| Table | Rows | Description |
+|---|---|---|
+| `account_score_runs` | 6 | Un run = un calcul complet et historisé (append-only, jamais d'UPDATE). `score_band` : `A`/`B`/`C`/`D`/`U` (`U`="Unqualified", confidence trop faible) |
+| `account_score_components` | 31 | Détail explicable par facteur C1-C6, `evidence_refs` JSONB pointant les lignes sources — `UNIQUE(score_run_id, component_key)` |
+| `account_score_feedback` | 0 | Retour qualitatif utilisateur sur un run (trop haut/trop bas/juste) — pas branché en V1 (Lot 6+) |
+
+**Vue `account_score_current`** : dernier run par compte (`DISTINCT ON (company_id) ... ORDER BY calculated_at DESC`) — seule vue à consommer côté app pour le score courant.
+
+#### Domaine Cockpit Décisionnel — Enjeux & Roadmap (ADR-0012)
+| Table | Rows | Description |
+|---|---|---|
+| `account_issues` | 22 | Enjeux priorisés par compte — matérialisés depuis `ai_intelligence_results` (`result_type='account_issues_map'`), mutés ligne à ligne (curation) |
+| `account_roadmap_actions` | 0 | Plan d'actions draft par compte — matérialisation (écriture `tasks`/`calendar_events`/`opportunities`) strictement gated Lot 7, **jamais automatique** (D-2) |
+
+`account_issue_status` : `open` · `dismissed` · `converted`. `account_issue_category` : `business` · `it` · `data` · `cloud` · `cyber` · `delivery` · `regulatory` · `people`. `account_issue_evidence_level` : `observed` · `inferred` · `weak`.
+
+`account_roadmap_action_status` : `draft` · `validated` · `dismissed` · `materialized` · `done`. `account_roadmap_action_type` : `task` · `calendar_event` · `campaign` · `opportunity`.
+
+#### Domaine Monitoring IA & Coûts
+| Table | Rows | Description |
+|---|---|---|
+| `ai_model_pricing` | 2 | Grille tarifaire versionnée par modèle IA (effective-dated, même doctrine que `collaborator_compensation`) — alimente les vues `v_ai_*_costs`/`v_workflow_cost_stats` |
+
+Voir [[ai-cost-monitoring-initiative]] pour le détail des 5 vues de coût/santé workflow associées.
 
 #### Domaine Delivery / Finance
 | Table | Rows | Description |
 |---|---|---|
-| `missions` | 19 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
-| `mission_activity_reports` | 89 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**) |
-| `collaborator_compensation` | 19 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
-| `collaborator_absences` | 56 | Absences datées (type enum, start/end, duration_days) — source du planning congés |
+| `missions` | 23 | Contrats actifs (tjm, **cjm**, gross_margin_pct GÉNÉRÉ) |
+| `mission_activity_reports` | 152 | CRA par période (billable_days, tjm_snapshot, **cjm_snapshot**, activity_rate_percent GÉNÉRÉ) |
+| `collaborator_compensation` | 23 | **Rémunération datée confidentielle** (RLS owner/admin) — source du CJM |
+| `collaborator_absences` | 78 | Absences datées (type enum, start/end, duration_days) — source du planning congés |
 | `client_closures` | 6 | Fermetures de sites clients (company_id, dates, is_recurring) |
-| `pnl_monthly` | 12 | P&L mensuel consolidé — inputs stockés, dérivés GENERATED ; `source` ∈ `import/cra_derived/budget/forecast` |
+| `pnl_monthly` | 15 | P&L mensuel consolidé — inputs stockés, dérivés GENERATED ; `source` ∈ `import/cra_derived/budget/forecast` |
+| `workforce_monthly_snapshots` | 15 | Effectif mensuel consolidé (active_consultants_count, intercontract_rate_pct) — alimente `v_commercial_performance_monthly` (baseline productivité) |
 
-**`pnl_monthly`** — colonnes GENERATED : `gross_margin_value`, `gross_margin_percent`, `operating_profit_value`, `operating_profit_percent`. Ne jamais recalculer côté front. Seed fictif couvre 2025-06 → 2026-05. UNIQUE(workspace_id, period_month).
-
-> Chemin d'évolution : quand les CRA couvriront 12 mois complets, les lignes récentes pourront être remplacées par `source='cra_derived'` via une vue ou un job n8n.
+**`pnl_monthly`** — colonnes GENERATED : `gross_margin_value`, `gross_margin_percent`, `operating_profit_value`, `operating_profit_percent`. Ne jamais recalculer côté front. UNIQUE(workspace_id, period_month).
 
 **`missions.gross_margin_pct`** = `ROUND((tjm - cjm) / NULLIF(tjm, 0) * 100, 2)` — colonne générée, ne jamais recalculer côté front.
 
@@ -196,7 +259,7 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 > - **TACI** = **Taux d'Activité Congés Inclus** — un **TAUX (0–1)**, PAS un coût. Porté par `collaborator_compensation.taci`, il pondère les jours ouvrés → jours facturables → alimente le CJM.
 > - **Marge brute** = (TJM − CJM) / TJM.
 
-**`collaborator_compensation`** (effective-dated) : `gross_annual`, `charges_rate` (déf. 0.45), `working_days_per_year` (déf. 218), `taci` (taux 0–1), `cjm` **GÉNÉRÉ** = `round(gross_annual*(1+charges_rate)/(working_days_per_year*taci), 2)`. Une seule ligne en vigueur (`effective_to IS NULL`) par collaborateur. **RLS confidentielle** : `workspace_id = current_workspace_id() AND is_workspace_admin()` (≠ motif uniforme).
+**`collaborator_compensation`** (effective-dated) : `gross_annual`, `charges_rate` (déf. 0.45), `working_days_per_year` (déf. 218), `taci` (taux 0–1), `cjm` **GÉNÉRÉ** = `round(gross_annual*(1+charges_rate)/(working_days_per_year*taci), 2)`. Une seule ligne en vigueur (`effective_to IS NULL`) par collaborateur. **RLS confidentielle** : les 4 policies exigent `is_workspace_admin()` (≠ motif uniforme).
 
 `missions.status` : `active` · `paused` · `ended` · `cancelled`
 
@@ -206,10 +269,69 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 
 **`client_closures`** : fermetures de sites clients rattachées à `companies.id`. Champs : `start_date`, `end_date`, `label`, `is_recurring`. RLS workspace standard.
 
-**Vues analytiques (migration 025, `security_invoker`) :**
-- **`v_collaborator_activity_summary`** — 1 ligne par collaborateur × mois. Inclut activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), et marge théorique pour comparaison.
-- **`v_collaborator_ytd_activity`** — taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD (revenue, employer_cost, real_margin).
-- **`v_profitability_alerts`** — flags booléens : `alert_low_activity` (<70%), `alert_low_margin` (<15%), `alert_negative_margin`, `alert_high_sick_days` (>=5j), `alert_cra_not_validated`.
+#### Domaine Financial Modeling — Assistance Technique
+| Table | Rows | Description |
+|---|---|---|
+| `financial_models` | 7 | Simulations TJM/coût/marge (Assistance Technique) — **outputs du moteur TypeScript**, jamais générés en SQL (`archive_financial_model`/`save_financial_model_snapshot` RPC, migration `financial_modeling_transaction_api`) |
+| `financial_model_expenses` | 3 | Lignes de dépenses snapshot par modèle |
+| `financial_assumption_sets` | 1 | Jeux d'hypothèses par défaut du moteur (workspace-scoped) |
+| `financial_charge_rates` | 2 | Référentiel taux de charges rattaché à un assumption set |
+| `client_pricing_agreements` | 0 | Accords tarifaires contractuels par client — distinct des grilles génériques `offer_pricing_grids` |
+| `client_pricing_agreement_lines` | 0 | Lignes d'accord (profil, TJM min/max/recommandé) |
+
+⚠️ **RLS confidentielle** : les 6 tables exigent `is_workspace_admin()` sur les 4 policies (même motif que `collaborator_compensation`) — vérifié live, non documenté avant cette réconciliation.
+
+**`projects`** (voir domaine suivant) et **`missions`** alimentent `v_financial_model_pricing_anchors` comme ancrages tarifaires (avec `client_pricing_agreements`).
+
+#### Domaine Projects — Missions au forfait
+| Table | Rows | Description |
+|---|---|---|
+| `projects` | 3 | Missions au forfait (contract_amount, `target_margin_pct`/`actual_margin_pct` **GÉNÉRÉS**) — consommées par `/missions/projets` (Session 17) |
+| `project_phases` | 10 | Jalons projet |
+| `project_team_members` | 9 | Affectation collaborateurs à un projet |
+
+`project_status` : `draft` · `active` · `delivered` · `closed` · `cancelled`. `project_phase_status` : `planned` · `in_progress` · `completed` · `blocked`. `project_ref_status` (référence commerciale) : `not_reference` · `draft` · `approved` · `archived`. `project_ref_visibility` : `named` · `anonymized` · `confidential`.
+
+#### Domaine Performance Commerciale
+| Table | Rows | Description |
+|---|---|---|
+| `performance_plans` | 1 | Objectifs annuels par commercial (fiscal_year, period_start/end, baseline_start/end) |
+| `performance_criteria` | 4 | Critères pondérés (`billed_revenue`, `gross_margin_pct`, `net_recruitments`, `new_client_logos`), `weight_pct` |
+
+Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par mois, productivité baseline dérivée de `pnl_monthly`×`workforce_monthly_snapshots`), `v_performance_criteria_compensation` (montant variable alloué par critère).
+
+#### Domaine Veille
+| Table | Rows | Description |
+|---|---|---|
+| `veille_articles` | 10 | Articles de veille sectorielle/actualité (migration `veille_actualite`) |
+| `veille_digests` | 2 | Digests groupant des articles |
+
+#### Domaine Notifications & Weekly Brief
+| Table | Rows | Description |
+|---|---|---|
+| `user_notifications` | 10 | Notifications in-app adressées à un utilisateur précis (`weekly_brief_ready` déposé par le cron n8n du lundi, `ai_run_reaped` déposé par le reaper ops-004, ADR-0010/[[ai-cost-monitoring-initiative]]) |
+| `weekly_brief_dismissals` | 0 | Items du brief hebdomadaire explicitement ignorés par un manager (ADR-0010) — append-only, pas de trigger `log_audit` |
+
+### Vues (17)
+| Vue | Description |
+|---|---|
+| `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches` sur `companies.metadata`), dernier run, compteurs |
+| `v_crm_account_list` | Vue consolidée fiche compte — contacts, `has_study`, `has_dedicated_watch`, `has_client_analysis`/`sector_analysis`/`process_diagnostic`/`roadmap`, `has_account_issues`, `has_commercial_strategy`. Source de la liste comptes `/prospection` |
+| `v_collaborator_activity_summary` (migration 025) | 1 ligne par collaborateur × mois — activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), marge théorique |
+| `v_collaborator_ytd_activity` (migration 025) | Taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD |
+| `v_profitability_alerts` (migration 025) | Flags booléens : `alert_low_activity` (<70%), `alert_low_margin` (<15%), `alert_negative_margin`, `alert_high_sick_days` (≥5j), `alert_cra_not_validated` |
+| `account_score_current` | Dernier run de score par compte (`DISTINCT ON`), source de vérité du score courant |
+| `v_ai_run_costs` | Coût/durée/tokens agrégés par run — coût `NULL` explicite si un seul résultat a un trou de données (pas de sous-estimation silencieuse) |
+| `v_ai_result_costs` | Coût par résultat/phase — distingue `tokens_missing` de `pricing_missing` |
+| `v_ai_cost_timeline` | Coût agrégé par jour × workflow × owner |
+| `v_workflow_health` | Taux succès 30j, p50/p95 de durée, runs bloqués (`stuck_running_now`/`stuck_queued_now`) |
+| `v_workflow_cost_stats` | Stats coût par workflow (30j vs all-time) |
+| `v_mission_quarterly_revenue` | CA/coût/marge trimestriel par mission (dérivé des CRA) |
+| `v_financial_model_activity_rates` | Taux d'activité historique année en cours par collaborateur (moteur financial modeling) |
+| `v_financial_model_collaborator_costs` | Coût employeur courant par collaborateur (rémunération en vigueur) |
+| `v_financial_model_pricing_anchors` | Ancrages tarifaires (agreement/mission/opportunity) consommés par le moteur de simulation |
+| `v_commercial_performance_monthly` | Réalisé vs objectif par mois et par plan de performance |
+| `v_performance_criteria_compensation` | Montant variable alloué par critère de performance |
 
 ### Triggers actifs
 | Trigger | Tables |
@@ -764,6 +886,24 @@ Revue perf/code/data/sécurité de `NeedsStaffingWorkspace` puis optimisation ci
 - **Écartés (décision assumée, pas un oubli)** : dédup `cache()`/consolidation des scans (gain runtime nul à 9 opportunités, coupleraient des fonctions indépendantes = churn) ; retrait des `any` des mappers de jointure profonde `staffing/_data` (exception pragmatique déjà en place dans tout le codebase, risque de bataille compilateur pour valeur nulle) ; refonte HEX des boutons flip Kanban/Planning (choix Guillaume : ne pas toucher).
 - **Validation** : `tsc --noEmit` → EXIT 0 (après purge `.next/` stale, cf. faux positifs `TS6200`/`TS2300` documentés Session 18) · `npm run build` → EXIT 0 · `vitest run` → **487/487** · `eslint` sur les 7 fichiers touchés/créés → 0 erreur, 0 warning.
 - **Non fait** : QA visuelle desktop + mobile (pas de Chrome DevTools MCP, cf. [[feedback-no-chrome]]) — à faire par Guillaume, notamment vérifier que le mobile n'a rien perdu (liste besoins + KPIs).
+
+### Session 26 — Audit global (console/archi/data) + durcissement Batch 1-2 (2026-07-15/16)
+
+Audit complet demandé (erreurs console + architecture + schéma Supabase + plan ROI). Cadrage corrigé d'entrée : les **218 `console.error`** sont à ~95 % du logging serveur légitime (catch blocks Server Actions/API, jamais dans la console navigateur) — le vrai trou runtime était structurel (0 error boundary). Data live **saine** : 0 orphelin (contacts/opps/missions/interactions/person_skills), 0 stage legacy ; les row counts de `list_tables` sont des estimations `pg_stat` périmées (companies affiché 0 vs 96 réels). Drift confirmé : **65 tables live vs 35 documentées** ci-dessus.
+
+- **Batch 1 — code (livré, validé)** :
+  - **XSS stocké fermé** (`rich-text-utils.ts`) : `documentToHtml` échappe désormais `inline.text` (nouveau `escapeHtml`) avant injection dans le `dangerouslySetInnerHTML` de `KredoRichTextViewer`. Sans perte (le modèle `RichTextDocument` stocke le texte brut séparément des marks/align, seuls nos tags contrôlés produisent du HTML) → pas de dépendance DOMPurify (cohérent "primitives maison"). `align`/`color` viennent d'enums normalisés par le navigateur, insensibles à l'évasion d'attribut.
+  - **Error boundaries** (nouveaux `src/app/global-error.tsx` + `src/app/(app)/error.tsx`) : un throw de rendu affiche un fallback "Réessayer" au lieu de l'écran de crash générique. Tokens design vérifiés (`bg-primary`/`text-primary-fg`/`text-heading`/`text-muted`).
+  - **Injection de filtre PostgREST** (`api/prospection/accounts/launcher/route.ts`) : `q` était interpolé brut dans `.or(name.ilike.%${q}%,...)` — un terme forgé pouvait injecter des conditions OR (RLS confine au workspace mais évasion de filtre intra-workspace possible). Nouveau `sanitizeOrFilterTerm()` (strip `,()*\":`, cap 100). Grep de couverture : les autres routes de recherche (`search-contacts.ts`, `opportunity-staffing.ts`) sanitizaient déjà ; les `.or()` de `commercial-activity`/`forecast-revenue` interpolent des dates ISO internes (sûrs). Launcher était le seul trou.
+  - **Fuites debug purgées** : suppression de `src/test-debug.ts` (script mort instanciant la service-role key au niveau module) + d'un `console.log` client dans `use-open-crm-account.ts` (expédié au navigateur).
+  - Validation : `tsc` EXIT 0 · `eslint` (5 fichiers) 0 · `npm run build` EXIT 0 · `vitest` **521/521**.
+- **Batch 2 — migration `056` (appliquée en prod `20260715220012_056_audit_batch2_perf_security`)** : générée depuis l'introspection live (colonnes FK et corps de policy exacts, pas de supposition), dry-run en transaction ROLLBACK avant application.
+  - **39 index couvrants** sur les FK non indexées (`IF NOT EXISTS`, idempotent) → advisor `unindexed_foreign_keys` = **0** vérifié.
+  - **RLS initplan** `user_notifications` (4 policies) : `auth.uid()` → `(select auth.uid())`, sémantique identique. `private.current_workspace_id()` laissé tel quel (style uniforme).
+  - **3 fonctions `search_path`** (`archive_financial_model`, `enforce_opportunity_contacts_max_two`, `save_financial_model_snapshot`) : figé à `pg_catalog, public` (**pas** `''` : corps non audités pour un schema-qualifying complet — la forme stricte aurait pu casser une référence non qualifiée). **Corps lus avant application** → tout est qualifié ou built-in `pg_catalog`. **Preuve d'exécution réelle** : `archive_financial_model(uuid)` atteint sa ligne 17 (contrôle métier `P0002`), donc résolution de noms intacte — pas de `42P01`. Les 3 warnings `function_search_path_mutable` ont disparu.
+  - **Piège numérotation** : `list_tables` rows périmés ; nom local aligné sur le timestamp réellement appliqué (`20260715220012`) et numéro cosmétique bumpé 054→**056** (054/055 déjà pris, drift habituel [[project-migration-drift]]).
+- **Verdict 5 fonctions SECURITY DEFINER exposées à `authenticated`** (advisor `authenticated_security_definer_function_executable`) : **toutes sûres, zéro action**. Corps tracés jusqu'aux privées `perform_proposal_apply`/`perform_proposal_decision` : chacune fait `require_current_workspace()` + garde explicite `wrong_workspace` (double pour l'apply : proposition **ET** cible CRM), toutes les requêtes `account_facts`/`persons`/`contacts` filtrées `workspace_id`. `SECURITY DEFINER` est **nécessaire** (écriture cross-RLS companies/contacts/facts) et **compensé** par ces gardes internes → cas "intentionnel" autorisé par l'advisor. Un `REVOKE EXECUTE` casserait la revue d'enrichissement + l'import contacts du scan. Micro-observation négligeable : `validate_and_apply_enrichment_proposal` (singulier) lit `status` avant délégation (oracle d'existence sur UUID non énumérables, aucune mutation possible) — pas un correctif prioritaire.
+- **Reste (dashboard / jugement, pas du code)** : activer leaked-password protection (Auth) ; déplacer extensions `vector`/`unaccent` hors `public` ; les 15 `rls_policy_always_true` restent acceptés par design (DEFAULT + triggers) ; **152 "unused indexes" à NE PAS bulk-droper** (reflètent le faible trafic d'un projet jeune, pas une vraie redondance) ; réconcilier la section "État de la base" (65 vs 35 tables). QA visuelle des error boundaries à faire par Guillaume (cf. [[feedback-no-chrome]]).
 
 ---
 
