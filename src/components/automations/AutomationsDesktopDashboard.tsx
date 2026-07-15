@@ -316,10 +316,7 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
 
   const headerTitle = (
     <div className="flex items-center gap-2">
-      <span>Automatisations</span>
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/[0.06] border border-primary/10 text-[9px] font-mono font-bold text-primary uppercase tracking-wider">
-        Engine v1.2
-      </span>
+      <span>Monitoring automatisations</span>
       <span className="flex items-center gap-1.5 text-xs text-muted font-normal ml-3">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
@@ -333,7 +330,7 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
   return (
     <DesktopAnalyticalPage
       title={headerTitle}
-      eyebrow="Santé & exécution IA"
+      eyebrow=""
       kpis={
         activeTab === "sante" ? (
           <div className="grid grid-cols-4 gap-4">

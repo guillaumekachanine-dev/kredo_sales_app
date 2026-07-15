@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useTransition } from "react"
 import dynamic from "next/dynamic"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -329,15 +330,6 @@ export function AgendaDesktopWorkspace({
               </Button>
 
               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setCommercialActivityOpen(true)}
-                className="shadow-none cursor-pointer"
-              >
-                Activité commerciale
-              </Button>
-
-              <Button
                 variant="primary"
                 size="sm"
                 onClick={() => setCreateDrawerOpen(true)}
@@ -347,6 +339,27 @@ export function AgendaDesktopWorkspace({
               </Button>
             </div>
           </header>
+
+          <div className="flex items-center justify-start">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setCommercialActivityOpen(true)}
+              className="kredo-intelligence-toggle shadow-none cursor-pointer flex items-center gap-2"
+            >
+              <Image
+                src="/icons_set/agenda_metriques_activite.png"
+                alt=""
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                style={{
+                  filter: "brightness(0) invert(1)",
+                }}
+              />
+              Activité commerciale
+            </Button>
+          </div>
 
           {displayedPresentation.partialErrorSources.length > 0 ? (
             <AgendaPartialDataNotice sources={displayedPresentation.partialErrorSources} />
