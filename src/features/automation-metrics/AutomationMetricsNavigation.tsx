@@ -4,6 +4,8 @@ const SECTIONS: Array<{ id: AutomationMetricsSectionId; title: string; descripti
   { id: "overview", title: "Vue d’ensemble", description: "Volumes, succès et tendance globale", icon: "◫" },
   { id: "reliability", title: "Fiabilité", description: "Succès et échecs par workflow", icon: "◌" },
   { id: "performance", title: "Performance", description: "Latences médianes et dégradées", icon: "↗" },
+  { id: "costs", title: "Coûts & efficacité", description: "Dépenses, couverture et coût par succès", icon: "€" },
+  { id: "incidents", title: "Incidents & reprises", description: "Causes d’échec et interventions automatiques", icon: "!" },
 ]
 
 export function AutomationMetricsNavigation({

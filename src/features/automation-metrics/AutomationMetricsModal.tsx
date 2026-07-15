@@ -6,6 +6,8 @@ import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
 import { loadAutomationMetricsSnapshot } from "./automation-metrics-actions"
 import { AutomationMetricsNavigation } from "./AutomationMetricsNavigation"
 import { AutomationMetricsOverview } from "./AutomationMetricsOverview"
+import { AutomationMetricsCosts } from "./AutomationMetricsCosts"
+import { AutomationMetricsIncidents } from "./AutomationMetricsIncidents"
 import { AutomationMetricsPerformance } from "./AutomationMetricsPerformance"
 import { AutomationMetricsReliability } from "./AutomationMetricsReliability"
 import type {
@@ -119,6 +121,10 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
       ? <AutomationMetricsReliability snapshot={snapshot} />
       : section === "performance"
         ? <AutomationMetricsPerformance snapshot={snapshot} />
+        : section === "costs"
+          ? <AutomationMetricsCosts snapshot={snapshot} />
+          : section === "incidents"
+            ? <AutomationMetricsIncidents snapshot={snapshot} />
         : <AutomationMetricsOverview snapshot={snapshot} />
     : null
   const content = (
@@ -133,7 +139,7 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
       ) : snapshot ? (
         <div className={`min-h-0 flex-1 overflow-y-auto transition-opacity duration-150 ${pending ? "opacity-70" : "opacity-100"}`}>
           {panel}
-          <p className="px-6 pb-5 text-[10px] text-white/35">Données issues de v_ai_run_costs. Les coûts incomplets restent non mesurés.</p>
+          <p className="px-6 pb-5 text-[10px] text-white/35">Données issues de v_ai_run_costs et, pour les incidents, des runs failed de ai_intelligence_runs. Les coûts incomplets restent non mesurés.</p>
         </div>
       ) : !error ? <div className="p-5 text-xs text-white/45">Aucune donnée à afficher.</div> : null}
     </div>

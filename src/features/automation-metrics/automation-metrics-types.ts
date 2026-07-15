@@ -1,8 +1,9 @@
 export type AutomationMetricsPeriodPreset = "7d" | "30d" | "12w" | "year" | "custom"
 export type AutomationMetricsGrain = "day" | "week"
 export type AutomationMetricsWorkflow = "all" | string
-export type AutomationMetricsSectionId = "overview" | "reliability" | "performance"
+export type AutomationMetricsSectionId = "overview" | "reliability" | "performance" | "costs" | "incidents"
 export type AutomationMetricsPerformanceSort = "p95" | "measuredVolume"
+export type AutomationMetricsCostSort = "measuredCost" | "costPerSuccess"
 
 export type AutomationMetricsFilters = {
   from: string
@@ -18,6 +19,13 @@ export type AutomationMetricsRun = {
   createdAt: string
   durationMs: number | null
   costEstimate: number | null
+}
+
+export type AutomationMetricsIncidentRun = {
+  id: string
+  runType: string
+  createdAt: string
+  errorMessage: string | null
 }
 
 export type AutomationMetricsSummary = {
@@ -70,6 +78,67 @@ export type AutomationWorkflowPerformance = {
   p95DeltaPct: number | null
 }
 
+export type AutomationWorkflowCostEfficiency = {
+  runType: string
+  executions: number
+  succeeded: number
+  failed: number
+  measuredRuns: number
+  costCoveragePct: number | null
+  measuredCost: number | null
+  averageCostPerMeasuredRun: number | null
+  costPerSuccess: number | null
+  previousMeasuredCost: number | null
+  measuredCostDeltaPct: number | null
+  previousCostPerSuccess: number | null
+  costPerSuccessDeltaPct: number | null
+}
+
+export type AutomationMetricsCostSummary = {
+  executions: number
+  succeeded: number
+  measuredRuns: number
+  costCoveragePct: number | null
+  measuredCost: number | null
+  averageCostPerMeasuredRun: number | null
+  costPerSuccess: number | null
+  previousMeasuredCost: number | null
+  measuredCostDeltaPct: number | null
+  previousCostPerSuccess: number | null
+  costPerSuccessDeltaPct: number | null
+}
+
+export type AutomationIncidentCategoryId =
+  | "stuck_callback"
+  | "webhook"
+  | "auth_configuration"
+  | "database_rpc"
+  | "runtime_node"
+  | "output_validation"
+  | "provider_service"
+  | "other"
+
+export type AutomationIncidentCategory = {
+  id: AutomationIncidentCategoryId
+  label: string
+  description: string
+  incidents: number
+  sharePct: number
+  cumulativeSharePct: number
+  previousIncidents: number
+  incidentsDelta: number
+}
+
+export type AutomationIncidentsSummary = {
+  failedRuns: number
+  previousFailedRuns: number
+  failedRunsDeltaPct: number | null
+  automaticInterventions: number
+  previousAutomaticInterventions: number
+  automaticInterventionsDeltaPct: number | null
+  automaticInterventionSharePct: number | null
+}
+
 export type AutomationMetricsSnapshot = {
   range: {
     from: string
@@ -84,4 +153,8 @@ export type AutomationMetricsSnapshot = {
   timeline: AutomationMetricsTimelinePoint[]
   workflowReliability: AutomationWorkflowReliability[]
   workflowPerformance: AutomationWorkflowPerformance[]
+  costsSummary: AutomationMetricsCostSummary
+  workflowCosts: AutomationWorkflowCostEfficiency[]
+  incidentsSummary: AutomationIncidentsSummary
+  incidentCategories: AutomationIncidentCategory[]
 }

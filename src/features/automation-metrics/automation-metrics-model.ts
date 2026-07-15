@@ -1,12 +1,19 @@
 import type {
   AutomationMetricsComparison,
+  AutomationMetricsCostSort,
+  AutomationMetricsCostSummary,
   AutomationMetricsFilters,
   AutomationMetricsGrain,
+  AutomationMetricsIncidentRun,
   AutomationMetricsRun,
   AutomationMetricsSnapshot,
   AutomationMetricsSummary,
   AutomationMetricsTimelinePoint,
   AutomationMetricsPerformanceSort,
+  AutomationIncidentCategory,
+  AutomationIncidentCategoryId,
+  AutomationIncidentsSummary,
+  AutomationWorkflowCostEfficiency,
   AutomationWorkflowPerformance,
   AutomationWorkflowReliability,
   AutomationWorkflowSampleState,
@@ -97,7 +104,7 @@ export function summarizeAutomationRuns(runs: AutomationMetricsRun[]): Automatio
   const succeeded = runs.filter((run) => run.status === "succeeded").length
   const failed = runs.filter((run) => run.status === "failed").length
   const decided = succeeded + failed
-  const measuredCosts = runs.map((run) => run.costEstimate).filter((cost): cost is number => cost !== null && Number.isFinite(cost))
+  const measuredCosts = runs.map((run) => run.costEstimate).filter((cost): cost is number => cost !== null && Number.isFinite(cost) && cost >= 0)
 
   return {
     executions: runs.length,
@@ -227,6 +234,184 @@ export function buildWorkflowPerformance(currentRuns: AutomationMetricsRun[], pr
   return sortWorkflowPerformance(workflows, "p95")
 }
 
+function measuredCosts(runs: AutomationMetricsRun[]): number[] {
+  return runs
+    .map((run) => run.costEstimate)
+    .filter((cost): cost is number => cost !== null && Number.isFinite(cost) && cost >= 0)
+}
+
+function costSummaryFor(runs: AutomationMetricsRun[]): Omit<AutomationMetricsCostSummary, "previousMeasuredCost" | "measuredCostDeltaPct" | "previousCostPerSuccess" | "costPerSuccessDeltaPct"> {
+  const costs = measuredCosts(runs)
+  const measuredCost = costs.length === 0 ? null : costs.reduce((sum, cost) => sum + cost, 0)
+  const succeeded = runs.filter((run) => run.status === "succeeded").length
+
+  return {
+    executions: runs.length,
+    succeeded,
+    measuredRuns: costs.length,
+    costCoveragePct: runs.length === 0 ? null : (costs.length / runs.length) * 100,
+    measuredCost,
+    averageCostPerMeasuredRun: measuredCost === null ? null : measuredCost / costs.length,
+    costPerSuccess: measuredCost === null || succeeded === 0 ? null : measuredCost / succeeded,
+  }
+}
+
+function compareCostSummaries(
+  current: ReturnType<typeof costSummaryFor>,
+  previous: ReturnType<typeof costSummaryFor>,
+): AutomationMetricsCostSummary {
+  return {
+    ...current,
+    previousMeasuredCost: previous.measuredCost,
+    measuredCostDeltaPct: percentageComparison(current.measuredCost, previous.measuredCost),
+    previousCostPerSuccess: previous.costPerSuccess,
+    costPerSuccessDeltaPct: percentageComparison(current.costPerSuccess, previous.costPerSuccess),
+  }
+}
+
+export function sortWorkflowCosts(
+  workflows: AutomationWorkflowCostEfficiency[],
+  sort: AutomationMetricsCostSort,
+): AutomationWorkflowCostEfficiency[] {
+  return [...workflows].sort((left, right) => {
+    const compareLabel = () => workflowLabelForRunType(left.runType).localeCompare(workflowLabelForRunType(right.runType), "fr")
+    if (sort === "measuredCost") {
+      const leftMeasured = left.measuredCost !== null
+      const rightMeasured = right.measuredCost !== null
+      if (leftMeasured !== rightMeasured) return leftMeasured ? -1 : 1
+      return (right.measuredCost ?? -Infinity) - (left.measuredCost ?? -Infinity)
+        || right.measuredRuns - left.measuredRuns
+        || compareLabel()
+    }
+    const leftMeasured = left.costPerSuccess !== null
+    const rightMeasured = right.costPerSuccess !== null
+    if (leftMeasured !== rightMeasured) return leftMeasured ? -1 : 1
+    return (right.costPerSuccess ?? -Infinity) - (left.costPerSuccess ?? -Infinity)
+      || (right.measuredCost ?? -Infinity) - (left.measuredCost ?? -Infinity)
+      || compareLabel()
+  })
+}
+
+export function buildWorkflowCosts(currentRuns: AutomationMetricsRun[], previousRuns: AutomationMetricsRun[]): AutomationWorkflowCostEfficiency[] {
+  const currentByWorkflow = runsByWorkflow(currentRuns)
+  const previousByWorkflow = runsByWorkflow(previousRuns)
+  const workflows = workflowRunTypes(currentRuns, previousRuns).map((runType) => {
+    const current = costSummaryFor(currentByWorkflow.get(runType) ?? [])
+    const previous = costSummaryFor(previousByWorkflow.get(runType) ?? [])
+    return {
+      runType,
+      executions: current.executions,
+      succeeded: current.succeeded,
+      failed: (currentByWorkflow.get(runType) ?? []).filter((run) => run.status === "failed").length,
+      measuredRuns: current.measuredRuns,
+      costCoveragePct: current.costCoveragePct,
+      measuredCost: current.measuredCost,
+      averageCostPerMeasuredRun: current.averageCostPerMeasuredRun,
+      costPerSuccess: current.costPerSuccess,
+      previousMeasuredCost: previous.measuredCost,
+      measuredCostDeltaPct: percentageComparison(current.measuredCost, previous.measuredCost),
+      previousCostPerSuccess: previous.costPerSuccess,
+      costPerSuccessDeltaPct: percentageComparison(current.costPerSuccess, previous.costPerSuccess),
+    }
+  })
+
+  return sortWorkflowCosts(workflows, "costPerSuccess")
+}
+
+const INCIDENT_CATEGORY_DETAILS: Record<AutomationIncidentCategoryId, Pick<AutomationIncidentCategory, "label" | "description">> = {
+  stuck_callback: { label: "Blocage ou callback absent", description: "Run bloqué détecté par la surveillance" },
+  webhook: { label: "Webhook ou connexion n8n", description: "Échec de callback ou de connexion n8n" },
+  auth_configuration: { label: "Authentification ou configuration", description: "Accès, clé ou configuration indisponible" },
+  database_rpc: { label: "Base de données ou RPC", description: "Erreur Supabase, Postgres ou fonction RPC" },
+  runtime_node: { label: "Exécution ou nœud technique", description: "Erreur d’exécution d’un nœud technique" },
+  output_validation: { label: "Format ou validation de sortie", description: "Réponse produite dans un format non exploitable" },
+  provider_service: { label: "Service externe ou fournisseur", description: "Fournisseur indisponible ou limité" },
+  other: { label: "Autres incidents", description: "Message absent ou non reconnu" },
+}
+
+function normalizeIncidentMessage(errorMessage: string | null): string {
+  return (errorMessage ?? "")
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function includesAny(message: string, values: string[]): boolean {
+  return values.some((value) => message.includes(value))
+}
+
+export function classifyAutomationIncident(errorMessage: string | null): AutomationIncidentCategoryId {
+  const message = normalizeIncidentMessage(errorMessage)
+  if (!message) return "other"
+  if (includesAny(message, ["aucun callback", "run assaini", "run repris automatiquement", "seuil de reprise", "statut running depassant", "statut queued depassant", "running depassant", "queued depassant"])) return "stuck_callback"
+  if (includesAny(message, ["webhook", "not registered", "fetch failed", "production url"])) return "webhook"
+  if (includesAny(message, ["service_role", "service role", "401", "unauthorized", "authentication", "authentifier", "api key", "cle manquante", "variable d'environnement"])) return "auth_configuration"
+  if (includesAny(message, ["pgrst", "rpc", "could not choose", "function overloading", "candidate function", "postgres", "supabase"])) return "database_rpc"
+  if (includesAny(message, ["code node", "helpers.", "not supported", "node execution", "cannot read properties", "is not a function"])) return "runtime_node"
+  if (includesAny(message, ["json", "parse", "schema", "validation", "format", "doit etre un tableau", "invalid output", "malformed"])) return "output_validation"
+  if (includesAny(message, ["service failed", "failed to process", "timeout", "timed out", "429", "rate limit", "502", "503", "504", "network error"])) return "provider_service"
+  return "other"
+}
+
+export function isAutomaticAutomationIntervention(errorMessage: string | null): boolean {
+  const message = normalizeIncidentMessage(errorMessage)
+  return includesAny(message, ["run assaini", "run repris automatiquement", "seuil de reprise", "statut running depassant", "statut queued depassant"])
+}
+
+function incidentsInRange(runs: AutomationMetricsIncidentRun[], from: Date, to: Date): AutomationMetricsIncidentRun[] {
+  return runs.filter((run) => {
+    const createdAt = validDate(run.createdAt)
+    return createdAt >= from && createdAt < to
+  })
+}
+
+export function buildIncidentsSummary(currentRuns: AutomationMetricsIncidentRun[], previousRuns: AutomationMetricsIncidentRun[]): AutomationIncidentsSummary {
+  const automaticInterventions = currentRuns.filter((run) => isAutomaticAutomationIntervention(run.errorMessage)).length
+  const previousAutomaticInterventions = previousRuns.filter((run) => isAutomaticAutomationIntervention(run.errorMessage)).length
+  return {
+    failedRuns: currentRuns.length,
+    previousFailedRuns: previousRuns.length,
+    failedRunsDeltaPct: percentageComparison(currentRuns.length, previousRuns.length),
+    automaticInterventions,
+    previousAutomaticInterventions,
+    automaticInterventionsDeltaPct: percentageComparison(automaticInterventions, previousAutomaticInterventions),
+    automaticInterventionSharePct: currentRuns.length === 0 ? null : (automaticInterventions / currentRuns.length) * 100,
+  }
+}
+
+export function buildIncidentCategories(currentRuns: AutomationMetricsIncidentRun[], previousRuns: AutomationMetricsIncidentRun[]): AutomationIncidentCategory[] {
+  const currentCounts = new Map<AutomationIncidentCategoryId, number>()
+  const previousCounts = new Map<AutomationIncidentCategoryId, number>()
+  for (const run of currentRuns) {
+    const category = classifyAutomationIncident(run.errorMessage)
+    currentCounts.set(category, (currentCounts.get(category) ?? 0) + 1)
+  }
+  for (const run of previousRuns) {
+    const category = classifyAutomationIncident(run.errorMessage)
+    previousCounts.set(category, (previousCounts.get(category) ?? 0) + 1)
+  }
+  const total = currentRuns.length
+  const ordered = Array.from(currentCounts.entries())
+    .filter(([, incidents]) => incidents > 0)
+    .sort(([leftId, leftCount], [rightId, rightCount]) => rightCount - leftCount || INCIDENT_CATEGORY_DETAILS[leftId].label.localeCompare(INCIDENT_CATEGORY_DETAILS[rightId].label, "fr"))
+
+  let cumulative = 0
+  return ordered.map(([id, incidents], index) => {
+    cumulative += incidents
+    return {
+      id,
+      ...INCIDENT_CATEGORY_DETAILS[id],
+      incidents,
+      sharePct: total === 0 ? 0 : (incidents / total) * 100,
+      cumulativeSharePct: index === ordered.length - 1 ? 100 : (cumulative / total) * 100,
+      previousIncidents: previousCounts.get(id) ?? 0,
+      incidentsDelta: incidents - (previousCounts.get(id) ?? 0),
+    }
+  })
+}
+
 export function buildAutomationTimeline(runs: AutomationMetricsRun[], from: string, to: string, grain: AutomationMetricsGrain): AutomationMetricsTimelinePoint[] {
   const start = validDate(from)
   const end = validDate(to)
@@ -259,7 +444,11 @@ function isInRange(run: AutomationMetricsRun, from: Date, to: Date): boolean {
   return createdAt >= from && createdAt < to
 }
 
-export function buildAutomationMetricsSnapshot(runs: AutomationMetricsRun[], filters: AutomationMetricsFilters): AutomationMetricsSnapshot {
+export function buildAutomationMetricsSnapshot(
+  runs: AutomationMetricsRun[],
+  incidentRuns: AutomationMetricsIncidentRun[],
+  filters: AutomationMetricsFilters,
+): AutomationMetricsSnapshot {
   const from = validDate(filters.from)
   const to = validDate(filters.to)
   if (to <= from) throw new Error("La date de fin doit être postérieure à la date de début")
@@ -268,8 +457,11 @@ export function buildAutomationMetricsSnapshot(runs: AutomationMetricsRun[], fil
   const previousFrom = new Date(from.getTime() - duration)
   const workflowOptions = Array.from(new Set(runs.map((run) => run.runType))).sort((left, right) => left.localeCompare(right, "fr"))
   const matching = filters.workflow === "all" ? runs : runs.filter((run) => run.runType === filters.workflow)
+  const matchingIncidents = filters.workflow === "all" ? incidentRuns : incidentRuns.filter((run) => run.runType === filters.workflow)
   const currentRuns = matching.filter((run) => isInRange(run, from, to))
   const previousRuns = matching.filter((run) => isInRange(run, previousFrom, from))
+  const currentIncidents = incidentsInRange(matchingIncidents, from, to)
+  const previousIncidents = incidentsInRange(matchingIncidents, previousFrom, from)
   const summary = summarizeAutomationRuns(currentRuns)
   const previousSummary = summarizeAutomationRuns(previousRuns)
   const grain = getAutomationMetricsGrain(filters)
@@ -283,5 +475,9 @@ export function buildAutomationMetricsSnapshot(runs: AutomationMetricsRun[], fil
     timeline: buildAutomationTimeline(currentRuns, from.toISOString(), to.toISOString(), grain),
     workflowReliability: buildWorkflowReliability(currentRuns, previousRuns),
     workflowPerformance: buildWorkflowPerformance(currentRuns, previousRuns),
+    costsSummary: compareCostSummaries(costSummaryFor(currentRuns), costSummaryFor(previousRuns)),
+    workflowCosts: buildWorkflowCosts(currentRuns, previousRuns),
+    incidentsSummary: buildIncidentsSummary(currentIncidents, previousIncidents),
+    incidentCategories: buildIncidentCategories(currentIncidents, previousIncidents),
   }
 }

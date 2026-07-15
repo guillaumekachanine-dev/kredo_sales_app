@@ -2,17 +2,23 @@ import { describe, expect, it } from "vitest"
 import {
   buildAutomationMetricsSnapshot,
   buildAutomationTimeline,
+  buildIncidentCategories,
+  buildIncidentsSummary,
+  buildWorkflowCosts,
   buildWorkflowPerformance,
   buildWorkflowReliability,
+  classifyAutomationIncident,
   compareAutomationSummaries,
   getAutomationMetricsGrain,
   percentileNearestRank,
   percentile95,
   sortWorkflowPerformance,
   sortWorkflowReliability,
+  sortWorkflowCosts,
   summarizeAutomationRuns,
+  isAutomaticAutomationIntervention,
 } from "./automation-metrics-model"
-import type { AutomationMetricsFilters, AutomationMetricsRun, AutomationWorkflowPerformance, AutomationWorkflowReliability } from "./automation-metrics-types"
+import type { AutomationMetricsFilters, AutomationMetricsIncidentRun, AutomationMetricsRun, AutomationWorkflowCostEfficiency, AutomationWorkflowPerformance, AutomationWorkflowReliability } from "./automation-metrics-types"
 
 const filters: AutomationMetricsFilters = {
   from: "2026-01-10T00:00:00.000Z",
@@ -29,6 +35,15 @@ function run(overrides: Partial<AutomationMetricsRun>): AutomationMetricsRun {
     createdAt: overrides.createdAt ?? "2026-01-10T12:00:00.000Z",
     durationMs: overrides.durationMs === undefined ? 120 : overrides.durationMs,
     costEstimate: overrides.costEstimate === undefined ? 0.1 : overrides.costEstimate,
+  }
+}
+
+function incident(overrides: Partial<AutomationMetricsIncidentRun>): AutomationMetricsIncidentRun {
+  return {
+    id: overrides.id ?? "incident",
+    runType: overrides.runType ?? "intel-010-refresh",
+    createdAt: overrides.createdAt ?? "2026-01-10T12:00:00.000Z",
+    errorMessage: overrides.errorMessage === undefined ? "Webhook fetch failed" : overrides.errorMessage,
   }
 }
 
@@ -88,7 +103,7 @@ describe("automation metrics transformations", () => {
       run({ id: "current-1", createdAt: "2026-01-10T10:00:00.000Z", status: "succeeded", durationMs: 200, costEstimate: 2 }),
       run({ id: "current-2", createdAt: "2026-01-11T10:00:00.000Z", status: "failed", durationMs: 200, costEstimate: 2 }),
       run({ id: "previous", createdAt: "2026-01-05T10:00:00.000Z", status: "succeeded", durationMs: 100, costEstimate: 1 }),
-    ], filters)
+    ], [], filters)
 
     expect(snapshot.summary.executions).toBe(2)
     expect(snapshot.previousSummary.executions).toBe(1)
@@ -115,7 +130,7 @@ describe("automation metrics transformations", () => {
   })
 
   it("returns a stable empty period instead of undefined metrics", () => {
-    const snapshot = buildAutomationMetricsSnapshot([], filters)
+    const snapshot = buildAutomationMetricsSnapshot([], [], filters)
 
     expect(snapshot.summary).toMatchObject({ executions: 0, successRatePct: null, p95DurationMs: null, measuredCost: null, costCoveragePct: null })
     expect(snapshot.timeline).toHaveLength(7)
@@ -128,7 +143,7 @@ describe("automation metrics transformations", () => {
       run({ id: "previous-target", runType: "intel-010-refresh", createdAt: "2026-01-05T10:00:00.000Z" }),
       run({ id: "current-other", runType: "account_watch_refresh", createdAt: "2026-01-10T10:00:00.000Z" }),
       run({ id: "previous-other", runType: "account_watch_refresh", createdAt: "2026-01-05T10:00:00.000Z" }),
-    ], { ...filters, workflow: "intel-010-refresh" })
+    ], [], { ...filters, workflow: "intel-010-refresh" })
 
     expect(snapshot.summary.executions).toBe(1)
     expect(snapshot.previousSummary.executions).toBe(1)
@@ -227,5 +242,116 @@ describe("automation metrics transformations", () => {
 
     expect(sortWorkflowPerformance(workflows, "p95").map((workflow) => workflow.runType)).toEqual(["account_watch_refresh", "intel-010-refresh", "unmeasured"])
     expect(sortWorkflowPerformance(workflows, "measuredVolume").map((workflow) => workflow.runType)).toEqual(["account_watch_refresh", "intel-010-refresh", "unmeasured"])
+  })
+
+  it("calculates measured workflow costs, including a real zero and partial coverage", () => {
+    const costs = buildWorkflowCosts([
+      run({ id: "success", status: "succeeded", costEstimate: 2 }),
+      run({ id: "failed", status: "failed", costEstimate: 1 }),
+      run({ id: "zero", status: "queued", costEstimate: 0 }),
+      run({ id: "missing", status: "succeeded", costEstimate: null }),
+    ], [])
+
+    expect(costs[0]).toMatchObject({
+      executions: 4,
+      succeeded: 2,
+      failed: 1,
+      measuredRuns: 3,
+      costCoveragePct: 75,
+      measuredCost: 3,
+      averageCostPerMeasuredRun: 1,
+      costPerSuccess: 1.5,
+    })
+  })
+
+  it("keeps absent costs null and computes cost per success from all measured spend", () => {
+    const withNoSuccess = buildWorkflowCosts([run({ id: "failed", status: "failed", costEstimate: 4 })], [])
+    const withoutMeasurement = buildWorkflowCosts([run({ id: "success", status: "succeeded", costEstimate: null })], [])
+    const zeroCost = buildWorkflowCosts([run({ id: "success", status: "succeeded", costEstimate: 0 })], [])
+
+    expect(withNoSuccess[0]).toMatchObject({ measuredCost: 4, costPerSuccess: null })
+    expect(withoutMeasurement[0]).toMatchObject({ measuredCost: null, averageCostPerMeasuredRun: null, costPerSuccess: null })
+    expect(zeroCost[0]).toMatchObject({ measuredCost: 0, costPerSuccess: 0 })
+  })
+
+  it("compares cost metrics only when the preceding base is valid", () => {
+    const comparable = buildWorkflowCosts(
+      [run({ id: "current", status: "succeeded", costEstimate: 4 })],
+      [run({ id: "previous", status: "succeeded", costEstimate: 2 })],
+    )
+    const zeroBase = buildWorkflowCosts(
+      [run({ id: "current", status: "succeeded", costEstimate: 4 })],
+      [run({ id: "previous", status: "succeeded", costEstimate: 0 })],
+    )
+
+    expect(comparable[0]).toMatchObject({ measuredCostDeltaPct: 100, costPerSuccessDeltaPct: 100 })
+    expect(zeroBase[0]).toMatchObject({ measuredCostDeltaPct: null, costPerSuccessDeltaPct: null })
+  })
+
+  it("filters costs globally and sorts measured values before unmeasured workflows", () => {
+    const snapshot = buildAutomationMetricsSnapshot([
+      run({ id: "target", runType: "intel-010-refresh", status: "succeeded", costEstimate: 5 }),
+      run({ id: "other", runType: "account_watch_refresh", status: "succeeded", costEstimate: 8 }),
+    ], [], { ...filters, workflow: "intel-010-refresh" })
+    const workflows: AutomationWorkflowCostEfficiency[] = [
+      { runType: "low", executions: 1, succeeded: 1, failed: 0, measuredRuns: 1, costCoveragePct: 100, measuredCost: 2, averageCostPerMeasuredRun: 2, costPerSuccess: 2, previousMeasuredCost: null, measuredCostDeltaPct: null, previousCostPerSuccess: null, costPerSuccessDeltaPct: null },
+      { runType: "high", executions: 1, succeeded: 1, failed: 0, measuredRuns: 1, costCoveragePct: 100, measuredCost: 8, averageCostPerMeasuredRun: 8, costPerSuccess: 8, previousMeasuredCost: null, measuredCostDeltaPct: null, previousCostPerSuccess: null, costPerSuccessDeltaPct: null },
+      { runType: "none", executions: 1, succeeded: 0, failed: 1, measuredRuns: 0, costCoveragePct: 0, measuredCost: null, averageCostPerMeasuredRun: null, costPerSuccess: null, previousMeasuredCost: null, measuredCostDeltaPct: null, previousCostPerSuccess: null, costPerSuccessDeltaPct: null },
+    ]
+
+    expect(snapshot.workflowCosts).toHaveLength(1)
+    expect(snapshot.workflowCosts[0]?.runType).toBe("intel-010-refresh")
+    expect(sortWorkflowCosts(workflows, "measuredCost").map((workflow) => workflow.runType)).toEqual(["high", "low", "none"])
+    expect(sortWorkflowCosts(workflows, "costPerSuccess").map((workflow) => workflow.runType)).toEqual(["high", "low", "none"])
+  })
+
+  it("classifies incidents deterministically in the documented priority order", () => {
+    expect(classifyAutomationIncident("Run repris automatiquement : webhook timeout")).toBe("stuck_callback")
+    expect(classifyAutomationIncident("Webhook fetch failed")).toBe("webhook")
+    expect(classifyAutomationIncident("Supabase unauthorized API key")).toBe("auth_configuration")
+    expect(classifyAutomationIncident("PGRST RPC candidate function")).toBe("database_rpc")
+    expect(classifyAutomationIncident("Code node cannot read properties")).toBe("runtime_node")
+    expect(classifyAutomationIncident("JSON schema validation failed")).toBe("output_validation")
+    expect(classifyAutomationIncident("Provider timed out with 429")).toBe("provider_service")
+    expect(classifyAutomationIncident("Texte sans correspondance")).toBe("other")
+    expect(classifyAutomationIncident(null)).toBe("other")
+  })
+
+  it("identifies only documented automatic intervention messages", () => {
+    expect(isAutomaticAutomationIntervention("Run assaini après statut queued dépassant")).toBe(true)
+    expect(isAutomaticAutomationIntervention("Webhook fetch failed")).toBe(false)
+  })
+
+  it("aggregates a Pareto of incident categories with exact cumulative coverage", () => {
+    const current = [
+      incident({ id: "one", errorMessage: "Webhook fetch failed" }),
+      incident({ id: "two", errorMessage: "Webhook not registered" }),
+      incident({ id: "three", errorMessage: "Unauthorized API key" }),
+      incident({ id: "four", errorMessage: "Run repris automatiquement" }),
+    ]
+    const previous = [
+      incident({ id: "previous-webhook", createdAt: "2026-01-05T10:00:00.000Z", errorMessage: "Webhook fetch failed" }),
+      incident({ id: "previous-provider", createdAt: "2026-01-05T10:00:00.000Z", errorMessage: "Timeout" }),
+    ]
+    const categories = buildIncidentCategories(current, previous)
+    const summary = buildIncidentsSummary(current, previous)
+
+    expect(categories.map((category) => category.id)).toEqual(["webhook", "auth_configuration", "stuck_callback"])
+    expect(categories[0]).toMatchObject({ incidents: 2, sharePct: 50, cumulativeSharePct: 50, previousIncidents: 1, incidentsDelta: 1 })
+    expect(categories.at(-1)?.cumulativeSharePct).toBe(100)
+    expect(categories.every((category) => category.incidents > 0)).toBe(true)
+    expect(summary).toMatchObject({ failedRuns: 4, previousFailedRuns: 2, failedRunsDeltaPct: 100, automaticInterventions: 1, previousAutomaticInterventions: 0, automaticInterventionSharePct: 25 })
+    expect(summary.automaticInterventionsDeltaPct).toBeNull()
+  })
+
+  it("filters incidents globally before aggregation", () => {
+    const snapshot = buildAutomationMetricsSnapshot([], [
+      incident({ id: "target", runType: "intel-010-refresh", errorMessage: "Webhook fetch failed" }),
+      incident({ id: "other", runType: "account_watch_refresh", errorMessage: "Timeout" }),
+      incident({ id: "previous-target", runType: "intel-010-refresh", createdAt: "2026-01-05T10:00:00.000Z", errorMessage: "Run repris automatiquement" }),
+    ], { ...filters, workflow: "intel-010-refresh" })
+
+    expect(snapshot.incidentsSummary).toMatchObject({ failedRuns: 1, previousFailedRuns: 1, automaticInterventions: 0, previousAutomaticInterventions: 1 })
+    expect(snapshot.incidentCategories.map((category) => category.id)).toEqual(["webhook"])
   })
 })
