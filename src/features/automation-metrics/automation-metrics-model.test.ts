@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest"
 import {
   buildAutomationMetricsSnapshot,
   buildAutomationTimeline,
+  buildWorkflowPerformance,
+  buildWorkflowReliability,
   compareAutomationSummaries,
   getAutomationMetricsGrain,
+  percentileNearestRank,
   percentile95,
+  sortWorkflowPerformance,
+  sortWorkflowReliability,
   summarizeAutomationRuns,
 } from "./automation-metrics-model"
-import type { AutomationMetricsFilters, AutomationMetricsRun } from "./automation-metrics-types"
+import type { AutomationMetricsFilters, AutomationMetricsRun, AutomationWorkflowPerformance, AutomationWorkflowReliability } from "./automation-metrics-types"
 
 const filters: AutomationMetricsFilters = {
   from: "2026-01-10T00:00:00.000Z",
@@ -128,5 +133,99 @@ describe("automation metrics transformations", () => {
     expect(snapshot.summary.executions).toBe(1)
     expect(snapshot.previousSummary.executions).toBe(1)
     expect(snapshot.workflowOptions).toEqual(["account_watch_refresh", "intel-010-refresh"])
+    expect(snapshot.workflowReliability).toHaveLength(1)
+    expect(snapshot.workflowPerformance).toHaveLength(1)
+  })
+
+  it("aggregates reliability by workflow while retaining non-decided executions", () => {
+    const reliability = buildWorkflowReliability([
+      run({ id: "success", runType: "intel-010-refresh", status: "succeeded" }),
+      run({ id: "failure", runType: "intel-010-refresh", status: "failed" }),
+      run({ id: "queued", runType: "intel-010-refresh", status: "queued" }),
+      run({ id: "other", runType: "account_watch_refresh", status: "running" }),
+    ], [])
+
+    expect(reliability).toContainEqual(expect.objectContaining({
+      runType: "intel-010-refresh", executions: 3, succeeded: 1, failed: 1, decided: 2, successRatePct: 50, sampleState: "limited",
+    }))
+    expect(reliability).toContainEqual(expect.objectContaining({
+      runType: "account_watch_refresh", executions: 1, decided: 0, successRatePct: null, sampleState: "none",
+    }))
+  })
+
+  it("computes rate deltas in points only when both periods have decisions", () => {
+    const reliability = buildWorkflowReliability(
+      [run({ id: "current", status: "succeeded" }), run({ id: "current-failed", status: "failed" })],
+      [run({ id: "previous", status: "succeeded" }), run({ id: "previous-2", status: "succeeded" })],
+    )
+    const noComparableBase = buildWorkflowReliability([run({ id: "queued", status: "queued" })], [run({ id: "previous", status: "succeeded" })])
+
+    expect(reliability[0]).toMatchObject({ successRatePct: 50, previousSuccessRatePct: 100, successRateDeltaPoints: -50 })
+    expect(noComparableBase[0]?.successRateDeltaPoints).toBeNull()
+  })
+
+  it("assigns none, limited and sufficient sample states", () => {
+    const reliability = buildWorkflowReliability([
+      run({ id: "none", runType: "none", status: "queued" }),
+      ...Array.from({ length: 4 }, (_, index) => run({ id: `limited-${index}`, runType: "limited", status: "succeeded" })),
+      ...Array.from({ length: 5 }, (_, index) => run({ id: `sufficient-${index}`, runType: "sufficient", status: "succeeded" })),
+    ], [])
+
+    expect(reliability.find((workflow) => workflow.runType === "none")?.sampleState).toBe("none")
+    expect(reliability.find((workflow) => workflow.runType === "limited")?.sampleState).toBe("limited")
+    expect(reliability.find((workflow) => workflow.runType === "sufficient")?.sampleState).toBe("sufficient")
+  })
+
+  it("uses nearest-rank p50 and preserves p95", () => {
+    const values = [10, 20, 30, 40]
+    expect(percentileNearestRank(values, 0.5)).toBe(20)
+    expect(percentileNearestRank(values, 0.95)).toBe(40)
+    expect(percentile95(values)).toBe(40)
+  })
+
+  it("excludes invalid durations and reports partial duration coverage", () => {
+    const performance = buildWorkflowPerformance([
+      run({ id: "valid", durationMs: 100 }),
+      run({ id: "null", durationMs: null }),
+      run({ id: "negative", durationMs: -1 }),
+      run({ id: "invalid", durationMs: Number.NaN }),
+    ], [])
+
+    expect(performance[0]).toMatchObject({ measuredDurations: 1, durationCoveragePct: 25, p50DurationMs: 100, p95DurationMs: 100 })
+  })
+
+  it("calculates positive and negative p95 deltas", () => {
+    const regression = buildWorkflowPerformance([run({ id: "current", durationMs: 200 })], [run({ id: "previous", durationMs: 100 })])
+    const improvement = buildWorkflowPerformance([run({ id: "current", durationMs: 50 })], [run({ id: "previous", durationMs: 100 })])
+
+    expect(regression[0]?.p95DeltaPct).toBe(100)
+    expect(improvement[0]?.p95DeltaPct).toBe(-50)
+  })
+
+  it("keeps workflows without durations visible as unmeasured", () => {
+    const performance = buildWorkflowPerformance([run({ id: "missing", durationMs: null })], [])
+
+    expect(performance[0]).toMatchObject({ executions: 1, measuredDurations: 0, durationCoveragePct: 0, p50DurationMs: null, p95DurationMs: null })
+  })
+
+  it("sorts reliability with decided, least reliable workflows first", () => {
+    const workflows: AutomationWorkflowReliability[] = [
+      { runType: "intel-010-refresh", executions: 2, succeeded: 2, failed: 0, decided: 2, successRatePct: 100, previousSuccessRatePct: null, successRateDeltaPoints: null, sampleState: "limited" },
+      { runType: "account_watch_refresh", executions: 3, succeeded: 1, failed: 2, decided: 3, successRatePct: 33.3, previousSuccessRatePct: null, successRateDeltaPoints: null, sampleState: "limited" },
+      { runType: "no-decision", executions: 1, succeeded: 0, failed: 0, decided: 0, successRatePct: null, previousSuccessRatePct: null, successRateDeltaPoints: null, sampleState: "none" },
+    ]
+
+    expect(sortWorkflowReliability(workflows).map((workflow) => workflow.runType)).toEqual(["account_watch_refresh", "intel-010-refresh", "no-decision"])
+  })
+
+  it("sorts performance by p95 and measured volume", () => {
+    const workflows: AutomationWorkflowPerformance[] = [
+      { runType: "intel-010-refresh", executions: 4, measuredDurations: 4, durationCoveragePct: 100, p50DurationMs: 100, p95DurationMs: 200, previousP95DurationMs: null, p95DeltaPct: null },
+      { runType: "account_watch_refresh", executions: 6, measuredDurations: 6, durationCoveragePct: 100, p50DurationMs: 150, p95DurationMs: 300, previousP95DurationMs: null, p95DeltaPct: null },
+      { runType: "unmeasured", executions: 2, measuredDurations: 0, durationCoveragePct: 0, p50DurationMs: null, p95DurationMs: null, previousP95DurationMs: null, p95DeltaPct: null },
+    ]
+
+    expect(sortWorkflowPerformance(workflows, "p95").map((workflow) => workflow.runType)).toEqual(["account_watch_refresh", "intel-010-refresh", "unmeasured"])
+    expect(sortWorkflowPerformance(workflows, "measuredVolume").map((workflow) => workflow.runType)).toEqual(["account_watch_refresh", "intel-010-refresh", "unmeasured"])
   })
 })

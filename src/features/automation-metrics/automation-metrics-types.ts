@@ -1,6 +1,8 @@
 export type AutomationMetricsPeriodPreset = "7d" | "30d" | "12w" | "year" | "custom"
 export type AutomationMetricsGrain = "day" | "week"
 export type AutomationMetricsWorkflow = "all" | string
+export type AutomationMetricsSectionId = "overview" | "reliability" | "performance"
+export type AutomationMetricsPerformanceSort = "p95" | "measuredVolume"
 
 export type AutomationMetricsFilters = {
   from: string
@@ -43,6 +45,31 @@ export type AutomationMetricsTimelinePoint = {
   successRatePct: number | null
 }
 
+export type AutomationWorkflowSampleState = "none" | "limited" | "sufficient"
+
+export type AutomationWorkflowReliability = {
+  runType: string
+  executions: number
+  succeeded: number
+  failed: number
+  decided: number
+  successRatePct: number | null
+  previousSuccessRatePct: number | null
+  successRateDeltaPoints: number | null
+  sampleState: AutomationWorkflowSampleState
+}
+
+export type AutomationWorkflowPerformance = {
+  runType: string
+  executions: number
+  measuredDurations: number
+  durationCoveragePct: number | null
+  p50DurationMs: number | null
+  p95DurationMs: number | null
+  previousP95DurationMs: number | null
+  p95DeltaPct: number | null
+}
+
 export type AutomationMetricsSnapshot = {
   range: {
     from: string
@@ -55,4 +82,6 @@ export type AutomationMetricsSnapshot = {
   previousSummary: AutomationMetricsSummary
   comparison: AutomationMetricsComparison
   timeline: AutomationMetricsTimelinePoint[]
+  workflowReliability: AutomationWorkflowReliability[]
+  workflowPerformance: AutomationWorkflowPerformance[]
 }

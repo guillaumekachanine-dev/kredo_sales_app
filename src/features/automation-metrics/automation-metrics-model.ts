@@ -6,7 +6,12 @@ import type {
   AutomationMetricsSnapshot,
   AutomationMetricsSummary,
   AutomationMetricsTimelinePoint,
+  AutomationMetricsPerformanceSort,
+  AutomationWorkflowPerformance,
+  AutomationWorkflowReliability,
+  AutomationWorkflowSampleState,
 } from "./automation-metrics-types"
+import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
 
 const DAY_MS = 86_400_000
 
@@ -72,10 +77,14 @@ export function getAutomationMetricsGrain(filters: AutomationMetricsFilters): Au
   return duration <= 60 * DAY_MS ? "day" : "week"
 }
 
-export function percentile95(values: Array<number | null>): number | null {
+export function percentileNearestRank(values: Array<number | null>, percentile: number): number | null {
   const sorted = values.filter((value): value is number => value !== null && Number.isFinite(value)).sort((left, right) => left - right)
-  if (sorted.length === 0) return null
-  return sorted[Math.ceil(sorted.length * 0.95) - 1] ?? null
+  if (sorted.length === 0 || percentile <= 0 || percentile > 1) return null
+  return sorted[Math.ceil(sorted.length * percentile) - 1] ?? null
+}
+
+export function percentile95(values: Array<number | null>): number | null {
+  return percentileNearestRank(values, 0.95)
 }
 
 export function percentageComparison(current: number | null, previous: number | null): number | null {
@@ -108,6 +117,114 @@ export function compareAutomationSummaries(current: AutomationMetricsSummary, pr
     p95DurationPct: percentageComparison(current.p95DurationMs, previous.p95DurationMs),
     measuredCostPct: percentageComparison(current.measuredCost, previous.measuredCost),
   }
+}
+
+function workflowRunTypes(currentRuns: AutomationMetricsRun[], previousRuns: AutomationMetricsRun[]): string[] {
+  return Array.from(new Set([...currentRuns, ...previousRuns].map((run) => run.runType)))
+}
+
+function sampleStateFor(decided: number): AutomationWorkflowSampleState {
+  if (decided === 0) return "none"
+  if (decided < 5) return "limited"
+  return "sufficient"
+}
+
+function runsByWorkflow(runs: AutomationMetricsRun[]): Map<string, AutomationMetricsRun[]> {
+  const groups = new Map<string, AutomationMetricsRun[]>()
+  for (const run of runs) {
+    const group = groups.get(run.runType) ?? []
+    group.push(run)
+    groups.set(run.runType, group)
+  }
+  return groups
+}
+
+export function sortWorkflowReliability(workflows: AutomationWorkflowReliability[]): AutomationWorkflowReliability[] {
+  return [...workflows].sort((left, right) => {
+    const leftHasDecisions = left.decided > 0
+    const rightHasDecisions = right.decided > 0
+    if (leftHasDecisions !== rightHasDecisions) return leftHasDecisions ? -1 : 1
+    if (!leftHasDecisions && !rightHasDecisions) return workflowLabelForRunType(left.runType).localeCompare(workflowLabelForRunType(right.runType), "fr")
+    return (left.successRatePct ?? Infinity) - (right.successRatePct ?? Infinity)
+      || right.failed - left.failed
+      || right.decided - left.decided
+      || workflowLabelForRunType(left.runType).localeCompare(workflowLabelForRunType(right.runType), "fr")
+  })
+}
+
+export function buildWorkflowReliability(currentRuns: AutomationMetricsRun[], previousRuns: AutomationMetricsRun[]): AutomationWorkflowReliability[] {
+  const currentByWorkflow = runsByWorkflow(currentRuns)
+  const previousByWorkflow = runsByWorkflow(previousRuns)
+  const workflows = workflowRunTypes(currentRuns, previousRuns).map((runType) => {
+    const current = summarizeAutomationRuns(currentByWorkflow.get(runType) ?? [])
+    const previous = summarizeAutomationRuns(previousByWorkflow.get(runType) ?? [])
+    const decided = current.succeeded + current.failed
+
+    return {
+      runType,
+      executions: current.executions,
+      succeeded: current.succeeded,
+      failed: current.failed,
+      decided,
+      successRatePct: current.successRatePct,
+      previousSuccessRatePct: previous.successRatePct,
+      successRateDeltaPoints: current.successRatePct === null || previous.successRatePct === null ? null : current.successRatePct - previous.successRatePct,
+      sampleState: sampleStateFor(decided),
+    }
+  })
+
+  return sortWorkflowReliability(workflows)
+}
+
+function measuredDurations(runs: AutomationMetricsRun[]): number[] {
+  return runs
+    .map((run) => run.durationMs)
+    .filter((duration): duration is number => duration !== null && Number.isFinite(duration) && duration >= 0)
+}
+
+export function sortWorkflowPerformance(
+  workflows: AutomationWorkflowPerformance[],
+  sort: AutomationMetricsPerformanceSort,
+): AutomationWorkflowPerformance[] {
+  return [...workflows].sort((left, right) => {
+    const compareLabel = () => workflowLabelForRunType(left.runType).localeCompare(workflowLabelForRunType(right.runType), "fr")
+    if (sort === "measuredVolume") {
+      return right.measuredDurations - left.measuredDurations
+        || (right.p95DurationMs ?? -Infinity) - (left.p95DurationMs ?? -Infinity)
+        || compareLabel()
+    }
+    const leftMeasured = left.p95DurationMs !== null
+    const rightMeasured = right.p95DurationMs !== null
+    if (leftMeasured !== rightMeasured) return leftMeasured ? -1 : 1
+    return (right.p95DurationMs ?? -Infinity) - (left.p95DurationMs ?? -Infinity)
+      || (right.p50DurationMs ?? -Infinity) - (left.p50DurationMs ?? -Infinity)
+      || compareLabel()
+  })
+}
+
+export function buildWorkflowPerformance(currentRuns: AutomationMetricsRun[], previousRuns: AutomationMetricsRun[]): AutomationWorkflowPerformance[] {
+  const currentByWorkflow = runsByWorkflow(currentRuns)
+  const previousByWorkflow = runsByWorkflow(previousRuns)
+  const workflows = workflowRunTypes(currentRuns, previousRuns).map((runType) => {
+    const current = currentByWorkflow.get(runType) ?? []
+    const previous = previousByWorkflow.get(runType) ?? []
+    const currentDurations = measuredDurations(current)
+    const previousP95DurationMs = percentileNearestRank(measuredDurations(previous), 0.95)
+    const p95DurationMs = percentileNearestRank(currentDurations, 0.95)
+
+    return {
+      runType,
+      executions: current.length,
+      measuredDurations: currentDurations.length,
+      durationCoveragePct: current.length === 0 ? null : (currentDurations.length / current.length) * 100,
+      p50DurationMs: percentileNearestRank(currentDurations, 0.5),
+      p95DurationMs,
+      previousP95DurationMs,
+      p95DeltaPct: percentageComparison(p95DurationMs, previousP95DurationMs),
+    }
+  })
+
+  return sortWorkflowPerformance(workflows, "p95")
 }
 
 export function buildAutomationTimeline(runs: AutomationMetricsRun[], from: string, to: string, grain: AutomationMetricsGrain): AutomationMetricsTimelinePoint[] {
@@ -164,5 +281,7 @@ export function buildAutomationMetricsSnapshot(runs: AutomationMetricsRun[], fil
     previousSummary,
     comparison: compareAutomationSummaries(summary, previousSummary),
     timeline: buildAutomationTimeline(currentRuns, from.toISOString(), to.toISOString(), grain),
+    workflowReliability: buildWorkflowReliability(currentRuns, previousRuns),
+    workflowPerformance: buildWorkflowPerformance(currentRuns, previousRuns),
   }
 }

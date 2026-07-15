@@ -6,9 +6,12 @@ import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
 import { loadAutomationMetricsSnapshot } from "./automation-metrics-actions"
 import { AutomationMetricsNavigation } from "./AutomationMetricsNavigation"
 import { AutomationMetricsOverview } from "./AutomationMetricsOverview"
+import { AutomationMetricsPerformance } from "./AutomationMetricsPerformance"
+import { AutomationMetricsReliability } from "./AutomationMetricsReliability"
 import type {
   AutomationMetricsFilters,
   AutomationMetricsPeriodPreset,
+  AutomationMetricsSectionId,
   AutomationMetricsSnapshot,
   AutomationMetricsWorkflow,
 } from "./automation-metrics-types"
@@ -47,6 +50,7 @@ function initialCustomRange() {
 
 export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [preset, setPreset] = useState<AutomationMetricsPeriodPreset>("30d")
+  const [section, setSection] = useState<AutomationMetricsSectionId>("overview")
   const [workflow, setWorkflow] = useState<AutomationMetricsWorkflow>("all")
   const [customRange, setCustomRange] = useState(initialCustomRange)
   const [snapshot, setSnapshot] = useState<AutomationMetricsSnapshot | null>(null)
@@ -110,6 +114,13 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
   )
 
   const initialLoading = snapshot === null && pending
+  const panel = snapshot
+    ? section === "reliability"
+      ? <AutomationMetricsReliability snapshot={snapshot} />
+      : section === "performance"
+        ? <AutomationMetricsPerformance snapshot={snapshot} />
+        : <AutomationMetricsOverview snapshot={snapshot} />
+    : null
   const content = (
     <div className="flex min-h-0 flex-1 flex-col">
       {controls}
@@ -121,7 +132,7 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
         </div>
       ) : snapshot ? (
         <div className={`min-h-0 flex-1 overflow-y-auto transition-opacity duration-150 ${pending ? "opacity-70" : "opacity-100"}`}>
-          <AutomationMetricsOverview snapshot={snapshot} />
+          {panel}
           <p className="px-6 pb-5 text-[10px] text-white/35">Données issues de v_ai_run_costs. Les coûts incomplets restent non mesurés.</p>
         </div>
       ) : !error ? <div className="p-5 text-xs text-white/45">Aucune donnée à afficher.</div> : null}
@@ -135,7 +146,7 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
       title="Analyse des métriques"
       subtitle="Évolution de la fiabilité, des performances et des coûts"
       leftPaneWidth="38%"
-      leftPane={<AutomationMetricsNavigation />}
+      leftPane={<AutomationMetricsNavigation section={section} onChange={setSection} />}
       rightPane={content}
     />
   )
