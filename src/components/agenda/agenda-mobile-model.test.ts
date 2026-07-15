@@ -8,13 +8,14 @@ describe("agenda-mobile-model", () => {
   const todayKey = "2026-07-01"
 
   describe("parseAgendaMobileRouteState", () => {
-    it("should fallback to feed mode and today date for empty parameters", () => {
+    it("should fallback to calendar mode and today date for empty parameters", () => {
       const state = parseAgendaMobileRouteState({}, now)
-      expect(state.mode).toBe("feed")
+      expect(state.mode).toBe("calendar")
       expect(state.date).toBe(todayKey)
-      expect(state.filters.type).toBe("all")
-      expect(state.filters.company).toBe("all")
-      expect(state.filters.task).toBe("all")
+      expect(state.filters.showDeadlines).toBe(true)
+      expect(state.filters.showAbsences).toBe(true)
+      expect(state.filters.showActivity).toBe(true)
+      expect(state.filters.showInternal).toBe(true)
       expect(state.shouldRedirect).toBe(true) // because the incoming URL has no mode or date
     })
 
@@ -44,14 +45,14 @@ describe("agenda-mobile-model", () => {
       expect(state.shouldRedirect).toBe(true)
     })
 
-    it("should normalize legacy view=week parameter to mode=feed", () => {
+    it("should normalize legacy view=week parameter to mode=calendar", () => {
       const state = parseAgendaMobileRouteState(
         {
           view: "week",
         },
         now
       )
-      expect(state.mode).toBe("feed")
+      expect(state.mode).toBe("calendar")
       expect(state.shouldRedirect).toBe(true)
     })
 
@@ -70,21 +71,19 @@ describe("agenda-mobile-model", () => {
     it("should preserve filters in the state and canonical query string", () => {
       const state = parseAgendaMobileRouteState(
         {
-          mode: "feed",
+          mode: "calendar",
           date: "2026-07-01",
-          type: "rdv_client_suivi",
-          company: "comp-123",
-          task: "has_task",
+          filters: "deadlines,activity",
         },
         now
       )
-      expect(state.filters.type).toBe("rdv_client_suivi")
-      expect(state.filters.company).toBe("comp-123")
-      expect(state.filters.task).toBe("has_task")
+      expect(state.filters.showDeadlines).toBe(true)
+      expect(state.filters.showAbsences).toBe(false)
+      expect(state.filters.showActivity).toBe(true)
+      expect(state.filters.showInternal).toBe(false)
       expect(state.shouldRedirect).toBe(false)
-      expect(state.canonicalQueryString).toContain("type=rdv_client_suivi")
-      expect(state.canonicalQueryString).toContain("company=comp-123")
-      expect(state.canonicalQueryString).toContain("task=has_task")
+      expect(state.canonicalQueryString).toContain("filters=deadlines")
+      expect(state.canonicalQueryString).toContain("activity")
     })
   })
 

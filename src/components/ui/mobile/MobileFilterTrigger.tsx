@@ -4,9 +4,9 @@ import React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/Button"
 
-const IconFilter = () => (
+const IconFilter = ({ className }: { className?: string }) => (
   <svg
-    className="size-4"
+    className={cn("size-4", className)}
     viewBox="0 0 20 20"
     fill="none"
     stroke="currentColor"
@@ -43,29 +43,32 @@ export function MobileFilterTrigger({
       ? `${label} — ${activeCount} filtre${activeCount > 1 ? "s" : ""} actif${activeCount > 1 ? "s" : ""}`
       : label
 
+  const isFilterActive = activeCount > 0
+
   return (
     <Button
       variant="secondary"
       size="md"
       disabled={disabled}
       onClick={onClick}
-      leftIcon={<IconFilter />}
+      leftIcon={<IconFilter className={cn(isFilterActive && "text-cat-active")} />}
       aria-label={ariaLabel}
       className={cn(
         "relative min-h-[44px]",
         compact && "px-2.5 text-xs",
         iconOnly && "size-9 min-h-9 min-w-9 px-0 py-0",
+        isFilterActive && "border-cat-active text-cat-active border-2 shadow-sm",
         className,
       )}
       style={compact && !iconOnly ? { height: "1.75rem", minHeight: "1.75rem" } : undefined}
     >
       {iconOnly ? <span className="sr-only">{label}</span> : label}
-      {activeCount > 0 ? (
+      {isFilterActive ? (
         <span
           aria-hidden="true"
           className={cn(
-            "inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-fg",
-            iconOnly && "absolute -right-1 -top-1",
+            "inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-cat-active px-1 text-[10px] font-bold leading-none text-white",
+            iconOnly && "absolute -right-1.5 -top-1.5",
           )}
         >
           {activeCount}

@@ -9,9 +9,10 @@ import type { AgendaItem, AgendaDeepLink, AgendaPriority } from "@/lib/agenda/ag
 export type AgendaMobileMode = "feed" | "calendar"
 
 export interface AgendaMobileFilters {
-  type: string
-  company: string
-  task: string
+  showDeadlines: boolean
+  showAbsences: boolean
+  showActivity: boolean
+  showInternal: boolean
 }
 
 export interface AgendaMobileRouteState {
@@ -46,32 +47,34 @@ export function parseAgendaMobileRouteState(
   timezone: string = AGENDA_V1_TIMEZONE,
 ): AgendaMobileRouteState {
   const today = getTodayDateKey(now, timezone)
-  
-  const rawView = toArray(searchParams.view)[0]
-  const rawMode = toArray(searchParams.mode)[0]
   const rawDate = toArray(searchParams.date)[0]
-
-  let mode: AgendaMobileMode = "feed"
-  if (rawMode === "feed" || rawMode === "calendar") {
-    mode = rawMode
-  } else if (rawView === "day") {
-    mode = "calendar"
-  } else if (rawView === "week" || rawView === "month") {
-    mode = "feed"
-  }
-
+  const mode: AgendaMobileMode = "calendar"
   const date = isValidIsoDate(rawDate) ? rawDate : today
 
-  const type = toArray(searchParams.type)[0] || "all"
-  const company = toArray(searchParams.company)[0] || "all"
-  const task = toArray(searchParams.task)[0] || "all"
+  const rawFilters = toArray(searchParams.filters)[0]
+  let showDeadlines = true
+  let showAbsences = true
+  let showActivity = true
+  let showInternal = true
+
+  if (rawFilters !== undefined) {
+    const active = rawFilters.split(",")
+    showDeadlines = active.includes("deadlines")
+    showAbsences = active.includes("absences")
+    showActivity = active.includes("activity")
+    showInternal = active.includes("internal")
+  }
+
+  const activeList: string[] = []
+  if (showDeadlines) activeList.push("deadlines")
+  if (showAbsences) activeList.push("absences")
+  if (showActivity) activeList.push("activity")
+  if (showInternal) activeList.push("internal")
 
   const canonicalQuery = new URLSearchParams()
   canonicalQuery.set("mode", mode)
   canonicalQuery.set("date", date)
-  if (type !== "all") canonicalQuery.set("type", type)
-  if (company !== "all") canonicalQuery.set("company", company)
-  if (task !== "all") canonicalQuery.set("task", task)
+  canonicalQuery.set("filters", activeList.join(","))
 
   const incoming = new URLSearchParams()
   for (const [key, value] of Object.entries(searchParams)) {
@@ -82,22 +85,20 @@ export function parseAgendaMobileRouteState(
 
   const canonicalQueryString = canonicalQuery.toString()
 
-  const hasView = incoming.has("view")
   const modeMatch = incoming.get("mode") === mode
   const dateMatch = incoming.get("date") === date
-  const typeMatch = (incoming.get("type") || "all") === type
-  const companyMatch = (incoming.get("company") || "all") === company
-  const taskMatch = (incoming.get("task") || "all") === task
+  const filtersMatch = (incoming.get("filters") || "deadlines,absences,activity,internal") === activeList.join(",")
 
-  const shouldRedirect = hasView || !modeMatch || !dateMatch || !typeMatch || !companyMatch || !taskMatch
+  const shouldRedirect = !modeMatch || !dateMatch || !filtersMatch
 
   return {
     mode,
     date,
     filters: {
-      type,
-      company,
-      task,
+      showDeadlines,
+      showAbsences,
+      showActivity,
+      showInternal,
     },
     canonicalQueryString,
     shouldRedirect,

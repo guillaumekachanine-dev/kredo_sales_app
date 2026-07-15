@@ -1,21 +1,19 @@
 "use client"
 
 import React, { useEffect, useEffectEvent, useState } from "react"
-import { AppDrawer } from "@/components/ui/AppDrawer"
-import { Select } from "@/components/ui/Select"
-import { AGENDA_EVENT_TYPE_OPTIONS } from "@/lib/agenda/agenda-config"
+import { AppDialog } from "@/components/ui/AppDialog"
 
-interface ActiveFilters {
-  type: string
-  companyId: string
-  task: string
+export interface ActiveFilters {
+  showDeadlines: boolean
+  showAbsences: boolean
+  showActivity: boolean
+  showInternal: boolean
 }
 
 interface AgendaMobileFilterDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   activeFilters: ActiveFilters
-  uniqueCompanies: { id: string; name: string }[]
   onApply: (filters: ActiveFilters) => void
 }
 
@@ -23,13 +21,13 @@ export function AgendaMobileFilterDrawer({
   open,
   onOpenChange,
   activeFilters,
-  uniqueCompanies,
   onApply,
 }: AgendaMobileFilterDrawerProps) {
   const [localFilters, setLocalFilters] = useState<ActiveFilters>({
-    type: "all",
-    companyId: "all",
-    task: "all",
+    showDeadlines: true,
+    showAbsences: true,
+    showActivity: true,
+    showInternal: true,
   })
 
   // Sync state when drawer opens
@@ -41,15 +39,19 @@ export function AgendaMobileFilterDrawer({
     if (open) queueMicrotask(syncLocalFilters)
   }, [open, activeFilters])
 
-  const setField = (key: keyof ActiveFilters, val: string) => {
+  const setField = (key: keyof ActiveFilters, val: boolean) => {
     setLocalFilters((prev) => ({ ...prev, [key]: val }))
   }
 
-  const handleReset = () => {
+  const allChecked = localFilters.showDeadlines && localFilters.showAbsences && localFilters.showActivity && localFilters.showInternal
+
+  const handleToggleAll = () => {
+    const targetValue = !allChecked
     setLocalFilters({
-      type: "all",
-      companyId: "all",
-      task: "all",
+      showDeadlines: targetValue,
+      showAbsences: targetValue,
+      showActivity: targetValue,
+      showInternal: targetValue,
     })
   }
 
@@ -59,20 +61,18 @@ export function AgendaMobileFilterDrawer({
   }
 
   return (
-    <AppDrawer
+    <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      side="bottom"
-      title="Filtrer les événements"
-      subtitle="Affinez les actions affichées"
+      title="Choix d'affichage"
       footer={
         <div className="flex w-full items-center justify-between gap-3">
           <button
             type="button"
-            onClick={handleReset}
-            className="px-4 py-2.5 text-xs font-semibold text-muted hover:text-heading transition-colors cursor-pointer"
+            onClick={handleToggleAll}
+            className="px-3 py-2 text-xs font-semibold text-muted hover:text-heading transition-colors cursor-pointer"
           >
-            Réinitialiser
+            {allChecked ? "Tout décocher" : "Tout cocher"}
           </button>
           
           <button
@@ -80,66 +80,64 @@ export function AgendaMobileFilterDrawer({
             onClick={handleSave}
             className="px-5 py-2.5 text-xs font-bold rounded-md bg-primary text-primary-fg hover:bg-primary/95 transition-all cursor-pointer shadow-sm"
           >
-            Afficher les événements
+            Appliquer
           </button>
         </div>
       }
     >
-      <div className="flex flex-col gap-4">
-        {/* Filter 1: Nature */}
-        <div>
-          <label className="block text-xs font-bold text-heading mb-1.5">
-            Nature de l&apos;événement
-          </label>
-          <Select
-            value={localFilters.type}
-            onChange={(e) => setField("type", e.target.value)}
-            className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
-          >
-            <option value="all">Toutes les natures</option>
-            {AGENDA_EVENT_TYPE_OPTIONS.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-3 cursor-pointer py-3 px-4 bg-canvas/30 hover:bg-canvas/50 border border-border/50 rounded-xl transition-colors select-none">
+          <input
+            type="checkbox"
+            checked={localFilters.showDeadlines}
+            onChange={(e) => setField("showDeadlines", e.target.checked)}
+            className="size-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-heading">Échéances</span>
+            <span className="text-[10px] text-muted font-medium">Tâches et dates limites</span>
+          </div>
+        </label>
 
-        {/* Filter 2: Company */}
-        <div>
-          <label className="block text-xs font-bold text-heading mb-1.5">
-            Compte client
-          </label>
-          <Select
-            value={localFilters.companyId}
-            onChange={(e) => setField("companyId", e.target.value)}
-            className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
-          >
-            <option value="all">Tous les comptes</option>
-            {uniqueCompanies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <label className="flex items-center gap-3 cursor-pointer py-3 px-4 bg-canvas/30 hover:bg-canvas/50 border border-border/50 rounded-xl transition-colors select-none">
+          <input
+            type="checkbox"
+            checked={localFilters.showAbsences}
+            onChange={(e) => setField("showAbsences", e.target.checked)}
+            className="size-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-heading">Absences</span>
+            <span className="text-[10px] text-muted font-medium">Absences collaborateurs et congés</span>
+          </div>
+        </label>
 
-        {/* Filter 3: Preparatory Task */}
-        <div>
-          <label className="block text-xs font-bold text-heading mb-1.5">
-            Tâche préparatoire
-          </label>
-          <Select
-            value={localFilters.task}
-            onChange={(e) => setField("task", e.target.value)}
-            className="w-full rounded-md border border-border bg-canvas px-3 py-2.5 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 cursor-pointer"
-          >
-            <option value="all">Tous les états</option>
-            <option value="has_task">Avec tâche à faire</option>
-            <option value="no_task">Sans tâche ou terminée</option>
-          </Select>
-        </div>
+        <label className="flex items-center gap-3 cursor-pointer py-3 px-4 bg-canvas/30 hover:bg-canvas/50 border border-border/50 rounded-xl transition-colors select-none">
+          <input
+            type="checkbox"
+            checked={localFilters.showActivity}
+            onChange={(e) => setField("showActivity", e.target.checked)}
+            className="size-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-heading">Activité</span>
+            <span className="text-[10px] text-muted font-medium">Prospection, suivi client, recrutement, management</span>
+          </div>
+        </label>
+
+        <label className="flex items-center gap-3 cursor-pointer py-3 px-4 bg-canvas/30 hover:bg-canvas/50 border border-border/50 rounded-xl transition-colors select-none">
+          <input
+            type="checkbox"
+            checked={localFilters.showInternal}
+            onChange={(e) => setField("showInternal", e.target.checked)}
+            className="size-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-heading">Interne</span>
+            <span className="text-[10px] text-muted font-medium">Créneaux et réunions internes</span>
+          </div>
+        </label>
       </div>
-    </AppDrawer>
+    </AppDialog>
   )
 }

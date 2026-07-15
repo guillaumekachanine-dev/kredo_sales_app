@@ -108,10 +108,8 @@ export function CockpitMobileDashboard({
         }
       >
         <div className="screen-scroll-container">
-          <DiagnosticMobileSection initialSnapshot={diagnostic} />
-
           {/* Section 1: Agenda */}
-          <div className="-mx-4 mb-0">
+          <div className="-mx-4 mb-3">
             <CockpitAgendaStrip
               days={vm.agenda.days}
               selectedDayKey={selectedDayKey}
@@ -119,6 +117,8 @@ export function CockpitMobileDashboard({
               isExpanded={isAgendaOpen}
             />
           </div>
+
+          <DiagnosticMobileSection initialSnapshot={diagnostic} />
 
           <CockpitAgendaDetails
             day={selectedDay}
