@@ -21,10 +21,29 @@ export default async function OpportunitesPage({ searchParams }: OppsPageProps) 
     redirect(buildNeedsStaffingUrl("/missions/opps", parseNeedsStaffingUrlState(resolvedSearchParams)))
   }
 
-  const state = parseNeedsStaffingUrlState(resolvedSearchParams)
   const device = await getDashboardDevice()
 
-  // Charger toutes les données en parallèle pour alimenter le planning unifié et les switchs de vues
+  // La vue mobile ne rend que la liste des besoins (+ KPIs partagés).
+  // On évite d'y charger le planning des besoins, la liste et le planning
+  // du staffing (jointures profondes candidats/collaborateurs/compensation),
+  // inutilisés en mobile.
+  if (device === "mobile") {
+    const [sharedData, needsRows] = await Promise.all([
+      getNeedsStaffingSharedData(),
+      getOpportunitiesList({ onlyStaffingNeeds: true }),
+    ])
+
+    return (
+      <NeedsStaffingWorkspace
+        device={device}
+        sharedData={sharedData}
+        needsData={{ rows: needsRows, planningData: [] }}
+      />
+    )
+  }
+
+  // Desktop : charger l'ensemble en parallèle pour alimenter le planning unifié
+  // et les switchs de vues (liste / kanban / planning, besoins / staffing).
   const [sharedData, needsRows, needsPlanning, staffingsRows, staffingsPlanning] = await Promise.all([
     getNeedsStaffingSharedData(),
     getOpportunitiesList({ onlyStaffingNeeds: true }),

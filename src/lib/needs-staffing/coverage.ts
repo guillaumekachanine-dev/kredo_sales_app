@@ -42,6 +42,15 @@ export function isStaffingNeedOpportunity({
   return (requiredHeadcount ?? 0) > 0
 }
 
+/**
+ * Traduction PostgREST de `isStaffingNeedOpportunity`, à passer tel quel à `.or(...)`
+ * pour filtrer les besoins de staffing directement en base plutôt qu'en mémoire :
+ *   requires_staffing = true  OU  (requires_staffing IS NULL ET required_headcount > 0)
+ * Le prédicat JS reste appliqué en aval comme garde-fou (mêmes conditions).
+ */
+export const STAFFING_NEED_OR_FILTER =
+  "requires_staffing.is.true,and(requires_staffing.is.null,required_headcount.gt.0)"
+
 export function getNormalizedRequiredHeadcount(value: number | null | undefined) {
   return Math.max(0, Math.trunc(value ?? 0))
 }

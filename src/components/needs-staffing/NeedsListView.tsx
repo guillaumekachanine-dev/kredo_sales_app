@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { Badge } from "@/components/ui/Badge"
 import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
@@ -115,7 +116,7 @@ export function NeedsListView({
 }: NeedsListViewProps) {
   const { openOpportunityDrawer } = useStaffingDrawerStore()
 
-  const columns: StructuredListColumn<MissionsListRow>[] = [
+  const columns: StructuredListColumn<MissionsListRow>[] = useMemo(() => [
     {
       id: "client",
       header: "Compte",
@@ -210,7 +211,7 @@ export function NeedsListView({
         <span className="line-clamp-2 text-body">{renderNextAction(row)}</span>
       ),
     },
-  ]
+  ], [coverageByOpportunityId, acvDirection, onToggleAcvSort])
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface shadow-sm">

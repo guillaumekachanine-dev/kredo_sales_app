@@ -4,8 +4,10 @@ import {
   getNormalizedRequiredHeadcount,
   isCoveringPositioningStatus,
   isStaffingNeedOpportunity,
+  STAFFING_NEED_OR_FILTER,
 } from "@/lib/needs-staffing/coverage"
 import { isTerminalOpportunityStage } from "@/lib/opportunities/stages"
+import { resolveCompanyName } from "@/lib/companies/resolve-company-embed"
 
 interface OpportunityRow {
   id: string
@@ -45,15 +47,10 @@ export interface NeedsStaffingSharedData {
   coverageByOpportunityId: Record<string, NeedsCoverageSnapshot>
 }
 
-function getCompanyName(companies: OpportunityRow["companies"]) {
-  if (!companies) return "Compte non renseigné"
-  if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
-  return companies.name ?? "Compte non renseigné"
-}
-
 export async function getNeedsStaffingSharedData(): Promise<NeedsStaffingSharedData> {
   const supabase = await createClient()
 
+  // Filtre besoins de staffing poussé en base (le prédicat JS reste appliqué en garde-fou).
   const { data: opportunities, error: opportunitiesError } = await supabase
     .from("opportunities")
     .select(`
@@ -66,6 +63,7 @@ export async function getNeedsStaffingSharedData(): Promise<NeedsStaffingSharedD
         name
       )
     `)
+    .or(STAFFING_NEED_OR_FILTER)
 
   if (opportunitiesError) {
     console.error("Error fetching needs staffing opportunities:", opportunitiesError)
@@ -134,7 +132,7 @@ export async function getNeedsStaffingSharedData(): Promise<NeedsStaffingSharedD
     openNeeds: openNeeds.map((need) => ({
       id: need.id,
       title: need.title,
-      clientName: getCompanyName(need.companies),
+      clientName: resolveCompanyName(need.companies),
     })),
     coverageByOpportunityId,
   }

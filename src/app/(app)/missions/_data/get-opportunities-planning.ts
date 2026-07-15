@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
-import { isStaffingNeedOpportunity } from "@/lib/needs-staffing/coverage"
+import { isStaffingNeedOpportunity, STAFFING_NEED_OR_FILTER } from "@/lib/needs-staffing/coverage"
+import { resolveCompanyEmbed } from "@/lib/companies/resolve-company-embed"
 
 export interface OpportunityPlanningCandidate {
   id: string
@@ -49,20 +50,15 @@ export interface GetOpportunitiesPlanningOptions {
   onlyStaffingNeeds?: boolean
 }
 
-function getCompanyName(companies: { name: string } | { name: string }[] | null): string {
-  if (!companies) return "Compte non renseigné"
-  if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
-  return companies.name ?? "Compte non renseigné"
-}
-
 export async function getOpportunitiesPlanning(
   options: GetOpportunitiesPlanningOptions = {},
 ): Promise<OpportunityPlanningData[]> {
   try {
     const supabase = await createClient()
 
-    // 1. Récupérer toutes les opportunités avec leur entreprise liée
-    const { data: opps, error: oppsError } = await supabase
+    // 1. Récupérer les opportunités avec leur entreprise liée.
+    //    Filtre besoins de staffing poussé en base quand demandé.
+    let oppsQuery = supabase
       .from("opportunities")
       .select(`
         id,
@@ -87,7 +83,12 @@ export async function getOpportunitiesPlanning(
           metadata
         )
       `)
-      .order("updated_at", { ascending: false })
+
+    if (options.onlyStaffingNeeds) {
+      oppsQuery = oppsQuery.or(STAFFING_NEED_OR_FILTER)
+    }
+
+    const { data: opps, error: oppsError } = await oppsQuery.order("updated_at", { ascending: false })
 
     if (oppsError || !opps) {
       console.error("Erreur getOpportunitiesPlanning (opps):", oppsError)
@@ -224,19 +225,14 @@ export async function getOpportunitiesPlanning(
 
     // 4. Assembler et mapper les données complètes
     return filteredOpps.map((item) => {
-      const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
-      const clientWebsite = compRecord?.website ?? null
-      const compMeta = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
-        ? compRecord.metadata as Record<string, unknown>
-        : null
-      const clientLogoPath = compMeta && typeof compMeta.logo_path === "string" ? compMeta.logo_path : null
+      const company = resolveCompanyEmbed(item.companies)
 
       return {
         id: item.id,
         title: item.title,
-        client: getCompanyName(item.companies),
-        clientWebsite,
-        clientLogoPath,
+        client: company.name,
+        clientWebsite: company.website,
+        clientLogoPath: company.logoPath,
         practice: item.practice,
         opportunityType: item.opportunity_type,
         stage: item.stage,

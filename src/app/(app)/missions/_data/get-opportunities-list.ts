@@ -5,16 +5,12 @@ import {
   PRIORITY_LABELS,
   TYPE_OPTIONS,
 } from "@/components/missions/opportunity-detail/opportunity-detail-options"
-import { isStaffingNeedOpportunity } from "@/lib/needs-staffing/coverage"
+import { isStaffingNeedOpportunity, STAFFING_NEED_OR_FILTER } from "@/lib/needs-staffing/coverage"
 import { isOpenOpportunityStage, isTerminalOpportunityStage } from "@/lib/opportunities/stages"
 import { formatEuro, formatDateShort } from "@/lib/formatters"
-import type { Json } from "@/types/database"
+import { resolveCompanyEmbed, type CompanyEmbedLike } from "@/lib/companies/resolve-company-embed"
 
-interface CompanyInfo {
-  name: string
-  website?: string | null
-  metadata?: Json | null
-}
+type CompanyInfo = CompanyEmbedLike
 
 interface DBQueryResult {
   id: string
@@ -54,16 +50,11 @@ type SupabaseError = { message: string; code?: string; details?: string; hint?: 
 type OpportunitiesQuery = PromiseLike<{ data: DBQueryResult[] | null; error: SupabaseError | null }> & {
   select(columns: string): OpportunitiesQuery
   order(column: string, options?: { ascending?: boolean }): OpportunitiesQuery
+  or(filter: string): OpportunitiesQuery
 }
 
 type LooseSupabaseClient = {
   from(table: "opportunities"): OpportunitiesQuery
-}
-
-function getCompanyName(companies: DBQueryResult["companies"]): string {
-  if (!companies) return "Compte non renseigné"
-  if (Array.isArray(companies)) return companies[0]?.name ?? "Compte non renseigné"
-  return companies.name ?? "Compte non renseigné"
 }
 
 function mapStageToStatus(stage: string): MissionsListRow["status"] {
@@ -79,7 +70,7 @@ export async function getOpportunitiesList(
   try {
     const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("opportunities")
       .select(`
         id,
@@ -110,7 +101,13 @@ export async function getOpportunitiesList(
           metadata
         )
       `)
-      .order("updated_at", { ascending: false })
+
+    // Filtre poussé en base : ne remonter que les besoins de staffing quand demandé.
+    if (options.onlyStaffingNeeds) {
+      query = query.or(STAFFING_NEED_OR_FILTER)
+    }
+
+    const { data, error } = await query.order("updated_at", { ascending: false })
 
     if (error) {
       console.error("Supabase error:", error?.message, error?.code, error?.details, error?.hint)
@@ -146,20 +143,16 @@ export async function getOpportunitiesList(
         ? [...tagParts, `${item.conviction}%`].join(" · ")
         : `${STAGE_LABELS[item.stage] || item.stage} · ${item.conviction}% · ${PRIORITY_LABELS[item.priority] || `Priorité ${item.priority}`}`
 
-      const compRecord = Array.isArray(item.companies) ? item.companies[0] : item.companies
-      const clientWebsite = compRecord?.website ?? null
-      const clientLogoPath = compRecord?.metadata && typeof compRecord.metadata === "object" && !Array.isArray(compRecord.metadata)
-        ? ("logo_path" in compRecord.metadata && typeof compRecord.metadata.logo_path === "string" ? compRecord.metadata.logo_path : null)
-        : null
+      const company = resolveCompanyEmbed(item.companies)
 
       return {
         entityId: item.id,
         entityType: "opportunite",
         title: item.title,
         subtitle: item.practice || undefined,
-        client: getCompanyName(item.companies),
-        clientWebsite,
-        clientLogoPath,
+        client: company.name,
+        clientWebsite: company.website,
+        clientLogoPath: company.logoPath,
         amount: formatEuro(amountVal),
         date: dateStr,
         tag,
@@ -195,37 +188,8 @@ export async function getOpportunitiesList(
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     })
 
-    return mapped.map((row) => ({
-      entityId: row.entityId,
-      entityType: row.entityType,
-      title: row.title,
-      subtitle: row.subtitle,
-      status: row.status,
-      amount: row.amount,
-      date: row.date,
-      client: row.client,
-      clientWebsite: row.clientWebsite,
-      clientLogoPath: row.clientLogoPath,
-      tag: row.tag,
-      conviction: row.conviction,
-      acv: row.acv,
-      estimatedGain: row.estimatedGain,
-      stage: row.stage,
-      priority: row.priority,
-      targetDailyRate: row.targetDailyRate,
-      practice: row.practice,
-      targetCloseDate: row.targetCloseDate,
-      nextActionLabel: row.nextActionLabel,
-      nextActionAt: row.nextActionAt,
-      updatedAt: row.updatedAt,
-      source: row.source,
-      seniority: row.seniority,
-      location: row.location,
-      remotePolicy: row.remotePolicy,
-      openedAt: row.openedAt,
-      requiredHeadcount: row.requiredHeadcount,
-      requiresStaffing: row.requiresStaffing,
-    }))
+    // `MappedRow` étend `MissionsListRow` (updatedAt en plus) : directement assignable.
+    return mapped
   } catch (err) {
     console.error("Unhandled error in getOpportunitiesList:", err)
     return []
