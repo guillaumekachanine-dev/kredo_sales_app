@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useCallback, useMemo, useState, useTransition } from "react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
@@ -40,6 +42,11 @@ import { AgendaTaskCreateDrawer } from "./AgendaTaskCreateDrawer"
 import { completeAgendaTask, reopenAgendaTask } from "@/lib/agenda/agenda-actions"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 
+const CommercialActivityModal = dynamic(
+  () => import("@/features/commercial-activity/CommercialActivityModal").then((module) => module.CommercialActivityModal),
+  { ssr: false },
+)
+
 interface AgendaMobileWorkspaceProps {
   snapshot: AgendaSnapshot
   initialMode: AgendaMobileMode
@@ -74,6 +81,7 @@ export function AgendaMobileWorkspace({
   })
   const [optimisticStatus, setOptimisticStatus] = useState<Record<string, "completed" | "pending">>({})
   const [createTaskItem, setCreateTaskItem] = useState<AgendaItem | null>(null)
+  const [commercialActivityOpen, setCommercialActivityOpen] = useState(false)
 
   // Apply optimistic status to snapshot items
   const optimisticItems = useMemo(() => {
@@ -360,6 +368,15 @@ export function AgendaMobileWorkspace({
                     Partiel
                   </Badge>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setCommercialActivityOpen(true)}
+                  className="flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-surface px-2 text-xs font-bold text-body transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  aria-label="Ouvrir l’activité commerciale"
+                >
+                  <Image src="/icons_set/agenda_metriques_activite.png" alt="" width={16} height={16} className="size-4" />
+                  <span>Activité</span>
+                </button>
               </div>
             </div>
 
@@ -685,6 +702,7 @@ export function AgendaMobileWorkspace({
           router.refresh()
         }}
       />
+      {commercialActivityOpen ? <CommercialActivityModal open={commercialActivityOpen} onClose={() => setCommercialActivityOpen(false)} displayMode="mobile" /> : null}
     </>
   )
 }

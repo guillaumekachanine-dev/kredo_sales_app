@@ -461,7 +461,7 @@ export function AgendaDesktopWorkspace({
           router.refresh()
         }}
       />
-      {commercialActivityOpen ? <CommercialActivityModal open={commercialActivityOpen} onClose={() => setCommercialActivityOpen(false)} /> : null}
+      {commercialActivityOpen ? <CommercialActivityModal open={commercialActivityOpen} onClose={() => setCommercialActivityOpen(false)} displayMode="desktop" /> : null}
     </>
   )
 }

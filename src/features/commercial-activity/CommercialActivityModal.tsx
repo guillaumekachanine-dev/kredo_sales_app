@@ -1,69 +1,278 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react"
-import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
-import { loadCommercialActivitySnapshot } from "./commercial-activity-actions"
-import { CommercialActivityAccounts } from "./CommercialActivityAccounts"
-import { CommercialActivityDistribution } from "./CommercialActivityDistribution"
-import { CommercialActivityNavigation } from "./CommercialActivityNavigation"
-import { CommercialActivityOutcomes } from "./CommercialActivityOutcomes"
-import { CommercialActivityOverview } from "./CommercialActivityOverview"
-import { CommercialActivityRhythm } from "./CommercialActivityRhythm"
-import type { CommercialActivityFilterNature, CommercialActivityFilters, CommercialActivitySection, CommercialActivitySnapshot } from "./commercial-activity-types"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
+import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell";
+import { loadCommercialActivitySnapshot } from "./commercial-activity-actions";
+import { CommercialActivityAccounts } from "./CommercialActivityAccounts";
+import { CommercialActivityDistribution } from "./CommercialActivityDistribution";
+import {
+  CommercialActivityFilters,
+  type CommercialActivityCustomRange,
+} from "./CommercialActivityFilters";
+import { CommercialActivityMobileAccounts } from "./CommercialActivityMobileAccounts";
+import { CommercialActivityMobileLayout } from "./CommercialActivityMobileLayout";
+import { CommercialActivityMobileResults } from "./CommercialActivityMobileResults";
+import { CommercialActivityMobileSummary } from "./CommercialActivityMobileSummary";
+import { CommercialActivityNavigation } from "./CommercialActivityNavigation";
+import { CommercialActivityOutcomes } from "./CommercialActivityOutcomes";
+import { CommercialActivityOverview } from "./CommercialActivityOverview";
+import { CommercialActivityRhythm } from "./CommercialActivityRhythm";
+import type {
+  CommercialActivityFilterNature,
+  CommercialActivityFilters as CommercialActivityFilterValues,
+  CommercialActivityMobileSection,
+  CommercialActivityPeriodPreset,
+  CommercialActivitySection,
+  CommercialActivitySnapshot,
+} from "./commercial-activity-types";
 
-type PeriodPreset = "7d" | "4w" | "12w" | "quarter" | "year" | "custom"
-const DAY = 86_400_000
+export type CommercialActivityDisplayMode = "desktop" | "mobile";
 
-function toDateInput(date: Date) { return date.toISOString().slice(0, 10) }
-function fromDateInput(value: string) { return new Date(`${value}T00:00:00.000Z`) }
-function presetRange(preset: Exclude<PeriodPreset, "custom">) {
-  const end = new Date()
-  const days = preset === "7d" ? 7 : preset === "4w" ? 28 : preset === "12w" ? 84 : preset === "quarter" ? 91 : 365
-  return { from: new Date(end.getTime() - days * DAY), to: end }
+const DAY = 86_400_000;
+function toDateInput(date: Date) {
+  return date.toISOString().slice(0, 10);
 }
-function asFilters(preset: PeriodPreset, nature: CommercialActivityFilterNature, custom: { from: string; to: string }): CommercialActivityFilters {
-  const range = preset === "custom" ? { from: fromDateInput(custom.from), to: new Date(fromDateInput(custom.to).getTime() + DAY) } : presetRange(preset)
-  return { from: range.from.toISOString(), to: range.to.toISOString(), nature }
+function fromDateInput(value: string) {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+function presetRange(
+  preset: Exclude<CommercialActivityPeriodPreset, "custom">,
+) {
+  const end = new Date();
+  const days =
+    preset === "7d"
+      ? 7
+      : preset === "4w"
+        ? 28
+        : preset === "12w"
+          ? 84
+          : preset === "quarter"
+            ? 91
+            : 365;
+  return { from: new Date(end.getTime() - days * DAY), to: end };
+}
+function asFilters(
+  preset: CommercialActivityPeriodPreset,
+  nature: CommercialActivityFilterNature,
+  custom: CommercialActivityCustomRange,
+): CommercialActivityFilterValues {
+  const range =
+    preset === "custom"
+      ? {
+          from: fromDateInput(custom.from),
+          to: new Date(fromDateInput(custom.to).getTime() + DAY),
+        }
+      : presetRange(preset);
+  return { from: range.from.toISOString(), to: range.to.toISOString(), nature };
 }
 
-function rightPanel(section: CommercialActivitySection, snapshot: CommercialActivitySnapshot) {
+function desktopPanel(
+  section: CommercialActivitySection,
+  snapshot: CommercialActivitySnapshot,
+) {
   switch (section) {
-    case "rhythm": return <CommercialActivityRhythm snapshot={snapshot} />
-    case "distribution": return <CommercialActivityDistribution snapshot={snapshot} />
-    case "outcomes": return <CommercialActivityOutcomes snapshot={snapshot} />
-    case "accounts": return <CommercialActivityAccounts snapshot={snapshot} />
-    default: return <CommercialActivityOverview snapshot={snapshot} />
+    case "rhythm":
+      return <CommercialActivityRhythm snapshot={snapshot} />;
+    case "distribution":
+      return <CommercialActivityDistribution snapshot={snapshot} />;
+    case "outcomes":
+      return <CommercialActivityOutcomes snapshot={snapshot} />;
+    case "accounts":
+      return <CommercialActivityAccounts snapshot={snapshot} />;
+    default:
+      return <CommercialActivityOverview snapshot={snapshot} />;
   }
 }
 
-export function CommercialActivityModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [section, setSection] = useState<CommercialActivitySection>("overview")
-  const [preset, setPreset] = useState<PeriodPreset>("12w")
-  const [nature, setNature] = useState<CommercialActivityFilterNature>("commercial")
-  const initialRange = useMemo(() => presetRange("12w"), [])
-  const [custom, setCustom] = useState({ from: toDateInput(initialRange.from), to: toDateInput(initialRange.to) })
-  const [snapshot, setSnapshot] = useState<CommercialActivitySnapshot | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [pending, startTransition] = useTransition()
-  const filters = useMemo(() => asFilters(preset, nature, custom), [custom, nature, preset])
+export function CommercialActivityModal({
+  open,
+  onClose,
+  displayMode = "desktop",
+}: {
+  open: boolean;
+  onClose: () => void;
+  displayMode?: CommercialActivityDisplayMode;
+}) {
+  const [desktopSection, setDesktopSection] =
+    useState<CommercialActivitySection>("overview");
+  const [mobileSection, setMobileSection] =
+    useState<CommercialActivityMobileSection>("summary");
+  const [preset, setPreset] = useState<CommercialActivityPeriodPreset>("12w");
+  const [nature, setNature] =
+    useState<CommercialActivityFilterNature>("commercial");
+  const initialRange = useMemo(() => presetRange("12w"), []);
+  const [customRange, setCustomRange] = useState<CommercialActivityCustomRange>(
+    { from: toDateInput(initialRange.from), to: toDateInput(initialRange.to) },
+  );
+  const [snapshot, setSnapshot] = useState<CommercialActivitySnapshot | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [pending, startTransition] = useTransition();
+  const filters = useMemo(
+    () => asFilters(preset, nature, customRange),
+    [customRange, nature, preset],
+  );
 
+  const retry = useCallback(() => setReloadVersion((value) => value + 1), []);
   useEffect(() => {
-    if (!open) return
-    let live = true
+    if (!open) return;
+    let active = true;
     startTransition(async () => {
       try {
-        setError(null)
-        const next = await loadCommercialActivitySnapshot(filters)
-        if (live) setSnapshot(next)
+        setError(null);
+        const next = await loadCommercialActivitySnapshot(filters);
+        if (active) setSnapshot(next);
       } catch (cause) {
-        if (live) setError(cause instanceof Error ? cause.message : "Chargement des données impossible")
+        if (active)
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "Chargement des données impossible",
+          );
       }
-    })
-    return () => { live = false }
-  }, [filters, open])
+    });
+    return () => {
+      active = false;
+    };
+  }, [filters, open, reloadVersion]);
 
-  const controls = <div className="border-b border-white/5 px-5 py-3"><div className="flex flex-wrap items-end gap-3"><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">Période<select value={preset} onChange={(event) => setPreset(event.target.value as PeriodPreset)} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none"><option value="7d">7 jours</option><option value="4w">4 semaines</option><option value="12w">12 semaines</option><option value="quarter">Trimestre</option><option value="year">Année</option><option value="custom">Personnalisée</option></select></label><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">Nature<select value={nature} onChange={(event) => setNature(event.target.value as CommercialActivityFilterNature)} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none"><option value="commercial">Commercial</option><option value="prospection">Prospection</option><option value="client_active">Client actif</option><option value="recruitment">Recrutement</option><option value="management">Management</option><option value="internal">Interne</option></select></label>{preset === "custom" ? <><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">Du<input type="date" value={custom.from} onChange={(event) => setCustom((value) => ({ ...value, from: event.target.value }))} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none" /></label><label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">Au<input type="date" value={custom.to} min={custom.from} onChange={(event) => setCustom((value) => ({ ...value, to: event.target.value }))} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none" /></label></> : null}<span className="pb-1 text-[10px] text-white/40">{pending ? "Mise à jour…" : ""}</span></div></div>
-  const content = !snapshot && pending ? <div className="flex min-h-80 flex-col items-center justify-center gap-3"><i className="size-7 animate-spin rounded-full border-2 border-brand-brass border-t-transparent" /><p className="text-xs text-white/50">Chargement de l’activité…</p></div> : error ? <div className="m-5 rounded-xl border border-status-danger/30 bg-status-danger/10 p-4 text-sm text-status-danger">{error}</div> : snapshot ? <>{controls}<div className="min-h-0 flex-1 overflow-y-auto">{rightPanel(section, snapshot)}<p className="px-6 pb-5 text-[10px] text-white/35">Données issues de l’Agenda, des interactions et du suivi commercial.</p></div></> : <div className="p-5 text-xs text-white/45">Aucune donnée à afficher.</div>
+  const controls = (
+    <CommercialActivityFilters
+      preset={preset}
+      nature={nature}
+      customRange={customRange}
+      pending={pending}
+      hasSnapshot={snapshot !== null}
+      mode={displayMode}
+      onPresetChange={setPreset}
+      onNatureChange={setNature}
+      onCustomRangeChange={setCustomRange}
+    />
+  );
+  const initialLoading = snapshot === null && error === null;
+  const activePanel = snapshot ? (
+    displayMode === "mobile" ? (
+      mobileSection === "results" ? (
+        <CommercialActivityMobileResults snapshot={snapshot} nature={nature} />
+      ) : mobileSection === "accounts" ? (
+        <CommercialActivityMobileAccounts snapshot={snapshot} />
+      ) : (
+        <CommercialActivityMobileSummary
+          snapshot={snapshot}
+          preset={preset}
+          nature={nature}
+        />
+      )
+    ) : (
+      desktopPanel(desktopSection, snapshot)
+    )
+  ) : null;
+  const panelContent = (
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {initialLoading
+          ? "Chargement de l’activité commerciale"
+          : pending
+            ? "Mise à jour de l’activité commerciale"
+            : snapshot
+              ? "Activité commerciale à jour"
+              : ""}
+      </span>
+      {error ? (
+        <div
+          role="alert"
+          className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-status-danger/30 bg-status-danger/10 p-4 text-sm text-status-danger"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={retry}
+            className="min-h-11 shrink-0 rounded-lg border border-status-danger/30 px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-danger/70"
+          >
+            Réessayer
+          </button>
+        </div>
+      ) : null}
+      {initialLoading ? (
+        <div
+          className="flex min-h-80 flex-1 flex-col items-center justify-center gap-3"
+          aria-busy="true"
+        >
+          <i
+            className="size-7 animate-spin rounded-full border-2 border-brand-brass border-t-transparent motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+          <p className="text-xs text-white/50">Chargement de l’activité…</p>
+        </div>
+      ) : snapshot ? (
+        <div
+          aria-busy={pending || undefined}
+          className={`transition-opacity duration-150 motion-reduce:transition-none ${pending ? "opacity-70" : "opacity-100"}`}
+        >
+          {activePanel}
+          {displayMode === "desktop" ? (
+            <p className="px-6 pb-5 text-[10px] text-white/35">
+              Données issues de l’Agenda, des interactions et du suivi
+              commercial. Qualité globale de la période : elle ne suit pas le
+              filtre de nature.
+            </p>
+          ) : null}
+        </div>
+      ) : error ? (
+        <div className="flex min-h-80 items-center justify-center px-5 text-center text-sm text-white/55">
+          Impossible de charger l’activité commerciale. Réessayez lorsque la
+          connexion est disponible.
+        </div>
+      ) : (
+        <div className="p-5 text-xs text-white/45">
+          Aucune donnée à afficher.
+        </div>
+      )}
+    </>
+  );
+  const desktopContent = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {controls}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+        {panelContent}
+      </div>
+    </div>
+  );
+  const mobileContent = (
+    <CommercialActivityMobileLayout
+      section={mobileSection}
+      onSectionChange={setMobileSection}
+      filters={controls}
+      pending={pending}
+    >
+      {panelContent}
+    </CommercialActivityMobileLayout>
+  );
 
-  return <IntelligenceSplitModalShell open={open} onClose={onClose} title="Activité commerciale" subtitle="Analyse des activités, résultats et comptes mobilisés" leftPaneWidth="38%" leftPane={<CommercialActivityNavigation section={section} onChange={setSection} />} rightPane={content} />
+  return (
+    <IntelligenceSplitModalShell
+      open={open}
+      onClose={onClose}
+      title="Activité commerciale"
+      subtitle="Analyse des activités, résultats et comptes mobilisés"
+      leftPaneWidth="38%"
+      leftPane={
+        <CommercialActivityNavigation
+          section={desktopSection}
+          onChange={setDesktopSection}
+        />
+      }
+      rightPane={desktopContent}
+      content={displayMode === "mobile" ? mobileContent : undefined}
+      isMobile={displayMode === "mobile"}
+    />
+  );
 }

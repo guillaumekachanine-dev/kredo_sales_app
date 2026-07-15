@@ -1,15 +1,132 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { CommercialActivitySnapshot } from "./commercial-activity-types"
+import { useState } from "react";
+import type { CommercialActivitySnapshot } from "./commercial-activity-types";
 
-function format(value: number) { return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0, notation: value >= 1000 ? "compact" : "standard" }).format(value) }
+function format(value: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 0,
+    notation: value >= 1000 ? "compact" : "standard",
+  }).format(value);
+}
 
-export function CommercialActivityOutcomes({ snapshot }: { snapshot: CommercialActivitySnapshot }) {
-  const [metric, setMetric] = useState<"volume" | "value">("volume")
-  const items = metric === "value" ? [{ label: "Valeur gagnée", value: snapshot.outcomes.wonValue }] : [
-    { label: "RDV de prospection", value: snapshot.outcomes.prospectMeetings }, { label: "Besoins créés", value: snapshot.outcomes.needsCreated }, { label: "Propositions / soutenances", value: snapshot.outcomes.proposalsOrDefenses }, { label: "CV envoyés", value: snapshot.outcomes.cvsSent }, { label: "Entretiens réalisés", value: snapshot.outcomes.candidateOrClientInterviews }, { label: "Opportunités gagnées", value: snapshot.outcomes.opportunitiesWon }, { label: "Signatures", value: snapshot.outcomes.signatures },
-  ]
-  const max = Math.max(1, ...items.map((item) => item.value))
-  return <div className="space-y-6 p-5 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200"><div className="flex items-center justify-between"><div><h3 className="text-sm font-semibold text-white">Résultats commerciaux</h3><p className="mt-1 text-[11px] text-white/45">Résultats issus des interactions et du suivi structuré.</p></div><div className="flex rounded-lg border border-white/10 p-0.5 text-[10px]"><button type="button" onClick={() => setMetric("volume")} className={`rounded-md px-2.5 py-1.5 ${metric === "volume" ? "bg-white/10 text-white" : "text-white/50"}`}>Volumes</button><button type="button" onClick={() => setMetric("value")} className={`rounded-md px-2.5 py-1.5 ${metric === "value" ? "bg-white/10 text-white" : "text-white/50"}`}>Valeur</button></div></div><div className="grid gap-3 sm:grid-cols-3"><div className="border-b border-white/8 pb-3"><span className="text-[10px] uppercase tracking-[.12em] text-white/45">Signatures</span><strong className="mt-1 block text-xl tabular-nums text-white">{snapshot.outcomes.signatures}</strong></div><div className="border-b border-white/8 pb-3"><span className="text-[10px] uppercase tracking-[.12em] text-white/45">Gagnées</span><strong className="mt-1 block text-xl tabular-nums text-white">{snapshot.outcomes.opportunitiesWon}</strong></div><div className="border-b border-white/8 pb-3"><span className="text-[10px] uppercase tracking-[.12em] text-white/45">Valeur gagnée</span><strong className="mt-1 block text-xl tabular-nums text-white">{format(snapshot.outcomes.wonValue)} €</strong></div></div><div className="space-y-3">{items.map((item) => <div key={item.label} className="grid grid-cols-[minmax(135px,1fr)_minmax(80px,2fr)_auto] items-center gap-3"><span className="text-[11px] text-white/65">{item.label}</span><span className="h-2 overflow-hidden rounded-full bg-white/[.08]"><i className="block h-full rounded-full bg-brand-brass transition-[width] duration-300" style={{ width: `${(item.value / max) * 100}%` }} /></span><strong className="text-[11px] tabular-nums text-white">{format(item.value)}{metric === "value" ? " €" : ""}</strong></div>)}</div></div>
+export function CommercialActivityOutcomes({
+  snapshot,
+}: {
+  snapshot: CommercialActivitySnapshot;
+}) {
+  const [metric, setMetric] = useState<"volume" | "value">("volume");
+  const items =
+    metric === "value"
+      ? [{ label: "Valeur gagnée", value: snapshot.outcomes.wonValue }]
+      : [
+          {
+            label: "RDV de prospection",
+            value: snapshot.outcomes.prospectMeetings,
+          },
+          { label: "Besoins créés", value: snapshot.outcomes.needsCreated },
+          {
+            label: "Propositions enregistrées",
+            value: snapshot.outcomes.proposals,
+          },
+          { label: "CV envoyés", value: snapshot.outcomes.cvsSent },
+          {
+            label: "Entretiens client",
+            value: snapshot.outcomes.clientInterviews,
+          },
+          {
+            label: "Entretiens candidat",
+            value: snapshot.outcomes.candidateInterviews,
+          },
+          {
+            label: "Opportunités gagnées",
+            value: snapshot.outcomes.opportunitiesWon,
+          },
+          {
+            label: "Signatures commerciales",
+            value: snapshot.outcomes.clientSignatures,
+          },
+          {
+            label: "Signatures candidat",
+            value: snapshot.outcomes.candidateSignatures,
+          },
+        ];
+  const max = Math.max(1, ...items.map((item) => item.value));
+  return (
+    <div className="space-y-6 p-5 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            Résultats observés
+          </h3>
+          <p className="mt-1 text-[11px] text-white/45">
+            Enregistrements filtrés issus des interactions et du suivi
+            structuré.
+          </p>
+        </div>
+        <div className="flex rounded-lg border border-white/10 p-0.5 text-[10px]">
+          <button
+            type="button"
+            onClick={() => setMetric("volume")}
+            className={`rounded-md px-2.5 py-1.5 ${metric === "volume" ? "bg-white/10 text-white" : "text-white/50"}`}
+          >
+            Volumes
+          </button>
+          <button
+            type="button"
+            onClick={() => setMetric("value")}
+            className={`rounded-md px-2.5 py-1.5 ${metric === "value" ? "bg-white/10 text-white" : "text-white/50"}`}
+          >
+            Valeur
+          </button>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="border-b border-white/8 pb-3">
+          <span className="text-[10px] uppercase tracking-[.12em] text-white/45">
+            Signatures commerciales
+          </span>
+          <strong className="mt-1 block text-xl tabular-nums text-white">
+            {snapshot.outcomes.clientSignatures}
+          </strong>
+        </div>
+        <div className="border-b border-white/8 pb-3">
+          <span className="text-[10px] uppercase tracking-[.12em] text-white/45">
+            Gagnées
+          </span>
+          <strong className="mt-1 block text-xl tabular-nums text-white">
+            {snapshot.outcomes.opportunitiesWon}
+          </strong>
+        </div>
+        <div className="border-b border-white/8 pb-3">
+          <span className="text-[10px] uppercase tracking-[.12em] text-white/45">
+            Valeur gagnée
+          </span>
+          <strong className="mt-1 block text-xl tabular-nums text-white">
+            {format(snapshot.outcomes.wonValue)} €
+          </strong>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="grid grid-cols-[minmax(135px,1fr)_minmax(80px,2fr)_auto] items-center gap-3"
+          >
+            <span className="text-[11px] text-white/65">{item.label}</span>
+            <span className="h-2 overflow-hidden rounded-full bg-white/[.08]">
+              <i
+                className="block h-full rounded-full bg-brand-brass transition-[width] duration-300"
+                style={{ width: `${(item.value / max) * 100}%` }}
+              />
+            </span>
+            <strong className="text-[11px] tabular-nums text-white">
+              {format(item.value)}
+              {metric === "value" ? " €" : ""}
+            </strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
