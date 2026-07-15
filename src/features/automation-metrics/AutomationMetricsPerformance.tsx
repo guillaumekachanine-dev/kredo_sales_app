@@ -10,15 +10,15 @@ export function AutomationMetricsPerformance({ snapshot }: { snapshot: Automatio
   const workflows = useMemo(() => sortWorkflowPerformance(snapshot.workflowPerformance, sort), [snapshot.workflowPerformance, sort])
 
   return (
-    <div className="space-y-5 p-5 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-5 p-4 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0">
+      <div className="flex flex-col items-stretch justify-between gap-3 min-[520px]:flex-row min-[520px]:items-end">
         <div>
           <h3 className="text-sm font-semibold text-white">Performance par workflow</h3>
           <p className="mt-1 text-[11px] text-white/45">Écart entre la latence habituelle et les exécutions les plus lentes</p>
         </div>
-        <div role="group" className="rounded-lg border border-white/10 p-0.5 text-[10px]" aria-label="Trier les workflows par">
-          <button type="button" onClick={() => setSort("p95")} aria-pressed={sort === "p95"} className={`rounded-md px-2.5 py-1.5 ${sort === "p95" ? "bg-white/10 text-white" : "text-white/50"}`}>Latence p95</button>
-          <button type="button" onClick={() => setSort("measuredVolume")} aria-pressed={sort === "measuredVolume"} className={`rounded-md px-2.5 py-1.5 ${sort === "measuredVolume" ? "bg-white/10 text-white" : "text-white/50"}`}>Volume mesuré</button>
+        <div role="group" className="grid grid-cols-2 rounded-lg border border-white/10 p-0.5 text-[10px]" aria-label="Trier les workflows par">
+          <button type="button" onClick={() => setSort("p95")} aria-pressed={sort === "p95"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "p95" ? "bg-white/10 text-white" : "text-white/50"}`}>Latence p95</button>
+          <button type="button" onClick={() => setSort("measuredVolume")} aria-pressed={sort === "measuredVolume"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "measuredVolume" ? "bg-white/10 text-white" : "text-white/50"}`}>Volume mesuré</button>
         </div>
       </div>
       <AutomationWorkflowLatencyChart workflows={workflows} />

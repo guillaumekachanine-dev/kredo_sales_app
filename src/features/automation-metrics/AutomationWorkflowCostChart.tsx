@@ -50,10 +50,10 @@ export function AutomationWorkflowCostChart({ workflows, mode }: { workflows: Au
           <article key={workflow.runType} role="listitem" className="rounded-xl border border-white/8 bg-white/[0.025] px-3 py-3">
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">{workflowLabelForRunType(workflow.runType)}</p>
-                <p className="mt-0.5 font-mono text-[9px] text-white/35">{workflow.runType}</p>
+                <p className="break-words text-xs font-semibold text-white">{workflowLabelForRunType(workflow.runType)}</p>
+                <p className="mt-0.5 break-all font-mono text-[9px] text-white/35">{workflow.runType}</p>
               </div>
-              <div className="flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 text-[10px]">
+              <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[10px] min-[520px]:w-auto min-[520px]:justify-end">
                 <strong className="font-heading text-lg tabular-nums text-white">{hasValue ? cost(value) : "—"}</strong>
                 <span className={`font-semibold tabular-nums ${delta.color}`}>{delta.text} vs période précédente</span>
               </div>

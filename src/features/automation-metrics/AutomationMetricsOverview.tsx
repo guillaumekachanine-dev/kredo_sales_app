@@ -34,7 +34,7 @@ function MetricCard({ label, value, comparison, precision, tone }: {
   return (
     <div className="border-b border-white/8 pb-3 sm:border-b-0 sm:border-r sm:pr-4 last:border-0 last:pr-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <div className="mt-2 flex items-baseline justify-between gap-2">
+      <div className="mt-2 flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
         <p className="font-heading text-2xl font-bold tabular-nums text-white">{value}</p>
         <span className={`text-[10px] font-semibold tabular-nums ${color}`}>{comparison}</span>
       </div>
@@ -55,8 +55,8 @@ export function AutomationMetricsOverview({ snapshot }: { snapshot: AutomationMe
       : `Couverture de mesure : ${rounded(summary.costCoveragePct)} %`
 
   return (
-    <div className="space-y-6 p-5 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-6 p-4 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard
           label="Exécutions"
           value={String(summary.executions)}

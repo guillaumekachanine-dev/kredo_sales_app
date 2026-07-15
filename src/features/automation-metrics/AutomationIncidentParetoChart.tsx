@@ -37,7 +37,7 @@ export function AutomationIncidentParetoChart({ categories }: { categories: Auto
                   <p className="text-xs font-semibold text-white">{category.label}</p>
                   <p className="mt-0.5 text-[10px] text-white/45">{category.description}</p>
                 </div>
-                <div className="text-right">
+                <div className="w-full text-left min-[520px]:w-auto min-[520px]:text-right">
                   <strong className="font-heading text-lg tabular-nums text-white">{category.incidents}</strong>
                   <p className={`text-[10px] font-semibold ${movement.color}`}>{movement.text} vs période précédente</p>
                 </div>

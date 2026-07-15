@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react"
 import { IntelligenceSplitModalShell } from "@/components/intelligence/IntelligenceSplitModalShell"
-import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
 import { loadAutomationMetricsSnapshot } from "./automation-metrics-actions"
+import { AutomationMetricsFilters } from "./AutomationMetricsFilters"
+import { AutomationMetricsMobileLayout } from "./AutomationMetricsMobileLayout"
 import { AutomationMetricsNavigation } from "./AutomationMetricsNavigation"
 import { AutomationMetricsOverview } from "./AutomationMetricsOverview"
 import { AutomationMetricsCosts } from "./AutomationMetricsCosts"
@@ -11,7 +12,7 @@ import { AutomationMetricsIncidents } from "./AutomationMetricsIncidents"
 import { AutomationMetricsPerformance } from "./AutomationMetricsPerformance"
 import { AutomationMetricsReliability } from "./AutomationMetricsReliability"
 import type {
-  AutomationMetricsFilters,
+  AutomationMetricsFilters as AutomationMetricsFilterValues,
   AutomationMetricsPeriodPreset,
   AutomationMetricsSectionId,
   AutomationMetricsSnapshot,
@@ -38,7 +39,7 @@ function filtersFromState(
   preset: AutomationMetricsPeriodPreset,
   workflow: AutomationMetricsWorkflow,
   customRange: { from: string; to: string },
-): AutomationMetricsFilters {
+): AutomationMetricsFilterValues {
   const range = preset === "custom"
     ? { from: dateFromInput(customRange.from), to: new Date(dateFromInput(customRange.to).getTime() + DAY_MS) }
     : rangeForPreset(preset)
@@ -50,7 +51,17 @@ function initialCustomRange() {
   return { from: toDateInput(range.from), to: toDateInput(range.to) }
 }
 
-export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export type AutomationMetricsDisplayMode = "desktop" | "mobile"
+
+export function AutomationMetricsModal({
+  open,
+  onClose,
+  displayMode = "desktop",
+}: {
+  open: boolean
+  onClose: () => void
+  displayMode?: AutomationMetricsDisplayMode
+}) {
   const [preset, setPreset] = useState<AutomationMetricsPeriodPreset>("30d")
   const [section, setSection] = useState<AutomationMetricsSectionId>("overview")
   const [workflow, setWorkflow] = useState<AutomationMetricsWorkflow>("all")
@@ -79,43 +90,21 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
   }, [filters, open])
 
   const controls = (
-    <div className="border-b border-white/5 px-5 py-3">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">
-          Période
-          <select value={preset} onChange={(event) => setPreset(event.target.value as AutomationMetricsPeriodPreset)} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none">
-            <option value="7d">7 jours</option>
-            <option value="30d">30 jours</option>
-            <option value="12w">12 semaines</option>
-            <option value="year">Année</option>
-            <option value="custom">Personnalisée</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">
-          Workflow
-          <select value={workflow} onChange={(event) => setWorkflow(event.target.value)} className="h-8 max-w-60 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none">
-            <option value="all">Tous les workflows</option>
-            {workflowOptions.map((runType) => <option key={runType} value={runType}>{workflowLabelForRunType(runType)}</option>)}
-          </select>
-        </label>
-        {preset === "custom" ? (
-          <>
-            <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">
-              Date de début
-              <input type="date" value={customRange.from} onChange={(event) => setCustomRange((range) => ({ ...range, from: event.target.value }))} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none" />
-            </label>
-            <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-[.1em] text-white/45">
-              Date de fin
-              <input type="date" value={customRange.to} min={customRange.from} onChange={(event) => setCustomRange((range) => ({ ...range, to: event.target.value }))} className="h-8 rounded-lg border border-white/10 bg-white/[.04] px-2 text-[11px] font-medium normal-case tracking-normal text-white outline-none" />
-            </label>
-          </>
-        ) : null}
-        <span className="pb-1 text-[10px] text-white/40" role="status">{pending && snapshot ? "Mise à jour…" : ""}</span>
-      </div>
-    </div>
+    <AutomationMetricsFilters
+      preset={preset}
+      workflow={workflow}
+      customRange={customRange}
+      workflowOptions={workflowOptions}
+      pending={pending}
+      hasSnapshot={snapshot !== null}
+      mode={displayMode}
+      onPresetChange={setPreset}
+      onWorkflowChange={setWorkflow}
+      onCustomRangeChange={setCustomRange}
+    />
   )
 
-  const initialLoading = snapshot === null && pending
+  const initialLoading = snapshot === null && error === null
   const panel = snapshot
     ? section === "reliability"
       ? <AutomationMetricsReliability snapshot={snapshot} />
@@ -127,22 +116,39 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
             ? <AutomationMetricsIncidents snapshot={snapshot} />
         : <AutomationMetricsOverview snapshot={snapshot} />
     : null
-  const content = (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {controls}
+  const panelContent = (
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {initialLoading ? "Chargement des métriques" : pending ? "Mise à jour des métriques" : snapshot ? "Métriques à jour" : ""}
+      </span>
       {error ? <div role="alert" className="mx-5 mt-4 rounded-xl border border-status-danger/30 bg-status-danger/10 p-4 text-sm text-status-danger">{error}</div> : null}
       {initialLoading ? (
-        <div className="flex min-h-80 flex-1 flex-col items-center justify-center gap-3">
-          <i className="size-7 animate-spin rounded-full border-2 border-brand-brass border-t-transparent" />
+        <div className="flex min-h-80 flex-1 flex-col items-center justify-center gap-3" aria-busy="true">
+          <i className="size-7 animate-spin rounded-full border-2 border-brand-brass border-t-transparent motion-reduce:animate-none" aria-hidden="true" />
           <p className="text-xs text-white/50">Chargement des métriques…</p>
         </div>
       ) : snapshot ? (
-        <div className={`min-h-0 flex-1 overflow-y-auto transition-opacity duration-150 ${pending ? "opacity-70" : "opacity-100"}`}>
+        <div aria-busy={pending || undefined} className={`transition-opacity duration-150 motion-reduce:transition-none ${pending ? "opacity-70" : "opacity-100"}`}>
           {panel}
-          <p className="px-6 pb-5 text-[10px] text-white/35">Données issues de v_ai_run_costs et, pour les incidents, des runs failed de ai_intelligence_runs. Les coûts incomplets restent non mesurés.</p>
+          <p className="px-4 pb-5 text-[10px] text-white/35 sm:px-6">Données issues de v_ai_run_costs et, pour les incidents, des runs failed de ai_intelligence_runs. Les coûts incomplets restent non mesurés.</p>
         </div>
       ) : !error ? <div className="p-5 text-xs text-white/45">Aucune donnée à afficher.</div> : null}
+    </>
+  )
+
+  const desktopContent = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {controls}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+        {panelContent}
+      </div>
     </div>
+  )
+
+  const mobileContent = (
+    <AutomationMetricsMobileLayout section={section} onSectionChange={setSection} filters={controls} pending={pending}>
+      {panelContent}
+    </AutomationMetricsMobileLayout>
   )
 
   return (
@@ -153,7 +159,9 @@ export function AutomationMetricsModal({ open, onClose }: { open: boolean; onClo
       subtitle="Évolution de la fiabilité, des performances et des coûts"
       leftPaneWidth="38%"
       leftPane={<AutomationMetricsNavigation section={section} onChange={setSection} />}
-      rightPane={content}
+      rightPane={desktopContent}
+      content={displayMode === "mobile" ? mobileContent : undefined}
+      isMobile={displayMode === "mobile"}
     />
   )
 }

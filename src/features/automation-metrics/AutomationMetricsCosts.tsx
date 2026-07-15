@@ -26,7 +26,7 @@ function MetricCard({ label, value, detail, comparison }: { label: string; value
   return (
     <div className="border-b border-white/8 pb-3 sm:border-b-0 sm:border-r sm:pr-4 last:border-0 last:pr-0">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">{label}</p>
-      <div className="mt-2 flex items-baseline justify-between gap-2">
+      <div className="mt-2 flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-2">
         <p className="font-heading text-2xl font-bold tabular-nums text-white">{value}</p>
         {comparison ? <span className={`text-[10px] font-semibold tabular-nums ${comparison.color}`}>{comparison.text}</span> : null}
       </div>
@@ -41,19 +41,19 @@ export function AutomationMetricsCosts({ snapshot }: { snapshot: AutomationMetri
   const summary = snapshot.costsSummary
 
   return (
-    <div className="space-y-5 p-5 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-5 p-4 sm:p-6 animate-in fade-in slide-in-from-right-2 duration-200 motion-reduce:animate-none motion-reduce:duration-0">
+      <div className="flex flex-col items-stretch justify-between gap-3 min-[520px]:flex-row min-[520px]:items-end">
         <div>
           <h3 className="text-sm font-semibold text-white">Coûts et efficacité par workflow</h3>
           <p className="mt-1 text-[11px] text-white/45">Dépense mesurée et coût nécessaire pour obtenir un résultat réussi</p>
         </div>
-        <div role="group" className="rounded-lg border border-white/10 p-0.5 text-[10px]" aria-label="Afficher les coûts par">
-          <button type="button" onClick={() => setSort("costPerSuccess")} aria-pressed={sort === "costPerSuccess"} className={`rounded-md px-2.5 py-1.5 ${sort === "costPerSuccess" ? "bg-white/10 text-white" : "text-white/50"}`}>Coût par succès</button>
-          <button type="button" onClick={() => setSort("measuredCost")} aria-pressed={sort === "measuredCost"} className={`rounded-md px-2.5 py-1.5 ${sort === "measuredCost" ? "bg-white/10 text-white" : "text-white/50"}`}>Coût total</button>
+        <div role="group" className="grid grid-cols-2 rounded-lg border border-white/10 p-0.5 text-[10px]" aria-label="Afficher les coûts par">
+          <button type="button" onClick={() => setSort("costPerSuccess")} aria-pressed={sort === "costPerSuccess"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "costPerSuccess" ? "bg-white/10 text-white" : "text-white/50"}`}>Coût par succès</button>
+          <button type="button" onClick={() => setSort("measuredCost")} aria-pressed={sort === "measuredCost"} className={`min-h-11 rounded-md px-2.5 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50 ${sort === "measuredCost" ? "bg-white/10 text-white" : "text-white/50"}`}>Coût total</button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 min-[420px]:grid-cols-2 sm:grid-cols-3 [&>*:last-child]:min-[420px]:col-span-2 [&>*:last-child]:sm:col-span-1">
         <MetricCard label="Coût mesuré" value={cost(summary.measuredCost)} comparison={delta(summary.measuredCostDeltaPct, "neutral")} detail="Dépense connue sur la période sélectionnée" />
         <MetricCard label="Coût par succès" value={cost(summary.costPerSuccess)} comparison={delta(summary.costPerSuccessDeltaPct, "efficiency")} detail={summary.costPerSuccess === null ? "Aucun succès ou coût mesuré" : "Dépense mesurée totale divisée par les succès"} />
         <MetricCard label="Couverture des coûts" value={summary.costCoveragePct === null ? "—" : `${rounded(summary.costCoveragePct)} %`} detail={summary.costCoveragePct === null ? "Aucune exécution" : `${summary.measuredRuns} run${summary.measuredRuns > 1 ? "s" : ""} mesuré${summary.measuredRuns > 1 ? "s" : ""} sur ${summary.executions}`} />

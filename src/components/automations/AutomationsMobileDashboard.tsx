@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
@@ -20,6 +22,11 @@ import {
 import { RunDrillDownDialog } from "./RunDrillDownDialog"
 import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
 import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
+
+const AutomationMetricsModal = dynamic(
+  () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
+  { ssr: false },
+)
 
 // Mini-sparkline HTML/Tailwind pur — aucune librairie, aucun SVG (convention
 // mobile KREDO : jauges/sparklines en HTML+CSS uniquement).
@@ -53,6 +60,7 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
   const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [metricsOpen, setMetricsOpen] = useState(false)
 
   const { costs } = data
 
@@ -60,7 +68,30 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
 
   return (
     <MobileActionPage
-      header={<MobilePageHeader eyebrow="Santé & exécution IA" title="Automatisations" />}
+      header={(
+        <MobilePageHeader
+          eyebrow="Santé & exécution IA"
+          title="Automatisations"
+          actions={(
+            <button
+              type="button"
+              onClick={() => setMetricsOpen(true)}
+              aria-label="Ouvrir l’analyse des métriques"
+              className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas motion-reduce:transition-none"
+            >
+              <Image
+                src="/icons_set/agenda_metriques_activite.png"
+                alt=""
+                width={16}
+                height={16}
+                className="size-4"
+                style={{ filter: "brightness(0) invert(1)" }}
+              />
+              <span>Métriques</span>
+            </button>
+          )}
+        />
+      )}
       hero={
         activeTab === "sante" ? (
           <MobileHeroInsight
@@ -175,6 +206,13 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         onOpenChange={setDialogOpen}
         onRetried={() => setDialogOpen(false)}
       />
+      {metricsOpen ? (
+        <AutomationMetricsModal
+          open={metricsOpen}
+          onClose={() => setMetricsOpen(false)}
+          displayMode="mobile"
+        />
+      ) : null}
     </MobileActionPage>
   )
 }

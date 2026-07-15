@@ -531,7 +531,7 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
         onOpenChange={setDialogOpen}
         onRetried={() => setDialogOpen(false)}
       />
-      {metricsOpen ? <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} /> : null}
+      {metricsOpen ? <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} displayMode="desktop" /> : null}
     </DesktopAnalyticalPage>
   )
 }

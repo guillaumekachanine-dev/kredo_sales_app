@@ -21,7 +21,8 @@ function ratePath(points: AutomationMetricsTimelinePoint[], xFor: (index: number
 }
 
 export function AutomationMetricsTimelineChart({ timeline }: { timeline: AutomationMetricsTimelinePoint[] }) {
-  const width = 760
+  const denseTimeline = timeline.length > 14
+  const width = Math.max(760, timeline.length * 24 + 86)
   const height = 290
   const padding = { top: 20, right: 48, bottom: 42, left: 38 }
   const chartWidth = width - padding.left - padding.right
@@ -45,14 +46,22 @@ export function AutomationMetricsTimelineChart({ timeline }: { timeline: Automat
         <span className="inline-flex items-center gap-1.5"><i className="h-px w-3 border-t border-dashed border-white/45" />Seuil 90 %</span>
       </div>
 
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label="Exécutions réussies et échouées, avec taux de succès, par période"
-        className="h-auto w-full overflow-visible"
+      {denseTimeline ? <p className="text-[10px] text-white/45 sm:hidden">Faites défiler le graphique horizontalement pour parcourir toutes les périodes.</p> : null}
+      <div
+        role={denseTimeline ? "region" : undefined}
+        className="max-w-full overflow-x-auto overscroll-x-contain rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/50"
+        tabIndex={denseTimeline ? 0 : undefined}
+        aria-label={denseTimeline ? "Graphique temporel défilable horizontalement" : undefined}
       >
-        <title>Exécutions et fiabilité dans le temps</title>
-        <desc>Les colonnes empilent les runs réussis et échoués. La courbe indique le taux de succès des runs décidés ; les runs sans décision ne créent pas de taux.</desc>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label="Exécutions réussies et échouées, avec taux de succès, par période"
+          className="h-auto w-full overflow-visible"
+          style={{ minWidth: denseTimeline ? `${width}px` : undefined }}
+        >
+          <title>Exécutions et fiabilité dans le temps</title>
+          <desc>Les colonnes empilent les runs réussis et échoués. La courbe indique le taux de succès des runs décidés ; les runs sans décision ne créent pas de taux.</desc>
         <line x1={padding.left} x2={width - padding.right} y1={volumeY(0)} y2={volumeY(0)} stroke="rgba(255,255,255,0.18)" />
         <line x1={padding.left} x2={width - padding.right} y1={rateY(90)} y2={rateY(90)} stroke="rgba(255,255,255,0.42)" strokeDasharray="4 4" />
         <text x={width - padding.right + 5} y={rateY(90) + 3} fill="rgba(255,255,255,0.55)" fontSize="10">90 %</text>
@@ -80,8 +89,9 @@ export function AutomationMetricsTimelineChart({ timeline }: { timeline: Automat
         {timeline.map((point, index) => point.successRatePct === null ? null : (
           <circle key={`${point.key}-rate`} cx={xFor(index)} cy={rateY(point.successRatePct)} r="2.5" fill="var(--color-primary)" stroke="#0f122c" strokeWidth="1" />
         ))}
-        {!hasData ? <text x={width / 2} y={padding.top + chartHeight / 2} textAnchor="middle" fill="rgba(255,255,255,0.52)" fontSize="12">Aucune exécution sur cette période</text> : null}
-      </svg>
+          {!hasData ? <text x={width / 2} y={padding.top + chartHeight / 2} textAnchor="middle" fill="rgba(255,255,255,0.52)" fontSize="12">Aucune exécution sur cette période</text> : null}
+        </svg>
+      </div>
 
       <div className="rounded-lg border border-white/8 bg-white/[0.025] px-3 py-2 text-[10px] text-white/55">
         Les colonnes ne représentent que les runs décidés. Les runs en attente, en cours et annulés restent comptés dans le KPI Exécutions, mais ne modifient pas le taux de succès.

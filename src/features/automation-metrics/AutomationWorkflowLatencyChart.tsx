@@ -37,7 +37,7 @@ export function AutomationWorkflowLatencyChart({ workflows }: { workflows: Autom
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] text-white/60" aria-hidden="true">
         <span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full bg-primary" />p50 · latence habituelle</span>
-        <span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-full bg-brand-brass" />p95 · exécutions lentes</span>
+        <span className="inline-flex items-center gap-1.5"><i className="size-2 rotate-45 bg-brand-brass" />p95 · exécutions lentes</span>
         <span className="font-mono text-white/40">Échelle 0 — {formatDurationMs(domainMaximum)}</span>
       </div>
       <div className="space-y-3" role="list" aria-label="Latences p50 et p95 par workflow">
@@ -51,10 +51,10 @@ export function AutomationWorkflowLatencyChart({ workflows }: { workflows: Autom
             <article key={workflow.runType} role="listitem" className="rounded-xl border border-white/8 bg-white/[0.025] px-3 py-3">
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-white">{workflowLabelForRunType(workflow.runType)}</p>
-                  <p className="mt-0.5 font-mono text-[9px] text-white/35">{workflow.runType}</p>
+                  <p className="break-words text-xs font-semibold text-white">{workflowLabelForRunType(workflow.runType)}</p>
+                  <p className="mt-0.5 break-all font-mono text-[9px] text-white/35">{workflow.runType}</p>
                 </div>
-                <div className="flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 text-[10px]">
+                <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[10px] min-[520px]:w-auto min-[520px]:justify-end">
                   <span className="text-primary">p50 {formatDurationMs(workflow.p50DurationMs)}</span>
                   <span className="text-brand-brass">p95 {formatDurationMs(workflow.p95DurationMs)}</span>
                   <span className={`font-semibold tabular-nums ${delta.color}`}>{delta.text} vs période précédente</span>
@@ -65,8 +65,8 @@ export function AutomationWorkflowLatencyChart({ workflows }: { workflows: Autom
                   <title>Écart entre p50 et p95</title>
                   <line x1="20" x2="360" y1="16" y2="16" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
                   <line x1={xFor(p50DurationMs)} x2={xFor(p95DurationMs)} y1="16" y2="16" stroke="rgba(255,255,255,0.52)" strokeWidth="2" />
-                  <circle cx={xFor(p50DurationMs)} cy="16" r="4.5" fill="var(--color-primary)" />
-                  <circle cx={xFor(p95DurationMs)} cy="16" r="4.5" fill="var(--color-brand-brass)" />
+                  <circle cx={xFor(p50DurationMs)} cy="16" r="5" fill="var(--color-primary)" />
+                  <rect x={xFor(p95DurationMs) - 4} y="12" width="8" height="8" rx="1" fill="var(--color-brand-brass)" transform={`rotate(45 ${xFor(p95DurationMs)} 16)`} />
                 </svg>
               ) : <p className="mt-3 rounded-md border border-dashed border-white/15 px-2 py-1.5 text-[10px] text-white/40">Latence non mesurée</p>}
               <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] text-white/50">
