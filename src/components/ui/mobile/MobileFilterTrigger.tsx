@@ -26,6 +26,7 @@ export type MobileFilterTriggerProps = {
   disabled?: boolean
   className?: string
   compact?: boolean
+  iconOnly?: boolean
 }
 
 export function MobileFilterTrigger({
@@ -35,6 +36,7 @@ export function MobileFilterTrigger({
   disabled,
   className,
   compact = false,
+  iconOnly = false,
 }: MobileFilterTriggerProps) {
   const ariaLabel =
     activeCount > 0
@@ -52,15 +54,19 @@ export function MobileFilterTrigger({
       className={cn(
         "relative min-h-[44px]",
         compact && "px-2.5 text-xs",
+        iconOnly && "size-9 min-h-9 min-w-9 px-0 py-0",
         className,
       )}
-      style={compact ? { height: "1.75rem", minHeight: "1.75rem" } : undefined}
+      style={compact && !iconOnly ? { height: "1.75rem", minHeight: "1.75rem" } : undefined}
     >
-      {label}
+      {iconOnly ? <span className="sr-only">{label}</span> : label}
       {activeCount > 0 ? (
         <span
           aria-hidden="true"
-          className="inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-fg"
+          className={cn(
+            "inline-flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-fg",
+            iconOnly && "absolute -right-1 -top-1",
+          )}
         >
           {activeCount}
         </span>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useId, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import type { NeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
@@ -63,6 +63,22 @@ const EMPTY_NEEDS_ROWS: MissionsListRow[] = []
 const EMPTY_NEEDS_PLANNING: OpportunityPlanningData[] = []
 const EMPTY_STAFFING_ROWS: StaffingListRow[] = []
 const EMPTY_STAFFING_PLANNING: StaffingPlanningData[] = []
+
+const SearchIcon = () => (
+  <svg
+    className="size-4"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M14 14L16.5 16.5" />
+    <circle cx="9" cy="9" r="6.5" />
+  </svg>
+)
 
 interface NeedsStaffingWorkspaceProps {
   device: DashboardDevice
@@ -227,61 +243,26 @@ function NeedsMobileCards({
   )
 }
 
-function StaffingMobileCards({
-  rows,
-}: {
-  rows: StaffingListRow[]
-}) {
-  const { openStaffingDrawer } = useStaffingDrawerStore()
+function normalizeSearchValue(value: unknown) {
+  return String(value ?? "")
+    .toLocaleLowerCase("fr-FR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+}
 
-  if (rows.length === 0) {
-    return <div className="py-12 text-center text-sm text-muted">Aucun positionnement ne correspond aux filtres.</div>
-  }
+function matchesNeedSearch(row: MissionsListRow, query: string) {
+  if (!query) return true
 
-  return (
-    <div className="flex flex-col gap-3">
-      {rows.map((row) => (
-        <button
-          key={row.id}
-          type="button"
-          onClick={() => openStaffingDrawer(row.id)}
-          className="flex min-h-[44px] flex-col gap-3 rounded-[var(--radius-medium)] border border-border bg-surface p-4 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <CompanyLogo
-              name={row.clientName || "Client"}
-              logoPath={row.clientLogoPath}
-              website={row.clientWebsite}
-              size="sm"
-            />
-            <span className="text-xs font-bold text-heading">{row.clientName}</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-body">{row.fullName}</p>
-            <p className="mt-1 text-xs text-muted">{row.profileTitle ?? "Profil non renseigné"}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Besoin</p>
-              <p className="mt-1 text-body">{row.opportunityTitle}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Étape</p>
-              <p className="mt-1 text-body">{row.status}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Disponibilité</p>
-              <p className="mt-1 text-body">{row.availability ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Action</p>
-              <p className="mt-1 line-clamp-2 text-body">{row.nextAction ?? "À définir"}</p>
-            </div>
-          </div>
-        </button>
-      ))}
-    </div>
-  )
+  return [
+    row.client,
+    row.title,
+    row.subtitle,
+    row.practice,
+    row.seniority,
+    row.priority,
+    row.stage,
+    row.targetDailyRate,
+  ].some((value) => normalizeSearchValue(value).includes(query))
 }
 
 export function NeedsStaffingWorkspace({
@@ -295,6 +276,8 @@ export function NeedsStaffingWorkspace({
   const { state, setScope, setView, setStage, setPriority, setPractice, setSort, resetFilters } =
     useNeedsStaffingUrlState()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [mobileSearch, setMobileSearch] = useState("")
+  const mobileSearchId = useId()
   // Kanban flip: "besoin" = face avant, "candidat" = face arrière
   const [kanbanDisplayMode, setKanbanDisplayMode] = useState<"besoin" | "candidat">("besoin")
   // Planning layer cycle: besoin → staffing → both
@@ -302,7 +285,7 @@ export function NeedsStaffingWorkspace({
   // Planning scale cycle: month → quarter → year → week
   const [planningScale, setPlanningScale] = useState<"month" | "quarter" | "year" | "week">("month")
 
-  const isNeedsScope = state.scope === "needs"
+  const isNeedsScope = isMobile || state.scope === "needs"
   const needsRows = needsData?.rows ?? EMPTY_NEEDS_ROWS
   const needsPlanning = needsData?.planningData ?? EMPTY_NEEDS_PLANNING
   const staffingRows = staffingData?.rows ?? EMPTY_STAFFING_ROWS
@@ -331,6 +314,11 @@ export function NeedsStaffingWorkspace({
   const filteredNeedsRows = useMemo(() => (
     filterNeedsRows(needsRows, state)
   ), [needsRows, state])
+
+  const mobileSearchQuery = normalizeSearchValue(mobileSearch.trim())
+  const mobileNeedsRows = useMemo(() => (
+    filteredNeedsRows.filter((row) => matchesNeedSearch(row, mobileSearchQuery))
+  ), [filteredNeedsRows, mobileSearchQuery])
 
   const filteredNeedsPlanning = useMemo(() => (
     filterNeedsRows(needsPlanning, {
@@ -382,7 +370,7 @@ export function NeedsStaffingWorkspace({
       <NewOpportunityButton
         fullWidth={false}
         iconOnly={isMobile}
-        className={isMobile ? "h-7 w-7 rounded-[var(--radius-medium)] px-0 text-sm" : undefined}
+        className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
       />
     )
     : (
@@ -390,7 +378,7 @@ export function NeedsStaffingWorkspace({
         openNeeds={sharedData.openNeeds}
         fullWidth={false}
         iconOnly={isMobile}
-        className={isMobile ? "h-7 w-7 rounded-[var(--radius-medium)] px-0 text-sm" : undefined}
+        className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
       />
     )
 
@@ -516,12 +504,6 @@ export function NeedsStaffingWorkspace({
             <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
               Besoins & Staffing
             </h1>
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <ScopeSwitcher scope={state.scope} onChange={setScope} />
-              <div className="shrink-0">
-                {createAction}
-              </div>
-            </div>
             <div className="mt-4">
               <SharedKpis sharedData={sharedData} compact={isMobile} />
             </div>
@@ -550,47 +532,34 @@ export function NeedsStaffingWorkspace({
 
       {isMobile ? (
         <>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <MobileFilterTrigger
-                activeCount={activeFilterCount}
-                onClick={() => setMobileFiltersOpen(true)}
-                compact={true}
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <label htmlFor={mobileSearchId} className="sr-only">
+                Rechercher un besoin
+              </label>
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true">
+                <SearchIcon />
+              </span>
+              <input
+                id={mobileSearchId}
+                type="search"
+                value={mobileSearch}
+                onChange={(event) => setMobileSearch(event.target.value)}
+                placeholder="Rechercher"
+                className="h-9 w-full rounded-[var(--radius-medium)] border border-border bg-surface pl-9 pr-3 text-sm text-body placeholder:text-muted outline-none transition-colors focus:border-primary/50 focus:ring-[var(--focus-ring-width)] focus:ring-[var(--focus-ring-color)]"
               />
-              <PageViewSelector
-                ariaLabel="Mode d'affichage Besoins & Staffing"
-                items={[
-                  { value: "list", label: "Liste" },
-                  { value: "kanban", label: "Kanban" },
-                  { value: "planning", label: "Planning" },
-                ]}
-                value={state.view}
-                onChange={(value) => setView(value as "list" | "kanban" | "planning")}
-              />
+            </div>
+            <MobileFilterTrigger
+              activeCount={activeFilterCount}
+              onClick={() => setMobileFiltersOpen(true)}
+              iconOnly
+            />
+            <div className="shrink-0">
+              {createAction}
             </div>
           </div>
 
-          {isNeedsScope ? (
-            state.view === "list" ? (
-              <NeedsMobileCards rows={filteredNeedsRows} />
-            ) : state.view === "kanban" ? (
-              <OpportunitiesKanbanView
-                opportunities={filteredNeedsPlanning}
-                onMoveOpportunity={handleMoveOpportunity}
-                displayMode="opportunities"
-              />
-            ) : (
-              <OpportunitiesPlanningView opportunities={filteredNeedsPlanning} scale="month" />
-            )
-          ) : (
-            state.view === "list" ? (
-              <StaffingMobileCards rows={filteredStaffingRows} />
-            ) : state.view === "kanban" ? (
-              <StaffingKanbanView rows={filteredStaffingRows} displayMode="candidat" />
-            ) : (
-              <StaffingPlanningView planningData={filteredStaffingPlanning} scale="month" />
-            )
-          )}
+          <NeedsMobileCards rows={mobileNeedsRows} />
 
           <AppDrawer
             open={mobileFiltersOpen}
@@ -599,7 +568,7 @@ export function NeedsStaffingWorkspace({
             title="Filtres"
           >
             <div className="flex flex-col gap-3">
-              {desktopFilters}
+              {listFilters}
               <Button variant="secondary" size="md" onClick={resetFilters}>
                 Réinitialiser
               </Button>
