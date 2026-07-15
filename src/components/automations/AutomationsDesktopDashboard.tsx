@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import dynamic from "next/dynamic"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { DesktopAnalyticalPage } from "@/components/templates/DesktopAnalyticalPage"
+import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import {
   DataTable,
@@ -17,7 +20,6 @@ import {
   runStatusVariant,
   runStatusLabel,
   workflowSeverity,
-  severityStatusVariant,
   severityLabel,
   formatDurationMs,
   formatCostEstimate,
@@ -27,6 +29,11 @@ import { RunDrillDownDialog } from "./RunDrillDownDialog"
 import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
 import { CostTimelineChart } from "./CostTimelineChart"
 import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
+
+const AutomationMetricsModal = dynamic(
+  () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
+  { ssr: false },
+)
 
 interface TechKpiCardProps {
   label: string
@@ -179,6 +186,7 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
   const [journal, setJournal] = useState<RunJournalRow[]>(data.journal)
   const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [metricsOpen, setMetricsOpen] = useState(false)
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 
   // Realtime : les mises à jour de statut d'un run déjà présent dans le journal
@@ -331,6 +339,24 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
     <DesktopAnalyticalPage
       title={headerTitle}
       eyebrow=""
+      actions={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setMetricsOpen(true)}
+          className="kredo-intelligence-toggle shadow-none cursor-pointer flex items-center gap-2"
+        >
+          <Image
+            src="/icons_set/agenda_metriques_activite.png"
+            alt=""
+            width={16}
+            height={16}
+            className="w-4 h-4"
+            style={{ filter: "brightness(0) invert(1)" }}
+          />
+          Analyse des métriques
+        </Button>
+      }
       kpis={
         activeTab === "sante" ? (
           <div className="grid grid-cols-4 gap-4">
@@ -505,6 +531,7 @@ export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboa
         onOpenChange={setDialogOpen}
         onRetried={() => setDialogOpen(false)}
       />
+      {metricsOpen ? <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} /> : null}
     </DesktopAnalyticalPage>
   )
 }
