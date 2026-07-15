@@ -400,11 +400,7 @@ function RegistryMobileContent({ onActionClick }: RegistryMobileContentProps) {
             iconSrc={cockpitActionIcons.prioritizeAccounts}
             onClick={() => openMobileAccountQuickSearch()}
           />
-          <QuickAccessLink
-            href="/prospection/suivi"
-            label="Priorités du jour"
-            iconSrc={cockpitActionIcons.priorities}
-          />
+
           <QuickAccessLink
             href="/missions/actives"
             label="Accéder aux missions"

@@ -343,9 +343,7 @@ export function AccountIntelligenceLab({
                 <Link href={`/prospection/accounts/${selectedAccount.id}`} className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
                   Hub compte
                 </Link>
-                <Link href="/prospection/suivi" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
-                  Activité
-                </Link>
+
                 <Link href="/prospection/approche-sectorielle" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
                   Secteurs
                 </Link>

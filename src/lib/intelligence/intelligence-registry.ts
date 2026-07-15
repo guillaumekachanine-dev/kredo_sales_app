@@ -373,11 +373,6 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     actionIds: ["common_sector_analysis", "search_news", "build_roadmap"],
   },
   {
-    pattern: "/prospection/suivi",
-    label: "Activité commerciale",
-    actionIds: ["activity_report", "prioritize_followups", "scan_contacts"],
-  },
-  {
     pattern: "/prospection",
     label: "CRM & Prospection",
     actionIds: ["prioritize_accounts", "search_news", "create_campaign", "build_roadmap"],

@@ -1,6 +1,6 @@
 import React from "react"
 import { AgendaDayVm } from "./cockpit-mobile-view-model"
-import { IconChevron, IconCalendar } from "./icons"
+import { IconChevron } from "./icons"
 
 interface CockpitAgendaDetailsProps {
   day: AgendaDayVm
@@ -8,20 +8,11 @@ interface CockpitAgendaDetailsProps {
   onItemClick: (route: string, title: string) => void
 }
 
-const FULL_DAY_NAMES: Record<string, string> = {
-  mon: "Lundi",
-  tue: "Mardi",
-  wed: "Mercredi",
-  thu: "Jeudi",
-  fri: "Vendredi",
-}
-
 export function CockpitAgendaDetails({
   day,
   isOpen,
   onItemClick,
 }: CockpitAgendaDetailsProps) {
-  const fullDayName = FULL_DAY_NAMES[day.key] || day.label
 
   return (
     <div

@@ -148,7 +148,6 @@ export const mainMenuItems: MainMenuItem[] = [
           { label: "Synthèse",              shortLabel: "Synthèse",     href: "/prospection" },
           { label: "Comptes & contacts",    shortLabel: "Comptes",      href: "/prospection/accounts" },
           { label: "Approche sectorielle",  shortLabel: "Secteurs",     href: "/prospection/approche-sectorielle" },
-          { label: "Activité",              shortLabel: "Activité",     href: "/prospection/suivi" },
         ],
       },
       {

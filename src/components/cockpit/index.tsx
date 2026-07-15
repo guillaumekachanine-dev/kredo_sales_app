@@ -1,7 +1,5 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getCockpitDesktopSnapshot } from "@/lib/cockpit/cockpit-desktop-data"
-import { getStaffingDashboardData } from "@/lib/staffing/staffing-data"
-import { getSyntheseData } from "@/lib/prospection/synthese-data"
 import { getAgendaEvents } from "@/lib/agenda/agenda-actions"
 import { CockpitDesktopDashboard } from "./CockpitDesktopDashboard"
 import { CockpitMobileDashboard } from "./CockpitMobileDashboard"
@@ -30,17 +28,13 @@ export async function SyntheseCockpitSection() {
   friday.setDate(monday.getDate() + 4)
   friday.setHours(23, 59, 59, 999)
 
-  const [staffingData, syntheseData, calendarEvents, diagnostic] = await Promise.all([
-    getStaffingDashboardData(),
-    getSyntheseData(),
+  const [calendarEvents, diagnostic] = await Promise.all([
     getAgendaEvents(monday.toISOString(), friday.toISOString()),
     getWorkspaceDiagnostic(),
   ])
 
   return (
     <CockpitMobileDashboard
-      staffingData={staffingData}
-      syntheseData={syntheseData}
       calendarEvents={calendarEvents}
       diagnostic={diagnostic}
     />

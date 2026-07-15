@@ -359,9 +359,7 @@ export function SectorSignalLab({
                     Ouvrir un compte exposé
                   </Link>
                 ) : null}
-                <Link href="/prospection/suivi" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
-                  Voir l&apos;activité
-                </Link>
+
               </div>
             </div>
           ) : null}

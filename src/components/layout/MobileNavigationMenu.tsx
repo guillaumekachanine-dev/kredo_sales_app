@@ -49,7 +49,6 @@ const mainItems: MenuItem[] = [
       { label: "Synthèse", href: "/prospection", icon: "crm" },
       { label: "Comptes & Contacts", shortLabel: "Comptes", href: "/prospection/accounts", icon: "equipe" },
       { label: "Approche sectorielle", shortLabel: "Secteurs", href: "/prospection/approche-sectorielle", icon: "veille" },
-      { label: "Activité", href: "/prospection/suivi", icon: "calendar" },
     ],
   },
   {
