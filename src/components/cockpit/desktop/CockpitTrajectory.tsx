@@ -11,7 +11,7 @@ function euroTick(value: number | null) {
 export function CockpitTrajectory({ trajectory }: { trajectory: CockpitTrajectoryData }) {
   const { points, ytdRevenueActual, ytdRevenueTarget, ytdMarginActual, ytdMarginTarget } = trajectory
   const width = 640
-  const height = 178
+  const height = 220
   const paddingX = 18
   const paddingTop = 14
   const paddingBottom = 24
@@ -36,7 +36,7 @@ export function CockpitTrajectory({ trajectory }: { trajectory: CockpitTrajector
         <span className="text-brand-brass">Plan</span>
       </div>
       <div className="mt-2 overflow-hidden border-y border-border/75 py-2">
-        <svg viewBox={`0 0 ${width} ${height}`} className="block h-[154px] w-full" role="img" aria-label="Trajectoire du chiffre d’affaires réel et du plan">
+        <svg viewBox={`0 0 ${width} ${height}`} className="block h-[200px] w-full" role="img" aria-label="Trajectoire du chiffre d’affaires réel et du plan">
           {[0.25, 0.5, 0.75].map((step) => (
             <line
               key={step}

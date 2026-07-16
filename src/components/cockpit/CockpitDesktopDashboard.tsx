@@ -5,7 +5,6 @@ import { CockpitAccountsToAnimate } from "@/components/cockpit/desktop/CockpitAc
 import { CockpitHeaderActions } from "@/components/cockpit/desktop/CockpitHeaderActions"
 import { CockpitHorizons } from "@/components/cockpit/desktop/CockpitHorizons"
 import { CockpitKpiStrip } from "@/components/cockpit/desktop/CockpitKpiStrip"
-import { CockpitTodayRail } from "@/components/cockpit/desktop/CockpitTodayRail"
 import { CockpitTrajectory } from "@/components/cockpit/desktop/CockpitTrajectory"
 import "./cockpit-desktop.css"
 
@@ -73,11 +72,8 @@ export function CockpitDesktopDashboard({
         </div>
 
         <div className="kredo-cockpit-desktop__secondary-grid">
-          <div className="kredo-cockpit-desktop__trajectory-stack">
-            <CockpitTrajectory trajectory={data.trajectory} />
-            <CockpitHorizons horizons={data.horizons} />
-          </div>
-          <CockpitTodayRail today={data.today} alerts={data.alerts} />
+          <CockpitTrajectory trajectory={data.trajectory} />
+          <CockpitHorizons horizons={data.horizons} />
         </div>
       </div>
     </section>

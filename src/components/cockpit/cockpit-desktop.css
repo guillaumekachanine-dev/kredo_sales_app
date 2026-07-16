@@ -113,9 +113,6 @@
   margin-top: 16px;
 }
 
-.kredo-cockpit-desktop__secondary-grid { grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr); }
-.kredo-cockpit-desktop__trajectory-stack { display: grid; gap: 16px; min-width: 0; }
-
 .kredo-cockpit-desktop__diagnostic > div {
   height: 100%;
   border-color: var(--color-border);
@@ -169,13 +166,315 @@
 }
 .kredo-cockpit-desktop__list-link { display: inline-block; margin-top: 16px; }
 
-.kredo-cockpit-desktop__horizon-card {
-  min-width: 0;
-  min-height: 126px;
-  border: 1px solid var(--color-border);
+/* Horizons Container & Panel */
+.kredo-cockpit-desktop__trajectory,
+.kredo-cockpit-desktop__horizons {
+  min-height: 420px;
+}
+
+.kredo-cockpit-desktop__horizons {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.kredo-cockpit-desktop__timeline {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  position: relative;
+  margin-top: 18px;
+  padding-left: 20px;
+}
+
+/* Timeline Vertical Axis Line */
+.kredo-cockpit-desktop__timeline-line {
+  position: absolute;
+  left: 5px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    var(--color-status-danger) 0%,
+    var(--color-status-warning) 50%,
+    var(--color-brand-primary) 100%
+  );
+  border-radius: 99px;
+  opacity: 0.35;
+}
+
+/* Timeline Item & Dot */
+.kredo-cockpit-desktop__timeline-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.kredo-cockpit-desktop__timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.kredo-cockpit-desktop__timeline-dot {
+  position: absolute;
+  left: -20px; /* Aligns dot perfectly on the line */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-surface);
+  background-color: var(--color-bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-standard) var(--motion-ease-standard);
+  z-index: 2;
+}
+
+.kredo-cockpit-desktop__timeline-dot-inner {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard);
+}
+
+/* Timeline dot colors with inner glowing nodes */
+.kredo-cockpit-desktop__timeline-dot--danger {
+  border-color: var(--color-status-danger);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-status-danger) 40%, transparent);
+}
+.kredo-cockpit-desktop__timeline-dot--danger .kredo-cockpit-desktop__timeline-dot-inner {
+  background-color: var(--color-status-danger);
+}
+
+.kredo-cockpit-desktop__timeline-dot--warning {
+  border-color: var(--color-brand-brass);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-brand-brass) 40%, transparent);
+}
+.kredo-cockpit-desktop__timeline-dot--warning .kredo-cockpit-desktop__timeline-dot-inner {
+  background-color: var(--color-brand-brass);
+}
+
+.kredo-cockpit-desktop__timeline-dot--primary {
+  border-color: var(--color-brand-primary);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-brand-primary) 40%, transparent);
+}
+.kredo-cockpit-desktop__timeline-dot--primary .kredo-cockpit-desktop__timeline-dot-inner {
+  background-color: var(--color-brand-primary);
+}
+
+/* Hover effect on timeline node */
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__timeline-dot {
+  transform: translateY(-50%) scale(1.3);
+}
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__timeline-dot--danger {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-status-danger) 80%, transparent);
+}
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__timeline-dot--warning {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-brand-brass) 80%, transparent);
+}
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__timeline-dot--primary {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-brand-primary) 80%, transparent);
+}
+
+/* Glassmorphic vertical card layout */
+.kredo-cockpit-desktop__horizon-card-vertical {
+  width: 100%;
+  background: color-mix(in srgb, var(--color-surface) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
   border-radius: var(--radius-large);
-  padding: 12px;
-  background: var(--color-surface-hover);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transform: translate3d(0, 0, 0);
+  will-change: transform, border-color, background-color;
+  transition: transform var(--motion-duration-standard) var(--motion-ease-standard),
+              border-color var(--motion-duration-standard) var(--motion-ease-standard),
+              background-color var(--motion-duration-standard) var(--motion-ease-standard),
+              box-shadow var(--motion-duration-standard) var(--motion-ease-standard);
+  overflow: hidden;
+}
+
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__horizon-card-vertical {
+  transform: translate3d(6px, 0, 0);
+  background: color-mix(in srgb, var(--color-surface-hover) 65%, transparent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Left accent border on hover */
+.kredo-cockpit-desktop__horizon-card-vertical--danger {
+  border-left: 3px solid color-mix(in srgb, var(--color-status-danger) 70%, transparent);
+}
+.kredo-cockpit-desktop__horizon-card-vertical--warning {
+  border-left: 3px solid color-mix(in srgb, var(--color-brand-brass) 70%, transparent);
+}
+.kredo-cockpit-desktop__horizon-card-vertical--primary {
+  border-left: 3px solid color-mix(in srgb, var(--color-brand-primary) 70%, transparent);
+}
+
+.kredo-cockpit-desktop__horizon-card-vertical--danger:hover {
+  border-color: color-mix(in srgb, var(--color-status-danger) 60%, var(--color-border));
+}
+.kredo-cockpit-desktop__horizon-card-vertical--warning:hover {
+  border-color: color-mix(in srgb, var(--color-brand-brass) 60%, var(--color-border));
+}
+.kredo-cockpit-desktop__horizon-card-vertical--primary:hover {
+  border-color: color-mix(in srgb, var(--color-brand-primary) 60%, var(--color-border));
+}
+
+/* Horizontal card inner layout */
+.kredo-cockpit-desktop__horizon-card-layout {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  gap: 12px;
+  min-height: 58px;
+}
+
+/* Days number representation on the left */
+.kredo-cockpit-desktop__horizon-card-days {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.kredo-cockpit-desktop__horizon-days-number {
+  font-size: 24px;
+}
+
+.kredo-cockpit-desktop__horizon-days-unit {
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 1px;
+  opacity: 0.7;
+}
+
+/* Coloring days based on category */
+.kredo-cockpit-desktop__horizon-card-vertical--danger .kredo-cockpit-desktop__horizon-card-days {
+  color: var(--color-status-danger);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--color-status-danger) 25%, transparent);
+}
+.kredo-cockpit-desktop__horizon-card-vertical--warning .kredo-cockpit-desktop__horizon-card-days {
+  color: var(--color-brand-brass);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--color-brand-brass) 25%, transparent);
+}
+.kredo-cockpit-desktop__horizon-card-vertical--primary .kredo-cockpit-desktop__horizon-card-days {
+  color: #adc2ec;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--color-brand-primary) 25%, transparent);
+}
+
+/* Central list content */
+.kredo-cockpit-desktop__horizon-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.kredo-cockpit-desktop__horizon-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Individual list item (horizontal rows) */
+.kredo-cockpit-desktop__horizon-mini-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 11px;
+  line-height: 1.2;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-bg-canvas) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border) 10%, transparent);
+  transition: background-color var(--motion-duration-fast) var(--motion-ease-standard),
+              border-color var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.kredo-cockpit-desktop__horizon-mini-item:hover {
+  background: color-mix(in srgb, var(--color-bg-canvas) 45%, transparent);
+  border-color: color-mix(in srgb, var(--color-border) 45%, transparent);
+}
+
+.kredo-cockpit-desktop__horizon-item-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kredo-cockpit-desktop__horizon-item-text {
+  flex: 1;
+  font-weight: 600;
+  color: var(--color-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kredo-cockpit-desktop__horizon-mini-item:hover .kredo-cockpit-desktop__horizon-item-text {
+  color: #ffffff;
+}
+
+.kredo-cockpit-desktop__horizon-item-date {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-border) 25%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.kredo-cockpit-desktop__horizon-empty-text {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+  padding-left: 6px;
+}
+
+/* Right-side indicators */
+.kredo-cockpit-desktop__horizon-card-aside {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+}
+
+.kredo-cockpit-desktop__horizon-more-badge {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-border) 40%, transparent);
+  padding: 2px 5px;
+  border-radius: 99px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.kredo-cockpit-desktop__horizon-chevron {
+  color: var(--color-text-muted);
+  opacity: 0;
+  transform: translate3d(-3px, 0, 0);
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard),
+              transform var(--motion-duration-fast) var(--motion-ease-standard);
+}
+
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__horizon-chevron {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .kredo-cockpit-desktop__metric-label {
@@ -228,8 +527,8 @@
 
 @media (max-width: 1180px) {
   .kredo-cockpit-desktop__frame { padding-inline: 20px; }
-  .kredo-cockpit-desktop__primary-grid { grid-template-columns: minmax(0, 1fr) 300px; }
-  .kredo-cockpit-desktop__secondary-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+  .kredo-cockpit-desktop__primary-grid,
+  .kredo-cockpit-desktop__secondary-grid { grid-template-columns: minmax(0, 1fr) 300px; }
   .kredo-cockpit-desktop__diagnostic .grid { grid-template-columns: minmax(0, 1fr); }
   .kredo-cockpit-desktop__diagnostic aside { border-top: 1px solid var(--color-border); border-left: 0; padding: 14px 0 0; }
 }
