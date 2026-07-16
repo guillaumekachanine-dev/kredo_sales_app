@@ -11,13 +11,19 @@ import {
   FinancialPricingFields,
   FinancialExpenseFields,
   FinancialModelingResults,
-  FinancialModelingWarnings
+  FinancialModelingWarnings,
+  formatEuroWithCents
 } from "../shared"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
 import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
-import { saveFinancialModelAction, getFinancialModelingBootstrapAction } from "../../actions"
-import type { FinancialModelFormState } from "../../persistence"
+import {
+  saveFinancialModelAction,
+  getFinancialModelingBootstrapAction,
+  getFinancialModelAction,
+  getRecentFinancialModelsAction
+} from "../../actions"
+import type { FinancialModelFormState, FinancialModelRow } from "../../persistence"
 import type { FinancialModelingBootstrapData } from "../../data/get-financial-modeling-bootstrap"
 
 interface FinancialModelingMobileFlowProps {
@@ -68,8 +74,10 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [bootstrap, setBootstrap] = useState<FinancialModelingBootstrapData | null>(null)
+  const [recentSimulations, setRecentSimulations] = useState<FinancialModelRow[]>([])
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [showMobileHistory, setShowMobileHistory] = useState(false)
 
   const resetFlow = () => {
     const defaultState = createDefaultFormState()
@@ -86,6 +94,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
       const res = await getFinancialModelingBootstrapAction()
       if (res.success && res.data) {
         setBootstrap(res.data)
+        setRecentSimulations(res.data.recentSimulations || [])
       }
       setLoading(false)
     }
@@ -111,10 +120,51 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
       (input.resourceType === "external" || formState.collaboratorId || formState.candidateId)
     )
   }, [formState])
+  const isReadOnly = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
+
   const isDirty = useMemo(
     () => serializeComparableState(formState) !== serializeComparableState(baselineState),
     [baselineState, formState],
   )
+
+  const handleOpenSimulation = async (id: string) => {
+    setLoading(true)
+    const res = await getFinancialModelAction(id)
+    setLoading(false)
+    
+    if (res.success && res.data) {
+      const loadedState = cloneFormState(res.data)
+      setFormState(loadedState)
+      setBaselineState(cloneFormState(loadedState))
+      setShowMobileHistory(false)
+      setStep(1)
+    } else {
+      alert(res.error || "Erreur de chargement de la simulation")
+    }
+  }
+
+  const handleDuplicateSimulation = async (id: string) => {
+    setLoading(true)
+    const res = await getFinancialModelAction(id)
+    setLoading(false)
+    
+    if (res.success && res.data) {
+      const duplicated = cloneFormState({
+        ...res.data,
+        id: undefined,
+        status: "draft",
+        title: `${res.data.title} (Copie)`,
+        updated_at: undefined,
+        expected_updated_at: undefined
+      })
+      setFormState(duplicated)
+      setBaselineState(cloneFormState(duplicated))
+      setShowMobileHistory(false)
+      setStep(1)
+    } else {
+      alert(res.error || "Erreur de duplication")
+    }
+  }
 
   const handleRequestClose = () => {
     if (loading || saving) return
@@ -165,12 +215,25 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
       case 1:
         return (
           <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowMobileHistory(true)}
+              className="w-full flex items-center justify-between p-3.5 border border-border/60 bg-surface rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-canvas/5 min-h-[44px]"
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-sm">🕒</span>
+                <span>Voir l'historique des simulations</span>
+              </span>
+              <span>→</span>
+            </button>
+
             <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Ressource</h3>
             <FinancialResourceFields
               value={formState}
               onChange={setFormState}
               catalog={bootstrap.catalog}
               assumptions={bootstrap.assumptions}
+              disabled={isReadOnly}
             />
           </div>
         )
@@ -178,13 +241,14 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         return (
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-heading uppercase tracking-wider">2. Mission & TJM</h3>
-            <FinancialPeriodFields value={formState} onChange={setFormState} />
+            <FinancialPeriodFields value={formState} onChange={setFormState} disabled={isReadOnly} />
             <FinancialPricingFields
               value={formState}
               onChange={setFormState}
               pricing={bootstrap.pricing}
               companies={bootstrap.companies}
               opportunities={bootstrap.opportunities}
+              disabled={isReadOnly}
             />
           </div>
         )
@@ -204,10 +268,34 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
 
             {/* Optional details: Expenses */}
             <div className="border-t border-border/60 pt-4">
-              <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} />
+              <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={isReadOnly} />
             </div>
           </div>
         )
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "validated": return "Validé";
+      case "reference": return "Référence";
+      case "superseded": return "Remplacé";
+      case "converted": return "Converti";
+      case "draft":
+      default:
+        return "Brouillon";
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "validated": return "success";
+      case "reference": return "success";
+      case "superseded": return "neutral";
+      case "converted": return "info";
+      case "draft":
+      default:
+        return "warning";
     }
   }
 
@@ -229,10 +317,10 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
               className="w-5 h-5 object-contain"
             />
             <span>Simuler une mission</span>
-            {step === 3 && (
+            {formState.id && (
               <StatusPill
-                label={formState.status === "validated" ? "Validé" : "Brouillon"}
-                variant={formState.status === "validated" ? "success" : "warning"}
+                label={getStatusLabel(formState.status)}
+                variant={getStatusVariant(formState.status)}
               />
             )}
           </div>
@@ -286,24 +374,38 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
 
             {step === 3 && (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  className="h-11"
-                  disabled={clientResult === null || saving}
-                  onClick={() => handleSave("draft")}
-                >
-                  Brouillon
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="h-11"
-                  disabled={clientResult === null || saving}
-                  onClick={() => handleSave("validated")}
-                >
-                  Enregistrer
-                </Button>
+                {isReadOnly ? (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="h-11 px-5"
+                    disabled={loading || saving}
+                    onClick={() => handleDuplicateSimulation(formState.id!)}
+                  >
+                    Dupliquer pour réviser
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      className="h-11"
+                      disabled={clientResult === null || saving}
+                      onClick={() => handleSave("draft")}
+                    >
+                      Brouillon
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="h-11"
+                      disabled={clientResult === null || saving}
+                      onClick={() => handleSave("validated")}
+                    >
+                      Enregistrer
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -366,6 +468,77 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
           Des modifications non enregistrées seraient perdues. Confirmez la fermeture uniquement si vous souhaitez abandonner cette saisie.
         </p>
       </AppDialog>
+
+      {/* Mobile History Drawer */}
+      <AppDrawer
+        open={showMobileHistory}
+        onOpenChange={setShowMobileHistory}
+        side="bottom"
+        title={
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🕒</span>
+            <span>Historique des simulations</span>
+          </div>
+        }
+        className="sm:hidden h-[85vh] max-h-[85vh]"
+        headerClassName="bg-secondary text-brand-ink [&_button]:text-brand-ink/70 [&_button]:hover:text-brand-ink border-b border-secondary/20"
+        contentClassName="flex-1 overflow-y-auto px-4 py-4"
+        footer={
+          <Button variant="secondary" size="md" className="w-full h-11" onClick={() => setShowMobileHistory(false)}>
+            Fermer l'historique
+          </Button>
+        }
+      >
+        {recentSimulations.length === 0 ? (
+          <p className="text-xs text-muted italic text-center py-10">Aucune simulation enregistrée.</p>
+        ) : (
+          <div className="space-y-3.5">
+            {recentSimulations.map((sim) => (
+              <div
+                key={sim.id}
+                className="p-3.5 rounded-[var(--radius-medium)] border text-xs space-y-2.5 bg-surface border-border/60"
+              >
+                <div className="flex items-start justify-between gap-1.5">
+                  <span className="font-bold text-heading truncate block flex-1">
+                    {sim.title}
+                  </span>
+                  <StatusPill
+                    label={getStatusLabel(sim.status)}
+                    variant={getStatusVariant(sim.status)}
+                  />
+                </div>
+
+                <div className="text-muted grid grid-cols-2 gap-x-3 gap-y-1">
+                  <div>Ressource : <span className="font-semibold text-body truncate block">{sim.resource_label}</span></div>
+                  <div>Marge : <span className="font-semibold text-body">{formatEuroWithCents(Number(sim.gross_margin_amount))}</span></div>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-border/40 pt-2.5 mt-2">
+                  <span className="text-[10px] text-muted">
+                    {new Date(sim.updated_at).toLocaleDateString("fr-FR")}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenSimulation(sim.id)}
+                      className="h-11 px-3 text-xs text-primary font-bold hover:underline min-w-[44px] flex items-center justify-center"
+                    >
+                      Ouvrir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicateSimulation(sim.id)}
+                      className="h-11 px-3 text-xs text-primary font-bold hover:underline min-w-[44px] flex items-center justify-center"
+                    >
+                      Dupliquer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </AppDrawer>
     </>
   )
 }

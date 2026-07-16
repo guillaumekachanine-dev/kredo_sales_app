@@ -6,14 +6,16 @@ import type { FinancialModelFormState } from "../../persistence/financial-model-
 interface FinancialPeriodFieldsProps {
   value: FinancialModelFormState
   onChange: (value: FinancialModelFormState) => void
+  disabled?: boolean
 }
 
-export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFieldsProps) {
+export function FinancialPeriodFields({ value, onChange, disabled }: FinancialPeriodFieldsProps) {
   const { startDate, endDate, forecastActivityRate, annualWorkingDays, manualBusinessDays } = value.input
 
   const activityPct = Math.round(forecastActivityRate * 100)
 
   const handleFieldChange = (key: keyof typeof value.input, val: unknown) => {
+    if (disabled) return
     const updated = { ...value }
     updated.input = { ...value.input, [key]: val } as typeof value.input
     onChange(updated)
@@ -27,6 +29,7 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
           <Input
             type="date"
             value={startDate || ""}
+            disabled={disabled}
             onChange={(e) => handleFieldChange("startDate", e.target.value)}
           />
         </Field>
@@ -35,6 +38,7 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
           <Input
             type="date"
             value={endDate || ""}
+            disabled={disabled}
             onChange={(e) => handleFieldChange("endDate", e.target.value || null)}
           />
         </Field>
@@ -48,6 +52,7 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
             min="1"
             max="100"
             value={activityPct || ""}
+            disabled={disabled}
             onChange={(e) => {
               const val = Number(e.target.value) / 100
               handleFieldChange("forecastActivityRate", val)
@@ -59,6 +64,7 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
           <Input
             type="number"
             value={annualWorkingDays || ""}
+            disabled={disabled}
             onChange={(e) => handleFieldChange("annualWorkingDays", Number(e.target.value))}
           />
         </Field>
@@ -68,6 +74,7 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
             type="number"
             placeholder="Calculé si vide"
             value={manualBusinessDays != null ? manualBusinessDays : ""}
+            disabled={disabled}
             onChange={(e) => {
               const val = e.target.value === "" ? null : Number(e.target.value)
               handleFieldChange("manualBusinessDays", val)
@@ -78,3 +85,4 @@ export function FinancialPeriodFields({ value, onChange }: FinancialPeriodFields
     </div>
   )
 }
+

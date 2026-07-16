@@ -10,6 +10,7 @@ interface FinancialExpenseFieldsProps {
   value: FinancialModelFormState
   onChange: (value: FinancialModelFormState) => void
   result: FinancialModelResult | null
+  disabled?: boolean
 }
 
 const EXPENSE_CATEGORIES = [
@@ -20,10 +21,11 @@ const EXPENSE_CATEGORIES = [
   { value: "other", label: "Autre" },
 ]
 
-export function FinancialExpenseFields({ value, onChange, result }: FinancialExpenseFieldsProps) {
+export function FinancialExpenseFields({ value, onChange, result, disabled }: FinancialExpenseFieldsProps) {
   const expenses = value.input.expenses ?? []
 
   const handleAddExpense = () => {
+    if (disabled) return
     const newExpense = {
       label: "",
       calculationMode: "fixed" as const,
@@ -39,6 +41,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
   }
 
   const handleRemoveExpense = (index: number) => {
+    if (disabled) return
     const updated = { ...value }
     const nextExpenses = [...expenses]
     nextExpenses.splice(index, 1)
@@ -47,6 +50,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
   }
 
   const handleExpenseFieldChange = (index: number, key: string, val: unknown) => {
+    if (disabled) return
     const updated = { ...value }
     const nextExpenses = expenses.map((exp, idx) => {
       if (idx !== index) return exp
@@ -57,6 +61,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
   }
 
   const handleMoveExpense = (index: number, direction: "up" | "down") => {
+    if (disabled) return
     const newIndex = direction === "up" ? index - 1 : index + 1
     if (newIndex < 0 || newIndex >= expenses.length) return
 
@@ -76,8 +81,9 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
         <h4 className="text-[11px] font-bold uppercase tracking-wider text-heading">Frais ESN rattachés</h4>
         <button
           type="button"
+          disabled={disabled}
           onClick={handleAddExpense}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-hover transition-colors"
+          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-hover disabled:opacity-50 disabled:hover:text-primary transition-colors"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -105,7 +111,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                     {/* Reordering */}
                     <button
                       type="button"
-                      disabled={idx === 0}
+                      disabled={disabled || idx === 0}
                       onClick={() => handleMoveExpense(idx, "up")}
                       className="text-muted hover:text-heading disabled:opacity-30 disabled:hover:text-muted transition-colors"
                       title="Monter"
@@ -116,7 +122,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                     </button>
                     <button
                       type="button"
-                      disabled={idx === expenses.length - 1}
+                      disabled={disabled || idx === expenses.length - 1}
                       onClick={() => handleMoveExpense(idx, "down")}
                       className="text-muted hover:text-heading disabled:opacity-30 disabled:hover:text-muted transition-colors"
                       title="Descendre"
@@ -128,8 +134,9 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                     {/* Deletion */}
                     <button
                       type="button"
+                      disabled={disabled}
                       onClick={() => handleRemoveExpense(idx)}
-                      className="text-muted hover:text-danger ml-1 transition-colors"
+                      className="text-muted hover:text-danger disabled:opacity-30 disabled:hover:text-muted ml-1 transition-colors"
                       title="Supprimer"
                     >
                       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -145,6 +152,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                     <Input
                       placeholder="ex: Abonnement train, Loyer laptop..."
                       value={expense.label}
+                      disabled={disabled}
                       onChange={(e) => handleExpenseFieldChange(idx, "label", e.target.value)}
                     />
                   </Field>
@@ -152,6 +160,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                   <Field label="Catégorie (Optionnel)" optional>
                     <Select
                       value={expense.category || ""}
+                      disabled={disabled}
                       onChange={(e) => handleExpenseFieldChange(idx, "category", e.target.value || undefined)}
                     >
                       <option value="">-- Non spécifiée --</option>
@@ -169,6 +178,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                   <Field label="Mode de calcul" required>
                     <Select
                       value={expense.calculationMode}
+                      disabled={disabled}
                       onChange={(e) => handleExpenseFieldChange(idx, "calculationMode", e.target.value)}
                     >
                       <option value="fixed">Fixe</option>
@@ -183,6 +193,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                     <Input
                       type="number"
                       value={expense.unitAmount || ""}
+                      disabled={disabled}
                       onChange={(e) => handleExpenseFieldChange(idx, "unitAmount", Number(e.target.value))}
                     />
                   </Field>
@@ -192,6 +203,7 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
                       type="number"
                       placeholder="1"
                       value={expense.quantity != null ? expense.quantity : ""}
+                      disabled={disabled}
                       onChange={(e) => {
                         const val = e.target.value === "" ? undefined : Number(e.target.value)
                         handleExpenseFieldChange(idx, "quantity", val)
@@ -214,3 +226,4 @@ export function FinancialExpenseFields({ value, onChange, result }: FinancialExp
     </div>
   )
 }
+

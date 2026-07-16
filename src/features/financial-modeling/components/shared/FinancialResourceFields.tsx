@@ -11,9 +11,10 @@ interface FinancialResourceFieldsProps {
   onChange: (value: FinancialModelFormState) => void
   catalog: FinancialResourceCatalogData
   assumptions: FinancialAssumptionsData
+  disabled?: boolean
 }
 
-export function FinancialResourceFields({ value, onChange, catalog, assumptions }: FinancialResourceFieldsProps) {
+export function FinancialResourceFields({ value, onChange, catalog, assumptions, disabled }: FinancialResourceFieldsProps) {
   const { resourceType, costModel } = value.input
 
   const selectedResourceId = value.collaboratorId || value.candidateId || ""
@@ -190,12 +191,13 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
           <button
             key={type}
             type="button"
-            className={`py-1.5 px-3 rounded-[var(--radius-small)] text-xs font-semibold border transition-all ${
+            disabled={disabled}
+            className={`py-1.5 px-3 rounded-[var(--radius-small)] text-xs font-semibold border transition-all disabled:opacity-60 ${
               resourceType === type
                 ? "bg-primary border-primary text-primary-fg"
                 : "bg-surface border-border text-body hover:bg-canvas/10"
             }`}
-            onClick={() => handleResourceTypeChange(type)}
+            onClick={() => !disabled && handleResourceTypeChange(type)}
           >
             {type === "collaborator" ? "Collaborateur" : type === "candidate" ? "Candidat" : "Externe"}
           </button>
@@ -205,7 +207,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
       {/* Select Resource (from DB catalog) */}
       {resourceType !== "external" && (
         <Field label={resourceType === "collaborator" ? "Sélectionner le collaborateur" : "Sélectionner le candidat"} required>
-          <Select value={selectedResourceId} onChange={(e) => handleResourceSelectionChange(e.target.value)}>
+          <Select value={selectedResourceId} disabled={disabled} onChange={(e) => handleResourceSelectionChange(e.target.value)}>
             <option value="">-- Choisir dans le catalogue --</option>
             {resourceOptions.map((opt) => (
               <option key={opt.id} value={opt.id}>
@@ -219,7 +221,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
       {/* External Cost Model Selector (only when external) */}
       {resourceType === "external" && (
         <Field label="Modèle de coût" required>
-          <Select value={costModel} onChange={(e) => handleCostModelChange(e.target.value as "salaried" | "subcontractor_daily_rate" | "fixed_external_cost")}>
+          <Select value={costModel} disabled={disabled} onChange={(e) => handleCostModelChange(e.target.value as "salaried" | "subcontractor_daily_rate" | "fixed_external_cost")}>
             <option value="subcontractor_daily_rate">Achat journalier (Sous-traitance)</option>
             <option value="fixed_external_cost">Coût externe forfaitaire fixe</option>
           </Select>
@@ -280,6 +282,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
             <Input
               type="number"
               value={annualGrossSalaryValue || ""}
+              disabled={disabled}
               onChange={(e) => {
                 const updated = { ...value }
                 const inputObj = updated.input as unknown as Record<string, unknown>
@@ -302,6 +305,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
             <Input
               type="number"
               value={annualVariablePayValue || ""}
+              disabled={disabled}
               onChange={(e) => {
                 const updated = { ...value }
                 const inputObj = updated.input as unknown as Record<string, unknown>
@@ -328,6 +332,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
               step="0.01"
               placeholder="0.45"
               value={employerChargesRateValue != null ? employerChargesRateValue : ""}
+              disabled={disabled}
               onChange={(e) => {
                 const updated = { ...value }
                 const val = e.target.value === "" ? null : Number(e.target.value)
@@ -359,6 +364,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
           <Input
             type="number"
             value={purchaseDailyRateValue || ""}
+            disabled={disabled}
             onChange={(e) => {
               const updated = { ...value }
               const inputObj = updated.input as unknown as Record<string, unknown>
@@ -385,6 +391,7 @@ export function FinancialResourceFields({ value, onChange, catalog, assumptions 
           <Input
             type="number"
             value={fixedExternalCostValue || ""}
+            disabled={disabled}
             onChange={(e) => {
               const updated = { ...value }
               const inputObj = updated.input as unknown as Record<string, unknown>

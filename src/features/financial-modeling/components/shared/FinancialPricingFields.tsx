@@ -11,9 +11,10 @@ interface FinancialPricingFieldsProps {
   pricing: FinancialPricingAnchorsData
   companies: { id: string; name: string }[]
   opportunities: { id: string; title: string; company_id: string | null; target_daily_rate: number | null }[]
+  disabled?: boolean
 }
 
-export function FinancialPricingFields({ value, onChange, pricing, companies, opportunities }: FinancialPricingFieldsProps) {
+export function FinancialPricingFields({ value, onChange, pricing, companies, opportunities, disabled }: FinancialPricingFieldsProps) {
   const { salesDailyRate } = value.input
 
   // Filter opportunities if a client company is selected
@@ -60,6 +61,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
     rate: number,
     anchor: typeof pricing.anchors[number] | typeof pricing.benchmarks[number]
   ) => {
+    if (disabled) return
     const updated = { ...value }
     updated.input = { ...value.input, salesDailyRate: rate }
     
@@ -81,6 +83,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
         <Field label="Client (Facultatif)" optional>
           <Select
             value={value.companyId || ""}
+            disabled={disabled}
             onChange={(e) => {
               const compId = e.target.value || null
               onChange({ ...value, companyId: compId, opportunityId: null })
@@ -98,6 +101,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
         <Field label="Opportunité (Facultatif)" optional>
           <Select
             value={value.opportunityId || ""}
+            disabled={disabled}
             onChange={(e) => {
               const oppId = e.target.value || null
               const opp = opportunities.find((o) => o.id === oppId)
@@ -125,6 +129,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
         <Input
           type="number"
           value={salesDailyRate || ""}
+          disabled={disabled}
           onChange={(e) => {
             const updated = { ...value }
             updated.input = { ...value.input, salesDailyRate: Number(e.target.value) }
@@ -156,8 +161,9 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
                 <button
                   key={idx}
                   type="button"
+                  disabled={disabled}
                   onClick={() => handleAnchorClick(rate, anchor)}
-                  className="flex flex-col items-start p-2 rounded-[var(--radius-small)] border border-border/80 bg-surface hover:bg-canvas/10 text-left transition-all"
+                  className="flex flex-col items-start p-2 rounded-[var(--radius-small)] border border-border/80 bg-surface hover:bg-canvas/10 disabled:opacity-60 disabled:hover:bg-surface text-left transition-all"
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className={`text-[9px] px-1 rounded border font-semibold uppercase ${badgeColor}`}>
@@ -177,3 +183,4 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
     </div>
   )
 }
+

@@ -14,13 +14,15 @@ interface FinancialModelingFlashFieldsProps {
   onChange: (value: FinancialModelFormState) => void
   bootstrap: FinancialModelingBootstrapData
   clientResult: FinancialModelResult | null
+  disabled?: boolean
 }
 
 export function FinancialModelingFlashFields({
   value,
   onChange,
   bootstrap,
-  clientResult
+  clientResult,
+  disabled
 }: FinancialModelingFlashFieldsProps) {
   const { resourceType, costModel, startDate, endDate, forecastActivityRate, annualWorkingDays } = value.input
   const [isRefOpen, setIsRefOpen] = useState(false)

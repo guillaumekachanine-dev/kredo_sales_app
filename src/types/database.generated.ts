@@ -7055,6 +7055,13 @@ export type Database = {
         }
         Returns: Json
       }
+      promote_financial_model_to_reference: {
+        Args: { p_model_id: string }
+        Returns: {
+          document_id: string
+          model_id: string
+        }[]
+      }
       reap_stale_intelligence_runs: {
         Args: {
           queued_timeout_minutes?: number

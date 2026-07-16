@@ -19,6 +19,7 @@ import {
 import { FinancialModelingFlashFields } from "./FinancialModelingFlashFields"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
+import { validateFinancialReferenceEligibility } from "../../domain/financial-reference.validator"
 import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
 import type { FinancialModelStatus } from "../../domain/financial-model.types"
 import {
@@ -26,7 +27,8 @@ import {
   archiveFinancialModelAction,
   getFinancialModelAction,
   getFinancialModelingBootstrapAction,
-  getRecentFinancialModelsAction
+  getRecentFinancialModelsAction,
+  promoteFinancialModelAction
 } from "../../actions"
 import type { FinancialModelFormState, FinancialModelRow } from "../../persistence"
 import type { FinancialModelingBootstrapData } from "../../data/get-financial-modeling-bootstrap"
@@ -82,6 +84,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
   const [recentSimulations, setRecentSimulations] = useState<FinancialModelRow[]>([])
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -126,7 +129,9 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     }
   }, [formState.input])
 
-  const canSave = clientResult !== null
+  const isReadOnly = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
+  const canSave = clientResult !== null && !isReadOnly
+
   const isDirty = useMemo(
     () => serializeComparableState(formState) !== serializeComparableState(baselineState),
     [baselineState, formState],
@@ -143,6 +148,19 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
   }, [bootstrap, formState.collaboratorId, formState.candidateId, formState.input.resourceType])
   const currentChargesRate =
     formState.input.costModel === "salaried" ? formState.input.employerChargesRate ?? null : null
+
+  const selectedOpp = useMemo(() => {
+    if (!bootstrap || !formState.opportunityId) return null
+    return bootstrap.opportunities.find((o) => o.id === formState.opportunityId)
+  }, [bootstrap, formState.opportunityId])
+
+  const eligibility = useMemo(() => {
+    return validateFinancialReferenceEligibility(formState, {
+      opportunityCompanyId: selectedOpp?.company_id,
+      warnings: clientResult?.warnings,
+      producedDays: clientResult?.producedDays ?? 0,
+    })
+  }, [formState, selectedOpp, clientResult])
 
   const handleRequestClose = () => {
     if (loading || saving) return
@@ -263,6 +281,35 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     }
   }
 
+  // 7. Promote to Reference
+  const handlePromoteToReference = async () => {
+    if (!formState.id) {
+      alert("Veuillez d'abord sauvegarder la simulation.")
+      return
+    }
+    if (
+      !confirm(
+        "Voulez-vous promouvoir cette simulation en référence financière ? Elle deviendra immuable et l'ancienne référence de l'opportunité sera remplacée."
+      )
+    ) {
+      return
+    }
+    setSaving(true)
+    const res = await promoteFinancialModelAction(formState.id)
+    setSaving(false)
+    if (res.success) {
+      // Reload current model to update status
+      handleOpenSimulation(formState.id)
+      // Refresh list
+      const recentRes = await getRecentFinancialModelsAction()
+      if (recentRes.success && recentRes.data) {
+        setRecentSimulations(recentRes.data)
+      }
+    } else {
+      alert(res.error || "Erreur de promotion.")
+    }
+  }
+
   const handleModeChange = (mode: "flash" | "full") => {
     setFormState((prev) => ({
       ...prev,
@@ -271,6 +318,30 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
         mode
       }
     }))
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "validated": return "Validé";
+      case "reference": return "Référence";
+      case "superseded": return "Remplacé";
+      case "converted": return "Converti";
+      case "draft":
+      default:
+        return "Brouillon";
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "validated": return "success";
+      case "reference": return "success";
+      case "superseded": return "neutral";
+      case "converted": return "info";
+      case "draft":
+      default:
+        return "warning";
+    }
   }
 
   return (
@@ -294,6 +365,12 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                 ? "Modélisation Financière (Flash)"
                 : "Modélisation Financière (Complet)"}
             </span>
+            {formState.id && (
+              <StatusPill
+                label={getStatusLabel(formState.status)}
+                variant={getStatusVariant(formState.status)}
+              />
+            )}
           </div>
         }
         className="w-full max-w-5xl h-[85vh] max-h-[85vh]"
@@ -332,8 +409,8 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-6">
-              {/* Form columns (2/3 width in Complet, full width in Flash) */}
-              <div className={formState.input.mode === "full" ? "col-span-2 space-y-6" : "col-span-3 space-y-6"}>
+              {/* Form columns (2/3 width in Complet with history panel open, full width otherwise) */}
+              <div className={formState.input.mode === "full" && showHistory ? "col-span-2 space-y-6" : "col-span-3 space-y-6"}>
                 {formState.input.mode === "flash" ? (
                   <div className="space-y-6">
                     <FinancialModelingFlashFields
@@ -341,15 +418,18 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                       onChange={setFormState}
                       bootstrap={bootstrap}
                       clientResult={clientResult}
+                      disabled={isReadOnly}
                     />
                     
-                    <button
-                      type="button"
-                      onClick={() => handleModeChange("full")}
-                      className="w-full py-2.5 border border-dashed border-primary/45 rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-primary/[0.03] transition-all"
-                    >
-                      Passer en mode complet
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={() => handleModeChange("full")}
+                        className="w-full py-2.5 border border-dashed border-primary/45 rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-primary/[0.03] transition-all"
+                      >
+                        Passer en mode complet
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -359,6 +439,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                       <Field label="Titre de la simulation" required>
                         <Input
                           value={formState.title}
+                          disabled={isReadOnly}
                           onChange={(e) => setFormState({ ...formState, title: e.target.value })}
                         />
                       </Field>
@@ -372,13 +453,14 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                         onChange={setFormState}
                         catalog={bootstrap.catalog}
                         assumptions={bootstrap.assumptions}
+                        disabled={isReadOnly}
                       />
                     </div>
 
                     {/* Section Mission */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">3. Paramètres Mission</h3>
-                      <FinancialPeriodFields value={formState} onChange={setFormState} />
+                      <FinancialPeriodFields value={formState} onChange={setFormState} disabled={isReadOnly} />
                     </div>
 
                     {/* Section Pricing */}
@@ -390,14 +472,30 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                         pricing={bootstrap.pricing}
                         companies={bootstrap.companies}
                         opportunities={bootstrap.opportunities}
+                        disabled={isReadOnly}
                       />
                     </div>
 
                     {/* Section Expenses */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">5. Frais</h3>
-                      <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} />
+                      <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={isReadOnly} />
                     </div>
+
+                    {/* Section Eligibility Warning card */}
+                    {formState.input.mode === "full" && !isReadOnly && !eligibility.eligible && (
+                      <div className="rounded-[var(--radius-medium)] border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-700 space-y-1.5">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <span className="size-1.5 rounded-full bg-amber-500" />
+                          Critères requis pour promotion en Référence Financière :
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1 text-slate-600">
+                          {eligibility.errors.map((err, i) => (
+                            <li key={i}>{err}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     {/* Section Results */}
                     <div className="space-y-3">
@@ -468,7 +566,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
               </div>
 
               {/* Sidebar: Recent Simulations (only in Complet Mode) */}
-              {formState.input.mode === "full" && (
+              {formState.input.mode === "full" && showHistory && (
                 <div className="col-span-1 border-l border-border/60 pl-6 space-y-4">
                   <h3 className="text-xs font-bold text-heading uppercase tracking-wider">9. Simulations récentes</h3>
                   
@@ -490,8 +588,8 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                               {sim.title}
                             </span>
                              <StatusPill
-                               label={sim.status === "validated" ? "Validé" : "Brouillon"}
-                               variant={sim.status === "validated" ? "success" : "warning"}
+                               label={getStatusLabel(sim.status)}
+                               variant={getStatusVariant(sim.status)}
                              />
                           </div>
 
@@ -540,7 +638,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
 
         {/* Fixed Footer */}
         <div className="border-t border-border/80 p-4 flex items-center justify-between bg-surface shrink-0">
-          <div>
+          <div className="flex items-center gap-4">
             {formState.input.mode === "full" && (
               <button
                 type="button"
@@ -550,6 +648,13 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                 Retour en mode Flash
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setShowHistory(!showHistory)}
+              className={`text-xs font-semibold transition-colors ${showHistory ? "text-primary" : "text-muted hover:text-heading"}`}
+            >
+              {showHistory ? "Masquer l'historique" : "Afficher l'historique"}
+            </button>
           </div>
           
           <div className="flex items-center gap-2">
@@ -557,25 +662,46 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
               Fermer
             </Button>
             
-            {/* Save Buttons */}
-            {formState.input.mode === "full" && (
+            {isReadOnly ? (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={loading || saving}
+                onClick={() => handleDuplicateSimulation(formState.id!)}
+              >
+                Dupliquer pour réviser
+              </Button>
+            ) : (
               <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={!canSave || saving || loading}
-                  onClick={() => handleSave("draft")}
-                >
-                  {saving ? "Enregistrement..." : "Enregistrer le brouillon"}
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!canSave || saving || loading}
-                  onClick={() => handleSave("validated")}
-                >
-                  Valider la simulation
-                </Button>
+                {formState.input.mode === "full" && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!canSave || saving || loading}
+                      onClick={() => handleSave("draft")}
+                    >
+                      {saving ? "Enregistrement..." : "Enregistrer le brouillon"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={!canSave || saving || loading}
+                      onClick={() => handleSave("validated")}
+                    >
+                      Enregistrer la simulation
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={!formState.id || !eligibility.eligible || saving || loading}
+                      onClick={handlePromoteToReference}
+                      title={!eligibility.eligible ? "La simulation ne respecte pas tous les critères requis pour devenir la référence." : undefined}
+                    >
+                      Définir comme référence financière
+                    </Button>
+                  </>
+                )}
               </>
             )}
           </div>
