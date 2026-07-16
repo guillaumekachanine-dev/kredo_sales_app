@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from "react"
-import { IconStage, IconCalendar, IconContact, IconMic } from "./icons"
+import { IconStage, IconCalendar, IconContact } from "./icons"
 import { cn } from "@/lib/utils"
+
+type CockpitQuickAction = "contact" | "event" | "need" | "staffing"
 
 interface CockpitQuickActionsSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onActionSelect: (actionLabel: string) => void
+  onActionSelect: (action: CockpitQuickAction) => void
 }
 
 export function CockpitQuickActionsSheet({
@@ -26,10 +28,10 @@ export function CockpitQuickActionsSheet({
   }, [open])
 
   const actions = [
-    { label: "Créer un besoin", icon: IconStage },
-    { label: "Créer un contact", icon: IconContact },
-    { label: "Créer un événement", icon: IconCalendar },
-    { label: "Créer note vocale", icon: IconMic, disabled: true },
+    { label: "Contact", action: "contact" as const, icon: IconContact },
+    { label: "Événement", action: "event" as const, icon: IconCalendar },
+    { label: "Besoin", action: "need" as const, icon: IconStage },
+    { label: "Staffing", action: "staffing" as const, icon: IconStage },
   ]
 
   return (
@@ -51,7 +53,7 @@ export function CockpitQuickActionsSheet({
         <button
           type="button"
           onClick={() => onOpenChange(false)}
-          className="text-muted hover:text-heading transition-colors p-1"
+          className="flex size-11 items-center justify-center rounded-[var(--radius-small)] text-muted transition-colors hover:text-heading"
           aria-label="Fermer"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -64,29 +66,20 @@ export function CockpitQuickActionsSheet({
       <div className="grid grid-cols-2 gap-3 mt-2">
         {actions.map((action) => {
           const Icon = action.icon
-          const isDisabled = action.disabled
-          
           return (
             <button
               key={action.label}
               type="button"
-              disabled={isDisabled}
               className={cn(
-                "flex flex-col items-center justify-center text-center p-4 rounded-2xl border border-border/60 bg-canvas/30 transition-all aspect-square gap-3 select-none active:scale-95 focus:outline-none",
-                isDisabled
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-canvas/50 hover:border-border active:bg-canvas border-border/40 group"
+                "flex min-h-28 flex-col items-center justify-center gap-3 rounded-[var(--radius-medium)] border border-border/60 bg-canvas/30 p-4 text-center transition-colors active:scale-[0.98] focus:outline-none hover:bg-canvas/50 hover:border-border group",
               )}
               onClick={() => {
-                if (!isDisabled) {
-                  onActionSelect(action.label)
-                  onOpenChange(false)
-                }
+                onActionSelect(action.action)
               }}
             >
               <span className={cn(
                 "flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0 transition-colors",
-                !isDisabled && "group-hover:bg-primary group-hover:text-white"
+                "group-hover:bg-primary group-hover:text-white"
               )}>
                 <Icon />
               </span>

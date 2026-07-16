@@ -1,164 +1,118 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-
-import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
 import { AgendaMobileEventDrawer } from "@/components/agenda/AgendaMobileEventDrawer"
-import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
 import { NewContactDrawer } from "@/components/accounts-contacts/NewContactDrawer"
-
-import { buildCockpitMobileAgendaViewModel } from "./mobile/cockpit-mobile-view-model"
+import { MobileActionPage } from "@/components/templates/MobileActionPage"
+import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
+import { CockpitAgendaTodayContent } from "./mobile/CockpitAgendaTodayContent"
 import { CockpitMobileHeader } from "./mobile/CockpitMobileHeader"
-import { CockpitAgendaStrip } from "./mobile/CockpitAgendaStrip"
-import { CockpitAgendaDetails } from "./mobile/CockpitAgendaDetails"
+import {
+  COCKPIT_MODULE_IDS,
+  CockpitMobileModuleGrid,
+  type CockpitModuleId,
+} from "./mobile/CockpitMobileModuleGrid"
 import { CockpitQuickActionsSheet } from "./mobile/CockpitQuickActionsSheet"
-
-import type { AgendaEvent } from "@/lib/agenda/agenda-types"
-import { DiagnosticMobileSection } from "@/components/intelligence/diagnostic/DiagnosticMobileSection"
-import type { WorkspaceDiagnosticSnapshot } from "@/lib/intelligence/diagnostic/workspace-diagnostic-types"
-
+import { CockpitUrgenciesContent } from "./mobile/CockpitUrgenciesContent"
+import { MobileCockpitModuleSheet } from "./mobile/MobileCockpitModuleSheet"
 import "./mobile/cockpit-mobile.css"
 
+type CockpitMobileSurface = CockpitModuleId | "agenda" | "urgencies"
+
 interface CockpitMobileDashboardProps {
-  calendarEvents: AgendaEvent[]
-  diagnostic: WorkspaceDiagnosticSnapshot | null
+  snapshot: CockpitMobileSnapshot | null
 }
 
-export function CockpitMobileDashboard({
-  calendarEvents,
-  diagnostic,
-}: CockpitMobileDashboardProps) {
+export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps) {
   const router = useRouter()
-
-  // 1. Build View Model
-  const vm = useMemo(
-    () => buildCockpitMobileAgendaViewModel(calendarEvents),
-    [calendarEvents]
-  )
-
-  // 2. States
-  const [selectedDayKey, setSelectedDayKey] = useState(vm.agenda.selectedDayKey)
-  const [isAgendaOpen, setAgendaOpen] = useState(false)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  // Modals / Drawers States
+  const [activeModule, setActiveModule] = useState<CockpitMobileSurface | null>(null)
   const [isQuickActionsOpen, setQuickActionsOpen] = useState(false)
   const [isNewOpportunityOpen, setNewOpportunityOpen] = useState(false)
   const [isNewContactOpen, setNewContactOpen] = useState(false)
   const [isNewEventOpen, setNewEventOpen] = useState(false)
-  const [isFinancialSimulationOpen, setIsFinancialSimulationOpen] = useState(false)
+  const returnFocusRef = useRef<HTMLButtonElement | null>(null)
 
-  // Clear toast after timeout
-  useEffect(() => {
-    if (!toastMessage) return
-    const timer = setTimeout(() => setToastMessage(null), 2200)
-    return () => clearTimeout(timer)
-  }, [toastMessage])
+  const activeSheetModule = activeModule && COCKPIT_MODULE_IDS.includes(activeModule as CockpitModuleId)
+    ? activeModule as CockpitModuleId
+    : null
 
-  // Retrieve details of currently selected agenda day
-  const selectedDay = useMemo(
-    () => vm.agenda.days.find((d) => d.key === selectedDayKey) || vm.agenda.days[0],
-    [vm.agenda.days, selectedDayKey]
-  )
-
-  // Handle Day Tap
-  const handleDaySelect = (dayKey: string) => {
-    if (dayKey === selectedDayKey) {
-      setAgendaOpen((prev) => !prev)
-    } else {
-      setSelectedDayKey(dayKey)
-      setAgendaOpen(true)
-    }
+  const openModule = (module: CockpitModuleId, origin: HTMLButtonElement) => {
+    returnFocusRef.current = origin
+    setQuickActionsOpen(false)
+    setActiveModule(module)
   }
 
-  // Handle Toast Trigger
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg)
-  }
-
-  // Handle general agenda item clicks
-  const handleAgendaItemClick = (route: string, title: string) => {
-    triggerToast(`Navigation vers ${title}`)
-    router.push(route)
-  }
-
-  // Action Select Handlers
-  const handleQuickActionSelect = (actionLabel: string) => {
-    if (actionLabel === "Créer un besoin" || actionLabel === "Créer ou mettre à jour un besoin") {
-      setNewOpportunityOpen(true)
-    } else if (actionLabel === "Créer un contact") {
-      setNewContactOpen(true)
-    } else if (actionLabel === "Créer un événement") {
-      setNewEventOpen(true)
-    } else {
-      triggerToast(`Commande: ${actionLabel}`)
-    }
+  const toggleHeaderPanel = (panel: "agenda" | "urgencies") => {
+    setQuickActionsOpen(false)
+    setActiveModule((current) => current === panel ? null : panel)
   }
 
   return (
     <>
       <MobileActionPage
-        header={
+        contentClassName="gap-3"
+        header={(
           <CockpitMobileHeader
-            onQuickActionsOpen={() => setQuickActionsOpen(true)}
-            onFinancialSimulationOpen={() => setIsFinancialSimulationOpen(true)}
+            onAgendaOpen={() => toggleHeaderPanel("agenda")}
+            onUrgenciesOpen={() => toggleHeaderPanel("urgencies")}
+            onQuickActionsOpen={() => {
+              setActiveModule(null)
+              setQuickActionsOpen(true)
+            }}
+            urgencyCount={snapshot?.header.urgencyCount ?? 0}
           />
-        }
+        )}
       >
-        <div className="screen-scroll-container">
-          {/* Section 1: Agenda */}
-          <div className="-mx-4 mb-3">
-            <CockpitAgendaStrip
-              days={vm.agenda.days}
-              selectedDayKey={selectedDayKey}
-              onDaySelect={handleDaySelect}
-              isExpanded={isAgendaOpen}
+        {activeModule === "agenda" ? (
+          <section className="cockpit-header-panel" aria-label="Agenda du jour">
+            <CockpitAgendaTodayContent events={snapshot?.header.todayEvents ?? []} />
+          </section>
+        ) : null}
+        {activeModule === "urgencies" ? (
+          <section className="cockpit-header-panel" aria-label="Urgences">
+            <CockpitUrgenciesContent
+              items={snapshot?.header.urgencies ?? []}
+              onShowAll={() => setActiveModule("priorities")}
             />
-          </div>
-
-          <DiagnosticMobileSection initialSnapshot={diagnostic} />
-
-          <CockpitAgendaDetails
-            day={selectedDay}
-            isOpen={isAgendaOpen}
-            onItemClick={handleAgendaItemClick}
-          />
-        </div>
+          </section>
+        ) : null}
+        <CockpitMobileModuleGrid snapshot={snapshot} onOpen={openModule} />
       </MobileActionPage>
 
-      {/* Toast Alert Banner */}
-      {toastMessage && (
-        <div className="toast-banner animate-fade-in" role="status">
-          {toastMessage}
-        </div>
-      )}
+      {activeSheetModule ? (
+        <MobileCockpitModuleSheet
+          module={activeSheetModule}
+          snapshot={snapshot}
+          onClose={() => setActiveModule(null)}
+          returnFocusRef={returnFocusRef}
+        />
+      ) : null}
 
-      {/* Sheets / Drawers */}
       <CockpitQuickActionsSheet
         open={isQuickActionsOpen}
         onOpenChange={setQuickActionsOpen}
-        onActionSelect={handleQuickActionSelect}
+        onActionSelect={(action) => {
+          setQuickActionsOpen(false)
+          window.requestAnimationFrame(() => {
+            if (action === "contact") setNewContactOpen(true)
+            if (action === "event") setNewEventOpen(true)
+            if (action === "need") setNewOpportunityOpen(true)
+            if (action === "staffing") router.push("/staffing")
+          })
+        }}
       />
 
-      {/* Create New Opportunity Drawer */}
-      <NewOpportunityDrawer
-        open={isNewOpportunityOpen}
-        onOpenChange={setNewOpportunityOpen}
-      />
-
-      {/* Create New Contact Drawer */}
+      <NewOpportunityDrawer open={isNewOpportunityOpen} onOpenChange={setNewOpportunityOpen} />
       <NewContactDrawer
         open={isNewContactOpen}
         onOpenChange={setNewContactOpen}
         onCreated={() => {
-          triggerToast("Contact créé avec succès")
+          setNewContactOpen(false)
           router.refresh()
         }}
       />
-
-      {/* Create New Agenda Event Drawer */}
       <AgendaMobileEventDrawer
         open={isNewEventOpen}
         onOpenChange={setNewEventOpen}
@@ -167,12 +121,6 @@ export function CockpitMobileDashboard({
           setNewEventOpen(false)
           router.refresh()
         }}
-      />
-
-      {/* Financial simulation modal */}
-      <FinancialModelingMobileFlow
-        open={isFinancialSimulationOpen}
-        onOpenChange={setIsFinancialSimulationOpen}
       />
     </>
   )

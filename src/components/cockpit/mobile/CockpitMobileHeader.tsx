@@ -1,22 +1,17 @@
 import React from "react"
-import Image from "next/image"
-import Link from "next/link"
 import { IconCalendar } from "./icons"
 
 interface CockpitMobileHeaderProps {
   onQuickActionsOpen: () => void
-  onFinancialSimulationOpen: () => void
+  onAgendaOpen: () => void
+  onUrgenciesOpen: () => void
+  urgencyCount: number
 }
 
-function IconCalculator() {
+function IconAlert() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <line x1="9" y1="7" x2="15" y2="7" />
-      <line x1="8" y1="12" x2="10" y2="12" />
-      <line x1="14" y1="12" x2="16" y2="12" />
-      <line x1="8" y1="16" x2="10" y2="16" />
-      <line x1="14" y1="16" x2="16" y2="16" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v4.5m0 3h.008M10.29 3.86l-7.04 12.2A1.5 1.5 0 0 0 4.55 18.3h14.9a1.5 1.5 0 0 0 1.3-2.24l-7.04-12.2a1.97 1.97 0 0 0-3.42 0Z" />
     </svg>
   )
 }
@@ -31,38 +26,32 @@ function IconPlus() {
 
 export function CockpitMobileHeader({
   onQuickActionsOpen,
-  onFinancialSimulationOpen,
+  onAgendaOpen,
+  onUrgenciesOpen,
+  urgencyCount,
 }: CockpitMobileHeaderProps) {
   return (
     <header className="top-header" role="banner">
-      <div className="brand-lockup">
-        <span className="brand-mark">
-          <Image src="/branding/kredo/logo_sans_fond.png" alt="Logo KREDO" width={36} height={36} />
-        </span>
-        <span className="brand-title">Cockpit</span>
-      </div>
-
       <div className="header-controls">
-        {/* 1. Bouton calculatrice pour la modélisation financière */}
         <button
           type="button"
           className="header-bell"
-          aria-label="Ouvrir le simulateur financier"
-          onClick={onFinancialSimulationOpen}
-        >
-          <IconCalculator />
-        </button>
-
-        {/* 2. Bouton Agenda actif */}
-        <Link
-          href="/agenda"
-          className="header-bell"
-          aria-label="Ouvrir l'agenda"
+          aria-label="Voir les événements du jour"
+          onClick={onAgendaOpen}
         >
           <IconCalendar />
-        </Link>
-        
-        {/* 3. Bouton bleu "+" pour les créations rapides */}
+          <span className="header-control-label">Agenda</span>
+        </button>
+        <button
+          type="button"
+          className="header-bell"
+          aria-label="Voir les urgences"
+          onClick={onUrgenciesOpen}
+        >
+          <IconAlert />
+          <span className="header-control-label">Urgences</span>
+          {urgencyCount > 0 ? <span className="bell-count">{urgencyCount}</span> : null}
+        </button>
         <button
           type="button"
           className="header-quick-action"
@@ -75,4 +64,3 @@ export function CockpitMobileHeader({
     </header>
   )
 }
-
