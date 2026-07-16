@@ -1,4 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
+import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
+import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
+import { getSkillsCatalog } from "@/lib/reference-data/get-skills-catalog"
+import { getJobProfilesCatalog } from "@/lib/reference-data/get-job-profiles-catalog"
 import { PoolCompetencesMap } from "@/components/consultants/pool-competences/PoolCompetencesMap"
 import type { PracticeCollaborator } from "@/components/consultants/pool-competences/types"
 import {
@@ -9,34 +14,26 @@ import {
 
 export default async function PoolCompetencesPage() {
   const supabase = await createClient()
+  const workspaceId = await resolveCurrentWorkspaceId()
+  if (!workspaceId) {
+    throw new Error("Workspace introuvable")
+  }
+
   const [
-    practicesResult,
-    offersResult,
-    skillsResult,
-    jobProfilesResult,
+    practices,
+    offers,
+    skills,
+    jobProfiles,
     collaboratorsResult,
     personSkillsResult,
     opportunitySkillsResult,
   ] = await Promise.all([
-    supabase
-      .from("offer_practices")
-      .select("id, workspace_id, slug, name, description, perimeter, color_hex, stack_tags, sort_order, is_active, created_at, updated_at")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("offers")
-      .select("id, workspace_id, practice_id, slug, name, short_description, full_description, keywords, typical_profiles, typical_deliverables, use_cases, sort_order, is_active, created_at, updated_at")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("skills")
-      .select("id, workspace_id, name, aliases, category, skill_description, created_at")
-      .order("name", { ascending: true }),
-    supabase
-      .from("job_profiles")
-      .select("id, workspace_id, practice_id, title, main_mission, tech_stack, responsibilities, kpis, metadata, source, version, embedding, is_active, created_at, updated_at")
-      .eq("is_active", true)
-      .order("title", { ascending: true }),
+    // Référentiels quasi-statiques : mis en cache 1h par workspace (audit perf
+    // Session 28) — évitent 4 allers-retours DB à chaque ouverture de cette page.
+    getOfferPracticesCatalog(workspaceId),
+    getOffersCatalog(workspaceId),
+    getSkillsCatalog(workspaceId),
+    getJobProfilesCatalog(workspaceId),
     supabase
       .from("collaborators")
       .select(`
@@ -74,10 +71,10 @@ export default async function PoolCompetencesPage() {
   }
 
   const dataset = buildPoolCompetencesDataset({
-    practices: practicesResult.data ?? [],
-    offers: offersResult.data ?? [],
-    skills: skillsResult.data ?? [],
-    jobProfiles: jobProfilesResult.data ?? [],
+    practices,
+    offers,
+    skills,
+    jobProfiles,
     personSkills: (personSkillsResult.data ?? []) as unknown as PersonSkillRow[],
     opportunitySkillDemand: (opportunitySkillsResult.data ?? []) as unknown as OpportunitySkillDemandRow[],
     collaboratorPracticeByPersonId,

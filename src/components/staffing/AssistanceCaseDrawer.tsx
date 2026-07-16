@@ -17,6 +17,10 @@ import {
 } from "@/components/recruitment/HiringProcessStepper"
 import { createClient } from "@/lib/supabase/client"
 import {
+  getOfferPracticesForPicker,
+  getSkillsForPicker,
+} from "@/lib/reference-data/reference-data-actions"
+import {
   useStaffingDrawerStore,
   type AssistanceCaseTab,
 } from "@/hooks/use-staffing-drawer-store"
@@ -242,7 +246,7 @@ export function AssistanceCaseDrawer() {
 
         if (!resolvedOpportunityId) throw new Error("Opportunité introuvable.")
 
-        const [opportunityResult, practicesResult, skillsResult, eventsResult] = await Promise.all([
+        const [opportunityResult, practices, skills, eventsResult] = await Promise.all([
           supabase
             .from("opportunities")
             .select(`
@@ -298,15 +302,10 @@ export function AssistanceCaseDrawer() {
             `)
             .eq("id", resolvedOpportunityId)
             .maybeSingle(),
-          supabase
-            .from("offer_practices")
-            .select("id, name, slug, color_hex")
-            .eq("is_active", true)
-            .order("sort_order", { ascending: true }),
-          supabase
-            .from("skills")
-            .select("id, name, category")
-            .order("name", { ascending: true }),
+          // Référentiels quasi-statiques : mis en cache 1h par workspace (audit
+          // perf Session 28), servis via Server Action car ce composant est client.
+          getOfferPracticesForPicker(),
+          getSkillsForPicker(),
           supabase
             .from("calendar_events")
             .select(
@@ -318,13 +317,9 @@ export function AssistanceCaseDrawer() {
 
         if (opportunityResult.error) throw new Error(opportunityResult.error.message)
         if (!opportunityResult.data) throw new Error("Opportunité introuvable.")
-        if (practicesResult.error) throw new Error(practicesResult.error.message)
-        if (skillsResult.error) throw new Error(skillsResult.error.message)
         if (eventsResult.error) throw new Error(eventsResult.error.message)
 
-        const practiceMap = new Map(
-          (practicesResult.data ?? []).map((practice) => [practice.id, practice]),
-        )
+        const practiceMap = new Map(practices.map((practice) => [practice.id, practice]))
         const rawOpportunity = opportunityResult.data as unknown as AssistanceCaseOpportunity & {
           opportunity_contacts?: RawOpportunityContactRow[]
         }
@@ -355,12 +350,12 @@ export function AssistanceCaseDrawer() {
 
         setOpportunity(hydratedOpportunity)
         setPractices(
-          (practicesResult.data ?? []).map((practice) => ({
+          practices.map((practice) => ({
             id: practice.id,
             name: practice.name,
           })),
         )
-        setSkillOptions((skillsResult.data ?? []) as CandidateSkillOption[])
+        setSkillOptions(skills as CandidateSkillOption[])
         setEvents((eventsResult.data ?? []) as unknown as AssistanceCaseEvent[])
         hydrateCaseContext({
           opportunityId: resolvedOpportunityId,

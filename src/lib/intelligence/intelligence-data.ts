@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
+import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
+import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
 import { getAccountScoreSummary, type AccountScoreSummaryView } from "@/lib/account-scoring/get-account-score-summary"
 import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
@@ -565,12 +568,6 @@ type PitchDocumentRow = {
   created_at: string
 }
 
-type OfferRow = {
-  id: string
-  name: string
-  offer_practices: { name: string } | { name: string }[] | null
-}
-
 function firstRelation<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
   return value
@@ -594,6 +591,7 @@ export async function getClientIntelligence(
 
   const supabaseReal = await createClient()
   const supabase = supabaseReal as unknown as LooseClient
+  const workspaceId = await resolveCurrentWorkspaceId()
 
   const [
     companyResult,
@@ -607,7 +605,8 @@ export async function getClientIntelligence(
     accountSignalsResult,
     accountWatchResult,
     accountIssuesResult,
-    offersResult,
+    offersCatalogRows,
+    offerPracticesCatalogRows,
   ] = await Promise.all([
     supabase
       .from("companies")
@@ -715,11 +714,11 @@ export async function getClientIntelligence(
     // de la matrice enjeu↔offre (l'onglet Stratégie n'a pas besoin de la fiche
     // complète, juste du libellé — cf. get-suggested-offers.ts pour le
     // sélecteur riche utilisé côté génération de pitch).
-    supabase
-      .from("offers")
-      .select<OfferRow>("id,name,offer_practices(name)")
-      .eq("is_active", true)
-      .order("name", { ascending: true }),
+    // Référentiels quasi-statiques mis en cache 1h par workspace (audit perf
+    // Session 28) plutôt qu'un embed PostgREST offer_practices(name) —
+    // le join se fait en JS via practice_id (cf. get-offers-catalog.ts).
+    workspaceId ? getOffersCatalog(workspaceId) : Promise.resolve([]),
+    workspaceId ? getOfferPracticesCatalog(workspaceId) : Promise.resolve([]),
   ])
 
   if (companyResult.error) return { error: companyResult.error.message, data: null }
@@ -919,10 +918,14 @@ export async function getClientIntelligence(
 
   const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
 
-  const offersCatalog: ClientIntelligenceOfferRef[] = ((offersResult.data ?? []) as OfferRow[]).map((row) => {
-    const practice = firstRelation(row.offer_practices)
-    return { id: row.id, name: row.name, practiceName: practice?.name ?? "" }
-  })
+  const offerPracticeNameById = new Map(
+    offerPracticesCatalogRows.map((practice) => [practice.id, practice.name])
+  )
+  const offersCatalog: ClientIntelligenceOfferRef[] = offersCatalogRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    practiceName: (row.practice_id && offerPracticeNameById.get(row.practice_id)) ?? "",
+  }))
 
   return {
     error: null,

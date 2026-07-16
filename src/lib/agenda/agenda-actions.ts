@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
+import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
 import type { Json } from "@/types/database"
 import type {
   AgendaEvent,
@@ -527,19 +529,12 @@ export async function getAgendaContextOptions(
   }
 
   if (kind === "offer") {
-    const { data, error } = await supabase
-      .from("offers")
-      .select("id, name, short_description")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .limit(50)
+    // Référentiel quasi-statique mis en cache 1h par workspace (audit perf
+    // Session 28) — remplace la lecture directe .from("offers").
+    const workspaceId = await resolveCurrentWorkspaceId()
+    const data = workspaceId ? await getOffersCatalog(workspaceId) : []
 
-    if (error) {
-      console.error("getAgendaContextOptions offers error:", error)
-      return []
-    }
-
-    return (data || []).map((row: { id: string; name: string; short_description: string | null }) => ({
+    return data.slice(0, 50).map((row) => ({
       id: row.id,
       label: row.name,
       description: row.short_description,

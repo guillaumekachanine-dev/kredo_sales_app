@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import type { SkillImportance } from "@/types/database-domain"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
+import { getSkillsCatalog } from "@/lib/reference-data/get-skills-catalog"
 
 export interface AddSkillInput {
   opportunity_id: string
@@ -33,13 +35,10 @@ export interface SkillPickerItem {
 }
 
 export async function getAllSkillsForPicker(): Promise<SkillPickerItem[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("skills")
-    .select("id, name, category")
-    .order("name")
-  if (error || !data) return []
-  return data as SkillPickerItem[]
+  const workspaceId = await resolveCurrentWorkspaceId()
+  if (!workspaceId) return []
+  const skills = await getSkillsCatalog(workspaceId)
+  return skills.map(({ id, name, category }) => ({ id, name, category }))
 }
 
 export async function addOpportunitySkill(

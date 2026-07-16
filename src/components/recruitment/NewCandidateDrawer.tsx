@@ -8,11 +8,11 @@ import { Field } from "@/components/ui/Field"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Textarea } from "@/components/ui/Textarea"
-import { createClient } from "@/lib/supabase/client"
 import {
   createCandidate,
   type CreateCandidateInput,
 } from "@/app/(app)/recruitment/_actions/create-candidate"
+import { getOfferPracticesForPicker } from "@/lib/reference-data/reference-data-actions"
 
 interface NewCandidateDrawerProps {
   open: boolean
@@ -144,19 +144,12 @@ export function NewCandidateDrawer({
     if (!open) return
 
     const loadPractices = async () => {
-      const supabase = createClient()
-      const { data, error: practicesError } = await supabase
-        .from("offer_practices")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-
-      if (practicesError) {
+      try {
+        const data = await getOfferPracticesForPicker()
+        setPractices(data)
+      } catch (practicesError) {
         console.error("[NewCandidateDrawer] Practices loading error:", practicesError)
-        return
       }
-
-      setPractices(data ?? [])
     }
 
     void loadPractices()

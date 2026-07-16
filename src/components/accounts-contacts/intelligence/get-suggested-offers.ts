@@ -1,6 +1,8 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { getOffersCatalog } from "@/lib/reference-data/get-offers-catalog"
+import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
 
 export type SuggestedOffer = {
   id: string
@@ -16,15 +18,6 @@ export type SuggestedOffersResult = {
   offers: SuggestedOffer[]
   suggestedPracticeSlugs: string[]
   error: string | null
-}
-
-type OfferPracticeRef = { name: string; slug: string; color_hex: string | null; sort_order: number }
-
-type OfferRow = {
-  id: string
-  name: string
-  short_description: string | null
-  offer_practices: OfferPracticeRef | OfferPracticeRef[] | null
 }
 
 // ADR-0009 — alimente l'OfferPicker du formulaire de génération de pitch.
@@ -49,31 +42,32 @@ export async function getSuggestedOffers(companyId: string): Promise<SuggestedOf
   }
   const workspaceId = profile.workspace_id
 
-  const [offersResult, contextResult] = await Promise.all([
-    supabase
-      .from("offers")
-      .select("id,name,short_description,offer_practices(name,slug,color_hex,sort_order)")
-      .eq("is_active", true)
-      .order("name"),
+  // Référentiels quasi-statiques : mis en cache 1h par workspace (audit perf
+  // Session 28). Le join offre↔practice se fait en JS via practice_id plutôt
+  // que via un embed PostgREST, pour ne pas dupliquer les données de practice
+  // dans chaque entrée de cache offers (cf. get-offers-catalog.ts).
+  const [offersCatalog, practicesCatalog, contextResult] = await Promise.all([
+    getOffersCatalog(workspaceId),
+    getOfferPracticesCatalog(workspaceId),
     supabase.rpc("get_pitch_context", { p_workspace_id: workspaceId, p_company_id: companyId }),
   ])
 
-  if (offersResult.error) {
-    return { offers: [], suggestedPracticeSlugs: [], error: offersResult.error.message }
-  }
+  const practiceById = new Map(practicesCatalog.map((practice) => [practice.id, practice]))
 
-  const offers: SuggestedOffer[] = ((offersResult.data ?? []) as OfferRow[]).map((row) => {
-    const practice = Array.isArray(row.offer_practices) ? row.offer_practices[0] : row.offer_practices
-    return {
-      id: row.id,
-      name: row.name,
-      practiceName: practice?.name ?? "",
-      practiceSlug: practice?.slug ?? "",
-      practiceColor: practice?.color_hex ?? "#2554B8",
-      practiceSortOrder: practice?.sort_order ?? 99,
-      shortDescription: row.short_description,
-    }
-  })
+  const offers: SuggestedOffer[] = [...offersCatalog]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((row) => {
+      const practice = row.practice_id ? practiceById.get(row.practice_id) : undefined
+      return {
+        id: row.id,
+        name: row.name,
+        practiceName: practice?.name ?? "",
+        practiceSlug: practice?.slug ?? "",
+        practiceColor: practice?.color_hex ?? "#2554B8",
+        practiceSortOrder: practice?.sort_order ?? 99,
+        shortDescription: row.short_description,
+      }
+    })
 
   const ctx = contextResult.data as { suggestedPractices?: { slug: string }[] } | null
   const suggestedPracticeSlugs = ctx?.suggestedPractices?.map((p) => p.slug) ?? []

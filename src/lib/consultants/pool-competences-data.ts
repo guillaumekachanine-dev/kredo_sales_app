@@ -1,4 +1,7 @@
-import type { Database } from "@/types/database"
+import type { OfferPracticeCatalogRow } from "@/lib/reference-data/get-offer-practices-catalog"
+import type { OfferCatalogRow } from "@/lib/reference-data/get-offers-catalog"
+import type { SkillCatalogRow } from "@/lib/reference-data/get-skills-catalog"
+import type { JobProfileCatalogRow } from "@/lib/reference-data/get-job-profiles-catalog"
 
 export type SkillCategory =
   | "certification"
@@ -67,10 +70,13 @@ export type PoolCompetencesDataset = {
   lastUpdatedAt: string | null
 }
 
-type PracticeRow = Database["public"]["Tables"]["offer_practices"]["Row"]
-type OfferRow = Database["public"]["Tables"]["offers"]["Row"]
-type SkillRow = Database["public"]["Tables"]["skills"]["Row"]
-type JobProfileRow = Database["public"]["Tables"]["job_profiles"]["Row"]
+// Alignés sur les catalogues mis en cache (src/lib/reference-data) plutôt que sur
+// les Row complètes de la DB — ce fichier n'a jamais consommé que ce sous-ensemble
+// de colonnes (audité avant migration vers le cache, Session 28).
+type PracticeRow = OfferPracticeCatalogRow
+type OfferRow = OfferCatalogRow
+type SkillRow = SkillCatalogRow
+type JobProfileRow = JobProfileCatalogRow
 type SkillReference = Pick<SkillRow, "id" | "name" | "category" | "skill_description" | "aliases">
 type OpportunityReference = {
   practice: string | null
