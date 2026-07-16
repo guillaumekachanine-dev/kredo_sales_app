@@ -192,7 +192,7 @@ export const AGENDA_CATEGORIES = [
     label: "Recrutement",
     subtitle: "Candidats & sourcing",
     dataviz: 4 as const,
-    iconUrl: "/icons_set/recrutement%20%26%20staffing/candidate_CV_sent.png",
+    iconUrl: "/icons_set/recrutement%20%26%20staffing/candidate_retenu.png",
     types: AGENDA_EVENT_TYPE_OPTIONS.filter((t) => t.category === "recrutement"),
   },
   {
@@ -208,7 +208,7 @@ export const AGENDA_CATEGORIES = [
     label: "Interne",
     subtitle: "Présentations & interne",
     dataviz: 6 as const,
-    iconUrl: "/icons_set/presentation_client_rt_2.png",
+    iconUrl: "/icons_set/feature_redaction_assistee/scenario_foisonnement.png",
     types: AGENDA_EVENT_TYPE_OPTIONS.filter((t) => t.category === "interne"),
   },
 ] as const
