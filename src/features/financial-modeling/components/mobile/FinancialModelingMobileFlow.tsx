@@ -16,12 +16,13 @@ import {
 } from "../shared"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
-import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
+import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import {
   saveFinancialModelAction,
   getFinancialModelingBootstrapAction,
   getFinancialModelAction,
-  getRecentFinancialModelsAction
+  getRecentFinancialModelsAction,
+  archiveFinancialModelAction
 } from "../../actions"
 import type { FinancialModelFormState, FinancialModelRow } from "../../persistence"
 import type { FinancialModelingBootstrapData } from "../../data/get-financial-modeling-bootstrap"
@@ -166,6 +167,26 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
     }
   }
 
+  const handleArchive = async (id: string) => {
+    if (!confirm("Voulez-vous archiver cette simulation ?")) return
+
+    setLoading(true)
+    const res = await archiveFinancialModelAction(id)
+    setLoading(false)
+
+    if (res.success) {
+      if (formState.id === id) {
+        resetFlow()
+      }
+      const recentRes = await getRecentFinancialModelsAction()
+      if (recentRes.success && recentRes.data) {
+        setRecentSimulations(recentRes.data)
+      }
+    } else {
+      alert(res.error || "Erreur lors de l'archivage.")
+    }
+  }
+
   const handleRequestClose = () => {
     if (loading || saving) return
     if (isDirty) {
@@ -275,18 +296,6 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "validated": return "Validé";
-      case "reference": return "Référence";
-      case "superseded": return "Remplacé";
-      case "converted": return "Converti";
-      case "draft":
-      default:
-        return "Brouillon";
-    }
-  }
-
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "validated": return "success";
@@ -319,7 +328,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
             <span>Simuler une mission</span>
             {formState.id && (
               <StatusPill
-                label={getStatusLabel(formState.status)}
+                label={FINANCIAL_MODEL_STATUS_LABELS[formState.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || formState.status}
                 variant={getStatusVariant(formState.status)}
               />
             )}
@@ -503,7 +512,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
                     {sim.title}
                   </span>
                   <StatusPill
-                    label={getStatusLabel(sim.status)}
+                    label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
                     variant={getStatusVariant(sim.status)}
                   />
                 </div>
@@ -532,6 +541,15 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
                     >
                       Dupliquer
                     </button>
+                    {(sim.status === "draft" || sim.status === "validated") && (
+                      <button
+                        type="button"
+                        onClick={() => handleArchive(sim.id)}
+                        className="h-11 px-3 text-xs text-danger font-bold hover:underline min-w-[44px] flex items-center justify-center"
+                      >
+                        Archiver
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

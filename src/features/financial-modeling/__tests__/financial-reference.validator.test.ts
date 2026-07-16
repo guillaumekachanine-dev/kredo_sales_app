@@ -10,6 +10,7 @@ function makeValidFormState(): FinancialModelFormState {
     companyId: "c389bf40-410a-48fa-8480-1a1a1a1a1a1a",
     opportunityId: "o589bf40-410a-48fa-8480-2b2b2b2b2b2b",
     collaboratorId: "col-12345",
+    resourceLabel: "Jean Dupont",
     jobProfileId: "prof-12345",
     input: {
       mode: "full",
@@ -111,13 +112,13 @@ describe("validateFinancialReferenceEligibility", () => {
     expect(res.errors).toContain("La date de fin de mission doit être explicite.")
   })
 
-  it("fails when end date is a simple projection", () => {
+  it("treats a provided input end date as explicit", () => {
     const state = makeValidFormState()
-    ;(state.input as any).projectionBasis = "year_end_default"
+    state.input.endDate = "2026-12-31"
     const res = validateFinancialReferenceEligibility(state)
 
-    expect(res.eligible).toBe(false)
-    expect(res.errors).toContain("La date de fin ne doit pas être une simple projection de fin d'année.")
+    expect(res.eligible).toBe(true)
+    expect(res.errors).not.toContain("La date de fin de mission doit être explicite.")
   })
 
   it("fails when TJM is zero or negative", () => {

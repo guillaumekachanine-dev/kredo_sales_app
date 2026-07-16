@@ -20,7 +20,7 @@ import { FinancialModelingFlashFields } from "./FinancialModelingFlashFields"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
 import { validateFinancialReferenceEligibility } from "../../domain/financial-reference.validator"
-import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
+import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import type { FinancialModelStatus } from "../../domain/financial-model.types"
 import {
   saveFinancialModelAction,
@@ -320,18 +320,6 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     }))
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "validated": return "Validé";
-      case "reference": return "Référence";
-      case "superseded": return "Remplacé";
-      case "converted": return "Converti";
-      case "draft":
-      default:
-        return "Brouillon";
-    }
-  }
-
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "validated": return "success";
@@ -367,7 +355,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
             </span>
             {formState.id && (
               <StatusPill
-                label={getStatusLabel(formState.status)}
+                label={FINANCIAL_MODEL_STATUS_LABELS[formState.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || formState.status}
                 variant={getStatusVariant(formState.status)}
               />
             )}
@@ -588,7 +576,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                               {sim.title}
                             </span>
                              <StatusPill
-                               label={getStatusLabel(sim.status)}
+                               label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
                                variant={getStatusVariant(sim.status)}
                              />
                           </div>
@@ -617,13 +605,15 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                               >
                                 Dupliquer
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleArchive(sim.id)}
-                                className="text-[10px] text-danger font-semibold hover:underline"
-                              >
-                                Archiver
-                              </button>
+                              {(sim.status === "draft" || sim.status === "validated") && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleArchive(sim.id)}
+                                  className="text-[10px] text-danger font-semibold hover:underline"
+                                >
+                                  Archiver
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
