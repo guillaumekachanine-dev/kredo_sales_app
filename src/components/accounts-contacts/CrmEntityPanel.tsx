@@ -1,12 +1,30 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import type { SectionTab } from "@/lib/tabs/tab-types"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import type { AccountIntelligencePanelData } from "@/lib/intelligence/account-panel-types"
 import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterIntelligenceContext"
-import { ClientIntelligenceDesktopView } from "./intelligence/ClientIntelligenceDesktopView"
-import { ClientIntelligenceMobileView } from "./intelligence/ClientIntelligenceMobileView"
+
+// Code-split par device : les deux vues cockpit (desktop ≈1570 lignes, mobile)
+// sont lourdes et mutuellement exclusives. En import statique, les DEUX étaient
+// bundlées et livrées à chaque appareil (violation Adaptive Design). En dynamic,
+// chaque vue est un chunk séparé et seul celui du device courant est téléchargé.
+const ClientIntelligenceDesktopView = dynamic(
+  () =>
+    import("./intelligence/ClientIntelligenceDesktopView").then(
+      (m) => m.ClientIntelligenceDesktopView
+    ),
+  { loading: () => <LoadingShell /> }
+)
+const ClientIntelligenceMobileView = dynamic(
+  () =>
+    import("./intelligence/ClientIntelligenceMobileView").then(
+      (m) => m.ClientIntelligenceMobileView
+    ),
+  { loading: () => <LoadingShell /> }
+)
 
 function LoadingShell() {
   return (

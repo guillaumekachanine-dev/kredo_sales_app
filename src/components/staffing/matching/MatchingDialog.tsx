@@ -212,7 +212,7 @@ export function MatchingDialog({
           className={
             isMobile
               ? "max-w-lg"
-              : "w-[calc(100vw-1.5rem)] max-w-[72rem] sm:w-[min(calc(100vw-4rem),72rem)]"
+              : "w-[60vw] max-w-[48rem] sm:!w-[60vw] sm:!max-w-[48rem]"
           }
           headerClassName={
             isMobile
@@ -224,7 +224,7 @@ export function MatchingDialog({
           maxHeightClassName={
             isMobile
               ? undefined
-              : "max-h-[min(calc(100dvh-2rem),44rem)] sm:max-h-[min(calc(100dvh-4rem),44rem)]"
+              : "max-h-[min(calc(100dvh-2rem),45rem)] sm:max-h-[min(calc(100dvh-4rem),45rem)]"
           }
           footer={footer}
         >
