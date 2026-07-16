@@ -138,7 +138,7 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
           </svg>
 
           {/* Month labels underneath graph */}
-          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[8px] font-bold text-muted px-2.5">
+          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[10px] font-bold text-muted px-2.5">
             <span>Jan</span>
             <span>Fev</span>
             <span>Mar</span>
@@ -161,7 +161,7 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
           <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-start gap-2.5 min-w-0">
               {/* Colorful logo mockup */}
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-ember to-brand-brass text-white flex items-center justify-center font-black text-xs shrink-0 shadow">
                 C
               </div>
 
@@ -171,20 +171,20 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
               </div>
             </div>
 
-            <span className="bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded text-[8px] font-extrabold whitespace-nowrap">
+            <span className="bg-danger/10 text-danger border border-danger/20 px-2 py-0.5 rounded text-[10px] font-extrabold whitespace-nowrap">
               {criticalAlert.scoreLabel}
             </span>
           </div>
 
           {/* Touch target height >= 44px button */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
+            <span className="text-[10px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
               &gt; 44px
             </span>
             <button
               type="button"
               onClick={() => handleActionClick("intervenir")}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
+              className="flex-1 h-11 bg-brand-ink hover:bg-primary-deep text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
             >
               Intervenir
             </button>
@@ -205,20 +205,20 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
               <p className="text-[10px] text-body mt-0.5">Proposition prête pour signature client</p>
             </div>
 
-            <span className="bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] px-2 py-0.5 rounded text-[8px] font-extrabold whitespace-nowrap">
+            <span className="bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] px-2 py-0.5 rounded text-[10px] font-extrabold whitespace-nowrap">
               {imminentWin.scoreLabel}
             </span>
           </div>
 
           {/* Touch target height >= 44px button */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
+            <span className="text-[10px] font-bold text-muted w-12 text-center shrink-0 border border-border rounded py-0.5 bg-canvas select-none">
               &gt; 44px
             </span>
             <button
               type="button"
               onClick={() => handleActionClick("contacter")}
-              className="flex-1 h-11 bg-[#0F172A] hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
+              className="flex-1 h-11 bg-brand-ink hover:bg-primary-deep text-white font-bold text-xs rounded-lg transition-colors flex items-center justify-center"
             >
               Contacter Client
             </button>
@@ -228,7 +228,7 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
 
       {/* Bottom Sheet Drawer for Mobile Interactions */}
       {activeSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm transition-opacity">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-heading/60 backdrop-blur-sm transition-opacity">
           <div className="bg-surface border-t border-border rounded-t-2xl shadow-2xl w-full p-6 pb-8 max-w-md animate-in slide-in-from-bottom duration-200">
             <div className="w-12 h-1 bg-border rounded-full mx-auto mb-5" />
 

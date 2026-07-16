@@ -134,7 +134,7 @@ export function MissionsMobileDashboard({
           {/* Active Card */}
           <div className="flex-1 bg-surface border border-border/70 rounded-xl p-4 shadow-sm grid grid-cols-2 divide-x divide-border/40 select-none">
             <div className="pr-3 flex flex-col justify-between">
-              <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
                 {kpis[carouselIndex].left.label}
               </span>
               <span className="text-xl font-bold text-heading mt-auto truncate">
@@ -142,7 +142,7 @@ export function MissionsMobileDashboard({
               </span>
             </div>
             <div className="pl-3 flex flex-col justify-between">
-              <span className="text-[9px] font-bold text-muted uppercase tracking-wider block mb-1">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-1">
                 {kpis[carouselIndex].right.label}
               </span>
               <span className="text-xl font-bold text-heading mt-auto truncate">
@@ -154,7 +154,7 @@ export function MissionsMobileDashboard({
           {/* Next Card (Partial View) */}
           <div className="w-1/3 bg-surface border border-border/70 rounded-xl p-3 shadow-sm opacity-40 grid grid-cols-2 divide-x divide-border/30 select-none overflow-hidden truncate">
             <div className="pr-1.5 flex flex-col justify-between min-w-0">
-              <span className="text-[8px] font-bold text-muted uppercase tracking-wider block truncate">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-wider block truncate">
                 {kpis[(carouselIndex + 1) % kpis.length].left.label}
               </span>
               <span className="text-sm font-bold text-heading mt-auto truncate">
@@ -162,7 +162,7 @@ export function MissionsMobileDashboard({
               </span>
             </div>
             <div className="pl-1.5 flex flex-col justify-between min-w-0">
-              <span className="text-[8px] font-bold text-muted uppercase tracking-wider block truncate">
+              <span className="text-[10px] font-bold text-muted uppercase tracking-wider block truncate">
                 {kpis[(carouselIndex + 1) % kpis.length].right.label}
               </span>
               <span className="text-sm font-bold text-heading mt-auto truncate">
@@ -232,7 +232,7 @@ export function MissionsMobileDashboard({
 
               {/* Badges */}
               <div className="flex items-center gap-2 mt-1 select-none">
-                <span className="px-2 py-0.5 rounded bg-slate-100 text-[10px] text-body font-bold border border-border/30">
+                <span className="px-2 py-0.5 rounded bg-surface-hover text-[10px] text-body font-bold border border-border/30">
                   {opp.stage}
                 </span>
                 

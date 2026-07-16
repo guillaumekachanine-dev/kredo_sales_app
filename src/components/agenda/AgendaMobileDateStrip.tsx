@@ -52,7 +52,7 @@ export function AgendaMobileDateStrip({
           >
             {/* Weekday letter */}
             <span className={cn(
-              "text-[9px] font-semibold tracking-wider uppercase mb-0.5",
+              "text-[10px] font-semibold tracking-wider uppercase mb-0.5",
               isSelected ? "text-primary-fg/80" : isToday ? "text-primary font-bold" : "text-muted"
             )}>
               {dayLabel}

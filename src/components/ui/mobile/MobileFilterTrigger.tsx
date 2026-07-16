@@ -56,7 +56,7 @@ export function MobileFilterTrigger({
       className={cn(
         "relative min-h-[44px]",
         compact && "px-2.5 text-xs",
-        iconOnly && "size-9 min-h-9 min-w-9 px-0 py-0",
+        iconOnly && "size-11 min-h-11 min-w-11 px-0 py-0",
         isFilterActive && "border-cat-active text-cat-active border-2 shadow-sm",
         className,
       )}

@@ -119,7 +119,7 @@ export function RecruitmentMobileDashboard({
               {/* Avatar + name details */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-border flex items-center justify-center font-bold text-xs text-heading">
+                  <div className="w-8 h-8 rounded-full bg-surface-hover border border-border flex items-center justify-center font-bold text-xs text-heading">
                     {c.name.split(" ").map((n) => n[0]).join("")}
                   </div>
                   <div className="min-w-0">

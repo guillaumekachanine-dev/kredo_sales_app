@@ -91,7 +91,7 @@ export function MissionsMobileListView({
 
               <span
                 className={cn(
-                  "inline-flex shrink-0 select-none items-center gap-1.5 rounded px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border",
+                  "inline-flex shrink-0 select-none items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border",
                   style.bg,
                 )}
               >
@@ -134,11 +134,11 @@ export function MissionsMobileListView({
             <div className="flex flex-col gap-2 rounded-[var(--radius-medium)] border border-border/40 bg-canvas/30 p-2.5 text-[10px] text-body">
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col">
-                  <span className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">TJM</span>
+                  <span className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted">TJM</span>
                   <span className="font-extrabold text-heading">{row.tjm ? `${formatEuro(row.tjm)}/j` : "—"}</span>
                 </div>
                 <div className="flex flex-col border-l border-border/30 pl-2">
-                  <span className="mb-0.5 text-[8px] font-bold uppercase tracking-wider text-muted">Marge</span>
+                  <span className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted">Marge</span>
                   <span className="font-extrabold text-heading">
                     {row.grossMarginPct !== null && row.grossMarginPct !== undefined
                       ? `${row.grossMarginPct} %`
@@ -146,7 +146,7 @@ export function MissionsMobileListView({
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 border-t border-border/20 pt-2 text-[9px] text-muted-foreground">
+              <div className="flex items-center gap-1.5 border-t border-border/20 pt-2 text-[10px] text-muted-foreground">
                 <svg className="h-3.5 w-3.5 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>

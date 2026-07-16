@@ -561,7 +561,7 @@ export function AgendaMobileEventDrawer({
 
               {(event.company || event.contact || event.opportunity || event.candidate || event.collaborator || event.mission) && (
                 <div className="flex flex-col gap-2.5 bg-canvas/30 border border-border/40 rounded-xl p-3.5">
-                  <p className="text-[9px] font-bold text-muted uppercase tracking-wider">Relations</p>
+                  <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Relations</p>
                   {event.company && (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-muted font-normal shrink-0">Compte :</span>
@@ -605,7 +605,7 @@ export function AgendaMobileEventDrawer({
 
               {event.description && (
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-[9px] font-bold text-muted uppercase tracking-wider">Notes de préparation</p>
+                  <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Notes de préparation</p>
                   <div className="bg-canvas/30 border border-border/40 rounded-xl p-3 text-xs text-body leading-relaxed whitespace-pre-wrap">
                     {event.description}
                   </div>
@@ -614,7 +614,7 @@ export function AgendaMobileEventDrawer({
 
               {event.preparatory_task && (
                 <div className="flex flex-col gap-2 border border-border/80 bg-canvas/30 rounded-xl p-3.5 mt-1">
-                  <p className="text-[9px] font-bold text-muted uppercase tracking-wider">Tâche préparatoire</p>
+                  <p className="text-[10px] font-bold text-muted uppercase tracking-wider">Tâche préparatoire</p>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-col gap-0.5">
                       <h4 className="text-xs font-bold text-heading">{event.preparatory_task.title}</h4>

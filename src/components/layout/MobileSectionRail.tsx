@@ -63,7 +63,7 @@ export function MobileSectionRail({ tabs, pathname, onSelect, onDismiss }: Mobil
                 className="flex shrink-0 items-center justify-center px-3.5 text-xs whitespace-nowrap text-primary-fg/30 cursor-not-allowed select-none gap-1.5"
               >
                 <span>{tab.shortLabel ?? tab.label}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wider text-primary-fg/40">
+                <span className="rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-fg/40">
                   Bientôt
                 </span>
               </div>

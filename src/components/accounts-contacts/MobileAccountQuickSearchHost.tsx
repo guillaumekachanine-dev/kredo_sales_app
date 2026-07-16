@@ -158,7 +158,7 @@ export function MobileAccountQuickSearchHost() {
         type="button"
         aria-label="Fermer le sélecteur de comptes"
         onClick={close}
-        className="absolute inset-0 bg-slate-950/58 backdrop-blur-md"
+        className="absolute inset-0 bg-heading/58 backdrop-blur-md"
       />
 
       <div className="relative z-10 flex w-full max-w-xl flex-col gap-4 rounded-[28px] border border-white/12 bg-[#0c1732]/92 px-4 py-4 text-white shadow-[0_24px_80px_rgba(2,6,23,0.45)]">

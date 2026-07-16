@@ -99,6 +99,16 @@ export function MobilePriorityInteractiveList({
     })
   }, [router])
 
+  // Handler stable : sans lui, l'`onOpenAccount` inline recréait une fonction à
+  // chaque rendu et défaisait le `memo()` de MobilePriorityCard (toutes les cartes
+  // re-rendaient à l'ouverture d'un drawer / changement de lentille).
+  const handleOpenAccount = useCallback(
+    (id: string) => {
+      router.push(`/prospection/accounts/${id}`)
+    },
+    [router],
+  )
+
   const examinedCount = useMemo(() => {
     return viewModel.items.filter((item) => examined.has(item.accountId)).length
   }, [viewModel.items, examined])
@@ -131,9 +141,7 @@ export function MobilePriorityInteractiveList({
             isPending={isPending}
             onChangeLens={handleLensChange}
             onOpenActions={handleOpenDrawer}
-            onOpenAccount={(id) => {
-              router.push(`/prospection/accounts/${id}`)
-            }}
+            onOpenAccount={handleOpenAccount}
             onWhyNowOpen={handleWhyNowOpen}
           />
         )
@@ -176,9 +184,7 @@ export function MobilePriorityInteractiveList({
                   key={item.accountId}
                   item={item}
                   onOpenActions={handleOpenDrawer}
-                  onOpenAccount={(id) => {
-                    router.push(`/prospection/accounts/${id}`)
-                  }}
+                  onOpenAccount={handleOpenAccount}
                   onWhyNowOpen={handleWhyNowOpen}
                 />
               ))}
@@ -300,7 +306,7 @@ function LensChips({
             type="button"
             onClick={() => onChangeLens(lens.key)}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors min-h-[32px]",
+              "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors min-h-[44px]",
               isActive
                 ? "border-primary/30 bg-primary/[0.06] text-primary"
                 : "border-border bg-surface text-body",
@@ -312,7 +318,7 @@ function LensChips({
             {lens.label}
             <span
               className={cn(
-                "inline-flex size-4 items-center justify-center rounded-full text-[9px] font-semibold",
+                "inline-flex size-4 items-center justify-center rounded-full text-[10px] font-semibold",
                 isActive ? "bg-primary/10 text-primary" : "bg-canvas text-muted",
               )}
             >

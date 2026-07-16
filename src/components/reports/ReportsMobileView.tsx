@@ -221,7 +221,7 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
                     <span className="block text-[13px] font-bold leading-snug text-[#E2931D] transition-colors group-hover:text-primary">
                       {opt.label}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-[#10B981]">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
                       <span className="size-1.5 rounded-full bg-[#10B981]" />
                       DISPONIBLE
                     </span>

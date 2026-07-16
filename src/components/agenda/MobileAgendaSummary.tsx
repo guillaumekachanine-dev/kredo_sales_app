@@ -71,7 +71,7 @@ export function MobileAgendaSummary({ summary, className }: MobileAgendaSummaryP
         >
           <div className="flex items-center gap-1 mb-0.5">
             {item.icon}
-            <span className="text-[9px] font-bold uppercase tracking-wider">
+            <span className="text-[10px] font-bold uppercase tracking-wider">
               {item.label}
             </span>
           </div>

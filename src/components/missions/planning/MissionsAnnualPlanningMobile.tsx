@@ -87,14 +87,14 @@ export function MissionsAnnualPlanningMobile({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                 }
-                className="h-8 px-2.5 text-[11px]"
+                className="h-11 px-2.5 text-[11px]"
               >
                 Événement
               </Button>
             </div>
 
             <div className="mt-4">
-              <div className="grid grid-cols-12 gap-1 text-[9px] font-bold uppercase tracking-[0.16em] text-muted">
+              <div className="grid grid-cols-12 gap-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
                 {range.months.map((month) => (
                   <span
                     key={`${row.id}-${month.key}-label`}
@@ -135,7 +135,7 @@ export function MissionsAnnualPlanningMobile({
                     const content = (
                       <span
                         className={cn(
-                          "absolute inline-flex min-h-2.5 items-center rounded-full px-1 text-[8px] font-semibold",
+                          "absolute inline-flex min-h-2.5 items-center rounded-full px-1 text-[10px] font-semibold",
                           tone.barClassName,
                         )}
                         style={{

@@ -179,7 +179,7 @@ export function VeilleActualitesMobile({
                       {formatDateFr(d.digest_date)}
                     </span>
                     {isCurrent && (
-                      <span className="rounded bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[8px] font-bold text-primary uppercase">
+                      <span className="rounded bg-primary/10 border border-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary uppercase">
                         Actuel
                       </span>
                     )}
@@ -249,7 +249,7 @@ export function VeilleActualitesMobile({
                   <span>Score : <strong className="text-heading">{Math.round(sig.globalScore * 100)}%</strong></span>
                   <span>Urgence : <strong className="text-heading">{Math.round(sig.urgencyScore * 100)}%</strong></span>
                 </div>
-                <span className="rounded bg-surface/50 border border-border/40 px-1.5 py-0.5 text-[9px] font-bold text-muted uppercase tracking-wider">
+                <span className="rounded bg-surface/50 border border-border/40 px-1.5 py-0.5 text-[10px] font-bold text-muted uppercase tracking-wider">
                   {sig.category}
                 </span>
               </div>
@@ -257,7 +257,7 @@ export function VeilleActualitesMobile({
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => handleOpenDetail(sig)}
-                  className="flex-1 min-h-[36px] inline-flex items-center justify-center rounded-lg border border-border/40 bg-surface/30 text-xxs font-bold text-body hover:bg-surface-hover/30 transition-colors cursor-pointer"
+                  className="flex-1 min-h-[44px] inline-flex items-center justify-center rounded-lg border border-border/40 bg-surface/30 text-xxs font-bold text-body hover:bg-surface-hover/30 transition-colors cursor-pointer"
                 >
                   Détails
                 </button>
@@ -270,7 +270,7 @@ export function VeilleActualitesMobile({
                   refs={{ signalRef: sig.id }}
                   label="Rédiger"
                   variant="primary"
-                  className="flex-1 min-h-[36px] inline-flex items-center justify-center rounded-lg bg-primary text-xxs font-bold text-primary-fg hover:bg-primary-deep shadow-sm transition-all cursor-pointer"
+                  className="flex-1 min-h-[44px] inline-flex items-center justify-center rounded-lg bg-primary text-xxs font-bold text-primary-fg hover:bg-primary-deep shadow-sm transition-all cursor-pointer"
                 />
               </div>
             </div>
@@ -370,7 +370,7 @@ export function VeilleActualitesMobile({
             <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-4 space-y-3 shadow-sm">
               <div className="flex items-start justify-between gap-3 border-b border-border/20 pb-2">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary block leading-none">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary block leading-none">
                     {selectedArticle.categorie || "Signal"}
                   </span>
                   {selectedArticle.source_name && (
@@ -406,7 +406,7 @@ export function VeilleActualitesMobile({
                         website={matchedCompany.website}
                         size="xs"
                       />
-                      <span className="text-[9px] font-bold text-heading truncate">
+                      <span className="text-[10px] font-bold text-heading truncate">
                         {matchedCompany.name}
                       </span>
                     </div>
@@ -561,7 +561,7 @@ export function VeilleActualitesMobile({
                       {article.resume}
                     </p>
 
-                    <div className="flex justify-between items-center text-[9px] text-muted pt-1 border-t border-border/10">
+                    <div className="flex justify-between items-center text-[10px] text-muted pt-1 border-t border-border/10">
                       <span className="uppercase font-bold tracking-wider text-primary">
                         {article.categorie || "Signal"}
                       </span>
@@ -599,8 +599,8 @@ export function VeilleActualitesMobile({
                   {sectorNews.map((news) => (
                     <div key={news.id} className="pt-3 first:pt-0 space-y-1">
                       <div className="flex justify-between items-center gap-2">
-                        <span className="text-[9px] text-muted">{formatDateFr(news.published_at)}</span>
-                        {news.source && <span className="text-[9px] text-heading font-semibold">{news.source}</span>}
+                        <span className="text-[10px] text-muted">{formatDateFr(news.published_at)}</span>
+                        {news.source && <span className="text-[10px] text-heading font-semibold">{news.source}</span>}
                       </div>
                       <h4 className="font-heading text-xxs font-bold text-heading leading-tight">{news.title}</h4>
                       {news.summary && <p className="text-xxs text-body leading-relaxed">{news.summary}</p>}
@@ -620,14 +620,14 @@ export function VeilleActualitesMobile({
                   {sectorEvents.map((evt) => (
                     <div key={evt.id} className="pt-3 first:pt-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[9px] text-muted">{formatDateFr(evt.event_date)}</span>
-                        <span className="rounded bg-brand-brass/10 px-1.5 py-0.5 text-[8px] font-bold text-brand-brass uppercase">
+                        <span className="text-[10px] text-muted">{formatDateFr(evt.event_date)}</span>
+                        <span className="rounded bg-brand-brass/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-brass uppercase">
                           {evt.event_type}
                         </span>
                       </div>
                       <h4 className="font-heading text-xxs font-bold text-heading leading-tight">{evt.title}</h4>
                       {evt.commercial_opportunity && (
-                        <div className="rounded bg-canvas/40 border border-border/50 p-2 text-[9px] mt-1">
+                        <div className="rounded bg-canvas/40 border border-border/50 p-2 text-[10px] mt-1">
                           <span className="text-body leading-normal">{evt.commercial_opportunity}</span>
                         </div>
                       )}

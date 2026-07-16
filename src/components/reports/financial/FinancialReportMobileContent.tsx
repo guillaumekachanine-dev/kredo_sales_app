@@ -65,7 +65,7 @@ export function FinancialReportMobileContent({
       <section className="rounded-lg border border-border bg-surface p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <span className="block text-[9px] font-bold uppercase tracking-wider text-muted">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">
               CA P&L YTD
             </span>
             <span className="block font-mono text-base font-bold text-heading">
@@ -102,7 +102,7 @@ export function FinancialReportMobileContent({
       {/* Quick Win Card */}
       <section className="rounded-lg border border-brand-brass bg-brand-brass/5 p-4 shadow-sm space-y-2">
         <div className="flex items-center gap-1">
-          <span className="rounded-full bg-brand-brass/25 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-brand-brass">
+          <span className="rounded-full bg-brand-brass/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-brass">
             Quick Win
           </span>
           <span className="text-[10px] font-bold text-heading">{facts.quickWin.title}</span>

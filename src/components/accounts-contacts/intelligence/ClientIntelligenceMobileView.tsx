@@ -752,7 +752,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                        className="group relative overflow-hidden bg-brand-blue hover:bg-primary-deep hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl min-h-[44px] px-3 text-[10px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                         title="Accéder à la source"
                       >
                         <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
@@ -772,7 +772,7 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
                         companyName={company.name}
                         primaryEntity={{ type: "company", id: company.id }}
                         label="Contacter sur ce signal"
-                        className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(72,77,245,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                        className="group relative overflow-hidden bg-brand-blue hover:bg-primary-deep hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(72,77,245,0.2)] transition-all duration-200 rounded-xl min-h-[44px] px-3 text-[10px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
                         aria-label={`Contacter ${company.name} sur le signal ${i + 1}`}
                         refs={{ signalRef: signal }}
                         leftIcon={

@@ -26,7 +26,7 @@ export function AutomationMetricsMobileLayout({
         role="tabpanel"
         aria-labelledby={`automation-metrics-mobile-tab-${section}`}
         aria-busy={pending || undefined}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-slate-950/20"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-heading/20"
       >
         {children}
       </div>

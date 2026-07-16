@@ -190,7 +190,7 @@ export function MobileEventTaskCard({
             variant={getPriorityVariant()}
             label={taskItem.priority === "high" ? "Urgent" : "À faire"}
             dot
-            className="text-[9px] py-0.5 px-1.5 font-bold"
+            className="text-[10px] py-0.5 px-1.5 font-bold"
           />
         )}
       </div>

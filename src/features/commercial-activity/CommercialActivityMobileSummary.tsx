@@ -121,12 +121,12 @@ export function CommercialActivityMobileSummary({
                   />
                   {point.completed === maximumCompleted &&
                   maximumCompleted > 0 ? (
-                    <span className="absolute -top-5 text-[9px] font-semibold tabular-nums text-brand-brass">
+                    <span className="absolute -top-5 text-[10px] font-semibold tabular-nums text-brand-brass">
                       {format(point.completed)}
                     </span>
                   ) : null}
                   {index === points.length - 1 ? (
-                    <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-white/65">
+                    <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-white/65">
                       {format(point.completed)} / {format(point.planned)}
                     </span>
                   ) : null}

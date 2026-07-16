@@ -21,7 +21,7 @@ export function MobileAgendaSection({
           {title}
         </h2>
         {count !== undefined && count > 0 && (
-          <span className="inline-flex items-center justify-center rounded-full bg-canvas border border-border px-1.5 py-0.5 text-[9px] font-bold text-muted">
+          <span className="inline-flex items-center justify-center rounded-full bg-canvas border border-border px-1.5 py-0.5 text-[10px] font-bold text-muted">
             {count}
           </span>
         )}

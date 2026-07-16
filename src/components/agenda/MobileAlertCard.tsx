@@ -48,7 +48,7 @@ export function MobileAlertCard({
         <Badge
           variant="danger"
           size="sm"
-          className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0 border-danger/30 bg-danger/[0.1] text-danger"
+          className="font-bold uppercase tracking-wider text-[10px] px-1.5 py-0 border-danger/30 bg-danger/[0.1] text-danger"
         >
           {getAlertKindLabel()}
         </Badge>

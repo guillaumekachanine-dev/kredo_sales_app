@@ -84,7 +84,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
         {sector.attractiveness_score !== null && (
           <div className="flex flex-col items-center bg-surface border border-border/80 rounded-xl px-3 py-2">
             <span className="text-xl font-bold text-heading">{sector.attractiveness_score}/10</span>
-            <span className="text-[9px] font-bold text-muted uppercase tracking-wide">Attractivité</span>
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wide">Attractivité</span>
           </div>
         )}
       </header>
@@ -149,7 +149,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
           >
             <span className="flex items-center gap-2">
               Trigger events
-              <span className="bg-danger/10 text-danger border border-danger/20 rounded px-1.5 py-0.5 text-[9px] font-bold">
+              <span className="bg-danger/10 text-danger border border-danger/20 rounded px-1.5 py-0.5 text-[10px] font-bold">
                 {pendingEvents.length} en attente
               </span>
             </span>
@@ -213,7 +213,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="text-xs font-bold text-heading leading-snug flex-1">{pp.title}</p>
                   {pp.kredo_practice && (
-                    <span className="text-[9px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 shrink-0">
+                    <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 shrink-0">
                       {PRACTICE_LABEL[pp.kredo_practice]}
                     </span>
                   )}
@@ -253,7 +253,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
               <div key={reg.id} className="bg-surface border border-border/60 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="text-xs font-bold text-heading leading-snug flex-1 pr-2">{reg.name}</p>
-                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0", URGENCY_STYLE[reg.urgency])}>
+                  <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0", URGENCY_STYLE[reg.urgency])}>
                     {URGENCY_LABEL[reg.urgency]}
                   </span>
                 </div>
@@ -264,7 +264,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
                   <p className="text-[10px] text-primary italic">{reg.commercial_angle}</p>
                 )}
                 {reg.is_commercial_window && (
-                  <span className="inline-block mt-1.5 text-[9px] font-bold text-secondary bg-secondary/10 border border-secondary/20 rounded px-1.5 py-0.5">
+                  <span className="inline-block mt-1.5 text-[10px] font-bold text-secondary bg-secondary/10 border border-secondary/20 rounded px-1.5 py-0.5">
                     Fenêtre commerciale
                   </span>
                 )}
@@ -298,7 +298,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
               >
                 <span className="text-xs font-semibold text-heading">{company.name}</span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[9px] font-semibold text-muted border border-border/50 rounded px-1.5 py-0.5">
+                  <span className="text-[10px] font-semibold text-muted border border-border/50 rounded px-1.5 py-0.5">
                     {LIFECYCLE_LABEL[company.lifecycle_status] ?? company.lifecycle_status}
                   </span>
                   {company.legacy_folio_score !== null && (
@@ -313,7 +313,7 @@ export function SectorMobileView({ sector }: { sector: SectorWithRelations }) {
 
       {/* Bottom sheet */}
       {activeSheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-heading/60 backdrop-blur-sm">
           <div className="bg-surface border-t border-border rounded-t-2xl shadow-2xl w-full p-6 pb-8 max-w-md animate-in slide-in-from-bottom duration-200">
             <div className="w-12 h-1 bg-border rounded-full mx-auto mb-5" />
             <h3 className="text-sm font-bold text-heading mb-2 leading-tight">{activeSheet.title}</h3>

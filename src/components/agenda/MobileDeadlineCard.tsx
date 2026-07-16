@@ -63,7 +63,7 @@ export function MobileDeadlineCard({
         <span className="font-medium text-body">
           {formatMobileTimeLabel(item, timezone)}
         </span>
-        <Badge variant="neutral" size="sm" className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0">
+        <Badge variant="neutral" size="sm" className="font-bold uppercase tracking-wider text-[10px] px-1.5 py-0">
           {getSourceTypeLabel()}
         </Badge>
       </div>

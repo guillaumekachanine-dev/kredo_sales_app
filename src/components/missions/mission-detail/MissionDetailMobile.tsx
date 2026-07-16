@@ -98,7 +98,7 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
             size="md"
           />
           <div className="min-w-0 flex-1">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted block">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
               Mission · {mission.external_ref || mission.id.slice(0, 8)}
             </span>
             <h1 className="text-base font-bold text-heading leading-tight truncate">
@@ -112,7 +112,7 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
         <div className="flex flex-wrap gap-1.5">
           <StatusPill label={statusInfo.label} variant={statusInfo.variant} dot />
           {endSoon ? (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded border border-danger/20 bg-danger/10 text-danger text-[9px] font-bold uppercase tracking-wider">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded border border-danger/20 bg-danger/10 text-danger text-[10px] font-bold uppercase tracking-wider">
               <span className="w-1 h-1 rounded-full bg-danger animate-pulse" />
               Fin proche
             </span>
@@ -126,7 +126,7 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
                 setShowRiskDialog(true)
               }}
               className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider",
+                "flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider",
                 RISK_CLASSES[riskLevel]
               )}
             >
@@ -135,7 +135,7 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
             </button>
           )}
           {mission.start_date && (
-            <span className="text-[9px] text-muted px-2 py-0.5 rounded bg-canvas border border-border/60 font-semibold">
+            <span className="text-[10px] text-muted px-2 py-0.5 rounded bg-canvas border border-border/60 font-semibold">
               Depuis {formatDateNumeric(mission.start_date)}
             </span>
           )}
@@ -144,11 +144,11 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
         {/* Quick KPIs */}
         <div className="flex gap-3 mt-3">
           <div className="flex-1 text-center">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted block">TJM</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">TJM</span>
             <span className="text-base font-bold font-mono text-heading">{formatEuro(mission.tjm)}</span>
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted block">Marge réelle</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">Marge réelle</span>
             <span className={cn(
               "text-base font-bold font-mono",
               realMargin === null ? "text-muted" :
@@ -159,7 +159,7 @@ export function MissionDetailMobile({ vm, onRefresh }: MissionDetailMobileProps)
             </span>
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-muted block">Activité</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">Activité</span>
             <span className={cn(
               "text-base font-bold font-mono",
               overallRate === null ? "text-muted" :

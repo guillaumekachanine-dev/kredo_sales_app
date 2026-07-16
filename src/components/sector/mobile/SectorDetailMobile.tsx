@@ -50,7 +50,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
       <div className="bg-surface border border-border p-4 rounded flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-sm font-bold text-heading leading-snug">{sector.name}</h1>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15 shrink-0">
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/15 shrink-0">
             {sector.status === 'active' ? 'Actif' : sector.status === 'development' ? 'Développement' : 'Veille'}
           </span>
         </div>
@@ -71,7 +71,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
       <div className="grid grid-cols-2 gap-3 text-xs">
         {/* Market Size & Growth */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
-          <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Marché</span>
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Marché</span>
           <span className="font-bold text-heading">
             {sector.market_size_eur_bn !== null ? `${sector.market_size_eur_bn.toFixed(1)} Md€` : '—'}
           </span>
@@ -84,7 +84,7 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
 
         {/* TJM */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
-          <span className="text-[9px] font-bold text-muted uppercase tracking-wider">TJM Moyen</span>
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">TJM Moyen</span>
           <span className="font-bold text-heading">
             {sector.avg_tjm_min !== null && sector.avg_tjm_max !== null
               ? `${sector.avg_tjm_min} - ${sector.avg_tjm_max} €`
@@ -97,14 +97,14 @@ export function SectorDetailMobile({ sector }: SectorDetailMobileProps) {
 
         {/* Digital Maturity */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
-          <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Maturité Digitale</span>
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Maturité Digitale</span>
           <span className="font-bold text-heading">{maturityLabel}</span>
           <span className="text-[10px] text-muted font-medium">Niveau du secteur</span>
         </div>
 
         {/* Practices Fit */}
         <div className="bg-surface border border-border p-3 rounded flex flex-col gap-0.5">
-          <span className="text-[9px] font-bold text-muted uppercase tracking-wider">Comptes liés</span>
+          <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Comptes liés</span>
           <span className="font-bold text-heading">
             {sector.companies.length} {sector.companies.length > 1 ? 'comptes' : 'compte'}
           </span>

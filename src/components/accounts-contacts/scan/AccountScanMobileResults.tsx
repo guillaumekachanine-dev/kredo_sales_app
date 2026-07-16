@@ -75,7 +75,7 @@ function ProposalCard({
             <span className="text-xs font-bold text-heading">
               {getAttributeLabel(row.attributeName)}
               {row.isFact && (
-                <span className="ml-1.5 rounded-full border border-border bg-canvas/50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted">
+                <span className="ml-1.5 rounded-full border border-border bg-canvas/50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-muted">
                   Fait
                 </span>
               )}

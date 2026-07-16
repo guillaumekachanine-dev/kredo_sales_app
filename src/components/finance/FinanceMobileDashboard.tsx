@@ -175,7 +175,7 @@ export function FinanceMobileDashboard({ data }: { data: FinanceDashboardData })
                       style={{ height: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-[9px] font-medium text-muted uppercase">
+                  <span className="text-[10px] font-medium text-muted uppercase">
                     {formattedMonth.slice(0, 3)}
                   </span>
                 </div>

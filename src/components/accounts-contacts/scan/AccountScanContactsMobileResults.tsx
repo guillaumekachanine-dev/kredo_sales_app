@@ -84,7 +84,7 @@ function ContactCard({
 
           {(candidate.evidence || candidate.relationshipRole) && (
             <details className="mt-2">
-              <summary className="min-h-[32px] cursor-pointer text-[10px] font-semibold text-primary">
+              <summary className="flex min-h-[44px] items-center cursor-pointer text-[10px] font-semibold text-primary">
                 Détail
               </summary>
               <div className="space-y-1 text-[11px] leading-relaxed text-muted">

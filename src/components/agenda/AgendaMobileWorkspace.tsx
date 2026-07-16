@@ -474,7 +474,7 @@ export function AgendaMobileWorkspace({
                   >
                     {/* Day Label (e.g., LUN) */}
                     <span className={cn(
-                      "text-[9px] font-bold uppercase tracking-wider",
+                      "text-[10px] font-bold uppercase tracking-wider",
                       isSelected ? "text-white/80" : "text-muted"
                     )}>
                       {dayLetter}
@@ -491,7 +491,7 @@ export function AgendaMobileWorkspace({
                     {/* Count Indicator */}
                     {dayCount > 0 ? (
                       <span className={cn(
-                        "inline-flex items-center justify-center min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-extrabold leading-none",
+                        "inline-flex items-center justify-center min-w-[15px] h-[15px] px-1 rounded-full text-[10px] font-extrabold leading-none",
                         isSelected
                           ? "bg-white text-primary"
                           : "bg-primary/10 text-primary border border-primary/20"

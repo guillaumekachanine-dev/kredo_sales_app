@@ -75,7 +75,7 @@ export function StaffingMobileView({ rows }: StaffingMobileViewProps) {
               </div>
 
               <span className={cn(
-                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider select-none shrink-0",
+                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider select-none shrink-0",
                 row.isCollaborator 
                   ? "bg-primary/5 border-primary/10 text-primary"
                   : "bg-brand-brass/5 border-brand-brass/10 text-brand-brass"
@@ -101,24 +101,24 @@ export function StaffingMobileView({ rows }: StaffingMobileViewProps) {
             <div className="flex flex-col gap-2 bg-canvas/30 p-2.5 rounded-[var(--radius-medium)] border border-border/40 text-[10px] text-body">
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col">
-                  <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">TJM</span>
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">TJM</span>
                   <span className="font-extrabold text-heading">{row.targetTjm ? `${formatEuro(row.targetTjm)}/j` : "—"}</span>
                 </div>
                 <div className="flex flex-col border-l border-border/30 pl-2">
-                  <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">Salaire</span>
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">Salaire</span>
                   <span className="font-extrabold text-heading truncate">{row.salary ? `${formatEuro(row.salary)}` : "—"}</span>
                 </div>
                 <div className="flex flex-col border-l border-border/30 pl-2">
-                  <span className="text-[8px] font-bold text-muted uppercase tracking-wider mb-0.5">Marge</span>
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wider mb-0.5">Marge</span>
                   <span className="font-extrabold text-heading">{row.marginPct !== null ? `${row.marginPct} %` : "—"}</span>
                 </div>
               </div>
 
               {/* Staffing Status badge */}
-              <div className="border-t border-border/20 pt-2 flex items-center justify-between text-[9px] mt-1">
+              <div className="border-t border-border/20 pt-2 flex items-center justify-between text-[10px] mt-1">
                 <span className="text-muted">Étape active :</span>
                 <span className={cn(
-                  "px-2 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider",
+                  "px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider",
                   colorClass
                 )}>
                   {label}

@@ -35,7 +35,7 @@ export function MobileAvailabilityCard({
         <Badge
           variant={isAbsence ? "neutral" : "warning"}
           size="sm"
-          className="font-bold uppercase tracking-wider text-[9px] px-1.5 py-0"
+          className="font-bold uppercase tracking-wider text-[10px] px-1.5 py-0"
         >
           {isAbsence ? "Absence" : "Fermeture"}
         </Badge>

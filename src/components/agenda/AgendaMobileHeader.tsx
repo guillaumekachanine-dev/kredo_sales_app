@@ -78,7 +78,7 @@ export function AgendaMobileHeader({
               size="sm"
               aria-label="Période précédente"
               onClick={() => onNavigate("prev")}
-              className="border-r border-border rounded-none cursor-pointer h-8 w-8"
+              className="border-r border-border rounded-none cursor-pointer h-11 w-11"
             >
               <svg className="size-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -89,7 +89,7 @@ export function AgendaMobileHeader({
               size="sm"
               aria-label="Période suivante"
               onClick={() => onNavigate("next")}
-              className="rounded-none cursor-pointer h-8 w-8"
+              className="rounded-none cursor-pointer h-11 w-11"
             >
               <svg className="size-4 text-heading" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -103,7 +103,7 @@ export function AgendaMobileHeader({
             size="sm"
             aria-label="Créer un événement"
             onClick={onCreateClick}
-            className="rounded-md cursor-pointer h-8 w-8 flex items-center justify-center bg-primary text-primary-fg shadow-sm"
+            className="rounded-md cursor-pointer h-11 w-11 flex items-center justify-center bg-primary text-primary-fg shadow-sm"
           >
             <svg className="size-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
