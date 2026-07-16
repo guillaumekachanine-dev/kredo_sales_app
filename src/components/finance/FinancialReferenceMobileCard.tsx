@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { formatDateNumeric, formatEuro, formatPct } from "@/lib/formatters"
 import { FinancialModelingMobileFlow } from "@/features/financial-modeling"
+import { CommercialQuoteMobileDrawer } from "./CommercialQuoteMobileDrawer"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 
 export function FinancialReferenceMobileCard({ reference }: { reference: FinancialReference }) {
   const [open, setOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
 
   return (
     <>
@@ -19,7 +21,7 @@ export function FinancialReferenceMobileCard({ reference }: { reference: Financi
             <p className="mt-2 text-sm font-bold text-heading">{reference.resource}</p>
             <p className="text-[11px] text-body">{reference.profile ?? "Profil non renseigné"}</p>
           </div>
-          <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button>
+          <div className="flex gap-1"><Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button><Button type="button" variant="primary" size="sm" onClick={() => setQuoteOpen(true)}>Devis</Button></div>
         </div>
         <p className="mt-3 text-[11px] text-muted">{formatDateNumeric(reference.startDate)} — {reference.endDate ? formatDateNumeric(reference.endDate) : "Sans fin"}</p>
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/50 pt-3">
@@ -29,6 +31,7 @@ export function FinancialReferenceMobileCard({ reference }: { reference: Financi
         </div>
       </SurfaceCard>
       <FinancialModelingMobileFlow open={open} onOpenChange={setOpen} initialId={reference.modelId} />
+      <CommercialQuoteMobileDrawer modelId={reference.modelId} open={quoteOpen} onOpenChange={setQuoteOpen} />
     </>
   )
 }

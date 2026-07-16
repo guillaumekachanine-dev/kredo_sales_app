@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/Button"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { formatDateNumeric, formatEuro, formatPct } from "@/lib/formatters"
 import { FinancialModelingDesktopDialog } from "@/features/financial-modeling"
+import { CommercialQuoteDesktopDialog } from "./CommercialQuoteDesktopDialog"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 
 export function FinancialReferenceDesktopCard({ reference }: { reference: FinancialReference }) {
   const [open, setOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
 
   return (
     <>
@@ -29,10 +31,11 @@ export function FinancialReferenceDesktopCard({ reference }: { reference: Financ
             <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted">CA projeté</dt><dd className="mt-1 font-mono text-sm font-bold text-heading">{formatEuro(reference.projectedRevenue)}</dd></div>
             <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted">Marge</dt><dd className="mt-1 font-mono text-sm font-bold text-heading">{formatPct(reference.grossMarginPct)}</dd></div>
           </dl>
-          <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button>
+          <div className="flex shrink-0 gap-2"><Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button><Button type="button" variant="primary" size="sm" onClick={() => setQuoteOpen(true)}>Créer un devis</Button></div>
         </div>
       </SurfaceCard>
       <FinancialModelingDesktopDialog open={open} onOpenChange={setOpen} initialId={reference.modelId} />
+      <CommercialQuoteDesktopDialog modelId={reference.modelId} open={quoteOpen} onOpenChange={setQuoteOpen} />
     </>
   )
 }

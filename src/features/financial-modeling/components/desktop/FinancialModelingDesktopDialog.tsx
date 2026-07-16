@@ -5,6 +5,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Field } from "@/components/ui/Field"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { CommercialQuoteDesktopDialog } from "@/components/finance/CommercialQuoteDesktopDialog"
 import { StatusPill } from "@/components/ui/StatusPill"
 import {
   FinancialResourceFields,
@@ -84,6 +85,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -614,7 +616,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
             ) : <span />}
 
             {isReadOnly ? (
-              <Button
+              <div className="flex justify-self-end gap-2"><Button
                 variant="primary"
                 size="sm"
                 className="justify-self-end"
@@ -622,7 +624,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                 onClick={() => handleDuplicateSimulation(formState.id!)}
               >
                 Dupliquer pour réviser
-              </Button>
+              </Button>{formState.status === "reference" && formState.id ? <Button variant="brass" size="sm" onClick={() => setQuoteOpen(true)}>Créer un devis</Button> : null}</div>
             ) : formState.input.mode === "full" ? (
               <Button
                 variant="brass"
@@ -638,6 +640,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
           </div>
         </div>
       </AppDialog>
+      {formState.id ? <CommercialQuoteDesktopDialog modelId={formState.id} open={quoteOpen} onOpenChange={setQuoteOpen} /> : null}
 
       {/* Confirmation modal for margin/tjm warning validation */}
       <AppDialog

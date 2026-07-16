@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
+import { CommercialQuoteMobileDrawer } from "@/components/finance/CommercialQuoteMobileDrawer"
 import { StatusPill } from "@/components/ui/StatusPill"
 import {
   FinancialResourceFields,
@@ -80,6 +81,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showMobileHistory, setShowMobileHistory] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
 
   const resetFlow = () => {
     const defaultState = createDefaultFormState()
@@ -397,7 +399,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
             {step === 3 && (
               <div className="flex items-center gap-2">
                 {isReadOnly ? (
-                  <Button
+                  <div className="flex gap-2"><Button
                     variant="primary"
                     size="md"
                     className="h-11 px-5"
@@ -405,7 +407,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
                     onClick={() => handleDuplicateSimulation(formState.id!)}
                   >
                     Dupliquer pour réviser
-                  </Button>
+                  </Button>{formState.status === "reference" && formState.id ? <Button variant="brass" size="md" className="h-11" onClick={() => setQuoteOpen(true)}>Créer un devis</Button> : null}</div>
                 ) : (
                   <>
                     <Button
@@ -435,6 +437,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
       >
         {renderStepContent()}
       </AppDrawer>
+      {formState.id ? <CommercialQuoteMobileDrawer modelId={formState.id} open={quoteOpen} onOpenChange={setQuoteOpen} /> : null}
 
       {/* Confirmation modal for validation */}
       <AppDialog
