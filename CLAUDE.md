@@ -42,7 +42,9 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 **Projet ID :** `jvzgmhvwirsbdkjpmvla`
 **URL :** `https://jvzgmhvwirsbdkjpmvla.supabase.co`
 
-### Migrations appliquées (14)
+### Migrations appliquées (113 au 2026-07-16)
+> ⚠️ **Liste canonique = `supabase/migrations/` (113 fichiers, réconcilié ≡ prod `schema_migrations` le 2026-07-16).** Le tableau ci-dessous n'est qu'un extrait indicatif ; ses timestamps sont approximatifs et ne correspondent pas tous aux versions réellement enregistrées — ne pas s'y fier pour un `db reset`/`migration list`.
+
 | Version | Nom |
 |---|---|
 | 20260608230043 | 001_module_opportunite |
