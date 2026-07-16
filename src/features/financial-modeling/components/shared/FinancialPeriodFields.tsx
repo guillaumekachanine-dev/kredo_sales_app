@@ -10,7 +10,7 @@ interface FinancialPeriodFieldsProps {
 }
 
 export function FinancialPeriodFields({ value, onChange, disabled }: FinancialPeriodFieldsProps) {
-  const { startDate, endDate, forecastActivityRate, annualWorkingDays, manualBusinessDays } = value.input
+  const { startDate, endDate, forecastActivityRate, annualWorkingDays } = value.input
 
   const activityPct = Math.round(forecastActivityRate * 100)
 
@@ -45,7 +45,7 @@ export function FinancialPeriodFields({ value, onChange, disabled }: FinancialPe
       </div>
 
       {/* Activity and Working Days */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Taux d'activité prévu (%)" required>
           <Input
             type="number"
@@ -69,20 +69,7 @@ export function FinancialPeriodFields({ value, onChange, disabled }: FinancialPe
           />
         </Field>
 
-        <Field label="Jours ouvrés forcés" optional>
-          <Input
-            type="number"
-            placeholder="Calculé si vide"
-            value={manualBusinessDays != null ? manualBusinessDays : ""}
-            disabled={disabled}
-            onChange={(e) => {
-              const val = e.target.value === "" ? null : Number(e.target.value)
-              handleFieldChange("manualBusinessDays", val)
-            }}
-          />
-        </Field>
       </div>
     </div>
   )
 }
-

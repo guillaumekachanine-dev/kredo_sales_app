@@ -34,6 +34,10 @@ export interface AppDialogProps {
   headerClassName?: string
   footerClassName?: string
   maxHeightClassName?: string
+  aside?: React.ReactNode
+  asideOpen?: boolean
+  asideClassName?: string
+  asideWidthClassName?: string
 }
 
 export function AppDialog({
@@ -49,6 +53,10 @@ export function AppDialog({
   headerClassName,
   footerClassName,
   maxHeightClassName,
+  aside,
+  asideOpen = false,
+  asideClassName,
+  asideWidthClassName,
 }: AppDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const portalRoot = useSyncExternalStore(
@@ -59,6 +67,8 @@ export function AppDialog({
   const titleId = useId()
   const descriptionId = useId()
   const resolvedMaxHeightClassName = maxHeightClassName ?? "max-h-[min(calc(100dvh-2rem),42rem)] sm:max-h-[min(calc(100dvh-4rem),42rem)]"
+  const resolvedAsideWidthClassName = asideWidthClassName ?? "w-[min(32rem,42vw)]"
+  const hasAside = Boolean(aside)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -124,6 +134,8 @@ export function AppDialog({
       onClick={handleBackdropClick}
       className={cn(
         "fixed inset-0 m-auto h-fit w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-0 text-heading sm:w-full sm:max-w-lg",
+        hasAside && "relative !overflow-visible",
+        hasAside && asideOpen && "rounded-r-none",
         resolvedMaxHeightClassName,
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
@@ -131,42 +143,60 @@ export function AppDialog({
         className
       )}
     >
-      <div className={cn("flex flex-col gap-4 p-4 sm:p-6", resolvedMaxHeightClassName)}>
-        {/* Header */}
-        <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
-          <div className="flex items-center justify-between">
-            {titleContent}
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="shrink-0 text-muted hover:text-heading transition-colors"
-              aria-label="Fermer"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <div className={cn(hasAside ? "flex h-full min-h-0 p-0" : "p-4 sm:p-6", resolvedMaxHeightClassName)}>
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4", hasAside && "p-4 sm:p-6")}>
+          {/* Header */}
+          <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
+            <div className="flex items-center justify-between">
+              {titleContent}
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="shrink-0 text-muted hover:text-heading transition-colors"
+                aria-label="Fermer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {description && (
+              <p id={descriptionId} className="text-xs text-body font-normal">{description}</p>
+            )}
           </div>
-          {description && (
-            <p id={descriptionId} className="text-xs text-body font-normal">{description}</p>
+
+          {/* Body */}
+          <div
+            className={cn(
+              "min-h-0 shrink overflow-y-auto overscroll-contain pr-1 text-xs leading-relaxed text-body",
+              bodyClassName,
+            )}
+          >
+            {children}
+          </div>
+
+          {/* Footer */}
+          {footer && (
+            <div className={cn("shrink-0 flex items-center justify-end gap-2 border-t border-border/40 pt-4", footerClassName)}>
+              {footer}
+            </div>
           )}
         </div>
 
-        {/* Body */}
-        <div
-          className={cn(
-            "min-h-0 shrink overflow-y-auto overscroll-contain pr-1 text-xs leading-relaxed text-body",
-            bodyClassName,
-          )}
-        >
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div className={cn("shrink-0 flex items-center justify-end gap-2 border-t border-border/40 pt-4", footerClassName)}>
-            {footer}
-          </div>
+        {hasAside && (
+          <aside
+            aria-hidden={!asideOpen}
+            inert={!asideOpen}
+            className={cn(
+              "absolute inset-y-0 left-full overflow-hidden bg-canvas/40 will-change-[width,opacity,transform] transition-[width,opacity,transform] ease-out motion-reduce:transition-none",
+              asideOpen
+                ? cn(resolvedAsideWidthClassName, "translate-x-0 rounded-r-[var(--radius-medium)] border border-l border-border/70 opacity-100 duration-500")
+                : "pointer-events-none w-0 translate-x-5 border-transparent opacity-0 duration-300",
+              asideClassName,
+            )}
+          >
+            <div className={cn("h-full", resolvedAsideWidthClassName)}>{aside}</div>
+          </aside>
         )}
       </div>
     </dialog>

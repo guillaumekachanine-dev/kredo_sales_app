@@ -11,10 +11,11 @@ interface FinancialPricingFieldsProps {
   pricing: FinancialPricingAnchorsData
   companies: { id: string; name: string }[]
   opportunities: { id: string; title: string; company_id: string | null; target_daily_rate: number | null }[]
+  activeStaffingCompanyIds: string[]
   disabled?: boolean
 }
 
-export function FinancialPricingFields({ value, onChange, pricing, companies, opportunities, disabled }: FinancialPricingFieldsProps) {
+export function FinancialPricingFields({ value, onChange, pricing, companies, opportunities, activeStaffingCompanyIds, disabled }: FinancialPricingFieldsProps) {
   const { salesDailyRate } = value.input
 
   // Filter opportunities if a client company is selected
@@ -22,6 +23,14 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
     if (!value.companyId) return opportunities
     return opportunities.filter((o) => o.company_id === value.companyId)
   }, [value.companyId, opportunities])
+
+  const [activeStaffingCompanies, otherCompanies] = useMemo(() => {
+    const activeCompanyIds = new Set(activeStaffingCompanyIds)
+    return [
+      companies.filter((company) => activeCompanyIds.has(company.id)),
+      companies.filter((company) => !activeCompanyIds.has(company.id)),
+    ]
+  }, [activeStaffingCompanyIds, companies])
 
   // Find relevant anchors (agreements, past missions, benchmarks) matching selected company or job profile
   const suggestedAnchors = useMemo(() => {
@@ -78,8 +87,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
 
   return (
     <div className="space-y-4">
-      {/* Client and Opportunity */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Client (Facultatif)" optional>
           <Select
             value={value.companyId || ""}
@@ -90,11 +98,24 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
             }}
           >
             <option value="">-- Aucun --</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {activeStaffingCompanies.length > 0 && (
+              <optgroup label="Besoins & staffing ouverts">
+                {activeStaffingCompanies.map((company) => (
+                  <option key={company.id} value={company.id} className="text-primary font-medium">
+                    {company.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {otherCompanies.length > 0 && (
+              <optgroup label="Autres clients">
+                {otherCompanies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </Select>
         </Field>
 
@@ -106,7 +127,7 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
               const oppId = e.target.value || null
               const opp = opportunities.find((o) => o.id === oppId)
               const updated = { ...value, opportunityId: oppId }
-              
+
               // Pre-fill TJM if opportunity has target daily rate
               if (opp?.target_daily_rate) {
                 updated.input = { ...updated.input, salesDailyRate: opp.target_daily_rate }
@@ -124,33 +145,18 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
         </Field>
       </div>
 
-      {/* TJM input */}
-      <Field label="TJM de vente proposé H.T. (€)" required>
-        <Input
-          type="number"
-          value={salesDailyRate || ""}
-          disabled={disabled}
-          onChange={(e) => {
-            const updated = { ...value }
-            updated.input = { ...value.input, salesDailyRate: Number(e.target.value) }
-            onChange(updated)
-          }}
-        />
-      </Field>
-
-      {/* Suggested Anchors */}
       {suggestedAnchors.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Ancrages tarifaires disponibles :</p>
-          <div className="grid grid-cols-2 gap-2">
-            {suggestedAnchors.map((anchor, idx) => {
+          <p className="text-xs font-medium text-heading">Ancrages tarifaires</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestedAnchors.map((anchor) => {
               const rate = anchor.saleDailyRate
               if (!rate) return null
 
               const typeLabel =
                 anchor.sourceType === "agreement" ? "Accord client" :
                 anchor.sourceType === "mission" ? "Mission passée" :
-                anchor.sourceType === "opportunity" ? "Cible Opp" : "Benchmark Grille"
+                anchor.sourceType === "opportunity" ? "Cible opp." : "Benchmark grille"
 
               const badgeColor =
                 anchor.sourceType === "agreement" ? "bg-success/10 text-success border-success/20" :
@@ -159,28 +165,39 @@ export function FinancialPricingFields({ value, onChange, pricing, companies, op
 
               return (
                 <button
-                  key={idx}
+                  key={`${anchor.sourceType}-${anchor.sourceId}`}
                   type="button"
                   disabled={disabled}
                   onClick={() => handleAnchorClick(rate, anchor)}
-                  className="flex flex-col items-start p-2 rounded-[var(--radius-small)] border border-border/80 bg-surface hover:bg-canvas/10 disabled:opacity-60 disabled:hover:bg-surface text-left transition-all"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-small)] border border-border/80 bg-surface px-2 py-1.5 text-left transition-colors hover:bg-canvas/10 disabled:opacity-60 disabled:hover:bg-surface"
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className={`text-[9px] px-1 rounded border font-semibold uppercase ${badgeColor}`}>
-                      {typeLabel}
-                    </span>
-                    <span className="text-[11px] font-bold text-heading">{rate} €</span>
-                  </div>
-                  <span className="text-[10px] text-muted mt-1 truncate w-full">
+                  <span className={`rounded border px-1 text-[9px] font-semibold uppercase ${badgeColor}`}>
+                    {typeLabel}
+                  </span>
+                  <span className="max-w-32 truncate text-[10px] text-muted">
                     {anchor.sourceLabel || anchor.profileName}
                   </span>
+                  <span className="text-[11px] font-bold text-heading">{rate} €</span>
                 </button>
               )
             })}
           </div>
         </div>
       )}
+
+      <Field label="TJM de vente" labelClassName="w-full text-center" required>
+        <Input
+          type="number"
+          value={salesDailyRate || ""}
+          disabled={disabled}
+          className="h-12 border-amber-400 bg-amber-50/60 !text-sm font-semibold text-center text-amber-950 focus-visible:ring-amber-400"
+          onChange={(e) => {
+            const updated = { ...value }
+            updated.input = { ...value.input, salesDailyRate: Number(e.target.value) }
+            onChange(updated)
+          }}
+        />
+      </Field>
     </div>
   )
 }
-

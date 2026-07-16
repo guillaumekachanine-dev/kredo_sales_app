@@ -12,7 +12,6 @@ import {
   FinancialPricingFields,
   FinancialExpenseFields,
   FinancialModelingResults,
-  FinancialModelingWarnings,
   formatEuroWithCents,
   formatEuroInteger
 } from "../shared"
@@ -65,7 +64,7 @@ function createDefaultFormState(): FinancialModelFormState {
       employerChargesRate: 0.45,
       annualWorkingDays: 218,
       startDate: new Date().toISOString().split("T")[0],
-      endDate: null,
+      endDate: `${new Date().getFullYear()}-12-31`,
       salesDailyRate: 0,
       forecastActivityRate: 0.90,
       expenses: [],
@@ -136,19 +135,6 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     () => serializeComparableState(formState) !== serializeComparableState(baselineState),
     [baselineState, formState],
   )
-  const selectedResource = useMemo(() => {
-    if (!bootstrap) return null
-    if (formState.input.resourceType === "collaborator") {
-      return bootstrap.catalog.collaborators.find((item) => item.id === formState.collaboratorId) ?? null
-    }
-    if (formState.input.resourceType === "candidate") {
-      return bootstrap.catalog.candidates.find((item) => item.id === formState.candidateId) ?? null
-    }
-    return null
-  }, [bootstrap, formState.collaboratorId, formState.candidateId, formState.input.resourceType])
-  const currentChargesRate =
-    formState.input.costModel === "salaried" ? formState.input.employerChargesRate ?? null : null
-
   const selectedOpp = useMemo(() => {
     if (!bootstrap || !formState.opportunityId) return null
     return bootstrap.opportunities.find((o) => o.id === formState.opportunityId)
@@ -332,6 +318,74 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     }
   }
 
+  const historyPanel = (
+    <section className="flex h-full flex-col gap-4 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Simulations récentes</h3>
+        <span className="text-[10px] text-muted">{recentSimulations.length}</span>
+      </div>
+
+      {recentSimulations.length === 0 ? (
+        <p className="text-[11px] italic text-muted">Aucune simulation enregistrée.</p>
+      ) : (
+        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
+          {recentSimulations.map((sim) => (
+            <div
+              key={sim.id}
+              className={`space-y-1.5 rounded-[var(--radius-medium)] border p-2.5 text-[11px] transition-colors ${
+                formState.id === sim.id
+                  ? "border-primary bg-primary/[0.02]"
+                  : "border-border/60 bg-surface hover:bg-canvas/5"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-1">
+                <span className="block flex-1 truncate font-semibold text-heading">{sim.title}</span>
+                <StatusPill
+                  label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
+                  variant={getStatusVariant(sim.status)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-2 text-muted">
+                <div>Ressource : <span className="block truncate font-medium text-body">{sim.resource_label}</span></div>
+                <div>Marge : <span className="font-medium text-body">{formatEuroWithCents(Number(sim.gross_margin_amount))}</span></div>
+              </div>
+
+              <div className="mt-1.5 flex items-center justify-between border-t border-border/40 pt-1.5">
+                <span className="text-[9px] text-muted">{new Date(sim.updated_at).toLocaleDateString("fr-FR")}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSimulation(sim.id)}
+                    className="text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    Ouvrir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicateSimulation(sim.id)}
+                    className="text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    Dupliquer
+                  </button>
+                  {(sim.status === "draft" || sim.status === "validated") && (
+                    <button
+                      type="button"
+                      onClick={() => handleArchive(sim.id)}
+                      className="text-[10px] font-semibold text-danger hover:underline"
+                    >
+                      Archiver
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+
   return (
     <>
       <AppDialog
@@ -342,63 +396,100 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
           }
         }}
         title={
-          <div className="flex items-center gap-2">
-            <img
-              src="/icons_set/calculatrice.png"
-              alt="Calculatrice"
-              className="w-5 h-5 object-contain"
-            />
-            <span>
-              {formState.input.mode === "flash"
-                ? "Modélisation Financière (Flash)"
-                : "Modélisation Financière (Complet)"}
-            </span>
-            {formState.id && (
-              <StatusPill
-                label={FINANCIAL_MODEL_STATUS_LABELS[formState.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || formState.status}
-                variant={getStatusVariant(formState.status)}
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <img
+                src="/icons_set/calculatrice.png"
+                alt="Calculatrice"
+                className="w-5 h-5 object-contain"
               />
-            )}
+              <span className="truncate">
+                {formState.input.mode === "flash"
+                  ? "Modélisation Financière (Flash)"
+                  : "Modélisation Financière (Complet)"}
+              </span>
+              {formState.id && (
+                <StatusPill
+                  label={FINANCIAL_MODEL_STATUS_LABELS[formState.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || formState.status}
+                  variant={getStatusVariant(formState.status)}
+                />
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1">
+              {formState.input.mode === "full" && (
+                <button
+                  type="button"
+                  onClick={() => handleModeChange("flash")}
+                  className="inline-flex size-7 items-center justify-center rounded-[var(--radius-small)] bg-white/10 text-white/85 transition-colors hover:bg-white/20 hover:text-white"
+                  aria-label="Retour en mode Flash"
+                  title="Retour en mode Flash"
+                >
+                  <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 14 4 9m0 0 5-5M4 9h10a6 6 0 0 1 0 12h-1" />
+                  </svg>
+                </button>
+              )}
+              {formState.input.mode === "full" && (
+                <button
+                  type="button"
+                  onClick={() => setShowHistory((current) => !current)}
+                  className={`inline-flex size-7 items-center justify-center rounded-[var(--radius-small)] transition-colors ${showHistory ? "bg-white/25 text-white" : "bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"}`}
+                  aria-label={showHistory ? "Masquer l’historique" : "Afficher l’historique"}
+                  title={showHistory ? "Masquer l’historique" : "Afficher l’historique"}
+                >
+                  <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 2" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         }
-        className="w-full max-w-5xl h-[85vh] max-h-[85vh]"
-        headerClassName="-mx-4 -mt-4 px-4 py-4 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5 rounded-t-[var(--radius-medium)] bg-[#FFC107] text-slate-900 [&_button]:text-slate-700 [&_button]:hover:text-slate-950 border-b border-amber-500/20"
+        className={`h-[85vh] max-h-[85vh] max-w-none !w-[min(calc(100vw-2rem),64rem)] will-change-transform transition-transform ease-out motion-reduce:transition-none ${
+          formState.input.mode === "full" && showHistory
+            ? "-translate-x-[min(16rem,21vw)] duration-500"
+            : "translate-x-0 duration-300"
+        }`}
+        titleClassName="flex-1"
+        headerClassName="-mx-4 -mt-4 rounded-t-[var(--radius-medium)] border-b border-[#1E4596] bg-[#2554B8] px-4 py-4 text-white [&_button]:text-white/80 [&_button]:hover:text-white sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5"
         bodyClassName="p-0 overflow-hidden flex flex-col h-full"
+        aside={historyPanel}
+        asideOpen={formState.input.mode === "full" && showHistory}
       >
         {/* Persistent Floating Results Header Bar */}
         {clientResult && (
-          <div className="bg-slate-900 border-b border-slate-800 px-5 py-3 grid grid-cols-4 divide-x divide-slate-800 text-center shrink-0">
+          <div className="grid shrink-0 grid-cols-4 divide-x divide-amber-600/20 border-b border-amber-500/30 bg-amber-400/75 px-5 py-3 text-center">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">CA</p>
-              <p className="text-sm font-bold text-white mt-0.5">{formatEuroInteger(clientResult.periodRevenue)}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">CA</p>
+              <p className="mt-0.5 text-sm font-bold text-amber-950">{formatEuroInteger(clientResult.periodRevenue)}</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Coûts</p>
-              <p className="text-sm font-bold text-white mt-0.5">{formatEuroInteger(clientResult.totalCosts)}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">Coûts</p>
+              <p className="mt-0.5 text-sm font-bold text-amber-950">{formatEuroInteger(clientResult.totalCosts)}</p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">Marge</p>
-              <p className={`text-sm font-bold mt-0.5 ${clientResult.commercialMargin < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">Marge</p>
+              <p className={`mt-0.5 text-sm font-bold ${clientResult.commercialMargin < 0 ? "text-rose-700" : "text-emerald-800"}`}>
                 {formatEuroInteger(clientResult.commercialMargin)}
               </p>
             </div>
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">MCO %</p>
-              <p className="text-sm font-bold text-white mt-0.5">{clientResult.mcoPercent !== null ? `${clientResult.mcoPercent.toFixed(2)}%` : "—"}</p>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">MCO %</p>
+              <p className="mt-0.5 text-sm font-bold text-amber-950">{clientResult.mcoPercent !== null ? `${clientResult.mcoPercent.toFixed(2)}%` : "—"}</p>
             </div>
           </div>
         )}
 
         {/* Scrollable Main Content */}
-        <div className="flex-1 overflow-y-auto p-5 min-h-0">
+        <div className="flex-1 overflow-y-auto p-5 min-h-0 [&_input]:text-[11px] [&_button]:text-[11px]">
           {loading || !bootstrap ? (
             <div className="flex items-center justify-center h-60 text-sm text-muted">
               Chargement du contexte financier...
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-6">
-              {/* Form columns (2/3 width in Complet with history panel open, full width otherwise) */}
-              <div className={formState.input.mode === "full" && showHistory ? "col-span-2 space-y-6" : "col-span-3 space-y-6"}>
+            <div className="space-y-6">
                 {formState.input.mode === "flash" ? (
                   <div className="space-y-6">
                     <FinancialModelingFlashFields
@@ -409,15 +500,6 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                       disabled={isReadOnly}
                     />
                     
-                    {!isReadOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleModeChange("full")}
-                        className="w-full py-2.5 border border-dashed border-primary/45 rounded-[var(--radius-medium)] text-xs text-primary font-semibold hover:bg-primary/[0.03] transition-all"
-                      >
-                        Passer en mode complet
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <>
@@ -441,6 +523,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                         onChange={setFormState}
                         catalog={bootstrap.catalog}
                         assumptions={bootstrap.assumptions}
+                        result={clientResult}
                         disabled={isReadOnly}
                       />
                     </div>
@@ -460,13 +543,13 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                         pricing={bootstrap.pricing}
                         companies={bootstrap.companies}
                         opportunities={bootstrap.opportunities}
+                        activeStaffingCompanyIds={bootstrap.activeStaffingCompanyIds}
                         disabled={isReadOnly}
                       />
                     </div>
 
                     {/* Section Expenses */}
                     <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">5. Frais</h3>
                       <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={isReadOnly} />
                     </div>
 
@@ -488,212 +571,70 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
                     {/* Section Results */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">6. Résultats</h3>
-                      <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} />
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">7. Warnings</h3>
-                      {clientResult && clientResult.warnings.length > 0 && (
-                        <FinancialModelingWarnings warnings={clientResult.warnings} />
-                      )}
-                      {(!clientResult || clientResult.warnings.length === 0) && (
-                        <p className="rounded-[var(--radius-medium)] border border-border/60 bg-canvas/20 px-3 py-2 text-[11px] text-muted">
-                          Aucun warning métier actif sur cette simulation.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="text-xs font-bold text-heading uppercase tracking-wider">8. Provenance</h3>
-                      <div className="rounded-[var(--radius-medium)] border border-border/60 bg-canvas/20 p-3 text-[11px] text-body space-y-2">
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Ressource</p>
-                            <p>{selectedResource?.label || formState.resourceLabel || "Aucune ressource sélectionnée"}</p>
-                            <p className="text-muted">
-                              Profil: {selectedResource?.provenance.jobProfile ?? "Snapshot manuel"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Charges</p>
-                            <p>
-                              {currentChargesRate != null
-                                ? `${(currentChargesRate * 100).toFixed(1)} %`
-                                : "Hypothèse par défaut"}
-                            </p>
-                            <p className="text-muted">
-                              Source: {selectedResource?.provenance.employerChargesRate ?? "financial_charge_rates / défaut"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Activité historique</p>
-                            <p>
-                              {formState.input.historicalActivityRate != null
-                                ? `${(formState.input.historicalActivityRate * 100).toFixed(1)} %`
-                                : "Non disponible"}
-                            </p>
-                            <p className="text-muted">
-                              Source: {selectedResource?.provenance.historicalActivityRate ?? "Aucune source"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Tarification</p>
-                            <p>{formState.input.salesDailyRate > 0 ? formatEuroWithCents(formState.input.salesDailyRate) : "Non renseignée"}</p>
-                            <p className="text-muted">
-                              Source: {formState.pricingAgreementId ? "Accord client" : formState.precedentMissionId ? "Mission passée" : formState.precedentOpportunityId || formState.opportunityId ? "Opportunité" : "Saisie manuelle / benchmark"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} hideKpis />
                     </div>
                   </>
                 )}
-              </div>
-
-              {/* Sidebar: Recent Simulations (only in Complet Mode) */}
-              {formState.input.mode === "full" && showHistory && (
-                <div className="col-span-1 border-l border-border/60 pl-6 space-y-4">
-                  <h3 className="text-xs font-bold text-heading uppercase tracking-wider">9. Simulations récentes</h3>
-                  
-                  {recentSimulations.length === 0 ? (
-                    <p className="text-[11px] text-muted italic">Aucune simulation enregistrée.</p>
-                  ) : (
-                    <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
-                      {recentSimulations.map((sim) => (
-                        <div
-                          key={sim.id}
-                          className={`p-2.5 rounded-[var(--radius-medium)] border text-[11px] space-y-1.5 transition-all ${
-                            formState.id === sim.id
-                              ? "border-primary bg-primary/[0.02]"
-                              : "border-border/60 bg-surface hover:bg-canvas/5"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-1">
-                            <span className="font-semibold text-heading truncate block flex-1">
-                              {sim.title}
-                            </span>
-                             <StatusPill
-                               label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
-                               variant={getStatusVariant(sim.status)}
-                             />
-                          </div>
-
-                          <div className="text-muted grid grid-cols-2 gap-x-2">
-                            <div>Ressource : <span className="font-medium text-body truncate block">{sim.resource_label}</span></div>
-                            <div>Marge : <span className="font-medium text-body">{formatEuroWithCents(Number(sim.gross_margin_amount))}</span></div>
-                          </div>
-
-                          <div className="flex items-center justify-between border-t border-border/40 pt-1.5 mt-1.5">
-                            <span className="text-[9px] text-muted">
-                              {new Date(sim.updated_at).toLocaleDateString("fr-FR")}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenSimulation(sim.id)}
-                                className="text-[10px] text-primary font-semibold hover:underline"
-                              >
-                                Ouvrir
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDuplicateSimulation(sim.id)}
-                                className="text-[10px] text-primary font-semibold hover:underline"
-                              >
-                                Dupliquer
-                              </button>
-                              {(sim.status === "draft" || sim.status === "validated") && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleArchive(sim.id)}
-                                  className="text-[10px] text-danger font-semibold hover:underline"
-                                >
-                                  Archiver
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>
 
         {/* Fixed Footer */}
-        <div className="border-t border-border/80 p-4 flex items-center justify-between bg-surface shrink-0">
-          <div className="flex items-center gap-4">
-            {formState.input.mode === "full" && (
-              <button
-                type="button"
-                onClick={() => handleModeChange("flash")}
-                className="text-xs text-muted hover:text-heading font-medium transition-colors"
-              >
-                Retour en mode Flash
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowHistory(!showHistory)}
-              className={`text-xs font-semibold transition-colors ${showHistory ? "text-primary" : "text-muted hover:text-heading"}`}
+        <div className="shrink-0 border-t border-border/80 bg-surface p-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleRequestClose}
+              className="justify-self-start border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
             >
-              {showHistory ? "Masquer l'historique" : "Afficher l'historique"}
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={handleRequestClose}>
               Fermer
             </Button>
-            
+
+            {!isReadOnly && formState.input.mode === "flash" ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="justify-self-center"
+                disabled={loading || !bootstrap}
+                onClick={() => handleModeChange("full")}
+              >
+                Passer en mode complet
+              </Button>
+            ) : !isReadOnly && formState.input.mode === "full" ? (
+              <Button
+                variant="primary"
+                size="sm"
+                className="justify-self-center bg-[#2554B8] hover:bg-[#1E4596]"
+                disabled={!canSave || saving || loading}
+                onClick={() => handleSave("validated")}
+              >
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
+            ) : <span />}
+
             {isReadOnly ? (
               <Button
                 variant="primary"
                 size="sm"
+                className="justify-self-end"
                 disabled={loading || saving}
                 onClick={() => handleDuplicateSimulation(formState.id!)}
               >
                 Dupliquer pour réviser
               </Button>
-            ) : (
-              <>
-                {formState.input.mode === "full" && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={!canSave || saving || loading}
-                      onClick={() => handleSave("draft")}
-                    >
-                      {saving ? "Enregistrement..." : "Enregistrer le brouillon"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={!canSave || saving || loading}
-                      onClick={() => handleSave("validated")}
-                    >
-                      Enregistrer la simulation
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={!formState.id || !eligibility.eligible || saving || loading}
-                      onClick={handlePromoteToReference}
-                      title={!eligibility.eligible ? "La simulation ne respecte pas tous les critères requis pour devenir la référence." : undefined}
-                    >
-                      Définir comme référence financière
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
+            ) : formState.input.mode === "full" ? (
+              <Button
+                variant="brass"
+                size="sm"
+                className="justify-self-end border-amber-400 bg-amber-400 text-amber-950 hover:bg-amber-500"
+                disabled={!formState.id || !eligibility.eligible || saving || loading}
+                onClick={handlePromoteToReference}
+                title={!eligibility.eligible ? "La simulation ne respecte pas tous les critères requis pour devenir la référence." : undefined}
+              >
+                Définir comme référence
+              </Button>
+            ) : <span />}
           </div>
         </div>
       </AppDialog>

@@ -14,6 +14,7 @@ export type FinancialResourceCatalogItem = {
   personId: string
   label: string
   currentTitle: string | null
+  hasVehicle: boolean | null
   seniority: string | null
   location: string | null
   jobProfileId: string | null
@@ -105,7 +106,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
     supabase
       .from("candidates")
       .select(
-        "id, person_id, current_title, seniority, job_profile_id, cost_model, expected_salary, last_salary, expected_daily_rate",
+        "id, person_id, current_title, has_vehicle, seniority, job_profile_id, cost_model, expected_salary, last_salary, expected_daily_rate",
       ),
     supabase.from("persons").select("id, full_name, first_name, last_name, location"),
     supabase.from("job_profiles").select("id, title"),
@@ -203,6 +204,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
         personId: collaborator.person_id,
         label: getPersonLabel(person),
         currentTitle: collaborator.current_title,
+        hasVehicle: null,
         seniority: collaborator.seniority,
         location: person?.location ?? null,
         jobProfileId: collaborator.job_profile_id,
@@ -267,13 +269,10 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
     let purchaseDailyRateProvenance: string | null = null
 
     if (resourceCostModel === "salaried") {
-      annualGrossSalary = candidate.expected_salary ?? candidate.last_salary ?? null
-      annualGrossSalaryProvenance =
-        candidate.expected_salary !== null
-          ? "candidates.expected_salary"
-          : candidate.last_salary !== null
-            ? "candidates.last_salary"
-            : null
+      annualGrossSalary = candidate.last_salary ?? null
+      annualGrossSalaryProvenance = candidate.last_salary !== null
+        ? "candidates.last_salary"
+        : null
 
       if (annualGrossSalary === null) {
         missingData.push("annual_gross_salary")
@@ -298,6 +297,7 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
       personId: candidate.person_id,
       label: getPersonLabel(person),
       currentTitle: candidate.current_title,
+      hasVehicle: candidate.has_vehicle,
       seniority: candidate.seniority,
       location: person?.location ?? null,
       jobProfileId: candidate.job_profile_id,

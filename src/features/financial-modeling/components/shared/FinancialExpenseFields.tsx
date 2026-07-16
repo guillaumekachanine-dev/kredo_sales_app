@@ -60,25 +60,10 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
     onChange(updated)
   }
 
-  const handleMoveExpense = (index: number, direction: "up" | "down") => {
-    if (disabled) return
-    const newIndex = direction === "up" ? index - 1 : index + 1
-    if (newIndex < 0 || newIndex >= expenses.length) return
-
-    const updated = { ...value }
-    const nextExpenses = [...expenses]
-    const temp = nextExpenses[index]
-    nextExpenses[index] = nextExpenses[newIndex]
-    nextExpenses[newIndex] = temp
-
-    updated.input = { ...value.input, expenses: nextExpenses }
-    onChange(updated)
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between border-b border-border/80 pb-2">
-        <h4 className="text-[11px] font-bold uppercase tracking-wider text-heading">Frais ESN rattachés</h4>
+        <h3 className="text-xs font-bold uppercase tracking-wider text-heading">5. Frais</h3>
         <button
           type="button"
           disabled={disabled}
@@ -105,32 +90,12 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                 className="relative bg-canvas/30 border border-border/60 rounded-[var(--radius-medium)] p-3 space-y-3"
               >
                 {/* Row Header with controls */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-heading">Frais #{idx + 1}</span>
-                  <div className="flex items-center gap-1.5">
-                    {/* Reordering */}
-                    <button
-                      type="button"
-                      disabled={disabled || idx === 0}
-                      onClick={() => handleMoveExpense(idx, "up")}
-                      className="text-muted hover:text-heading disabled:opacity-30 disabled:hover:text-muted transition-colors"
-                      title="Monter"
-                    >
-                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={disabled || idx === expenses.length - 1}
-                      onClick={() => handleMoveExpense(idx, "down")}
-                      className="text-muted hover:text-heading disabled:opacity-30 disabled:hover:text-muted transition-colors"
-                      title="Descendre"
-                    >
-                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                      </svg>
-                    </button>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-heading">Frais #{idx + 1}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted">
+                      Total : <span className="font-semibold text-heading">{formatEuroWithCents(calculatedAmount)}</span>
+                    </span>
                     {/* Deletion */}
                     <button
                       type="button"
@@ -147,7 +112,7 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                 </div>
 
                 {/* Primary input fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                   <Field label="Libellé" required>
                     <Input
                       placeholder="ex: Abonnement train, Loyer laptop..."
@@ -156,8 +121,10 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                       onChange={(e) => handleExpenseFieldChange(idx, "label", e.target.value)}
                     />
                   </Field>
+                </div>
 
-                  <Field label="Catégorie (Optionnel)" optional>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Catégorie" optional>
                     <Select
                       value={expense.category || ""}
                       disabled={disabled}
@@ -171,10 +138,7 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                       ))}
                     </Select>
                   </Field>
-                </div>
 
-                {/* Quantities and calculations */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
                   <Field label="Mode de calcul" required>
                     <Select
                       value={expense.calculationMode}
@@ -188,7 +152,9 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                       <option value="annual">Annuel proratisé</option>
                     </Select>
                   </Field>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="Montant unitaire (€)" required>
                     <Input
                       type="number"
@@ -210,13 +176,6 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
                       }}
                     />
                   </Field>
-
-                  <div className="flex flex-col items-end pb-2.5">
-                    <span className="text-[10px] text-muted">Total calculé :</span>
-                    <span className="text-sm font-bold text-heading mt-0.5">
-                      {formatEuroWithCents(calculatedAmount)}
-                    </span>
-                  </div>
                 </div>
               </div>
             )
@@ -226,4 +185,3 @@ export function FinancialExpenseFields({ value, onChange, result, disabled }: Fi
     </div>
   )
 }
-

@@ -13,6 +13,7 @@ export interface FieldProps {
   optional?: boolean
   children: React.ReactElement
   className?: string
+  labelClassName?: string
 }
 
 export function Field({
@@ -24,6 +25,7 @@ export function Field({
   optional = false,
   children,
   className,
+  labelClassName,
 }: FieldProps) {
   const generatedId = useId()
   const controlId = htmlFor ?? generatedId
@@ -42,7 +44,7 @@ export function Field({
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label ? (
-        <label htmlFor={controlId} className={fieldLabelClasses}>
+        <label htmlFor={controlId} className={cn(fieldLabelClasses, labelClassName)}>
           <span>{label}</span>
           {required ? (
             <span className="ml-1 text-danger" aria-hidden="true">

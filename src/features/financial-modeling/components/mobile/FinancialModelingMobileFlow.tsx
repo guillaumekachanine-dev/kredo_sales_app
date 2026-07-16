@@ -58,7 +58,7 @@ function createDefaultFormState(): FinancialModelFormState {
       employerChargesRate: 0.45,
       annualWorkingDays: 218,
       startDate: new Date().toISOString().split("T")[0],
-      endDate: null,
+      endDate: `${new Date().getFullYear()}-12-31`,
       salesDailyRate: 0,
       forecastActivityRate: 0.85,
       expenses: [],
@@ -243,7 +243,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
             >
               <span className="flex items-center gap-2">
                 <span className="text-sm">🕒</span>
-                <span>Voir l'historique des simulations</span>
+                <span>Voir l&apos;historique des simulations</span>
               </span>
               <span>→</span>
             </button>
@@ -269,6 +269,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
               pricing={bootstrap.pricing}
               companies={bootstrap.companies}
               opportunities={bootstrap.opportunities}
+              activeStaffingCompanyIds={bootstrap.activeStaffingCompanyIds}
               disabled={isReadOnly}
             />
           </div>
@@ -494,7 +495,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         contentClassName="flex-1 overflow-y-auto px-4 py-4"
         footer={
           <Button variant="secondary" size="md" className="w-full h-11" onClick={() => setShowMobileHistory(false)}>
-            Fermer l'historique
+            Fermer l&apos;historique
           </Button>
         }
       >

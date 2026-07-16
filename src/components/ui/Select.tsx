@@ -26,6 +26,7 @@ type SelectItem =
       value: string
       label: React.ReactNode
       disabled: boolean
+      className?: string
     }
 
 type SelectChildProps = {
@@ -33,6 +34,7 @@ type SelectChildProps = {
   label?: string
   value?: string | number
   disabled?: boolean
+  className?: string
 }
 
 function getNodeText(node: React.ReactNode): string {
@@ -93,6 +95,7 @@ function flattenSelectChildren(
         value,
         label: element.props.children,
         disabled: Boolean(element.props.disabled),
+        className: element.props.className,
       })
     }
   })
@@ -371,6 +374,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                             className={cn(
                               "flex min-h-11 w-full items-start justify-between gap-3 rounded-[14px] px-3 py-3 text-left text-sm leading-6 text-heading transition-colors",
                               isSelected ? "bg-primary/8 text-primary" : "bg-transparent",
+                              item.className,
                               item.disabled && "cursor-not-allowed opacity-50",
                             )}
                             onClick={() => {
@@ -497,7 +501,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                   return (
                     <div
                       key={item.key}
-                      className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted"
+                      className="mt-1 border-t border-border/60 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted first:mt-0 first:border-t-0"
                     >
                       {item.label}
                     </div>
@@ -514,6 +518,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     className={cn(
                       "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs text-body hover:bg-canvas transition-colors",
                       isSelected ? "bg-primary/10 text-primary font-semibold" : "",
+                      item.className,
                       item.disabled && "cursor-not-allowed opacity-50",
                     )}
                     onClick={() => {

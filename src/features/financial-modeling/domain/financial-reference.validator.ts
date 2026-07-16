@@ -46,8 +46,9 @@ export function validateFinancialReferenceEligibility(
     errors.push("Le libellé de la ressource externe est obligatoire.")
   }
 
-  if (!state.jobProfileId) {
-    errors.push("Le profil ou rôle de la ressource est obligatoire.")
+  const profileName = state.profileNameSnapshot?.trim()
+  if (!state.jobProfileId && !profileName) {
+    errors.push("Le métier de la ressource est obligatoire.")
   }
 
   if (!input.startDate) {

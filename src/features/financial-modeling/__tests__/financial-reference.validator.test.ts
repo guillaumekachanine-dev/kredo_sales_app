@@ -92,13 +92,24 @@ describe("validateFinancialReferenceEligibility", () => {
     expect(res3.errors).toContain("Le libellé de la ressource externe est obligatoire.")
   })
 
-  it("fails when job profile is missing", () => {
+  it("accepts the métier snapshot when the legacy job profile is absent", () => {
     const state = makeValidFormState()
     state.jobProfileId = null
+    state.profileNameSnapshot = "Consultant data"
+    const res = validateFinancialReferenceEligibility(state)
+
+    expect(res.eligible).toBe(true)
+    expect(res.errors).not.toContain("Le métier de la ressource est obligatoire.")
+  })
+
+  it("fails when both the métier snapshot and legacy job profile are missing", () => {
+    const state = makeValidFormState()
+    state.jobProfileId = null
+    state.profileNameSnapshot = "  "
     const res = validateFinancialReferenceEligibility(state)
 
     expect(res.eligible).toBe(false)
-    expect(res.errors).toContain("Le profil ou rôle de la ressource est obligatoire.")
+    expect(res.errors).toContain("Le métier de la ressource est obligatoire.")
   })
 
   it("fails when start or end date are missing", () => {
