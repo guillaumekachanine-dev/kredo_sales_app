@@ -85,6 +85,10 @@
   /* bg-info     text-info     */
   --color-status-success: #2C7D5C;
   --color-status-warning: #C08A20;
+  /* Encre lisible du warning : l'amber #C08A20 échoue le contraste AA
+     en texte sur fond clair (~3,9:1). Variante foncée réservée au TEXTE
+     des pastilles/badges warning (bg reste --color-status-warning). */
+  --color-status-warning-ink: #8A6018;
   --color-status-danger: #BE3E3E;
   --color-status-info: #2E7D8C;
   --color-status-neutral: #6E7A8A;

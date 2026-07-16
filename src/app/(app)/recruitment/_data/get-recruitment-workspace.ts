@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import type { Json } from "@/types/database.types"
+import type { Json } from "@/types/database.generated"
 import {
   mapRecruitmentStatusToStage,
   type RecruitmentStageKey,
