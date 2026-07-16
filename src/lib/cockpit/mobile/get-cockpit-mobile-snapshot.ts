@@ -62,19 +62,30 @@ type PositioningRow = {
 type AccountSignalRow = {
   id: string
   title: string
+  signal_category: string
   summary: string | null
   global_score: number
+  score_justification: string | null
   last_evidence_at: string
   expires_at: string | null
   status: string
   recommended_action: string | null
   company_id: string
+  suggested_contact_id: string | null
   company: { id: string; name: string } | Array<{ id: string; name: string }> | null
+  suggested_contact: {
+    id: string
+    person: { full_name: string | null } | Array<{ full_name: string | null }> | null
+  } | Array<{
+    id: string
+    person: { full_name: string | null } | Array<{ full_name: string | null }> | null
+  }> | null
 }
 
 type VeilleArticleRow = {
   id: string
   titre_fr: string
+  categorie: string
   resume: string
   action_commerciale: string
   published_at: string | null
@@ -365,7 +376,7 @@ async function loadFallbackSignals(
   const { data, error, count } = await supabase
     .from("veille_articles")
     .select(
-      "id,titre_fr,resume,action_commerciale,published_at,created_at,selection_rank,url",
+      "id,titre_fr,categorie,resume,action_commerciale,published_at,created_at,selection_rank,url",
       { count: "exact" },
     )
     .eq("workspace_id", workspaceId)
@@ -382,14 +393,18 @@ async function loadFallbackSignals(
     id: article.id,
     source: "veille_article",
     title: article.titre_fr,
+    category: article.categorie,
     summary: article.resume,
     globalScore: null,
+    scoreJustification: null,
     lastEvidenceAt: article.published_at ?? article.created_at,
     expiresAt: null,
     status: "new",
     recommendedAction: article.action_commerciale,
     companyId: null,
     companyName: null,
+    suggestedContactId: null,
+    suggestedContactName: null,
     sourceUrl: article.url,
     selectionRank: article.selection_rank,
   }))
@@ -414,14 +429,21 @@ async function loadSignals(
       .select(`
         id,
         title,
+        signal_category,
         summary,
         global_score,
+        score_justification,
         last_evidence_at,
         expires_at,
         status,
         recommended_action,
         company_id,
-        company:companies!inner(id,name)
+        suggested_contact_id,
+        company:companies!inner(id,name),
+        suggested_contact:contacts!account_signals_suggested_contact_id_fkey(
+          id,
+          person:persons(full_name)
+        )
       `, { count: "exact" })
       .eq("workspace_id", workspaceId)
       .eq("status", "new")
@@ -450,18 +472,24 @@ async function loadSignals(
     (signalsResult.data ?? []) as unknown as AccountSignalRow[]
   ).map((signal) => {
     const company = firstRelation(signal.company)
+    const suggestedContact = firstRelation(signal.suggested_contact)
+    const suggestedContactPerson = firstRelation(suggestedContact?.person ?? null)
     return {
       id: signal.id,
       source: "account_signal",
       title: signal.title,
+      category: signal.signal_category,
       summary: signal.summary,
       globalScore: signal.global_score,
+      scoreJustification: signal.score_justification,
       lastEvidenceAt: signal.last_evidence_at,
       expiresAt: signal.expires_at,
       status: signal.status,
       recommendedAction: signal.recommended_action,
       companyId: company?.id ?? signal.company_id,
       companyName: company?.name ?? null,
+      suggestedContactId: suggestedContact?.id ?? signal.suggested_contact_id,
+      suggestedContactName: suggestedContactPerson?.full_name ?? null,
       sourceUrl: null,
     }
   })

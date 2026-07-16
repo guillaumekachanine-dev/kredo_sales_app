@@ -367,14 +367,18 @@ export interface CockpitSignalSource {
   id: string
   source: "account_signal" | "veille_article"
   title: string
+  category: string
   summary: string | null
   globalScore: number | null
+  scoreJustification: string | null
   lastEvidenceAt: string
   expiresAt: string | null
   status: string
   recommendedAction: string | null
   companyId: string | null
   companyName: string | null
+  suggestedContactId: string | null
+  suggestedContactName: string | null
   sourceUrl: string | null
   selectionRank?: number
 }
@@ -414,8 +418,10 @@ export function selectCockpitSignals(
       id: signal.id,
       source: signal.source,
       title: signal.title,
+      category: signal.category,
       summary: signal.summary,
       globalScore: signal.globalScore,
+      scoreJustification: signal.scoreJustification,
       lastEvidenceAt: signal.lastEvidenceAt,
       expiresAt: signal.expiresAt,
       isStrong: signal.source === "account_signal"
@@ -423,6 +429,8 @@ export function selectCockpitSignals(
       recommendedAction: signal.recommendedAction,
       companyId: signal.companyId,
       companyName: signal.companyName,
+      suggestedContactId: signal.suggestedContactId,
+      suggestedContactName: signal.suggestedContactName,
       href: signal.companyId
         ? `/prospection/accounts/${signal.companyId}`
         : signal.sourceUrl ?? "/veille",

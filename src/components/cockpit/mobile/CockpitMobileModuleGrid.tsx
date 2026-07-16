@@ -24,8 +24,16 @@ function plural(count: number, singular: string, pluralLabel = `${singular}s`) {
   return `${count} ${count === 1 ? singular : pluralLabel}`
 }
 
+function shortDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(value))
+}
+
 export function CockpitMobileModuleGrid({ snapshot, onOpen }: CockpitMobileModuleGridProps) {
   const diagnostic = snapshot?.diagnostic?.diagnostic
+  const displayedStrongSignalCount = snapshot?.signals.items.filter((signal) => signal.isStrong).length ?? 0
   const modules: Array<{
     id: CockpitModuleId
     title: string
@@ -81,7 +89,7 @@ export function CockpitMobileModuleGrid({ snapshot, onOpen }: CockpitMobileModul
       title: "Diagnostic IA",
       icon: "diagnostic",
       indicator: diagnostic ? plural(diagnostic.priorities.length, "arbitrage") : "Aucun diagnostic",
-      detail: diagnostic?.correlations[0]?.title ?? (diagnostic ? "Aucune corrélation détectée" : "Aucun contenu disponible"),
+      detail: diagnostic ? `Généré le ${shortDate(diagnostic.generatedAt)}` : "Aucun contenu disponible",
       badge: diagnostic?.correlations.some((item) => item.severity === "critical") ? "Alerte" : undefined,
     },
     {
@@ -90,11 +98,11 @@ export function CockpitMobileModuleGrid({ snapshot, onOpen }: CockpitMobileModul
       icon: "signals",
       indicator: snapshot ? plural(snapshot.signals.items.length, "signal") : "Indisponible",
       detail: snapshot
-        ? snapshot.signals.strongCount > 0
-          ? plural(snapshot.signals.strongCount, "fort")
+        ? displayedStrongSignalCount > 0
+          ? plural(displayedStrongSignalCount, "fort")
           : "Aucun signal fort"
         : "Données non chargées",
-      badge: snapshot && snapshot.signals.strongCount > 0 ? "Fort" : undefined,
+      badge: displayedStrongSignalCount > 0 ? "Fort" : undefined,
     },
   ]
 

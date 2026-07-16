@@ -53,14 +53,18 @@ export interface CockpitSignalItem {
   id: string
   source: "account_signal" | "veille_article"
   title: string
+  category: string
   summary: string | null
   globalScore: number | null
+  scoreJustification: string | null
   lastEvidenceAt: string
   expiresAt: string | null
   isStrong: boolean
   recommendedAction: string | null
   companyId: string | null
   companyName: string | null
+  suggestedContactId: string | null
+  suggestedContactName: string | null
   href: string
   sourceUrl: string | null
 }

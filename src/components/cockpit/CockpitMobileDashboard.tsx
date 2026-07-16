@@ -97,6 +97,7 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
           returnFocusRef={returnFocusRef}
           suspended={isComposerOpen}
           onComposerOpen={() => setComposerOpen(true)}
+          onOpenModule={(module) => setActiveModule(module)}
         />
       ) : null}
 
