@@ -91,6 +91,8 @@ const FALLBACK_TITLE_BY_DOCUMENT_TYPE = {
   delivery_profitability: "Delivery & rentabilite",
   account_portfolio: "Revue de portefeuille comptes",
   workspace_diagnostic: "Diagnostic du centre de profit",
+  financial_reference: "Reference financiere",
+  commercial_quote: "Devis client",
 } satisfies Record<IntelligenceDocumentType, string>
 
 const LENGTH_LABELS = {

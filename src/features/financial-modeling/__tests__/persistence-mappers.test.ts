@@ -209,6 +209,10 @@ describe("Persistence Mappers", () => {
       validated_by: null,
       validated_at: null,
       converted_at: null,
+      promoted_by: null,
+      promoted_at: null,
+      superseded_by_id: null,
+      superseded_at: null,
       created_at: "2026-06-30T10:00:00Z",
       updated_at: "2026-06-30T10:00:00Z"
     }

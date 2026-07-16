@@ -44,6 +44,8 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   delivery_profitability: "Delivery & rentabilité",
   account_portfolio: "Revue de portefeuille comptes",
   workspace_diagnostic: "Diagnostic du centre de profit",
+  financial_reference: "Référence financière",
+  commercial_quote: "Devis client",
 }
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {

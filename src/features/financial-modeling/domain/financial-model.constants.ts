@@ -66,3 +66,13 @@ export function countInclusiveCalendarDays(start: Date, end: Date): number {
   const diffMs = end.getTime() - start.getTime()
   return Math.floor(diffMs / 86_400_000) + 1
 }
+
+export const FINANCIAL_MODEL_STATUS_LABELS = {
+  draft: "Brouillon",
+  validated: "Validé",
+  reference: "Référence financière",
+  superseded: "Remplacé",
+  converted: "Converti",
+  archived: "Archivé",
+} as const
+

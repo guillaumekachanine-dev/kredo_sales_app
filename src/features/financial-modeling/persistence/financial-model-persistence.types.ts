@@ -1,5 +1,5 @@
 import type { Database } from "@/types/database"
-import type { FinancialModelInput } from "../domain"
+import type { FinancialModelInput, FinancialModelStatus } from "../domain"
 
 export type FinancialModelRow = Database["public"]["Tables"]["financial_models"]["Row"]
 export type FinancialModelInsert = Database["public"]["Tables"]["financial_models"]["Insert"]
@@ -11,7 +11,7 @@ export type FinancialModelExpenseInsert = Database["public"]["Tables"]["financia
 export interface FinancialModelFormState {
   id?: string
   title: string
-  status: "draft" | "validated" | "archived"
+  status: FinancialModelStatus
   updated_at?: string
   expected_updated_at?: string
   

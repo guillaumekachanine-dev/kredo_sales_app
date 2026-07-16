@@ -1,5 +1,5 @@
 import type { FinancialModelRow, FinancialModelExpenseRow, FinancialModelFormState } from "./financial-model-persistence.types"
-import type { FinancialModelInput, FinancialExpenseInput } from "../domain"
+import type { FinancialModelInput, FinancialExpenseInput, FinancialModelStatus } from "../domain"
 
 export function mapDbToFormState(
   model: FinancialModelRow,
@@ -7,7 +7,7 @@ export function mapDbToFormState(
 ): FinancialModelFormState {
   const resourceType = model.resource_type as "collaborator" | "candidate" | "external"
   const costModel = model.resource_cost_model as "salaried" | "subcontractor_daily_rate" | "fixed_external_cost"
-  const status = model.status as "draft" | "validated" | "archived"
+  const status = model.status as FinancialModelStatus
 
   const assumptions = (model.assumptions || {}) as Record<string, unknown>
   const flags = (assumptions.flags || {}) as Record<string, unknown>

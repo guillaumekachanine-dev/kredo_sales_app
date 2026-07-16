@@ -2,6 +2,14 @@ import type { Tables } from "@/types/database"
 
 export type FinancialModelVersion = string
 
+export type FinancialModelStatus =
+  | "draft"
+  | "validated"
+  | "reference"
+  | "superseded"
+  | "converted"
+  | "archived"
+
 export type FinancialModelMode = "flash" | "full"
 
 export type ResourceType = "collaborator" | "candidate" | "external"

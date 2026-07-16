@@ -20,6 +20,7 @@ import { FinancialModelingFlashFields } from "./FinancialModelingFlashFields"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
 import { FINANCIAL_MODEL_ENGINE_VERSION } from "../../domain/financial-model.constants"
+import type { FinancialModelStatus } from "../../domain/financial-model.types"
 import {
   saveFinancialModelAction,
   archiveFinancialModelAction,
@@ -182,7 +183,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
       const nextState = cloneFormState({
         ...payload,
         id: res.id,
-        status: res.status as "draft" | "validated" | "archived",
+        status: res.status as FinancialModelStatus,
         updated_at: res.updated_at,
         expected_updated_at: res.updated_at
       })

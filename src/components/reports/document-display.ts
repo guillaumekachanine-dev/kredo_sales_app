@@ -14,6 +14,8 @@ type ReportDocumentType =
   | "delivery_profitability"
   | "account_portfolio"
   | "workspace_diagnostic"
+  | "financial_reference"
+  | "commercial_quote"
 
 type CommunicationDocumentType =
   | "communication"
@@ -39,6 +41,8 @@ const REPORT_DOCUMENT_TYPES = new Set<ReportDocumentType>([
   "delivery_profitability",
   "account_portfolio",
   "workspace_diagnostic",
+  "financial_reference",
+  "commercial_quote",
 ])
 
 export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
@@ -59,6 +63,8 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   delivery_profitability: "Delivery & rentabilité",
   account_portfolio: "Revue de portefeuille comptes",
   workspace_diagnostic: "Diagnostic du centre de profit",
+  financial_reference: "Référence financière",
+  commercial_quote: "Devis client",
 }
 
 const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentType, string> = {
@@ -79,6 +85,8 @@ const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentTyp
   delivery_profitability: "rapport",
   account_portfolio: "rapport",
   workspace_diagnostic: "rapport",
+  financial_reference: "rapport",
+  commercial_quote: "rapport",
 }
 
 export function getDocumentCategory(documentType: DocumentType): DocumentCategory {
