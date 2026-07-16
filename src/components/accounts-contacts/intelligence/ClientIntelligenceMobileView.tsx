@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useMemo, Fragment } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { FinancialReferenceMobileCard } from "@/components/finance/FinancialReferenceMobileCard"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
@@ -47,7 +49,7 @@ import { PitchDocumentDialog } from "./PitchDocumentDialog"
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
 
-export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenceData }) {
+export function ClientIntelligenceMobileView({ data, financialReference = null }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const { company, client, sector, diagnostic, diagnosticPdfUrl, signals, contacts, opportunities, missions, accountSignals } = data
   const supabase = useMemo(() => createBrowserClient(), [])
 
@@ -699,6 +701,8 @@ export function ClientIntelligenceMobileView({ data }: { data: ClientIntelligenc
         />
         <span className="text-xs font-bold">Consulter les documents</span>
       </button>
+
+      {financialReference ? <FinancialReferenceMobileCard reference={financialReference} /> : null}
 
       <AccountWatchSettingsCard
         companyId={company.id}

@@ -5,6 +5,7 @@ import { SectionTab } from "@/lib/tabs/tab-types"
 import { getOpportunityDetail } from "@/app/(app)/missions/_data/get-opportunity-detail"
 import { OpportunityEditForm } from "./OpportunityEditForm"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import type {
   Contact,
   Opportunity,
@@ -28,6 +29,7 @@ interface OpportunityDetailData {
   }>
   events: OpportunityEvent[]
   standingProfiles: OpportunityStandingProfile[]
+  financialReference: FinancialReference | null
 }
 
 interface OpportunityDetailPanelProps {

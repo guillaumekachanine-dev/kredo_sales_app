@@ -1,5 +1,6 @@
 import type { MissionPlanningTimelineEvent } from "@/components/missions/planning/mission-planning-types"
 import type { Json } from "@/types/database"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 
 export type MissionDetailTabId =
   | "synthesis"
@@ -162,6 +163,7 @@ export interface MissionDetailViewModel {
   interactions: MissionInteraction[]
   companyContacts: Array<{ id: string; fullName: string; role: string | null }>
   compensation: MissionCompensation | null
+  financialReference: FinancialReference | null
 }
 
 // ─── Risk helpers ─────────────────────────────────────────────────────────────

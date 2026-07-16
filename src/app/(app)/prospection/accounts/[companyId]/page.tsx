@@ -5,6 +5,7 @@ import { RegisterIntelligenceContext } from "@/components/intelligence/RegisterI
 import { getClientIntelligence } from "@/lib/intelligence/intelligence-data"
 import { getAccountIntelligencePanelData } from "@/lib/intelligence/account-panel-data"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
+import { getActiveFinancialReferenceByCompanyId } from "@/features/financial-modeling/data/get-financial-reference"
 
 export const dynamic = "force-dynamic"
 
@@ -15,10 +16,11 @@ export default async function ClientIntelligencePage({
 }) {
   const { companyId } = await params
 
-  const [device, result, panelResult] = await Promise.all([
+  const [device, result, panelResult, financialReference] = await Promise.all([
     getDashboardDevice(),
     getClientIntelligence(companyId),
     getAccountIntelligencePanelData(companyId),
+    getActiveFinancialReferenceByCompanyId(companyId),
   ])
 
   if (!result.data) {
@@ -39,7 +41,7 @@ export default async function ClientIntelligencePage({
           panelData={panelResult.data}
         />
       )}
-      <ClientIntelligenceView data={result.data} device={device} />
+      <ClientIntelligenceView data={result.data} device={device} financialReference={financialReference} />
     </>
   )
 }

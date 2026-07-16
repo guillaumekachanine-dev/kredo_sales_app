@@ -1,6 +1,8 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { getActiveFinancialReferenceByOpportunityId } from "@/features/financial-modeling/data/get-financial-reference"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import type { Json } from "@/types/database"
 import type {
   Contact,
@@ -29,6 +31,7 @@ export type OpportunityDetailResult =
         }>
         events: OpportunityEvent[]
         standingProfiles: OpportunityStandingProfile[]
+        financialReference: FinancialReference | null
       }
       error?: never
     }
@@ -279,6 +282,8 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       }
     }
 
+    const financialReference = await getActiveFinancialReferenceByOpportunityId(opportunityId)
+
     return {
       data: {
         opportunity: opportunityMapped,
@@ -287,6 +292,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
         contacts,
         events,
         standingProfiles,
+        financialReference,
       },
     }
   } catch (err) {

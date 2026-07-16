@@ -30,6 +30,7 @@ import type { FinancialModelingBootstrapData } from "../../data/get-financial-mo
 interface FinancialModelingMobileFlowProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialId?: string
 }
 
 function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
@@ -68,7 +69,7 @@ function createDefaultFormState(): FinancialModelFormState {
   }
 }
 
-export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialModelingMobileFlowProps) {
+export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: FinancialModelingMobileFlowProps) {
   const [step, setStep] = useState(1)
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
@@ -97,10 +98,21 @@ export function FinancialModelingMobileFlow({ open, onOpenChange }: FinancialMod
         setBootstrap(res.data)
         setRecentSimulations(res.data.recentSimulations || [])
       }
+      if (initialId) {
+        const modelRes = await getFinancialModelAction(initialId)
+        if (modelRes.success && modelRes.data) {
+          const loadedState = cloneFormState(modelRes.data)
+          setFormState(loadedState)
+          setBaselineState(cloneFormState(loadedState))
+          setStep(1)
+        }
+      } else {
+        resetFlow()
+      }
       setLoading(false)
     }
     loadBootstrap()
-  }, [open])
+  }, [open, initialId])
 
   const clientResult = useMemo(() => {
     try {

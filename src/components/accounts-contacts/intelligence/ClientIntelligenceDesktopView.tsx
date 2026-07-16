@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useMemo, Fragment, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
@@ -48,7 +50,7 @@ const TABS: { key: TabKey; label: string; lot?: string }[] = [
   { key: "roadmap", label: "Roadmap", lot: "lot 6" },
 ]
 
-export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData }) {
+export function ClientIntelligenceDesktopView({ data, financialReference = null }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
   const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
@@ -157,6 +159,7 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
             <AccueilTab
               data={data}
               onOpenTab={(tab) => setActiveTab(tab)}
+              financialReference={financialReference}
             />
           )}
           {activeTab === "connaissance" && (
@@ -253,13 +256,16 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
 function AccueilTab({
   data,
   onOpenTab,
+  financialReference,
 }: {
   data: ClientIntelligenceData
   onOpenTab: (tab: Exclude<TabKey, "accueil">) => void
+  financialReference: FinancialReference | null
 }) {
   const { signals } = data
   return (
     <div className="mx-auto max-w-6xl space-y-6 pt-6">
+      {financialReference ? <FinancialReferenceDesktopCard reference={financialReference} /> : null}
       {/* ── Frise process horizontal ── */}
       <div className="flex items-stretch gap-2 py-2">
         {INTELLIGENCE_PROCESS_STEPS.map((step, idx) => {

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { formatDateNumeric, formatEuro, formatPct } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
@@ -310,6 +311,7 @@ export function MissionOverviewDesktop({ vm }: MissionOverviewDesktopProps) {
             <section key="financial" className="animate-fade-in motion-reduce:animate-none">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">03 — Économie</p>
               <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-heading">Conditions financières</h1>
+              {vm.financialReference ? <div className="mt-6"><FinancialReferenceDesktopCard reference={vm.financialReference} /></div> : null}
               <div className="mt-8 grid divide-x divide-border md:grid-cols-3">
                 <div className="pr-9">
                   <p className="text-sm font-bold text-primary">Vente</p>

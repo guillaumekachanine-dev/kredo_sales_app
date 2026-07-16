@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
+import { FinancialReferenceMobileCard } from "@/components/finance/FinancialReferenceMobileCard"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { formatEuro, formatDateNumeric } from "@/lib/formatters"
 import { updateMission } from "@/app/(app)/missions/_actions/update-mission"
@@ -104,6 +105,7 @@ export function MissionFinancialTab({ vm, onRefresh }: MissionFinancialTabProps)
   return (
     <>
       <div className="flex flex-col gap-5">
+        {vm.financialReference ? <FinancialReferenceMobileCard reference={vm.financialReference} /> : null}
         {/* Header with edit button */}
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-heading">Données financières de la mission</h3>

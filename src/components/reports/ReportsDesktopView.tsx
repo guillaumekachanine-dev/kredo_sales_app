@@ -28,6 +28,7 @@ import {
   DOCUMENT_OBJECT_LABELS,
   getDocumentCategory,
   getDocumentTypeLabel,
+  getFinancialReferenceDocumentSummary,
   getPitchBriefLabel,
 } from "./document-display"
 import { ClientSummaryDocumentContent, parseAccountSummaryContent } from "./ClientSummaryDocumentContent"
@@ -842,7 +843,18 @@ export function ReportsDesktopView({
 
                     {/* Main Content Area */}
                     <div className="prose prose-sm max-w-none text-body">
-                      {selectedDocument.documentType === "client_summary" ? (
+                      {selectedDocument.documentType === "financial_reference" ? (() => {
+                        const reference = getFinancialReferenceDocumentSummary(selectedDocument.currentContentJson)
+                        return reference ? (
+                          <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-4 text-xs">
+                            <span className="inline-flex rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">Référence financière</span>
+                            <p className="mt-3 font-bold text-heading">{reference.resource ?? "Ressource non renseignée"}</p>
+                            <p className="text-body">{reference.profile ?? "Profil non renseigné"}</p>
+                            <p className="mt-2 text-muted">{reference.startDate ?? "—"} — {reference.endDate ?? "Sans fin"}</p>
+                            <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/50 pt-3"><div><p className="text-[9px] font-bold uppercase text-muted">TJM</p><p className="mt-1 font-mono font-bold text-heading">{reference.saleDailyRate === null ? "—" : `${reference.saleDailyRate.toLocaleString("fr-FR")} €`}</p></div><div><p className="text-[9px] font-bold uppercase text-muted">CA projeté</p><p className="mt-1 font-mono font-bold text-heading">{reference.revenue === null ? "—" : `${reference.revenue.toLocaleString("fr-FR")} €`}</p></div><div><p className="text-[9px] font-bold uppercase text-muted">Marge</p><p className="mt-1 font-mono font-bold text-heading">{reference.margin === null ? "—" : `${reference.margin.toFixed(1)}%`}</p></div></div>
+                          </div>
+                        ) : <p className="text-xs text-muted italic">Référence financière sans données structurées.</p>
+                      })() : selectedDocument.documentType === "client_summary" ? (
                         <ClientSummaryDocumentContent
                           contentJson={selectedDocument.currentContentJson}
                           contentText={selectedDocument.currentContentText}

@@ -1,5 +1,6 @@
 import type { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { ClientIntelligenceDesktopView } from "./ClientIntelligenceDesktopView"
 import { ClientIntelligenceMobileView } from "./ClientIntelligenceMobileView"
 
@@ -7,12 +8,14 @@ import { ClientIntelligenceMobileView } from "./ClientIntelligenceMobileView"
 export function ClientIntelligenceView({
   data,
   device,
+  financialReference = null,
 }: {
   data: ClientIntelligenceData
   device: DashboardDevice
+  financialReference?: FinancialReference | null
 }) {
   if (device === "mobile") {
-    return <ClientIntelligenceMobileView data={data} />
+    return <ClientIntelligenceMobileView data={data} financialReference={financialReference} />
   }
-  return <ClientIntelligenceDesktopView data={data} />
+  return <ClientIntelligenceDesktopView data={data} financialReference={financialReference} />
 }

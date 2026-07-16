@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { getActiveFinancialReferenceByMissionId } from "@/features/financial-modeling/data/get-financial-reference"
 import type { Json } from "@/types/database"
 import type {
   MissionDetailViewModel,
@@ -578,6 +579,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       companyContacts,
       compensation,
       planningEvents,
+      financialReference,
     ] = await Promise.all([
       mission.company_id ? fetchCompany(supabase, mission.company_id) : Promise.resolve(null),
       fetchCollaborator(supabase, mission.collaborator_id),
@@ -587,6 +589,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
       mission.company_id ? fetchCompanyContacts(supabase, mission.company_id) : Promise.resolve([]),
       fetchCompensation(supabase, mission.collaborator_id),
       fetchPlanningEvents(supabase, mission),
+      getActiveFinancialReferenceByMissionId(missionId),
     ])
 
     return {
@@ -600,6 +603,7 @@ export async function getMissionDetail(missionId: string): Promise<MissionDetail
         interactions,
         companyContacts,
         compensation,
+        financialReference,
       },
     }
   } catch (err) {

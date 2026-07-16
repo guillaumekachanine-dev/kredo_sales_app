@@ -97,6 +97,21 @@ export function getDocumentTypeLabel(documentType: DocumentType) {
   return DOCUMENT_TYPE_LABELS[documentType]
 }
 
+export function getFinancialReferenceDocumentSummary(content: unknown) {
+  if (!content || typeof content !== "object" || Array.isArray(content)) return null
+  const value = content as Record<string, unknown>
+  const resource = typeof value.resource_label === "string" ? value.resource_label : null
+  const profile = typeof value.profile_name === "string" ? value.profile_name : null
+  const startDate = typeof value.start_date === "string" ? value.start_date : null
+  const endDate = typeof value.end_date === "string" ? value.end_date : null
+  const saleDailyRate = typeof value.sale_daily_rate === "number" ? value.sale_daily_rate : null
+  const revenue = typeof value.revenue_total === "number" ? value.revenue_total : null
+  const margin = typeof value.gross_margin_pct === "number" ? value.gross_margin_pct : null
+
+  if (!resource && !profile && saleDailyRate === null && revenue === null && margin === null) return null
+  return { resource, profile, startDate, endDate, saleDailyRate, revenue, margin }
+}
+
 // ADR-0009 — le titre stocké d'un pitch (`n10-prepare-callback`) part de l'accroche
 // générée, ce qui donne une phrase entière en guise de titre. Ce libellé concis,
 // dérivé du brief plutôt que du contenu, remplace l'affichage partout où un

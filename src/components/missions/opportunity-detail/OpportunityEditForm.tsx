@@ -37,6 +37,9 @@ import {
   formatDateTime,
 } from "@/lib/formatters"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
+import { FinancialReferenceMobileCard } from "@/components/finance/FinancialReferenceMobileCard"
+import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import {
   TYPE_OPTIONS,
@@ -71,6 +74,7 @@ interface OpportunityDetailData {
   }>
   events: OpportunityEvent[]
   standingProfiles: OpportunityStandingProfile[]
+  financialReference: FinancialReference | null
 }
 
 const SEQUENTIAL_STEPS = OPPORTUNITY_ACTIVE_STAGES.map((stage, index) => ({
@@ -2025,6 +2029,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
           companyId={account?.id}
           companyName={account?.name}
         />
+        {data.financialReference ? <FinancialReferenceMobileCard reference={data.financialReference} /> : null}
         {renderFinancialEquationSection()}
       </div>
       {renderDialogs()}
@@ -2239,6 +2244,7 @@ export function OpportunityEditForm({ data, onSuccess }: OpportunityEditFormProp
             companyId={account?.id}
             companyName={account?.name}
           />
+          {data.financialReference ? <FinancialReferenceDesktopCard reference={data.financialReference} /> : null}
           {renderFinancialEquationSection()}
         </div>
       </div>
