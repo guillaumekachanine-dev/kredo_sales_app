@@ -2,16 +2,19 @@
 
 import Link from "next/link"
 import React, { useEffect, useId, useRef } from "react"
-import { formatDate } from "@/lib/formatters"
 import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
 import type { CockpitModuleId } from "./CockpitMobileModuleGrid"
-import { CockpitUrgenciesContent } from "./CockpitUrgenciesContent"
+import { CockpitPrioritiesModule } from "./CockpitPrioritiesModule"
+import { CockpitMeetingsModule } from "./CockpitMeetingsModule"
+import { CockpitOpportunitiesModule } from "./CockpitOpportunitiesModule"
 
 interface MobileCockpitModuleSheetProps {
   module: CockpitModuleId
   snapshot: CockpitMobileSnapshot | null
   onClose: () => void
   returnFocusRef: React.MutableRefObject<HTMLButtonElement | null>
+  suspended?: boolean
+  onComposerOpen: () => void
 }
 
 const MODULE_TITLES: Record<CockpitModuleId, string> = {
@@ -23,51 +26,23 @@ const MODULE_TITLES: Record<CockpitModuleId, string> = {
   signals: "Signaux",
 }
 
-function coverageLabel(status: "not_required" | "uncovered" | "partial" | "covered") {
-  const labels = {
-    not_required: "Couverture non requise",
-    uncovered: "Couverture à lancer",
-    partial: "Couverture partielle",
-    covered: "Couverture complète",
-  }
-  return labels[status]
-}
-
 function ModuleUnavailable() {
   return <p className="cockpit-sheet-empty">Les données Cockpit ne sont pas disponibles pour le moment.</p>
 }
 
-function ModuleContent({ module, snapshot }: Pick<MobileCockpitModuleSheetProps, "module" | "snapshot">) {
+function ModuleContent({ module, snapshot, onComposerOpen }: Pick<MobileCockpitModuleSheetProps, "module" | "snapshot"> & { onComposerOpen: () => void }) {
   if (!snapshot) return <ModuleUnavailable />
 
   if (module === "priorities") {
-    return <CockpitUrgenciesContent items={snapshot.priorities.items} />
+    return <CockpitPrioritiesModule snapshot={snapshot} />
   }
 
   if (module === "meetings") {
-    return (
-      <div className="cockpit-sheet-list">
-        {snapshot.meetings.items.length === 0 ? <p className="cockpit-sheet-empty">Aucun rendez-vous commercial cette semaine.</p> : snapshot.meetings.items.map((meeting) => (
-          <Link href={meeting.href} key={meeting.id} className="cockpit-sheet-row">
-            <span className="cockpit-sheet-row__meta">{meeting.allDay ? "Journée" : new Intl.DateTimeFormat("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(meeting.startsAt))}</span>
-            <span className="cockpit-sheet-row__content"><span className="cockpit-sheet-row__title">{meeting.title}</span><span className="cockpit-sheet-row__detail">{meeting.companyName ?? meeting.location ?? "Rendez-vous commercial"}</span></span>
-          </Link>
-        ))}
-      </div>
-    )
+    return <CockpitMeetingsModule snapshot={snapshot} onComposerOpen={onComposerOpen} />
   }
 
   if (module === "opportunities") {
-    return (
-      <div className="cockpit-sheet-list">
-        {snapshot.opportunities.items.length === 0 ? <p className="cockpit-sheet-empty">Aucune opportunité ouverte à suivre.</p> : snapshot.opportunities.items.map((opportunity) => (
-          <Link href={opportunity.href} key={opportunity.id} className="cockpit-sheet-row">
-            <span className="cockpit-sheet-row__meta">{opportunity.stage}</span>
-            <span className="cockpit-sheet-row__content"><span className="cockpit-sheet-row__title">{opportunity.title}</span><span className="cockpit-sheet-row__detail">{opportunity.nextActionLabel ? `${opportunity.nextActionLabel}${opportunity.nextActionAt ? ` · ${formatDate(opportunity.nextActionAt)}` : ""}` : coverageLabel(opportunity.coverageStatus)}</span></span>
-          </Link>
-        ))}
-      </div>
-    )
+    return <CockpitOpportunitiesModule snapshot={snapshot} onComposerOpen={onComposerOpen} />
   }
 
   if (module === "weeklyBrief") {
@@ -94,12 +69,16 @@ function ModuleContent({ module, snapshot }: Pick<MobileCockpitModuleSheetProps,
   )
 }
 
-export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocusRef }: MobileCockpitModuleSheetProps) {
+export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocusRef, suspended = false, onComposerOpen }: MobileCockpitModuleSheetProps) {
   const titleId = useId()
   const sheetRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const suspendedRef = useRef(suspended)
+
+  useEffect(() => { suspendedRef.current = suspended }, [suspended])
 
   useEffect(() => {
+    if (suspended) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     closeRef.current?.focus()
@@ -131,20 +110,20 @@ export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocu
     return () => {
       document.body.style.overflow = previousOverflow
       document.removeEventListener("keydown", onKeyDown)
-      returnFocusRef.current?.focus()
+      if (!suspendedRef.current) returnFocusRef.current?.focus()
     }
-  }, [onClose, returnFocusRef])
+  }, [onClose, returnFocusRef, suspended])
 
   return (
-    <div className="cockpit-module-sheet-backdrop" role="presentation">
-      <section ref={sheetRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="cockpit-module-sheet">
+    <div className="cockpit-module-sheet-backdrop" role="presentation" data-suspended={suspended || undefined}>
+      <section ref={sheetRef} role="dialog" aria-modal="true" aria-hidden={suspended || undefined} aria-labelledby={titleId} className="cockpit-module-sheet" data-suspended={suspended || undefined}>
         <header className="cockpit-module-sheet__header">
           <h2 id={titleId}>{MODULE_TITLES[module]}</h2>
           <button ref={closeRef} type="button" className="cockpit-module-sheet__close" onClick={onClose} aria-label={`Fermer ${MODULE_TITLES[module]}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="m6 6 12 12M18 6 6 18" /></svg>
           </button>
         </header>
-        <div className="cockpit-module-sheet__content"><ModuleContent module={module} snapshot={snapshot} /></div>
+        <div className="cockpit-module-sheet__content"><ModuleContent module={module} snapshot={snapshot} onComposerOpen={onComposerOpen} /></div>
       </section>
     </div>
   )

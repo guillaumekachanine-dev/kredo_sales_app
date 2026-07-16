@@ -213,6 +213,10 @@ export interface ScheduledEventItem extends AgendaBaseItem {
   eventType: string
   location?: string | null
   meetingUrl?: string | null
+  contactId?: string | null
+  contactName?: string | null
+  opportunityId?: string | null
+  opportunityTitle?: string | null
 }
 
 export interface TaskItem extends AgendaBaseItem {

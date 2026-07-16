@@ -21,6 +21,10 @@ export interface CockpitTodayEvent {
 export interface CockpitMeetingItem extends CockpitTodayEvent {
   location: string | null
   meetingUrl: string | null
+  contactId: string | null
+  contactName: string | null
+  opportunityId: string | null
+  opportunityTitle: string | null
 }
 
 export type CockpitOpportunityCoverageStatus =

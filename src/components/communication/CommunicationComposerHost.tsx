@@ -16,6 +16,7 @@ import type { ClientIntelligenceContact } from "@/lib/intelligence/intelligence-
 import type { DashboardDevice } from "@/lib/dashboard/dashboard-types"
 import {
   COMMUNICATION_COMPOSER_EVENT,
+  COMMUNICATION_COMPOSER_STATE_EVENT,
   type CommunicationComposerPreset,
   type CommunicationComposerRequest,
   type CommunicationComposerScope,
@@ -501,6 +502,10 @@ export function CommunicationComposerHost({ device }: { device: DashboardDevice 
   const [context, setContext] = useState<ComposerAccountContext | null>(null)
   const [instanceKey, setInstanceKey] = useState(0)
   const [outputKind, setOutputKind] = useState<CommunicationOutputKind>("written_message")
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent(COMMUNICATION_COMPOSER_STATE_EVENT, { detail: { open } }))
+  }, [open])
 
   const resolvePrimaryEntity = useCallback(async (
     currentRequest: CommunicationComposerRequest,

@@ -16,6 +16,9 @@ import type {
 import type { IntelligenceEntityType } from "@/lib/intelligence/intelligence-registry"
 
 export const COMMUNICATION_COMPOSER_EVENT = "kredo:open-communication-composer"
+export const COMMUNICATION_COMPOSER_STATE_EVENT = "kredo:communication-composer-state"
+
+export type CommunicationComposerStateDetail = { open: boolean }
 
 export type CommunicationComposerOrigin =
   | "global"

@@ -4,7 +4,9 @@ import type { ScheduledEventItem } from "@/lib/agenda/agenda-types"
 import {
   getCockpitMobileWeekRange,
   getNextMeetingLabel,
+  groupCockpitMeetingsByDay,
   selectCockpitOpportunities,
+  selectCockpitModulePriorities,
   selectCockpitPriorities,
   selectCockpitSignals,
   selectCockpitUrgencies,
@@ -13,6 +15,7 @@ import {
   type CockpitOpportunitySource,
   type CockpitSignalSource,
 } from "./cockpit-mobile-selectors"
+import { getWeeklyManagerActionAvailability } from "@/components/reports/weekly-manager/WeeklyManagerItemActions"
 
 const now = "2026-07-16T08:00:00.000Z"
 const weekEnd = "2026-07-19T22:00:00.000Z"
@@ -153,6 +156,21 @@ describe("cockpit mobile selectors", () => {
     expect(priorities.map((item) => item.tier)).toEqual(["critical", "high", "normal"])
   })
 
+  it("borne les priorités du module à cinq, dans l’ordre du scoring", () => {
+    const items = selectCockpitModulePriorities([
+      priority("normal", "normal", 1),
+      priority("high", "high", 2),
+      priority("critical-2", "critical", 2),
+      priority("critical-1", "critical", 1),
+      priority("high-2", "high", 1),
+      priority("normal-2", "normal", 2),
+    ])
+
+    expect(items.map((item) => item.sourceId)).toEqual([
+      "critical-1", "critical-2", "high-2", "high", "normal",
+    ])
+  })
+
   it("borne les signaux à trois selon score puis fraîcheur", () => {
     const items = selectCockpitSignals([
       signal("fourth", 0.4),
@@ -200,6 +218,44 @@ describe("cockpit mobile selectors", () => {
       "prospection",
       "soutenance",
     ])
+  })
+
+  it("groupe les rendez-vous commerciaux par journée locale", () => {
+    const meetings = selectCommercialMeetings([
+      scheduledEvent("mardi", "rdv_prospection", "2026-07-14T09:00:00.000Z"),
+      scheduledEvent("mercredi", "rdv_client_suivi", "2026-07-15T09:00:00.000Z"),
+      scheduledEvent("mardi-2", "soutenance", "2026-07-14T11:00:00.000Z"),
+    ])
+
+    expect(groupCockpitMeetingsByDay(meetings)).toMatchObject([
+      { date: "2026-07-14", items: [{ id: "mardi" }, { id: "mardi-2" }] },
+      { date: "2026-07-15", items: [{ id: "mercredi" }] },
+    ])
+  })
+
+  it("calcule la couverture à partir des positionnements et du headcount requis", () => {
+    const [item] = selectCockpitOpportunities([
+      opportunity("staffing", {
+        requiredHeadcount: 3,
+        positionings: [{ status: "envoye_client" }, { status: "retenu" }],
+      }),
+    ], now, weekEnd)
+
+    expect(item).toMatchObject({ requiredHeadcount: 3, positioningCount: 2, coveringPositioningCount: 2, coverageStatus: "partial" })
+  })
+
+  it("exclut les opportunités fermées du module mobile", () => {
+    const items = selectCockpitOpportunities([
+      opportunity("open"),
+      opportunity("closed", { stage: "gagne" }),
+    ], now, weekEnd)
+
+    expect(items.map((item) => item.id)).toEqual(["open"])
+  })
+
+  it("réutilise les liens canoniques des actions Weekly Manager", () => {
+    expect(getWeeklyManagerActionAvailability("opportunity", "opp-1")).toEqual({ canCreateTask: true, href: "/missions/opps/opp-1/edit" })
+    expect(getWeeklyManagerActionAvailability(undefined, undefined)).toEqual({ canCreateTask: false, href: null })
   })
 
   it("calcule une semaine ISO qui traverse un changement d’année", () => {

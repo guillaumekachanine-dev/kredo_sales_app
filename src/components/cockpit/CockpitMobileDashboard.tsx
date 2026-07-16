@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
 import { AgendaMobileEventDrawer } from "@/components/agenda/AgendaMobileEventDrawer"
@@ -17,6 +17,7 @@ import {
 import { CockpitQuickActionsSheet } from "./mobile/CockpitQuickActionsSheet"
 import { CockpitUrgenciesContent } from "./mobile/CockpitUrgenciesContent"
 import { MobileCockpitModuleSheet } from "./mobile/MobileCockpitModuleSheet"
+import { COMMUNICATION_COMPOSER_STATE_EVENT, type CommunicationComposerStateDetail } from "@/lib/communication/communication-composer"
 import "./mobile/cockpit-mobile.css"
 
 type CockpitMobileSurface = CockpitModuleId | "agenda" | "urgencies"
@@ -32,11 +33,18 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
   const [isNewOpportunityOpen, setNewOpportunityOpen] = useState(false)
   const [isNewContactOpen, setNewContactOpen] = useState(false)
   const [isNewEventOpen, setNewEventOpen] = useState(false)
+  const [isComposerOpen, setComposerOpen] = useState(false)
   const returnFocusRef = useRef<HTMLButtonElement | null>(null)
 
   const activeSheetModule = activeModule && COCKPIT_MODULE_IDS.includes(activeModule as CockpitModuleId)
     ? activeModule as CockpitModuleId
     : null
+
+  useEffect(() => {
+    const onComposerState = (event: Event) => setComposerOpen((event as CustomEvent<CommunicationComposerStateDetail>).detail.open)
+    window.addEventListener(COMMUNICATION_COMPOSER_STATE_EVENT, onComposerState)
+    return () => window.removeEventListener(COMMUNICATION_COMPOSER_STATE_EVENT, onComposerState)
+  }, [])
 
   const openModule = (module: CockpitModuleId, origin: HTMLButtonElement) => {
     returnFocusRef.current = origin
@@ -87,6 +95,8 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
           snapshot={snapshot}
           onClose={() => setActiveModule(null)}
           returnFocusRef={returnFocusRef}
+          suspended={isComposerOpen}
+          onComposerOpen={() => setComposerOpen(true)}
         />
       ) : null}
 

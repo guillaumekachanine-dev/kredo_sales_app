@@ -189,6 +189,10 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
     eventType: row.event_type,
     location: row.location,
     meetingUrl: row.meeting_url,
+    contactId: row.contact_id,
+    contactName: contactPerson,
+    opportunityId: row.opportunity_id,
+    opportunityTitle: row.opportunity?.title ?? null,
   } satisfies ScheduledEventItem
 }
 

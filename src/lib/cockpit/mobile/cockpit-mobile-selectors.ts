@@ -20,6 +20,7 @@ import {
 } from "@/lib/needs-staffing/coverage"
 import { WEEKLY_SCORING_VERSION } from "@/lib/reports/weekly-manager/scoring"
 import { getIsoWeekLabel } from "@/lib/reports/weekly-manager/iso-week"
+import { isOpenOpportunityStage } from "@/lib/opportunities/stages"
 import type {
   CockpitMeetingItem,
   CockpitOpportunityCoverageStatus,
@@ -126,6 +127,10 @@ export function selectCockpitUrgencies(priorities: CockpitPriorityItem[]) {
   return priorities.filter((priority) => priority.tier === "critical").slice(0, 3)
 }
 
+export function selectCockpitModulePriorities(priorities: CockpitPriorityItem[]) {
+  return selectCockpitPriorities(priorities).slice(0, 5)
+}
+
 export function isCommercialMeetingEventType(eventType: string) {
   return COMMERCIAL_MEETING_EVENT_TYPES.has(eventType)
 }
@@ -184,7 +189,22 @@ export function selectCommercialMeetings(events: ScheduledEventItem[]): CockpitM
       ...mapBaseCalendarEvent(event),
       location: event.location ?? null,
       meetingUrl: event.meetingUrl ?? null,
+      contactId: event.contactId ?? null,
+      contactName: event.contactName ?? null,
+      opportunityId: event.opportunityId ?? null,
+      opportunityTitle: event.opportunityTitle ?? null,
     }))
+}
+
+export function groupCockpitMeetingsByDay(meetings: CockpitMeetingItem[]) {
+  const groups = new Map<string, CockpitMeetingItem[]>()
+  for (const meeting of meetings) {
+    const dateKey = getLocalDateKey(meeting.startsAt, AGENDA_V1_TIMEZONE)
+    const items = groups.get(dateKey) ?? []
+    items.push(meeting)
+    groups.set(dateKey, items)
+  }
+  return Array.from(groups, ([date, items]) => ({ date, items }))
 }
 
 export function getNextMeetingLabel(
@@ -309,7 +329,11 @@ export function selectCockpitOpportunities(
   weekEndExclusive: string,
   limit = COCKPIT_MOBILE_OPPORTUNITY_LIMIT,
 ): CockpitOpportunityItem[] {
-  return sortCockpitOpportunitySources(opportunities, now, weekEndExclusive)
+  return sortCockpitOpportunitySources(
+    opportunities.filter((opportunity) => isOpenOpportunityStage(opportunity.stage)),
+    now,
+    weekEndExclusive,
+  )
     .slice(0, limit)
     .map((opportunity) => {
       const requiredHeadcount = getNormalizedRequiredHeadcount(opportunity.requiredHeadcount)

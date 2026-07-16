@@ -1,18 +1,14 @@
 "use client"
 
-import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { formatDate } from "@/lib/formatters"
 import { StatusPill } from "@/components/ui/StatusPill"
-import { Button } from "@/components/ui/Button"
+import { WeeklyManagerItemActions } from "@/components/reports/weekly-manager/WeeklyManagerItemActions"
 import type {
   WeeklyManagerContent,
   WeeklyManagerPriorityItem,
   WeeklyManagerPriorityTier,
 } from "@/app/(app)/reports/_data/reports-types"
-import { createTask, type TaskPriority } from "@/lib/tasks/task-actions"
-import { dismissWeeklyBriefItem } from "@/lib/reports/weekly-manager/dismiss-actions"
-import { resolveWeeklyManagerEntityHref } from "@/lib/reports/weekly-manager/entity-links"
 
 const TIER_TO_STATUS_VARIANT: Record<WeeklyManagerPriorityTier, "danger" | "warning" | "neutral"> = {
   critical: "danger",
@@ -26,7 +22,7 @@ const TIER_LABEL: Record<WeeklyManagerPriorityTier, string> = {
   normal: "Normal",
 }
 
-const TIER_TO_TASK_PRIORITY: Record<WeeklyManagerPriorityTier, TaskPriority> = {
+const TIER_TO_TASK_PRIORITY: Record<WeeklyManagerPriorityTier, "urgent" | "high" | "normal"> = {
   critical: "urgent",
   high: "high",
   normal: "normal",
@@ -48,104 +44,6 @@ function BlockHeading({ children, count }: { children: React.ReactNode; count?: 
   )
 }
 
-type ItemActionState = "idle" | "creating" | "created" | "dismissing" | "dismissed" | "error"
-
-// Bloc d'actions 1-clic réutilisé par les priorités notées et les listes
-// business (comptes silencieux, missions à marge faible, offres en attente).
-// N'exige pas que l'item soit dans facts.priorities — fonctionne sur
-// n'importe quel item portant entityType/entityId + un titre.
-function ItemActions({
-  title,
-  description,
-  dueDate,
-  taskPriority,
-  entityType,
-  entityId,
-  sourceType,
-  sourceId,
-  weekIso,
-  isMobile,
-}: {
-  title: string
-  description?: string
-  dueDate: string | null
-  taskPriority: TaskPriority
-  entityType?: string
-  entityId?: string
-  sourceType: string
-  sourceId: string
-  weekIso: string
-  isMobile?: boolean
-}) {
-  const [state, setState] = useState<ItemActionState>("idle")
-  const href = resolveWeeklyManagerEntityHref(entityType, entityId)
-
-  async function handleCreateTask() {
-    if (!entityType || !entityId) return
-    setState("creating")
-    const result = await createTask({
-      title,
-      description,
-      due_date: dueDate,
-      priority: taskPriority,
-      entity_type: entityType,
-      entity_id: entityId,
-    })
-    setState(result.error ? "error" : "created")
-  }
-
-  async function handleDismiss() {
-    setState("dismissing")
-    const result = await dismissWeeklyBriefItem({ itemSourceType: sourceType, itemSourceId: sourceId, weekIso })
-    setState(result.error ? "error" : "dismissed")
-  }
-
-  if (state === "dismissed") {
-    return <p className="text-[10px] italic text-muted">Ignoré pour cette semaine.</p>
-  }
-
-  return (
-    <div className={cn("flex flex-wrap items-center gap-1.5", isMobile && "gap-2")}>
-      {entityType && entityId ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleCreateTask}
-          disabled={state === "creating" || state === "created"}
-          className={cn("h-7 px-2.5 text-[11px]", isMobile && "h-9 px-3 text-xs")}
-        >
-          {state === "creating" ? "Création…" : state === "created" ? "Tâche créée ✓" : "Créer une tâche"}
-        </Button>
-      ) : null}
-
-      {href ? (
-        <a
-          href={href}
-          className={cn(
-            "inline-flex h-7 items-center rounded-[var(--radius-small)] border border-border px-2.5 text-[11px] font-semibold text-body transition-colors hover:bg-surface-hover",
-            isMobile && "h-9 px-3 text-xs",
-          )}
-        >
-          Ouvrir la fiche
-        </a>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={handleDismiss}
-        disabled={state === "dismissing"}
-        className={cn(
-          "inline-flex h-7 items-center rounded-[var(--radius-small)] px-2 text-[11px] font-semibold text-muted transition-colors hover:text-heading",
-          isMobile && "h-9 px-3 text-xs",
-        )}
-      >
-        {state === "dismissing" ? "…" : "Ignorer cette semaine"}
-      </button>
-
-      {state === "error" ? <span className="text-[10px] text-danger">Erreur, réessayer.</span> : null}
-    </div>
-  )
-}
 
 function PriorityCard({
   priority,
@@ -174,7 +72,7 @@ function PriorityCard({
       <p className="text-[11px] font-semibold text-primary-deep mb-2">
         ▸ {narrativeBlurb?.recommendedAction ?? priority.recommendedAction}
       </p>
-      <ItemActions
+      <WeeklyManagerItemActions
         title={priority.title}
         description={narrativeBlurb?.expectedImpact}
         dueDate={null}
@@ -328,7 +226,7 @@ export function WeeklyManagerReportView({
                 <p className="text-[11px] text-muted mb-2">
                   {account.lastContactAt ? `Dernier contact : ${formatDate(account.lastContactAt)}` : "Aucun contact loggé"}
                 </p>
-                <ItemActions
+                <WeeklyManagerItemActions
                   title={`Reprendre contact — ${account.name}`}
                   dueDate={facts.period.endDate}
                   taskPriority="normal"
@@ -359,7 +257,7 @@ export function WeeklyManagerReportView({
                   </span>
                 </div>
                 {mission.companyName && <p className="text-[11px] text-muted mb-2">{mission.companyName}</p>}
-                <ItemActions
+                <WeeklyManagerItemActions
                   title={`Vérifier la marge — ${mission.title}`}
                   dueDate={facts.period.endDate}
                   taskPriority="high"
@@ -390,7 +288,7 @@ export function WeeklyManagerReportView({
                   )}
                 </div>
                 {offer.offerStatus && <p className="text-[11px] text-muted mb-2">{offer.offerStatus}</p>}
-                <ItemActions
+                <WeeklyManagerItemActions
                   title={`Relancer l'offre — ${offer.candidateName ?? "candidat"}`}
                   dueDate={offer.deadline}
                   taskPriority="urgent"
@@ -416,7 +314,7 @@ export function WeeklyManagerReportView({
               <li key={i} className="rounded-[var(--radius-medium)] border border-border bg-canvas/30 p-3">
                 <p className="text-xs font-semibold text-heading mb-1">{task.title}</p>
                 <p className="text-[11px] text-muted mb-2">{task.description}</p>
-                <ItemActions
+                <WeeklyManagerItemActions
                   title={task.title}
                   description={task.description}
                   dueDate={task.dueAt}
