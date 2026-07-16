@@ -3,8 +3,8 @@ import { IconCalendar } from "./icons"
 
 interface CockpitMobileHeaderProps {
   onQuickActionsOpen: () => void
-  onAgendaOpen: () => void
-  onUrgenciesOpen: () => void
+  onAgendaOpen: (origin: HTMLButtonElement) => void
+  onUrgenciesOpen: (origin: HTMLButtonElement) => void
   urgencyCount: number
 }
 
@@ -37,7 +37,7 @@ export function CockpitMobileHeader({
           type="button"
           className="header-bell"
           aria-label="Voir les événements du jour"
-          onClick={onAgendaOpen}
+          onClick={(event) => onAgendaOpen(event.currentTarget)}
         >
           <IconCalendar />
           <span className="header-control-label">Agenda</span>
@@ -46,7 +46,7 @@ export function CockpitMobileHeader({
           type="button"
           className="header-bell"
           aria-label="Voir les urgences"
-          onClick={onUrgenciesOpen}
+          onClick={(event) => onUrgenciesOpen(event.currentTarget)}
         >
           <IconAlert />
           <span className="header-control-label">Urgences</span>

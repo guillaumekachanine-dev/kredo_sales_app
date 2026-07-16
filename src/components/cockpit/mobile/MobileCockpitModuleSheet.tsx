@@ -1,14 +1,32 @@
 "use client"
 
 import React, { useEffect, useId, useRef } from "react"
+import dynamic from "next/dynamic"
 import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
 import type { CockpitModuleId } from "./CockpitMobileModuleGrid"
-import { CockpitPrioritiesModule } from "./CockpitPrioritiesModule"
-import { CockpitMeetingsModule } from "./CockpitMeetingsModule"
-import { CockpitOpportunitiesModule } from "./CockpitOpportunitiesModule"
-import { CockpitWeeklyBriefModule } from "./CockpitWeeklyBriefModule"
-import { CockpitDiagnosticModule } from "./CockpitDiagnosticModule"
-import { CockpitSignalsModule } from "./CockpitSignalsModule"
+
+function ModuleLoading() {
+  return <p className="cockpit-sheet-empty" role="status">Chargement du module…</p>
+}
+
+const CockpitPrioritiesModule = dynamic(() => (
+  import("./CockpitPrioritiesModule").then((module) => module.CockpitPrioritiesModule)
+), { loading: ModuleLoading })
+const CockpitMeetingsModule = dynamic(() => (
+  import("./CockpitMeetingsModule").then((module) => module.CockpitMeetingsModule)
+), { loading: ModuleLoading })
+const CockpitOpportunitiesModule = dynamic(() => (
+  import("./CockpitOpportunitiesModule").then((module) => module.CockpitOpportunitiesModule)
+), { loading: ModuleLoading })
+const CockpitWeeklyBriefModule = dynamic(() => (
+  import("./CockpitWeeklyBriefModule").then((module) => module.CockpitWeeklyBriefModule)
+), { loading: ModuleLoading })
+const CockpitDiagnosticModule = dynamic(() => (
+  import("./CockpitDiagnosticModule").then((module) => module.CockpitDiagnosticModule)
+), { loading: ModuleLoading })
+const CockpitSignalsModule = dynamic(() => (
+  import("./CockpitSignalsModule").then((module) => module.CockpitSignalsModule)
+), { loading: ModuleLoading })
 
 interface MobileCockpitModuleSheetProps {
   module: CockpitModuleId
@@ -68,13 +86,13 @@ export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocu
   useEffect(() => { suspendedRef.current = suspended }, [suspended])
 
   useEffect(() => {
-    if (suspended) return
     const previousOverflow = document.body.style.overflow
     const returnFocusTarget = returnFocusRef.current
     document.body.style.overflow = "hidden"
     closeRef.current?.focus()
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (suspendedRef.current) return
       if (event.key === "Escape") {
         event.preventDefault()
         onClose()
@@ -103,7 +121,7 @@ export function MobileCockpitModuleSheet({ module, snapshot, onClose, returnFocu
       document.removeEventListener("keydown", onKeyDown)
       if (!suspendedRef.current) returnFocusTarget?.focus()
     }
-  }, [onClose, returnFocusRef, suspended])
+  }, [onClose, returnFocusRef])
 
   return (
     <div className="cockpit-module-sheet-backdrop" role="presentation" data-suspended={suspended || undefined}>

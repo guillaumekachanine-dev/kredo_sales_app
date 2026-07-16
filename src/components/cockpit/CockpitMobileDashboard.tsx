@@ -1,10 +1,8 @@
 "use client"
 
-import React, { useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { NewOpportunityDrawer } from "@/components/missions/NewOpportunityDrawer"
-import { AgendaMobileEventDrawer } from "@/components/agenda/AgendaMobileEventDrawer"
-import { NewContactDrawer } from "@/components/accounts-contacts/NewContactDrawer"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import type { CockpitMobileSnapshot } from "@/lib/cockpit/mobile/cockpit-mobile-snapshot-types"
 import { CockpitAgendaTodayContent } from "./mobile/CockpitAgendaTodayContent"
@@ -19,6 +17,16 @@ import { CockpitUrgenciesContent } from "./mobile/CockpitUrgenciesContent"
 import { MobileCockpitModuleSheet } from "./mobile/MobileCockpitModuleSheet"
 import { COMMUNICATION_COMPOSER_STATE_EVENT, type CommunicationComposerStateDetail } from "@/lib/communication/communication-composer"
 import "./mobile/cockpit-mobile.css"
+
+const NewOpportunityDrawer = dynamic(() => (
+  import("@/components/missions/NewOpportunityDrawer").then((module) => module.NewOpportunityDrawer)
+))
+const AgendaMobileEventDrawer = dynamic(() => (
+  import("@/components/agenda/AgendaMobileEventDrawer").then((module) => module.AgendaMobileEventDrawer)
+))
+const NewContactDrawer = dynamic(() => (
+  import("@/components/accounts-contacts/NewContactDrawer").then((module) => module.NewContactDrawer)
+))
 
 type CockpitMobileSurface = CockpitModuleId | "agenda" | "urgencies"
 
@@ -46,16 +54,21 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
     return () => window.removeEventListener(COMMUNICATION_COMPOSER_STATE_EVENT, onComposerState)
   }, [])
 
-  const openModule = (module: CockpitModuleId, origin: HTMLButtonElement) => {
+  const openModule = useCallback((module: CockpitModuleId, origin: HTMLButtonElement) => {
     returnFocusRef.current = origin
     setQuickActionsOpen(false)
     setActiveModule(module)
-  }
+  }, [])
 
-  const toggleHeaderPanel = (panel: "agenda" | "urgencies") => {
+  const toggleHeaderPanel = useCallback((panel: "agenda" | "urgencies", origin: HTMLButtonElement) => {
+    returnFocusRef.current = origin
     setQuickActionsOpen(false)
     setActiveModule((current) => current === panel ? null : panel)
-  }
+  }, [])
+
+  const closeActiveModule = useCallback(() => setActiveModule(null), [])
+  const openSheetModule = useCallback((module: CockpitModuleId) => setActiveModule(module), [])
+  const handleComposerOpen = useCallback(() => setComposerOpen(true), [])
 
   return (
     <>
@@ -63,8 +76,8 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
         contentClassName="gap-3"
         header={(
           <CockpitMobileHeader
-            onAgendaOpen={() => toggleHeaderPanel("agenda")}
-            onUrgenciesOpen={() => toggleHeaderPanel("urgencies")}
+            onAgendaOpen={(origin) => toggleHeaderPanel("agenda", origin)}
+            onUrgenciesOpen={(origin) => toggleHeaderPanel("urgencies", origin)}
             onQuickActionsOpen={() => {
               setActiveModule(null)
               setQuickActionsOpen(true)
@@ -93,46 +106,54 @@ export function CockpitMobileDashboard({ snapshot }: CockpitMobileDashboardProps
         <MobileCockpitModuleSheet
           module={activeSheetModule}
           snapshot={snapshot}
-          onClose={() => setActiveModule(null)}
+          onClose={closeActiveModule}
           returnFocusRef={returnFocusRef}
           suspended={isComposerOpen}
-          onComposerOpen={() => setComposerOpen(true)}
-          onOpenModule={(module) => setActiveModule(module)}
+          onComposerOpen={handleComposerOpen}
+          onOpenModule={openSheetModule}
         />
       ) : null}
 
-      <CockpitQuickActionsSheet
-        open={isQuickActionsOpen}
-        onOpenChange={setQuickActionsOpen}
-        onActionSelect={(action) => {
-          setQuickActionsOpen(false)
-          window.requestAnimationFrame(() => {
-            if (action === "contact") setNewContactOpen(true)
-            if (action === "event") setNewEventOpen(true)
-            if (action === "need") setNewOpportunityOpen(true)
-            if (action === "staffing") router.push("/staffing")
-          })
-        }}
-      />
+      {isQuickActionsOpen ? (
+        <CockpitQuickActionsSheet
+          open
+          onOpenChange={setQuickActionsOpen}
+          onActionSelect={(action) => {
+            setQuickActionsOpen(false)
+            window.requestAnimationFrame(() => {
+              if (action === "contact") setNewContactOpen(true)
+              if (action === "event") setNewEventOpen(true)
+              if (action === "need") setNewOpportunityOpen(true)
+              if (action === "staffing") router.push("/staffing")
+            })
+          }}
+        />
+      ) : null}
 
-      <NewOpportunityDrawer open={isNewOpportunityOpen} onOpenChange={setNewOpportunityOpen} />
-      <NewContactDrawer
-        open={isNewContactOpen}
-        onOpenChange={setNewContactOpen}
-        onCreated={() => {
-          setNewContactOpen(false)
-          router.refresh()
-        }}
-      />
-      <AgendaMobileEventDrawer
-        open={isNewEventOpen}
-        onOpenChange={setNewEventOpen}
-        event={null}
-        onSaved={() => {
-          setNewEventOpen(false)
-          router.refresh()
-        }}
-      />
+      {isNewOpportunityOpen ? (
+        <NewOpportunityDrawer open onOpenChange={setNewOpportunityOpen} />
+      ) : null}
+      {isNewContactOpen ? (
+        <NewContactDrawer
+          open
+          onOpenChange={setNewContactOpen}
+          onCreated={() => {
+            setNewContactOpen(false)
+            router.refresh()
+          }}
+        />
+      ) : null}
+      {isNewEventOpen ? (
+        <AgendaMobileEventDrawer
+          open
+          onOpenChange={setNewEventOpen}
+          event={null}
+          onSaved={() => {
+            setNewEventOpen(false)
+            router.refresh()
+          }}
+        />
+      ) : null}
     </>
   )
 }

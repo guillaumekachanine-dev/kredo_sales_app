@@ -63,7 +63,10 @@ export function getCockpitWeeklyBriefSections(
     { label: "Comptes silencieux", value: String(facts.commercial.quietTargetAccountsCount) },
   ]
 
-  if (Number.isFinite(facts.commercial.weightedPipeThisWeek)) {
+  const isPipelineReliable = Number.isFinite(facts.commercial.weightedPipeThisWeek)
+    && facts.caveats.length === 0
+    && content.qaFlags.every((flag) => flag.passed)
+  if (isPipelineReliable) {
     businessMetrics.push({
       label: "Pipeline pondéré utile",
       value: formatCurrency(facts.commercial.weightedPipeThisWeek),

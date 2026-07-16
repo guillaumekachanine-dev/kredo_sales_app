@@ -258,21 +258,3 @@
   .cockpit-module-card,
   .cockpit-module-card:active { transition: none; transform: none; }
 }
-
-.agenda-details {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 200ms var(--motion-ease-standard),
-    opacity 200ms var(--motion-ease-standard);
-}
-
-.agenda-details[data-open="true"] {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.agenda-details-inner {
-  overflow: hidden;
-}

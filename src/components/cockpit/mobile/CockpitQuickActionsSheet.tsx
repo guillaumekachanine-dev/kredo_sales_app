@@ -25,6 +25,9 @@ export function CockpitQuickActionsSheet({
     } else {
       if (dialog.open) dialog.close()
     }
+    return () => {
+      if (dialog.open) dialog.close()
+    }
   }, [open])
 
   const actions = [
@@ -37,9 +40,13 @@ export function CockpitQuickActionsSheet({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 m-auto w-[90%] max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl backdrop:bg-black/60 outline-none z-50 flex flex-col gap-4 outline-none focus:outline-none"
+      className="fixed inset-0 m-auto w-[90%] max-w-sm flex-col gap-4 rounded-2xl border border-border bg-surface p-5 shadow-2xl backdrop:bg-black/60 outline-none z-50 open:flex focus:outline-none"
       onClick={(e) => {
         if (e.target === dialogRef.current) onOpenChange(false)
+      }}
+      onCancel={(event) => {
+        event.preventDefault()
+        onOpenChange(false)
       }}
     >
       {/* Header */}

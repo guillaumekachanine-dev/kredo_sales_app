@@ -126,6 +126,19 @@ describe("cockpit mobile understanding modules", () => {
       label: "Closings à risque",
       value: "1",
     })
+    expect(sections.find((section) => section.id === "business")?.metrics).not.toContainEqual(
+      expect.objectContaining({ label: "Pipeline pondéré utile" }),
+    )
+  })
+
+  it("n’affiche le pipeline que lorsque couverture et QA sont fiables", () => {
+    const content = weeklyBrief()
+    content.facts.caveats = []
+    content.qaFlags = [{ check: "coverage", passed: true }]
+
+    expect(getCockpitWeeklyBriefSections(content)
+      .find((section) => section.id === "business")?.metrics)
+      .toContainEqual({ label: "Pipeline pondéré utile", value: "120 000 €" })
   })
 
   it("conserve les alertes QA dans Vigilances", () => {
