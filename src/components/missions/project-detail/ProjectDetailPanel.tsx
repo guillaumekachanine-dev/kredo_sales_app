@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { useEffect, useState } from "react"
 import { SectionTab } from "@/lib/tabs/tab-types"
 import {
@@ -15,7 +14,6 @@ import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { formatEuro, formatPct, formatDateNumeric } from "@/lib/formatters"
-import { getPracticeByName } from "@/lib/config/practices"
 import { cn } from "@/lib/utils"
 
 interface ProjectDetailPanelProps {
@@ -23,6 +21,14 @@ interface ProjectDetailPanelProps {
 }
 
 type TabType = "synthesis" | "phases" | "team" | "governance" | "financial"
+
+const PROJECT_STEPS: Array<{ id: TabType; label: string }> = [
+  { id: "synthesis", label: "Synthèse" },
+  { id: "phases", label: "Phases" },
+  { id: "team", label: "Équipe" },
+  { id: "governance", label: "Gouvernance" },
+  { id: "financial", label: "Financier" },
+]
 
 const PHASE_STATUS: Record<string, StatusPillVariant> = {
   planned: "neutral",
@@ -37,14 +43,6 @@ const PHASE_STATUS_LABELS: Record<string, string> = {
   completed: "Terminé",
   blocked: "Bloqué",
 }
-
-const PRACTICE_IMAGE_BY_SLUG = {
-  "data-ia": "/images/practices/practice_data_ai.png",
-  "digital-cloud": "/images/practices/practice_cloud_computing.png",
-  "agile-pm": "/images/practices/practice_project_management.png",
-  cybersecurity: "/images/practices/practice_cybersecurite.png",
-  "qa-testing": "/images/practices/practice_qa_testing.png",
-} as const
 
 type FinancialHealthTone = "green" | "yellow" | "orange" | "red"
 type PhasePair = [DetailedProjectPhase, DetailedProjectPhase | null]
@@ -139,62 +137,6 @@ function getFinancialToneClasses(tone: FinancialHealthTone) {
       return "bg-orange-500"
     case "red":
       return "bg-danger"
-  }
-}
-
-function getBudgetIndicator(project: DetailedProjectData) {
-  const actual = project.actual_margin_pct
-  const target = project.target_margin_pct
-
-  if (actual === null || target === null) {
-    return {
-      label: "À confirmer",
-      icon: "?"
-    }
-  }
-
-  if (actual >= target) {
-    return {
-      label: "Validé",
-      icon: "✓"
-    }
-  }
-
-  return {
-    label: "Attention",
-    icon: "!"
-  }
-}
-
-function getSatisfactionIndicator(project: DetailedProjectData) {
-  const actual = project.actual_margin_pct
-  const target = project.target_margin_pct
-
-  if (actual === null || target === null) {
-    return {
-      emoji: "😐",
-      label: "Neutre",
-    }
-  }
-
-  const gap = actual - target
-  if (gap >= 0 && project.status !== "cancelled") {
-    return {
-      emoji: "🙂",
-      label: "Satisfait",
-    }
-  }
-
-  if (gap >= -4) {
-    return {
-      emoji: "😐",
-      label: "Neutre",
-    }
-  }
-
-  return {
-    emoji: "🙁",
-    label: "Mécontent",
   }
 }
 
@@ -301,28 +243,9 @@ function pairPhases(phases: DetailedProjectData["project_phases"]): PhasePair[] 
 function PhaseDependencyArrow() {
   return (
     <div className="hidden md:flex items-center justify-center h-full" aria-hidden="true">
-      <svg width="36" height="24" viewBox="0 0 36 24" className="overflow-visible">
-        <defs>
-          <linearGradient id="phase-arrow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f472b6" />
-            <stop offset="55%" stopColor="#fde047" />
-            <stop offset="100%" stopColor="#67e8f9" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M2 12H28"
-          stroke="url(#phase-arrow-gradient)"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M22 5L31 12L22 19"
-          fill="none"
-          stroke="url(#phase-arrow-gradient)"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg width="36" height="24" viewBox="0 0 36 24" className="overflow-visible text-border">
+        <path d="M2 12H28" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M22 5L31 12L22 19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </div>
   )
@@ -342,7 +265,7 @@ function ProjectPhaseCard({
       : 0
 
   return (
-    <SurfaceCard className="p-4 flex flex-col gap-3 h-full">
+    <SurfaceCard className="h-full rounded-[var(--radius-medium)] border-border/70 bg-surface p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/40">
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className="font-semibold text-heading text-sm leading-snug">
@@ -365,14 +288,7 @@ function ProjectPhaseCard({
             <span>{progressPct}%</span>
           </div>
           <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-[width] duration-300"
-              style={{
-                width: `${progressPct}%`,
-                background:
-                  "linear-gradient(90deg, rgba(244,114,182,0.95) 0%, rgba(250,204,21,0.95) 55%, rgba(34,211,238,0.95) 100%)",
-              }}
-            />
+            <div className="h-full rounded-full bg-[#E56A3F] transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       ) : (
@@ -465,22 +381,12 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
   const scopeObj = safeParseScope(project.scope)
   const scopeIncluded: string[] = Array.isArray(scopeObj?.included) ? scopeObj.included : []
   const scopeExcluded: string[] = Array.isArray(scopeObj?.excluded) ? scopeObj.excluded : []
-  const practiceSource = [
-    project.title,
-    ...(project.tags ?? []),
-    ...(project.technologies ?? []),
-    ...((project.project_team_members ?? []).map((member) => member.role_label).filter(Boolean)),
-  ].join(" ")
-  const practice = getPracticeByName(practiceSource)
-  const practiceImage = practice ? PRACTICE_IMAGE_BY_SLUG[practice.slug] : null
   const durationMonths = getProjectDurationMonths(project.start_date_planned, project.end_date_planned)
   const dateRangeLabel =
     project.start_date_planned && project.end_date_planned
       ? `${formatDateNumeric(project.start_date_planned)} au ${formatDateNumeric(project.end_date_planned)}`
       : "Dates non renseignées"
   const financialHealth = getFinancialHealth(project)
-  const budgetIndicator = getBudgetIndicator(project)
-  const satisfactionIndicator = getSatisfactionIndicator(project)
   const governanceSignals = extractGovernanceSignals(project)
   const billingMilestones = Array.isArray(project.billing_milestones)
     ? (project.billing_milestones as DetailedProjectBillingMilestone[])
@@ -495,140 +401,56 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
   const phasePairs = pairPhases(project.project_phases)
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-6 py-8 flex flex-col gap-6">
-      {/* Header detail */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 pb-5 border-b border-border">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/20 px-2 py-0.5 rounded bg-primary/[0.04]">
-              Projet
-            </span>
-            {project.code && <span className="text-xs text-muted font-mono">{project.code}</span>}
+    <div className="h-full overflow-y-auto bg-canvas">
+      <div className="mx-auto w-full max-w-[1360px] px-7 pb-12 pt-5">
+        <header className="border-b border-border pb-5">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-start">
+            <div className="min-w-0">
+              <p className="text-xs text-muted">Engagements <span className="mx-1.5 text-border">/</span> Projets <span className="mx-1.5 text-border">/</span> <span className="font-medium text-primary">{project.title}</span></p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Projet</span>
+                {project.code && <span className="font-mono text-[11px] text-muted">{project.code}</span>}
+                <span className="h-4 w-px bg-border" />
+                <h1 className="font-heading text-lg font-bold tracking-tight text-heading">{project.title}</h1>
+              </div>
+            </div>
+
+            <div className="flex min-w-[17rem] shrink-0 items-center gap-4 self-start border-l border-border pl-6">
+              <CompanyLogo name={clientName} logoPath={logoPath} website={website} size="lg" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Client</span>
+                <span className="mt-1 font-heading text-lg font-bold tracking-tight text-heading">{clientName}</span>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold font-heading text-heading tracking-tight">
-            {project.title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-2">
-            <div className="flex items-center gap-2 min-w-0">
-              {practiceImage ? (
-                <Image
-                  src={practiceImage}
-                  alt={practice?.shortName ?? "Practice"}
-                  width={22}
-                  height={22}
-                  className="shrink-0 rounded-sm"
-                />
-              ) : null}
-              <span className="text-sm font-semibold text-heading truncate">
-                {practice?.name ?? "Practice non renseignée"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <Image
-                src="/icons_set/durée.png"
-                alt="Durée"
-                width={18}
-                height={18}
-                className="shrink-0 object-contain"
-              />
-              <span className="text-sm font-semibold text-heading">
-                {durationMonths ? `${durationMonths} mois` : "Durée non renseignée"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <Image
-                src="/icons_set/conditions_financieres_2.png"
-                alt="Budget"
-                width={18}
-                height={18}
-                className="shrink-0 object-contain"
-              />
-              <span
+        </header>
+
+        <nav aria-label="Étapes du projet" role="tablist" className="mx-auto mt-8 grid max-w-5xl grid-cols-5 items-center">
+          {PROJECT_STEPS.map((step, index) => (
+            <div key={step.id} className="relative flex min-w-0 items-center last:justify-end">
+              <button
+                id={`project-step-${step.id}`}
+                type="button"
+                role="tab"
+                aria-selected={activeSubTab === step.id}
+                aria-controls="project-step-content"
+                onClick={() => setActiveSubTab(step.id)}
                 className={cn(
-                  "inline-flex items-center gap-1 text-sm font-semibold",
-                  budgetIndicator.label === "Validé" ? "text-success" : budgetIndicator.label === "Attention" ? "text-danger" : "text-heading"
+                  "relative z-10 inline-flex items-center gap-2 bg-canvas pr-3 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E56A3F]/40",
+                  activeSubTab === step.id ? "text-[#C6522E]" : "text-body hover:text-heading",
                 )}
               >
-                <span
-                  className={cn(
-                    "inline-flex size-4 items-center justify-center rounded-full text-[11px] font-bold",
-                    budgetIndicator.label === "Validé"
-                      ? "bg-success/12 text-success"
-                      : budgetIndicator.label === "Attention"
-                        ? "bg-danger/12 text-danger"
-                        : "bg-canvas text-heading"
-                  )}
-                >
-                  {budgetIndicator.icon}
-                </span>
-                Budget {budgetIndicator.label}
-              </span>
+                <span className={cn("flex size-8 items-center justify-center rounded-full border text-sm font-medium", activeSubTab === step.id ? "border-[#E56A3F] bg-[#E56A3F] text-white" : "border-[#F3C4B1] bg-canvas text-body")}>{index + 1}</span>
+                <span className="whitespace-nowrap">{step.label}</span>
+              </button>
+              {index < PROJECT_STEPS.length - 1 ? <span aria-hidden className="absolute left-8 right-0 h-px bg-[#F3C4B1]" /> : null}
             </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <Image
-                src="/icons_set/project_satisfaction.png"
-                alt="Satisfaction"
-                width={18}
-                height={18}
-                className="shrink-0 object-contain"
-              />
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-heading">
-                <span className="text-base leading-none" aria-hidden="true">
-                  {satisfactionIndicator.emoji}
-                </span>
-                Satisfaction {satisfactionIndicator.label}
-              </span>
-            </div>
-          </div>
-        </div>
+          ))}
+        </nav>
 
-        {/* Client identity box */}
-        <div className="flex items-center gap-4 bg-canvas/30 px-4 py-3 rounded-[var(--radius-medium)] border border-border/40 shrink-0 self-start min-w-[18rem]">
-          <CompanyLogo name={clientName} logoPath={logoPath} website={website} size="xl" />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-[0.22em] leading-none mb-1.5">
-              Client
-            </span>
-            <span className="font-bold text-heading text-xl md:text-2xl leading-tight">{clientName}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs navigation */}
-      <div className="flex items-center border-b border-border/60">
-        {(["synthesis", "phases", "team", "governance", "financial"] as TabType[]).map((tabId) => {
-          const isActive = activeSubTab === tabId
-          const label =
-            tabId === "synthesis"
-              ? "Synthèse"
-              : tabId === "phases"
-                ? "Phases"
-                : tabId === "team"
-                  ? "Équipe"
-                  : tabId === "governance"
-                    ? "Gouvernance"
-                    : "Financier"
-          return (
-            <button
-              key={tabId}
-              type="button"
-              onClick={() => setActiveSubTab(tabId)}
-              className={cn(
-                "px-4 py-2 text-xs font-semibold border-b-2 -mb-[2px] transition-all",
-                isActive
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted hover:text-body"
-              )}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Tab views */}
+        <main id="project-step-content" role="tabpanel" aria-labelledby={`project-step-${activeSubTab}`} className="mt-8 min-h-[31rem] border-t border-border pt-7">
       {activeSubTab === "synthesis" && (
-        <div className="flex flex-col gap-6">
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-6">
           {/* 3 KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <KpiCard
@@ -671,17 +493,17 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
 
           {/* Description */}
           {project.description && (
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+            <section className="border-t border-border pt-6 flex flex-col gap-3">
               <h3 className="text-sm font-bold text-heading">Description</h3>
               <p className="text-xs text-body whitespace-pre-wrap leading-relaxed">
                 {project.description}
               </p>
-            </SurfaceCard>
+            </section>
           )}
 
           {/* Scope (Périmètre) */}
           {(scopeIncluded.length > 0 || scopeExcluded.length > 0) && (
-            <SurfaceCard className="p-5 flex flex-col gap-4">
+            <section className="border-t border-border pt-6 flex flex-col gap-4">
               <h3 className="text-sm font-bold text-heading">Périmètre du Projet</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {scopeIncluded.length > 0 && (
@@ -709,11 +531,11 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                   </div>
                 )}
               </div>
-            </SurfaceCard>
+            </section>
           )}
 
           {project.technologies && project.technologies.length > 0 && (
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+            <section className="border-t border-border pt-6 flex flex-col gap-3">
               <h3 className="text-sm font-bold text-heading">Environnement Technologique</h3>
               <div className="flex flex-wrap gap-2">
                 {project.technologies.map((tech) => (
@@ -725,36 +547,36 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                   </span>
                 ))}
               </div>
-            </SurfaceCard>
+            </section>
           )}
 
           {/* Deliverables */}
           {project.deliverables && project.deliverables.length > 0 && (
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+            <section className="border-t border-border pt-6 flex flex-col gap-3">
               <h3 className="text-sm font-bold text-heading">Livrables Majeurs</h3>
               <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
                 {project.deliverables.map((del, idx) => (
                   <li key={idx}>{del}</li>
                 ))}
               </ul>
-            </SurfaceCard>
+            </section>
           )}
 
           {/* Lessons Learned */}
           {project.lessons_learned && (
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+            <section className="border-t border-border pt-6 flex flex-col gap-3">
               <h3 className="text-sm font-bold text-heading">Retour d&apos;expérience</h3>
               <p className="text-xs text-body whitespace-pre-wrap leading-relaxed">
                 {project.lessons_learned}
               </p>
-            </SurfaceCard>
+            </section>
           )}
         </div>
       )}
 
       {activeSubTab === "governance" && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <SurfaceCard className="p-5 flex flex-col gap-3">
+        <div className="animate-fade-in motion-reduce:animate-none grid grid-cols-1 gap-8 xl:grid-cols-3 xl:divide-x xl:divide-border">
+          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:pr-7">
             <h3 className="text-sm font-bold text-heading">SLA</h3>
             {governanceSignals.sla.length > 0 ? (
               <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
@@ -767,9 +589,9 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 Aucun SLA structuré n’est encore renseigné sur cette fiche projet.
               </p>
             )}
-          </SurfaceCard>
+          </section>
 
-          <SurfaceCard className="p-5 flex flex-col gap-3">
+          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:px-7">
             <h3 className="text-sm font-bold text-heading">Enquêtes de satisfaction</h3>
             {governanceSignals.satisfaction.length > 0 ? (
               <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
@@ -782,9 +604,9 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 Aucune enquête de satisfaction n’est documentée à ce stade.
               </p>
             )}
-          </SurfaceCard>
+          </section>
 
-          <SurfaceCard className="p-5 flex flex-col gap-3">
+          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:pl-7">
             <h3 className="text-sm font-bold text-heading">Supports de COPIL</h3>
             {governanceSignals.copil.length > 0 ? (
               <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
@@ -797,13 +619,13 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 Aucun support de COPIL n’est encore référencé sur la fiche.
               </p>
             )}
-          </SurfaceCard>
+          </section>
         </div>
       )}
 
       {activeSubTab === "financial" && (
-        <div className="flex flex-col gap-4">
-          <SurfaceCard className="p-5 flex flex-col gap-4">
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-8">
+          <section className="border-t border-border pt-6 flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-bold text-heading">Feuille de route financière initiale</h3>
               <p className="text-xs text-muted">
@@ -838,10 +660,10 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
             ) : (
               <p className="text-xs text-muted">Aucun jalon financier initial n’est renseigné.</p>
             )}
-          </SurfaceCard>
+          </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:divide-x md:divide-border">
+            <section className="border-t border-border pt-6 flex flex-col gap-3 md:border-t-0 md:pt-0 md:pr-8">
               <h3 className="text-sm font-bold text-heading">État actuel du projet</h3>
               <ul className="space-y-2 text-xs text-body">
                 <li>CA vendu : <span className="font-semibold text-heading">{formatEuro(project.contract_amount)}</span></li>
@@ -850,7 +672,7 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 <li>Marge cible : <span className="font-semibold text-heading">{formatPct(project.target_margin_pct)}</span></li>
                 <li>Marge actuelle : <span className="font-semibold text-heading">{formatPct(project.actual_margin_pct)}</span></li>
               </ul>
-              <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 px-3 py-2.5 text-xs text-body">
+              <p className="border-l-2 border-[#F3C4B1] pl-3 text-xs leading-5 text-body">
                 {project.actual_margin_pct !== null && project.target_margin_pct !== null ? (
                   project.actual_margin_pct >= project.target_margin_pct ? (
                     <span>Le projet génère à date un niveau de productivité supérieur ou égal à la cible vendue.</span>
@@ -860,10 +682,10 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 ) : (
                   <span>Les données de marge sont incomplètes pour qualifier précisément les gains ou dérives.</span>
                 )}
-              </div>
-            </SurfaceCard>
+              </p>
+            </section>
 
-            <SurfaceCard className="p-5 flex flex-col gap-3">
+            <section className="border-t border-border pt-6 flex flex-col gap-3 md:border-t-0 md:pt-0 md:pl-8">
               <h3 className="text-sm font-bold text-heading">État de la facturation</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
@@ -886,39 +708,31 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                     ? "Tous les jalons renseignés sont facturés."
                     : "Aucun suivi de facturation n’est disponible pour ce projet."}
               </p>
-            </SurfaceCard>
+            </section>
           </div>
         </div>
       )}
 
       {activeSubTab === "phases" && (
-        <div className="flex flex-col gap-4">
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-4">
           {(!project.project_phases || project.project_phases.length === 0) ? (
             <div className="text-center py-12 text-sm text-muted">
               Aucune phase planifiée pour ce projet.
             </div>
           ) : (
             <>
-              <section className="relative overflow-hidden rounded-[1.75rem] border border-border/50 px-4 py-5 md:px-6 md:py-6">
-                <div
-                  className="absolute inset-0 opacity-90"
-                  style={{
-                    background:
-                      "linear-gradient(165deg, rgba(216,180,254,0.9) 0%, rgba(244,114,182,0.88) 18%, rgba(236,72,153,0.92) 34%, rgba(253,186,116,0.82) 56%, rgba(250,245,110,0.9) 73%, rgba(167,243,208,0.86) 88%, rgba(103,232,249,0.92) 100%)",
-                  }}
-                />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_40%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_38%)]" />
-                <div className="relative flex flex-col gap-4">
+              <section className="border-y border-border px-4 py-5 md:px-6 md:py-6">
+                <div className="flex flex-col gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-700/80">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C6522E]">
                       Avancement des phases
                     </p>
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">Chronologie du projet</h3>
+                    <h3 className="mt-1 font-heading text-lg font-bold text-heading">Chronologie du projet</h3>
                   </div>
 
                   <div className="relative overflow-x-auto pb-1">
                     <div className="relative min-w-[640px] h-36">
-                      <div className="absolute left-0 right-0 top-[5.2rem] h-[3px] rounded-full bg-slate-700/25" />
+                      <div className="absolute left-0 right-0 top-[5.2rem] h-px bg-border" />
                       {timelinePhases.map((phase) => (
                         <div
                           key={phase.id}
@@ -931,17 +745,17 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                         >
                           <div className="px-1">
                             <div className="min-h-[3.5rem]">
-                              <div className="flex items-start gap-2 rounded-2xl bg-white/35 px-2.5 py-2 shadow-[0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-[6px]">
-                                <span className="text-xl font-black leading-none text-slate-900/85 tabular-nums">
+                              <div className="flex items-start gap-2 border-l border-[#F3C4B1] px-2.5 py-2">
+                                <span className="font-heading text-xl font-bold leading-none text-[#C6522E] tabular-nums">
                                   {String(phase.index).padStart(2, "0")}
                                 </span>
                                 <div className="min-w-0">
-                                  <div className="text-[11px] font-semibold leading-tight text-slate-900">
+                                  <div className="text-[11px] font-semibold leading-tight text-heading">
                                     {phase.label}
                                   </div>
-                                  <div className="mt-1 text-[10px] text-slate-700">
+                                  <div className="mt-1 text-[10px] text-muted">
                                     {phase.startDate ? formatDateNumeric(phase.startDate) : "—"}{" "}
-                                    <span className="text-slate-500">→</span>{" "}
+                                    <span className="text-border">→</span>{" "}
                                     {phase.endDate ? formatDateNumeric(phase.endDate) : "—"}
                                   </div>
                                 </div>
@@ -952,16 +766,16 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
 
                             <div
                               className={cn(
-                                "relative h-4 rounded-full border border-slate-900/8 shadow-[0_8px_20px_rgba(15,23,42,0.08)] backdrop-blur-sm",
+                                "relative h-2 rounded-full bg-border/70",
                                 phase.isCurrent
-                                  ? "bg-fuchsia-600/90 ring-2 ring-fuchsia-300/70"
-                                  : "bg-slate-900/12"
+                                  ? "bg-[#E56A3F]"
+                                  : "bg-border/70"
                               )}
                             />
                             <div
                               className={cn(
-                                "absolute top-[4.85rem] -translate-x-1/2 size-3 rounded-full border-2 border-slate-900/15 bg-slate-50 shadow-[0_0_0_6px_rgba(255,255,255,0.16)]",
-                                phase.isCurrent && "size-4 bg-slate-900 shadow-[0_0_0_10px_rgba(255,255,255,0.2)]"
+                                "absolute top-[4.95rem] -translate-x-1/2 size-3 rounded-full border-2 border-canvas bg-border",
+                                phase.isCurrent && "size-4 bg-[#E56A3F]"
                               )}
                               style={{ left: `${phase.centerPct}%` }}
                             />
@@ -994,7 +808,7 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
       )}
 
       {activeSubTab === "team" && (
-        <div className="flex flex-col gap-4">
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-4">
           {(!project.project_team_members || project.project_team_members.length === 0) ? (
             <div className="text-center py-12 text-sm text-muted">
               Aucun membre d&apos;équipe assigné à ce projet.
@@ -1072,6 +886,8 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
           )}
         </div>
       )}
+        </main>
+      </div>
     </div>
   )
 }
