@@ -219,12 +219,14 @@ export function MissionOverviewDesktop({ vm }: MissionOverviewDesktopProps) {
                 aria-controls="mission-step-content"
                 onClick={() => setActiveStep(step.id)}
                 className={cn(
-                  "relative z-10 inline-flex items-center gap-2 bg-canvas pr-3 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7F9CCB]/40",
+                  "group kredo-timeline-tab relative z-10 inline-flex items-center gap-2 bg-canvas pr-3 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7F9CCB]/40",
                   activeStep === step.id ? "text-[#5876A6]" : "text-body hover:text-heading",
                 )}
               >
-                <span className={cn("flex size-8 items-center justify-center rounded-full border text-sm font-medium", activeStep === step.id ? "border-[#7F9CCB] bg-[#7F9CCB] text-white" : "border-[#C8D7E9] bg-canvas text-body")}>{index + 1}</span>
-                <span className="whitespace-nowrap">{step.shortLabel}</span>
+                <span className={cn("kredo-timeline-step kredo-timeline-step--cool flex size-8 items-center justify-center rounded-full border text-sm font-medium", activeStep === step.id ? "border-[#7F9CCB] bg-[#7F9CCB] text-white" : "border-[#C8D7E9] bg-canvas text-body")}>
+                  <span className="relative z-10">{index + 1}</span>
+                </span>
+                <span className="kredo-timeline-step-label whitespace-nowrap">{step.shortLabel}</span>
               </button>
               {index < MISSION_STEPS.length - 1 ? <span aria-hidden className="absolute left-8 right-0 h-px bg-[#C8D7E9]" /> : null}
             </div>

@@ -422,3 +422,21 @@ export async function getContactIdentity(contactId: string) {
     return { error: "Une erreur inattendue est survenue", data: null }
   }
 }
+
+export async function updateContactRelationshipRole(
+  contactId: string,
+  role: string | null
+) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("contacts")
+    .update({
+      relationship_role: normalizeContactRelationshipRole(role),
+    })
+    .eq("id", contactId)
+
+  if (error) return { error: error.message }
+  revalidatePath(REVALIDATE)
+  return { error: null }
+}
+

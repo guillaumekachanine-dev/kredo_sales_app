@@ -16,7 +16,7 @@ import {
   filterAccounts,
   filterContacts,
 } from "@/lib/accounts-contacts/accounts-contacts-filters"
-import { relationshipRoleAccentColor } from "@/lib/accounts-contacts/contact-constants"
+import { relationshipRoleAccentColor, relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
 import { useUrlFilters } from "@/lib/search/use-url-filters"
 import { SearchToolbar } from "@/components/search/SearchToolbar"
 import { PageViewSelector } from "@/components/ui/PageViewSelector"
@@ -28,6 +28,7 @@ import {
   deleteCompany,
   createContact,
   updateContact,
+  updateContactRelationshipRole,
   deleteContact,
   type CompanyFormData,
   type ContactFormData,
@@ -772,6 +773,9 @@ function AccountsDesktop({
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
 
   const router = useRouter()
+  const [editingContactId, setEditingContactId] = useState<string | null>(null)
+  const [updatingContactId, setUpdatingContactId] = useState<string | null>(null)
+  const [isUpdating, startUpdateTransition] = useTransition()
 
   const handleLogActivity = (contact: ContactRow, account: AccountRow) => {
     setEventInitialValues({
@@ -1003,9 +1007,68 @@ function AccountsDesktop({
                                       </span>
 
                                       {/* Col 4: Rôle décisionnel */}
-                                      <span className="text-muted text-[11px] capitalize truncate" title={contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}>
-                                        {contact.relationshipRole ? contact.relationshipRole.replace("_", " ") : "—"}
-                                      </span>
+                                      <div
+                                        className="relative flex items-center min-w-0 w-full"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {updatingContactId === contact.id ? (
+                                          <div className="flex items-center gap-1.5 text-muted text-[11px]">
+                                            <svg className="animate-spin h-3 w-3 text-primary shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span className="italic text-[10px] text-muted">Mise à jour...</span>
+                                          </div>
+                                        ) : editingContactId === contact.id ? (
+                                          <select
+                                            autoFocus
+                                            value={contact.relationshipRole || ""}
+                                            onChange={(e) => {
+                                              const newRole = e.target.value || null
+                                              setEditingContactId(null)
+                                              setUpdatingContactId(contact.id)
+                                              startUpdateTransition(async () => {
+                                                await updateContactRelationshipRole(contact.id, newRole)
+                                                setUpdatingContactId(null)
+                                                router.refresh()
+                                              })
+                                            }}
+                                            onBlur={() => setEditingContactId(null)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Escape") {
+                                                setEditingContactId(null)
+                                              }
+                                            }}
+                                            className="w-full bg-canvas border border-border/80 text-[11px] rounded px-1.5 py-0.5 text-heading focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                                          >
+                                            <option value="">— Non renseigné —</option>
+                                            {CONTACT_RELATIONSHIP_ROLE_OPTIONS.map((opt) => (
+                                              <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        ) : (
+                                          <div
+                                            onClick={() => setEditingContactId(contact.id)}
+                                            className="group flex items-center justify-between w-full hover:bg-canvas/40 px-2 py-1 rounded transition-colors border border-transparent hover:border-border/30 cursor-pointer min-w-0"
+                                            title="Cliquer pour modifier le rôle décisionnel"
+                                          >
+                                            <span className="text-muted text-[11px] truncate select-none">
+                                              {relationshipRoleLabel(contact.relationshipRole)}
+                                            </span>
+                                            <svg
+                                              className="h-3 w-3 text-muted/40 group-hover:text-muted shrink-0 ml-1 transition-colors opacity-0 group-hover:opacity-100"
+                                              fill="none"
+                                              viewBox="0 0 24 24"
+                                              stroke="currentColor"
+                                              strokeWidth={2}
+                                            >
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                          </div>
+                                        )}
+                                      </div>
 
                                       {/* Col 5: Bouton d'action "activité" (cobalt blue) */}
                                       <div className="flex">

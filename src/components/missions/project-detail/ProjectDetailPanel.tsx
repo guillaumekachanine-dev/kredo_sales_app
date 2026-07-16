@@ -12,7 +12,6 @@ import {
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import { KpiCard } from "@/components/ui/KpiCard"
 import { formatEuro, formatPct, formatDateNumeric } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
@@ -44,8 +43,6 @@ const PHASE_STATUS_LABELS: Record<string, string> = {
   blocked: "Bloqué",
 }
 
-type FinancialHealthTone = "green" | "yellow" | "orange" | "red"
-type PhasePair = [DetailedProjectPhase, DetailedProjectPhase | null]
 type TimelinePhase = {
   id: string
   index: number
@@ -71,73 +68,6 @@ function safeParseScope(scope: DetailedProjectData["scope"]) {
     }
   }
   return scope
-}
-
-function getProjectDurationMonths(startDate?: string | null, endDate?: string | null) {
-  if (!startDate || !endDate) return null
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null
-  const diffDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
-  return Math.max(1, Math.round(diffDays / 30.44))
-}
-
-function getFinancialHealth(project: DetailedProjectData): {
-  tone: FinancialHealthTone
-  label: string
-  detail: string
-} {
-  const actual = project.actual_margin_pct
-  const target = project.target_margin_pct
-
-  if (actual === null || target === null) {
-    return {
-      tone: "yellow",
-      label: "À l’attendu",
-      detail: "Visibilité financière partielle",
-    }
-  }
-
-  const gap = actual - target
-  if (gap >= 0) {
-    return {
-      tone: "green",
-      label: "Conduite financière impeccable",
-      detail: `Marge réelle ${formatPct(actual)} pour un objectif de ${formatPct(target)}`,
-    }
-  }
-  if (gap >= -3) {
-    return {
-      tone: "yellow",
-      label: "À l’attendu",
-      detail: `Écart contenu de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
-    }
-  }
-  if (gap >= -8) {
-    return {
-      tone: "orange",
-      label: "Risque sérieux identifié",
-      detail: `Écart de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
-    }
-  }
-  return {
-    tone: "red",
-    label: "Dérive constatée, projet en péril",
-    detail: `Sous-performance de ${Math.abs(gap).toFixed(1)} pts vs objectif`,
-  }
-}
-
-function getFinancialToneClasses(tone: FinancialHealthTone) {
-  switch (tone) {
-    case "green":
-      return "bg-success"
-    case "yellow":
-      return "bg-warning"
-    case "orange":
-      return "bg-orange-500"
-    case "red":
-      return "bg-danger"
-  }
 }
 
 function extractGovernanceSignals(project: DetailedProjectData) {
@@ -231,26 +161,6 @@ function buildTimelinePhases(phases: DetailedProjectData["project_phases"]): Tim
   })
 }
 
-function pairPhases(phases: DetailedProjectData["project_phases"]): PhasePair[] {
-  if (!phases || phases.length === 0) return []
-  const pairs: PhasePair[] = []
-  for (let i = 0; i < phases.length; i += 2) {
-    pairs.push([phases[i], phases[i + 1] ?? null])
-  }
-  return pairs
-}
-
-function PhaseDependencyArrow() {
-  return (
-    <div className="hidden md:flex items-center justify-center h-full" aria-hidden="true">
-      <svg width="36" height="24" viewBox="0 0 36 24" className="overflow-visible text-border">
-        <path d="M2 12H28" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M22 5L31 12L22 19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
-  )
-}
-
 function ProjectPhaseCard({
   phase,
 }: {
@@ -265,50 +175,46 @@ function ProjectPhaseCard({
       : 0
 
   return (
-    <SurfaceCard className="h-full rounded-[var(--radius-medium)] border-border/70 bg-surface p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3 pb-3 border-b border-border/40">
-        <div className="flex flex-col gap-1.5 min-w-0">
-          <span className="font-semibold text-heading text-sm leading-snug">
-            {phase.label}
-          </span>
-          {phase.start_date_planned && phase.end_date_planned ? (
-            <span className="text-[11px] text-muted font-medium">
-              {formatDateNumeric(phase.start_date_planned)} au{" "}
-              {formatDateNumeric(phase.end_date_planned)}
+    <SurfaceCard className="h-full min-w-0 rounded-[var(--radius-medium)] border-border/70 bg-surface px-3 py-3.5">
+      <div className="flex h-full flex-col gap-2.5">
+        <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2.5">
+          <div className="min-w-0">
+            <span className="block text-sm font-semibold leading-snug text-heading">
+              {phase.label}
             </span>
-          ) : null}
+            {phase.start_date_planned && phase.end_date_planned ? (
+              <span className="mt-1 block text-[10px] font-medium text-muted">
+                {formatDateNumeric(phase.start_date_planned)} au{" "}
+                {formatDateNumeric(phase.end_date_planned)}
+              </span>
+            ) : null}
+          </div>
+          <StatusPill label={label} variant={variant} dot={true} />
         </div>
-        <StatusPill label={label} variant={variant} dot={true} />
+
+        {plannedDays > 0 ? (
+          <div className="w-full">
+            <div className="flex justify-between text-[10px] font-medium text-muted">
+              <span>Consommé : {phase.consumed_days} j / {plannedDays} j</span>
+              <span>{progressPct}%</span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border/40">
+              <div className="h-full rounded-full bg-[#E56A3F] transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+        ) : (
+          <div className="text-[10px] font-medium text-muted">
+            Consommé : <span className="font-semibold text-body">{phase.consumed_days} j</span> (aucun budget prévu)
+          </div>
+        )}
+
+        {phase.deliverables && phase.deliverables.length > 0 && (
+          <div className="border-t border-border/40 pt-2 text-[10px] leading-4 text-body">
+            <span className="mr-1.5 font-bold uppercase tracking-wider text-muted">Livrables</span>
+            {phase.deliverables.join(" · ")}
+          </div>
+        )}
       </div>
-
-      {plannedDays > 0 ? (
-        <div className="flex flex-col gap-1.5 w-full mt-1">
-          <div className="flex justify-between text-[10px] font-medium text-muted">
-            <span>Consommé : {phase.consumed_days} j / {plannedDays} j</span>
-            <span>{progressPct}%</span>
-          </div>
-          <div className="h-1.5 w-full bg-border/40 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-[#E56A3F] transition-[width] duration-300" style={{ width: `${progressPct}%` }} />
-          </div>
-        </div>
-      ) : (
-        <div className="text-[10px] font-medium text-muted mt-1">
-          Consommé : <span className="font-semibold text-body">{phase.consumed_days} j</span> (aucun budget prévu)
-        </div>
-      )}
-
-      {phase.deliverables && phase.deliverables.length > 0 && (
-        <div className="mt-1">
-          <span className="text-[10px] font-bold text-muted uppercase tracking-wider block mb-2">
-            Livrables de la phase
-          </span>
-          <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
-            {phase.deliverables.map((del, idx) => (
-              <li key={idx}>{del}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </SurfaceCard>
   )
 }
@@ -381,12 +287,6 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
   const scopeObj = safeParseScope(project.scope)
   const scopeIncluded: string[] = Array.isArray(scopeObj?.included) ? scopeObj.included : []
   const scopeExcluded: string[] = Array.isArray(scopeObj?.excluded) ? scopeObj.excluded : []
-  const durationMonths = getProjectDurationMonths(project.start_date_planned, project.end_date_planned)
-  const dateRangeLabel =
-    project.start_date_planned && project.end_date_planned
-      ? `${formatDateNumeric(project.start_date_planned)} au ${formatDateNumeric(project.end_date_planned)}`
-      : "Dates non renseignées"
-  const financialHealth = getFinancialHealth(project)
   const governanceSignals = extractGovernanceSignals(project)
   const billingMilestones = Array.isArray(project.billing_milestones)
     ? (project.billing_milestones as DetailedProjectBillingMilestone[])
@@ -398,7 +298,6 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
   const remainingAmount =
     project.contract_amount !== null ? Math.max(project.contract_amount - billedAmount, 0) : null
   const timelinePhases = buildTimelinePhases(project.project_phases)
-  const phasePairs = pairPhases(project.project_phases)
 
   return (
     <div className="h-full overflow-y-auto bg-canvas">
@@ -436,12 +335,14 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 aria-controls="project-step-content"
                 onClick={() => setActiveSubTab(step.id)}
                 className={cn(
-                  "relative z-10 inline-flex items-center gap-2 bg-canvas pr-3 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E56A3F]/40",
+                  "group kredo-timeline-tab relative z-10 inline-flex items-center gap-2 bg-canvas pr-3 text-left text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E56A3F]/40",
                   activeSubTab === step.id ? "text-[#C6522E]" : "text-body hover:text-heading",
                 )}
               >
-                <span className={cn("flex size-8 items-center justify-center rounded-full border text-sm font-medium", activeSubTab === step.id ? "border-[#E56A3F] bg-[#E56A3F] text-white" : "border-[#F3C4B1] bg-canvas text-body")}>{index + 1}</span>
-                <span className="whitespace-nowrap">{step.label}</span>
+                <span className={cn("kredo-timeline-step kredo-timeline-step--warm flex size-8 items-center justify-center rounded-full border text-sm font-medium", activeSubTab === step.id ? "border-[#E56A3F] bg-[#E56A3F] text-white" : "border-[#F3C4B1] bg-canvas text-body")}>
+                  <span className="relative z-10">{index + 1}</span>
+                </span>
+                <span className="kredo-timeline-step-label whitespace-nowrap">{step.label}</span>
               </button>
               {index < PROJECT_STEPS.length - 1 ? <span aria-hidden className="absolute left-8 right-0 h-px bg-[#F3C4B1]" /> : null}
             </div>
@@ -450,68 +351,26 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
 
         <main id="project-step-content" role="tabpanel" aria-labelledby={`project-step-${activeSubTab}`} className="mt-8 min-h-[31rem] border-t border-border pt-7">
       {activeSubTab === "synthesis" && (
-        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-6">
-          {/* 3 KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <KpiCard
-              label="CA Contractuel"
-              value={formatEuro(project.contract_amount)}
-              accent="none"
-              size="compact"
-              compactLayout={true}
-              className="min-h-[6.5rem]"
-            />
-            <KpiCard
-              label="Durée"
-              value={durationMonths ? `${durationMonths} mois` : "—"}
-              context={dateRangeLabel}
-              accent="none"
-              size="compact"
-              compactLayout={true}
-              className="min-h-[6.5rem]"
-              contextClassName="text-muted"
-            />
-            <KpiCard
-              label="État financier"
-              value={
-                <span className="flex items-center gap-2 text-left">
-                  <span
-                    className={cn("inline-flex size-3 rounded-full shrink-0", getFinancialToneClasses(financialHealth.tone))}
-                    aria-hidden="true"
-                  />
-                  <span className="text-base md:text-lg leading-snug">{financialHealth.label}</span>
-                </span>
-              }
-              context={financialHealth.detail}
-              accent="none"
-              size="compact"
-              compactLayout={true}
-              className="min-h-[6.5rem]"
-              contextClassName="text-muted"
-            />
-          </div>
-
-          {/* Description */}
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col">
           {project.description && (
-            <section className="border-t border-border pt-6 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-heading">Description</h3>
-              <p className="text-xs text-body whitespace-pre-wrap leading-relaxed">
+            <section className="grid gap-4 py-7 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <h3 className="text-sm font-semibold text-[#C6522E]">Description</h3>
+              <p className="max-w-[70ch] whitespace-pre-wrap text-xs leading-5 text-body">
                 {project.description}
               </p>
             </section>
           )}
 
-          {/* Scope (Périmètre) */}
           {(scopeIncluded.length > 0 || scopeExcluded.length > 0) && (
-            <section className="border-t border-border pt-6 flex flex-col gap-4">
-              <h3 className="text-sm font-bold text-heading">Périmètre du Projet</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section className="grid gap-4 border-t border-border py-7 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <h3 className="text-sm font-semibold text-[#C6522E]">Périmètre du Projet</h3>
+              <div className="grid gap-7 md:grid-cols-2 md:divide-x md:divide-border">
                 {scopeIncluded.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-bold text-success uppercase tracking-wider block mb-2">
+                  <div className="md:pr-7">
+                    <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-success">
                       Inclus
                     </span>
-                    <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+                    <ul className="list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                       {scopeIncluded.map((item, idx) => (
                         <li key={idx}>{item}</li>
                       ))}
@@ -519,11 +378,11 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                   </div>
                 )}
                 {scopeExcluded.length > 0 && (
-                  <div>
-                    <span className="text-[10px] font-bold text-danger uppercase tracking-wider block mb-2">
+                  <div className="md:pl-7">
+                    <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-danger">
                       Exclus
                     </span>
-                    <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+                    <ul className="list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                       {scopeExcluded.map((item, idx) => (
                         <li key={idx}>{item}</li>
                       ))}
@@ -535,13 +394,13 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
           )}
 
           {project.technologies && project.technologies.length > 0 && (
-            <section className="border-t border-border pt-6 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-heading">Environnement Technologique</h3>
+            <section className="grid gap-4 border-t border-border py-7 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <h3 className="text-sm font-semibold text-[#C6522E]">Environnement Technologique</h3>
               <div className="flex flex-wrap gap-2">
                 {project.technologies.map((tech) => (
                   <span
                     key={tech}
-                    className="bg-canvas border border-border/60 px-2.5 py-1 rounded-full text-[11px] font-semibold text-body"
+                    className="rounded-full border border-border/70 bg-canvas px-2.5 py-1 text-[11px] font-semibold text-body"
                   >
                     {tech}
                   </span>
@@ -550,11 +409,10 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
             </section>
           )}
 
-          {/* Deliverables */}
           {project.deliverables && project.deliverables.length > 0 && (
-            <section className="border-t border-border pt-6 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-heading">Livrables Majeurs</h3>
-              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+            <section className="grid gap-4 border-t border-border py-7 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <h3 className="text-sm font-semibold text-[#C6522E]">Livrables Majeurs</h3>
+              <ul className="max-w-[70ch] list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                 {project.deliverables.map((del, idx) => (
                   <li key={idx}>{del}</li>
                 ))}
@@ -562,11 +420,10 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
             </section>
           )}
 
-          {/* Lessons Learned */}
           {project.lessons_learned && (
-            <section className="border-t border-border pt-6 flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-heading">Retour d&apos;expérience</h3>
-              <p className="text-xs text-body whitespace-pre-wrap leading-relaxed">
+            <section className="grid gap-4 border-t border-border py-7 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <h3 className="text-sm font-semibold text-[#C6522E]">Retour d&apos;expérience</h3>
+              <p className="max-w-[70ch] whitespace-pre-wrap text-xs leading-5 text-body">
                 {project.lessons_learned}
               </p>
             </section>
@@ -575,47 +432,47 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
       )}
 
       {activeSubTab === "governance" && (
-        <div className="animate-fade-in motion-reduce:animate-none grid grid-cols-1 gap-8 xl:grid-cols-3 xl:divide-x xl:divide-border">
-          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:pr-7">
-            <h3 className="text-sm font-bold text-heading">SLA</h3>
+        <div className="animate-fade-in motion-reduce:animate-none grid grid-cols-1 gap-x-10 md:grid-cols-2">
+          <section className="flex flex-col gap-3 border-t border-border py-7">
+            <h3 className="text-sm font-semibold text-[#C6522E]">SLA</h3>
             {governanceSignals.sla.length > 0 ? (
-              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+              <ul className="list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                 {governanceSignals.sla.map((item, idx) => (
                   <li key={`${item}-${idx}`}>{item}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs leading-5 text-muted">
                 Aucun SLA structuré n’est encore renseigné sur cette fiche projet.
               </p>
             )}
           </section>
 
-          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:px-7">
-            <h3 className="text-sm font-bold text-heading">Enquêtes de satisfaction</h3>
+          <section className="flex flex-col gap-3 border-t border-border py-7">
+            <h3 className="text-sm font-semibold text-[#C6522E]">Enquêtes de satisfaction</h3>
             {governanceSignals.satisfaction.length > 0 ? (
-              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+              <ul className="list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                 {governanceSignals.satisfaction.map((item, idx) => (
                   <li key={`${item}-${idx}`}>{item}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs leading-5 text-muted">
                 Aucune enquête de satisfaction n’est documentée à ce stade.
               </p>
             )}
           </section>
 
-          <section className="flex flex-col gap-3 border-t border-border pt-5 xl:border-t-0 xl:pt-0 xl:pl-7">
-            <h3 className="text-sm font-bold text-heading">Supports de COPIL</h3>
+          <section className="flex flex-col gap-3 border-t border-border py-7">
+            <h3 className="text-sm font-semibold text-[#C6522E]">Supports de COPIL</h3>
             {governanceSignals.copil.length > 0 ? (
-              <ul className="list-disc pl-4 space-y-1.5 text-xs text-body">
+              <ul className="list-disc space-y-1.5 pl-4 text-xs leading-5 text-body">
                 {governanceSignals.copil.map((item, idx) => (
                   <li key={`${item}-${idx}`}>{item}</li>
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-muted leading-relaxed">
+              <p className="text-xs leading-5 text-muted">
                 Aucun support de COPIL n’est encore référencé sur la fiche.
               </p>
             )}
@@ -624,55 +481,77 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
       )}
 
       {activeSubTab === "financial" && (
-        <div className="animate-fade-in motion-reduce:animate-none flex flex-col gap-8">
-          <section className="border-t border-border pt-6 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-bold text-heading">Feuille de route financière initiale</h3>
-              <p className="text-xs text-muted">
+        <div className="animate-fade-in motion-reduce:animate-none flex flex-col">
+          <section className="border-b border-border py-7">
+            <div className="grid gap-4 md:grid-cols-[minmax(11rem,0.38fr)_minmax(0,1fr)] md:gap-10">
+              <div>
+                <h3 className="text-sm font-semibold text-[#C6522E]">Feuille de route financière initiale</h3>
+              </div>
+              <p className="max-w-[62ch] text-xs leading-5 text-body">
                 Jalons vendus au lancement du projet et séquencement prévu de la facturation.
               </p>
             </div>
+
             {billingMilestones.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-flow-col xl:auto-cols-fr">
                 {billingMilestones.map((milestone, index) => (
-                  <div
+                  <article
                     key={`${milestone.label}-${index}`}
-                    className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-4 flex flex-col gap-2"
+                    className="min-w-0 rounded-[var(--radius-medium)] border border-border/70 bg-surface px-3 py-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="text-sm font-semibold text-heading">{milestone.label}</span>
                       {milestone.pct !== undefined && milestone.pct !== null ? (
-                        <span className="text-xs font-bold text-primary">{milestone.pct}%</span>
+                        <span className="shrink-0 text-xs font-bold text-[#C6522E]">{milestone.pct}%</span>
                       ) : null}
                     </div>
-                    <div className="text-xs text-body font-medium">
+                    <div className="mt-2 text-sm font-semibold text-heading">
                       {formatEuro(milestone.amount ?? null)}
                     </div>
-                    <div className="text-[11px] text-muted">
-                      Échéance : {milestone.due_date ? formatDateNumeric(milestone.due_date) : "récurrente / non datée"}
-                    </div>
-                    <div className="text-[11px] text-muted">
-                      Facturation : {milestone.invoiced_at ? `émise le ${formatDateNumeric(milestone.invoiced_at)}` : "non émise"}
-                    </div>
-                  </div>
+                    <dl className="mt-2 space-y-1 border-t border-border/50 pt-2 text-[10px] leading-4 text-muted">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt>Échéance</dt>
+                        <dd className="text-right text-body">{milestone.due_date ? formatDateNumeric(milestone.due_date) : "récurrente / non datée"}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <dt>Facturation</dt>
+                        <dd className="text-right text-body">{milestone.invoiced_at ? `émise le ${formatDateNumeric(milestone.invoiced_at)}` : "non émise"}</dd>
+                      </div>
+                    </dl>
+                  </article>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted">Aucun jalon financier initial n’est renseigné.</p>
+              <p className="mt-5 text-xs text-muted">Aucun jalon financier initial n’est renseigné.</p>
             )}
           </section>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:divide-x md:divide-border">
-            <section className="border-t border-border pt-6 flex flex-col gap-3 md:border-t-0 md:pt-0 md:pr-8">
-              <h3 className="text-sm font-bold text-heading">État actuel du projet</h3>
-              <ul className="space-y-2 text-xs text-body">
-                <li>CA vendu : <span className="font-semibold text-heading">{formatEuro(project.contract_amount)}</span></li>
-                <li>Coût cible : <span className="font-semibold text-heading">{formatEuro(project.contract_amount !== null && project.target_margin_pct !== null ? project.contract_amount * (1 - project.target_margin_pct / 100) : null)}</span></li>
-                <li>Coût constaté : <span className="font-semibold text-heading">{formatEuro(project.contract_amount !== null && project.actual_margin_pct !== null ? project.contract_amount * (1 - project.actual_margin_pct / 100) : null)}</span></li>
-                <li>Marge cible : <span className="font-semibold text-heading">{formatPct(project.target_margin_pct)}</span></li>
-                <li>Marge actuelle : <span className="font-semibold text-heading">{formatPct(project.actual_margin_pct)}</span></li>
-              </ul>
-              <p className="border-l-2 border-[#F3C4B1] pl-3 text-xs leading-5 text-body">
+          <div className="grid gap-10 py-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(22rem,0.88fr)] xl:gap-12">
+            <section>
+              <h3 className="text-sm font-semibold text-[#C6522E]">État actuel du projet</h3>
+              <dl className="mt-5 divide-y divide-border border-y border-border">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-6 py-2.5 text-xs">
+                  <dt className="text-[#C6522E]">CA vendu</dt>
+                  <dd className="font-semibold tabular-nums text-heading">{formatEuro(project.contract_amount)}</dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-6 py-2.5 text-xs">
+                  <dt className="text-[#C6522E]">Coût cible</dt>
+                  <dd className="font-semibold tabular-nums text-heading">{formatEuro(project.contract_amount !== null && project.target_margin_pct !== null ? project.contract_amount * (1 - project.target_margin_pct / 100) : null)}</dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-6 py-2.5 text-xs">
+                  <dt className="text-[#C6522E]">Coût constaté</dt>
+                  <dd className="font-semibold tabular-nums text-heading">{formatEuro(project.contract_amount !== null && project.actual_margin_pct !== null ? project.contract_amount * (1 - project.actual_margin_pct / 100) : null)}</dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-6 py-2.5 text-xs">
+                  <dt className="text-[#C6522E]">Marge cible</dt>
+                  <dd className="font-semibold tabular-nums text-heading">{formatPct(project.target_margin_pct)}</dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-6 py-2.5 text-xs">
+                  <dt className="text-[#C6522E]">Marge actuelle</dt>
+                  <dd className="font-semibold tabular-nums text-heading">{formatPct(project.actual_margin_pct)}</dd>
+                </div>
+              </dl>
+              <p className="mt-5 border-l-2 border-[#E56A3F] pl-3 text-xs leading-5 text-body">
                 {project.actual_margin_pct !== null && project.target_margin_pct !== null ? (
                   project.actual_margin_pct >= project.target_margin_pct ? (
                     <span>Le projet génère à date un niveau de productivité supérieur ou égal à la cible vendue.</span>
@@ -685,23 +564,23 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
               </p>
             </section>
 
-            <section className="border-t border-border pt-6 flex flex-col gap-3 md:border-t-0 md:pt-0 md:pl-8">
-              <h3 className="text-sm font-bold text-heading">État de la facturation</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Jalons</div>
-                  <div className="mt-2 text-lg font-bold text-heading">{billingMilestones.length}</div>
+            <section className="border-t border-border pt-7 xl:border-l xl:border-t-0 xl:pl-12 xl:pt-0">
+              <h3 className="text-sm font-semibold text-[#C6522E]">État de la facturation</h3>
+              <dl className="mt-5 grid grid-cols-3 divide-x divide-border border-y border-border">
+                <div className="px-3 py-4 first:pl-0">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-muted">Jalons</dt>
+                  <dd className="mt-2 text-lg font-bold tabular-nums text-heading">{billingMilestones.length}</dd>
                 </div>
-                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Déjà facturé</div>
-                  <div className="mt-2 text-lg font-bold text-heading">{formatEuro(billedAmount)}</div>
+                <div className="px-3 py-4">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-muted">Déjà facturé</dt>
+                  <dd className="mt-2 text-lg font-bold tabular-nums text-heading">{formatEuro(billedAmount)}</dd>
                 </div>
-                <div className="rounded-[var(--radius-medium)] border border-border/50 bg-canvas/30 p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted">Reste à facturer</div>
-                  <div className="mt-2 text-lg font-bold text-heading">{formatEuro(remainingAmount)}</div>
+                <div className="px-3 py-4 pr-0">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-muted">Reste à facturer</dt>
+                  <dd className="mt-2 text-lg font-bold tabular-nums text-heading">{formatEuro(remainingAmount)}</dd>
                 </div>
-              </div>
-              <p className="text-xs text-muted leading-relaxed">
+              </dl>
+              <p className="mt-5 border-l-2 border-[#F3C4B1] pl-3 text-xs leading-5 text-body">
                 {billingMilestones.some((milestone) => !milestone.invoiced_at)
                   ? "Au moins un jalon vendu n’a pas encore été facturé."
                   : billingMilestones.length > 0
@@ -787,19 +666,9 @@ export function ProjectDetailPanel({ tab }: ProjectDetailPanelProps) {
                 </div>
               </section>
 
-              <div className="flex flex-col gap-4">
-                {phasePairs.map(([firstPhase, secondPhase]) => (
-                  <div
-                    key={`${firstPhase.id}-${secondPhase?.id ?? "single"}`}
-                    className={cn(
-                      "grid gap-3 md:gap-4 items-stretch",
-                      secondPhase ? "grid-cols-1 md:grid-cols-[minmax(0,1fr)_44px_minmax(0,1fr)]" : "grid-cols-1"
-                    )}
-                  >
-                    <ProjectPhaseCard phase={firstPhase} />
-                    {secondPhase ? <PhaseDependencyArrow /> : null}
-                    {secondPhase ? <ProjectPhaseCard phase={secondPhase} /> : null}
-                  </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-none xl:grid-flow-col xl:auto-cols-fr">
+                {project.project_phases.map((phase) => (
+                  <ProjectPhaseCard key={phase.id} phase={phase} />
                 ))}
               </div>
             </>

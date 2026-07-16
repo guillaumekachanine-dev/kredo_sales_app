@@ -1148,6 +1148,108 @@ dialog.kredo-drawer-bottom {
   transform: translateY(-1px) scale(0.98);
 }
 
+/* Timeline steps — an immediate, contained feedback on the numbered marker. */
+@keyframes kredo-timeline-step-shine {
+  0% {
+    transform: translateX(-135%) skewX(-14deg);
+    opacity: 0;
+  }
+
+  16% {
+    opacity: 1;
+  }
+
+  78% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateX(135%) skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+.kredo-timeline-tab {
+  transition:
+    transform 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.32s ease;
+}
+
+.kredo-timeline-step {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.46s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.46s ease;
+}
+
+.kredo-timeline-step-label {
+  display: inline-block;
+  transition: transform 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.kredo-timeline-step::after {
+  content: "";
+  position: absolute;
+  inset-block: -35%;
+  inset-inline: -80%;
+  z-index: 0;
+  background: linear-gradient(105deg,
+      transparent 38%,
+      rgba(255, 255, 255, 0) 43%,
+      rgba(255, 255, 255, 0.86) 50%,
+      rgba(255, 255, 255, 0) 57%,
+      transparent 62%);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.kredo-timeline-step--cool {
+  --kredo-timeline-step-glow: rgba(127, 156, 203, 0.34);
+  --kredo-timeline-step-ring: rgba(127, 156, 203, 0.18);
+}
+
+.kredo-timeline-step--warm {
+  --kredo-timeline-step-glow: rgba(229, 106, 63, 0.34);
+  --kredo-timeline-step-ring: rgba(229, 106, 63, 0.18);
+}
+
+.kredo-timeline-tab:hover {
+  transform: translateY(-2px);
+}
+
+.kredo-timeline-tab:hover .kredo-timeline-step {
+  transform: scale(1.1);
+  box-shadow:
+    0 8px 17px var(--kredo-timeline-step-glow),
+    0 0 0 3px var(--kredo-timeline-step-ring);
+  filter: saturate(1.06) brightness(1.03);
+}
+
+.kredo-timeline-tab:hover .kredo-timeline-step-label {
+  transform: translateX(3px);
+}
+
+.kredo-timeline-tab:hover .kredo-timeline-step::after {
+  animation: kredo-timeline-step-shine 0.56s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kredo-timeline-tab:hover,
+  .kredo-timeline-tab:hover .kredo-timeline-step,
+  .kredo-timeline-tab:hover .kredo-timeline-step-label {
+    transform: none;
+    filter: none;
+  }
+
+  .kredo-timeline-tab:hover .kredo-timeline-step::after {
+    animation: none;
+  }
+}
+
 /* Offer picker (practice → offre) — distribution progressive à l'ouverture, repli rapide au retour */
 @keyframes kredo-offer-card-in {
   from {
