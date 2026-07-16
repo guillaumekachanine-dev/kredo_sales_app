@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@media print {
+  body * { visibility: hidden !important; }
+  dialog[open], dialog[open] * { visibility: visible !important; }
+  dialog[open] { position: absolute !important; inset: 0 !important; width: 100% !important; max-width: none !important; max-height: none !important; border: 0 !important; background: #fff !important; box-shadow: none !important; }
+  dialog[open] button, nav, aside, [role="navigation"] { display: none !important; }
+  .paper-sheet { background: #fff !important; color: #111 !important; box-shadow: none !important; }
+  @page { size: A4; margin: 16mm; }
+}
+
 /* ============================================================
    KREDO — Design System · Palette "Cobalt Franc"
    Tailwind v4 : @theme génère automatiquement les classes

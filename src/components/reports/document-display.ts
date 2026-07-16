@@ -64,7 +64,7 @@ export const DOCUMENT_OBJECT_LABELS: Record<DocumentType, string> = {
   account_portfolio: "Revue de portefeuille comptes",
   workspace_diagnostic: "Diagnostic du centre de profit",
   financial_reference: "Référence financière",
-  commercial_quote: "Devis client",
+  commercial_quote: "Devis commercial",
 }
 
 const DOCUMENT_TYPE_LABELS: Record<CommunicationDocumentType | ReportDocumentType, string> = {

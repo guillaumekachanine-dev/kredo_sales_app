@@ -17,6 +17,7 @@ import {
 } from "../shared"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
+import { validateFinancialReferenceEligibility } from "../../domain/financial-reference.validator"
 import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import {
   saveFinancialModelAction,
@@ -24,6 +25,7 @@ import {
   getFinancialModelAction,
   getRecentFinancialModelsAction,
   archiveFinancialModelAction
+  ,promoteFinancialModelAction
 } from "../../actions"
 import type { FinancialModelFormState, FinancialModelRow } from "../../persistence"
 import type { FinancialModelingBootstrapData } from "../../data/get-financial-modeling-bootstrap"
@@ -136,6 +138,24 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
     )
   }, [formState])
   const isReadOnly = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
+  const selectedOpp = useMemo(
+    () => bootstrap?.opportunities.find((opportunity) => opportunity.id === formState.opportunityId) ?? null,
+    [bootstrap, formState.opportunityId],
+  )
+  const referenceEligibility = useMemo(
+    () => validateFinancialReferenceEligibility(formState, {
+      opportunityCompanyId: selectedOpp?.company_id,
+      warnings: clientResult?.warnings,
+      producedDays: clientResult?.producedDays ?? 0,
+    }),
+    [clientResult, formState, selectedOpp],
+  )
+  const canPromoteReference = Boolean(
+    formState.id &&
+    formState.input.mode === "full" &&
+    (formState.status === "draft" || formState.status === "validated") &&
+    referenceEligibility.eligible,
+  )
 
   const isDirty = useMemo(
     () => serializeComparableState(formState) !== serializeComparableState(baselineState),
@@ -198,6 +218,25 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
       }
     } else {
       alert(res.error || "Erreur lors de l'archivage.")
+    }
+  }
+
+  const handlePromoteToReference = async () => {
+    if (!formState.id || !canPromoteReference) return
+    setSaving(true)
+    const result = await promoteFinancialModelAction(formState.id)
+    if (!result.success) {
+      setSaving(false)
+      alert(result.error || "Impossible de définir cette référence financière")
+      return
+    }
+    const refreshed = await getFinancialModelAction(formState.id)
+    setSaving(false)
+    if (refreshed.success && refreshed.data) {
+      const state = cloneFormState(refreshed.data)
+      setFormState(state)
+      setBaselineState(cloneFormState(state))
+      setStep(3)
     }
   }
 
@@ -428,6 +467,7 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
                     >
                       Enregistrer
                     </Button>
+                    {canPromoteReference ? <Button variant="brass" size="md" className="h-11" disabled={saving} onClick={handlePromoteToReference}>Définir comme référence financière</Button> : null}
                   </>
                 )}
               </div>

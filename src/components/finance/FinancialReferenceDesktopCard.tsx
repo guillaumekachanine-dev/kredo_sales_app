@@ -31,7 +31,7 @@ export function FinancialReferenceDesktopCard({ reference }: { reference: Financ
             <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted">CA projeté</dt><dd className="mt-1 font-mono text-sm font-bold text-heading">{formatEuro(reference.projectedRevenue)}</dd></div>
             <div><dt className="text-[10px] font-bold uppercase tracking-wider text-muted">Marge</dt><dd className="mt-1 font-mono text-sm font-bold text-heading">{formatPct(reference.grossMarginPct)}</dd></div>
           </dl>
-          <div className="flex shrink-0 gap-2"><Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button><Button type="button" variant="primary" size="sm" onClick={() => setQuoteOpen(true)}>Créer un devis</Button></div>
+          <div className="flex shrink-0 gap-2"><Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>Ouvrir</Button><Button type="button" variant="primary" size="sm" onClick={() => setQuoteOpen(true)}>Créer / ouvrir le devis</Button></div>
         </div>
       </SurfaceCard>
       <FinancialModelingDesktopDialog open={open} onOpenChange={setOpen} initialId={reference.modelId} />

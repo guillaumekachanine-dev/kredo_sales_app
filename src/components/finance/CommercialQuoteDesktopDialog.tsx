@@ -32,7 +32,7 @@ export function CommercialQuoteDesktopDialog({ modelId, open, onOpenChange }: Pr
     if ("error" in result) setError(result.error ?? "Impossible d’enregistrer le devis")
     setSaving(false)
   }
-  return <AppDialog open={open} onOpenChange={onOpenChange} title="Créer un devis" description="Brouillon commercial issu de la référence financière." className="sm:!max-w-5xl" bodyClassName="pr-0" footer={<><Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>Fermer</Button><Button variant="primary" size="sm" loading={saving} disabled={!quote} onClick={save}>Enregistrer</Button></>}>
+  return <AppDialog open={open} onOpenChange={onOpenChange} title="Créer un devis" description="Brouillon commercial issu de la référence financière." className="sm:!max-w-5xl" bodyClassName="pr-0" footer={<><Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>Fermer</Button><Button variant="secondary" size="sm" disabled={!quote} onClick={() => window.print()}>Imprimer / Enregistrer en PDF</Button><Button variant="primary" size="sm" loading={saving} disabled={!quote} onClick={save}>Enregistrer</Button></>}>
     {loading ? <p className="py-12 text-center text-xs text-muted">Préparation du devis…</p> : error ? <p className="text-xs text-danger">{error}</p> : quote ? <div className="grid gap-6 lg:grid-cols-[1fr_.9fr]">
       <form className="grid grid-cols-2 gap-3" onSubmit={(event) => { event.preventDefault(); void save() }}>
         <label className="col-span-2 text-[10px] font-bold uppercase tracking-wider text-muted">Titre<input className={inputClass + " mt-1"} value={quote.title} onChange={(e) => update("title", e.target.value)} /></label>
