@@ -196,7 +196,20 @@ export function AssistanceCaseDrawer() {
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues>()
   const [recruitmentDraftPositioning, setRecruitmentDraftPositioning] =
     useState<AssistanceCasePositioning | null>(null)
+  const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [, startTransition] = useTransition()
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const syncViewport = () => setIsMobileViewport(media.matches)
+
+    syncViewport()
+    media.addEventListener("change", syncViewport)
+
+    return () => {
+      media.removeEventListener("change", syncViewport)
+    }
+  }, [])
 
   useEffect(() => {
     if (!isOpen || (!opportunityId && !staffingId)) return
@@ -627,6 +640,8 @@ export function AssistanceCaseDrawer() {
             events={events}
             onCreateEvent={openCreateOpportunityEventDrawer}
             onContactsSaved={() => setReloadKey((current) => current + 1)}
+            isMobile={isMobileViewport}
+            onStaffed={() => setReloadKey((current) => current + 1)}
           />
         )
       case "staffing":

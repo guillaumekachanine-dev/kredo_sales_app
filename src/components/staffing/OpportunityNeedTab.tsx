@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useTransition, useMemo, type KeyboardEvent, type PointerEvent } from "react"
+import dynamic from "next/dynamic"
 import { curveCatmullRom, line } from "d3-shape"
 import { Select } from "@/components/ui/Select"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
@@ -16,11 +17,18 @@ import type { AssistanceCaseEvent, AssistanceCaseOpportunity } from "@/types/ass
 import type { Json } from "@/types/database"
 import type { ContactRole } from "@/types/database-domain"
 
+const MatchingDialog = dynamic(
+  () => import("@/components/staffing/matching/MatchingDialog").then((m) => m.MatchingDialog),
+  { ssr: false },
+)
+
 interface OpportunityNeedTabProps {
   opportunity: AssistanceCaseOpportunity
   events?: AssistanceCaseEvent[]
   onCreateEvent?: () => void
   onContactsSaved?: () => void
+  isMobile?: boolean
+  onStaffed?: () => void
 }
 
 const IMPORTANCE_LABELS: Record<string, string> = {
@@ -914,9 +922,12 @@ export function OpportunityNeedTab({
   events = [],
   onCreateEvent,
   onContactsSaved,
+  isMobile = false,
+  onStaffed,
 }: OpportunityNeedTabProps) {
   const contextText = opportunity.need_summary ?? getContextText(opportunity.context)
   const openEventDrawer = useEventDrawerStore((state) => state.openEventDrawer)
+  const [matchingOpen, setMatchingOpen] = useState(false)
   
   // A calendar event is scheduled if events array has at least one item
   const hasEvent = events.length > 0
@@ -1034,9 +1045,18 @@ export function OpportunityNeedTab({
           <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">
             Compétences recherchées
           </h3>
-          <span className="text-[10px] font-semibold text-muted">
-            {opportunity.opportunity_skills.length} critères
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-semibold text-muted">
+              {opportunity.opportunity_skills.length} critères
+            </span>
+            <button
+              type="button"
+              onClick={() => setMatchingOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-primary-fg transition-opacity hover:opacity-90 focus-visible:outline-none"
+            >
+              Trouver des profils
+            </button>
+          </div>
         </div>
 
         {opportunity.opportunity_skills.length > 0 ? (
@@ -1084,6 +1104,16 @@ export function OpportunityNeedTab({
           </div>
         )}
       </section>
+
+      <MatchingDialog
+        key={opportunity.id}
+        open={matchingOpen}
+        onOpenChange={setMatchingOpen}
+        opportunityId={opportunity.id}
+        opportunityTitle={opportunity.title}
+        isMobile={isMobile}
+        onStaffed={onStaffed}
+      />
     </div>
   )
 }
