@@ -1,6 +1,5 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getSectorActivationData } from "@/lib/prospection/sector-activation-data"
-import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
 import { getSectors } from "@/lib/supabase/sector"
 import { SectorActivationDesktopView } from "@/components/prospection/sector-activation/SectorActivationDesktopView"
 import { SectorCardMobile } from "@/components/sector/SectorCard"
@@ -11,36 +10,16 @@ export default async function ApprocheSectoriellePage() {
   const device = await getDashboardDevice()
 
   if (device === "mobile") {
-    const dbSectors = await getSectors()
-    const sectors = STRATEGIC_SECTOR_CONFIG.map((config) => {
-      const dbSector = dbSectors.find((sector) => sector.slug === config.slug)
+    // Source unique : la base. Le mobile lisait auparavant une liste de secteurs
+    // codée en dur, qui divergeait du réel (noms, scores) et pointait vers trois
+    // slugs inexistants — trois cartes menaient à une page vide.
+    const sectors = await getSectors()
 
-      if (dbSector) {
-        return {
-          id: dbSector.id,
-          name: config.name,
-          slug: dbSector.slug,
-          status: dbSector.status,
-          attractiveness_score: dbSector.attractiveness_score ?? config.attractivenessScore,
-          digital_maturity: dbSector.digital_maturity ?? config.digitalMaturity,
-          practices_fit: dbSector.practices_fit || config.practicesFit,
-          companies_count: dbSector.companies_count,
-          image_url: config.imageUrl,
-        }
-      }
-
-      return {
-        id: config.slug,
-        name: config.name,
-        slug: config.slug,
-        status: config.status,
-        attractiveness_score: config.attractivenessScore,
-        digital_maturity: config.digitalMaturity,
-        practices_fit: config.practicesFit,
-        companies_count: config.companiesCount,
-        image_url: config.imageUrl,
-      }
-    })
+    // Même partage que le desktop : "disponible" = étude réellement produite (status
+    // 'active'). Le reste est en préparation — des comptes y sont rattachés, mais il
+    // n'y a ni pain point, ni calendrier réglementaire, ni playbook exploitable.
+    const studied = sectors.filter((sector) => sector.status === "active")
+    const preparing = sectors.filter((sector) => sector.status !== "active")
 
     return (
       <div className="space-y-8 pb-8">
@@ -50,16 +29,41 @@ export default async function ApprocheSectoriellePage() {
             Approche Sectorielle
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-body">
-            Pilotez nos campagnes de prospection et notre stratégie commerciale à travers nos 6 secteurs cibles.
+            Pilotez nos campagnes de prospection et notre stratégie commerciale à travers nos secteurs cibles.
             Analysez l&apos;attractivité, la maturité digitale globale, les points de douleur critiques et accédez aux playbooks commerciaux de prospection opérationnels.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {sectors.map((sector) => (
-            <SectorCardMobile key={sector.id} sector={sector} />
-          ))}
-        </div>
+        {studied.length > 0 ? (
+          <section className="space-y-3">
+            <h2 className="font-heading text-sm font-bold text-heading">
+              Études disponibles
+              <span className="ml-2 font-normal text-muted">{studied.length}</span>
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {studied.map((sector) => (
+                <SectorCardMobile key={sector.id} sector={sector} />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {preparing.length > 0 ? (
+          <section className="space-y-3">
+            <h2 className="font-heading text-sm font-bold text-heading">
+              En préparation
+              <span className="ml-2 font-normal text-muted">{preparing.length}</span>
+            </h2>
+            <p className="text-xs leading-relaxed text-muted">
+              Comptes rattachés, étude sectorielle pas encore produite.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {preparing.map((sector) => (
+                <SectorCardMobile key={sector.id} sector={sector} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     )
   }

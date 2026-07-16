@@ -1,11 +1,11 @@
 import React from 'react'
 import Link from 'next/link'
-import type { SectorStatus, PracticeKey } from '@/types/sector'
+import type { SectorStatus } from '@/types/sector'
 import type { SectorListItem } from '@/lib/supabase/sector'
 import { CircularGauge } from './blocks/CircularGauge'
 
 export interface SectorCardProps {
-  sector: SectorListItem & { image_url?: string }
+  sector: SectorListItem
 }
 
 const STATUS_BADGES: Record<SectorStatus, string> = {
@@ -26,140 +26,54 @@ const MATURITY_LABELS = {
   high: 'Forte',
 }
 
-const PRACTICE_LABELS: Record<PracticeKey, string> = {
-  data_ai: 'Data & AI',
-  cloud_eng: 'Cloud Eng',
-  product: 'Product',
-  cyber: 'Cyber',
-}
+// Navy de fond des cartes secteur — la même valeur que le dégradé de superposition
+// ci-dessous, extraite pour servir de fond aux secteurs sans visuel (image_url NULL).
+// Sans elle, une carte sans image n'aurait aucun fond et son texte blanc deviendrait
+// illisible : l'ancien fallback pointait vers /images/sectors/default.png, un fichier
+// qui n'a jamais existé.
+const SECTOR_CARD_NAVY = '#1A2540'
 
 /**
- * SectorCardDesktop - Premium 2x2 Grid card representing a sector on desktop.
- * Background image, dark gradient overlay, central circular gauge, glassmorphic footer.
+ * Fond de carte : le visuel du secteur s'il en a un, sinon un aplat navy.
+ * Le dégradé de superposition est appliqué par-dessus dans les deux cas, ce qui
+ * garantit la lisibilité du texte blanc quelle que soit la présence d'une image.
  */
-export function SectorCardDesktop({ sector }: SectorCardProps) {
-  const statusBadge = STATUS_BADGES[sector.status] ?? 'bg-white/10 text-white/70 border border-white/15'
-  const statusLabel = STATUS_LABELS[sector.status] ?? sector.status
-  const maturityLabel = sector.digital_maturity ? MATURITY_LABELS[sector.digital_maturity] : 'Non renseignée'
-
-  // Sort and pick top 2 practices fit
-  const sortedPractices = Object.entries(sector.practices_fit || {})
-    .map(([key, value]) => ({ key: key as PracticeKey, value }))
-    .sort((a, b) => b.value - a.value)
-  const top2 = sortedPractices.slice(0, 2)
-
-  const CardContent = (
-    <div className="relative w-full h-[290px] rounded-xl overflow-hidden border border-border/20 flex flex-col justify-between transition-all duration-300 group shadow-sm">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center select-none transition-transform duration-700 group-hover:scale-105"
-        style={{ backgroundImage: `url(${sector.image_url || '/images/sectors/default.png'})` }}
+function SectorCardBackground({ imageUrl }: { imageUrl: string | null }) {
+  if (!imageUrl) {
+    return (
+      <div
+        className="absolute inset-0 select-none"
+        style={{ backgroundColor: SECTOR_CARD_NAVY }}
       />
-      
-      {/* Dark Cobalt/Navy Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1A2540] via-[#1A2540]/65 to-[#1A2540]/15" />
-      
-      {/* Card Header (Internal) */}
-      <div className="relative z-10 p-4 flex items-start justify-between gap-3">
-        <h3 className="text-sm font-bold text-white leading-tight drop-shadow-md group-hover:text-secondary transition-colors line-clamp-2">
-          {sector.name}
-        </h3>
-        <span className={`text-[9px] font-bold px-2 py-0.5 rounded shrink-0 backdrop-blur-sm ${statusBadge}`}>
-          {statusLabel}
-        </span>
-      </div>
-
-      {/* Main Visual (Donut Attractiveness Gauge) */}
-      <div className="relative z-10 flex flex-col items-center justify-center -mt-3">
-        <CircularGauge 
-          score={sector.attractiveness_score ?? 0} 
-          size={76} 
-          strokeWidth={3.2} 
-          fontSizeClass="text-lg"
-          subfontSizeClass="text-[7px]"
-        />
-        <span className="text-[8px] font-bold text-white/55 uppercase tracking-widest mt-1.5">
-          Score d&apos;attractivité
-        </span>
-      </div>
-
-      {/* Card Footer (Glassmorphism / Frosted Glass) */}
-      <div className="relative z-10 backdrop-blur-md bg-white/5 border-t border-white/10 p-3.5 flex flex-col gap-2.5">
-        {/* Maturity & Portfolio Stats */}
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          {/* Digital Maturity */}
-          <div className="flex items-center text-white/90">
-            {/* Chart/Bars Icon */}
-            <svg className="w-3.5 h-3.5 mr-1.5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-            </svg>
-            <div className="min-w-0">
-              <span className="text-[8px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
-                Maturité
-              </span>
-              <span className="font-medium truncate block">{maturityLabel}</span>
-            </div>
-          </div>
-
-          {/* Portfolio (Accounts) */}
-          <div className="flex items-center text-white/90">
-            {/* Building Icon */}
-            <svg className="w-3.5 h-3.5 mr-1.5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <div className="min-w-0">
-              <span className="text-[8px] font-bold text-white/50 uppercase tracking-wider block leading-none mb-0.5">
-                Portefeuille
-              </span>
-              <span className="font-medium truncate block">
-                {sector.companies_count} {sector.companies_count > 1 ? 'comptes' : 'compte'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Practice Fit Badges */}
-        <div className="flex flex-wrap gap-1 pt-1 border-t border-white/5">
-          {top2.map(({ key, value }) => {
-            const label = PRACTICE_LABELS[key] ?? key
-            return (
-              <span
-                key={key}
-                className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-white/95"
-              >
-                {label} : {value.toFixed(1)}/5
-              </span>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
-    <Link href={`/prospection/approche-sectorielle/${sector.slug}`} className="block outline-none">
-      {CardContent}
-    </Link>
+    <div
+      className="absolute inset-0 bg-cover bg-center select-none"
+      style={{ backgroundImage: `url(${imageUrl})` }}
+    />
   )
 }
 
 /**
  * SectorCardMobile - Compact, touch-friendly card representing a sector on mobile.
  * High touch target size, stacked column, simplified jauge.
+ *
+ * Un secteur non étudié (attractiveness_score NULL, typiquement status='watch')
+ * n'affiche PAS de jauge : un 0/5 se lirait comme une évaluation alors qu'aucune
+ * étude n'a encore été faite.
  */
 export function SectorCardMobile({ sector }: SectorCardProps) {
   const statusBadge = STATUS_BADGES[sector.status] ?? 'bg-white/10 text-white/70 border border-white/15'
   const statusLabel = STATUS_LABELS[sector.status] ?? sector.status
   const maturityLabel = sector.digital_maturity ? MATURITY_LABELS[sector.digital_maturity] : 'Non renseignée'
+  const hasScore = sector.attractiveness_score !== null
 
   const CardContent = (
     <div className="relative w-full h-[210px] rounded-xl overflow-hidden border border-border/10 flex flex-col justify-between transition-all duration-300 shadow-sm">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center select-none"
-        style={{ backgroundImage: `url(${sector.image_url || '/images/sectors/default.png'})` }}
-      />
-      
+      <SectorCardBackground imageUrl={sector.image_url} />
+
       {/* Dark Cobalt/Navy Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#1A2540] via-[#1A2540]/70 to-[#1A2540]/25" />
 
@@ -173,18 +87,26 @@ export function SectorCardMobile({ sector }: SectorCardProps) {
         </span>
       </div>
 
-      {/* Middle Attractiveness Gauge */}
+      {/* Middle Attractiveness Gauge — seulement si le secteur a été étudié */}
       <div className="relative z-10 -mt-2 flex flex-col items-center justify-center">
-        <CircularGauge 
-          score={sector.attractiveness_score ?? 0} 
-          size={52} 
-          strokeWidth={2.8} 
-          fontSizeClass="text-sm"
-          subfontSizeClass="text-[6px]"
-        />
-        <span className="text-[7px] font-bold text-white/55 uppercase tracking-widest mt-1">
-          Score d&apos;attractivité
-        </span>
+        {hasScore ? (
+          <>
+            <CircularGauge
+              score={sector.attractiveness_score ?? 0}
+              size={52}
+              strokeWidth={2.8}
+              fontSizeClass="text-sm"
+              subfontSizeClass="text-[6px]"
+            />
+            <span className="text-[7px] font-bold text-white/55 uppercase tracking-widest mt-1">
+              Score d&apos;attractivité
+            </span>
+          </>
+        ) : (
+          <span className="rounded-full border border-dashed border-white/25 px-2.5 py-1 text-[8px] font-bold uppercase tracking-widest text-white/55">
+            Étude à venir
+          </span>
+        )}
       </div>
 
       {/* Card Footer (Glassmorphism / Frosted Glass) */}

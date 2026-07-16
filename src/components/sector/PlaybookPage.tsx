@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import type {
   PracticeKey,
+  SectorCaveats,
   SectorPainPoint,
   SectorRegulatoryItem,
   SectorWithRelations,
@@ -16,6 +17,47 @@ import type {
 
 type PlaybookPageProps = {
   sector: SectorWithRelations
+}
+
+const CAVEAT_LABELS: Array<{ key: keyof SectorCaveats; label: string }> = [
+  { key: "corpus", label: "Corpus" },
+  { key: "verbatims", label: "Verbatims" },
+  { key: "frequences", label: "Fréquences" },
+  { key: "marche", label: "Chiffres de marché" },
+]
+
+/**
+ * Les limites de l'étude, dans le brief.
+ *
+ * Un chiffre invérifiable énoncé comme un fait coûte la confiance sur toute la
+ * fiche, y compris sur ce qui était vrai. Mieux vaut le savoir avant l'appel.
+ */
+function PlaybookCaveats({ caveats }: { caveats: SectorCaveats | null }) {
+  const entries = CAVEAT_LABELS.filter(({ key }) => {
+    const value = caveats?.[key]
+    return typeof value === "string" && value.trim().length > 0
+  })
+
+  if (entries.length === 0) {
+    return (
+      <p className="text-xs leading-5 text-muted">
+        Aucune réserve déclarée. Ce n&apos;est pas un gage de fiabilité : tant que les
+        limites ne sont pas écrites, traite chaque chiffre comme à vérifier avant de
+        le citer.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {entries.map(({ key, label }) => (
+        <div key={key} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
+          <p className="mt-1 text-xs leading-5 text-body">{caveats?.[key] as string}</p>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 type SectionKey = "snapshot" | "pitch" | "playbook" | "actions"
@@ -405,20 +447,28 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
                   </div>
                 </div>
 
-                <NotebookPanel title="Comptes à activer" subtitle="Point d'entrée depuis le cockpit">
-                  <div className="space-y-2">
-                    {sector.companies.slice(0, 6).map((company) => (
-                      <Link
-                        key={company.id}
-                        href={`/prospection/accounts/${company.id}`}
-                        className="flex items-center justify-between gap-3 rounded-[var(--radius-medium)] border border-border px-3 py-2 text-sm transition-colors hover:border-primary hover:bg-surface-hover"
-                      >
-                        <span className="font-semibold text-heading">{company.name}</span>
-                        <span className="text-xs text-muted">{company.legacy_folio_score !== null ? `${company.legacy_folio_score}/5` : "score n/a"}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </NotebookPanel>
+                <div className="space-y-4">
+                  <NotebookPanel title="Comptes à activer" subtitle="Point d'entrée depuis le cockpit">
+                    <div className="space-y-2">
+                      {sector.companies.slice(0, 6).map((company) => (
+                        <Link
+                          key={company.id}
+                          href={`/prospection/accounts/${company.id}`}
+                          className="flex items-center justify-between gap-3 rounded-[var(--radius-medium)] border border-border px-3 py-2 text-sm transition-colors hover:border-primary hover:bg-surface-hover"
+                        >
+                          <span className="font-semibold text-heading">{company.name}</span>
+                          <span className="text-xs text-muted">{company.legacy_folio_score !== null ? `${company.legacy_folio_score}/5` : "score n/a"}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </NotebookPanel>
+
+                  {/* Les réserves vivent ici, dans le brief, et pas en annexe : c'est
+                      le dernier écran lu avant de décrocher le téléphone. */}
+                  <NotebookPanel title="Ce que l'étude ne prouve pas" subtitle="À formuler au conditionnel en RDV">
+                    <PlaybookCaveats caveats={sector.caveats} />
+                  </NotebookPanel>
+                </div>
               </div>
             ) : null}
 

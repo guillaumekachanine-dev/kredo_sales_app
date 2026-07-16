@@ -91,7 +91,12 @@ export function SectorStudiesCollapsible({
               {preparing.map((study) => (
                 <SurfaceCard key={study.slug} className="p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium text-heading">{study.name}</p>
+                    <div className="space-y-1">
+                      <p className="font-medium text-heading">{study.name}</p>
+                      <p className="text-xs text-muted">
+                        {study.linkedAccountCount} comptes rattachés · étude non produite
+                      </p>
+                    </div>
                     <StatusPill label="En préparation" variant="draft" />
                   </div>
                 </SurfaceCard>

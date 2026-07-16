@@ -5,6 +5,7 @@ import type {
   PracticeKey,
   KeyPlayer,
   SectorPlaybook,
+  SectorCaveats,
   SectorPainPoint,
   SectorRegulatoryItem,
   SectorEvent,
@@ -20,6 +21,8 @@ export interface SectorListItem {
   digital_maturity: 'low' | 'medium' | 'high' | null
   practices_fit: Record<PracticeKey, number>
   companies_count: number
+  /** Visuel de carte. NULL = pas de visuel : la carte rend un fond navy. */
+  image_url: string | null
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -66,6 +69,7 @@ export async function getSectors(): Promise<SectorListItem[]> {
       attractiveness_score,
       digital_maturity,
       practices_fit,
+      image_url,
       companies (
         id
       )
@@ -93,6 +97,7 @@ export async function getSectors(): Promise<SectorListItem[]> {
       cyber: 0,
     }),
     companies_count: Array.isArray(item.companies) ? item.companies.length : 0,
+    image_url: item.image_url ?? null,
   }))
 }
 
@@ -110,7 +115,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
   // 1. Récupération du secteur par son slug
   const { data: raw, error: sectorError } = await supabase
     .from("sector_intelligence")
-    .select("id, name, slug, description, status, attractiveness_score, market_size_eur_bn, market_growth_pct, digital_maturity, practices_fit, key_players_paca, key_players_national, avg_tjm_min, avg_tjm_max, playbook, created_at, updated_at")
+    .select("id, name, slug, description, status, attractiveness_score, market_size_eur_bn, market_growth_pct, digital_maturity, practices_fit, key_players_paca, key_players_national, avg_tjm_min, avg_tjm_max, playbook, caveats, created_at, updated_at")
     .eq("slug", slug)
     .single()
 
@@ -131,7 +136,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
 
     supabase
       .from("sector_regulatory_items")
-      .select("id, name, authority, description, deadline_date, urgency, kredo_practice, commercial_angle, is_commercial_window")
+      .select("id, name, authority, description, deadline_date, urgency, kredo_practice, commercial_angle, is_commercial_window, source_url")
       .eq("sector_id", sectorId)
       .order("deadline_date", { ascending: true, nullsFirst: false }),
 
@@ -179,6 +184,9 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
       objections: [],
       entry_points: [],
     }),
+    // NULL délibérément conservé : « pas de caveats » et « caveats vides » sont
+    // deux choses différentes, et l'UI doit pouvoir dire laquelle.
+    caveats: parseJsonField<SectorCaveats | null>(raw.caveats, null),
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     pain_points: (ppResult.data ?? []).map((item) => ({
@@ -199,6 +207,7 @@ export async function getSectorBySlug(slug: string): Promise<SectorWithRelations
       kredo_practice: item.kredo_practice as PracticeKey | 'multi' | null,
       commercial_angle: item.commercial_angle,
       is_commercial_window: item.is_commercial_window,
+      source_url: item.source_url ?? null,
     })),
     events: (eventsResult.data ?? []).map((item) => ({
       id: item.id,

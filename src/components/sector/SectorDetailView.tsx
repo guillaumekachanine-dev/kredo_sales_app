@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import type { SectorWithRelations, PracticeKey, Urgency } from '@/types/sector'
+import type { SectorWithRelations, PracticeKey, Urgency, SectorCaveats } from '@/types/sector'
 import { ScoreBar } from './blocks/ScoreBar'
 import { AppDrawer } from '@/components/ui/AppDrawer'
 import { cn } from '@/lib/utils'
@@ -96,6 +96,86 @@ const PRACTICE_LOGO_INITIAL: Record<PracticeKey, string> = {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const CAVEAT_LABELS: Array<{ key: keyof SectorCaveats; label: string }> = [
+  { key: 'corpus', label: 'Corpus' },
+  { key: 'verbatims', label: 'Verbatims' },
+  { key: 'frequences', label: 'Fréquences' },
+  { key: 'marche', label: 'Chiffres de marché' },
+]
+
+/**
+ * Ce que l'étude ne prouve pas.
+ *
+ * En rendez-vous, un chiffre invérifiable qu'on énonce comme un fait coûte la
+ * confiance sur tout le reste de la fiche — y compris sur les parties vraies.
+ * Ce bloc existe pour que le commercial sache, avant d'appeler, où est la limite.
+ * Une étude sans réserve déclarée n'est pas une étude parfaite : c'est une étude
+ * qui n'a pas dit où elle s'arrête, et le bloc le signale aussi.
+ */
+function CaveatsBlock({ caveats }: { caveats: SectorCaveats | null }) {
+  const entries = CAVEAT_LABELS.filter(({ key }) => {
+    const value = caveats?.[key]
+    return typeof value === 'string' && value.trim().length > 0
+  })
+  const sources = caveats?.sources?.filter((url) => url.trim().length > 0) ?? []
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/40">
+        <h3 className="text-xs font-bold text-heading font-heading uppercase tracking-wider">
+          Transparence
+        </h3>
+        <p className="mt-1 text-[11px] leading-relaxed text-muted">
+          Ce que cette étude ne prouve pas. À lire avant le rendez-vous.
+        </p>
+      </div>
+
+      <div className="p-5">
+        {entries.length === 0 && sources.length === 0 ? (
+          <p className="text-xs leading-relaxed text-muted italic">
+            Aucune réserve déclarée sur cette étude. Ce n&apos;est pas un gage de
+            fiabilité : tant que les limites ne sont pas écrites, considère chaque
+            chiffre comme à vérifier avant de le citer.
+          </p>
+        ) : (
+          <div className="space-y-3.5">
+            {entries.map(({ key, label }) => (
+              <div key={key} className="flex flex-col gap-1">
+                <span className="text-[9px] font-bold text-muted uppercase tracking-wider">
+                  {label}
+                </span>
+                <p className="text-xs leading-relaxed text-body">{caveats?.[key] as string}</p>
+              </div>
+            ))}
+
+            {sources.length > 0 && (
+              <div className="flex flex-col gap-1.5 pt-1 border-t border-border/40">
+                <span className="text-[9px] font-bold text-muted uppercase tracking-wider pt-2.5">
+                  Sources consultées
+                </span>
+                <ul className="flex flex-col gap-1">
+                  {sources.map((url) => (
+                    <li key={url}>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary underline underline-offset-2 hover:text-primary-deep break-all"
+                      >
+                        {url}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 interface Props {
   sector: SectorWithRelations
@@ -677,10 +757,27 @@ export default function SectorDetailView({ sector }: Props) {
                           </span>
                         </div>
                         {reg.deadline_date && (
-                          /* Removed */
-                          <p className="text-xs font-bold text-heading">
-                            Échéance : {formatDate(reg.deadline_date)}
-                          </p>
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <p className="text-xs font-bold text-heading">
+                              Échéance : {formatDate(reg.deadline_date)}
+                            </p>
+                            {/* Une date sans source officielle ne se cite pas comme un fait :
+                                c'est exactement ce qu'un prospect bien informé peut relever. */}
+                            {reg.source_url ? (
+                              <a
+                                href={reg.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-primary underline underline-offset-2 hover:text-primary-deep"
+                              >
+                                Source officielle
+                              </a>
+                            ) : (
+                              <span className="text-[10px] font-bold text-warning">
+                                Date non vérifiée — à confirmer
+                              </span>
+                            )}
+                          </div>
                         )}
                         {reg.description && (
                           <p className="text-xs text-body leading-relaxed">
@@ -832,6 +929,10 @@ export default function SectorDetailView({ sector }: Props) {
           </div>
         </div>
 
+        {/* BLOC C — Transparence. Visible desktop ET mobile : c'est ce qui dit au
+            commercial ce qu'il peut affirmer et ce qu'il doit formuler au
+            conditionnel. Le cacher derrière un drawer le rendrait inutile. */}
+        <CaveatsBlock caveats={sector.caveats} />
       </div>
 
       {/* ── STICKY BOTTOM BUTTON & DRAWER (Mobile) ─────────────────────────── */}

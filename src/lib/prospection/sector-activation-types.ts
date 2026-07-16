@@ -90,9 +90,16 @@ export interface SectorActivationStudy {
   updatedAt: string | null
 }
 
+/**
+ * Secteur présent en base mais dont l'étude n'a pas encore été produite
+ * (status 'watch' ou 'development') : des comptes y sont rattachés, mais il n'a
+ * ni pain point, ni calendrier réglementaire, ni playbook exploitable.
+ * `linkedAccountCount` sert à prioriser la prochaine étude à lancer.
+ */
 export interface SectorPreparationStudy {
   slug: string
   name: string
+  linkedAccountCount: number
 }
 
 export interface SectorActivationKpi {

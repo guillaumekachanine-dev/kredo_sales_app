@@ -43,3 +43,8 @@ next-env.d.ts
 
 # design outputs (logos, exports)
 /outputs/
+
+# local agent and playwright test state
+.claude/
+.playwright-cli/
+

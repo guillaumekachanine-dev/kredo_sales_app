@@ -5607,10 +5607,12 @@ export type Database = {
           attractiveness_score: number | null
           avg_tjm_max: number | null
           avg_tjm_min: number | null
+          caveats: Json | null
           created_at: string
           description: string | null
           digital_maturity: string | null
           id: string
+          image_url: string | null
           key_players_national: Json
           key_players_paca: Json
           market_growth_pct: number | null
@@ -5627,10 +5629,12 @@ export type Database = {
           attractiveness_score?: number | null
           avg_tjm_max?: number | null
           avg_tjm_min?: number | null
+          caveats?: Json | null
           created_at?: string
           description?: string | null
           digital_maturity?: string | null
           id?: string
+          image_url?: string | null
           key_players_national?: Json
           key_players_paca?: Json
           market_growth_pct?: number | null
@@ -5647,10 +5651,12 @@ export type Database = {
           attractiveness_score?: number | null
           avg_tjm_max?: number | null
           avg_tjm_min?: number | null
+          caveats?: Json | null
           created_at?: string
           description?: string | null
           digital_maturity?: string | null
           id?: string
+          image_url?: string | null
           key_players_national?: Json
           key_players_paca?: Json
           market_growth_pct?: number | null
@@ -5802,6 +5808,7 @@ export type Database = {
           kredo_practice: string | null
           name: string
           sector_id: string
+          source_url: string | null
           updated_at: string
           urgency: string
           workspace_id: string
@@ -5817,6 +5824,7 @@ export type Database = {
           kredo_practice?: string | null
           name: string
           sector_id: string
+          source_url?: string | null
           updated_at?: string
           urgency?: string
           workspace_id: string
@@ -5832,6 +5840,7 @@ export type Database = {
           kredo_practice?: string | null
           name?: string
           sector_id?: string
+          source_url?: string | null
           updated_at?: string
           urgency?: string
           workspace_id?: string

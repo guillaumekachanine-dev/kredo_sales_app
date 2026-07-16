@@ -11,7 +11,6 @@ import {
   type PortfolioOpportunityRow,
   type ProspectionPortfolioAccount,
 } from "@/lib/prospection/portfolio-account-metrics"
-import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
 import type { PracticeKey, SectorStatus } from "@/types/sector"
 import {
   SECTOR_ACTIVATION_PRACTICE_LABELS,
@@ -23,6 +22,7 @@ import {
   type SectorActivationSourceType,
   type SectorActivationState,
   type SectorActivationStudy,
+  type SectorPreparationStudy,
   type SectorActivationTemporalStatus,
   type SectorActivationWindow,
 } from "./sector-activation-types"
@@ -813,25 +813,36 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
       }
     })
 
-    const availableStudies = sectors.map<SectorActivationStudy>((sector) => {
-      const sectorWindows = windowsBySectorSlug.get(sector.slug) ?? []
-      return {
-        slug: sector.slug,
-        name: sector.name,
-        status: sector.status,
-        attractivenessScore: sector.attractivenessScore,
-        linkedAccountCount: sector.linkedAccountCount,
-        openWindowCount: sectorWindows.filter((window) => window.isOpenNow).length,
-        updatedAt: latestDate([sector.updatedAt, ...sectorWindows.map((window) => window.detectedAt)]),
-      }
-    })
+    // "Disponible" = une étude sectorielle a réellement été produite (status 'active').
+    // Les autres lignes de sector_intelligence sont des conteneurs de rattachement de
+    // comptes, sans pain point ni calendrier réglementaire : elles sont en préparation.
+    //
+    // Auparavant, "disponibles" listait les 14 lignes de la table (dont 11 coquilles vides)
+    // et "en préparation" listait ce qui était dans la config codée en dur SANS être en base
+    // — c'est-à-dire exactement les trois slugs fantômes de cette config. La sémantique
+    // était inversée : on annonçait comme disponibles des études inexistantes, et comme
+    // en préparation des secteurs qui n'existaient nulle part.
+    const availableStudies = sectors
+      .filter((sector) => sector.status === "active")
+      .map<SectorActivationStudy>((sector) => {
+        const sectorWindows = windowsBySectorSlug.get(sector.slug) ?? []
+        return {
+          slug: sector.slug,
+          name: sector.name,
+          status: sector.status,
+          attractivenessScore: sector.attractivenessScore,
+          linkedAccountCount: sector.linkedAccountCount,
+          openWindowCount: sectorWindows.filter((window) => window.isOpenNow).length,
+          updatedAt: latestDate([sector.updatedAt, ...sectorWindows.map((window) => window.detectedAt)]),
+        }
+      })
 
-    const realSectorSlugs = new Set(sectors.map((sector) => sector.slug))
-    const preparingStudies = STRATEGIC_SECTOR_CONFIG
-      .filter((sector) => !realSectorSlugs.has(sector.slug))
-      .map((sector) => ({
+    const preparingStudies = sectors
+      .filter((sector) => sector.status !== "active")
+      .map<SectorPreparationStudy>((sector) => ({
         slug: sector.slug,
         name: sector.name,
+        linkedAccountCount: sector.linkedAccountCount,
       }))
 
     return {

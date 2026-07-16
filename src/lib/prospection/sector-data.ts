@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import type {
   SectorWithRelations,
   SectorIntelligence,
+  SectorCaveats,
   SectorPainPoint,
   SectorRegulatoryItem,
   SectorEvent,
@@ -45,11 +46,12 @@ type AnyClient = { from(table: string): AnyTable }
 
 // ─── Types internes (colonnes brutes Supabase) ────────────────────────────────
 
-type RawSector = Omit<SectorIntelligence, 'practices_fit' | 'key_players_paca' | 'key_players_national' | 'playbook'> & {
+type RawSector = Omit<SectorIntelligence, 'practices_fit' | 'key_players_paca' | 'key_players_national' | 'playbook' | 'caveats'> & {
   practices_fit: unknown
   key_players_paca: unknown
   key_players_national: unknown
   playbook: unknown
+  caveats: unknown
 }
 
 type RawPainPoint = SectorPainPoint & { sector_id: string }
@@ -86,11 +88,11 @@ export async function getSectorData(slug?: string): Promise<SectorWithRelations 
   const sectorTable = supabase.from("sector_intelligence")
   const sectorQuery = slug
     ? sectorTable
-        .select<RawSector>("id,name,slug,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,created_at,updated_at")
+        .select<RawSector>("id,name,slug,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,caveats,created_at,updated_at")
         .eq("slug", slug)
         .order("attractiveness_score", { ascending: false })
     : sectorTable
-        .select<RawSector>("id,name,slug,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,created_at,updated_at")
+        .select<RawSector>("id,name,slug,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,caveats,created_at,updated_at")
         .order("attractiveness_score", { ascending: false })
 
   // On récupère la liste et on prend le premier
@@ -112,7 +114,7 @@ export async function getSectorData(slug?: string): Promise<SectorWithRelations 
 
     supabase
       .from("sector_regulatory_items")
-      .select<RawRegulatory>("id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,sector_id")
+      .select<RawRegulatory>("id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,source_url,sector_id")
       .eq("sector_id", sectorId)
       .order("deadline_date", { ascending: true }) as unknown as PromiseLike<{ data: RawRegulatory[] | null; error: unknown }>,
 
@@ -145,6 +147,8 @@ export async function getSectorData(slug?: string): Promise<SectorWithRelations 
     key_players_paca: parseJsonField(raw.key_players_paca, []),
     key_players_national: parseJsonField(raw.key_players_national, []),
     playbook: parseJsonField(raw.playbook, { personas: [], roi_arguments: [], objections: [], entry_points: [] }),
+    // NULL conservé : « pas de caveats » et « caveats vides » ne disent pas la même chose.
+    caveats: parseJsonField<SectorCaveats | null>(raw.caveats, null),
     created_at: raw.created_at,
     updated_at: raw.updated_at,
     pain_points: (ppResult.data ?? []).map(({ sector_id: _, ...rest }) => rest as SectorPainPoint),

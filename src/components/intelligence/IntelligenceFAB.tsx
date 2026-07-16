@@ -25,7 +25,7 @@ import {
 } from "@/components/accounts-contacts/intelligence/IntelligenceActionDrawers"
 import { AccountCombobox, type AccountValue } from "@/components/missions/AccountCombobox"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
-import { STRATEGIC_SECTOR_CONFIG } from "@/lib/prospection/sector-strategy-config"
+import { getPlaybookSectors, type PlaybookSector } from "@/lib/prospection/get-playbook-sectors"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import {
   IntelligenceActionResultContent,
@@ -440,6 +440,29 @@ export function IntelligenceFAB() {
   const [activeAction, setActiveAction] = useState<"pitch" | null>(null)
   const [activeDeterministicAction, setActiveDeterministicAction] = useState<DeterministicIntelligenceActionId | null>(null)
 
+  // Secteurs proposés au sélecteur de playbook — chargés depuis la base à l'ouverture,
+  // plus depuis une liste codée en dur qui pointait vers trois slugs inexistants.
+  // Chargement déclenché par l'événement d'ouverture (pas un effet) : le sélecteur ne
+  // sert qu'au clic, inutile de payer la requête à chaque montage du FAB.
+  const [playbookSectors, setPlaybookSectors] = useState<PlaybookSector[]>([])
+  const [playbookSectorsStatus, setPlaybookSectorsStatus] = useState<"idle" | "loading" | "error">("idle")
+
+  const openSectorSelector = async () => {
+    setIsSectorSelectorOpen(true)
+    if (playbookSectors.length > 0) return
+
+    setPlaybookSectorsStatus("loading")
+    const result = await getPlaybookSectors()
+
+    if (result.error) {
+      setPlaybookSectorsStatus("error")
+      return
+    }
+
+    setPlaybookSectors(result.sectors)
+    setPlaybookSectorsStatus("idle")
+  }
+
   const handleCompanyActionSelected = (val: AccountValue) => {
     setIsCompanySelectorOpen(false)
     if (selectorSource === "pitch") {
@@ -558,7 +581,7 @@ export function IntelligenceFAB() {
                 setSelectorSource("analyse")
                 setIsCompanySelectorOpen(true)
               } else if (actionId === "playbook") {
-                setIsSectorSelectorOpen(true)
+                void openSectorSelector()
               } else if (actionId === "brief") {
                 alert("Brief hebdomadaire : cette action sera configurée plus tard.")
               } else if (actionId === "rdv") {
@@ -629,20 +652,32 @@ export function IntelligenceFAB() {
             </button>
           </div>
           <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto pr-1">
-            {STRATEGIC_SECTOR_CONFIG.map((sector) => (
-              <button
-                key={sector.slug}
-                type="button"
-                onClick={() => {
-                  setIsSectorSelectorOpen(false)
-                  setIsOpen(false)
-                  router.push(`/ressources/playbook/${sector.slug}`)
-                }}
-                className="w-full text-left px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-98 transition-all text-xs font-semibold text-white/90"
-              >
-                {sector.name}
-              </button>
-            ))}
+            {playbookSectorsStatus === "loading" ? (
+              <p className="px-3 py-2.5 text-xs text-white/60">Chargement des playbooks…</p>
+            ) : playbookSectorsStatus === "error" ? (
+              <p className="px-3 py-2.5 text-xs text-white/60">
+                Chargement des playbooks indisponible.
+              </p>
+            ) : playbookSectors.length === 0 ? (
+              <p className="px-3 py-2.5 text-xs text-white/60">
+                Aucune étude sectorielle disponible pour l&apos;instant.
+              </p>
+            ) : (
+              playbookSectors.map((sector) => (
+                <button
+                  key={sector.slug}
+                  type="button"
+                  onClick={() => {
+                    setIsSectorSelectorOpen(false)
+                    setIsOpen(false)
+                    router.push(`/ressources/playbook/${sector.slug}`)
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 active:scale-98 transition-all text-xs font-semibold text-white/90"
+                >
+                  {sector.name}
+                </button>
+              ))
+            )}
           </div>
         </dialog>
       )}

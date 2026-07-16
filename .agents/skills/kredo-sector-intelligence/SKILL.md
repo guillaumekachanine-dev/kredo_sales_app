@@ -1,141 +1,126 @@
 ---
 name: kredo-sector-intelligence
-description: Conduit une étude sectorielle complète pour Kredo et construit le playbook commercial associé — de l'audit du corpus Supabase existant jusqu'à l'injection en base et la validation front-end. Utilise impérativement ce skill dès que Dosta demande de lancer une nouvelle étude sectorielle, d'ajouter un secteur à l'onglet "Approche sectorielle", de construire un "playbook" commercial, de préparer un pitch DSI pour un secteur, ou plus généralement de documenter/rechercher une nouvelle industrie cible (même sans dire explicitement "étude" ou "playbook" — par exemple "go secteur Aéronautique", "j'ai besoin d'un argumentaire pour le secteur Santé", "ajoute la Travel Tech à Kredo"). Couvre la recherche de marché, le calendrier réglementaire, les pain points, les personas, les arguments ROI, les objections et le pitch 15 minutes.
+description: Conduit une étude sectorielle KREDO de bout en bout — audit du corpus Supabase, recherche réglementaire sourcée, playbook commercial, injection en base, recette — en appliquant docs/PROCESS-ETUDE-SECTORIELLE.md, qui fait autorité sur le schéma, les gates et la grille qualité. Utilise ce skill dès que Guillaume demande de lancer ou mettre à jour une étude sectorielle, d'activer/ajouter un secteur dans "Approche sectorielle", de construire un playbook commercial, de préparer un argumentaire ou un angle d'attaque pour une industrie, de choisir le prochain secteur à travailler, ou d'évaluer/noter une fiche sectorielle existante — même sans les mots "étude" ou "playbook" (ex. "go secteur Aéronautique", "il nous faut un angle pour le BTP", "on attaque quoi après la parfumerie ?", "cette fiche vaut quoi ?", "ajoute la Travel Tech à Kredo"). Couvre la recherche marché, le calendrier réglementaire, les pain points, les personas, les arguments ROI, les objections et le pitch.
 ---
 
-# Kredo — Étude Sectorielle & Playbook Commercial
+# KREDO — Étude sectorielle
 
-## Pourquoi ce skill existe
+## Ce skill est une conduite, pas une référence
 
-Dosta est un consultant IA freelance en phase de lancement (objectif : poste salarié ou mandats avant septembre 2026). Chaque fiche sectorielle dans Kredo sert un double objectif : c'est un **outil de prospection réel** (qui doit tenir la route en rendez-vous client) et une **pièce de portfolio** (qui démontre sa capacité à produire de l'intelligence commerciale de niveau ESN/cabinet conseil).
+Tout le **quoi** — schéma exact, requêtes, structure du livrable, template d'injection, grille de notation — vit dans **`docs/PROCESS-ETUDE-SECTORIELLE.md`**. Ce skill porte le **comment** : l'ordre, les gates, les arrêts, l'auto-contrôle.
 
-Deux fiches de référence existent déjà et fixent la barre : **Parfumerie, Arômes & Cosmétique** (score 4.8/5, appuyée sur un diagnostic réel chez Robertet) et **Banque, Finance & Assurance** (score 4.4/5, corpus plus mince mais compensé par une recherche réglementaire solide sur le GAFI/DORA). Toute nouvelle fiche doit les égaler en rigueur, même si le sujet est moins documenté en interne.
+Cette séparation n'est pas cosmétique. La version précédente de ce skill recopiait le schéma Supabase. La base a évolué, le skill non, et il a fini par référencer une table qui n'existe pas (`company_audit`), une colonne renommée (`ai_score`), et un template d'injection auquel manquaient deux colonnes `NOT NULL` — il échouait donc en Phase 1 **et** en Phase 4. **Ne recopie jamais de schéma ici.** Une seule source de vérité, sinon la dérive recommence.
 
-Le risque principal de ce type d'exercice, c'est l'enthousiasme qui pousse à "compléter" un trou de donnée par une invention plausible — un faux verbatim, une fréquence gonflée, un chiffre ROI sans source. C'est exactement ce que ce skill est construit pour empêcher : **mieux vaut une fiche avec des trous visibles et assumés qu'une fiche complète mais fragile.** Un client qui détecte une seule statistique inventée perd confiance dans tout le reste — y compris les parties vraies.
+> **Ce que tu crois savoir sur ce module est peut-être faux.** Si tu as en tête `company_audit`, `companies.ai_score`, `opportunities.status`, `opportunities.amount_eur`, ou « il y a 2 secteurs en base » : tout cela est périmé. Ne te fie qu'au document et à la base.
 
-## Vue d'ensemble — 5 phases
+**Préséance :** `docs/PROCESS-ETUDE-SECTORIELLE.md` > ce skill > `CLAUDE.md` (périmé sur le sectoriel) > ta mémoire.
 
-| Phase | Contenu | Temps indicatif |
-|---|---|---|
-| 0 | Cadrage : récupérer les inputs nécessaires | 5 min |
-| 1 | Audit du corpus Supabase existant | 30-45 min |
-| 2 | Recherche externe (marché, réglementation, trigger events) | 1-2h |
-| 3 | Synthèse + construction du playbook commercial | 45 min |
-| 4 | Injection transactionnelle en Supabase | 30 min |
-| 5 | Validation front-end + remise à Dosta | 15 min |
+## Préflight — avant toute chose
 
-Ne saute jamais la Phase 1 pour foncer sur la recherche web — c'est la différence entre **diagnostiquer** (s'appuyer sur ce que Kredo sait déjà des comptes réels) et **inventer**. Un pain point appuyé sur un diagnostic réel vaut dix fois plus qu'une généralité plausible trouvée sur le web.
+Trois vérifications. Chacune peut arrêter la mission ; le dire est un livrable, pas un échec.
 
----
+1. **Le document.** Lis `docs/PROCESS-ETUDE-SECTORIELLE.md`. Absent ? Demande-le. Sans lui tu n'as ni le schéma réel ni la grille : tu produirais une fiche qui ne s'injecte pas.
+2. **L'accès Supabase.** Un connecteur MCP, un client SQL, ou rien. Si rien → tu es en **mode dégradé** : lis `references/agents-externes.md` avant de continuer. Ne devine jamais un corpus.
+3. **La cible.** Le secteur existe presque sûrement déjà en base (les comptes y sont rattachés). Trouve son slug. N'en crée pas un doublon.
 
-## Phase 0 — Cadrage
+## La doctrine — six règles, et pourquoi
 
-Avant de lancer quoi que ce soit, assure-toi d'avoir ces informations. Si Dosta ne les a pas toutes données dans sa demande initiale, pose les questions manquantes — mais essaie d'abord de les déduire du contexte (nom du secteur cité, conversation récente) avant de demander.
+Ces règles sont ce que ce skill a de plus durable. Le reste est mécanique.
 
-| Variable | Exemple | Comment l'obtenir si absente |
-|---|---|---|
-| `SECTEUR_NOM` | "Aéronautique, Défense & Spatial" | Demandé explicitement par Dosta |
-| `SECTEUR_KEYWORDS` | aerospace, defense, spatial, aviation, drone | Tu peux les déduire toi-même du nom du secteur |
-| `SECTEUR_ACTEURS_CLES` | Airbus, Thales Alenia Space, Naval Group | Recherche rapide si Dosta ne les liste pas |
-| `WORKSPACE_ID` | UUID | `SELECT id, name FROM workspaces;` via le connecteur Supabase — normalement un seul résultat |
-| `GEOGRAPHIE_PRIORITAIRE` | PACA | Par défaut PACA sauf indication contraire |
-| `PRACTICE_FIT_ATTENDU` | data_ai, cyber | Ton hypothèse de travail, à affiner en Phase 3 |
+**1. Jamais de verbatim inventé.** Une citation vient d'une vraie interaction ou d'un vrai diagnostic, sinon le champ reste vide.
+*Pourquoi :* un DSI qui détecte **une seule** phrase fabriquée cesse de croire tout le reste — y compris les 90 % qui étaient vrais. Le coût d'un trou assumé est nul ; celui d'une invention détectée est total.
 
-Si le connecteur Supabase MCP n'est pas disponible dans la conversation, dis-le clairement à Dosta avant de continuer — ce skill dépend de cet accès pour les Phases 1 et 4.
+**2. Une fréquence est un comptage, pas une impression.** « 5 comptes » veut dire que tu as listé les 5. Leurs UUID vont dans `source_company_ids` — c'est la preuve, et elle est vérifiable après coup par n'importe qui.
+*Pourquoi :* les deux fiches fondatrices n'ont pas ce champ. Leurs fréquences (6/5/5/4) sont donc invérifiables à jamais. La règle existait déjà à l'époque ; l'outil ne la rendait pas applicable. Ne reproduis pas ça.
 
----
+**3. Chaque argument ROI porte sa source dans son texte.** Pas en annexe : dans la phrase.
+*Pourquoi :* l'argument est lu à voix haute en rendez-vous. La source doit être là au moment où la question « vous tenez ça d'où ? » tombe. Sans source → reformule en « potentiel estimé à X %, à valider », ce qui reste vendable et reste honnête.
 
-## Phase 1 — Audit du corpus existant
+**4. Une date réglementaire non confirmée sur source officielle n'est pas une date.** Elle devient « échéance à confirmer ».
+*Pourquoi :* l'échéance datée est ce qui crée le rendez-vous. C'est le seul étage qu'aucune ESN généraliste n'improvise — et donc le seul endroit où une erreur se paie devant un prospect mieux informé que toi.
 
-**Objectif** : déterminer ce que Kredo sait déjà sur ce secteur avant d'aller chercher ailleurs.
+**5. Le plafond de corpus bat toujours le calcul du score.**
+*Pourquoi :* un 4,8/5 sur un compte n'est pas un score, c'est un mensonge — et il décrédibilise les fiches qui, elles, méritent leur note. Un corpus mince n'est pas un échec : c'est une fiche qui le dit et qui compense par le réglementaire.
 
-Exécute ces trois requêtes via le connecteur Supabase, dans cet ordre :
+**6. Écris en français, avec les accents.**
+*Pourquoi :* ce n'est pas de la typographie. La fiche la plus rigoureuse jamais produite est partie en production désaccentuée (« Directrice Qualite / Affaires Reglementaires ») parce qu'un agent a « sécurisé » l'échappement SQL en mutilant le texte. Elle a l'air bâclée alors qu'elle est la meilleure. Le dollar-quoting règle l'échappement ; rien ne justifie de casser le texte.
 
-```sql
--- Requête 1 : comptes déjà rattachables à ce secteur
-SELECT c.id, c.name, c.lifecycle_status, c.revenue, c.workspace_id, c.ai_score
-FROM companies c
-WHERE c.sector ILIKE '%[KEYWORD]%'
-   OR c.name IN ('[ACTEUR_1]', '[ACTEUR_2]', ...)
-ORDER BY c.lifecycle_status DESC, c.revenue DESC NULLS LAST;
+**La formulation générale de tout ça :** une fiche avec des trous visibles bat une fiche complète mais fragile. Quand tu hésites entre laisser vide et combler avec du plausible — laisse vide, et écris pourquoi.
 
--- Requête 2 : diagnostics IA réels déjà en base (la vraie mine d'or)
-SELECT a.company_id, c.name, a.json_output
-FROM company_audit a
-JOIN companies c ON a.company_id = c.id
-WHERE a.company_id IN (SELECT id FROM companies WHERE sector ILIKE '%[KEYWORD]%')
-  AND a.json_output IS NOT NULL;
+## Le déroulé
 
--- Requête 3 : opportunités gagnées/perdues (signaux de marché réels)
-SELECT o.id, o.title, o.status, o.close_date, o.amount_eur, c.name
-FROM opportunities o
-JOIN companies c ON o.company_id = c.id
-WHERE c.sector ILIKE '%[KEYWORD]%'
-ORDER BY o.close_date DESC NULLS LAST
-LIMIT 20;
+Le document détaille chaque phase. Ton travail est de tenir l'ordre et les gates.
+
+| Phase | Ce que tu fais | Réf. | Durée |
+|---|---|---|---|
+| **P0 Cadrage** | Figer secteur, slug existant, workspace, géo | §5.3 | 30 min |
+| **P1 Audit corpus** | Les 7 requêtes, **telles qu'écrites** | **§4.2** | 1-1h30 |
+| *Gate 1* | Classer le corpus : riche / moyen / mince | §4.1 | — |
+| **P2 Recherche** | 8-12 requêtes, priorité absolue au bloc réglementaire | §4.3 | 1-2h |
+| *Gate 2* | ≥3 items réglementaires datés et vérifiés ? | §4.3 | — |
+| **P3 Synthèse** | Le brouillon complet | §6 | 45 min |
+| *Gate 3* | **Auto-contrôle noté /100** | **§10** + script | — |
+| **P4 Injection** | Migration idempotente, dollar-quoting | §7.3 | 30 min |
+| **P5 Recette** | Vérifs SQL puis les 3 pages | §7.4, §8.4 | 15 min |
+| **P6 Remise** | Solide / à valider / trous assumés | §5.3 | 15 min |
+
+**Ne saute jamais P1 pour foncer sur le web.** C'est toute la différence entre diagnostiquer et inventer : une douleur adossée à un diagnostic réel vaut dix généralités que n'importe quelle ESN aurait trouvées en trois minutes. Un agent qui commence par chercher sur le web produit une fiche sans corpus — plausible, générique, sans valeur.
+
+**Annonce à chaque fin de phase** ce que tu as trouvé, ce qui manque, et ta note provisoire. C'est ce qui permet d'être arrêté tôt plutôt que corrigé tard.
+
+## Les gates
+
+Un gate n'est pas une formalité de fin : c'est le droit de continuer.
+
+**Gate 1 — corpus classé.** Le classement fixe le plafond de score (§4.1). Annonce-le explicitement : « corpus mince, plafond 4.0 ». Corpus totalement vide → §9, fiche réglementaire pure, plafond 3.5, et tu le dis avant d'engager 5 heures.
+
+**Gate 2 — le réglementaire tient.** Moins de 3 échéances vérifiées → la fiche perd son étage n°1. Ce n'est pas rédhibitoire, mais le score plafonne à 3.5 et c'est une information stratégique : ce secteur est difficile à attaquer à froid. Dis-le.
+
+**Gate 3 — la note.** Sous 70/100 → **n'injecte pas**, retourne en P2 ou P3. Axe A (traçabilité) sous 20/35 → **rejet automatique quelle que soit la note totale** : une fiche non traçable est un risque, pas un actif.
+
+> **Tu vas être indulgent avec toi-même à ce gate.** C'est le biais le plus prévisible de l'exercice : tu viens de produire la fiche, tu la trouves bonne. Fais tourner `scripts/audit_fiche.py` sur ton brouillon — il note la moitié objective de la grille (traçabilité, longueur et accents des titres, cohérence fréquence/preuves, plafond de score) sans état d'âme. Ne t'auto-attribue que ce qu'il te laisse.
+
+```bash
+python3 scripts/audit_fiche.py mon-brouillon.json
 ```
 
-Classe le résultat : **corpus riche** (3+ comptes avec données substantielles, comme Parfumerie) ou **corpus mince** (0-2 comptes, comme Finance/Monaco). Ce classement détermine combien tu vas devoir t'appuyer sur la recherche externe en Phase 2 — un corpus mince n'est pas un échec, c'est juste un signal qu'il faut compenser et le dire honnêtement dans la fiche finale.
+Le script décrit son format d'entrée avec `--schema`. Pas d'interpréteur disponible ? Applique la grille §10 à la main, mais compte les caractères des titres pour de vrai.
 
-Schéma complet des tables : voir `references/schema-supabase.md`.
+## Les arrêts obligatoires
 
----
+Quatre moments où tu t'arrêtes et où Guillaume décide (§5.2). Les franchir seul est la seule faute non rattrapable de ce processus.
 
-## Phase 2 — Recherche externe
+- **Le choix du secteur** (P0) — sauf s'il l'a nommé. Il se calcule, il ne s'intuite pas : §3.2 donne les 5 prérequis et l'état de préparation mesuré de chaque secteur. Le nombre de comptes ne dit rien de la qualité d'une étude — le secteur qui en a le plus est l'un des moins prêts.
+- **Gate 3 sous 70** — tu proposes, tu n'injectes pas.
+- **L'injection** (P4) — tu écris la migration, tu la montres, **tu ne l'exécutes jamais sans accord explicite**. C'est une écriture en production.
+- **Un doute stratégique** — « je ne vois pas comment ce secteur se vend » n'est pas un problème de méthode, c'est une vraie question. Pose-la plutôt que de deviner un angle.
 
-**Objectif** : combler les gaps du corpus avec des données actuelles et sourcées, en particulier sur le calendrier réglementaire — c'est lui qui transforme une fiche descriptive en outil de prospection (une échéance datée crée une urgence commerciale qu'aucun concurrent généraliste ne peut improviser).
+## Modes dégradés
 
-Quatre blocs de recherche à couvrir, dans cet ordre de priorité :
-1. **Marché & taille** — CAGR, maturité digitale, TJM observable
-2. **Réglementation & calendrier** — le bloc le plus important, voir ci-dessous
-3. **Trigger events** — acquisitions, incidents concurrents, nominations DSI
-4. **Cas d'usage IA / fit practice** — pour calibrer l'angle technique
+**Sans accès Supabase** (ChatGPT/Gemini sans connecteur) : P1 et P4 sont impossibles. Tu peux faire P2 et P3 avec le corpus collé par Guillaume — c'est un mode utile pour la recherche réglementaire, mais annonce le plafond honnêtement. Détail dans `references/agents-externes.md`.
 
-La méthodologie détaillée (requêtes types, sources à privilégier, comment vérifier qu'une deadline réglementaire est fiable) est dans `references/methodologie-recherche.md` — lis ce fichier avant de lancer tes recherches.
+**Sans accès web** : Gate 2 tombe. Tu ne peux pas vérifier une échéance. Dis-le ; ne recopie pas les échéances FOLIO, qui sont vagues (« 2026-2030, mise en œuvre progressive ») et sans source.
 
-**Documente systématiquement la source de chaque chiffre.** Tu en auras besoin en Phase 3 pour la transparence de la fiche, et c'est ce qui permet à Dosta de défendre chaque donnée en rendez-vous client si on lui pose la question.
+**Secteur déjà `active`** : c'est une mise à jour, pas une création. Le template §7.3 est idempotent. **Ne supprime jamais un verbatim réel existant** — c'est irremplaçable, alors que tout le reste se recalcule.
 
----
+## Les pièges qui coûtent le plus
 
-## Phase 3 — Synthèse & Playbook
+Par ordre de fréquence observée.
 
-**Objectif** : transformer le corpus + la recherche en deux livrables structurés — la fiche sectorielle et le playbook commercial.
+| Piège | Ce que ça donne | La parade |
+|---|---|---|
+| Titre de pain point long et technique | Le pitch du playbook est **dérivé** de `pain_points[0..2]` (§8.2) : ce titre sera lu à voix haute en RDV. « Referentiel reglementaire et packaging disperse sur des catalogues larges » est inutilisable. | ≤ 60 caractères, oral, accentué |
+| Recopier une échéance FOLIO | FOLIO n'a ni source ni date. Ses échéances sont floues. | Re-vérifier sur source officielle, ou dégrader en « à confirmer » |
+| Pain point vague | « Complexité IT », « transformation digitale » — vrai partout, donc utile nulle part | Cherche le chiffre : « 20 serveurs non documentés, +4 jours d'audit sur 22 » |
+| Peur = enjeu reformulé | « Ne pas être conforme » n'est pas une peur, c'est l'enjeu à la négative | La peur empêche de dormir ; l'enjeu est dans la fiche de poste (§6.2) |
+| Objection générique | « C'est trop cher » = tu n'as pas creusé le métier | « L'IA va remplacer nos parfumeurs » — une crainte identitaire, propre au métier |
+| Chercher 40 requêtes web | Tu ne cherches plus, tu procrastines | 8-12, puis « à confirmer » |
+| `frequency_count` sans `source_company_ids` | Colonne `NOT NULL` : l'injection échoue. Et la règle 2 devient inapplicable. | Note les UUID **pendant** P1, pas après |
 
-Le template de synthèse (fiche complète : marché, acteurs, réglementation, pain points, score d'attractivité) et le template du playbook (4 personas, 5 arguments ROI, 3 objections, 4 points d'entrée, + structure du pitch 15 minutes) sont dans `references/playbook-template.md`.
+## Comment on sait que c'est bon
 
-Trois règles structurent absolument cette phase :
-- Une **peur** de persona n'est pas un enjeu reformulé. "Peur de l'audit raté" ≠ "enjeu de conformité". La peur est ce qui empêche de dormir, l'enjeu est ce qui est écrit dans sa fiche de poste.
-- Un **argument ROI** sans source identifiable se réécrit en "potentiel estimé à X%, à valider" plutôt que d'être présenté comme un fait.
-- Une **objection** doit ressembler à une phrase qu'un vrai prospect dirait, pas à une généralité de manuel commercial ("c'est trop cher" est faible ; "vous allez remplacer mes parfumeurs" est réel et spécifique).
+Une seule question, et elle n'est pas dans la grille :
 
----
+> **Un commercial qui ne connaît rien à ce secteur peut-il, après 20 minutes de lecture, appeler un DSI et tenir 15 minutes sans bluffer ?**
 
-## Phase 4 — Injection Supabase
-
-**Objectif** : écrire la fiche complète en base, en une seule transaction atomique (tout passe, ou rien n'est inséré — pas d'état intermédiaire cassé).
-
-Le template SQL transactionnel complet (sector_intelligence → pain_points → regulatory_items → events → rattachement des comptes) est dans `references/injection-sql-template.md`.
-
-Après l'injection, vérifie systématiquement par un SELECT que chaque table contient bien les lignes attendues avant de passer à la validation front-end. Une transaction qui "semble" avoir réussi sans vérification a déjà fait planter une fiche par le passé (contrainte UNIQUE sur `source_url` dans `sector_events` — vérifie que tes URLs de sources sont uniques avant d'insérer).
-
----
-
-## Phase 5 — Validation & remise
-
-1. Vérifie dans l'app que la nouvelle fiche apparaît dans `/prospection/approche-sectorielle` (le front-end est générique — si l'injection Supabase est correcte, aucune modification de code n'est nécessaire).
-2. Ouvre la fiche détail et vérifie que les 6 blocs chargent (pain points triés par fréquence, calendrier avec badges de couleur, comptes rattachés, playbook navigable).
-3. Présente la synthèse à Dosta avec, explicitement : ce qui est solide (appuyé sur du diagnostic réel ou une source officielle) et ce qui reste une hypothèse à confirmer terrain.
-
-La checklist complète de validation et le tableau des standards de qualité (ce qui distingue une fiche "production-ready" d'un brouillon) sont dans `references/standards-qualite.md` — relis ce fichier avant de déclarer la fiche terminée.
-
----
-
-## Les 5 règles non-négociables (résumé)
-
-1. **Jamais de verbatim inventé.** Pas de citation client si elle n'existe pas réellement dans le corpus — champ vide plutôt qu'invention.
-2. **Fréquence = comptage réel.** "5/7 comptes" signifie que tu as compté chez 5 sur 7, pas que ça "semble fréquent".
-3. **Chaque argument ROI cite sa source** (diagnostic interne ou recherche externe).
-4. **Le score d'attractivité est transparent** — afficher le nombre d'études sources à côté du score pour que la confiance reste lisible.
-5. **Une transparence explicite sur les manques** vaut mieux qu'une fiche qui a l'air complète mais ne l'est pas. Le bandeau "à valider terrain" est un atout, pas un aveu de faiblesse.
-
-Si tu te retrouves bloqué sur un point précis (recherche infructueuse, corpus vide, ambiguïté sur l'angle commercial), la section troubleshooting de `references/standards-qualite.md` couvre les cas les plus fréquents.
+La grille /100 mesure si tu as le droit d'injecter. Cette question mesure si ça sert à quelque chose. Les deux fiches de référence donnent l'étalon : `parfumerie-aromes` pour la densité (10 comptes, 7 verbatims), `nutraceutique-sante-naturelle` pour la rigueur (sources dans le texte, preuves de comptage). Aucune n'atteint 90. **La cible est la première fiche qui combine les deux.**
