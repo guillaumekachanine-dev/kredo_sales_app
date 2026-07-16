@@ -1,0 +1,14 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - heading "KREDO" [level=1] [ref=e5]
+    - paragraph [ref=e6]: Connectez-vous à votre espace
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: Adresse e-mail
+      - textbox "Adresse e-mail" [ref=e11]:
+        - /placeholder: vous@exemple.com
+    - generic [ref=e12]:
+      - generic [ref=e13]: Mot de passe
+      - textbox "Mot de passe" [ref=e14]:
+        - /placeholder: ••••••••
+    - button "Se connecter" [ref=e15]
