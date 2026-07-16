@@ -8,7 +8,6 @@ import { financeDashboardConfig } from "@/lib/dashboard/configs/finance-dashboar
 import { proposalDashboardConfig } from "@/lib/dashboard/configs/proposal-dashboard.config"
 import { prospectionDashboardConfig } from "@/lib/dashboard/configs/prospection-dashboard.config"
 import { knowledgeDashboardConfig } from "@/lib/dashboard/configs/knowledge-dashboard.config"
-import { automationsDashboardConfig } from "@/lib/dashboard/configs/automations-dashboard.config"
 
 // Mocks
 import {
@@ -16,8 +15,7 @@ import {
   mockFinanceDashboardData,
   mockProposalDashboardData,
   mockProspectionDashboardData,
-  mockKnowledgeDashboardData,
-  mockAutomationsDashboardData
+  mockKnowledgeDashboardData
 } from "@/lib/dashboard/mock-dashboard-data"
 
 type PageProps = {
@@ -37,8 +35,7 @@ export default async function DashboardTestPage({ searchParams }: PageProps) {
     { key: "finance", config: financeDashboardConfig, data: mockFinanceDashboardData, name: "Finance" },
     { key: "proposal", config: proposalDashboardConfig, data: mockProposalDashboardData, name: "Proposal Intelligence" },
     { key: "prospection", config: prospectionDashboardConfig, data: mockProspectionDashboardData, name: "Prospection Intelligence" },
-    { key: "knowledge", config: knowledgeDashboardConfig, data: mockKnowledgeDashboardData, name: "Knowledge Hub" },
-    { key: "automations", config: automationsDashboardConfig, data: mockAutomationsDashboardData, name: "Automations" }
+    { key: "knowledge", config: knowledgeDashboardConfig, data: mockKnowledgeDashboardData, name: "Knowledge Hub" }
   ]
 
   const currentSection = sections.find((s) => s.key === activeSection) || sections[0]
