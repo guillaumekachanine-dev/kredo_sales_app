@@ -4,7 +4,7 @@ import { useState } from "react"
 import { createOpportunityStaffing } from "@/app/(app)/missions/_actions/opportunity-staffing"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { runOpportunityMatching } from "@/lib/staffing-matching/actions"
-import type { MatchingResult } from "@/lib/staffing-matching/types"
+import type { MatchingResult, ProfileMatchResult } from "@/lib/staffing-matching/types"
 import { MatchingResultsDesktop } from "./MatchingResultsDesktop"
 import { MatchingResultsMobile } from "./MatchingResultsMobile"
 import { profileSourceKey } from "./matching-ui-utils"
@@ -15,6 +15,13 @@ interface PresentState {
   presenting: boolean
   presented: boolean
   error: string | null
+}
+
+function selectedProfileFor(
+  result: MatchingResult,
+  selectedSourceKey: string | null,
+): ProfileMatchResult {
+  return result.rankedProfiles.find((profile) => profileSourceKey(profile) === selectedSourceKey) ?? result.rankedProfiles[0]
 }
 
 interface MatchingDialogProps {
@@ -136,6 +143,11 @@ export function MatchingDialog({
         </div>
       )
     } else {
+      const selectedProfile = selectedProfileFor(result, selectedSourceKey)
+      const selectedKey = profileSourceKey(selectedProfile)
+      const selectedPresentState = presentStateByKey.get(selectedKey)
+      const canPresentSelectedProfile = selectedProfile.sourceType === "candidate" || selectedProfile.hasCandidateProfile
+
       body = isMobile ? (
         <MatchingResultsMobile
           result={result}
@@ -147,11 +159,77 @@ export function MatchingDialog({
       ) : (
         <MatchingResultsDesktop
           result={result}
-          selectedSourceKey={selectedSourceKey}
           onSelect={setSelectedSourceKey}
           presentStateByKey={presentStateByKey}
-          onPresent={(key) => void handlePresent(key)}
+          selectedProfile={selectedProfile}
         />
+      )
+
+      const footer = isMobile ? undefined : (
+        <>
+          <button
+            type="button"
+            onClick={() => void handleRun()}
+            className="inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-md px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/[0.06] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <svg aria-hidden="true" className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7" />
+            </svg>
+            Relancer le matching
+          </button>
+          <button
+            type="button"
+            onClick={() => void handlePresent(selectedKey)}
+            disabled={
+              !canPresentSelectedProfile ||
+              selectedPresentState?.presenting ||
+              selectedPresentState?.presented
+            }
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md bg-primary px-6 text-base font-bold text-primary-fg transition-colors hover:bg-primary-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {selectedPresentState?.presented
+              ? "Profil présenté"
+              : selectedPresentState?.presenting
+                ? "Présentation…"
+                : `Présenter ${selectedProfile.fullName.split(" ")[0] ?? "ce profil"}`}
+          </button>
+        </>
+      )
+
+      return (
+        <AppDialog
+          open={open}
+          onOpenChange={onOpenChange}
+          title={
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Matching IA</p>
+              <h2 className="mt-1.5 font-heading text-2xl font-bold leading-tight tracking-tight text-heading">
+                {isMobile ? "Profils pour le besoin" : "Le meilleur profil pour ce besoin"}
+              </h2>
+            </div>
+          }
+          description={`${opportunityTitle} · ${selectedProfile.components.filter((component) => component.applicable).length} critères disponibles`}
+          className={
+            isMobile
+              ? "max-w-lg"
+              : "w-[calc(100vw-1.5rem)] max-w-[72rem] sm:w-[min(calc(100vw-4rem),72rem)]"
+          }
+          headerClassName={
+            isMobile
+              ? undefined
+              : "-mx-6 -mt-6 border-b border-border/80 px-6 pb-5 pt-6 [&_button]:size-8 [&_button]:rounded-md [&_button]:text-heading [&_button]:hover:bg-canvas"
+          }
+          bodyClassName={isMobile ? undefined : "-mx-6 px-0 pr-0"}
+          footerClassName={isMobile ? undefined : "-mx-6 -mb-6 grid grid-cols-[auto_minmax(0,1fr)] border-border/80 px-6 pb-6 pt-4"}
+          maxHeightClassName={
+            isMobile
+              ? undefined
+              : "max-h-[min(calc(100dvh-2rem),44rem)] sm:max-h-[min(calc(100dvh-4rem),44rem)]"
+          }
+          footer={footer}
+        >
+          {body}
+        </AppDialog>
       )
     }
   }
@@ -162,19 +240,7 @@ export function MatchingDialog({
       onOpenChange={onOpenChange}
       title="Matching IA"
       description={`Besoin : ${opportunityTitle}`}
-      className={phase === "results" && !isMobile ? "max-w-4xl" : "max-w-lg"}
-      bodyClassName={phase === "results" ? undefined : undefined}
-      footer={
-        phase === "results" ? (
-          <button
-            type="button"
-            onClick={() => void handleRun()}
-            className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-bold text-body hover:bg-canvas/40"
-          >
-            Actualiser le matching
-          </button>
-        ) : undefined
-      }
+      className="max-w-lg"
     >
       {body}
     </AppDialog>

@@ -32,6 +32,8 @@ export interface AppDialogProps {
   titleClassName?: string
   bodyClassName?: string
   headerClassName?: string
+  footerClassName?: string
+  maxHeightClassName?: string
 }
 
 export function AppDialog({
@@ -45,6 +47,8 @@ export function AppDialog({
   titleClassName,
   bodyClassName,
   headerClassName,
+  footerClassName,
+  maxHeightClassName,
 }: AppDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const portalRoot = useSyncExternalStore(
@@ -54,6 +58,7 @@ export function AppDialog({
   )
   const titleId = useId()
   const descriptionId = useId()
+  const resolvedMaxHeightClassName = maxHeightClassName ?? "max-h-[min(calc(100dvh-2rem),42rem)] sm:max-h-[min(calc(100dvh-4rem),42rem)]"
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -118,14 +123,15 @@ export function AppDialog({
       aria-modal="true"
       onClick={handleBackdropClick}
       className={cn(
-        "fixed inset-0 m-auto h-fit max-h-[min(calc(100dvh-2rem),42rem)] w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-0 text-heading sm:max-h-[min(calc(100dvh-4rem),42rem)] sm:w-full sm:max-w-lg",
+        "fixed inset-0 m-auto h-fit w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-0 text-heading sm:w-full sm:max-w-lg",
+        resolvedMaxHeightClassName,
         "backdrop:bg-heading/30 backdrop:backdrop-blur-sm",
         "open:animate-in open:fade-in open:zoom-in-95 duration-200 outline-none",
         "z-[var(--z-modal)]",
         className
       )}
     >
-      <div className="flex max-h-[min(calc(100dvh-2rem),42rem)] flex-col gap-4 p-4 sm:max-h-[min(calc(100dvh-4rem),42rem)] sm:p-6">
+      <div className={cn("flex flex-col gap-4 p-4 sm:p-6", resolvedMaxHeightClassName)}>
         {/* Header */}
         <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
           <div className="flex items-center justify-between">
@@ -158,7 +164,7 @@ export function AppDialog({
 
         {/* Footer */}
         {footer && (
-          <div className="shrink-0 flex items-center justify-end gap-2 border-t border-border/40 pt-4">
+          <div className={cn("shrink-0 flex items-center justify-end gap-2 border-t border-border/40 pt-4", footerClassName)}>
             {footer}
           </div>
         )}
