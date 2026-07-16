@@ -3298,13 +3298,6 @@ export type Database = {
             referencedColumns: ["id", "workspace_id"]
           },
           {
-            foreignKeyName: "financial_models_promoted_by_fkey"
-            columns: ["promoted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "financial_models_validated_by_fkey"
             columns: ["validated_by"]
             isOneToOne: false
@@ -3317,6 +3310,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_financial_models_promoted_by"
+            columns: ["promoted_by", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id", "workspace_id"]
           },
           {
             foreignKeyName: "fk_financial_models_superseded_by"
