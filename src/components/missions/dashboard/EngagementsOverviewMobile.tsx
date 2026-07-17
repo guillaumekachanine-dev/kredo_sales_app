@@ -6,11 +6,12 @@ import { cn } from "@/lib/utils"
 import { ActivityWatchModule } from "./ActivityWatchModule"
 import { RevenueBreakdownChart } from "./RevenueBreakdownChart"
 import { RevenueOverviewChart } from "./RevenueOverviewChart"
-import { UpcomingMilestonesModule } from "./UpcomingMilestonesModule"
-import type { EngagementsOverviewViewModel } from "./engagements-overview-types"
+import { EngagementRunway } from "./EngagementRunway"
+import { PortfolioAtlasLauncher } from "./PortfolioAtlasLauncher"
+import type { EngagementsPortfolioViewModel } from "./engagements-portfolio-types"
 
 interface EngagementsOverviewMobileProps {
-  overview: EngagementsOverviewViewModel
+  overview: EngagementsPortfolioViewModel
 }
 
 type MobileSection = "revenue" | "activity" | "milestones"
@@ -43,7 +44,7 @@ export function EngagementsOverviewMobile({ overview }: EngagementsOverviewMobil
               {overview.portfolio.activeMissions} missions AT · {overview.portfolio.activeProjects} projets
             </p>
           </div>
-          <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-bold text-body">{overview.year}</span>
+          <div className="flex items-center gap-2"><PortfolioAtlasLauncher overview={overview} compact /><span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-bold text-body">{overview.year}</span></div>
         </div>
 
         <div className="mt-3 rounded-[var(--radius-medium)] border border-border bg-surface p-3">
@@ -101,7 +102,7 @@ export function EngagementsOverviewMobile({ overview }: EngagementsOverviewMobil
           </section>
         )}
         {section === "activity" && <ActivityWatchModule activity={overview.activity} embedded />}
-        {section === "milestones" && <UpcomingMilestonesModule milestones={overview.milestones} embedded />}
+        {section === "milestones" && <EngagementRunway rows={overview.milestones.runway} endingWithin60Days={overview.milestones.endingWithin60Days} compact />}
       </main>
     </div>
   )

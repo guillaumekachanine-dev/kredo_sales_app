@@ -3,10 +3,10 @@ import "server-only"
 import { createClient } from "@/lib/supabase/server"
 import { buildEngagementsOverview } from "@/components/missions/dashboard/engagements-overview-utils"
 import type {
-  EngagementsOverviewViewModel,
   OverviewBillingMilestone,
   OverviewCalendarEventSource,
 } from "@/components/missions/dashboard/engagements-overview-types"
+import type { EngagementsPortfolioViewModel } from "@/components/missions/dashboard/engagements-portfolio-types"
 import type { Json } from "@/types/database"
 
 type JsonRecord = Record<string, Json | undefined>
@@ -60,20 +60,21 @@ function addDays(date: Date, days: number): Date {
   return result
 }
 
-export async function getEngagementsOverview(): Promise<EngagementsOverviewViewModel> {
+export async function getEngagementsOverview(): Promise<EngagementsPortfolioViewModel> {
   const supabase = await createClient()
   const now = new Date()
   const year = now.getFullYear()
   const yearStart = `${year}-01-01`
   const yearEnd = `${year}-12-31`
   const calendarStart = addDays(now, -30).toISOString()
-  const calendarEnd = addDays(now, 31).toISOString()
+  const calendarEnd = addDays(now, 91).toISOString()
 
   const [
     missionsResult,
     projectsResult,
     reportsResult,
     phasesResult,
+    projectTeamResult,
     companiesResult,
     collaboratorsResult,
     compensationsResult,
@@ -83,20 +84,21 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
   ] = await Promise.all([
     supabase
       .from("missions")
-      .select("id, title, start_date, end_date, practice, company_id, collaborator_id")
+      .select("id, title, start_date, end_date, practice, company_id, collaborator_id, gross_margin_pct")
       .eq("status", "active"),
     supabase
       .from("projects")
-      .select("id, title, start_date_planned, end_date_planned, company_id, offer_id, billing_milestones")
+      .select("id, title, start_date_planned, end_date_planned, company_id, offer_id, progress_pct, contract_amount, cost_actual, actual_margin_pct, target_margin_pct, billing_milestones")
       .eq("status", "active"),
     supabase
       .from("mission_activity_reports")
-      .select("id, mission_id, collaborator_id, status, period_start, period_end, billable_days, business_days, tjm_snapshot")
+      .select("id, mission_id, collaborator_id, status, period_start, period_end, billable_days, business_days, tjm_snapshot, cjm_snapshot")
       .gte("period_start", yearStart)
       .lte("period_start", yearEnd),
     supabase
       .from("project_phases")
       .select("id, project_id, label, status, start_date_planned, end_date_planned"),
+    supabase.from("project_team_members").select("id, project_id"),
     supabase.from("companies").select("id, name"),
     supabase
       .from("collaborators")
@@ -125,6 +127,7 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
   const resultEntries = [
     ["CRA", reportsResult],
     ["phases projet", phasesResult],
+    ["équipes projet", projectTeamResult],
     ["clients", companiesResult],
     ["collaborateurs", collaboratorsResult],
     ["objectifs TACI", compensationsResult],
@@ -153,6 +156,7 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
     companyId: row.company_id,
     companyName: companyById.get(row.company_id) ?? "Client non renseigné",
     collaboratorId: row.collaborator_id,
+    grossMarginPct: row.gross_margin_pct === null ? null : Number(row.gross_margin_pct),
   }))
   const projects = (projectsResult.data ?? []).map((row) => ({
     id: row.id,
@@ -162,6 +166,11 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
     companyId: row.company_id,
     companyName: companyById.get(row.company_id) ?? "Client non renseigné",
     practice: row.offer_id ? offerPracticeById.get(row.offer_id) ?? null : null,
+    progressPct: Number(row.progress_pct),
+    contractAmount: row.contract_amount === null ? null : Number(row.contract_amount),
+    costActual: Number(row.cost_actual),
+    actualMarginPct: row.actual_margin_pct === null ? null : Number(row.actual_margin_pct),
+    targetMarginPct: row.target_margin_pct === null ? null : Number(row.target_margin_pct),
     billingMilestones: parseBillingMilestones(row.billing_milestones),
   }))
   const activeProjectIds = new Set(projects.map((project) => project.id))
@@ -207,6 +216,7 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
       billableDays: Number(row.billable_days),
       businessDays: Number(row.business_days),
       tjmSnapshot: Number(row.tjm_snapshot),
+      cjmSnapshot: Number(row.cjm_snapshot),
     })),
     collaborators: (collaboratorsResult.data ?? []).map((row) => ({
       id: row.id,
@@ -228,6 +238,9 @@ export async function getEngagementsOverview(): Promise<EngagementsOverviewViewM
         startDate: row.start_date_planned,
         endDate: row.end_date_planned,
       })),
+    projectTeamMembers: (projectTeamResult.data ?? [])
+      .filter((row) => activeProjectIds.has(row.project_id))
+      .map((row) => ({ id: row.id, projectId: row.project_id })),
     calendarEvents,
   })
 }

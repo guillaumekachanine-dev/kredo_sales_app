@@ -1,0 +1,28 @@
+"use client"
+
+import { useId, useMemo, useState } from "react"
+import { formatDate, formatEuroCompact, formatPct } from "@/lib/formatters"
+import { getPracticeByName } from "@/lib/config/practices"
+import type { EngagementPortfolioPoint } from "./engagements-portfolio-types"
+
+const x = (days: number | null) => days === null ? 590 : days < 0 ? 42 + Math.min(72, Math.max(0, days + 90) * 0.8) : days <= 30 ? 124 + days * 3.4 : days <= 90 ? 226 + (days - 30) * 2.5 : 376 + Math.min(170, (days - 90) * 0.7)
+const y = (margin: number | null) => margin === null ? 198 : 198 - ((Math.max(-20, Math.min(60, margin)) + 20) / 80) * 166
+
+export function EngagementConstellation({ points }: { points: EngagementPortfolioPoint[] }) {
+  const descriptionId = useId()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
+  const activeId = focusedId ?? selectedId
+  const selected = points.find((point) => point.id === activeId) ?? null
+  const maxRevenue = Math.max(...points.map((point) => point.revenueYtd), 1)
+  const marks = useMemo(() => points.map((point) => ({ point, px: x(point.daysUntilEnd), py: y(point.actualMarginPct), size: 5 + Math.sqrt(point.revenueYtd / maxRevenue) * 8 })), [maxRevenue, points])
+  if (!points.length) return <div className="flex flex-1 items-center justify-center text-xs text-muted">Aucun engagement actif.</div>
+  return <div className="flex min-h-0 flex-1 flex-col"><p id={descriptionId} className="sr-only">Position horizontale selon le temps restant, verticale selon la marge réelle, taille selon le CA réalisé. Cercle pour une mission AT, carré pour un projet.</p><svg viewBox="0 0 630 238" className="min-h-0 w-full flex-1" role="group" aria-describedby={descriptionId}>
+    <rect x="28" y="30" width="96" height="172" fill="var(--color-danger)" opacity=".04"/><rect x="124" y="30" width="102" height="172" fill="var(--color-accent)" opacity=".05"/><rect x="226" y="30" width="150" height="172" fill="var(--color-secondary)" opacity=".05"/><rect x="376" y="30" width="180" height="172" fill="var(--color-success)" opacity=".04"/><rect x="560" y="30" width="62" height="172" fill="var(--color-muted)" opacity=".07"/>
+    {[124,226,376,556,560].map((value) => <line key={value} x1={value} x2={value} y1="30" y2="202" stroke="var(--color-border)"/>)}<line x1="28" x2="622" y1={y(0)} y2={y(0)} stroke="var(--color-border-strong)" strokeDasharray="3 4"/>
+    <text x="34" y="17" fill="var(--color-success)" fontSize="8.5" fontWeight="700">RENTABLES · À RENOUVELER</text><text x="400" y="17" fill="var(--color-success)" fontSize="8.5" fontWeight="700">RENTABLES · SÉCURISÉS</text><text x="34" y="217" fill="var(--color-danger)" fontSize="8.5" fontWeight="700">SOUS TENSION</text><text x="405" y="217" fill="var(--color-body)" fontSize="8.5" fontWeight="700">À SURVEILLER</text>
+    {[['Dépassée',76],['0–30 j',175],['31–90 j',300],['+90 j',465],['Sans date',590]].map(([label, px]) => <text key={label} x={px} y="232" textAnchor="middle" fill="var(--color-muted)" fontSize="8">{label}</text>)}
+    {selected && marks.filter((mark) => mark.point.companyId === selected.companyId && mark.point.id !== selected.id).map((mark) => { const origin = marks.find((item) => item.point.id === selected.id); return origin ? <line key={mark.point.id} x1={origin.px} y1={origin.py} x2={mark.px} y2={mark.py} stroke="var(--color-primary)" strokeDasharray="3 3" opacity=".55"/> : null })}
+    {marks.map(({ point, px, py, size }) => { const color = getPracticeByName(point.practice)?.color ?? "var(--color-status-neutral)"; const active = activeId === point.id; const stroke = active ? "var(--color-heading)" : point.overdue ? "var(--color-danger)" : point.endingWithin30Days ? "var(--color-accent)" : "var(--color-surface)"; const aria = `${point.title}, ${point.companyName}, ${point.type === "mission" ? "mission AT" : "projet"}, CA ${formatEuroCompact(point.revenueYtd)}, marge ${formatPct(point.actualMarginPct)}, ${point.daysUntilEnd === null ? "sans échéance" : `${point.daysUntilEnd} jours restants`}`; return <g key={`${point.type}-${point.id}`} role="button" tabIndex={0} aria-label={aria} aria-pressed={selectedId === point.id} onFocus={() => setFocusedId(point.id)} onBlur={() => setFocusedId(null)} onClick={() => setSelectedId((value) => value === point.id ? null : point.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId((value) => value === point.id ? null : point.id) } }} className="cursor-pointer outline-none"><title>{aria}</title>{point.type === "mission" ? <circle cx={px} cy={py} r={size} fill={color} opacity={point.endDate && point.actualMarginPct !== null ? .9 : .5} stroke={stroke} strokeWidth={active ? 3 : 2}/> : <rect x={px-size} y={py-size} width={size*2} height={size*2} rx="3" fill={color} opacity={point.endDate && point.actualMarginPct !== null ? .9 : .5} stroke={stroke} strokeWidth={active ? 3 : 2} transform={`rotate(45 ${px} ${py})`}/>}</g> })}
+  </svg><div className="grid min-h-10 grid-cols-[1fr_auto] items-center gap-3 border-t border-border pt-2 text-[9px] text-muted" aria-live="polite">{selected ? <><p className="truncate"><strong className="text-heading">{selected.title} · {selected.companyName}</strong><br/>{selected.type === "mission" ? "AT" : "Projet"} · {selected.practice ?? "Practice non renseignée"} · fin {formatDate(selected.endDate)}</p><p className="font-mono font-bold text-heading">{formatEuroCompact(selected.revenueYtd)} · {formatPct(selected.actualMarginPct)}</p></> : <p>Sélectionnez un point pour afficher son détail et les liens du même client.</p>}</div></div>
+}

@@ -1,14 +1,21 @@
 import type {
   ActivityWatchItem,
-  BuildEngagementsOverviewInput,
   EngagementMilestone,
   EngagementMilestoneSourceType,
-  EngagementsOverviewViewModel,
   OverviewActivityReportSource,
   OverviewCompensationSource,
   OverviewMissionSource,
   RevenueBreakdownItem,
 } from "./engagements-overview-types"
+import type { BuildEngagementsPortfolioInput, EngagementsPortfolioViewModel } from "./engagements-portfolio-types"
+import {
+  buildClientExposure,
+  buildMarginBridge,
+  buildPortfolioPoints,
+  buildProductionHeatmap,
+  buildProjectsCockpit,
+  buildRunway,
+} from "./engagements-portfolio-utils"
 
 const MONTH_LABELS = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -107,7 +114,7 @@ export function buildRevenueOverview({
   missions,
   projects,
   reports,
-}: Pick<BuildEngagementsOverviewInput, "now" | "missions" | "projects" | "reports">) {
+}: Pick<BuildEngagementsPortfolioInput, "now" | "missions" | "projects" | "reports">) {
   const year = now.getFullYear()
   const today = currentDateOnly(now)
   const missionById = new Map(missions.map((mission) => [mission.id, mission]))
@@ -240,12 +247,13 @@ function latestFullyValidatedMonth(
 export function buildActivityOverview({
   now,
   missions,
+  projects,
   reports,
   collaborators,
   compensations,
 }: Pick<
-  BuildEngagementsOverviewInput,
-  "now" | "missions" | "reports" | "collaborators" | "compensations"
+  BuildEngagementsPortfolioInput,
+  "now" | "missions" | "projects" | "reports" | "collaborators" | "compensations"
 >) {
   const year = now.getFullYear()
   const today = currentDateOnly(now)
@@ -325,6 +333,20 @@ export function buildActivityOverview({
     }
   }
 
+  const marginGaps = buildPortfolioPoints({ now, missions, projects, reports })
+    .filter((point) => point.actualMarginPct !== null && point.targetMarginPct !== null && (point.marginGapPct ?? 0) < 0)
+    .map((point) => ({
+      id: point.id,
+      type: point.type,
+      title: point.title,
+      companyName: point.companyName,
+      actualMarginPct: point.actualMarginPct as number,
+      targetMarginPct: point.targetMarginPct as number,
+      gapPoints: point.marginGapPct as number,
+    }))
+    .sort((a, b) => a.gapPoints - b.gapPoints || a.title.localeCompare(b.title, "fr"))
+    .slice(0, 4)
+
   return {
     weightedYtdRate,
     monthlyTrend,
@@ -333,6 +355,7 @@ export function buildActivityOverview({
       .filter((item) => item.gapPoints < 0)
       .sort((a, b) => a.gapPoints - b.gapPoints || a.name.localeCompare(b.name, "fr"))
       .slice(0, 5),
+    marginGaps,
   }
 }
 
@@ -369,7 +392,7 @@ export function buildMilestonesOverview({
   projectPhases,
   calendarEvents,
 }: Pick<
-  BuildEngagementsOverviewInput,
+  BuildEngagementsPortfolioInput,
   "now" | "missions" | "projects" | "projectPhases" | "calendarEvents"
 >) {
   const today = currentDateOnly(now)
@@ -569,13 +592,16 @@ export function buildMilestonesOverview({
       .filter((item) => item.urgency === "overdue")
       .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title, "fr")),
     endingWithin60Days,
+    runway: buildRunway({ now, missions, projects, projectPhases, calendarEvents }),
   }
 }
 
 export function buildEngagementsOverview(
-  input: BuildEngagementsOverviewInput,
-): EngagementsOverviewViewModel {
+  input: BuildEngagementsPortfolioInput,
+): EngagementsPortfolioViewModel {
   const issues = input.issues ?? []
+  const points = buildPortfolioPoints(input)
+  const exposure = buildClientExposure(points)
   return {
     generatedAt: input.now.toISOString(),
     year: input.now.getFullYear(),
@@ -584,6 +610,12 @@ export function buildEngagementsOverview(
     portfolio: {
       activeMissions: input.missions.length,
       activeProjects: input.projects.length,
+      points,
+      clients: exposure.clients,
+      clientConcentration: exposure.concentration,
+      production: buildProductionHeatmap(input),
+      projects: buildProjectsCockpit(input),
+      marginBridge: buildMarginBridge(input),
     },
     revenue: buildRevenueOverview(input),
     activity: buildActivityOverview(input),

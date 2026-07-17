@@ -1,12 +1,13 @@
 import { formatEuroCompact } from "@/lib/formatters"
 import { ActivityWatchModule } from "./ActivityWatchModule"
-import { RevenueBreakdownChart } from "./RevenueBreakdownChart"
+import { EngagementDistributionModule } from "./EngagementDistributionModule"
+import { EngagementRunway } from "./EngagementRunway"
 import { RevenueOverviewChart } from "./RevenueOverviewChart"
-import { UpcomingMilestonesModule } from "./UpcomingMilestonesModule"
-import type { EngagementsOverviewViewModel } from "./engagements-overview-types"
+import { PortfolioAtlasLauncher } from "./PortfolioAtlasLauncher"
+import type { EngagementsPortfolioViewModel } from "./engagements-portfolio-types"
 
 interface EngagementsOverviewDesktopProps {
-  overview: EngagementsOverviewViewModel
+  overview: EngagementsPortfolioViewModel
 }
 
 export function EngagementsOverviewDesktop({ overview }: EngagementsOverviewDesktopProps) {
@@ -30,9 +31,7 @@ export function EngagementsOverviewDesktop({ overview }: EngagementsOverviewDesk
             {" · "}{overview.portfolio.activeProjects} projet{overview.portfolio.activeProjects > 1 ? "s" : ""} actif{overview.portfolio.activeProjects > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold text-body">
-          Année {overview.year} · réalisé uniquement
-        </div>
+        <div className="flex items-center gap-2"><PortfolioAtlasLauncher overview={overview} /><div className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold text-body">Année {overview.year} · réalisé uniquement</div></div>
       </header>
 
       <div className="grid min-h-0 flex-1 grid-cols-12 grid-rows-2 gap-3">
@@ -62,9 +61,9 @@ export function EngagementsOverviewDesktop({ overview }: EngagementsOverviewDesk
           )}
         </section>
 
-        <RevenueBreakdownChart byPractice={overview.revenue.byPractice} byClient={overview.revenue.byClient} />
+        <EngagementDistributionModule overview={overview} />
         <ActivityWatchModule activity={overview.activity} />
-        <UpcomingMilestonesModule milestones={overview.milestones} />
+        <EngagementRunway rows={overview.milestones.runway} endingWithin60Days={overview.milestones.endingWithin60Days} />
       </div>
     </div>
   )

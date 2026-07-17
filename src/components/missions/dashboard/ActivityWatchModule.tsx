@@ -1,10 +1,11 @@
 import { formatDateShort, formatPct } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import { ActivityTrendChart } from "./ActivityTrendChart"
-import type { EngagementsOverviewViewModel } from "./engagements-overview-types"
+import { MarginGapChart } from "./MarginGapChart"
+import type { EngagementsPortfolioViewModel } from "./engagements-portfolio-types"
 
 interface ActivityWatchModuleProps {
-  activity: EngagementsOverviewViewModel["activity"]
+  activity: EngagementsPortfolioViewModel["activity"]
   embedded?: boolean
 }
 
@@ -44,9 +45,9 @@ export function ActivityWatchModule({ activity, embedded = false }: ActivityWatc
             {activity.watchlist.length === 0 ? (
               <p className="py-5 text-center text-[11px] text-muted">Aucun écart négatif sur le dernier mois validé.</p>
             ) : (
-              <ol className="space-y-1.5">
+              <ol className="space-y-1">
                 {activity.watchlist.map((item) => (
-                  <li key={item.collaboratorId} className="grid grid-cols-[minmax(0,1fr)_58px_48px] items-center gap-2 text-[10px]">
+                  <li key={item.collaboratorId} className="grid grid-cols-[minmax(0,1fr)_58px_48px] items-center gap-2 text-[10px] max-xl:leading-none">
                     <div className="min-w-0">
                       <p className={cn("font-semibold text-heading", embedded ? "break-words" : "truncate")} title={item.name}>{item.name}</p>
                       <p className={cn("text-[9px] text-muted", embedded ? "break-words" : "truncate")} title={item.companyName}>{item.companyName}</p>
@@ -62,6 +63,10 @@ export function ActivityWatchModule({ activity, embedded = false }: ActivityWatc
                 ))}
               </ol>
             )}
+            <div className="mt-2 border-t border-border pt-2">
+              <div className="mb-1 flex items-center justify-between"><h3 className="text-[9px] font-bold uppercase tracking-[0.12em] text-heading">Marge réelle vs cible</h3><span className="text-[8px] text-muted">● réelle · ○ cible</span></div>
+              <MarginGapChart items={activity.marginGaps} />
+            </div>
           </div>
         </div>
       )}
@@ -70,7 +75,7 @@ export function ActivityWatchModule({ activity, embedded = false }: ActivityWatc
 
   if (embedded) return <div className="flex min-h-0 flex-col">{content}</div>
   return (
-    <section className="col-span-7 flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface p-4" aria-label="Taux d’activité et points de vigilance">
+    <section className="col-span-7 flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-medium)] border border-border bg-surface p-4 max-xl:p-3" aria-label="Taux d’activité et points de vigilance">
       {content}
     </section>
   )

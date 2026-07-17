@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest"
 import type {
-  BuildEngagementsOverviewInput,
-  OverviewActivityReportSource,
-  OverviewMissionSource,
-  OverviewProjectSource,
-} from "../engagements-overview-types"
+  BuildEngagementsPortfolioInput as BuildEngagementsOverviewInput,
+  PortfolioActivityReportSource as OverviewActivityReportSource,
+  PortfolioMissionSource as OverviewMissionSource,
+  PortfolioProjectSource as OverviewProjectSource,
+} from "../engagements-portfolio-types"
 import {
   buildActivityOverview,
   buildEngagementsOverview,
@@ -24,6 +24,7 @@ function mission(overrides: Partial<OverviewMissionSource> = {}): OverviewMissio
     companyId: "company-1",
     companyName: "Client Alpha",
     collaboratorId: "collaborator-1",
+    grossMarginPct: 35,
     ...overrides,
   }
 }
@@ -39,6 +40,7 @@ function report(overrides: Partial<OverviewActivityReportSource> = {}): Overview
     billableDays: 15,
     businessDays: 20,
     tjmSnapshot: 700,
+    cjmSnapshot: 420,
     ...overrides,
   }
 }
@@ -52,6 +54,11 @@ function project(overrides: Partial<OverviewProjectSource> = {}): OverviewProjec
     companyId: "company-2",
     companyName: "Client Beta",
     practice: "Cloud",
+    progressPct: 45,
+    contractAmount: 100_000,
+    costActual: 55_000,
+    actualMarginPct: 45,
+    targetMarginPct: 40,
     billingMilestones: [],
     ...overrides,
   }
@@ -71,6 +78,7 @@ function input(overrides: Partial<BuildEngagementsOverviewInput> = {}): BuildEng
       effectiveTo: null,
     }],
     projectPhases: [],
+    projectTeamMembers: [],
     calendarEvents: [],
     ...overrides,
   }
