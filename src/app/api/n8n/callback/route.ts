@@ -13,7 +13,7 @@
 
 import { NextResponse } from "next/server"
 import { verifyHmac } from "@/lib/n8n/hmac"
-import { saveResult, updateRunStatus } from "@/lib/n8n/runs"
+import { saveResult, updateRunStatus, updateRunN8nIds } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
@@ -95,6 +95,16 @@ export async function POST(request: Request) {
   } catch (err) {
     // Non bloquant : le résultat est déjà sauvé, on log et on continue
     console.error("[callback] updateRunStatus failed:", err)
+  }
+
+  // Lot 0 alerte échec (2026-07-18) : capture des identifiants n8n internes pour
+  // le lien "Ouvrir dans n8n" du drill-down. Non bloquant — un run reste
+  // exploitable sans lien direct.
+  if (payload.n8nExecutionId || payload.n8nWorkflowId) {
+    await updateRunN8nIds(runId, {
+      n8nExecutionId: payload.n8nExecutionId,
+      n8nWorkflowId: payload.n8nWorkflowId,
+    })
   }
 
   // ADR-0012 Lot 4 / D-5 : matérialisation "1 résultat → N lignes account_issues",

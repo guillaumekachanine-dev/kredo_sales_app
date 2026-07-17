@@ -43,7 +43,14 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
   }
 
   const canRetry = run.status === "failed"
-  const n8nExecutionId = (run.config as { n8nExecutionId?: string } | null)?.n8nExecutionId ?? null
+  const config = run.config as { n8nExecutionId?: string; n8nWorkflowId?: string } | null
+  const n8nExecutionId = config?.n8nExecutionId ?? null
+  const n8nWorkflowId = config?.n8nWorkflowId ?? null
+  const n8nBaseUrl = process.env.NEXT_PUBLIC_N8N_BASE_URL
+  const n8nExecutionUrl =
+    n8nBaseUrl && n8nWorkflowId && n8nExecutionId
+      ? `${n8nBaseUrl}/workflow/${n8nWorkflowId}/executions/${n8nExecutionId}`
+      : null
 
   return (
     <AppDialog
@@ -117,7 +124,16 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
           </div>
         ) : null}
 
-        {n8nExecutionId ? (
+        {n8nExecutionUrl ? (
+          <a
+            href={n8nExecutionUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary underline underline-offset-2"
+          >
+            Ouvrir l&apos;exécution dans n8n ↗
+          </a>
+        ) : n8nExecutionId ? (
           <p className="text-xs text-muted">Exécution n8n : {n8nExecutionId}</p>
         ) : (
           <p className="text-xs text-muted">

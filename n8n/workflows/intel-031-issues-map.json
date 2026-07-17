@@ -16,7 +16,10 @@
       "name": "Webhook — Issues Map",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "intel-031-issues-map"
     },
     {
@@ -33,7 +36,10 @@
       "name": "Verify Signature",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -44,7 +50,10 @@
       "name": "Validate Entity",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300],
+      "position": [
+        680,
+        300
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -56,7 +65,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Prefer", "value": "return=minimal" }
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
           ]
         },
         "sendBody": true,
@@ -69,7 +81,10 @@
       "name": "Update Run Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 300],
+      "position": [
+        920,
+        300
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -81,7 +96,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Profile", "value": "public" }
+            {
+              "name": "Content-Profile",
+              "value": "public"
+            }
           ]
         },
         "sendBody": true,
@@ -94,7 +112,10 @@
       "name": "Hydrate Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1160, 300],
+      "position": [
+        1160,
+        300
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -106,7 +127,10 @@
       "name": "Assemble Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1400, 300]
+      "position": [
+        1400,
+        300
+      ]
     },
     {
       "parameters": {
@@ -117,7 +141,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
           ]
         },
         "sendBody": true,
@@ -132,7 +159,10 @@
       "name": "Call LLM",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1640, 300],
+      "position": [
+        1640,
+        300
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -144,7 +174,10 @@
       "name": "Parse & Validate Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1880, 300],
+      "position": [
+        1880,
+        300
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -156,18 +189,24 @@
       "name": "Quality Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2120, 300]
+      "position": [
+        2120,
+        300
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\nconst companyName = (data.context.company && data.context.company.name) || 'Compte';\n\nconst sourceRefs = [\n  { entityType: 'company', entityId: data.companyId, label: 'Fiche compte' },\n];\n\nconst callbackBody = {\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_issues_map',\n  status: 'succeeded',\n  contentJson: data.issuesMap,\n  contentText: [\n    `# Cartographie des enjeux — ${companyName}`,\n    ...data.issuesMap.issues.map((i) => `- ${i.title} (${i.category}) : ${i.problem_statement}`),\n  ].join('\\n'),\n  title: `Cartographie des enjeux — ${companyName}`,\n  modelProvider: 'anthropic',\n  modelUsed: (data.llmUsage && data.llmUsage.model) || 'claude-sonnet-5',\n  tokensInput: (data.llmUsage && data.llmUsage.inputTokens) || null,\n  tokensOutput: (data.llmUsage && data.llmUsage.outputTokens) || null,\n  contextSnapshot: data.context,\n  sourceRefs,\n  qaFlags: data.qaFlags || [],\n};\n\nreturn [{\n  json: {\n    callbackUrl: data.callbackUrl,\n    rawBody: JSON.stringify(callbackBody),\n  }\n}];"
+        "jsCode": "const data = $input.first().json;\nconst companyName = (data.context.company && data.context.company.name) || 'Compte';\n\nconst sourceRefs = [\n  { entityType: 'company', entityId: data.companyId, label: 'Fiche compte' },\n];\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_issues_map',\n  status: 'succeeded',\n  contentJson: data.issuesMap,\n  contentText: [\n    `# Cartographie des enjeux — ${companyName}`,\n    ...data.issuesMap.issues.map((i) => `- ${i.title} (${i.category}) : ${i.problem_statement}`),\n  ].join('\\n'),\n  title: `Cartographie des enjeux — ${companyName}`,\n  modelProvider: 'anthropic',\n  modelUsed: (data.llmUsage && data.llmUsage.model) || 'claude-sonnet-5',\n  tokensInput: (data.llmUsage && data.llmUsage.inputTokens) || null,\n  tokensOutput: (data.llmUsage && data.llmUsage.outputTokens) || null,\n  contextSnapshot: data.context,\n  sourceRefs,\n  qaFlags: data.qaFlags || [],\n};\n\nreturn [{\n  json: {\n    callbackUrl: data.callbackUrl,\n    rawBody: JSON.stringify(callbackBody),\n  }\n}];"
       },
       "id": "n9-prepare-callback",
       "name": "Prepare Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2360, 300]
+      "position": [
+        2360,
+        300
+      ]
     },
     {
       "parameters": {
@@ -183,7 +222,10 @@
       "name": "Sign Callback",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
-      "position": [2600, 300]
+      "position": [
+        2600,
+        300
+      ]
     },
     {
       "parameters": {
@@ -192,8 +234,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-kredo-signature", "value": "=sha256={{ $json.signature }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
           ]
         },
         "sendBody": true,
@@ -206,7 +254,10 @@
       "name": "Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2840, 300],
+      "position": [
+        2840,
+        300
+      ],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 10000
@@ -214,13 +265,16 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const errItem = $input.first().json;\nlet runId = null;\nlet callbackUrl = null;\n\ntry {\n  const ve = $('Validate Entity').item.json;\n  runId = ve.runId || null;\n  callbackUrl = ve.callbackUrl || null;\n} catch (e) {\n  // Validate Entity n'a produit aucune sortie exploitable — notification impossible.\n}\n\nlet errorMessage = 'Erreur inconnue dans le workflow intel-031-issues-map';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst callbackBody = {\n  runId,\n  phase: 1,\n  resultType: 'account_issues_map',\n  status: 'failed',\n  contentJson: {},\n  errorMessage,\n};\n\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+        "jsCode": "const errItem = $input.first().json;\nlet runId = null;\nlet callbackUrl = null;\n\ntry {\n  const ve = $('Validate Entity').item.json;\n  runId = ve.runId || null;\n  callbackUrl = ve.callbackUrl || null;\n} catch (e) {\n  // Validate Entity n'a produit aucune sortie exploitable — notification impossible.\n}\n\nlet errorMessage = 'Erreur inconnue dans le workflow intel-031-issues-map';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId,\n  phase: 1,\n  resultType: 'account_issues_map',\n  status: 'failed',\n  contentJson: {},\n  errorMessage,\n};\n\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
       },
       "id": "n11-prepare-failure",
       "name": "Prepare Failure Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1880, 580]
+      "position": [
+        1880,
+        580
+      ]
     },
     {
       "parameters": {
@@ -236,7 +290,10 @@
       "name": "Sign Failure Callback",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
-      "position": [2120, 580]
+      "position": [
+        2120,
+        580
+      ]
     },
     {
       "parameters": {
@@ -245,8 +302,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "x-kredo-signature", "value": "=sha256={{ $json.signature }}" }
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
           ]
         },
         "sendBody": true,
@@ -259,7 +322,10 @@
       "name": "Callback (Failure)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2360, 580],
+      "position": [
+        2360,
+        580
+      ],
       "retryOnFail": true,
       "maxTries": 2,
       "waitBetweenTries": 5000
@@ -267,58 +333,182 @@
   ],
   "connections": {
     "Webhook — Issues Map": {
-      "main": [[{ "node": "Verify Signature", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Verify Signature": {
-      "main": [[{ "node": "Validate Entity", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Validate Entity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate Entity": {
       "main": [
-        [{ "node": "Update Run Status", "type": "main", "index": 0 }],
-        [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Run Status": {
       "main": [
-        [{ "node": "Hydrate Context", "type": "main", "index": 0 }],
-        [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Hydrate Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Hydrate Context": {
       "main": [
-        [{ "node": "Assemble Prompt", "type": "main", "index": 0 }],
-        [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Assemble Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Assemble Prompt": {
-      "main": [[{ "node": "Call LLM", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Call LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Call LLM": {
       "main": [
-        [{ "node": "Parse & Validate Output", "type": "main", "index": 0 }],
-        [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse & Validate Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse & Validate Output": {
       "main": [
-        [{ "node": "Quality Check", "type": "main", "index": 0 }],
-        [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Quality Check": {
-      "main": [[{ "node": "Prepare Callback", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Callback": {
-      "main": [[{ "node": "Sign Callback", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Sign Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Sign Callback": {
-      "main": [[{ "node": "Callback", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare Failure Callback": {
-      "main": [[{ "node": "Sign Failure Callback", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Sign Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Sign Failure Callback": {
-      "main": [[{ "node": "Callback (Failure)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Callback (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,

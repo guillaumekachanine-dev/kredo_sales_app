@@ -87,6 +87,11 @@ export type N8nCallbackPayload = {
   contextSnapshot?: Record<string, unknown>
   sourceRefs?: CommunicationSourceRef[]
   qaFlags?: CommunicationQaFlag[]
+  // Alerte échec workflow, Lot 0 (2026-07-18) — identifiants n8n internes
+  // ($execution.id / $workflow.id), fusionnés dans ai_intelligence_runs.config
+  // pour construire le lien "Ouvrir dans n8n" du drill-down /automations.
+  n8nExecutionId?: string
+  n8nWorkflowId?: string
 }
 
 // ─── Réponse de /api/n8n/trigger vers le front ───────────────────────────────

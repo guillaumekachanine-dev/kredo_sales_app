@@ -142,3 +142,43 @@ export async function saveResult(
   if (error || !data) throw new Error(`saveResult failed: ${error?.message}`)
   return data.id
 }
+
+// ─── updateRunN8nIds ──────────────────────────────────────────────────────────
+// Fusionne n8nExecutionId/n8nWorkflowId dans ai_intelligence_runs.config (Lot 0
+// alerte échec, 2026-07-18) — merge, pas overwrite : config porte déjà
+// { workflowId } (l'id KREDO du workflow, cf. createRun) depuis la création du
+// run. Lu par RunDrillDownDialog.tsx pour construire le lien "Ouvrir dans n8n".
+
+export async function updateRunN8nIds(
+  runId: string,
+  ids: { n8nExecutionId?: string; n8nWorkflowId?: string }
+): Promise<void> {
+  if (!ids.n8nExecutionId && !ids.n8nWorkflowId) return
+
+  const supabase = getServiceClient()
+
+  const { data: current, error: fetchError } = await supabase
+    .from("ai_intelligence_runs")
+    .select("config")
+    .eq("id", runId)
+    .single()
+
+  if (fetchError || !current) {
+    console.error("[updateRunN8nIds] lecture config échouée:", fetchError?.message)
+    return
+  }
+
+  const existingConfig = (current.config as Record<string, unknown> | null) ?? {}
+  const mergedConfig = {
+    ...existingConfig,
+    ...(ids.n8nExecutionId ? { n8nExecutionId: ids.n8nExecutionId } : {}),
+    ...(ids.n8nWorkflowId ? { n8nWorkflowId: ids.n8nWorkflowId } : {}),
+  }
+
+  const { error } = await supabase
+    .from("ai_intelligence_runs")
+    .update({ config: mergedConfig as Json })
+    .eq("id", runId)
+
+  if (error) console.error("[updateRunN8nIds] écriture config échouée:", error.message)
+}
