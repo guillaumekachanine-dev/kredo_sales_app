@@ -269,10 +269,12 @@ export async function getFinancialResourceCatalog(): Promise<FinancialResourceCa
     let purchaseDailyRateProvenance: string | null = null
 
     if (resourceCostModel === "salaried") {
-      annualGrossSalary = candidate.last_salary ?? null
-      annualGrossSalaryProvenance = candidate.last_salary !== null
-        ? "candidates.last_salary"
-        : null
+      annualGrossSalary = candidate.expected_salary ?? candidate.last_salary ?? null
+      annualGrossSalaryProvenance = candidate.expected_salary !== null
+        ? "candidates.expected_salary"
+        : candidate.last_salary !== null
+          ? "candidates.last_salary"
+          : null
 
       if (annualGrossSalary === null) {
         missingData.push("annual_gross_salary")

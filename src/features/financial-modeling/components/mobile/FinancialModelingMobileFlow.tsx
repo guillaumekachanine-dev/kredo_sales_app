@@ -20,6 +20,10 @@ import { validateFinancialModelInput } from "../../domain/financial-model.schema
 import { validateFinancialReferenceEligibility } from "../../domain/financial-reference.validator"
 import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import {
+  applyFinancialModelingLaunchPreset,
+  type FinancialModelingLaunchPreset,
+} from "../../domain/financial-modeling-launch-preset"
+import {
   saveFinancialModelAction,
   getFinancialModelingBootstrapAction,
   getFinancialModelAction,
@@ -34,6 +38,7 @@ interface FinancialModelingMobileFlowProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialId?: string
+  initialPreset?: FinancialModelingLaunchPreset
 }
 
 function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
@@ -72,7 +77,12 @@ function createDefaultFormState(): FinancialModelFormState {
   }
 }
 
-export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: FinancialModelingMobileFlowProps) {
+export function FinancialModelingMobileFlow({
+  open,
+  onOpenChange,
+  initialId,
+  initialPreset,
+}: FinancialModelingMobileFlowProps) {
   const [step, setStep] = useState(1)
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
@@ -111,12 +121,17 @@ export function FinancialModelingMobileFlow({ open, onOpenChange, initialId }: F
           setStep(1)
         }
       } else {
-        resetFlow()
+        const defaultState = res.success && res.data
+          ? applyFinancialModelingLaunchPreset(createDefaultFormState(), initialPreset, res.data.catalog)
+          : createDefaultFormState()
+        setStep(1)
+        setFormState(defaultState)
+        setBaselineState(cloneFormState(defaultState))
       }
       setLoading(false)
     }
     loadBootstrap()
-  }, [open, initialId])
+  }, [open, initialId, initialPreset])
 
   const clientResult = useMemo(() => {
     try {

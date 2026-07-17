@@ -21,6 +21,10 @@ import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
 import { validateFinancialReferenceEligibility } from "../../domain/financial-reference.validator"
 import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
+import {
+  applyFinancialModelingLaunchPreset,
+  type FinancialModelingLaunchPreset,
+} from "../../domain/financial-modeling-launch-preset"
 import type { FinancialModelStatus } from "../../domain/financial-model.types"
 import {
   saveFinancialModelAction,
@@ -37,6 +41,7 @@ interface FinancialModelingDesktopDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialId?: string
+  initialPreset?: FinancialModelingLaunchPreset
 }
 
 function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
@@ -75,7 +80,12 @@ function createDefaultFormState(): FinancialModelFormState {
   }
 }
 
-export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }: FinancialModelingDesktopDialogProps) {
+export function FinancialModelingDesktopDialog({
+  open,
+  onOpenChange,
+  initialId,
+  initialPreset,
+}: FinancialModelingDesktopDialogProps) {
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [loading, setLoading] = useState(false)
@@ -109,7 +119,9 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
           setBaselineState(cloneFormState(loadedState))
         }
       } else {
-        const defaultState = createDefaultFormState()
+        const defaultState = res.success && res.data
+          ? applyFinancialModelingLaunchPreset(createDefaultFormState(), initialPreset, res.data.catalog)
+          : createDefaultFormState()
         setFormState(defaultState)
         setBaselineState(cloneFormState(defaultState))
       }
@@ -117,7 +129,7 @@ export function FinancialModelingDesktopDialog({ open, onOpenChange, initialId }
     }
 
     loadBootstrap()
-  }, [open, initialId])
+  }, [open, initialId, initialPreset])
 
   // 2. Client-side Instant Calculation
   const clientResult = useMemo(() => {

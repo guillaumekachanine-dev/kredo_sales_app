@@ -63,6 +63,7 @@ export type OpportunityStandingProfile = {
   availability: string | null
   mobility: string | null
   expected_daily_rate: number | null
+  expected_salary: number | null
   summary: string | null
   internal_score: number | null
   source: string | null

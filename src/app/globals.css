@@ -1226,6 +1226,11 @@ dialog.kredo-drawer-bottom {
   --kredo-timeline-step-ring: rgba(229, 106, 63, 0.18);
 }
 
+.kredo-timeline-step--amber {
+  --kredo-timeline-step-glow: rgba(192, 138, 32, 0.34);
+  --kredo-timeline-step-ring: rgba(192, 138, 32, 0.18);
+}
+
 .kredo-timeline-tab:hover {
   transform: translateY(-2px);
 }

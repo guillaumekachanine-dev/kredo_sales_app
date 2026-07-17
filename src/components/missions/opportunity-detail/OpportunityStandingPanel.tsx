@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import Image from "next/image"
+import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
@@ -25,6 +26,8 @@ interface OpportunityStandingPanelProps {
   companyId?: string | null
   companyName?: string | null
   opportunityTitle?: string
+  readOnly?: boolean
+  onLaunchFinancialSimulation?: (profile: OpportunityStandingProfile) => void
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -85,6 +88,7 @@ function StandingProfileList({
   companyId,
   companyName,
   opportunityTitle,
+  onLaunchFinancialSimulation,
 }: {
   profiles: OpportunityStandingProfile[]
   emptyLabel: string
@@ -92,6 +96,7 @@ function StandingProfileList({
   companyId?: string | null
   companyName?: string | null
   opportunityTitle?: string
+  onLaunchFinancialSimulation?: (profile: OpportunityStandingProfile) => void
 }) {
   const openStaffingDrawer = useStaffingDrawerStore((state) => state.openStaffingDrawer)
 
@@ -148,7 +153,19 @@ function StandingProfileList({
             )}
           </button>
 
-          <div className="flex justify-end border-t border-border/30 pt-2">
+          <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2">
+            {onLaunchFinancialSimulation ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => onLaunchFinancialSimulation(profile)}
+                className="h-8 min-h-8 px-2.5 text-[11px]"
+                aria-label={`Simulation financière pour ${profile.full_name}`}
+              >
+                Simulation financière
+              </Button>
+            ) : <span />}
             <ContextualCommunicationButton
               entryPoint="candidate_positioning"
               companyId={companyId}
@@ -197,17 +214,25 @@ export function OpportunityStandingPanel({
   companyId,
   companyName,
   opportunityTitle,
+  readOnly = false,
+  onLaunchFinancialSimulation,
 }: OpportunityStandingPanelProps) {
   const selectedProfiles = profiles.filter((profile) => profile.origin === "pressenti")
   const aiProfiles = profiles.filter((profile) => profile.origin === "ia")
 
   return (
-    <SurfaceCard className={cn("border-y-0 border-r-0 border-l-4 border-primary p-5 md:p-6 shadow-sm flex flex-col gap-4 bg-gradient-to-r from-primary/[0.03] to-transparent", className)}>
+    <SurfaceCard className={cn(
+      "flex flex-col gap-4",
+      readOnly
+        ? "border-0 bg-transparent p-0 shadow-none"
+        : "border-y-0 border-r-0 border-l-4 border-primary p-5 shadow-sm bg-gradient-to-r from-primary/[0.03] to-transparent md:p-6",
+      className,
+    )}>
       <div className="flex items-start justify-between gap-4">
         <PanelTitle title="Staffing" iconSrc="/icons_set/recrutement.png" />
         <div className="flex items-center gap-2 shrink-0">
           {headerActions}
-          {companyId || companyName ? (
+          {!readOnly && (companyId || companyName) ? (
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               <ContextualCommunicationButton
                 intent="proposal_follow_up"
@@ -258,7 +283,7 @@ export function OpportunityStandingPanel({
               />
             </div>
           ) : null}
-          {isEditing ? (
+          {readOnly ? null : isEditing ? (
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
@@ -293,7 +318,7 @@ export function OpportunityStandingPanel({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border/40 bg-canvas/20 p-3 flex flex-col gap-2">
+      {!readOnly ? <div className="rounded-lg border border-border/40 bg-canvas/20 p-3 flex flex-col gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Practice</span>
         {isEditing ? (
           <Select
@@ -329,7 +354,7 @@ export function OpportunityStandingPanel({
             {requiresStaffing ? "Oui (besoin à staffer)" : "Non"}
           </p>
         )}
-      </div>
+      </div> : null}
 
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-2">
@@ -346,6 +371,7 @@ export function OpportunityStandingPanel({
             companyId={companyId}
             companyName={companyName}
             opportunityTitle={opportunityTitle}
+            onLaunchFinancialSimulation={onLaunchFinancialSimulation}
           />
         </section>
 
@@ -363,6 +389,7 @@ export function OpportunityStandingPanel({
             companyId={companyId}
             companyName={companyName}
             opportunityTitle={opportunityTitle}
+            onLaunchFinancialSimulation={onLaunchFinancialSimulation}
           />
         </section>
       </div>

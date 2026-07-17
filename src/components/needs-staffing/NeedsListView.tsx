@@ -1,11 +1,10 @@
 "use client"
 
 import { useMemo } from "react"
+import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { Badge } from "@/components/ui/Badge"
 import { StructuredList, type StructuredListColumn } from "@/components/ui/StructuredList"
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
-import { formatDateShort } from "@/lib/formatters"
 import type { NeedsStaffingDirection } from "@/lib/needs-staffing/url-state"
 import {
   getOpportunityStageColor,
@@ -27,24 +26,21 @@ interface NeedsListViewProps {
   onToggleAcvSort: () => void
 }
 
-function StagePill({ stage }: { stage: string | null | undefined }) {
+function StageLabel({ stage }: { stage: string | null | undefined }) {
   const safeStage = stage ?? ""
   const color = getOpportunityStageColor(safeStage)
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-[11px] font-medium"
-      style={{ color }}
-    >
-      <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      <span>{getOpportunityStageLabel(safeStage)}</span>
+    <span className="text-[11px] font-medium" style={{ color }}>
+      {getOpportunityStageLabel(safeStage)}
     </span>
   )
 }
 
-function getPriorityVariant(priority: string | null | undefined) {
-  if (priority === "haute") return "warning"
-  return "neutral"
+function getPriorityLabel(priority: string | null | undefined) {
+  if (priority === "haute") return "Haute"
+  if (priority === "basse") return "Basse"
+  return "Normale"
 }
 
 function CoverageCell({
@@ -92,22 +88,6 @@ function AcvHeader({ direction }: { direction: NeedsStaffingDirection }) {
   )
 }
 
-function renderNextAction(row: MissionsListRow) {
-  if (row.nextActionLabel && row.nextActionAt) {
-    return `${row.nextActionLabel} · ${formatDateShort(row.nextActionAt)}`
-  }
-
-  if (row.nextActionLabel) {
-    return row.nextActionLabel
-  }
-
-  if (row.nextActionAt) {
-    return formatDateShort(row.nextActionAt)
-  }
-
-  return "—"
-}
-
 export function NeedsListView({
   rows,
   coverageByOpportunityId,
@@ -120,7 +100,7 @@ export function NeedsListView({
     {
       id: "client",
       header: "Compte",
-      width: "12rem",
+      width: "10rem",
       render: (row) => (
         <div className="flex min-w-0 items-center gap-2.5">
           <CompanyLogo
@@ -136,9 +116,9 @@ export function NeedsListView({
     {
       id: "title",
       header: "Intitulé du besoin",
-      width: "15rem",
+      width: "22rem",
       render: (row) => (
-        <span className="font-semibold text-body transition-colors duration-150 group-hover:text-primary">
+        <span title={row.title} className="block truncate whitespace-nowrap font-semibold text-body transition-colors duration-150 group-hover:text-primary">
           {row.title}
         </span>
       ),
@@ -147,41 +127,30 @@ export function NeedsListView({
       id: "practice",
       header: "Practice",
       width: "8rem",
-      render: (row) => <span className="text-body">{row.practice ?? "—"}</span>,
+      render: (row) => <span className="block truncate whitespace-nowrap text-body">{row.practice ?? "—"}</span>,
     },
     {
       id: "priority",
       header: "Priorité",
       align: "center",
-      width: "7rem",
+      width: "5.5rem",
       render: (row) => (
-        <Badge variant={getPriorityVariant(row.priority)} size="sm">
-          {row.priority === "haute" ? "Haute" : row.priority === "basse" ? "Basse" : "Normale"}
-        </Badge>
+        <span className={cn("text-[11px] font-semibold", row.priority === "haute" ? "text-warning" : "text-body")}>
+          {getPriorityLabel(row.priority)}
+        </span>
       ),
     },
     {
       id: "stage",
       header: "Étape",
-      width: "11rem",
-      render: (row) => <StagePill stage={row.stage} />,
-    },
-    {
-      id: "headcount",
-      header: "Effectif requis",
-      align: "center",
-      width: "7rem",
-      render: (row) => (
-        <span className="font-semibold tabular-nums text-heading">
-          {row.requiredHeadcount ?? "—"}
-        </span>
-      ),
+      width: "10rem",
+      render: (row) => <StageLabel stage={row.stage} />,
     },
     {
       id: "coverage",
       header: "Couverture",
       align: "center",
-      width: "7rem",
+      width: "6.5rem",
       render: (row) => (
         <CoverageCell snapshot={coverageByOpportunityId[row.entityId]} />
       ),
@@ -198,17 +167,25 @@ export function NeedsListView({
             : "none",
       onHeaderClick: onToggleAcvSort,
       align: "right",
-      width: "8rem",
+      width: "7.5rem",
       render: (row) => (
         <span className="font-semibold tabular-nums text-heading">{row.amount ?? "—"}</span>
       ),
     },
     {
-      id: "nextAction",
-      header: "Prochaine action",
-      width: "12rem",
+      id: "details",
+      header: "Accéder à",
+      align: "right",
+      width: "7.5rem",
       render: (row) => (
-        <span className="line-clamp-2 text-body">{renderNextAction(row)}</span>
+        <Link
+          href={`/missions/opps/${row.entityId}`}
+          aria-label={`Fiche détails : ${row.title}`}
+          onClick={(event) => event.stopPropagation()}
+          className="inline-flex h-8 items-center justify-center rounded-[2px] border border-border bg-surface px-3 text-[11px] font-semibold text-heading transition-colors hover:border-primary/35 hover:bg-primary/[0.04] hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+        >
+          Fiche détails
+        </Link>
       ),
     },
   ], [coverageByOpportunityId, acvDirection, onToggleAcvSort])
@@ -221,6 +198,7 @@ export function NeedsListView({
         columns={columns}
         getItemId={(row) => row.entityId}
         onItemClick={(row) => openOpportunityDrawer(row.entityId, "besoin")}
+        tableFixed
         ariaLabel="Liste des besoins ouverts nécessitant du staffing"
         emptyState="Aucun besoin ne correspond aux filtres."
       />

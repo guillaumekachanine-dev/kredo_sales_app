@@ -14,25 +14,27 @@ import type {
   SkillImportance,
 } from "@/types/database-domain"
 
+export interface OpportunityDetailData {
+  opportunity: Opportunity
+  account: {
+    id: string
+    name: string
+    sector: string | null
+    website: string | null
+  } | null
+  skills: OpportunitySkill[]
+  contacts: Array<{
+    contact: Contact
+    role: string | null
+  }>
+  events: OpportunityEvent[]
+  standingProfiles: OpportunityStandingProfile[]
+  financialReference: FinancialReference | null
+}
+
 export type OpportunityDetailResult =
   | {
-      data: {
-        opportunity: Opportunity
-        account: {
-          id: string
-          name: string
-          sector: string | null
-          website: string | null
-        } | null
-        skills: OpportunitySkill[]
-        contacts: Array<{
-          contact: Contact
-          role: string | null
-        }>
-        events: OpportunityEvent[]
-        standingProfiles: OpportunityStandingProfile[]
-        financialReference: FinancialReference | null
-      }
+      data: OpportunityDetailData
       error?: never
     }
   | {
@@ -67,6 +69,7 @@ type CandidateWithPerson = {
   availability: string | null
   mobility: string | null
   expected_daily_rate: number | null
+  expected_salary: number | null
   source: string | null
   summary: string | null
   internal_score: number | null
@@ -247,7 +250,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
     if (candidateIds.length > 0) {
       const { data: candidatesData, error: candidatesError } = await supabase
         .from("candidates")
-        .select("id, current_title, seniority, availability, mobility, expected_daily_rate, source, summary, internal_score, status, persons(full_name, first_name, last_name)")
+        .select("id, current_title, seniority, availability, mobility, expected_daily_rate, expected_salary, source, summary, internal_score, status, persons(full_name, first_name, last_name)")
         .in("id", candidateIds)
 
       if (candidatesError) {
@@ -267,6 +270,7 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
             availability: candidate.availability,
             mobility: candidate.mobility,
             expected_daily_rate: candidate.expected_daily_rate,
+            expected_salary: candidate.expected_salary,
             summary: candidate.summary,
             internal_score: candidate.internal_score,
             source: candidate.source,

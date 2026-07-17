@@ -27,6 +27,7 @@ interface OpportunityContactsPanelProps {
   onRefresh: () => void
   className?: string
   embedded?: boolean
+  readOnly?: boolean
 }
 
 const ROLE_OPTIONS: Array<{ value: ContactRole; label: string }> = [
@@ -46,6 +47,7 @@ export function OpportunityContactsPanel({
   onRefresh,
   className,
   embedded = false,
+  readOnly = false,
 }: OpportunityContactsPanelProps) {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -181,7 +183,7 @@ export function OpportunityContactsPanel({
           <Image src="/icons_set/contacts_client.png" alt="" width={20} height={20} className="object-contain shrink-0" />
           <h3 className="text-sm font-bold text-heading">Contacts liés</h3>
         </div>
-        {!isLinking && (
+        {!readOnly && !isLinking && (
           <button
             onClick={openLinking}
             className="text-[10px] font-bold text-primary hover:underline"
@@ -304,32 +306,40 @@ export function OpportunityContactsPanel({
                     <span className="text-[10px] text-muted select-all mt-0.5">{contact.email}</span>
                   )}
                 </div>
-                <button
-                  onClick={() => handleUnlink(contact.id)}
-                  className="text-[10px] font-semibold text-danger hover:underline"
-                  disabled={isPending}
-                >
-                  Détacher
-                </button>
+                {!readOnly ? (
+                  <button
+                    onClick={() => handleUnlink(contact.id)}
+                    className="text-[10px] font-semibold text-danger hover:underline"
+                    disabled={isPending}
+                  >
+                    Détacher
+                  </button>
+                ) : null}
               </div>
 
               <div className="flex items-center justify-between gap-2 border-t border-border/30 pt-2">
                 <span className="text-[9px] uppercase tracking-wider text-muted font-bold">
                   Rôle dans l&apos;opp :
                 </span>
-                <Select
-                  value={role || ""}
-                  onChange={(e) => handleRoleChange(contact.id, e.target.value)}
-                  className={cn(inputClass, "py-0.5 px-2 text-[10px]")}
-                  disabled={isPending}
-                >
-                  <option value="">Aucun rôle</option>
-                  {ROLE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                {readOnly ? (
+                  <span className="text-[10px] font-semibold text-heading">
+                    {ROLE_OPTIONS.find((option) => option.value === role)?.label ?? "Aucun rôle"}
+                  </span>
+                ) : (
+                  <Select
+                    value={role || ""}
+                    onChange={(e) => handleRoleChange(contact.id, e.target.value)}
+                    className={cn(inputClass, "py-0.5 px-2 text-[10px]")}
+                    disabled={isPending}
+                  >
+                    <option value="">Aucun rôle</option>
+                    {ROLE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
               </div>
             </div>
           ))}

@@ -16,6 +16,10 @@ interface OpportunityTimelinePanelProps {
   opportunityId: string
   events: OpportunityEvent[]
   onRefresh: () => void
+  className?: string
+  embedded?: boolean
+  title?: string
+  initiallyAdding?: boolean
 }
 
 const EVENT_TYPES = [
@@ -141,12 +145,16 @@ export function OpportunityTimelinePanel({
   opportunityId,
   events,
   onRefresh,
+  className,
+  embedded = false,
+  title = "Timeline & Historique",
+  initiallyAdding = false,
 }: OpportunityTimelinePanelProps) {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   // Creation State
-  const [isAdding, setIsAdding] = useState(false)
+  const [isAdding, setIsAdding] = useState(initiallyAdding)
   const [newEvent, setNewEvent] = useState({
     event_type: "note",
     body: "",
@@ -249,11 +257,11 @@ export function OpportunityTimelinePanel({
   const inputClass = "rounded-md border border-border bg-canvas px-2.5 py-1 text-xs text-heading outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/60 transition-colors disabled:opacity-50"
   const labelClass = "text-[10px] uppercase tracking-wider text-muted font-bold block mb-1"
 
-  return (
-    <SurfaceCard className="p-5 flex flex-col gap-4">
+  const content = (
+    <>
       <div className="flex items-center justify-between border-b border-border/40 pb-2">
         <h2 className="text-sm font-bold font-heading text-heading">
-          Timeline & Historique
+          {title}
         </h2>
         {!isAdding && (
           <button
@@ -459,6 +467,14 @@ export function OpportunityTimelinePanel({
           })}
         </div>
       )}
-    </SurfaceCard>
+    </>
+  )
+
+  if (embedded) {
+    return <div className={cn("flex flex-col gap-4", className)}>{content}</div>
+  }
+
+  return (
+    <SurfaceCard className={cn("p-5 flex flex-col gap-4", className)}>{content}</SurfaceCard>
   )
 }

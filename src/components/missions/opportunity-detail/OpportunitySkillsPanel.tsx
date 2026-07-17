@@ -20,6 +20,7 @@ interface OpportunitySkillsPanelProps {
   onRefresh: () => void
   className?: string
   embedded?: boolean
+  readOnly?: boolean
 }
 
 const IMPORTANCE_OPTIONS: Array<{ value: SkillImportance; label: string }> = [
@@ -82,7 +83,7 @@ function SkillPickerModal({ isOpen, onClose, onSelect, existingSkillNames }: Ski
     queueMicrotask(() => {
       void syncDialogState()
     })
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   useEffect(() => {
     const el = dialogRef.current
@@ -186,6 +187,7 @@ export function OpportunitySkillsPanel({
   onRefresh,
   className,
   embedded = false,
+  readOnly = false,
 }: OpportunitySkillsPanelProps) {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -300,40 +302,41 @@ export function OpportunitySkillsPanel({
         </div>
       )}
 
-      {/* Quick options before opening picker */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <Select
-            value={pendingImportance}
-            onChange={(e) => setPendingImportance(e.target.value as SkillImportance)}
-            className={cn(inputClass, "py-1 text-[10px]")}
+      {!readOnly ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Select
+              value={pendingImportance}
+              onChange={(e) => setPendingImportance(e.target.value as SkillImportance)}
+              className={cn(inputClass, "py-1 text-[10px]")}
+              disabled={isPending}
+            >
+              {IMPORTANCE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+            <input
+              type="number"
+              placeholder="Années min."
+              value={pendingMinYears}
+              onChange={(e) => setPendingMinYears(e.target.value)}
+              className={cn(inputClass, "w-24 py-1 text-[10px]")}
+              disabled={isPending}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen(true)}
             disabled={isPending}
+            className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold border-2 border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5 rounded-md transition-all disabled:opacity-40"
           >
-            {IMPORTANCE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </Select>
-          <input
-            type="number"
-            placeholder="Années min."
-            value={pendingMinYears}
-            onChange={(e) => setPendingMinYears(e.target.value)}
-            className={cn(inputClass, "w-24 py-1 text-[10px]")}
-            disabled={isPending}
-          />
+            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Ajouter compétence
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsPickerOpen(true)}
-          disabled={isPending}
-          className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold border-2 border-dashed border-primary/40 text-primary hover:border-primary hover:bg-primary/5 rounded-md transition-all disabled:opacity-40"
-        >
-          <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Ajouter compétence
-        </button>
-      </div>
+      ) : null}
 
       {/* Liste des compétences */}
       {skills.length === 0 ? (
@@ -407,8 +410,11 @@ export function OpportunitySkillsPanel({
             return (
               <div
                 key={skill.id}
-                onClick={() => startEditing(skill)}
-                className="flex items-center justify-between p-2.5 bg-canvas/30 rounded border border-border/50 hover:border-primary/30 hover:bg-canvas/50 transition-all cursor-pointer group"
+                onClick={readOnly ? undefined : () => startEditing(skill)}
+                className={cn(
+                  "flex items-center justify-between rounded border border-border/50 bg-canvas/30 p-2.5 transition-all group",
+                  !readOnly && "cursor-pointer hover:border-primary/30 hover:bg-canvas/50",
+                )}
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-semibold text-heading group-hover:text-primary transition-colors">
