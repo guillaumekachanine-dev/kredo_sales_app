@@ -75,9 +75,9 @@ export function MobileBottomNav({
     {
       id: "intelligence",
       label: "Intelligence",
-      icon: "reports",
-      isActive: pathname.startsWith("/reports") || pathname.startsWith("/veille"),
-      href: "/reports",
+      icon: "bi",
+      isActive: pathname.startsWith("/intelligence") || pathname.startsWith("/reports") || pathname.startsWith("/veille"),
+      href: "/intelligence",
       type: "link" as const,
     },
   ]

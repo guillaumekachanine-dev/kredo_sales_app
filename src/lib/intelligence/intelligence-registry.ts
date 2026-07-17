@@ -368,8 +368,8 @@ const ROUTE_MAPPINGS: RouteMapping[] = [
     actionIds: ["scan_contacts", "deep_analysis", "generate_pitch"],
   },
   {
-    pattern: "/prospection/approche-sectorielle",
-    label: "Approche sectorielle",
+    pattern: "/intelligence",
+    label: "Business Intelligence",
     actionIds: ["common_sector_analysis", "search_news", "build_roadmap"],
   },
   {

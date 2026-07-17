@@ -22,6 +22,7 @@ export interface BusinessIntelligenceMobileAccount extends AccountPriorityItem {
 
 export interface BusinessIntelligenceMobilePeriodModel {
   accounts: BusinessIntelligenceMobileAccount[]
+  accountsBySectorId: Record<string, BusinessIntelligenceMobileAccount[]>
   recommendedAccountId: string | null
   metrics: {
     priorityAccountsCount: number
@@ -80,23 +81,60 @@ export function resolveMobileWindowAccountId(
   return window.priorityAccountId
 }
 
+export function getMobileSectorAccounts(
+  period: BusinessIntelligenceMobilePeriodModel,
+  sectorId: string | "all",
+): BusinessIntelligenceMobileAccount[] {
+  return sectorId === "all" ? period.accounts : period.accountsBySectorId[sectorId] ?? []
+}
+
+export function resolveMobileSectorAccountId(
+  period: BusinessIntelligenceMobilePeriodModel,
+  sectorId: string | "all",
+  requestedAccountId: string | null,
+): string | null {
+  return resolveMobilePriorityAccountId(
+    getMobileSectorAccounts(period, sectorId),
+    requestedAccountId,
+  )
+}
+
 function buildPeriodModel(
   snapshot: BusinessIntelligenceSnapshot,
   period: BusinessIntelligenceMobilePeriod,
 ): BusinessIntelligenceMobilePeriodModel {
   const sectorsById = new Map(snapshot.sectors.map((sector) => [sector.id, sector.name]))
-  const accounts = buildAccountPrioritizationModel(snapshot, { period })
-    .slice(0, 5)
-    .map((account) => ({
+  const priorityAccounts = buildAccountPrioritizationModel(snapshot, { period })
+  const enrichedAccounts = new Map<string, BusinessIntelligenceMobileAccount>()
+  const enrichAccount = (account: AccountPriorityItem) => {
+    const cached = enrichedAccounts.get(account.accountId)
+    if (cached) return cached
+
+    const enriched = {
       ...account,
       sectorName: account.sectorId ? sectorsById.get(account.sectorId) ?? null : null,
       attack: buildAccountAttackModel(snapshot, account.accountId, { period }),
-    }))
+    }
+    enrichedAccounts.set(account.accountId, enriched)
+    return enriched
+  }
+  const accounts = priorityAccounts.slice(0, 5).map(enrichAccount)
+  const accountsBySectorId = priorityAccounts.reduce<Record<string, BusinessIntelligenceMobileAccount[]>>(
+    (groups, account) => {
+      if (!account.sectorId) return groups
+      const group = groups[account.sectorId] ?? []
+      if (group.length < 5) group.push(enrichAccount(account))
+      groups[account.sectorId] = group
+      return groups
+    },
+    {},
+  )
   const recommended = accounts[0] ?? null
   const nativeScores = accounts.filter((account) => account.nativeScore !== null)
 
   return {
     accounts,
+    accountsBySectorId,
     recommendedAccountId: recommended?.accountId ?? null,
     metrics: {
       priorityAccountsCount: accounts.filter((account) => account.priority >= 50).length,

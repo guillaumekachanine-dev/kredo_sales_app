@@ -250,7 +250,7 @@ export function CommandCenterLab({
                     Ouvrir le compte
                   </Link>
 
-                  <Link href="/prospection/approche-sectorielle" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
+                  <Link href="/intelligence" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
                     Approche sectorielle
                   </Link>
                 </div>

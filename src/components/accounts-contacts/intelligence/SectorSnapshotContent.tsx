@@ -187,7 +187,7 @@ export function SectorSnapshotContent({ data }: { data: SectorSnapshotView }) {
               </div>
             )}
             <p className="text-[11px] text-muted italic">
-              Détail consultable sur la fiche sectorielle complète (/prospection/approche-sectorielle/{data.slug}).
+              Détail consultable dans Business Intelligence.
             </p>
           </div>
         </SectionBlock>

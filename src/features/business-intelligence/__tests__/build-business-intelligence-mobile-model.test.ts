@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import {
   buildBusinessIntelligenceMobileModel,
+  getMobileSectorAccounts,
   resolveMobilePriorityAccountId,
+  resolveMobileSectorAccountId,
   resolveMobileWindowAccountId,
 } from "../presenters/build-business-intelligence-mobile-model"
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
@@ -55,6 +57,22 @@ describe("Business Intelligence Mobile presenter", () => {
     expect(model.watchSectors[0]?.id).toBe("watch-sector")
     expect(model.watchSectors[0]?.profile?.playbook.personas).toEqual([])
     expect(model.watchSectors[0]?.profile?.summary).toBe("Étude sectorielle en préparation")
+  })
+
+  it("applique un secteur par UUID, sélectionne son premier compte et revient à tous les secteurs", () => {
+    const model = buildBusinessIntelligenceMobileModel(snapshot)
+    const period = model.periods[30]
+
+    expect(getMobileSectorAccounts(period, "active-sector").map((account) => account.accountId)).toEqual([
+      "account-30",
+      "account-90",
+    ])
+    expect(resolveMobileSectorAccountId(period, "active-sector", "account-90")).toBe("account-90")
+    expect(resolveMobileSectorAccountId(period, "active-sector", null)).toBe("account-30")
+    expect(getMobileSectorAccounts(period, "watch-sector")).toEqual([])
+    expect(resolveMobileSectorAccountId(period, "watch-sector", null)).toBeNull()
+    expect(getMobileSectorAccounts(period, "all")).toBe(period.accounts)
+    expect(resolveMobileSectorAccountId(period, "all", null)).toBe("account-30")
   })
 
   it("assume l'absence de score natif et les états vides", () => {

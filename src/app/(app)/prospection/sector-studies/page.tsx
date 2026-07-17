@@ -1,5 +1,5 @@
-import { SectorSection } from "@/components/prospection/sector"
+import { permanentRedirect } from "next/navigation"
 
 export default function SectorStudiesPage() {
-  return <SectorSection />
+  permanentRedirect("/intelligence")
 }

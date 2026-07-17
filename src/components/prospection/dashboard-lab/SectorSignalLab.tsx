@@ -85,10 +85,6 @@ function getWindowStateLabel(window: DashboardLabWindowView) {
   return window.stateLabel
 }
 
-function getWindowSectorSlug(window: DashboardLabWindowView) {
-  return window.sectorSlug
-}
-
 function getWindowSectorName(window: DashboardLabWindowView) {
   return window.sectorName
 }
@@ -137,7 +133,7 @@ export function SectorSignalLab({
       <LabEmptyState
         title="Aucune fenêtre commerciale visible"
         body="Les filtres actuels ne laissent aucune fenêtre sectorielle ou de démonstration exploitable. Réactive un secteur ou enlève un filtre portefeuille."
-        actionHref="/prospection/approche-sectorielle"
+        actionHref="/intelligence"
         actionLabel="Voir l'approche sectorielle"
       />
     )
@@ -252,7 +248,7 @@ export function SectorSignalLab({
                     <p className="text-xs text-muted">{sector.topPractice} · {sector.windowsCount} fenêtres visibles</p>
                   </div>
                   <Link
-                    href={`/prospection/approche-sectorielle/${sector.slug}`}
+                    href="/intelligence"
                     className="text-xs font-semibold text-primary transition-colors hover:text-primary-deep"
                   >
                     Ouvrir
@@ -351,7 +347,7 @@ export function SectorSignalLab({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Link href={`/prospection/approche-sectorielle/${getWindowSectorSlug(selectedWindow)}`} className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
+                <Link href="/intelligence" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
                   Ouvrir le secteur
                 </Link>
                 {getWindowExposedCompanyIds(selectedWindow)[0] ? (

@@ -288,7 +288,7 @@ export default function PlaybookPage({ sector }: PlaybookPageProps) {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <Link
-                href={`/prospection/approche-sectorielle/${sector.slug}`}
+                href="/intelligence"
                 className="mb-4 inline-flex text-xs font-semibold text-muted transition-colors hover:text-heading"
               >
                 Retour fiche sectorielle

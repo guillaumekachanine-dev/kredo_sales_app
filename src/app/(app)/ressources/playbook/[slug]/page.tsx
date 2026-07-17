@@ -19,6 +19,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PlaybookRoute({ params }: Props) {
   const { slug } = await params
   const sector = await getSectorBySlug(slug)
-  if (!sector) redirect('/prospection/approche-sectorielle')
+  if (!sector) redirect('/intelligence')
   return <PlaybookPage sector={sector} />
 }

@@ -24,7 +24,7 @@ export default async function ProspectionDashboardLabPage() {
               Cette exploration compare trois variantes desktop de la Synthèse CRM. La branche mobile n&apos;est volontairement pas chargée ici.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/prospection" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
+              <Link href="/intelligence" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">
                 Retour à la synthèse
               </Link>
               <Link href="/prospection/suivi" className="inline-flex h-10 items-center rounded-[var(--radius-medium)] border border-border px-4 text-sm font-semibold text-body transition-colors hover:bg-surface-hover hover:text-heading">

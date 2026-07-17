@@ -46,9 +46,7 @@ const mainItems: MenuItem[] = [
     icon: "crm",
     tone: "teal",
     tabs: [
-      { label: "Synthèse", href: "/prospection", icon: "crm" },
       { label: "Comptes & Contacts", shortLabel: "Comptes", href: "/prospection/accounts", icon: "equipe" },
-      { label: "Approche sectorielle", shortLabel: "Secteurs", href: "/prospection/approche-sectorielle", icon: "veille" },
     ],
   },
   {
@@ -78,7 +76,7 @@ const mainItems: MenuItem[] = [
     icon: "bi",
     tone: "navy",
     tabs: [
-      { label: "Business Intelligence", shortLabel: "BI", href: "/intelligence", icon: "bi", disabled: true, comingSoon: true },
+      { label: "Business Intelligence", shortLabel: "BI", href: "/intelligence", icon: "bi" },
       { label: "Rapports & rédaction", shortLabel: "Rapports", href: "/reports", icon: "reports" },
       { label: "Veille & actualités", shortLabel: "Veille", href: "/veille", icon: "veille" },
     ],

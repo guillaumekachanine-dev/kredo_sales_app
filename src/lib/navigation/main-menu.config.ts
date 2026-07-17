@@ -145,9 +145,7 @@ export const mainMenuItems: MainMenuItem[] = [
         icon: "crm",
         primary: true,
         tabs: [
-          { label: "Synthèse",              shortLabel: "Synthèse",     href: "/prospection" },
           { label: "Comptes & contacts",    shortLabel: "Comptes",      href: "/prospection/accounts" },
-          { label: "Approche sectorielle",  shortLabel: "Secteurs",     href: "/prospection/approche-sectorielle" },
         ],
       },
       {
@@ -180,8 +178,6 @@ export const mainMenuItems: MainMenuItem[] = [
         shortLabel: "BI",
         href: "/intelligence",
         icon: "bi",
-        comingSoon: true,
-        disabled: true,
       },
       {
         label: "Rapports & Rédaction",
