@@ -1,12 +1,9 @@
 import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import { buildAccountPrioritizationModel, AccountPriorityItem } from "../models/build-account-prioritization-model"
 import { buildAccountAttackModel, AccountAttackItem } from "../models/build-account-attack-model"
-import { buildSectorActivationModel } from "../models/build-sector-activation-model"
 import { SectorActivationWindow, SectorActivationSector } from "@/lib/prospection/sector-activation-types"
 
-export interface BusinessIntelligenceDesktopViewModel {
-  generatedAt: string
-  hasDemoData: boolean
+export interface BusinessIntelligencePeriodModel {
   kpis: {
     priorityAccountsCount: number
     openWindowsCount: number
@@ -30,20 +27,25 @@ export interface BusinessIntelligenceDesktopViewModel {
     priority: number
   }[]
   attackPanelData: Record<string, AccountAttackItem | null>
+}
+
+export interface BusinessIntelligenceDesktopViewModel {
+  generatedAt: string
+  hasDemoData: boolean
+  periods: Record<30 | 90 | 180, BusinessIntelligencePeriodModel>
   windowsLedger: SectorActivationWindow[]
   panorama: SectorActivationSector[]
 }
 
-export function buildBusinessIntelligenceDesktopModel(
-  snapshot: BusinessIntelligenceSnapshot
-): BusinessIntelligenceDesktopViewModel {
-  const priorityBoard = buildAccountPrioritizationModel(snapshot)
+function buildPeriodModel(
+  snapshot: BusinessIntelligenceSnapshot,
+  periodParam: 30 | 90 | 180
+): BusinessIntelligencePeriodModel {
+  const priorityBoard = buildAccountPrioritizationModel(snapshot, { period: periodParam })
   
   // KPI Calculations
   const priorityAccountsCount = priorityBoard.filter(a => a.priority >= 50).length
   
-  // Windows logic: buildSectorActivationModel was already called inside the snapshot builder actually,
-  // but we can reuse the snapshot's windows and sectors directly since they are already built.
   const openWindows = snapshot.windows.filter(w => w.isOpenNow)
   const openWindowsCount = openWindows.length
   
@@ -74,7 +76,7 @@ export function buildBusinessIntelligenceDesktopModel(
   // Attack Panel Data for all visible accounts
   const attackPanelData: Record<string, AccountAttackItem | null> = {}
   for (const account of priorityBoard.slice(0, 50)) { // limit to avoid heavy processing
-    attackPanelData[account.accountId] = buildAccountAttackModel(snapshot, account.accountId)
+    attackPanelData[account.accountId] = buildAccountAttackModel(snapshot, account.accountId, { period: periodParam })
   }
 
   // Matrix
@@ -87,8 +89,6 @@ export function buildBusinessIntelligenceDesktopModel(
   }))
 
   return {
-    generatedAt: snapshot.generatedAt,
-    hasDemoData: snapshot.dataQuality.hasDemoData,
     kpis: {
       priorityAccountsCount,
       openWindowsCount,
@@ -106,6 +106,20 @@ export function buildBusinessIntelligenceDesktopModel(
     priorityBoard: priorityBoard.slice(0, 10), // Limit to 10 for the board
     matrixPoints,
     attackPanelData,
+  }
+}
+
+export function buildBusinessIntelligenceDesktopModel(
+  snapshot: BusinessIntelligenceSnapshot
+): BusinessIntelligenceDesktopViewModel {
+  return {
+    generatedAt: snapshot.generatedAt,
+    hasDemoData: snapshot.dataQuality.hasDemoData,
+    periods: {
+      30: buildPeriodModel(snapshot, 30),
+      90: buildPeriodModel(snapshot, 90),
+      180: buildPeriodModel(snapshot, 180),
+    },
     windowsLedger: snapshot.windows.slice(0, 5), // Limit to top 5
     panorama: snapshot.sectors.slice(0, 6), // Limit to 6
   }

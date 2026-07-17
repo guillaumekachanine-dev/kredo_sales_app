@@ -1,5 +1,7 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 
+import { getPortfolioPeriodMetrics, type ProspectionPeriod } from "@/lib/prospection/portfolio-account-metrics"
+
 export interface AccountPriorityItem {
   accountId: string
   name: string
@@ -26,9 +28,12 @@ export interface AccountPriorityItem {
 
 export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSnapshot, options?: any): AccountPriorityItem[] {
   const { accounts, scores, signals } = snapshot
+  const periodParam = options?.period ?? 30
+  const period = `${periodParam}d` as ProspectionPeriod
 
   return accounts.map((account) => {
     const nativeScore = scores[account.id]
+    const periodMetrics = getPortfolioPeriodMetrics(account, period)
     
     // Determine provenance
     let provenance = "PROXY"
@@ -47,10 +52,10 @@ export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSn
       accountId: account.id,
       name: account.name,
       sectorId: account.sectorId,
-      priority: account.actionPriorityScore30d,
+      priority: periodMetrics.actionPriorityScore,
       potential: account.potentialScore,
       reach: account.reachScore,
-      momentum: account.momentumScore30d,
+      momentum: periodMetrics.momentumScore,
       nativeScore: nativeScore ? {
         value: nativeScore.scoreValue,
         band: nativeScore.scoreBand,
@@ -69,3 +74,4 @@ export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSn
     }
   }).toSorted((a, b) => b.priority - a.priority)
 }
+

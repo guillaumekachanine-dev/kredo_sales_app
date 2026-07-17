@@ -1,12 +1,15 @@
-import { ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
+import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 
 interface BusinessIntelligenceHeaderProps {
   onPlaybooksClick?: () => void
 }
 
 export function BusinessIntelligenceHeader({ onPlaybooksClick }: BusinessIntelligenceHeaderProps) {
+  const router = useRouter()
+
   return (
     <header className="flex flex-col md:flex-row items-start md:items-center justify-between py-6 px-8 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
       <div>
@@ -27,9 +30,12 @@ export function BusinessIntelligenceHeader({ onPlaybooksClick }: BusinessIntelli
         <Button variant="secondary" onClick={onPlaybooksClick}>
           Consulter les playbooks
         </Button>
-        <Button variant="ghost">Agenda</Button>
-        <Button variant="ghost">Alertes</Button>
+        <Button variant="ghost" onClick={() => router.push("/agenda")}>
+          Agenda
+        </Button>
+        <HeaderAlerts />
       </div>
     </header>
   )
 }
+

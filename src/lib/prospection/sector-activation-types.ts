@@ -78,7 +78,19 @@ export interface SectorActivationSector {
   expiredWindowCount: number
   activationState: SectorActivationState
   updatedAt: string | null
+  painPoints?: any[]
+  description?: string | null
+
+  marketSizeEurBn?: number | null
+  marketGrowthPct?: number | null
+  keyPlayersPaca?: any[]
+  keyPlayersNational?: any[]
+  avgTjmMin?: number | null
+  avgTjmMax?: number | null
+  caveats?: any
+  playbook?: any
 }
+
 
 export interface SectorActivationStudy {
   slug: string

@@ -10,61 +10,79 @@ import { PotentialReachMatrix } from "./PotentialReachMatrix"
 import { AccountAttackPanel } from "./AccountAttackPanel"
 import { SectorWindowsLedger } from "./SectorWindowsLedger"
 import { SectorPanorama } from "./SectorPanorama"
+import { SectorPlaybooksModal } from "../playbooks/SectorPlaybooksModal"
+import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
+import { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
 
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
+  snapshot: BusinessIntelligenceSnapshot
 }
 
-export function BusinessIntelligenceDesktop({ viewModel }: BusinessIntelligenceDesktopProps) {
+export function BusinessIntelligenceDesktop({ viewModel, snapshot }: BusinessIntelligenceDesktopProps) {
   // Filters
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")
   const [searchQuery, setSearchQuery] = useState("")
 
+  // Playbooks modal state
+  const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
+
+  // Get active period precomputed model
+  const periodData = useMemo(() => {
+    return viewModel.periods[period]
+  }, [viewModel.periods, period])
+
   // Apply filters to priority board
   const filteredAccounts = useMemo(() => {
-    return viewModel.priorityBoard.filter(account => {
+    return periodData.priorityBoard.filter(account => {
       if (selectedSector !== "all" && account.sectorId !== selectedSector) return false
       if (searchQuery && !account.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
       return true
     })
-  }, [viewModel.priorityBoard, selectedSector, searchQuery])
+  }, [periodData.priorityBoard, selectedSector, searchQuery])
 
-  // Apply filters to matrix
+  // Apply filters to matrix points
   const filteredMatrixPoints = useMemo(() => {
-    return viewModel.matrixPoints.filter(point => {
-      const acc = viewModel.priorityBoard.find(a => a.accountId === point.accountId)
+    return periodData.matrixPoints.filter(point => {
+      const acc = periodData.priorityBoard.find(a => a.accountId === point.accountId)
       if (!acc) return false
       if (selectedSector !== "all" && acc.sectorId !== selectedSector) return false
       if (searchQuery && !acc.name.toLowerCase().includes(searchQuery.toLowerCase())) return false
       return true
     })
-  }, [viewModel.matrixPoints, viewModel.priorityBoard, selectedSector, searchQuery])
+  }, [periodData.matrixPoints, periodData.priorityBoard, selectedSector, searchQuery])
 
-  // Selection state
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(filteredAccounts[0]?.accountId ?? null)
+  // Selection state (stored selectedAccountId, resolves to activeSelectedId)
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
+
+  const activeSelectedId = useMemo(() => {
+    if (selectedAccountId && filteredAccounts.some(a => a.accountId === selectedAccountId)) {
+      return selectedAccountId
+    }
+    return filteredAccounts[0]?.accountId ?? null
+  }, [filteredAccounts, selectedAccountId])
 
   const handleSelectAccount = (id: string) => {
     setSelectedAccountId(id)
   }
 
-  const handleSelectWindow = (window: any) => {
-    if (window.exposedAccounts && window.exposedAccounts.length > 0) {
-      // Find the first exposed account that is in the priority board
-      const firstExposedId = window.exposedAccounts[0]
+  const handleSelectWindow = (window: SectorActivationWindow) => {
+    if (window.exposedAccountIds && window.exposedAccountIds.length > 0) {
+      const firstExposedId = window.exposedAccountIds[0]
       setSelectedAccountId(firstExposedId)
     }
   }
 
   const selectedBaseAccount = useMemo(() => {
-    return viewModel.priorityBoard.find(a => a.accountId === selectedAccountId)
-  }, [selectedAccountId, viewModel.priorityBoard])
+    return periodData.priorityBoard.find(a => a.accountId === activeSelectedId) ?? undefined
+  }, [activeSelectedId, periodData.priorityBoard])
 
-  const selectedAttackData = selectedAccountId ? viewModel.attackPanelData[selectedAccountId] ?? null : null
+  const selectedAttackData = activeSelectedId ? periodData.attackPanelData[activeSelectedId] ?? null : null
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-background)]">
-      <BusinessIntelligenceHeader />
+      <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} />
 
       {/* Filter Bar */}
       <div className="px-8 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex flex-wrap items-center gap-4">
@@ -108,18 +126,18 @@ export function BusinessIntelligenceDesktop({ viewModel }: BusinessIntelligenceD
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <StrategicBrief brief={viewModel.strategicBrief} />
-            <IntelligenceKpiStrip kpis={viewModel.kpis} />
+            <StrategicBrief brief={periodData.strategicBrief} />
+            <IntelligenceKpiStrip kpis={periodData.kpis} />
             
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[400px]">
               <AccountPriorityBoard 
                 accounts={filteredAccounts} 
-                selectedAccountId={selectedAccountId}
+                selectedAccountId={activeSelectedId}
                 onSelectAccount={handleSelectAccount} 
               />
               <PotentialReachMatrix 
                 points={filteredMatrixPoints}
-                selectedAccountId={selectedAccountId}
+                selectedAccountId={activeSelectedId}
                 onSelectAccount={handleSelectAccount} 
               />
             </div>
@@ -144,6 +162,22 @@ export function BusinessIntelligenceDesktop({ viewModel }: BusinessIntelligenceD
           <SectorPanorama sectors={viewModel.panorama} />
         </div>
       </div>
+
+      {isPlaybooksOpen && (
+        <SectorPlaybooksModal
+          open={isPlaybooksOpen}
+          onClose={() => setIsPlaybooksOpen(false)}
+          snapshot={snapshot}
+          initialSectorSlug={selectedSector}
+          onApplySector={(sectorSlug, accountId) => {
+            setSelectedSector(sectorSlug)
+            if (accountId) {
+              setSelectedAccountId(accountId)
+            }
+            setIsPlaybooksOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

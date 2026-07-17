@@ -11,9 +11,13 @@ const mockSnapshot: any = {
       name: "Acme Corp",
       sectorId: "sec-1",
       actionPriorityScore30d: 85,
+      actionPriorityScore90d: 75,
+      actionPriorityScore180d: 65,
       potentialScore: 90,
       reachScore: 40,
       momentumScore30d: 60,
+      momentumScore90d: 50,
+      momentumScore180d: 40,
       legacyFolioScore: null,
       nextDecision: "Contacter le CEO"
     },
@@ -22,9 +26,13 @@ const mockSnapshot: any = {
       name: "Watch Corp",
       sectorId: "sec-watch",
       actionPriorityScore30d: 50,
+      actionPriorityScore90d: 50,
+      actionPriorityScore180d: 50,
       potentialScore: 50,
       reachScore: 50,
       momentumScore30d: 50,
+      momentumScore90d: 50,
+      momentumScore180d: 50,
       legacyFolioScore: null,
       nextDecision: null
     }
@@ -62,7 +70,7 @@ const mockSnapshot: any = {
       id: "sec-1",
       name: "Finance",
       status: "active",
-      attractivityScore: 80,
+      attractivenessScore: 80,
       activeWindowsCount: 1,
       linkedAccountsCount: 1,
       averageReach: 40,
@@ -90,24 +98,28 @@ describe("Business Intelligence Desktop Presenter", () => {
     const model = buildBusinessIntelligenceDesktopModel(mockSnapshot)
     expect(model.generatedAt).toBe("2026-07-17T00:00:00Z")
     expect(model.hasDemoData).toBe(true)
-    expect(model.kpis.priorityAccountsCount).toBe(2)
-    expect(model.kpis.openWindowsCount).toBe(1)
-    expect(model.kpis.activeSectorsCount).toBe(1) // Only active ones
-    expect(model.kpis.averageConfidence).toBe(90) // acc-1 has 90, acc-2 has no native score
+    
+    const p30 = model.periods[30]
+    expect(p30.kpis.priorityAccountsCount).toBe(2)
+    expect(p30.kpis.openWindowsCount).toBe(1)
+    expect(p30.kpis.activeSectorsCount).toBe(1) // Only active ones
+    expect(p30.kpis.averageConfidence).toBe(90) // acc-1 has 90, acc-2 has no native score
   })
 
   it("gère l'absence de score natif correctement", () => {
     const model = buildBusinessIntelligenceDesktopModel(mockSnapshot)
-    const acc2Board = model.priorityBoard.find(a => a.accountId === "acc-2")
+    const p30 = model.periods[30]
+    const acc2Board = p30.priorityBoard.find(a => a.accountId === "acc-2")
     expect(acc2Board?.nativeScore).toBeNull()
     
-    const acc2Attack = model.attackPanelData["acc-2"]
+    const acc2Attack = p30.attackPanelData["acc-2"]
     expect(acc2Attack?.confidence).toBeNull()
   })
 
   it("ne crée pas de faux fallbacks dans le plan d'attaque", () => {
     const model = buildBusinessIntelligenceDesktopModel(mockSnapshot)
-    const acc2Attack = model.attackPanelData["acc-2"]
+    const p30 = model.periods[30]
+    const acc2Attack = p30.attackPanelData["acc-2"]
     expect(acc2Attack?.recommendedPractice).toBeNull()
     expect(acc2Attack?.approachAngle).toBeNull()
     expect(acc2Attack?.nextAction).toBeNull()
@@ -115,7 +127,8 @@ describe("Business Intelligence Desktop Presenter", () => {
 
   it("utilise la prochaine action réelle (nextDecision)", () => {
     const model = buildBusinessIntelligenceDesktopModel(mockSnapshot)
-    const acc1Board = model.priorityBoard.find(a => a.accountId === "acc-1")
+    const p30 = model.periods[30]
+    const acc1Board = p30.priorityBoard.find(a => a.accountId === "acc-1")
     expect(acc1Board?.nextAction).toBe("Contacter le CEO")
   })
 })

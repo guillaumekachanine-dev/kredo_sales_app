@@ -31,11 +31,14 @@ export const getBusinessIntelligenceSnapshot = cache(async (): Promise<BusinessI
       scoreRunsResult,
       scoreComponentsResult,
     ] = await Promise.all([
-      supabase.from("sector_intelligence").select<any>("id,slug,name,status,attractiveness_score,digital_maturity,practices_fit,updated_at,playbook"),
-      supabase.from("sector_pain_points").select<any>("sector_id,title,description,frequency_count,kredo_practice"),
+      supabase.from("sector_intelligence").select<any>("id,slug,name,description,status,attractiveness_score,market_size_eur_bn,market_growth_pct,digital_maturity,practices_fit,key_players_paca,key_players_national,avg_tjm_min,avg_tjm_max,playbook,caveats,updated_at"),
+
+      supabase.from("sector_pain_points").select<any>("sector_id,id,title,description,frequency_count,kredo_practice,verbatim"),
+
       supabase.from("sector_events").select<any>("id,sector_id,title,event_type,description,event_date,source_url,commercial_opportunity,status,created_at,updated_at"),
       supabase.from("sector_news").select<any>("id,sector_id,title,source,url,summary,published_at,relevance_score,is_trigger_event,created_at"),
-      supabase.from("sector_regulatory_items").select<any>("id,sector_id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,created_at,updated_at"),
+      supabase.from("sector_regulatory_items").select<any>("id,sector_id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,source_url,created_at,updated_at"),
+
       supabase.from("account_signals").select<any>("id,company_id,title,description,signal_type,relevance_score,urgency_score,detected_at"),
       supabase.from("account_score_current").select<any>("run_id,company_id,score_version,score_value,score_band,confidence_score,calculated_at,summary"),
       supabase.from("account_score_components").select<any>("score_run_id,component_key,component_label,normalized_score,weight,weighted_contribution,freshness_status"),

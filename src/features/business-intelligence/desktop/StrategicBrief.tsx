@@ -1,8 +1,9 @@
-import { BusinessIntelligenceDesktopViewModel } from "../presenters/build-business-intelligence-desktop-model"
+import { BusinessIntelligencePeriodModel } from "../presenters/build-business-intelligence-desktop-model"
 
 interface StrategicBriefProps {
-  brief: BusinessIntelligenceDesktopViewModel["strategicBrief"]
+  brief: BusinessIntelligencePeriodModel["strategicBrief"]
 }
+
 
 export function StrategicBrief({ brief }: StrategicBriefProps) {
   return (

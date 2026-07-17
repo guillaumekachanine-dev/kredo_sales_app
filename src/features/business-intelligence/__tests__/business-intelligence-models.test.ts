@@ -62,9 +62,10 @@ describe("BI Models", () => {
     }
 
     const playbook = buildSectorPlaybookModel(mockSnapshot as any, "s1")
-    expect(playbook?.personas).toEqual([])
-    expect(playbook?.roiArguments).toEqual([])
-    expect(playbook?.summary).toBe("Secteur en préparation / veille")
+    expect(playbook?.playbook.personas).toEqual([])
+    expect(playbook?.playbook.roiArguments).toEqual([])
+    expect(playbook?.summary).toBe("Étude sectorielle en préparation")
+
   })
 
   it("le dernier score natif est choisi par compte et ses composants rattachés", () => {

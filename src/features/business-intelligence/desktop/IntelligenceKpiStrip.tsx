@@ -1,8 +1,9 @@
-import { BusinessIntelligenceDesktopViewModel } from "../presenters/build-business-intelligence-desktop-model"
+import { BusinessIntelligencePeriodModel } from "../presenters/build-business-intelligence-desktop-model"
 
 interface IntelligenceKpiStripProps {
-  kpis: BusinessIntelligenceDesktopViewModel["kpis"]
+  kpis: BusinessIntelligencePeriodModel["kpis"]
 }
+
 
 export function IntelligenceKpiStrip({ kpis }: IntelligenceKpiStripProps) {
   return (

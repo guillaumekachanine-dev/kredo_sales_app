@@ -357,9 +357,28 @@ export function buildSectorActivationModel(
       undatedWindowCount: 0,
       expiredWindowCount: 0,
       activationState: "data_insufficient" as const,
-      updatedAt: sector.updated_at,
+      painPoints: (painPointsBySectorId.get(sector.id) ?? []).map((pp: any) => ({
+        id: pp.id,
+        title: pp.title,
+        description: pp.description,
+        frequencyCount: Number(pp.frequency_count),
+        kredoPractice: pp.kredo_practice,
+        verbatim: pp.verbatim,
+      })),
+      description: sector.description,
+
+      marketSizeEurBn: asNumber(sector.market_size_eur_bn),
+      marketGrowthPct: asNumber(sector.market_growth_pct),
+      keyPlayersPaca: sector.key_players_paca,
+      keyPlayersNational: sector.key_players_national,
+      avgTjmMin: asNumber(sector.avg_tjm_min),
+      avgTjmMax: asNumber(sector.avg_tjm_max),
+      caveats: sector.caveats,
       playbook: sector.playbook,
+      updatedAt: sector.updated_at,
     }
+
+
   }).toSorted((left: any, right: any) => {
     return (right.attractivenessScore ?? 0) - (left.attractivenessScore ?? 0)
   })

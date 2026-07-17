@@ -1,5 +1,7 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 
+import { getPortfolioPeriodMetrics, type ProspectionPeriod } from "@/lib/prospection/portfolio-account-metrics"
+
 export interface AccountAttackItem {
   accountId: string
   positiveDrivers: string[]
@@ -18,11 +20,19 @@ export interface AccountAttackItem {
   confidence: number | null
 }
 
-export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, accountId: string): AccountAttackItem | null {
+export function buildAccountAttackModel(
+  snapshot: BusinessIntelligenceSnapshot,
+  accountId: string,
+  options?: any
+): AccountAttackItem | null {
   const { accounts, scores, signals, sectors, windows } = snapshot
 
   const account = accounts.find(a => a.id === accountId)
   if (!account) return null
+
+  const periodParam = options?.period ?? 30
+  const period = `${periodParam}d` as ProspectionPeriod
+  const periodMetrics = getPortfolioPeriodMetrics(account, period)
 
   const nativeScore = scores[account.id]
   const accountSignals = signals.filter(sig => sig.companyId === account.id)
@@ -45,7 +55,7 @@ export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, 
   } else {
     // Fallback deterministic rules
     if (account.reachScore >= 70) positiveDrivers.push("Maturité relationnelle élevée")
-    if (account.momentumScore30d >= 70) positiveDrivers.push("Dynamique d'engagement forte")
+    if (periodMetrics.momentumScore >= 70) positiveDrivers.push("Dynamique d'engagement forte")
     if (account.reachScore < 30) vigilancePoints.push("Couverture relationnelle faible")
   }
 
@@ -74,4 +84,5 @@ export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, 
     confidence: provenance === "REAL_NATIVE" ? 90 : provenance === "REAL_LEGACY" ? 50 : null,
   }
 }
+
 

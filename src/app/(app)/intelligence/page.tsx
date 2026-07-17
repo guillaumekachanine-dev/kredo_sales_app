@@ -23,5 +23,6 @@ export default async function BusinessIntelligencePage() {
   const snapshot = await getBusinessIntelligenceSnapshot()
   const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
 
-  return <BusinessIntelligenceDesktop viewModel={viewModel} />
+  return <BusinessIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} />
+
 }
