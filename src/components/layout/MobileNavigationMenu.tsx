@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { getNavigationIcon } from "./navigation-icons"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { openMobileAccountQuickSearch } from "@/hooks/use-mobile-account-quick-search"
+import { useLegacySandboxStore } from "@/features/legacy/LegacySandboxStore"
 import { cn } from "@/lib/utils"
 import styles from "./MobileNavigationMenu.module.css"
 
@@ -100,6 +101,7 @@ const quickActions = [
   { label: "Paramètres", icon: "settings", href: "/settings", meta: "Système" },
   { label: "Knowledge Hub", icon: "knowledge", href: "/knowledge", meta: "Sources" },
   { label: "Automatisations", icon: "automations", href: "/automations", meta: "n8n" },
+  { label: "Bac à sable", icon: "sandbox", action: "sandbox", meta: "Legacy" },
 ]
 
 interface MobileNavigationMenuProps {
@@ -284,6 +286,7 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
   const rows = useMemo(() => chunkRows(mainItems), [])
   const [expandedId, setExpandedId] = useState<MenuItemId | null>(null)
   const isFocusMode = expandedId !== null
+  const openSandbox = useLegacySandboxStore((s) => s.open)
 
   useEffect(() => {
     if (!isOpen) return
@@ -366,13 +369,37 @@ export function MobileNavigationMenu({ isOpen, onOpenChange }: MobileNavigationM
             <span>Actions fréquentes</span>
           </div>
           <div className={styles.quickList}>
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href} onClick={closeMenu} className={styles.quickAction}>
-                <span className={styles.quickIcon}>{getNavigationIcon(action.icon)}</span>
-                <span>{action.label}</span>
-                <strong>{action.meta}</strong>
-              </Link>
-            ))}
+            {quickActions.map((action) => {
+              if (action.action === "sandbox") {
+                return (
+                  <button
+                    key={action.label}
+                    onClick={() => {
+                      closeMenu()
+                      openSandbox()
+                    }}
+                    type="button"
+                    className={cn(styles.quickAction, "cursor-pointer outline-none")}
+                  >
+                    <span className={styles.quickIcon}>
+                      <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                      </svg>
+                    </span>
+                    <span>{action.label}</span>
+                    <strong className="text-[10px] text-brand-brass uppercase tracking-wide">{action.meta}</strong>
+                  </button>
+                )
+              }
+
+              return (
+                <Link key={action.label} href={action.href!} onClick={closeMenu} className={styles.quickAction}>
+                  <span className={styles.quickIcon}>{getNavigationIcon(action.icon)}</span>
+                  <span>{action.label}</span>
+                  <strong>{action.meta}</strong>
+                </Link>
+              )
+            })}
           </div>
         </section>
       </div>

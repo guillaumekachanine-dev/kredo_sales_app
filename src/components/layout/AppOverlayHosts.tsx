@@ -42,6 +42,14 @@ const CrmAccountLauncherHost = dynamic(
   { ssr: false },
 )
 
+const LegacyNavigationDrawer = dynamic(
+  () =>
+    import("@/features/legacy/LegacyNavigationDrawer").then(
+      (mod) => mod.LegacyNavigationDrawer,
+    ),
+  { ssr: false },
+)
+
 interface AppOverlayHostsProps {
   device: DashboardDevice
 }
@@ -55,6 +63,7 @@ export function AppOverlayHosts({ device }: AppOverlayHostsProps) {
       <CommunicationComposerHost device={device} />
       <ReportGenerationHost />
       <CrmAccountLauncherHost device={device} />
+      <LegacyNavigationDrawer device={device} />
     </>
   )
 }
