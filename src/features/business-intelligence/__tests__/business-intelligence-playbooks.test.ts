@@ -304,5 +304,27 @@ describe("Business Intelligence Playbooks Tests", () => {
     expect(p180.priorityBoard[0].name).toBe("Beta Inc")
     expect(p180.priorityBoard[0].momentum).toBe(50)
   })
+
+  it("gère l'extraction correcte des métriques watch pour un secteur", () => {
+    const profile = buildSectorPlaybookModel(mockSnapshot, "sec-watch")
+    expect(profile).not.toBeNull()
+    expect(profile!.linkedAccountCount).toBe(1)
+    expect(profile!.attractivenessScore).toBeNull()
+  })
+
+  it("filtre correctement par sectorId (UUID) et gère l'état de sélection", () => {
+    const desktopModel = buildBusinessIntelligenceDesktopModel(mockSnapshot)
+    const p30 = desktopModel.periods[30]
+
+    // Filtre par secteur actif avec compte
+    const filteredFull = p30.priorityBoard.filter(a => a.sectorId === "sec-active-full")
+    expect(filteredFull).toHaveLength(1)
+    expect(filteredFull[0].accountId).toBe("acc-1")
+
+    // Filtre par secteur sans compte dans le portefeuille
+    const filteredPartial = p30.priorityBoard.filter(a => a.sectorId === "sec-active-partial")
+    expect(filteredPartial).toHaveLength(0)
+  })
 })
+
 

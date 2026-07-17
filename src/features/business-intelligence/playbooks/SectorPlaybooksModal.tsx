@@ -13,8 +13,8 @@ interface SectorPlaybooksModalProps {
   open: boolean
   onClose: () => void
   snapshot: BusinessIntelligenceSnapshot
-  initialSectorSlug: string | "all"
-  onApplySector: (sectorSlug: string, firstAccountId: string | null) => void
+  initialSectorId: string | "all"
+  onApplySector: (sectorId: string, firstAccountId: string | null) => void
 }
 
 function calculateCompleteness(profile: BusinessIntelligenceSectorProfile | null): number {
@@ -37,14 +37,14 @@ export function SectorPlaybooksModal({
   open,
   onClose,
   snapshot,
-  initialSectorSlug,
+  initialSectorId,
   onApplySector,
 }: SectorPlaybooksModalProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   
-  // Resolve initial selected sector ID/slug
+  // Resolve initial selected sector ID
   const sectorsList = useMemo(() => {
     return snapshot.sectors.map(s => {
       const profile = buildSectorPlaybookModel(snapshot, s.id)
@@ -63,20 +63,20 @@ export function SectorPlaybooksModal({
     })
   }, [snapshot])
 
-  const initialSlug = useMemo(() => {
-    if (initialSectorSlug && initialSectorSlug !== "all") {
-      return initialSectorSlug
+  const initialId = useMemo(() => {
+    if (initialSectorId && initialSectorId !== "all") {
+      return initialSectorId
     }
     const activeSec = sectorsList.find(s => s.status === "active")
-    if (activeSec) return activeSec.slug
-    return sectorsList[0]?.slug ?? ""
-  }, [initialSectorSlug, sectorsList])
+    if (activeSec) return activeSec.id
+    return sectorsList[0]?.id ?? ""
+  }, [initialSectorId, sectorsList])
 
-  const [selectedSectorSlug, setSelectedSectorSlug] = useState<string>(initialSlug)
+  const [selectedSectorId, setSelectedSectorId] = useState<string>(initialId)
 
   const currentSector = useMemo(() => {
-    return sectorsList.find(s => s.slug === selectedSectorSlug) ?? sectorsList[0]
-  }, [selectedSectorSlug, sectorsList])
+    return sectorsList.find(s => s.id === selectedSectorId) ?? sectorsList[0]
+  }, [selectedSectorId, sectorsList])
 
   // Filtered sectors list for left pane
   const filteredSectors = useMemo(() => {
@@ -91,14 +91,16 @@ export function SectorPlaybooksModal({
   // Selected priority account within the playbook right pane
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
-  // Reset selected account when sector changes
-  useMemo(() => {
-    if (currentSector?.profile?.priorityAccounts && currentSector.profile.priorityAccounts.length > 0) {
-      setSelectedAccountId(currentSector.profile.priorityAccounts[0].id)
-    } else {
-      setSelectedAccountId(null)
+  // Derived active selected account ID
+  const activeAccountId = useMemo(() => {
+    const priorityAccounts = currentSector?.profile?.priorityAccounts ?? []
+    if (priorityAccounts.length === 0) return null
+    if (selectedAccountId && priorityAccounts.some(a => a.id === selectedAccountId)) {
+      return selectedAccountId
     }
-  }, [currentSector])
+    return priorityAccounts[0]?.id ?? null
+  }, [currentSector, selectedAccountId])
+
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "N/A"
@@ -131,11 +133,11 @@ export function SectorPlaybooksModal({
               Études opérationnelles
             </h3>
             {activeSectors.map(s => {
-              const isSelected = s.slug === selectedSectorSlug
+              const isSelected = s.id === selectedSectorId
               return (
                 <button
                   key={s.id}
-                  onClick={() => setSelectedSectorSlug(s.slug)}
+                  onClick={() => setSelectedSectorId(s.id)}
                   className={`w-full text-left p-3 rounded-xl transition-all border outline-none ${
                     isSelected
                       ? "bg-brand-brass/10 border-brand-brass/35 text-white"
@@ -167,11 +169,11 @@ export function SectorPlaybooksModal({
               Secteurs en veille
             </h3>
             {watchSectors.map(s => {
-              const isSelected = s.slug === selectedSectorSlug
+              const isSelected = s.id === selectedSectorId
               return (
                 <button
                   key={s.id}
-                  onClick={() => setSelectedSectorSlug(s.slug)}
+                  onClick={() => setSelectedSectorId(s.id)}
                   className={`w-full text-left p-3 rounded-xl transition-all border outline-none ${
                     isSelected
                       ? "bg-white/[0.06] border-white/15 text-white"
@@ -195,6 +197,7 @@ export function SectorPlaybooksModal({
             })}
           </div>
         )}
+
 
         {activeSectors.length === 0 && watchSectors.length === 0 && (
           <div className="text-center py-8 text-xs text-white/30 italic">
@@ -252,7 +255,7 @@ export function SectorPlaybooksModal({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
                     <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Comptes liés</span>
-                    <span className="block text-lg font-bold text-white">{profile.priorityAccounts.length}</span>
+                    <span className="block text-lg font-bold text-white">{profile.linkedAccountCount}</span>
                   </div>
                   <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
                     <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Couverture moy.</span>
@@ -263,7 +266,7 @@ export function SectorPlaybooksModal({
                   <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
                     <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Attractivité</span>
                     <span className="block text-lg font-bold text-white">
-                      {profile.marketSizeEurBn !== null ? `${profile.marketSizeEurBn} / 100` : "N/A"}
+                      {profile.attractivenessScore !== null ? `${profile.attractivenessScore} / 100` : "N/A"}
                     </span>
                   </div>
                   <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
@@ -279,10 +282,11 @@ export function SectorPlaybooksModal({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {profile.marketSizeEurBn !== null && (
                     <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
-                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Taille Marché YTD</span>
+                      <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Taille de marché</span>
                       <span className="block text-lg font-bold text-white">{profile.marketSizeEurBn} Md€</span>
                     </div>
                   )}
+
                   {profile.marketGrowthPct !== null && (
                     <div className="bg-slate-900/35 border border-white/5 rounded-lg p-3">
                       <span className="block text-[9px] uppercase tracking-wider text-white/45 mb-1">Croissance</span>
@@ -502,7 +506,7 @@ export function SectorPlaybooksModal({
                   <p className="text-xs text-white/40 italic">Aucun compte lié trouvé dans le portefeuille actuel.</p>
                 ) : (
                   profile.priorityAccounts.map(a => {
-                    const isSelected = a.id === selectedAccountId
+                    const isSelected = a.id === activeAccountId
                     return (
                       <div
                         key={a.id}
@@ -546,17 +550,17 @@ export function SectorPlaybooksModal({
             <Button
               variant="brass"
               size="sm"
-              onClick={() => onApplySector(profile.slug, selectedAccountId)}
+              onClick={() => onApplySector(currentSector.id, activeAccountId)}
             >
               Appliquer au portefeuille
             </Button>
 
-            {selectedAccountId ? (
+            {activeAccountId ? (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  router.push(`/prospection/accounts/${selectedAccountId}`)
+                  router.push(`/prospection/accounts/${activeAccountId}`)
                 }}
               >
                 Ouvrir le compte prioritaire
@@ -567,6 +571,7 @@ export function SectorPlaybooksModal({
               </Button>
             )}
           </footer>
+
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center text-xs text-white/40 italic">

@@ -79,8 +79,11 @@ export interface BusinessIntelligenceSectorProfile {
   }[]
   updatedAt: string | null
   averageReach: number | null
+  linkedAccountCount: number
+  attractivenessScore: number | null
   summary: string
 }
+
 
 export function buildSectorPlaybookModel(
   snapshot: BusinessIntelligenceSnapshot,
@@ -214,6 +217,9 @@ export function buildSectorPlaybookModel(
     priorityAccounts,
     updatedAt: sector.updatedAt ?? null,
     averageReach: sector.averageReachScore ?? null,
+    linkedAccountCount: sector.linkedAccountCount ?? 0,
+    attractivenessScore: sector.attractivenessScore ?? null,
     summary: status === "active" ? "Secteur documenté et prêt à l'emploi" : "Étude sectorielle en préparation",
   }
 }
+

@@ -10,9 +10,15 @@ import { PotentialReachMatrix } from "./PotentialReachMatrix"
 import { AccountAttackPanel } from "./AccountAttackPanel"
 import { SectorWindowsLedger } from "./SectorWindowsLedger"
 import { SectorPanorama } from "./SectorPanorama"
-import { SectorPlaybooksModal } from "../playbooks/SectorPlaybooksModal"
 import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
+import dynamic from "next/dynamic"
+
+const SectorPlaybooksModal = dynamic(
+  () => import("../playbooks/SectorPlaybooksModal").then(mod => mod.SectorPlaybooksModal),
+  { ssr: false }
+)
+
 
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
@@ -168,9 +174,9 @@ export function BusinessIntelligenceDesktop({ viewModel, snapshot }: BusinessInt
           open={isPlaybooksOpen}
           onClose={() => setIsPlaybooksOpen(false)}
           snapshot={snapshot}
-          initialSectorSlug={selectedSector}
-          onApplySector={(sectorSlug, accountId) => {
-            setSelectedSector(sectorSlug)
+          initialSectorId={selectedSector}
+          onApplySector={(sectorId, accountId) => {
+            setSelectedSector(sectorId)
             if (accountId) {
               setSelectedAccountId(accountId)
             }
@@ -178,6 +184,7 @@ export function BusinessIntelligenceDesktop({ viewModel, snapshot }: BusinessInt
           }}
         />
       )}
+
     </div>
   )
 }
