@@ -1,15 +1,23 @@
 "use client"
 
 import { useId, useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { OpportunityPlanningData } from "@/app/(app)/missions/_data/get-opportunities-planning"
 import type { NeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
-import type { StaffingListRow } from "@/app/(app)/staffing/_data/get-staffings-list"
+import type { StaffingListRow, MobileStaffingRow } from "@/app/(app)/staffing/_data/get-staffings-list"
 import type { StaffingPlanningData } from "@/app/(app)/staffing/_data/get-staffings-planning"
 import { updateOpportunity } from "@/app/(app)/missions/_actions/update-opportunity"
 import { NewOpportunityButton } from "@/components/missions/NewOpportunityButton"
 import { OpportunitiesKanbanView } from "@/components/missions/kanban/OpportunitiesKanbanView"
 import { OpportunitiesPlanningView } from "@/components/missions/planning/OpportunitiesPlanningView"
+import {
+  FinancialModelingDesktopDialog,
+  FinancialModelingMobileFlow,
+  getFinancialModelForStaffingAction,
+  type FinancialModelingLaunchPreset,
+} from "@/features/financial-modeling"
+import { isActivePositioningStatus } from "@/lib/needs-staffing/coverage"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { Button } from "@/components/ui/Button"
 import React from "react"
@@ -91,48 +99,21 @@ interface NeedsStaffingWorkspaceProps {
     rows: StaffingListRow[]
     planningData: StaffingPlanningData[]
   }
+  mobileStaffingRows?: MobileStaffingRow[]
 }
 
-function ScopeSwitcher({
-  scope,
-  onChange,
-}: {
-  scope: "needs" | "staffing"
-  onChange: (scope: "needs" | "staffing") => void
-}) {
-  return (
-    <div
-      role="group"
-      aria-label="Perspective Besoins ou Staffing"
-      className="inline-flex items-center rounded-[var(--radius-medium)] border border-border bg-surface p-0.5"
-    >
-      {[
-        { value: "needs", label: "Besoins" },
-        { value: "staffing", label: "Staffing" },
-      ].map((item) => {
-        const isActive = scope === item.value
-        return (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => onChange(item.value as "needs" | "staffing")}
-            aria-pressed={isActive}
-            className={cn(
-              "inline-flex h-7 items-center rounded-[calc(var(--radius-medium)-1px)] px-3",
-              "text-[length:var(--font-size-label-sm)] font-semibold whitespace-nowrap",
-              "transition-[background-color,color] duration-[var(--motion-duration-fast)] ease-[var(--motion-ease-standard)]",
-              "outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]",
-              isActive
-                ? "bg-primary text-primary-fg"
-                : "text-body hover:bg-surface-hover hover:text-heading",
-            )}
-          >
-            {item.label}
-          </button>
-        )
-      })}
-    </div>
-  )
+const STATUS_LABELS: Record<string, string> = {
+  identifie: "Identifié",
+  propose_interne: "Proposé en interne",
+  preselectionne: "Présélectionné",
+  envoye_client: "CV envoyé",
+  entretien_planifie: "Entretien client",
+  entretien_realise: "Entretien client",
+  retenu: "Retenu",
+  gagne: "Gagné",
+  refuse_client: "Refus client",
+  refuse_candidat: "Refus candidat",
+  abandonne: "Abandonné",
 }
 
 function MiniKpi({
@@ -185,10 +166,39 @@ function SharedKpis({
 
 function NeedsMobileCards({
   rows,
+  staffingRows,
+  onLaunchFinancialSimulation,
 }: {
   rows: MissionsListRow[]
+  staffingRows: Array<StaffingListRow | MobileStaffingRow>
+  onLaunchFinancialSimulation: (staffing: any) => void
 }) {
-  const { openOpportunityDrawer } = useStaffingDrawerStore()
+  const { openOpportunityDrawer, openStaffingDrawer } = useStaffingDrawerStore()
+  const [expandedNeedIds, setExpandedNeedIds] = useState<Set<string>>(new Set())
+
+  const toggleExpand = (needId: string) => {
+    setExpandedNeedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(needId)) {
+        next.delete(needId)
+      } else {
+        next.add(needId)
+      }
+      return next
+    })
+  }
+
+  const needStaffings = useMemo(() => {
+    const map = new Map<string, Array<StaffingListRow | MobileStaffingRow>>()
+    for (const s of staffingRows) {
+      if (!s.opportunityId) continue
+      if (!isActivePositioningStatus(s.status)) continue
+      const list = map.get(s.opportunityId) ?? []
+      list.push(s)
+      map.set(s.opportunityId, list)
+    }
+    return map
+  }, [staffingRows])
 
   if (rows.length === 0) {
     return <div className="py-12 text-center text-sm text-muted">Aucun besoin ne correspond aux filtres.</div>
@@ -196,49 +206,164 @@ function NeedsMobileCards({
 
   return (
     <div className="flex flex-col gap-3">
-      {rows.map((row) => (
-        <button
-          key={row.entityId}
-          type="button"
-          onClick={() => openOpportunityDrawer(row.entityId, "besoin")}
-          className="relative flex min-h-[44px] flex-col gap-2 overflow-hidden rounded-[var(--radius-medium)] border bg-surface px-3 py-2.5 text-left"
-          style={{
-            borderColor: "color-mix(in srgb, var(--color-brand-ember) 55%, var(--color-border))",
-          }}
-        >
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 pr-10">
-              <span className="truncate text-[13px] font-bold text-heading">{row.client}</span>
+      {rows.map((row) => {
+        const activeStaffings = needStaffings.get(row.entityId) || []
+        const hasStaffings = activeStaffings.length > 0
+        const isExpanded = expandedNeedIds.has(row.entityId)
+
+        return (
+          <article
+            key={row.entityId}
+            className="relative overflow-hidden rounded-[var(--radius-medium)] border bg-surface flex flex-col transition-all duration-150"
+            style={{
+              borderColor: "color-mix(in srgb, var(--color-brand-ember) 55%, var(--color-border))",
+              background: "color-mix(in srgb, var(--color-brand-ember) 2%, var(--color-surface))",
+            }}
+          >
+            <div className="flex w-full items-stretch">
+              {hasStaffings ? (
+                <button
+                  type="button"
+                  aria-expanded={isExpanded}
+                  aria-controls={`mobile-staffing-rows-${row.entityId}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleExpand(row.entityId)
+                  }}
+                  className="flex w-12 shrink-0 items-center justify-center border-r border-border/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  style={{ minHeight: "44px" }}
+                >
+                  <svg
+                    className={cn(
+                      "h-4 w-4 text-muted transition-transform duration-200",
+                      isExpanded ? "rotate-90" : "rotate-0"
+                    )}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              ) : (
+                <div className="w-12 shrink-0 border-r border-border/50" />
+              )}
+
+              <div
+                onClick={() => openOpportunityDrawer(row.entityId, "besoin")}
+                className="flex-1 min-w-0 p-3 flex flex-col gap-1 cursor-pointer hover:bg-surface-hover/30"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[13px] font-bold text-heading">{row.client}</span>
+                  <CompanyLogo
+                    name={row.client || "Client"}
+                    logoPath={row.clientLogoPath}
+                    website={row.clientWebsite}
+                    size="sm"
+                  />
+                </div>
+                <p className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-body mt-0.5">
+                  {row.title}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] font-medium text-muted mt-1.5">
+                  <span className="truncate text-heading">
+                    {row.seniority ?? row.subtitle ?? row.practice ?? "Profil non renseigné"}
+                  </span>
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
+                  <span className="shrink-0 text-heading">
+                    {row.targetDailyRate !== null && row.targetDailyRate !== undefined
+                      ? `${formatEuro(row.targetDailyRate)} / j`
+                      : "TJM non renseigné"}
+                  </span>
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
+                  <span className="shrink-0 text-heading">
+                    {row.priority === "haute" ? "Haute" : row.priority === "basse" ? "Basse" : "Normale"}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          <p className="line-clamp-2 text-[13px] font-semibold leading-[1.2] text-body">
-            {row.title}
-          </p>
-          <div className="flex items-center gap-2 pr-10 text-[10px] font-medium text-muted">
-            <span className="truncate text-heading">
-              {row.seniority ?? row.subtitle ?? row.practice ?? "Profil non renseigné"}
-            </span>
-            <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
-            <span className="shrink-0 text-heading">
-              {row.targetDailyRate !== null && row.targetDailyRate !== undefined
-                ? `${formatEuro(row.targetDailyRate)} / j`
-                : "TJM non renseigné"}
-            </span>
-            <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--color-brand-ember)]" aria-hidden="true" />
-            <span className="shrink-0 text-heading">
-              {row.priority === "haute" ? "Haute" : row.priority === "basse" ? "Basse" : "Normale"}
-            </span>
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
-            <CompanyLogo
-              name={row.client || "Client"}
-              logoPath={row.clientLogoPath}
-              website={row.clientWebsite}
-              size="md"
-            />
-          </div>
-        </button>
-      ))}
+
+            <div className="flex items-center justify-end px-3 pb-2.5 pt-1 border-t border-border/40 gap-2">
+              <Link
+                href={`/missions/opps/${row.entityId}`}
+                className="inline-flex h-9 items-center justify-center rounded-[var(--radius-small)] border border-primary bg-primary px-3 text-[11px] font-semibold text-primary-fg shadow-[0_5px_12px_-9px_rgba(19,75,200,0.9)] transition-all duration-200 hover:-translate-y-px hover:border-primary-deep hover:bg-primary-deep"
+                aria-label={`Fiche détails : ${row.title}`}
+              >
+                Fiche détails
+              </Link>
+            </div>
+
+            {isExpanded && activeStaffings.length > 0 && (
+              <div
+                id={`mobile-staffing-rows-${row.entityId}`}
+                className="flex flex-col gap-2 p-2 border-t border-border/50 bg-neutral-50/50 dark:bg-neutral-900/50"
+              >
+                {activeStaffings.map((staffing) => (
+                  <div
+                    key={staffing.id}
+                    onClick={() => openStaffingDrawer(staffing.id)}
+                    className="rounded-lg border p-3 flex flex-col gap-2 transition-colors hover:bg-surface-hover/20 cursor-pointer"
+                    style={{
+                      borderColor: "color-mix(in srgb, var(--color-case-candidate) 22%, var(--color-border))",
+                      backgroundColor: "color-mix(in srgb, var(--color-case-candidate) 4%, var(--color-surface))",
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-[13px] font-bold text-heading">{staffing.fullName}</span>
+                      <span className="text-[11px] text-muted">{staffing.profileTitle ?? "—"}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] border-t border-border/30 pt-2 mt-1">
+                      <div className="flex flex-col">
+                        <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Practice</span>
+                        <span className="font-medium text-body">{staffing.profilePractice ?? "—"}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Étape</span>
+                        <span className="font-semibold text-body">{STATUS_LABELS[staffing.status] ?? staffing.status}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Disponible le</span>
+                        <span className="font-medium text-body">{staffing.availableFrom ?? "—"}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Salaire</span>
+                        <span className="font-semibold text-heading">{formatEuro(staffing.salary)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-2 pt-2 border-t border-border/20">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openStaffingDrawer(staffing.id)
+                        }}
+                        className="flex-1 inline-flex h-11 items-center justify-center rounded-[var(--radius-small)] border border-border bg-surface px-3 text-xs font-semibold text-heading shadow-sm hover:bg-surface-hover active:scale-[0.98] transition-all"
+                      >
+                        Ouvrir le staffing
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onLaunchFinancialSimulation(staffing)
+                        }}
+                        className="flex-1 inline-flex h-11 items-center justify-center rounded-[var(--radius-small)] border border-primary bg-primary text-primary-fg px-3 text-xs font-semibold shadow-sm hover:bg-primary-deep active:scale-[0.98] transition-all"
+                      >
+                        Simulation financière
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        )
+      })}
     </div>
   )
 }
@@ -270,6 +395,7 @@ export function NeedsStaffingWorkspace({
   sharedData,
   needsData,
   staffingData,
+  mobileStaffingRows,
 }: NeedsStaffingWorkspaceProps) {
   const isMobile = device === "mobile"
   const router = useRouter()
@@ -285,31 +411,63 @@ export function NeedsStaffingWorkspace({
   // Planning scale cycle: month → quarter → year → week
   const [planningScale, setPlanningScale] = useState<"month" | "quarter" | "year" | "week">("month")
 
-  const isNeedsScope = isMobile || state.scope === "needs"
+  const [simulation, setSimulation] = useState<{
+    modelId: string | null
+    preset: FinancialModelingLaunchPreset
+  } | null>(null)
+
   const needsRows = needsData?.rows ?? EMPTY_NEEDS_ROWS
   const needsPlanning = needsData?.planningData ?? EMPTY_NEEDS_PLANNING
   const staffingRows = staffingData?.rows ?? EMPTY_STAFFING_ROWS
   const staffingPlanning = staffingData?.planningData ?? EMPTY_STAFFING_PLANNING
 
+  const handleLaunchFinancialSimulation = async (staffing: any) => {
+    const candidateId = staffing.candidateId
+    const candidateName = staffing.fullName
+    const salary = staffing.salary
+    const opportunityId = staffing.opportunityId
+
+    const opportunity = needsRows.find((o) => o.entityId === opportunityId)
+    const companyId = opportunity?.companyId ?? staffing.companyId ?? null
+    const salesDailyRate = opportunity?.targetDailyRate ?? staffing.opportunityTargetDailyRate ?? null
+
+    const result = await getFinancialModelForStaffingAction(opportunityId, candidateId)
+    if (!result.success) {
+      alert(result.error || "Impossible de charger la simulation financière.")
+      return
+    }
+
+    setSimulation({
+      modelId: result.id ?? null,
+      preset: {
+        mode: "flash",
+        title: `Simulation financière — ${candidateName}`,
+        candidateId,
+        candidateName,
+        annualGrossSalary: salary,
+        companyId,
+        opportunityId,
+        salesDailyRate,
+      },
+    })
+  }
+
   const practiceOptions = useMemo(() => {
-    const source = isNeedsScope ? needsRows : staffingRows
-    const uniquePractices = [...new Set(source.map((row) => row.practice).filter(Boolean))]
+    const uniquePractices = [...new Set(needsRows.map((row) => row.practice).filter(Boolean))]
 
     return [
       { value: "all", label: "Practice" },
       ...uniquePractices.map((practice) => ({ value: practice!, label: practice! })),
     ]
-  }, [isNeedsScope, needsRows, staffingRows])
+  }, [needsRows])
 
-  const stageOptions = isNeedsScope
-    ? [
-        { value: "all", label: "Étape" },
-        ...OPPORTUNITY_STAGES.map((stage) => ({
-          value: stage.value,
-          label: stage.label,
-        })),
-      ]
-    : STAFFING_STAGE_OPTIONS
+  const stageOptions = [
+    { value: "all", label: "Étape" },
+    ...OPPORTUNITY_STAGES.map((stage) => ({
+      value: stage.value,
+      label: stage.label,
+    })),
+  ]
 
   const filteredNeedsRows = useMemo(() => (
     filterNeedsRows(needsRows, state)
@@ -344,7 +502,7 @@ export function NeedsStaffingWorkspace({
     (state.stage ? 1 : 0)
     + (state.priority ? 1 : 0)
     + (state.practice ? 1 : 0)
-    + (isNeedsScope && state.sort === "acv" && state.direction ? 1 : 0)
+    + (state.sort === "acv" && state.direction ? 1 : 0)
 
   const handleToggleAcvSort = () => {
     const next = cycleAcvSort(state.sort, state.direction)
@@ -365,22 +523,13 @@ export function NeedsStaffingWorkspace({
     router.refresh()
   }
 
-  const createAction = isNeedsScope
-    ? (
-      <NewOpportunityButton
-        fullWidth={false}
-        iconOnly={isMobile}
-        className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
-      />
-    )
-    : (
-      <NewStaffingButton
-        openNeeds={sharedData.openNeeds}
-        fullWidth={false}
-        iconOnly={isMobile}
-        className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
-      />
-    )
+  const createAction = (
+    <NewOpportunityButton
+      fullWidth={false}
+      iconOnly={isMobile}
+      className={isMobile ? "h-9 w-9 rounded-[var(--radius-medium)] px-0 text-base" : undefined}
+    />
+  )
 
   // Bouton flip kanban
   const kanbanFlipButton = (
@@ -522,10 +671,6 @@ export function NeedsStaffingWorkspace({
                 {createAction}
               </div>
             </div>
-            {/* Ligne 2 : sélecteur Besoins/Staffing */}
-            <div className="mt-3">
-              <ScopeSwitcher scope={state.scope} onChange={setScope} />
-            </div>
           </>
         )}
       </header>
@@ -559,7 +704,11 @@ export function NeedsStaffingWorkspace({
             </div>
           </div>
 
-          <NeedsMobileCards rows={mobileNeedsRows} />
+          <NeedsMobileCards
+            rows={mobileNeedsRows}
+            staffingRows={mobileStaffingRows || []}
+            onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
+          />
 
           <AppDrawer
             open={mobileFiltersOpen}
@@ -599,26 +748,20 @@ export function NeedsStaffingWorkspace({
           </PageFilterBar>
 
           {state.view === "list" ? (
-            isNeedsScope ? (
-              <NeedsListView
-                rows={filteredNeedsRows}
-                coverageByOpportunityId={sharedData.coverageByOpportunityId}
-                acvDirection={state.sort === "acv" ? state.direction : null}
-                onToggleAcvSort={handleToggleAcvSort}
-              />
-            ) : (
-              <StaffingListWorkspaceView rows={filteredStaffingRows} />
-            )
+            <NeedsListView
+              rows={filteredNeedsRows}
+              staffingRows={staffingRows}
+              coverageByOpportunityId={sharedData.coverageByOpportunityId}
+              acvDirection={state.sort === "acv" ? state.direction : null}
+              onToggleAcvSort={handleToggleAcvSort}
+              onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
+            />
           ) : state.view === "kanban" ? (
-            isNeedsScope ? (
-              <OpportunitiesKanbanView
-                opportunities={filteredNeedsPlanning}
-                onMoveOpportunity={handleMoveOpportunity}
-                displayMode={kanbanDisplayMode === "candidat" ? "consultants" : "opportunities"}
-              />
-            ) : (
-              <StaffingKanbanView rows={filteredStaffingRows} displayMode={kanbanDisplayMode === "candidat" ? "candidat" : "opportunite"} />
-            )
+            <OpportunitiesKanbanView
+              opportunities={filteredNeedsPlanning}
+              onMoveOpportunity={handleMoveOpportunity}
+              displayMode={kanbanDisplayMode === "candidat" ? "consultants" : "opportunities"}
+            />
           ) : (
             // Planning : afficher selon la couche active
             <div className="flex flex-col gap-4">
@@ -636,6 +779,24 @@ export function NeedsStaffingWorkspace({
             </div>
           )}
         </>
+      )}
+
+      {simulation && (
+        isMobile ? (
+          <FinancialModelingMobileFlow
+            open={simulation !== null}
+            onOpenChange={(open) => !open && setSimulation(null)}
+            initialId={simulation.modelId ?? undefined}
+            initialPreset={simulation.preset}
+          />
+        ) : (
+          <FinancialModelingDesktopDialog
+            open={simulation !== null}
+            onOpenChange={(open) => !open && setSimulation(null)}
+            initialId={simulation.modelId ?? undefined}
+            initialPreset={simulation.preset}
+          />
+        )
       )}
     </div>
   )

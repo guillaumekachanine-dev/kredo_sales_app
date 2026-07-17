@@ -6,12 +6,14 @@ import type { Json } from "@/types/database"
  * L'embed peut arriver en objet unique OU en tableau (relation 1-N ambiguë côté PostgREST).
  */
 export interface CompanyEmbedLike {
+  id?: string | null
   name?: string | null
   website?: string | null
   metadata?: Json | null
 }
 
 export interface ResolvedCompanyEmbed {
+  id: string | null
   name: string
   website: string | null
   logoPath: string | null
@@ -43,6 +45,7 @@ export function resolveCompanyEmbed(
 ): ResolvedCompanyEmbed {
   const record = pickRecord(companies)
   return {
+    id: record?.id ?? null,
     name: record?.name ?? FALLBACK_COMPANY_NAME,
     website: record?.website ?? null,
     logoPath: extractLogoPath(record?.metadata),

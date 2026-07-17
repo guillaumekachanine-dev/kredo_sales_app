@@ -81,3 +81,54 @@ export function cycleAcvSort(
 
   return { sort: null, direction: null }
 }
+
+export function groupActiveStaffingsByOpportunityId<T extends { opportunityId: string | null; status: string }>(
+  staffingRows: T[],
+  isActivePositioningStatus: (status: string) => boolean,
+): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const s of staffingRows) {
+    if (!s.opportunityId) continue
+    if (!isActivePositioningStatus(s.status)) continue
+    const list = map.get(s.opportunityId) ?? []
+    list.push(s)
+    map.set(s.opportunityId, list)
+  }
+  return map
+}
+
+export function resolveProfilePractice(
+  isCollaborator: boolean,
+  collaboratorPractice: string | null | undefined,
+  candidatePractice: string | null | undefined,
+  opportunityPractice: string | null | undefined,
+): string | null {
+  let practice: string | null = null
+  if (isCollaborator) {
+    practice = collaboratorPractice || null
+  } else {
+    practice = candidatePractice || null
+  }
+  return practice || opportunityPractice || null
+}
+
+export function buildFinancialPreset(
+  candidateId: string,
+  candidateName: string,
+  salary: number | null,
+  companyId: string | null,
+  opportunityId: string,
+  salesDailyRate: number | null,
+) {
+  return {
+    mode: "flash" as const,
+    title: `Simulation financière — ${candidateName}`,
+    candidateId,
+    candidateName,
+    annualGrossSalary: salary,
+    companyId,
+    opportunityId,
+    salesDailyRate,
+  }
+}
+

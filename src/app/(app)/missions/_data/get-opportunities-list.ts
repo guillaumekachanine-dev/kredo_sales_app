@@ -96,6 +96,7 @@ export async function getOpportunitiesList(
         required_headcount,
         requires_staffing,
         companies (
+          id,
           name,
           website,
           metadata
@@ -153,6 +154,7 @@ export async function getOpportunitiesList(
         client: company.name,
         clientWebsite: company.website,
         clientLogoPath: company.logoPath,
+        companyId: company.id,
         amount: formatEuro(amountVal),
         date: dateStr,
         tag,

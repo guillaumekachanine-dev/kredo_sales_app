@@ -4,7 +4,7 @@ import { buildNeedsStaffingUrl, parseNeedsStaffingUrlState } from "@/lib/needs-s
 import { getNeedsStaffingSharedData } from "@/app/(app)/missions/_data/get-needs-staffing-shared"
 import { getOpportunitiesList } from "@/app/(app)/missions/_data/get-opportunities-list"
 import { getOpportunitiesPlanning } from "@/app/(app)/missions/_data/get-opportunities-planning"
-import { getStaffingsList } from "@/app/(app)/staffing/_data/get-staffings-list"
+import { getStaffingsList, getMobileStaffingsList } from "@/app/(app)/staffing/_data/get-staffings-list"
 import { getStaffingsPlanning } from "@/app/(app)/staffing/_data/get-staffings-planning"
 import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
 
@@ -24,13 +24,12 @@ export default async function OpportunitesPage({ searchParams }: OppsPageProps) 
   const device = await getDashboardDevice()
 
   // La vue mobile ne rend que la liste des besoins (+ KPIs partagés).
-  // On évite d'y charger le planning des besoins, la liste et le planning
-  // du staffing (jointures profondes candidats/collaborateurs/compensation),
-  // inutilisés en mobile.
+  // On y charge également un dataset mobile très léger pour les enfants (staffings).
   if (device === "mobile") {
-    const [sharedData, needsRows] = await Promise.all([
+    const [sharedData, needsRows, mobileStaffingsRows] = await Promise.all([
       getNeedsStaffingSharedData(),
       getOpportunitiesList({ onlyStaffingNeeds: true }),
+      getMobileStaffingsList(),
     ])
 
     return (
@@ -38,6 +37,7 @@ export default async function OpportunitesPage({ searchParams }: OppsPageProps) 
         device={device}
         sharedData={sharedData}
         needsData={{ rows: needsRows, planningData: [] }}
+        mobileStaffingRows={mobileStaffingsRows}
       />
     )
   }

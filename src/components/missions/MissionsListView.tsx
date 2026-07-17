@@ -43,6 +43,7 @@ export type MissionsListRow = {
   nextActionLabel?: string | null
   nextActionAt?: string | null
   updatedAt?: string
+  companyId?: string | null
   source?: string | null
   seniority?: string | null
   location?: string | null
@@ -135,7 +136,7 @@ export function MissionsListView({ rows, emptyMessage = "Aucun élément." }: Mi
 
   const handleEditClick = (row: MissionsListRow) => {
     if (row.entityType === "opportunite") {
-      router.push(`/missions/opps/${row.entityId}/edit`)
+      router.push(`/missions/opps/${row.entityId}/modifier`)
       return
     }
     setEditingMission(row)

@@ -1,6 +1,7 @@
 "use server"
 
 import { getFinancialModel } from "../data/get-financial-model"
+import { getFinancialModelForStaffing } from "../data/get-financial-model-for-staffing"
 import { getFinancialModelingBootstrap } from "../data/get-financial-modeling-bootstrap"
 import { getRecentFinancialModels } from "../data/get-recent-financial-models"
 
@@ -9,6 +10,15 @@ export async function getFinancialModelAction(id: string) {
     return { success: true, data: await getFinancialModel(id) }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Erreur de chargement"
+    return { error: msg }
+  }
+}
+
+export async function getFinancialModelForStaffingAction(opportunityId: string, candidateId: string) {
+  try {
+    return { success: true, id: await getFinancialModelForStaffing(opportunityId, candidateId) }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Erreur de chargement de la simulation"
     return { error: msg }
   }
 }

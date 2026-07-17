@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { formatDate } from "@/lib/formatters"
 
 export interface StaffingListRow {
   id: string
@@ -18,6 +19,7 @@ export interface StaffingListRow {
   collaboratorId: string | null
   candidateId: string
   availability: string | null
+  availableFrom?: string | null
   matchScore: number | null
 
   // Finance
@@ -30,6 +32,7 @@ export interface StaffingListRow {
   opportunityTitle: string
   opportunityPriority: string
   practice: string | null
+  profilePractice: string | null
   clientName: string
   clientWebsite: string | null
   clientLogoPath: string | null
@@ -38,6 +41,22 @@ export interface StaffingListRow {
   acv: number | null
   estimatedGain: number | null
   startDate: string | null
+
+  // Extra details for simulator
+  companyId: string | null
+  opportunityTargetDailyRate: number | null
+}
+
+export interface MobileStaffingRow {
+  id: string
+  opportunityId: string
+  status: string
+  candidateId: string
+  fullName: string
+  profileTitle: string | null
+  profilePractice: string | null
+  availableFrom: string | null
+  salary: number | null
 }
 
 export async function getStaffingsList(): Promise<StaffingListRow[]> {
@@ -65,6 +84,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
           acv,
           estimated_gain,
           start_date,
+          company_id,
           company:companies (
             name,
             website,
@@ -77,9 +97,14 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
           source,
           seniority,
           availability,
+          available_from,
           internal_score,
           expected_daily_rate,
           expected_salary,
+          practice_id,
+          offer_practices (
+            name
+          ),
           person:persons (
             id,
             first_name,
@@ -148,6 +173,26 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         marginPct = Math.round(((targetTjm - cjm) / targetTjm) * 100)
       }
 
+      // Resolve practice
+      const practices = candidate?.offer_practices
+      const candidatePractice = practices
+        ? (Array.isArray(practices) ? practices[0]?.name : practices.name)
+        : null
+
+      let profilePractice: string | null = null
+      if (isCollaborator) {
+        profilePractice = collaborator?.practice || null
+      } else {
+        profilePractice = candidatePractice
+      }
+      if (!profilePractice) {
+        profilePractice = opportunity?.practice || null
+      }
+
+      // Resolve availability
+      const formattedAvailableFrom = candidate?.available_from ? formatDate(candidate.available_from) : null
+      const availableFrom = formattedAvailableFrom || candidate?.availability || "—"
+
       return {
         id: item.id,
         status: item.status,
@@ -165,6 +210,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         collaboratorId: collaborator?.id || null,
         candidateId: candidate?.id || "",
         availability: candidate?.availability || null,
+        availableFrom,
         matchScore: candidate?.internal_score ?? null,
         
         salary,
@@ -175,6 +221,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         opportunityTitle: opportunity?.title || "Besoin sans titre",
         opportunityPriority: opportunity?.priority || "normale",
         practice: opportunity?.practice || null,
+        profilePractice,
         clientName: companyRecord?.name || "Client inconnu",
         clientWebsite: companyRecord?.website || null,
         clientLogoPath,
@@ -183,6 +230,8 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
         acv: opportunity?.acv || null,
         estimatedGain: opportunity?.estimated_gain || null,
         startDate: opportunity?.start_date || null,
+        companyId: opportunity?.company_id || null,
+        opportunityTargetDailyRate: opportunity?.target_daily_rate || null,
       }
     })
 
@@ -222,3 +271,68 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
     return []
   }
 }
+
+export async function getMobileStaffingsList(): Promise<MobileStaffingRow[]> {
+  try {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("opportunity_candidates")
+      .select(`
+        id,
+        opportunity_id,
+        status,
+        candidate:candidates (
+          id,
+          current_title,
+          expected_salary,
+          available_from,
+          availability,
+          practice_id,
+          offer_practices (
+            name
+          ),
+          person:persons (
+            full_name
+          )
+        )
+      `)
+
+    if (error) {
+      console.error("Error fetching mobile staffing list:", error)
+      return []
+    }
+
+    const rows = (data ?? []).map((item: any) => {
+      const candidate = item.candidate
+      const person = candidate?.person
+      const fullName = person?.full_name || "Profil sans nom"
+      
+      const practices = candidate?.offer_practices
+      const practiceName = practices
+        ? (Array.isArray(practices) ? practices[0]?.name : practices.name)
+        : null
+
+      const formattedAvailableFrom = candidate?.available_from ? formatDate(candidate.available_from) : null
+      const availableFrom = formattedAvailableFrom || candidate?.availability || "—"
+
+      return {
+        id: item.id,
+        opportunityId: item.opportunity_id || "",
+        status: item.status,
+        candidateId: candidate?.id || "",
+        fullName,
+        profileTitle: candidate?.current_title || null,
+        profilePractice: practiceName || null,
+        availableFrom,
+        salary: candidate?.expected_salary || null,
+      }
+    })
+
+    return rows
+  } catch (err) {
+    console.error("Unhandled error in getMobileStaffingsList:", err)
+    return []
+  }
+}
+
