@@ -15,6 +15,7 @@ interface SectorPlaybooksModalProps {
   snapshot: BusinessIntelligenceSnapshot
   initialSectorId: string | "all"
   onApplySector: (sectorId: string, firstAccountId: string | null) => void
+  isMobile?: boolean
 }
 
 function calculateCompleteness(profile: BusinessIntelligenceSectorProfile | null): number {
@@ -39,6 +40,7 @@ export function SectorPlaybooksModal({
   snapshot,
   initialSectorId,
   onApplySector,
+  isMobile = false,
 }: SectorPlaybooksModalProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
@@ -247,7 +249,7 @@ export function SectorPlaybooksModal({
                     Étude sectorielle en préparation
                   </span>
                   <p className="text-[11px] text-white/50">
-                    Ce secteur est actuellement en veille. Les playbooks et argumentaires complets seront disponibles dès la finalisation de l'étude.
+                    Ce secteur est actuellement en veille. Les playbooks et argumentaires complets seront disponibles dès la finalisation de l&apos;étude.
                   </p>
                 </div>
 
@@ -349,7 +351,7 @@ export function SectorPlaybooksModal({
                           {pp.description && <p className="text-[11px] text-white/60">{pp.description}</p>}
                           {pp.verbatim && (
                             <blockquote className="border-l-2 border-brand-brass/40 pl-2 text-[10px] italic text-white/50">
-                              "{pp.verbatim}"
+                              &ldquo;{pp.verbatim}&rdquo;
                             </blockquote>
                           )}
                         </div>
@@ -470,7 +472,7 @@ export function SectorPlaybooksModal({
                           <p><strong>Verbatims :</strong> {profile.caveats.verbatims}</p>
                         )}
                         {profile.caveats.frequences && (
-                          <p><strong>Fréquences d'occurrence :</strong> {profile.caveats.frequences}</p>
+                          <p><strong>Fréquences d&apos;occurrence :</strong> {profile.caveats.frequences}</p>
                         )}
                         {profile.caveats.marche && (
                           <p><strong>Chiffres marché :</strong> {profile.caveats.marche}</p>
@@ -581,6 +583,63 @@ export function SectorPlaybooksModal({
     </div>
   )
 
+  const mobileContent = (
+    <div className="flex min-h-0 flex-1 flex-col bg-[#0a0b1e] text-white">
+      <div className="shrink-0 border-b border-white/5 px-4 py-3">
+        <label htmlFor="mobile-playbook-sector" className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-white/45">
+          Secteur
+        </label>
+        <select
+          id="mobile-playbook-sector"
+          value={currentSector?.id ?? ""}
+          onChange={(event) => setSelectedSectorId(event.target.value)}
+          className="min-h-11 w-full rounded-lg border border-white/10 bg-slate-950/50 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-brass"
+        >
+          {sectorsList.map((sector) => (
+            <option key={sector.id} value={sector.id}>{sector.name}{sector.status === "watch" ? " — veille" : ""}</option>
+          ))}
+        </select>
+      </div>
+      {profile ? (
+        <>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-5">
+            <div className="space-y-2 border-b border-white/10 pb-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className={`rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${profile.status === "active" ? "bg-brand-brass/10 text-brand-brass" : "bg-white/5 text-white/45"}`}>
+                  {profile.status === "active" ? "Étude opérationnelle" : "Secteur en veille"}
+                </span>
+                <span className="text-[10px] text-white/45">{profile.topPracticeLabel}</span>
+              </div>
+              <h3 className="text-xl font-bold text-white">{profile.name}</h3>
+              {profile.description ? <p className="text-xs leading-relaxed text-white/65">{profile.description}</p> : null}
+            </div>
+            {profile.status === "watch" ? (
+              <div className="py-8 text-center">
+                <p className="text-sm font-semibold text-brand-brass">Étude en préparation</p>
+                <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-white/55">Le playbook n&apos;est pas encore disponible pour ce secteur. Aucune recommandation n&apos;est inventée.</p>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                <MobilePlaybookSection title="Synthèse"><p>{profile.summary}</p></MobilePlaybookSection>
+                <MobilePlaybookSection title="Personas"><MobileTextList items={profile.playbook.personas.map((persona) => `${persona.role} — ${persona.enjeu}`)} empty="Aucun persona renseigné." /></MobilePlaybookSection>
+                <MobilePlaybookSection title="Pain points"><MobileTextList items={profile.painPoints.map((point) => point.title)} empty="Aucun pain point renseigné." /></MobilePlaybookSection>
+                <MobilePlaybookSection title="Arguments ROI"><MobileTextList items={profile.playbook.roiArguments} empty="Aucun argument ROI renseigné." /></MobilePlaybookSection>
+                <MobilePlaybookSection title="Objections"><MobileTextList items={profile.playbook.objections.map((objection) => `${objection.objection} — ${objection.reponse}`)} empty="Aucune objection renseignée." /></MobilePlaybookSection>
+                <MobilePlaybookSection title="Échéances"><MobileTextList items={profile.deadlines.map((deadline) => `${deadline.title}${deadline.date ? ` · ${new Date(deadline.date).toLocaleDateString("fr-FR")}` : ""}`)} empty="Aucune échéance renseignée." /></MobilePlaybookSection>
+                <MobilePlaybookSection title="Comptes prioritaires"><MobileTextList items={profile.priorityAccounts.map((account) => `${account.name} · priorité ${account.priority}`)} empty="Aucun compte prioritaire lié." /></MobilePlaybookSection>
+                <MobilePlaybookSection title={`Caveats et sources${profile.sources.length ? ` (${profile.sources.length})` : ""}`}><MobileTextList items={[profile.caveats?.corpus, profile.caveats?.verbatims, profile.caveats?.frequences, profile.caveats?.marche, ...profile.sources].filter((value): value is string => Boolean(value))} empty="Aucune réserve ou source renseignée." /></MobilePlaybookSection>
+              </div>
+            )}
+          </div>
+          <footer className="flex shrink-0 gap-2 border-t border-white/10 bg-slate-950/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <Button variant="brass" size="sm" className="min-h-11 flex-1" onClick={() => onApplySector(currentSector.id, activeAccountId)}>Appliquer au portefeuille</Button>
+            {activeAccountId ? <Button variant="secondary" size="sm" className="min-h-11 flex-1" onClick={() => router.push(`/prospection/accounts/${activeAccountId}`)}>Ouvrir le compte</Button> : null}
+          </footer>
+        </>
+      ) : <div className="flex flex-1 items-center justify-center px-4 text-center text-xs text-white/45">Aucun secteur disponible.</div>}
+    </div>
+  )
+
   return (
     <IntelligenceSplitModalShell
       open={open}
@@ -590,6 +649,25 @@ export function SectorPlaybooksModal({
       leftPaneWidth="32%"
       leftPane={leftPane}
       rightPane={rightPane}
+      content={isMobile ? mobileContent : undefined}
+      isMobile={isMobile}
     />
   )
+}
+
+function MobilePlaybookSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="rounded-lg border border-white/10 bg-white/[0.025]">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 text-xs font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
+        {title}
+        <svg className="size-4 text-white/45" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
+      </summary>
+      <div className="border-t border-white/10 px-3 py-3 text-xs leading-relaxed text-white/70">{children}</div>
+    </details>
+  )
+}
+
+function MobileTextList({ items, empty }: { items: string[]; empty: string }) {
+  if (items.length === 0) return <p className="italic text-white/45">{empty}</p>
+  return <ul className="space-y-2">{items.map((item) => <li key={item} className="flex gap-2"><span className="mt-1.5 size-1 shrink-0 rounded-full bg-brand-brass" aria-hidden="true" />{item}</li>)}</ul>
 }

@@ -1,0 +1,11 @@
+"use client"
+
+import type { BusinessIntelligenceMobileWindow } from "../presenters/build-business-intelligence-mobile-model"
+import { EmptyPanel } from "./MobileDecisionBrief"
+
+export function MobileSectorWindows({ windows, onSelectWindow }: { windows: BusinessIntelligenceMobileWindow[]; onSelectWindow: (window: BusinessIntelligenceMobileWindow) => void }) {
+  if (windows.length === 0) return <EmptyPanel title="Aucune fenêtre" description="Aucune fenêtre sectorielle prioritaire n'est ouverte actuellement." />
+  return <section className="px-4 py-5" aria-labelledby="mobile-windows-title"><div className="mb-3 flex items-baseline justify-between"><h2 id="mobile-windows-title" className="text-sm font-bold text-white">Fenêtres à exploiter</h2><span className="text-xs text-white/45">{windows.length} maximum</span></div><div className="space-y-3">{windows.map((window) => <button key={window.id} type="button" onClick={() => onSelectWindow(window)} className="w-full rounded-xl border border-white/10 bg-white/[0.025] p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="line-clamp-2 text-sm font-semibold leading-snug text-white">{window.title}</p><p className="mt-1 text-[11px] text-white/55">{window.sectorName} · {sourceLabel(window.sourceType)}</p></div><span className="shrink-0 rounded-md bg-brand-brass/10 px-2 py-1 text-xs font-bold text-brand-brass">{window.urgencyScore}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-brand-brass" style={{ width: `${window.urgencyScore}%` }} /></div><p className="mt-3 text-[11px] text-white/55">{window.deadlineAt ? `Échéance : ${new Date(window.deadlineAt).toLocaleDateString("fr-FR")}` : "Échéance non renseignée"} · {window.practiceLabel} · {window.exposedAccountCount} comptes</p><p className="mt-2 line-clamp-2 text-xs leading-relaxed text-white/75">{window.suggestedAction}</p><p className="mt-3 text-xs font-semibold text-brand-brass">Voir le compte exposé prioritaire</p></button>)}</div></section>
+}
+
+function sourceLabel(source: BusinessIntelligenceMobileWindow["sourceType"]) { return source === "event" ? "Événement" : source === "news" ? "Actualité" : "Réglementation" }
