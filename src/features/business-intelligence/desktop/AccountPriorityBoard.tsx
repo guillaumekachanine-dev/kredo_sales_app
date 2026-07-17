@@ -14,7 +14,7 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
   return (
     <section className="overflow-hidden rounded-xl border border-border/30 bg-surface/30">
       <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
-        <h2 className="font-heading text-sm font-bold text-body">Classement de couverture</h2>
+        <h2 className="font-heading text-sm font-bold text-heading">Classement de couverture</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">

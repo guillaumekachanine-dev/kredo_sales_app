@@ -23,6 +23,30 @@ interface TimelineGroup {
   windows: SectorActivationWindow[]
 }
 
+const TIMELINE_TONES = {
+  regulation: {
+    border: "border-primary/45",
+    connector: "bg-primary/70",
+    marker: "border-primary bg-primary/20",
+    signal: "bg-primary",
+    source: "text-primary",
+  },
+  event: {
+    border: "border-info/45",
+    connector: "bg-info/70",
+    marker: "border-info bg-info/20",
+    signal: "bg-info",
+    source: "text-info",
+  },
+  news: {
+    border: "border-success/45",
+    connector: "bg-success/70",
+    marker: "border-success bg-success/20",
+    signal: "bg-success",
+    source: "text-success",
+  },
+} as const
+
 function getTimelineDate(window: SectorActivationWindow) {
   return window.deadlineAt ?? window.detectedAt
 }
@@ -94,6 +118,7 @@ function TimelineCard({
 }) {
   const isAccent = isSelected || isInteractive
   const date = getTimelineDate(window)
+  const tone = TIMELINE_TONES[window.sourceType]
 
   return (
     <button
@@ -104,13 +129,14 @@ function TimelineCard({
       onFocus={onInteract}
       onBlur={onLeave}
       aria-pressed={isSelected}
-      className={`group h-full w-full rounded-xl border p-3 text-left transition-[background-color,border-color,color,box-shadow] duration-150 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isAccent
-        ? "border-primary/60 bg-primary/5 shadow-sm"
-        : "border-border/40 bg-surface/20 hover:border-primary/60 hover:bg-primary/5"
+      className={`group relative h-full w-full overflow-hidden rounded-xl border p-3 text-left transition-[background-color,border-color,color,box-shadow,transform] duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isAccent
+        ? "border-primary/70 bg-primary/10 shadow-sm"
+        : `${tone.border} bg-surface/20 hover:-translate-y-0.5 hover:border-primary hover:bg-primary/10`
         }`}
     >
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-0.5 transition-colors duration-200 motion-reduce:transition-none ${isAccent ? "bg-primary" : tone.signal}`} />
       <div className="flex items-start justify-between gap-2">
-        <time dateTime={date ?? undefined} className={`text-[9px] font-semibold uppercase tracking-[0.08em] ${isAccent ? "text-primary" : "text-muted group-hover:text-primary"}`}>
+        <time dateTime={date ?? undefined} className={`text-[9px] font-semibold uppercase tracking-[0.08em] ${isAccent ? "text-primary" : `${tone.source} group-hover:text-primary`}`}>
           {formatTimelineDate(date)}
         </time>
         <span className="shrink-0 rounded border border-border/40 bg-surface-hover/30 px-1.5 py-0.5 text-[9px] font-semibold text-body">
@@ -120,7 +146,7 @@ function TimelineCard({
 
       <h3 className={`mt-2 text-xs font-bold leading-snug transition-colors ${isAccent ? "text-primary" : "text-body group-hover:text-primary"}`}>{window.title}</h3>
       <p className="mt-1 text-[10px] leading-snug text-muted">{window.sectorName} <span aria-hidden="true">·</span> {window.practiceLabel}</p>
-      <p className="mt-2 text-[10px] leading-snug text-body">{SECTOR_ACTIVATION_SOURCE_LABELS[window.sourceType]} <span aria-hidden="true">·</span> {window.sourceLabel}</p>
+      <p className="mt-2 text-[10px] leading-snug text-body"><span className={`font-semibold ${isAccent ? "text-primary" : `${tone.source} group-hover:text-primary`}`}>{SECTOR_ACTIVATION_SOURCE_LABELS[window.sourceType]}</span> <span aria-hidden="true">·</span> {window.sourceLabel}</p>
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-border/20 pt-2 text-[10px]">
         <span className="text-muted">{window.exposedAccountCount} compte{window.exposedAccountCount > 1 ? "s" : ""}</span>
         <span className="text-muted">{date ? "Échéance" : "À dater"}</span>
@@ -162,6 +188,7 @@ function TimelineRail({
           const isSelected = selectedWindowId === window.id
           const isInteractive = interactiveWindowId === window.id
           const isAccent = isSelected || isInteractive
+          const tone = TIMELINE_TONES[window.sourceType]
           const columnStyle: CSSProperties = { gridColumnStart: index + 1 }
 
           return (
@@ -178,12 +205,12 @@ function TimelineRail({
               </div>
               <span
                 aria-hidden="true"
-                className={`${isUpper ? "row-start-2 self-end" : "row-start-4 self-start"} mx-auto h-full w-px ${isAccent ? "bg-primary" : "bg-border/70"}`}
+                className={`${isUpper ? "row-start-2 self-end" : "row-start-4 self-start"} mx-auto h-full w-px transition-colors duration-200 motion-reduce:transition-none ${isAccent ? "bg-primary" : tone.connector}`}
                 style={columnStyle}
               />
               <span
                 aria-hidden="true"
-                className={`row-start-3 mx-auto size-2.5 self-center rounded-full border-2 transition-colors duration-150 motion-reduce:transition-none ${isAccent ? "border-primary bg-primary ring-4 ring-primary/15" : "border-border bg-surface"}`}
+                className={`row-start-3 mx-auto size-2.5 self-center rounded-full border-2 transition-[background-color,border-color,box-shadow] duration-200 motion-reduce:transition-none ${isAccent ? "border-primary bg-primary ring-4 ring-primary/15" : `${tone.marker} bg-surface`}`}
                 style={columnStyle}
               />
             </div>
@@ -223,7 +250,7 @@ export function SectorWindowsTimeline({
         {timelineGroups.map((group) => (
           <section key={group.key} aria-labelledby={`sector-timeline-${group.key}`}>
             <div className="mb-3 flex items-center gap-3">
-              <h3 id={`sector-timeline-${group.key}`} className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{group.label}</h3>
+              <h3 id={`sector-timeline-${group.key}`} className="text-[10px] font-semibold uppercase tracking-[0.12em] text-heading">{group.label}</h3>
               <span aria-hidden="true" className="h-px flex-1 bg-border/40" />
             </div>
             <TimelineRail
@@ -244,7 +271,7 @@ export function SectorWindowsTimeline({
     <section className="overflow-hidden rounded-xl border border-border/30 bg-surface/30">
       <div className="flex items-end justify-between gap-4 border-b border-border/30 px-5 py-4">
         <div className="space-y-1">
-          <h2 className="font-heading text-sm font-bold text-body">Fenêtres sectorielles</h2>
+          <h2 className="font-heading text-sm font-bold text-heading">Fenêtres sectorielles</h2>
           <p className="text-xs text-muted">Les cinq signaux sélectionnés, positionnés par échéance.</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">

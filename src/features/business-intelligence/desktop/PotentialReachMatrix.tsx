@@ -55,7 +55,7 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
 
   return (
     <section className="flex min-h-[430px] min-w-0 flex-col rounded-xl border border-border/30 bg-surface/30 p-5">
-      <h2 className="font-heading text-sm font-bold text-body">Matrice Potentiel × Reach</h2>
+      <h2 className="font-heading text-sm font-bold text-heading">Matrice Potentiel × Reach</h2>
       <p className="mb-4 mt-1 text-xs text-muted">Croisement de la couverture relationnelle et du potentiel de développement.</p>
       
       <div className="flex-1 relative w-full flex items-center justify-center min-h-0">

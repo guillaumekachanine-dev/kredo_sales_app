@@ -13,7 +13,7 @@ export function BusinessIntelligenceHeader({ onPlaybooksClick, onStudiesClick }:
   return (
     <header className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 border-b border-border/40 px-4 py-8 lg:flex-row lg:items-center lg:justify-between lg:px-8">
       <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-body">
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
           Business Intelligence
         </h1>
         <p className="max-w-2xl text-xs text-muted">

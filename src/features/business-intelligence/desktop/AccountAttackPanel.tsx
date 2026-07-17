@@ -30,7 +30,7 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
       <section className="rounded-xl border border-border/30 bg-surface/30">
       <div className="border-b border-border/30 bg-surface-hover/20 p-4">
         <div className="flex justify-between items-start mb-2">
-          <h2 className="truncate font-heading text-sm font-bold text-body" title={baseAccount.name}>{baseAccount.name}</h2>
+          <h2 className="truncate font-heading text-sm font-bold text-heading" title={baseAccount.name}>{baseAccount.name}</h2>
           <Badge variant="neutral" className="ml-2 whitespace-nowrap">{baseAccount.priority} / 100</Badge>
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted">
