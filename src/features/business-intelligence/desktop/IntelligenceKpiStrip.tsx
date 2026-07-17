@@ -6,29 +6,21 @@ interface IntelligenceKpiStripProps {
 
 
 export function IntelligenceKpiStrip({ kpis }: IntelligenceKpiStripProps) {
+  const items = [
+    { label: "Comptes prioritaires", value: kpis.priorityAccountsCount },
+    { label: "Fenêtres ouvertes", value: kpis.openWindowsCount },
+    { label: "Secteurs actifs", value: kpis.activeSectorsCount },
+    { label: "Confiance moyenne", value: kpis.averageConfidence !== null ? `${kpis.averageConfidence}%` : "N/A" },
+  ]
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-sm">
-        <span className="block text-xs uppercase tracking-wider text-[var(--color-muted)] mb-1">Comptes prioritaires</span>
-        <span className="block text-2xl font-bold text-[var(--color-text-main)]">{kpis.priorityAccountsCount}</span>
-      </div>
-      
-      <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-sm">
-        <span className="block text-xs uppercase tracking-wider text-[var(--color-muted)] mb-1">Fenêtres ouvertes</span>
-        <span className="block text-2xl font-bold text-[var(--color-dataviz-1)]">{kpis.openWindowsCount}</span>
-      </div>
-
-      <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-sm">
-        <span className="block text-xs uppercase tracking-wider text-[var(--color-muted)] mb-1">Secteurs actifs</span>
-        <span className="block text-2xl font-bold text-[var(--color-text-main)]">{kpis.activeSectorsCount}</span>
-      </div>
-
-      <div className="bg-[var(--color-surface)] p-4 rounded-lg border border-[var(--color-border)] shadow-sm">
-        <span className="block text-xs uppercase tracking-wider text-[var(--color-muted)] mb-1">Confiance moyenne</span>
-        <span className="block text-2xl font-bold text-[var(--color-text-main)]" title="Confiance moyenne des scores natifs">
-          {kpis.averageConfidence !== null ? `${kpis.averageConfidence}%` : "N/A"}
-        </span>
-      </div>
-    </div>
+    <section aria-label="Indicateurs clés" className="grid divide-y divide-border rounded-xl border border-border bg-surface sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+      {items.map((item) => (
+        <div key={item.label} className="px-4 py-4 lg:px-5">
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{item.label}</span>
+          <span className="mt-1 block font-heading text-2xl font-bold text-heading">{item.value}</span>
+        </div>
+      ))}
+    </section>
   )
 }

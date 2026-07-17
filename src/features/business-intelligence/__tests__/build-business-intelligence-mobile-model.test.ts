@@ -51,6 +51,17 @@ describe("Business Intelligence Mobile presenter", () => {
     expect(resolveMobileWindowAccountId(model.windows[0]!)).toBe("account-30")
   })
 
+  it("conserve toutes les fenêtres pour la modale exhaustive, le rendu mobile en limite cinq", () => {
+    const windows = Array.from({ length: 6 }, (_, index) => ({
+      ...snapshot.windows[0]!,
+      id: `window-${index + 1}`,
+    }))
+    const model = buildBusinessIntelligenceMobileModel({ ...snapshot, windows })
+
+    expect(model.windows).toHaveLength(6)
+    expect(readFileSync("src/features/business-intelligence/mobile/BusinessIntelligenceMobile.tsx", "utf8")).toContain("limit={5}")
+  })
+
   it("préserve les UUID de secteur et ne fabrique pas de playbook pour un secteur watch", () => {
     const model = buildBusinessIntelligenceMobileModel(snapshot)
     expect(model.activeSectors[0]?.id).toBe("active-sector")

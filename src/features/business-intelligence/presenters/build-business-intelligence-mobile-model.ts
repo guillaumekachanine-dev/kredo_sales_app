@@ -157,7 +157,7 @@ export function buildBusinessIntelligenceMobileModel(
 ): BusinessIntelligenceMobileViewModel {
   const period30 = buildPeriodModel(snapshot, 30)
   const priorityAccountIds = new Set(period30.accounts.map((account) => account.accountId))
-  const windows = snapshot.windows.slice(0, 5).map((window) => ({
+  const windows = snapshot.windows.map((window) => ({
     ...window,
     priorityAccountId: window.exposedAccountIds.find((accountId) => priorityAccountIds.has(accountId)) ?? null,
   }))

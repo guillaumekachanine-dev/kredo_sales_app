@@ -13,13 +13,21 @@ export default async function BusinessIntelligencePage() {
   if (device === "mobile") {
     const snapshot = await getBusinessIntelligenceSnapshot()
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
-    return <BusinessIntelligenceMobile viewModel={viewModel} snapshot={snapshot} />
+    return (
+      <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+        <BusinessIntelligenceMobile viewModel={viewModel} snapshot={snapshot} />
+      </div>
+    )
   }
 
   // Load snapshot & build presenter model entirely on server
   const snapshot = await getBusinessIntelligenceSnapshot()
   const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
 
-  return <BusinessIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} />
+  return (
+    <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+      <BusinessIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} />
+    </div>
+  )
 
 }

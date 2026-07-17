@@ -9,7 +9,7 @@ import { AccountPriorityBoard } from "./AccountPriorityBoard"
 import { PotentialReachMatrix } from "./PotentialReachMatrix"
 import { AccountAttackPanel } from "./AccountAttackPanel"
 import { SectorWindowsLedger } from "./SectorWindowsLedger"
-import { SectorPanorama } from "./SectorPanorama"
+import { PriorityAccountsModal, SectorWindowsModal } from "./BusinessIntelligenceLedgerModals"
 import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
 import dynamic from "next/dynamic"
@@ -17,6 +17,11 @@ import dynamic from "next/dynamic"
 const SectorPlaybooksModal = dynamic(
   () => import("../playbooks/SectorPlaybooksModal").then(mod => mod.SectorPlaybooksModal),
   { ssr: false }
+)
+
+const SectorStudiesModal = dynamic(
+  () => import("../studies/SectorStudiesModal").then(mod => mod.SectorStudiesModal),
+  { ssr: false },
 )
 
 
@@ -30,7 +35,7 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-8">
         <section className="max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
-          <h1 className="text-lg font-semibold text-[var(--color-text-main)]">Données indisponibles</h1>
+          <h1 className="text-lg font-semibold text-heading">Données indisponibles</h1>
           <p className="mt-2 text-sm text-[var(--color-muted)]">La Business Intelligence ne peut pas être chargée pour le moment.</p>
         </section>
       </main>
@@ -48,6 +53,9 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
 
   // Playbooks modal state
   const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
+  const [isStudiesOpen, setIsStudiesOpen] = useState(false)
+  const [isAccountsOpen, setIsAccountsOpen] = useState(false)
+  const [isWindowsOpen, setIsWindowsOpen] = useState(false)
 
   // Get active period precomputed model
   const periodData = useMemo(() => {
@@ -102,13 +110,13 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
   const selectedAttackData = activeSelectedId ? periodData.attackPanelData[activeSelectedId] ?? null : null
 
   return (
-    <div className="flex flex-col min-h-screen bg-[var(--color-background)]">
-      <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} />
+    <div className="min-h-screen bg-canvas">
+      <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
 
       {/* Filter Bar */}
-      <div className="px-8 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-5 py-3 lg:px-8">
         <select 
-          className="bg-[var(--color-background)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-dataviz-1)]"
+          className="min-h-10 rounded-lg border border-border bg-canvas px-3 text-sm text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           value={period}
           onChange={(e) => setPeriod(Number(e.target.value) as 30 | 90 | 180)}
         >
@@ -118,12 +126,12 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
         </select>
 
         <select 
-          className="bg-[var(--color-background)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-dataviz-1)]"
+          className="min-h-10 rounded-lg border border-border bg-canvas px-3 text-sm text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           value={selectedSector}
           onChange={(e) => setSelectedSector(e.target.value)}
         >
           <option value="all">Tous les secteurs</option>
-          {viewModel.panorama.map(s => (
+          {snapshot.sectors.map(s => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
@@ -131,58 +139,29 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
         <input 
           type="search"
           placeholder="Rechercher un compte..."
-          className="bg-[var(--color-background)] border border-[var(--color-border)] rounded px-3 py-1.5 text-sm text-[var(--color-text-main)] focus:outline-none focus:border-[var(--color-dataviz-1)] w-64"
+          className="min-h-10 w-full rounded-lg border border-border bg-canvas px-3 text-sm text-heading placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-72"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      <div className="flex-1 p-8 space-y-6">
+      <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
         {viewModel.hasDemoData && (
-          <div className="bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded px-4 py-2 text-sm text-[var(--color-muted)] flex items-center">
+          <div className="flex items-center rounded-lg border border-border bg-surface-hover/50 px-4 py-2 text-sm text-muted">
             <span className="w-2 h-2 rounded-full bg-orange-500 mr-2 flex-shrink-0" />
             Certaines activités de démonstration sont incluses dans les indicateurs.
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <StrategicBrief brief={periodData.strategicBrief} />
-            <IntelligenceKpiStrip kpis={periodData.kpis} />
-            
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-[400px]">
-              <AccountPriorityBoard 
-                accounts={filteredAccounts} 
-                selectedAccountId={activeSelectedId}
-                onSelectAccount={handleSelectAccount} 
-              />
-              <PotentialReachMatrix 
-                points={filteredMatrixPoints}
-                selectedAccountId={activeSelectedId}
-                onSelectAccount={handleSelectAccount} 
-              />
-            </div>
-
-            <div className="h-[300px]">
-              <SectorWindowsLedger 
-                windows={viewModel.windowsLedger} 
-                onSelectWindow={handleSelectWindow}
-              />
-            </div>
-          </div>
-          
-          <div className="lg:col-span-1 flex flex-col h-full min-h-[800px]">
-            <AccountAttackPanel 
-              attackData={selectedAttackData} 
-              baseAccount={selectedBaseAccount}
-            />
-          </div>
+        <StrategicBrief brief={periodData.strategicBrief} />
+        <IntelligenceKpiStrip kpis={periodData.kpis} />
+        <AccountPriorityBoard accounts={filteredAccounts} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} limit={5} onShowAll={() => setIsAccountsOpen(true)} />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <PotentialReachMatrix points={filteredMatrixPoints} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} />
+          <AccountAttackPanel attackData={selectedAttackData} baseAccount={selectedBaseAccount} />
         </div>
-
-        <div className="h-[250px]">
-          <SectorPanorama sectors={viewModel.panorama} />
-        </div>
-      </div>
+        <SectorWindowsLedger windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} limit={5} onShowAll={() => setIsWindowsOpen(true)} />
+      </main>
 
       {isPlaybooksOpen && (
         <SectorPlaybooksModal
@@ -199,6 +178,10 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
           }}
         />
       )}
+
+      {isStudiesOpen && <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} initialSectorId={selectedSector} />}
+      <PriorityAccountsModal open={isAccountsOpen} onClose={() => setIsAccountsOpen(false)} accounts={filteredAccounts} selectedAccountId={activeSelectedId} onSelectAccount={(accountId) => { handleSelectAccount(accountId); setIsAccountsOpen(false) }} />
+      <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={viewModel.windowsLedger} onSelectWindow={(window) => { handleSelectWindow(window); setIsWindowsOpen(false) }} />
 
     </div>
   )
