@@ -3,8 +3,8 @@
 > **Document de référence.** Il définit ce qu'est une étude sectorielle KREDO, comment on la produit, ce qu'elle doit contenir, et comment on juge qu'elle est bonne.
 > Il est écrit pour être exécuté par un agent (Claude, ChatGPT, Gemini) **sans contexte préalable du projet**, ou par un humain.
 >
-> **Propriétaire :** Guillaume Kasanin · **Version :** 1.0 · **Date :** 2026-07-16 · **Revue :** à chaque nouvelle fiche produite, puis trimestrielle
-> **Statut des données citées :** vérifiées en base live le 2026-07-16 (projet Supabase `jvzgmhvwirsbdkjpmvla`).
+> **Propriétaire :** Guillaume Kasanin · **Version :** 1.1 · **Date :** 2026-07-17 · **Revue :** à chaque nouvelle fiche produite, puis trimestrielle
+> **Statut des données citées :** vérifiées en base live le 2026-07-17 (projet Supabase `jvzgmhvwirsbdkjpmvla`), suite à la production de la fiche `btp-construction-immobilier`.
 
 ---
 
@@ -30,7 +30,7 @@ Comprendre l'histoire évite de refaire les erreurs déjà payées.
 **Couche 1 — L'héritage FOLIO (juin 2026, import unique du 09/06).**
 FOLIO était l'outil précédent. Il a laissé en base, dans `companies.metadata`, deux blocs JSON par compte :
 - `metadata.sector_analysis` — **81 comptes sur 96**. Une analyse de marché en 7 sections (`acteurs_cles`, `chaine_valeur`, `volume_marche`, `segment_clientele`, `synthese_sectorielle`, `environnement_normatif`, `analyse_concurrentielle`). Dense, structurée, souvent excellente.
-- `metadata.analysis_data` — **93 comptes**. 5 clés (`actualites_recentes`, `tendance_croissance`, `recrutements_recents`, `indices_maturite_digitale`, `signaux`).
+- `metadata.analysis_data` — **93 comptes**. ⚠️ **Structure non uniforme, vérifiée deux fois avec des résultats différents.** Sur les comptes du secteur BTP (2026-07-17), les clés réelles sont `identite`, `positionnement`, `contexte_sectoriel`, `synthese_consultant`, `signaux` — ce dernier objet imbriqué portant `actualites_recentes`, `tendance_croissance`, `recrutements_recents`, `indices_maturite_digitale`. Ne suppose jamais la forme : lance `SELECT jsonb_object_keys(c.metadata->'analysis_data') FROM companies c WHERE …` avant de creuser, la structure peut différer d'un lot d'import à l'autre.
 
 **Le défaut fondamental de FOLIO : aucune source.** Pas une URL, pas une date de publication, pas un nom de rapport. Le contenu est plausible, souvent juste, parfois périmé — et **invérifiable**. C'est exactement ce qui a motivé la doctrine de traçabilité de KREDO.
 
@@ -117,8 +117,8 @@ Une étude sectorielle produit du **mutualisable** — ce qui est vrai pour 5 co
 | `banque-finance-assurance` | active | 4.4 | 5 | 8 | 5 | 5 | 0 | **Fiche complète** — référence corpus mince |
 | `nutraceutique-sante-naturelle` | active | 4.3 | 2 | 6 | 3 | 5 | 0 | **Fiche complète** — référence méthode |
 | `sante-medtech-medico-social` | active | 4.2 | 9 | 7 | 6 | 3 | 0 | **Fiche complète** — première fiche Axe A 35/35 (Gate 3 : 94/100). Univet (vétérinaire) détaché du secteur à l'injection : 9 comptes, pas 10 |
+| `btp-construction-immobilier` | active | 4.1 | 9 | 6 | 5 | 4 | 0 | **Fiche complète** — Gate 3 : 98/100, Axe A 35/35. Iselection et Keller Williams France (transaction immobilière) détachés à l'injection, hors périmètre négoce/construction : 9 comptes, pas 11. Nom réel en base : « BTP, Construction & Négoce de matériaux » — le slug conserve `-immobilier` pour ne pas casser les URLs, décalage cosmétique assumé |
 | `transport-mobilite-regionale` | watch | — | 6 | 0 | 0 | 0 | 0 | Coquille vide |
-| `btp-construction-immobilier` | watch | — | 11 | 0 | 0 | 0 | 0 | Coquille vide |
 | `ehpad-residences-seniors` | watch | — | 2 | 0 | 0 | 0 | 0 | Coquille vide |
 | `aeronautique-spatial-defense` | watch | — | 3 | 0 | 0 | 0 | 0 | Coquille vide |
 | `logiciels-saas-services-numeriques` | watch | — | 9 | 0 | 0 | 0 | 0 | Coquille vide |
@@ -128,7 +128,9 @@ Une étude sectorielle produit du **mutualisable** — ce qui est vrai pour 5 co
 | `energie-petrochimie-environnement` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
 | `industrie-manufacturiere-electronique-equipements` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
 
-**Lecture (mise à jour 2026-07-17) :** **95/96 comptes** sont rattachés à un secteur (Univet, groupe vétérinaire, a été volontairement détaché lors de l'injection de `sante-medtech-medico-social` — aucun conteneur existant ne lui convenait). **4 secteurs sur 14 sont réellement étudiés.** Les 10 « watch » restants sont des **conteneurs de rattachement**, pas des études — ils ont un `playbook` squelette vide (75 caractères) et zéro contenu.
+**Lecture (mise à jour 2026-07-17, suite BTP) :** **93/96 comptes** sont rattachés à un secteur (Univet détaché pour `sante-medtech-medico-social` ; Iselection et Keller Williams France détachés pour `btp-construction-immobilier`, même logique de périmètre — aucun des deux ne relève du négoce ou de la construction). **5 secteurs sur 14 sont réellement étudiés.** Les 9 « watch » restants sont des **conteneurs de rattachement**, pas des études — ils ont un `playbook` squelette vide (75 caractères) et zéro contenu.
+
+> ⚠️ **Correction (2026-07-17) : la ligne BTP de la version précédente de ce tableau créditait à tort 3 `process_diagnostic` comme matière exploitable.** Vérification en produisant la fiche : les 3 lignes existent bien en base, mais leur `content_json` est une coquille de 62 caractères (`{"synthese": "Document d'audit stratégique — voir PDF joint."}`) — exactement le piège documenté en §3.2 sur Horus Pharma. Elles ne comptent pour rien. Le §3.2 ci-dessous reste tel quel pour préserver la trace de l'ancienne estimation (biffée), mais ne t'y fie pas : relis toujours `content_json`, jamais le seul comptage de lignes.
 
 C'est un état **sain et voulu** : un `status = 'watch'` dit honnêtement « on a rangé les comptes ici, on n'a pas encore étudié le marché ». Ne jamais afficher un score sur un `watch`.
 
@@ -154,13 +156,12 @@ Une étude coûte 5 heures. La question « ce secteur est-il prêt ? » se calcu
 
 #### État de préparation mesuré (2026-07-16, corrigé le 2026-07-17)
 
-Les 10 secteurs encore sous veille, classés par ce qui compte réellement — **pas par nombre de comptes** :
+Les 9 secteurs encore sous veille, classés par ce qui compte réellement — **pas par nombre de comptes** :
 
 | Secteur | Comptes | FOLIO | Ancre de preuve | Interactions | Missions | Opps | Verdict |
 |---|---|---|---|---|---|---|---|
 | **`tourisme-hotellerie-loisirs`** | 5 | 3 | **Voyage Privé (client)** + 2 diagnostics | 10 | **8** | 2 | 🥇 Peu de comptes, mais la **preuve de delivery la plus profonde** — à vérifier : passer les interactions au filtre `details` (§3.2 note ci-dessous) avant de compter sur des verbatims |
 | **`transport-mobilite-regionale`** | 6 | 6/6 | 1 diagnostic | **18** | 1 | **4** | 🥈 Le plus de verbatims *potentiels* — non vérifié, voir note ci-dessous |
-| `btp-construction-immobilier` | 11 | 8 | **Audemard (client)** + 3 diagnostics | 1 | 0 | 0 | Bonne ancre, mais **1 seule interaction** → pas de verbatim |
 | `logiciels-saas-services-numeriques` | 9 | 9/9 | 2 diagnostics (+1 ancien client) | 2 | 0 | 1 | Corpus complet, relationnel faible |
 | `aeronautique-spatial-defense` | 3 | 2 | **Exail Robotics (client)** | 7 | 1 | 3 | Ancre + pipe, mais corpus mince (plafond 4.0) |
 | `industrie-manufacturiere-…` | 5 | 5/5 | — | 7 | 0 | 2 | Pas d'ancre → plafond 4.5 |
@@ -178,7 +179,7 @@ Les 10 secteurs encore sous veille, classés par ce qui compte réellement — *
 > FROM interactions i JOIN companies c ON c.id=i.company_id
 > WHERE c.sector_id = (SELECT id FROM sector_intelligence WHERE slug='[SLUG]');
 > ```
-> Le même piège existe sur `ai_intelligence_results` : un `process_diagnostic` peut être une coquille (`content_json = {"synthese": "Document d'audit stratégique — voir PDF joint."}`, cas réel sur Horus Pharma) — toujours lire `content_json`, ne jamais compter la ligne comme ancre de preuve sans l'avoir lue.
+> Le même piège existe sur `ai_intelligence_results` : un `process_diagnostic` peut être une coquille (`content_json = {"synthese": "Document d'audit stratégique — voir PDF joint."}`, cas réel sur Horus Pharma) — toujours lire `content_json`, ne jamais compter la ligne comme ancre de preuve sans l'avoir lue. **Reproduit à l'identique sur `btp-construction-immobilier` (2026-07-17) :** ce tableau créditait le secteur de « 3 diagnostics » ; les 3 lignes existaient bien mais portaient exactement la même coquille de 62 caractères que Horus Pharma. La seule ancre réelle était Audemard (`client`), sans mission ni opportunité ni diagnostic exploitable derrière — l'ancre était formelle, pas probante. La fiche a quand même été produite (corpus riche au sens strict du §4.1 : ≥3 comptes FOLIO + 1 ancre client), mais avec ce caveat explicite en base.
 >
 > **Ce que ce tableau corrige par ailleurs :** l'intuition « on attaque le secteur qui a le plus de comptes » désigne `commerce-distribution` (12 comptes) — qui est en réalité un des plus faibles : aucune ancre de preuve, 2 interactions, 0 opportunité. Le nombre de comptes ne dit rien de la qualité d'une étude.
 
@@ -1077,7 +1078,7 @@ La fiche cible combine **la densité de parfumerie** (10 comptes, 7 verbatims r�
 | Requêtes externes | 8-12 | Comptage P2 |
 | Couverture réglementaire | ≥ 3 items datés | `SELECT count(*) … WHERE deadline_date IS NOT NULL` |
 | Traçabilité des pains | 100 % avec `source_company_ids` | Requête §7.4 |
-| **Secteurs étudiés / rattachés** | 3/14 aujourd'hui → **6/14 fin 2026** | §3.1 |
+| **Secteurs étudiés / rattachés** | 5/14 aujourd'hui (2026-07-17) → **6/14 fin 2026** | §3.1 |
 | **Taux de transformation** ⭐ | à instrumenter | Opportunités créées dans les 90 j suivant une fiche, sur les comptes du secteur |
 | Fraîcheur | < 12 mois | `updated_at` vs `deadline_date` passées |
 
