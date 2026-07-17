@@ -4,12 +4,13 @@ import { describe, expect, it } from "vitest"
 const read = (path: string) => readFileSync(path, "utf8")
 
 describe("Business Intelligence atelier analytique", () => {
-  it("limite les deux registres Desktop à cinq lignes et conserve les modales exhaustives", () => {
+  it("affiche la frise Desktop de cinq jalons et conserve les modales exhaustives", () => {
     const desktop = read("src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx")
 
     expect(desktop).toContain("<AccountPriorityBoard")
     expect(desktop).toContain("limit={5}")
-    expect(desktop).toContain("<SectorWindowsLedger")
+    expect(desktop).toContain("<SectorWindowsTimeline")
+    expect(desktop).not.toContain("SectorWindowsLedger")
     expect(desktop).toContain("<PriorityAccountsModal")
     expect(desktop).toContain("<SectorWindowsModal")
     expect(desktop).not.toContain("SectorPanorama")
@@ -27,6 +28,17 @@ describe("Business Intelligence atelier analytique", () => {
     expect(studies).toContain("<IntelligenceSplitModalShell")
     expect(splitDialog).toContain('event.key === "Escape"')
     expect(splitDialog).toContain("dialogFocusTrapDestination")
+  })
+
+  it("conserve les données métier et les états accessibles de la frise", () => {
+    const timeline = read("src/features/business-intelligence/desktop/SectorWindowsTimeline.tsx")
+
+    expect(timeline).toContain("SECTOR_ACTIVATION_SOURCE_LABELS")
+    expect(timeline).toContain("À dater")
+    expect(timeline).toContain("window.exposedAccountCount")
+    expect(timeline).toContain("window.suggestedAction")
+    expect(timeline).toContain("aria-pressed={isSelected}")
+    expect(timeline).toContain("onSelectWindow(window)")
   })
 
   it("préserve une matrice SVG lisible et une alternative textuelle", () => {

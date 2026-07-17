@@ -7,10 +7,10 @@ interface StrategicBriefProps {
 
 export function StrategicBrief({ brief }: StrategicBriefProps) {
   return (
-    <section className="border-l-2 border-primary bg-surface px-5 py-5 sm:px-6">
-      <h2 className="font-heading text-lg font-bold text-heading">Brief Stratégique</h2>
+    <section className="border-l-2 border-primary bg-surface/30 px-5 py-5 sm:px-6">
+      <h2 className="font-heading text-sm font-bold text-heading">Brief stratégique</h2>
       <p className="mb-5 mt-2 max-w-4xl text-sm leading-relaxed text-body">
-        Il y a actuellement <strong className="text-primary">{brief.openWindows} fenêtres ouvertes</strong> sur le marché.
+        Il y a actuellement <strong className="text-heading">{brief.openWindows} fenêtres ouvertes</strong> sur le marché.
         Nous identifions <strong className="text-danger">{brief.insufficientlyCoveredPriorityAccounts} comptes prioritaires</strong> qui manquent de couverture.
         {brief.bestSignalSector && (
           <span> Le secteur présentant le meilleur signal est actuellement <strong>{brief.bestSignalSector}</strong>.</span>

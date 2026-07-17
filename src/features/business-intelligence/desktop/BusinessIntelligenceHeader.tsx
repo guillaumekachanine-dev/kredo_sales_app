@@ -11,24 +11,24 @@ export function BusinessIntelligenceHeader({ onPlaybooksClick, onStudiesClick }:
   const router = useRouter()
 
   return (
-    <header className="flex flex-col gap-5 border-b border-border/80 bg-surface px-5 py-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-      <div>
+    <header className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 border-b border-border/40 px-4 py-8 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+      <div className="space-y-1">
         <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
           Business Intelligence
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">
+        <p className="max-w-2xl text-xs text-muted">
           Priorisez les comptes, détectez les fenêtres de marché et déclenchez les prochaines actions.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="secondary" onClick={onStudiesClick} className="min-h-10">
+        <Button variant="secondary" size="sm" onClick={onStudiesClick}>
           Études sectorielles
         </Button>
-        <Button variant="secondary" onClick={onPlaybooksClick}>
+        <Button variant="secondary" size="sm" onClick={onPlaybooksClick}>
           Consulter les playbooks
         </Button>
-        <Button variant="ghost" onClick={() => router.push("/agenda")}>
+        <Button variant="ghost" size="sm" onClick={() => router.push("/agenda")}>
           Agenda
         </Button>
         <HeaderAlerts />

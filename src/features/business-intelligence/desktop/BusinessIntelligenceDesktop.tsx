@@ -8,7 +8,7 @@ import { IntelligenceKpiStrip } from "./IntelligenceKpiStrip"
 import { AccountPriorityBoard } from "./AccountPriorityBoard"
 import { PotentialReachMatrix } from "./PotentialReachMatrix"
 import { AccountAttackPanel } from "./AccountAttackPanel"
-import { SectorWindowsLedger } from "./SectorWindowsLedger"
+import { SectorWindowsTimeline } from "./SectorWindowsTimeline"
 import { PriorityAccountsModal, SectorWindowsModal } from "./BusinessIntelligenceLedgerModals"
 import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
@@ -33,10 +33,10 @@ interface BusinessIntelligenceDesktopProps {
 export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopProps) {
   if (props.snapshot.state === "error") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-8">
-        <section className="max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
+      <main className="flex min-h-screen items-center justify-center bg-canvas p-8">
+        <section className="max-w-md rounded-xl border border-border/40 bg-surface/30 p-6 text-center">
           <h1 className="text-lg font-semibold text-heading">Données indisponibles</h1>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">La Business Intelligence ne peut pas être chargée pour le moment.</p>
+          <p className="mt-2 text-sm text-muted">La Business Intelligence ne peut pas être chargée pour le moment.</p>
         </section>
       </main>
     )
@@ -114,9 +114,9 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
       <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-border bg-surface px-5 py-3 lg:px-8">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
         <select 
-          className="min-h-10 rounded-lg border border-border bg-canvas px-3 text-sm text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           value={period}
           onChange={(e) => setPeriod(Number(e.target.value) as 30 | 90 | 180)}
         >
@@ -126,7 +126,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
         </select>
 
         <select 
-          className="min-h-10 rounded-lg border border-border bg-canvas px-3 text-sm text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           value={selectedSector}
           onChange={(e) => setSelectedSector(e.target.value)}
         >
@@ -139,7 +139,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
         <input 
           type="search"
           placeholder="Rechercher un compte..."
-          className="min-h-10 w-full rounded-lg border border-border bg-canvas px-3 text-sm text-heading placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-72"
+          className="min-h-9 w-full rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body placeholder:text-muted transition-colors hover:bg-surface-hover/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-72"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -147,8 +147,8 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
 
       <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
         {viewModel.hasDemoData && (
-          <div className="flex items-center rounded-lg border border-border bg-surface-hover/50 px-4 py-2 text-sm text-muted">
-            <span className="w-2 h-2 rounded-full bg-orange-500 mr-2 flex-shrink-0" />
+          <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
+            <span className="mr-2 size-2 shrink-0 rounded-full bg-warning" />
             Certaines activités de démonstration sont incluses dans les indicateurs.
           </div>
         )}
@@ -160,7 +160,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
           <PotentialReachMatrix points={filteredMatrixPoints} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} />
           <AccountAttackPanel attackData={selectedAttackData} baseAccount={selectedBaseAccount} />
         </div>
-        <SectorWindowsLedger windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} limit={5} onShowAll={() => setIsWindowsOpen(true)} />
+        <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} />
       </main>
 
       {isPlaybooksOpen && (

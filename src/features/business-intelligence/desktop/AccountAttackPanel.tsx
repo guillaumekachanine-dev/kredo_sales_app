@@ -16,8 +16,8 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
   const router = useRouter()
   if (!baseAccount) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-sm p-6 h-full flex flex-col items-center justify-center text-center">
-        <p className="text-[var(--color-muted)] text-sm">Sélectionnez un compte pour afficher son plan d&apos;attaque.</p>
+      <div className="flex h-full flex-col items-center justify-center rounded-xl border border-border/30 bg-surface/30 p-6 text-center">
+        <p className="text-sm text-muted">Sélectionnez un compte pour afficher son plan d&apos;attaque.</p>
       </div>
     )
   }
@@ -27,13 +27,13 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
   else if (baseAccount.provenance === "REAL_LEGACY") provenanceLabel = "Historique"
 
   return (
-      <section className="rounded-xl border border-border bg-surface">
-      <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]">
+      <section className="rounded-xl border border-border/30 bg-surface/30">
+      <div className="border-b border-border/30 bg-surface-hover/20 p-4">
         <div className="flex justify-between items-start mb-2">
-          <h2 className="font-bold text-lg text-heading truncate" title={baseAccount.name}>{baseAccount.name}</h2>
+          <h2 className="truncate font-heading text-sm font-bold text-heading" title={baseAccount.name}>{baseAccount.name}</h2>
           <Badge variant="neutral" className="ml-2 whitespace-nowrap">{baseAccount.priority} / 100</Badge>
         </div>
-        <div className="text-xs text-[var(--color-muted)] flex items-center space-x-2">
+        <div className="flex items-center space-x-2 text-xs text-muted">
           <span className="truncate max-w-[150px]">{attackData?.sectorContext?.name ?? "Secteur non déterminé"}</span>
           <span>•</span>
           <span>Provenance : {provenanceLabel}</span>
@@ -43,14 +43,14 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
       <div className="space-y-6 p-5">
         {/* Scores & Confiance */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-[var(--color-background)] p-3 rounded border border-[var(--color-border)]">
-            <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Score Stratégique</span>
+          <div className="rounded border border-border/30 bg-surface/20 p-3">
+            <span className="mb-1 block text-[10px] uppercase text-muted">Score Stratégique</span>
             <span className="block text-lg font-semibold text-heading">
               {baseAccount.nativeScore ? baseAccount.nativeScore.value : "N/A"}
             </span>
           </div>
-          <div className="bg-[var(--color-background)] p-3 rounded border border-[var(--color-border)]">
-            <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Confiance</span>
+          <div className="rounded border border-border/30 bg-surface/20 p-3">
+            <span className="mb-1 block text-[10px] uppercase text-muted">Confiance</span>
             <span className="block text-lg font-semibold text-heading">
               {attackData?.confidence !== null && attackData?.confidence !== undefined ? `${attackData.confidence}%` : "Non disponible"}
             </span>
@@ -66,7 +66,7 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
                 {attackData.positiveDrivers.map((driver, idx) => <li key={idx}>{driver}</li>)}
               </ul>
             ) : (
-              <p className="text-sm text-[var(--color-muted)] italic">Aucun driver détecté</p>
+              <p className="text-sm italic text-muted">Aucun driver détecté</p>
             )}
           </div>
 
@@ -77,34 +77,34 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
                 {attackData.vigilancePoints.map((pt, idx) => <li key={idx}>{pt}</li>)}
               </ul>
             ) : (
-              <p className="text-sm text-[var(--color-muted)] italic">Aucun point de vigilance</p>
+              <p className="text-sm italic text-muted">Aucun point de vigilance</p>
             )}
           </div>
         </div>
 
         {/* Stratégie d'approche */}
-        <div className="space-y-4 pt-4 border-t border-[var(--color-border)]">
+        <div className="space-y-4 border-t border-border/30 pt-4">
           <div>
-            <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Practice recommandée</span>
+            <span className="mb-1 block text-[10px] uppercase text-muted">Practice recommandée</span>
             <span className="block text-sm font-medium text-heading">
-              {attackData?.recommendedPractice ?? <span className="text-[var(--color-muted)] italic">Practice non déterminée</span>}
+              {attackData?.recommendedPractice ?? <span className="italic text-muted">Practice non déterminée</span>}
             </span>
           </div>
           <div>
-            <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Angle d&apos;approche</span>
+            <span className="mb-1 block text-[10px] uppercase text-muted">Angle d&apos;approche</span>
             <span className="block text-sm font-medium text-heading">
-              {attackData?.approachAngle ?? <span className="text-[var(--color-muted)] italic">Angle non déterminé</span>}
+              {attackData?.approachAngle ?? <span className="italic text-muted">Angle non déterminé</span>}
             </span>
           </div>
           <div>
-            <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Prochaine action</span>
+            <span className="mb-1 block text-[10px] uppercase text-muted">Prochaine action</span>
             <span className="block text-sm font-medium text-heading">
-              {attackData?.nextAction ?? <span className="text-[var(--color-muted)] italic">Action non déterminée</span>}
+              {attackData?.nextAction ?? <span className="italic text-muted">Action non déterminée</span>}
             </span>
           </div>
           {attackData?.topSignal && (
             <div>
-              <span className="block text-[10px] uppercase text-[var(--color-muted)] mb-1">Signal principal</span>
+              <span className="mb-1 block text-[10px] uppercase text-muted">Signal principal</span>
               <span className="block text-sm font-medium text-heading">
                 {attackData.topSignal.title}
               </span>

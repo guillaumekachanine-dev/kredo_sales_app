@@ -12,26 +12,26 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
   const visibleAccounts = limit ? accounts.slice(0, limit) : accounts
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-surface">
-      <div className="flex items-center justify-between border-b border-border px-5 py-4">
-        <h2 className="font-heading text-base font-bold text-heading">Classement de couverture</h2>
+    <section className="overflow-hidden rounded-xl border border-border/30 bg-surface/30">
+      <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
+        <h2 className="font-heading text-sm font-bold text-heading">Classement de couverture</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
-          <thead className="bg-surface-hover/50 text-muted text-[10px] uppercase tracking-[0.1em]">
+          <thead className="bg-surface-hover/20 text-muted text-[10px] uppercase tracking-[0.1em]">
             <tr>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)]">Rang</th>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)]">Compte</th>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)]">Score Action</th>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)]">Score Natif</th>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)] hidden lg:table-cell">Potentiel / Reach</th>
-              <th className="py-3 px-4 font-semibold border-b border-[var(--color-border)] hidden xl:table-cell">Prochaine action</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Rang</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Compte</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Score Action</th>
+              <th className="border-b border-border/30 px-4 py-3 font-semibold">Score Natif</th>
+              <th className="hidden border-b border-border/30 px-4 py-3 font-semibold lg:table-cell">Potentiel / Reach</th>
+              <th className="hidden border-b border-border/30 px-4 py-3 font-semibold xl:table-cell">Prochaine action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/20">
             {accounts.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-[var(--color-muted)]">
+                <td colSpan={6} className="py-8 text-center text-muted">
                   Aucun compte prioritaire trouvé.
                 </td>
               </tr>
