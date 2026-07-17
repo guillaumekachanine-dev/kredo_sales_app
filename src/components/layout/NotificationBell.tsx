@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 
 type Notification = {
   id: string
+  notification_type: string
   title: string
   body: string | null
   deep_link: string | null
@@ -17,6 +18,7 @@ type Notification = {
 }
 
 const MAX_VISIBLE = 8
+const FAILURE_TYPES = new Set(["ai_run_failed", "ai_run_reaped"])
 
 // ADR-0010 Lot 4 : notifie l'arrivée d'un brief hebdomadaire généré par le
 // cron du lundi (report-weekly-manager-cron → user_notifications). Un run
@@ -29,6 +31,8 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false)
   /** Tracks whether the panel is currently visible in the DOM (for exit animation). */
   const [mounted, setMounted] = useState(false)
+  /** Plays the bounce once on a new workflow-failure arrival, then clears itself. */
+  const [alertBounce, setAlertBounce] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -37,7 +41,7 @@ export function NotificationBell() {
     async function loadInitial() {
       const { data } = await supabase
         .from("user_notifications")
-        .select("id, title, body, deep_link, read_at, created_at")
+        .select("id, notification_type, title, body, deep_link, read_at, created_at")
         .order("created_at", { ascending: false })
         .limit(MAX_VISIBLE)
 
@@ -52,7 +56,9 @@ export function NotificationBell() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "user_notifications" },
         (payload) => {
-          setNotifications((current) => [payload.new as Notification, ...current].slice(0, MAX_VISIBLE))
+          const notification = payload.new as Notification
+          setNotifications((current) => [notification, ...current].slice(0, MAX_VISIBLE))
+          if (FAILURE_TYPES.has(notification.notification_type)) setAlertBounce(true)
         },
       )
       .subscribe()
@@ -80,6 +86,7 @@ export function NotificationBell() {
   }, [open])
 
   const unreadCount = notifications.filter((n) => !n.read_at).length
+  const hasUnreadFailure = notifications.some((n) => !n.read_at && FAILURE_TYPES.has(n.notification_type))
 
   async function handleSelect(notification: Notification) {
     setOpen(false)
