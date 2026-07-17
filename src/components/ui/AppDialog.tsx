@@ -38,6 +38,7 @@ export interface AppDialogProps {
   asideOpen?: boolean
   asideClassName?: string
   asideWidthClassName?: string
+  dataTheme?: string
 }
 
 export function AppDialog({
@@ -57,6 +58,7 @@ export function AppDialog({
   asideOpen = false,
   asideClassName,
   asideWidthClassName,
+  dataTheme,
 }: AppDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const portalRoot = useSyncExternalStore(
@@ -132,6 +134,7 @@ export function AppDialog({
       aria-describedby={description ? descriptionId : undefined}
       aria-modal="true"
       onClick={handleBackdropClick}
+      data-theme={dataTheme}
       className={cn(
         "fixed inset-0 m-auto h-fit w-[min(calc(100vw-1.5rem),32rem)] max-w-full overflow-hidden overscroll-contain rounded-[var(--radius-medium)] border border-border bg-surface p-0 text-heading sm:w-full sm:max-w-lg",
         hasAside && "relative !overflow-visible",
