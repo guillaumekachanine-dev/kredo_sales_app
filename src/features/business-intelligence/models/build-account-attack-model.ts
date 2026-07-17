@@ -1,6 +1,24 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 
-export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, accountId: string) {
+export interface AccountAttackItem {
+  accountId: string
+  positiveDrivers: string[]
+  vigilancePoints: string[]
+  topSignal: any | null
+  sectorContext: {
+    name: string
+    status: string
+    activeWindowsCount: number
+    topPractice: string | null
+  } | null
+  recommendedPractice: string | null
+  approachAngle: string | null
+  nextAction: string | null
+  provenance: string
+  confidence: number | null
+}
+
+export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, accountId: string): AccountAttackItem | null {
   const { accounts, scores, signals, sectors, windows } = snapshot
 
   const account = accounts.find(a => a.id === accountId)
@@ -47,12 +65,13 @@ export function buildAccountAttackModel(snapshot: BusinessIntelligenceSnapshot, 
       name: sector.name,
       status: sector.status,
       activeWindowsCount: sectorWindows.length,
-      topPractice: sector.topPracticeLabel,
+      topPractice: sector.topPracticeLabel ?? null,
     } : null,
-    recommendedPractice: sector?.topPracticeLabel ?? "Data & IA",
-    approachAngle: sectorWindows.length > 0 ? sectorWindows[0].playbookSummary : "Approche directe",
-    nextAction: sectorWindows.length > 0 ? sectorWindows[0].suggestedAction : "Créer une opportunité d'échange",
+    recommendedPractice: sector?.topPracticeLabel ?? null,
+    approachAngle: sectorWindows.length > 0 ? sectorWindows[0].playbookSummary : null,
+    nextAction: sectorWindows.length > 0 ? sectorWindows[0].suggestedAction : null,
     provenance,
-    confidence: provenance === "REAL_NATIVE" ? 90 : provenance === "REAL_LEGACY" ? 50 : 20,
+    confidence: provenance === "REAL_NATIVE" ? 90 : provenance === "REAL_LEGACY" ? 50 : null,
   }
 }
+

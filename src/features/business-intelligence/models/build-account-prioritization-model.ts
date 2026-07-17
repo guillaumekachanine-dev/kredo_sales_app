@@ -1,6 +1,30 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 
-export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSnapshot, options?: any) {
+export interface AccountPriorityItem {
+  accountId: string
+  name: string
+  sectorId: string | null
+  priority: number
+  potential: number
+  reach: number
+  momentum: number
+  nativeScore: {
+    value: number
+    band: string
+    confidence: number
+    version: string
+    calculatedAt: string
+    summary: string | null
+  } | null
+  confidence: {
+    primaryOrigin: string
+  }
+  topSignal: any | null
+  nextAction: string | null
+  provenance: string
+}
+
+export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSnapshot, options?: any): AccountPriorityItem[] {
   const { accounts, scores, signals } = snapshot
 
   return accounts.map((account) => {
@@ -16,6 +40,8 @@ export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSn
 
     const accountSignals = signals.filter(sig => sig.companyId === account.id)
       .toSorted((a, b) => b.urgencyScore - a.urgencyScore)
+
+    const topSignal = accountSignals[0] ?? null
 
     return {
       accountId: account.id,
@@ -37,8 +63,8 @@ export function buildAccountPrioritizationModel(snapshot: BusinessIntelligenceSn
         // Just proxying the account metrics trust
         primaryOrigin: provenance,
       },
-      topSignal: accountSignals[0] ?? null,
-      nextAction: "A définir", // Placeholder for next lots
+      topSignal,
+      nextAction: topSignal?.recommendedAction ?? account.nextDecision ?? null,
       provenance,
     }
   }).toSorted((a, b) => b.priority - a.priority)

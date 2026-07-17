@@ -1,6 +1,27 @@
 import type { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 
-export function buildSectorPlaybookModel(snapshot: BusinessIntelligenceSnapshot, sectorId: string) {
+export interface SectorPlaybookItem {
+  sectorId: string
+  name: string
+  status: "active" | "watch"
+  summary: string
+  personas: any[]
+  roiArguments: any[]
+  objections: any[]
+  entryPoints: any[]
+  painPoints: any[]
+  deadlines: {
+    title: string
+    date: string | null
+    urgency: number
+  }[]
+  practices: Record<string, number>
+  priorityAccounts: { id: string; name: string; priority: number }[]
+  caveats: any[]
+  sources: any[]
+}
+
+export function buildSectorPlaybookModel(snapshot: BusinessIntelligenceSnapshot, sectorId: string): SectorPlaybookItem | null {
   const { sectors, accounts, windows } = snapshot
 
   const sector = sectors.find(s => s.id === sectorId)
@@ -13,10 +34,6 @@ export function buildSectorPlaybookModel(snapshot: BusinessIntelligenceSnapshot,
     .toSorted((a, b) => b.actionPriorityScore30d - a.actionPriorityScore30d)
 
   const sectorWindows = windows.filter(w => w.sectorId === sectorId)
-  
-  // Extract pain points logically or directly if available in the snapshot? 
-  // Wait, pain points are NOT in SectorActivationSector natively unless we add them or compute from windows.
-  // The contract just wants what we can get. The playbook JSON itself should contain personas, roi_arguments, objections, entry_points.
   
   return {
     sectorId: sector.id,
@@ -39,3 +56,4 @@ export function buildSectorPlaybookModel(snapshot: BusinessIntelligenceSnapshot,
     sources: []
   }
 }
+
