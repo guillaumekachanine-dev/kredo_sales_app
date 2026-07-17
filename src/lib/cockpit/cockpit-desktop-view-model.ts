@@ -162,7 +162,7 @@ function buildAccountsToAnimate(input: CockpitDesktopSources, now: Date): Cockpi
     }
     const advanced = advancedOpportunitiesByCompany.get(company.id)?.toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0]
     if (advanced) {
-      ranked.push({ ...base, reasonType: "advanced_opportunity", reasonLabel: `Opportunité avancée sans action récente : ${advanced.title}`, exposureLabel: advanced.weightedGain === null ? undefined : formatEuroCompact(advanced.weightedGain), primaryAction: { label: advanced.nextActionLabel || "Relancer l’opportunité", href: `/missions/opps/${advanced.id}/edit` }, rank: 1, score: score?.scoreValue ?? null })
+      ranked.push({ ...base, reasonType: "advanced_opportunity", reasonLabel: `Opportunité avancée sans action récente : ${advanced.title}`, exposureLabel: advanced.weightedGain === null ? undefined : formatEuroCompact(advanced.weightedGain), primaryAction: { label: advanced.nextActionLabel || "Relancer l’opportunité", href: `/missions/opps/${advanced.id}/modifier` }, rank: 1, score: score?.scoreValue ?? null })
       continue
     }
     const signal = signalsByCompany.get(company.id)?.toSorted((a, b) => (b.urgencyScore ?? 0) - (a.urgencyScore ?? 0) || b.detectedAt.localeCompare(a.detectedAt))[0]
@@ -215,7 +215,7 @@ function buildExposure(input: CockpitDesktopSources, now: Date) {
     })
   const opportunityItems = input.opportunities
     .filter((opportunity) => isAdvancedWithoutRecentAction(opportunity, now))
-    .map((opportunity) => ({ id: `opportunity:${opportunity.id}`, label: opportunity.title, detail: "Opportunité avancée sans prochaine action", dueDate: opportunity.nextActionAt || opportunity.updatedAt, action: { label: "Traiter l’opportunité", href: `/missions/opps/${opportunity.id}/edit` } }))
+    .map((opportunity) => ({ id: `opportunity:${opportunity.id}`, label: opportunity.title, detail: "Opportunité avancée sans prochaine action", dueDate: opportunity.nextActionAt || opportunity.updatedAt, action: { label: "Traiter l’opportunité", href: `/missions/opps/${opportunity.id}/modifier` } }))
   return [...missionItems, ...projectItems, ...opportunityItems]
     .toSorted((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? "") || a.id.localeCompare(b.id))
 }
@@ -224,7 +224,7 @@ function buildHorizons(input: CockpitDesktopSources, now: Date) {
   const candidates = [
     ...input.missions.filter((mission) => mission.status === "active").flatMap((mission) => mission.endDate ? [{ id: `mission:${mission.id}`, label: mission.title, detail: "Échéance de mission", dueDate: mission.endDate, action: { label: "Voir la mission", href: `/missions/actives/${mission.id}` } }] : []),
     ...input.projects.filter((project) => project.status === "active").flatMap((project) => project.endDate ? [{ id: `project:${project.id}`, label: project.title, detail: "Échéance projet", dueDate: project.endDate, action: { label: "Voir les projets", href: "/missions/projets" } }] : []),
-    ...input.opportunities.filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage ?? "")).flatMap((opportunity) => opportunity.nextActionAt ? [{ id: `opportunity:${opportunity.id}`, label: opportunity.title, detail: opportunity.nextActionLabel || "Prochaine action commerciale", dueDate: opportunity.nextActionAt, action: { label: "Voir l’opportunité", href: `/missions/opps/${opportunity.id}/edit` } }] : []),
+    ...input.opportunities.filter((opportunity) => !isTerminalOpportunityStage(opportunity.stage ?? "")).flatMap((opportunity) => opportunity.nextActionAt ? [{ id: `opportunity:${opportunity.id}`, label: opportunity.title, detail: opportunity.nextActionLabel || "Prochaine action commerciale", dueDate: opportunity.nextActionAt, action: { label: "Voir l’opportunité", href: `/missions/opps/${opportunity.id}/modifier` } }] : []),
   ]
   return ([30, 60, 90] as const).map((days) => ({
     days,

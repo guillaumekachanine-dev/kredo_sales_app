@@ -258,7 +258,7 @@ describe("cockpit mobile selectors", () => {
   })
 
   it("réutilise les liens canoniques des actions Weekly Manager", () => {
-    expect(getWeeklyManagerActionAvailability("opportunity", "opp-1")).toEqual({ canCreateTask: true, href: "/missions/opps/opp-1/edit" })
+    expect(getWeeklyManagerActionAvailability("opportunity", "opp-1")).toEqual({ canCreateTask: true, href: "/missions/opps/opp-1/modifier" })
     expect(getWeeklyManagerActionAvailability(undefined, undefined)).toEqual({ canCreateTask: false, href: null })
   })
 

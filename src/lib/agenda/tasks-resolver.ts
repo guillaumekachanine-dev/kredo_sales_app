@@ -55,7 +55,7 @@ function buildDeepLinkFromEntity(
 
   switch (entityType) {
     case "opportunity":
-      return { module: "missions", href: `/missions/opps/${entityId}/edit`, label: "Opportunité", sourceType: "task", sourceId }
+      return { module: "missions", href: `/missions/opps/${entityId}/modifier`, label: "Opportunité", sourceType: "task", sourceId }
     case "mission":
       return { module: "missions", href: `/missions?missionId=${entityId}`, label: "Mission", sourceType: "task", sourceId }
     case "company":

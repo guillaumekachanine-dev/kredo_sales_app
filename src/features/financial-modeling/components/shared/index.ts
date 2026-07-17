@@ -1,5 +1,6 @@
 export * from "./FinancialModelingResults"
 export * from "./FinancialModelingWarnings"
+export * from "./FinancialModelHistoryItem"
 export * from "./FinancialResourceFields"
 export * from "./FinancialPeriodFields"
 export * from "./FinancialPricingFields"

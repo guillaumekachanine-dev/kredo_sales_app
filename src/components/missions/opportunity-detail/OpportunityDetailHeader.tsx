@@ -3,9 +3,7 @@
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { Button } from "@/components/ui/Button"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { formatDate, formatEuro } from "@/lib/formatters"
-import { getOpportunityStageLabel } from "@/lib/opportunities/stages"
 import type { Opportunity } from "@/types/database-domain"
 
 interface OpportunityDetailHeaderProps {
@@ -21,13 +19,6 @@ interface OpportunityDetailHeaderProps {
   onCreateEvent: () => void
   onCreateTask: () => void
   onPositionProfile: () => void
-}
-
-function getStageVariant(stage: string): StatusPillVariant {
-  if (stage === "gagne") return "success"
-  if (["perdu", "abandonne"].includes(stage)) return "danger"
-  if (stage === "non_traitee") return "neutral"
-  return "inProgress"
 }
 
 function getPriorityLabel(priority: string) {
@@ -122,7 +113,6 @@ export function OpportunityDetailHeader({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-body">
-          <StatusPill label={getOpportunityStageLabel(opportunity.stage)} variant={getStageVariant(opportunity.stage)} />
           <span>Priorité <strong className={opportunity.priority === "haute" ? "text-danger" : "text-heading"}>{getPriorityLabel(opportunity.priority)}</strong></span>
           <span>Conviction <strong className="text-primary">{opportunity.conviction} %</strong></span>
         </div>
@@ -140,7 +130,7 @@ export function OpportunityDetailHeader({
 
         <Button type="button" fullWidth className="mt-4" onClick={onPositionProfile}>Positionner un profil</Button>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <Link href={`/missions/opps/${opportunity.id}/edit`} className="flex h-11 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-xs font-semibold text-heading">
+          <Link href={`/missions/opps/${opportunity.id}/modifier`} className="flex h-11 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-xs font-semibold text-heading">
             Modifier
           </Link>
           <button type="button" onClick={onCreateEvent} className="h-11 rounded-[var(--radius-medium)] border border-border bg-surface text-xs font-semibold text-heading">
@@ -165,7 +155,7 @@ export function OpportunityDetailHeader({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Link href={`/missions/opps/${opportunity.id}/edit`} className="flex h-9 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-xs font-semibold text-heading hover:bg-surface-hover">
+          <Link href={`/missions/opps/${opportunity.id}/modifier`} className="flex h-9 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface px-4 text-xs font-semibold text-heading hover:bg-surface-hover">
             Modifier
           </Link>
           <Button type="button" size="sm" onClick={onPositionProfile}>Positionner un profil</Button>
@@ -173,7 +163,6 @@ export function OpportunityDetailHeader({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-body">
-        <StatusPill label={getOpportunityStageLabel(opportunity.stage)} variant={getStageVariant(opportunity.stage)} />
         <span>Priorité <strong className={opportunity.priority === "haute" ? "text-danger" : "text-heading"}>{getPriorityLabel(opportunity.priority)}</strong></span>
         <span className="h-4 w-px bg-border" aria-hidden="true" />
         <span>Conviction <strong className="text-primary">{opportunity.conviction} %</strong></span>

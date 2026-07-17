@@ -105,7 +105,7 @@ export function AssistanceCaseHeader({
           </div>
           {!isCandidate ? (
             <Link
-              href={`/missions/opps/${opportunity.id}/edit`}
+              href={`/missions/opps/${opportunity.id}/modifier`}
               className="inline-flex shrink-0 items-center justify-center text-heading hover:opacity-80 transition-opacity"
               title="Ouvrir l'opportunité"
             >
@@ -174,23 +174,32 @@ export function AssistanceCaseHeader({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onEdit}
-          disabled={editDisabled}
-          className={cn(
-            "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-medium)] border bg-surface transition-colors focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:h-9 sm:w-9",
-            editDisabled
-              ? "cursor-not-allowed border-transparent text-muted opacity-55"
-              : "border-transparent text-heading hover:bg-surface/85",
-          )}
-          aria-label={editLabel}
-          title={editLabel}
-        >
-          <span className="size-4" aria-hidden="true">
-            <EditIcon />
-          </span>
-        </button>
+        {isCandidate ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={editDisabled}
+            className={cn(
+              "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-medium)] border bg-surface transition-colors focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:h-9 sm:w-9",
+              editDisabled
+                ? "cursor-not-allowed border-transparent text-muted opacity-55"
+                : "border-transparent text-heading hover:bg-surface/85",
+            )}
+            aria-label={editLabel}
+            title={editLabel}
+          >
+            <span className="size-4" aria-hidden="true"><EditIcon /></span>
+          </button>
+        ) : (
+          <Link
+            href={`/missions/opps/${opportunity.id}/modifier`}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-medium)] border border-transparent bg-surface text-heading transition-colors hover:bg-surface/85 focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)] focus-visible:ring-offset-[var(--focus-ring-offset)] focus-visible:ring-offset-[var(--color-bg-surface)] sm:h-9 sm:w-9"
+            aria-label={editLabel}
+            title={editLabel}
+          >
+            <span className="size-4" aria-hidden="true"><EditIcon /></span>
+          </Link>
+        )}
       </div>
     </div>
   )

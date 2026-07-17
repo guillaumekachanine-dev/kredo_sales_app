@@ -66,7 +66,7 @@ export function OpportunityPipeline({ stage, updatedAt }: OpportunityPipelinePro
                 className={cn(
                   "relative z-10 mx-auto flex size-7 items-center justify-center rounded-full border bg-canvas text-[11px] font-bold",
                   completed && "kredo-timeline-step kredo-timeline-step--amber border-warning bg-warning text-secondary-fg",
-                  current && "border-primary bg-primary text-primary-fg ring-4 ring-primary/15",
+                  current && "-mt-1.5 size-10 border-primary bg-primary text-sm text-primary-fg shadow-[0_10px_20px_-12px_rgba(19,75,200,0.95)] ring-4 ring-primary/15 transition-[transform,box-shadow] duration-300 ease-out",
                   !completed && !current && "border-border text-muted",
                 )}
                 aria-current={current ? "step" : undefined}
@@ -75,8 +75,8 @@ export function OpportunityPipeline({ stage, updatedAt }: OpportunityPipelinePro
               </span>
               <p
                 className={cn(
-                  "mx-auto mt-2 max-w-28 text-[10px] font-semibold leading-4",
-                  current ? "text-primary" : completed ? "text-heading" : "text-muted",
+                  "mx-auto mt-2 max-w-28 text-[10px] font-semibold leading-4 transition-[color,font-size] duration-300",
+                  current ? "mt-3 max-w-36 text-xs font-extrabold leading-4 text-primary" : completed ? "text-heading" : "text-muted",
                 )}
               >
                 {label}

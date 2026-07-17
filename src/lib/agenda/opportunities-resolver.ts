@@ -38,7 +38,7 @@ function buildLinks(row: OpportunityRow): AgendaDeepLink[] {
   const links: AgendaDeepLink[] = [
     {
       module: "missions",
-      href: `/missions/opps/${row.id}/edit`,
+      href: `/missions/opps/${row.id}/modifier`,
       label: row.title,
       sourceType: "opportunity",
       sourceId: row.id,

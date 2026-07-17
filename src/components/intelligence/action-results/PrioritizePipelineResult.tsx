@@ -24,7 +24,7 @@ export function PrioritizePipelineResult({ result }: { result: PrioritizePipelin
         <ol className="space-y-2.5">
           {result.rankedOpportunities.map((opportunity, index) => (
             <li key={opportunity.opportunityId}>
-              <a href={`/missions/opps/${opportunity.opportunityId}/edit`} className="block rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-3 transition-colors hover:bg-primary-fg/[0.07]">
+              <a href={`/missions/opps/${opportunity.opportunityId}/modifier`} className="block rounded-lg border border-primary-fg/10 bg-primary-fg/[0.04] p-3 transition-colors hover:bg-primary-fg/[0.07]">
                 <div className="flex items-start gap-2">
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-brass text-[11px] font-bold text-secondary-fg">
                     {index + 1}

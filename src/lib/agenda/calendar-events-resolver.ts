@@ -125,7 +125,7 @@ function mapCalendarEvent(row: CalendarEventRow, query: AgendaQuery): AgendaItem
   }
   if (row.opportunity_id) {
     relatedLinks.push(
-      buildLink("missions", `/missions/opps/${row.opportunity_id}/edit`, row.opportunity?.title ?? "Opportunité", row.id),
+      buildLink("missions", `/missions/opps/${row.opportunity_id}/modifier`, row.opportunity?.title ?? "Opportunité", row.id),
     )
   }
   if (row.mission_id) {

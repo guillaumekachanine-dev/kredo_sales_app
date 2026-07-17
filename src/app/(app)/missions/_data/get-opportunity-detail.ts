@@ -157,6 +157,11 @@ export async function getOpportunityDetail(opportunityId: string): Promise<Oppor
       diffusion_date: getJsonString(opportunity.context, "diffusion_date"),
       decision_date: getJsonString(opportunity.context, "decision_date"),
       searched_profile: getJsonString(opportunity.context, "searched_profile"),
+      rythme: getJsonString(opportunity.context, "rythme"),
+      budget: (() => {
+        const value = isJsonRecord(opportunity.context) ? opportunity.context.budget : null
+        return typeof value === "number" ? value : null
+      })(),
       outcome,
     }
 

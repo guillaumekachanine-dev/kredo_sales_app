@@ -119,7 +119,7 @@ export function MissionsMobileListView({
                     return
                   }
                   if (row.entityType === "opportunite") {
-                    router.push(`/missions/opps/${row.entityId}/edit`)
+                    router.push(`/missions/opps/${row.entityId}/modifier`)
                   }
                 }}
                 className="shrink-0 self-start rounded border border-transparent p-1.5 text-muted transition-all duration-150 hover:border-border/60 hover:bg-primary/5 hover:text-primary"

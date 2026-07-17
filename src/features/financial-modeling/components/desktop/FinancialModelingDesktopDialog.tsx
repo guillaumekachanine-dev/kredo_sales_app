@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Field } from "@/components/ui/Field"
 import { Input } from "@/components/ui/Input"
@@ -12,8 +13,8 @@ import {
   FinancialPeriodFields,
   FinancialPricingFields,
   FinancialExpenseFields,
+  FinancialModelHistoryItem,
   FinancialModelingResults,
-  formatEuroWithCents,
   formatEuroInteger
 } from "../shared"
 import { FinancialModelingFlashFields } from "./FinancialModelingFlashFields"
@@ -42,6 +43,8 @@ interface FinancialModelingDesktopDialogProps {
   onOpenChange: (open: boolean) => void
   initialId?: string
   initialPreset?: FinancialModelingLaunchPreset
+  initialView?: "edit" | "summary"
+  forceFullMode?: boolean
 }
 
 function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
@@ -85,6 +88,8 @@ export function FinancialModelingDesktopDialog({
   onOpenChange,
   initialId,
   initialPreset,
+  initialView = "edit",
+  forceFullMode = false,
 }: FinancialModelingDesktopDialogProps) {
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
   const [baselineState, setBaselineState] = useState<FinancialModelFormState>(createDefaultFormState())
@@ -96,6 +101,8 @@ export function FinancialModelingDesktopDialog({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"edit" | "summary">(initialView)
+  const [showPostSaveActions, setShowPostSaveActions] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -104,6 +111,9 @@ export function FinancialModelingDesktopDialog({
     if (!open) return
 
     async function loadBootstrap() {
+      setViewMode(initialView)
+      setShowPostSaveActions(false)
+      setShowHistory(false)
       setLoading(true)
       const res = await getFinancialModelingBootstrapAction()
       if (res.success && res.data) {
@@ -129,7 +139,7 @@ export function FinancialModelingDesktopDialog({
     }
 
     loadBootstrap()
-  }, [open, initialId, initialPreset])
+  }, [open, initialId, initialPreset, initialView])
 
   // 2. Client-side Instant Calculation
   const clientResult = useMemo(() => {
@@ -142,8 +152,10 @@ export function FinancialModelingDesktopDialog({
     }
   }, [formState.input])
 
-  const isReadOnly = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
-  const canSave = clientResult !== null && !isReadOnly
+  const isModelLocked = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
+  const isSummary = forceFullMode && viewMode === "summary"
+  const fieldsDisabled = isModelLocked || isSummary
+  const canSave = clientResult !== null && !isModelLocked
 
   const isDirty = useMemo(
     () => serializeComparableState(formState) !== serializeComparableState(baselineState),
@@ -207,6 +219,10 @@ export function FinancialModelingDesktopDialog({
       })
       setFormState(nextState)
       setBaselineState(cloneFormState(nextState))
+      if (forceFullMode) {
+        setViewMode("summary")
+        setShowPostSaveActions(true)
+      }
       
       // Refresh recent list
       const recentRes = await getRecentFinancialModelsAction()
@@ -281,6 +297,21 @@ export function FinancialModelingDesktopDialog({
     }
   }
 
+  const handleShareSimulation = async (simulation: FinancialModelRow) => {
+    const text = `Simulation financière : ${simulation.title}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: simulation.title, text })
+        return
+      }
+      await navigator.clipboard.writeText(text)
+      alert("Le résumé de la simulation a été copié.")
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      alert("Impossible de partager cette simulation.")
+    }
+  }
+
   // 7. Promote to Reference
   const handlePromoteToReference = async () => {
     if (!formState.id) {
@@ -320,6 +351,25 @@ export function FinancialModelingDesktopDialog({
     }))
   }
 
+  const handleEdit = () => {
+    setFormState((current) => ({
+      ...current,
+      input: { ...current.input, mode: "full" },
+    }))
+    setShowPostSaveActions(false)
+    setViewMode("edit")
+  }
+
+  const handleCancelEdit = () => {
+    if (forceFullMode && formState.id) {
+      setFormState(cloneFormState(baselineState))
+      setShowPostSaveActions(false)
+      setViewMode("summary")
+      return
+    }
+    handleRequestClose()
+  }
+
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "validated": return "success";
@@ -344,56 +394,17 @@ export function FinancialModelingDesktopDialog({
       ) : (
         <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
           {recentSimulations.map((sim) => (
-            <div
+            <FinancialModelHistoryItem
               key={sim.id}
-              className={`space-y-1.5 rounded-[var(--radius-medium)] border p-2.5 text-[11px] transition-colors ${
-                formState.id === sim.id
-                  ? "border-primary bg-primary/[0.02]"
-                  : "border-border/60 bg-surface hover:bg-canvas/5"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-1">
-                <span className="block flex-1 truncate font-semibold text-heading">{sim.title}</span>
-                <StatusPill
-                  label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
-                  variant={getStatusVariant(sim.status)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-2 text-muted">
-                <div>Ressource : <span className="block truncate font-medium text-body">{sim.resource_label}</span></div>
-                <div>Marge : <span className="font-medium text-body">{formatEuroWithCents(Number(sim.gross_margin_amount))}</span></div>
-              </div>
-
-              <div className="mt-1.5 flex items-center justify-between border-t border-border/40 pt-1.5">
-                <span className="text-[9px] text-muted">{new Date(sim.updated_at).toLocaleDateString("fr-FR")}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenSimulation(sim.id)}
-                    className="text-[10px] font-semibold text-primary hover:underline"
-                  >
-                    Ouvrir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDuplicateSimulation(sim.id)}
-                    className="text-[10px] font-semibold text-primary hover:underline"
-                  >
-                    Dupliquer
-                  </button>
-                  {(sim.status === "draft" || sim.status === "validated") && (
-                    <button
-                      type="button"
-                      onClick={() => handleArchive(sim.id)}
-                      className="text-[10px] font-semibold text-danger hover:underline"
-                    >
-                      Archiver
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+              simulation={sim}
+              active={formState.id === sim.id}
+              companyName={bootstrap?.companies.find((company) => company.id === sim.company_id)?.name}
+              opportunityTitle={bootstrap?.opportunities.find((opportunity) => opportunity.id === sim.opportunity_id)?.title}
+              onOpen={handleOpenSimulation}
+              onDuplicate={handleDuplicateSimulation}
+              onShare={handleShareSimulation}
+              onArchive={handleArchive}
+            />
           ))}
         </div>
       )}
@@ -412,10 +423,12 @@ export function FinancialModelingDesktopDialog({
         title={
           <div className="flex min-w-0 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <img
+              <Image
                 src="/icons_set/calculatrice.png"
                 alt="Calculatrice"
-                className="w-5 h-5 object-contain"
+                width={20}
+                height={20}
+                className="size-5 object-contain"
               />
               <span className="truncate">
                 {formState.input.mode === "flash"
@@ -431,7 +444,7 @@ export function FinancialModelingDesktopDialog({
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
-              {formState.input.mode === "full" && (
+              {!isSummary && !forceFullMode && formState.input.mode === "full" && (
                 <button
                   type="button"
                   onClick={() => handleModeChange("flash")}
@@ -444,7 +457,7 @@ export function FinancialModelingDesktopDialog({
                   </svg>
                 </button>
               )}
-              {formState.input.mode === "full" && (
+              {!isSummary && formState.input.mode === "full" && (
                 <button
                   type="button"
                   onClick={() => setShowHistory((current) => !current)}
@@ -462,7 +475,7 @@ export function FinancialModelingDesktopDialog({
           </div>
         }
         className={`h-[85vh] max-h-[85vh] max-w-none !w-[min(calc(100vw-2rem),64rem)] will-change-transform transition-transform ease-out motion-reduce:transition-none ${
-          formState.input.mode === "full" && showHistory
+          !isSummary && formState.input.mode === "full" && showHistory
             ? "-translate-x-[min(16rem,21vw)] duration-500"
             : "translate-x-0 duration-300"
         }`}
@@ -470,7 +483,7 @@ export function FinancialModelingDesktopDialog({
         headerClassName="-mx-4 -mt-4 rounded-t-[var(--radius-medium)] border-b border-[#1E4596] bg-[#2554B8] px-4 py-4 text-white [&_button]:text-white/80 [&_button]:hover:text-white sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-5"
         bodyClassName="p-0 overflow-hidden flex flex-col h-full"
         aside={historyPanel}
-        asideOpen={formState.input.mode === "full" && showHistory}
+        asideOpen={!isSummary && formState.input.mode === "full" && showHistory}
       >
         {/* Persistent Floating Results Header Bar */}
         {clientResult && (
@@ -502,6 +515,8 @@ export function FinancialModelingDesktopDialog({
             <div className="flex items-center justify-center h-60 text-sm text-muted">
               Chargement du contexte financier...
             </div>
+          ) : isSummary ? (
+            <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} hideKpis />
           ) : (
             <div className="space-y-6">
                 {formState.input.mode === "flash" ? (
@@ -511,7 +526,7 @@ export function FinancialModelingDesktopDialog({
                       onChange={setFormState}
                       bootstrap={bootstrap}
                       clientResult={clientResult}
-                      disabled={isReadOnly}
+                      disabled={fieldsDisabled}
                     />
                     
                   </div>
@@ -523,7 +538,7 @@ export function FinancialModelingDesktopDialog({
                       <Field label="Titre de la simulation" required>
                         <Input
                           value={formState.title}
-                          disabled={isReadOnly}
+                          disabled={fieldsDisabled}
                           onChange={(e) => setFormState({ ...formState, title: e.target.value })}
                         />
                       </Field>
@@ -538,14 +553,14 @@ export function FinancialModelingDesktopDialog({
                         catalog={bootstrap.catalog}
                         assumptions={bootstrap.assumptions}
                         result={clientResult}
-                        disabled={isReadOnly}
+                        disabled={fieldsDisabled}
                       />
                     </div>
 
                     {/* Section Mission */}
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">3. Paramètres Mission</h3>
-                      <FinancialPeriodFields value={formState} onChange={setFormState} disabled={isReadOnly} />
+                      <FinancialPeriodFields value={formState} onChange={setFormState} disabled={fieldsDisabled} />
                     </div>
 
                     {/* Section Pricing */}
@@ -558,17 +573,17 @@ export function FinancialModelingDesktopDialog({
                         companies={bootstrap.companies}
                         opportunities={bootstrap.opportunities}
                         activeStaffingCompanyIds={bootstrap.activeStaffingCompanyIds}
-                        disabled={isReadOnly}
+                        disabled={fieldsDisabled}
                       />
                     </div>
 
                     {/* Section Expenses */}
                     <div className="space-y-3">
-                      <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={isReadOnly} />
+                      <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={fieldsDisabled} />
                     </div>
 
                     {/* Section Eligibility Warning card */}
-                    {formState.input.mode === "full" && !isReadOnly && !eligibility.eligible && (
+                    {formState.input.mode === "full" && !fieldsDisabled && !eligibility.eligible && (
                       <div className="rounded-[var(--radius-medium)] border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-700 space-y-1.5">
                         <p className="font-bold flex items-center gap-1.5">
                           <span className="size-1.5 rounded-full bg-amber-500" />
@@ -595,6 +610,54 @@ export function FinancialModelingDesktopDialog({
 
         {/* Fixed Footer */}
         <div className="shrink-0 border-t border-border/80 bg-surface p-4">
+          {isSummary ? (
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleRequestClose}
+                className="border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+              >
+                Fermer
+              </Button>
+              {showPostSaveActions ? (
+                <Button
+                  variant="brass"
+                  size="sm"
+                  className="border-amber-400 bg-amber-400 text-amber-950 hover:bg-amber-500"
+                  disabled={!formState.id || !eligibility.eligible || saving || loading}
+                  onClick={handlePromoteToReference}
+                  title={!eligibility.eligible ? "La simulation ne respecte pas tous les critères requis pour devenir la référence." : undefined}
+                >
+                  Établir
+                </Button>
+              ) : (
+                <Button variant="primary" size="sm" disabled={isModelLocked || loading || saving} onClick={handleEdit}>
+                  Modifier
+                </Button>
+              )}
+            </div>
+          ) : forceFullMode ? (
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCancelEdit}
+              className="justify-self-start border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="bg-[#2554B8] hover:bg-[#1E4596]"
+              disabled={!canSave || saving || loading}
+              onClick={() => handleSave("validated")}
+            >
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+          </div>
+          ) : (
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <Button
               variant="secondary"
@@ -605,7 +668,7 @@ export function FinancialModelingDesktopDialog({
               Fermer
             </Button>
 
-            {!isReadOnly && formState.input.mode === "flash" ? (
+            {!isModelLocked && formState.input.mode === "flash" ? (
               <Button
                 variant="secondary"
                 size="sm"
@@ -615,7 +678,7 @@ export function FinancialModelingDesktopDialog({
               >
                 Passer en mode complet
               </Button>
-            ) : !isReadOnly && formState.input.mode === "full" ? (
+            ) : !isModelLocked && formState.input.mode === "full" ? (
               <Button
                 variant="primary"
                 size="sm"
@@ -627,7 +690,7 @@ export function FinancialModelingDesktopDialog({
               </Button>
             ) : <span />}
 
-            {isReadOnly ? (
+            {isModelLocked ? (
               <div className="flex justify-self-end gap-2"><Button
                 variant="primary"
                 size="sm"
@@ -650,6 +713,7 @@ export function FinancialModelingDesktopDialog({
               </Button>
             ) : <span />}
           </div>
+          )}
         </div>
       </AppDialog>
       {formState.id ? <CommercialQuoteDesktopDialog modelId={formState.id} open={quoteOpen} onOpenChange={setQuoteOpen} /> : null}

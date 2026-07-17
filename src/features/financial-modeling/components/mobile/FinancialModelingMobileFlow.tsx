@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import Image from "next/image"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
@@ -11,9 +12,10 @@ import {
   FinancialPeriodFields,
   FinancialPricingFields,
   FinancialExpenseFields,
+  FinancialModelHistoryItem,
   FinancialModelingResults,
   FinancialModelingWarnings,
-  formatEuroWithCents
+  formatEuroInteger,
 } from "../shared"
 import { calculateFinancialModel } from "../../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../../domain/financial-model.schema"
@@ -39,6 +41,8 @@ interface FinancialModelingMobileFlowProps {
   onOpenChange: (open: boolean) => void
   initialId?: string
   initialPreset?: FinancialModelingLaunchPreset
+  initialView?: "edit" | "summary"
+  forceFullMode?: boolean
 }
 
 function cloneFormState(state: FinancialModelFormState): FinancialModelFormState {
@@ -82,6 +86,8 @@ export function FinancialModelingMobileFlow({
   onOpenChange,
   initialId,
   initialPreset,
+  initialView = "edit",
+  forceFullMode = false,
 }: FinancialModelingMobileFlowProps) {
   const [step, setStep] = useState(1)
   const [formState, setFormState] = useState<FinancialModelFormState>(createDefaultFormState())
@@ -94,6 +100,8 @@ export function FinancialModelingMobileFlow({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showMobileHistory, setShowMobileHistory] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"edit" | "summary">(initialView)
+  const [showPostSaveActions, setShowPostSaveActions] = useState(false)
 
   const resetFlow = () => {
     const defaultState = createDefaultFormState()
@@ -104,8 +112,10 @@ export function FinancialModelingMobileFlow({
 
   useEffect(() => {
     if (!open) return
-    
+
     async function loadBootstrap() {
+      setViewMode(initialView)
+      setShowPostSaveActions(false)
       setLoading(true)
       const res = await getFinancialModelingBootstrapAction()
       if (res.success && res.data) {
@@ -131,7 +141,7 @@ export function FinancialModelingMobileFlow({
       setLoading(false)
     }
     loadBootstrap()
-  }, [open, initialId, initialPreset])
+  }, [open, initialId, initialPreset, initialView])
 
   const clientResult = useMemo(() => {
     try {
@@ -153,6 +163,7 @@ export function FinancialModelingMobileFlow({
     )
   }, [formState])
   const isReadOnly = formState.status === "reference" || formState.status === "superseded" || formState.status === "converted" || formState.status === "archived"
+  const isSummary = forceFullMode && viewMode === "summary"
   const selectedOpp = useMemo(
     () => bootstrap?.opportunities.find((opportunity) => opportunity.id === formState.opportunityId) ?? null,
     [bootstrap, formState.opportunityId],
@@ -216,6 +227,21 @@ export function FinancialModelingMobileFlow({
     }
   }
 
+  const handleShareSimulation = async (simulation: FinancialModelRow) => {
+    const text = `Simulation financière : ${simulation.title}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: simulation.title, text })
+        return
+      }
+      await navigator.clipboard.writeText(text)
+      alert("Le résumé de la simulation a été copié.")
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      alert("Impossible de partager cette simulation.")
+    }
+  }
+
   const handleArchive = async (id: string) => {
     if (!confirm("Voulez-vous archiver cette simulation ?")) return
 
@@ -265,6 +291,26 @@ export function FinancialModelingMobileFlow({
     onOpenChange(false)
   }
 
+  const handleEdit = () => {
+    setFormState((current) => ({
+      ...current,
+      input: { ...current.input, mode: "full" },
+    }))
+    setShowPostSaveActions(false)
+    setStep(1)
+    setViewMode("edit")
+  }
+
+  const handleCancelEdit = () => {
+    if (forceFullMode && formState.id) {
+      setFormState(cloneFormState(baselineState))
+      setShowPostSaveActions(false)
+      setViewMode("summary")
+      return
+    }
+    handleRequestClose()
+  }
+
   const handleSave = async (statusOverride?: "draft" | "validated") => {
     const targetStatus = statusOverride || formState.status
     if (targetStatus === "validated" && !showConfirmValidation) {
@@ -283,7 +329,19 @@ export function FinancialModelingMobileFlow({
     const res = await saveFinancialModelAction(payload)
     setSaving(false)
 
-    if (res.success) {
+    if (res.success && forceFullMode) {
+      const nextState = cloneFormState({
+        ...payload,
+        id: res.id,
+        status: res.status as FinancialModelFormState["status"],
+        updated_at: res.updated_at,
+        expected_updated_at: res.updated_at,
+      })
+      setFormState(nextState)
+      setBaselineState(cloneFormState(nextState))
+      setShowPostSaveActions(true)
+      setViewMode("summary")
+    } else if (res.success) {
       resetFlow()
       onOpenChange(false)
     } else {
@@ -377,6 +435,32 @@ export function FinancialModelingMobileFlow({
     }
   }
 
+  const summaryContent = (
+    <div className="space-y-4 pb-6">
+      {clientResult && (
+        <div className="grid grid-cols-4 divide-x divide-amber-600/20 border-y border-amber-500/30 bg-amber-400/75 py-3 text-center">
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">CA</p>
+            <p className="mt-0.5 text-xs font-bold text-amber-950">{formatEuroInteger(clientResult.periodRevenue)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">Coûts</p>
+            <p className="mt-0.5 text-xs font-bold text-amber-950">{formatEuroInteger(clientResult.totalCosts)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">Marge</p>
+            <p className={`mt-0.5 text-xs font-bold ${clientResult.commercialMargin < 0 ? "text-rose-700" : "text-emerald-800"}`}>{formatEuroInteger(clientResult.commercialMargin)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-950/60">MCO %</p>
+            <p className="mt-0.5 text-xs font-bold text-amber-950">{clientResult.mcoPercent !== null ? `${clientResult.mcoPercent.toFixed(2)}%` : "—"}</p>
+          </div>
+        </div>
+      )}
+      <FinancialModelingResults result={clientResult} salesDailyRate={formState.input.salesDailyRate} hideKpis />
+    </div>
+  )
+
   return (
     <>
       <AppDrawer
@@ -389,10 +473,12 @@ export function FinancialModelingMobileFlow({
         side="bottom"
         title={
           <div className="flex items-center gap-2">
-            <img
+            <Image
               src="/icons_set/calculatrice.png"
               alt="Calculatrice"
-              className="w-5 h-5 object-contain"
+              width={20}
+              height={20}
+              className="size-5 object-contain"
             />
             <span>Simuler une mission</span>
             {formState.id && (
@@ -407,6 +493,22 @@ export function FinancialModelingMobileFlow({
         headerClassName="bg-secondary text-brand-ink [&_button]:text-brand-ink/70 [&_button]:hover:text-brand-ink border-b border-secondary/20"
         contentClassName="flex-1 overflow-y-auto px-4 py-3"
         footer={
+          isSummary ? (
+            <div className="w-full flex items-center justify-between gap-3">
+              <Button variant="secondary" size="md" className="h-11" onClick={handleRequestClose}>
+                Fermer
+              </Button>
+              {showPostSaveActions ? (
+                <Button variant="brass" size="md" className="h-11" disabled={!canPromoteReference || saving} onClick={handlePromoteToReference}>
+                  Établir
+                </Button>
+              ) : (
+                <Button variant="primary" size="md" className="h-11" disabled={isReadOnly || loading || saving} onClick={handleEdit}>
+                  Modifier
+                </Button>
+              )}
+            </div>
+          ) : (
           <div className="w-full flex items-center justify-between gap-3">
             {step > 1 ? (
               <button
@@ -419,7 +521,7 @@ export function FinancialModelingMobileFlow({
             ) : (
               <button
                 type="button"
-                onClick={handleRequestClose}
+                onClick={forceFullMode ? handleCancelEdit : handleRequestClose}
                 className="h-11 px-4 text-sm font-semibold text-muted hover:text-heading transition-colors"
               >
                 Annuler
@@ -488,9 +590,10 @@ export function FinancialModelingMobileFlow({
               </div>
             )}
           </div>
+          )
         }
       >
-        {renderStepContent()}
+        {isSummary ? summaryContent : renderStepContent()}
       </AppDrawer>
       {formState.id ? <CommercialQuoteMobileDrawer modelId={formState.id} open={quoteOpen} onOpenChange={setQuoteOpen} /> : null}
 
@@ -574,56 +677,17 @@ export function FinancialModelingMobileFlow({
         ) : (
           <div className="space-y-3.5">
             {recentSimulations.map((sim) => (
-              <div
+              <FinancialModelHistoryItem
                 key={sim.id}
-                className="p-3.5 rounded-[var(--radius-medium)] border text-xs space-y-2.5 bg-surface border-border/60"
-              >
-                <div className="flex items-start justify-between gap-1.5">
-                  <span className="font-bold text-heading truncate block flex-1">
-                    {sim.title}
-                  </span>
-                  <StatusPill
-                    label={FINANCIAL_MODEL_STATUS_LABELS[sim.status as keyof typeof FINANCIAL_MODEL_STATUS_LABELS] || sim.status}
-                    variant={getStatusVariant(sim.status)}
-                  />
-                </div>
-
-                <div className="text-muted grid grid-cols-2 gap-x-3 gap-y-1">
-                  <div>Ressource : <span className="font-semibold text-body truncate block">{sim.resource_label}</span></div>
-                  <div>Marge : <span className="font-semibold text-body">{formatEuroWithCents(Number(sim.gross_margin_amount))}</span></div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border/40 pt-2.5 mt-2">
-                  <span className="text-[10px] text-muted">
-                    {new Date(sim.updated_at).toLocaleDateString("fr-FR")}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenSimulation(sim.id)}
-                      className="h-11 px-3 text-xs text-primary font-bold hover:underline min-w-[44px] flex items-center justify-center"
-                    >
-                      Ouvrir
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicateSimulation(sim.id)}
-                      className="h-11 px-3 text-xs text-primary font-bold hover:underline min-w-[44px] flex items-center justify-center"
-                    >
-                      Dupliquer
-                    </button>
-                    {(sim.status === "draft" || sim.status === "validated") && (
-                      <button
-                        type="button"
-                        onClick={() => handleArchive(sim.id)}
-                        className="h-11 px-3 text-xs text-danger font-bold hover:underline min-w-[44px] flex items-center justify-center"
-                      >
-                        Archiver
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+                simulation={sim}
+                active={formState.id === sim.id}
+                companyName={bootstrap?.companies.find((company) => company.id === sim.company_id)?.name}
+                opportunityTitle={bootstrap?.opportunities.find((opportunity) => opportunity.id === sim.opportunity_id)?.title}
+                onOpen={handleOpenSimulation}
+                onDuplicate={handleDuplicateSimulation}
+                onShare={handleShareSimulation}
+                onArchive={handleArchive}
+              />
             ))}
           </div>
         )}

@@ -358,7 +358,7 @@ export function selectCockpitOpportunities(
           opportunity.requiresStaffing,
           coveringPositioningCount,
         ),
-        href: `/missions/opps/${opportunity.id}/edit`,
+        href: `/missions/opps/${opportunity.id}/modifier`,
       }
     })
 }

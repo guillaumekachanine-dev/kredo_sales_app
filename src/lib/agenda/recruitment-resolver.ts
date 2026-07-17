@@ -61,7 +61,7 @@ function buildLinks(row: RecruitmentMilestoneRow): AgendaDeepLink[] {
   if (opportunity?.id) {
     links.push({
       module: "missions",
-      href: `/missions/opps/${opportunity.id}/edit`,
+      href: `/missions/opps/${opportunity.id}/modifier`,
       label: opportunity.title,
       sourceType: "candidate_hiring_milestone",
       sourceId: row.id,

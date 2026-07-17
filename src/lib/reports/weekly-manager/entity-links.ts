@@ -10,7 +10,7 @@ export function resolveWeeklyManagerEntityHref(
 
   switch (entityType) {
     case "opportunity":
-      return `/missions/opps/${entityId}/edit`
+      return `/missions/opps/${entityId}/modifier`
     case "company":
       return `/prospection/accounts/${entityId}`
     case "mission":

@@ -66,7 +66,7 @@ function buildMissionLinks(row: MissionRow): AgendaDeepLink[] {
   if (row.opportunity_id) {
     links.push({
       module: "missions",
-      href: `/missions/opps/${row.opportunity_id}/edit`,
+      href: `/missions/opps/${row.opportunity_id}/modifier`,
       label: row.opportunity?.title ?? "Opportunité",
       sourceType: "mission",
       sourceId: row.id,

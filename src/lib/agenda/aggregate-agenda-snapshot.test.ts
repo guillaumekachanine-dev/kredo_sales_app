@@ -296,7 +296,7 @@ describe("aggregate agenda snapshot", () => {
             temporalState: "upcoming",
             priority: "high" as const,
             timebox: { kind: "deadline", at: `2026-03-2${index}T21:59:59.999Z`, timezone: currentQuery.timezone, allDay: false },
-            primaryLink: { module: "missions", href: `/missions/opps/opp-${index}/edit`, label: `Closing ${index}`, sourceType: "opportunity", sourceId: `opp-${index}` },
+            primaryLink: { module: "missions", href: `/missions/opps/opp-${index}/modifier`, label: `Closing ${index}`, sourceType: "opportunity", sourceId: `opp-${index}` },
             relatedLinks: [],
             uiCapabilities: { canOpenPrimary: true, canOpenSource: false, canEditFromAgenda: false, canCreateTask: true, canReschedule: false, canMarkDone: false, canHideForSession: false },
             relationGroupId: null,

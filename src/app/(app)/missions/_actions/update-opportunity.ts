@@ -292,6 +292,8 @@ export async function updateOpportunity(
   }
 
   revalidatePath("/missions/opps")
+  revalidatePath(`/missions/opps/${input.id}`)
+  revalidatePath(`/missions/opps/${input.id}/modifier`)
   revalidatePath("/missions")
   revalidatePath("/missions/actives")
 

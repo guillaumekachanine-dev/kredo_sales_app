@@ -7,6 +7,7 @@ import type { OpportunityStandingProfile } from "@/types/database-domain"
 import {
   FinancialModelingDesktopDialog,
   FinancialModelingMobileFlow,
+  getFinancialModelForStaffingAction,
 } from "@/features/financial-modeling"
 import type { FinancialModelingLaunchPreset } from "@/features/financial-modeling"
 import { OpportunityStandingPanel } from "./OpportunityStandingPanel"
@@ -25,7 +26,8 @@ export function OpportunityStaffingTab({
   onPositionProfile,
 }: OpportunityStaffingTabProps) {
   const { opportunity, account } = data
-  const [simulationProfile, setSimulationProfile] = useState<OpportunityStandingProfile | null>(null)
+  const [simulation, setSimulation] = useState<{ profile: OpportunityStandingProfile; modelId: string | null } | null>(null)
+  const simulationProfile = simulation?.profile ?? null
   const simulationPreset = useMemo<FinancialModelingLaunchPreset | undefined>(() => {
     if (!simulationProfile) return undefined
 
@@ -40,6 +42,15 @@ export function OpportunityStaffingTab({
       salesDailyRate: opportunity.target_daily_rate,
     }
   }, [account?.id, opportunity.id, opportunity.target_daily_rate, simulationProfile])
+
+  const handleLaunchFinancialSimulation = async (profile: OpportunityStandingProfile) => {
+    const result = await getFinancialModelForStaffingAction(opportunity.id, profile.candidate_id)
+    if (!result.success) {
+      alert(result.error || "Impossible de charger la simulation financière.")
+      return
+    }
+    setSimulation({ profile, modelId: result.id })
+  }
 
   return (
     <section>
@@ -77,21 +88,27 @@ export function OpportunityStaffingTab({
         companyId={account?.id ?? null}
         companyName={account?.name ?? null}
         opportunityTitle={opportunity.title}
-        onLaunchFinancialSimulation={setSimulationProfile}
+        onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
         readOnly
       />
 
       {isMobile ? (
         <FinancialModelingMobileFlow
-          open={simulationProfile !== null}
-          onOpenChange={(open) => !open && setSimulationProfile(null)}
+          open={simulation !== null}
+          onOpenChange={(open) => !open && setSimulation(null)}
+          initialId={simulation?.modelId ?? undefined}
           initialPreset={simulationPreset}
+          initialView={simulation?.modelId ? "summary" : "edit"}
+          forceFullMode
         />
       ) : (
         <FinancialModelingDesktopDialog
-          open={simulationProfile !== null}
-          onOpenChange={(open) => !open && setSimulationProfile(null)}
+          open={simulation !== null}
+          onOpenChange={(open) => !open && setSimulation(null)}
+          initialId={simulation?.modelId ?? undefined}
           initialPreset={simulationPreset}
+          initialView={simulation?.modelId ? "summary" : "edit"}
+          forceFullMode
         />
       )}
     </section>
