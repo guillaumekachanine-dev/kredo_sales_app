@@ -40,12 +40,6 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
 
   const x = (reach: number) => mL + (reach / 100) * plotW
   const y = (potential: number) => mT + plotH - (potential / 100) * plotH
-  const pointColor = (point: PotentialReachMatrixProps["points"][number]) => {
-    if (point.potential >= 50 && point.reach >= 50) return "var(--color-success)"
-    if (point.potential >= 50) return "var(--color-primary)"
-    if (point.reach >= 50) return "var(--color-info)"
-    return "var(--color-danger)"
-  }
 
   // Tooltip details
   const TW = 160
@@ -61,7 +55,7 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
 
   return (
     <section className="flex min-h-[430px] min-w-0 flex-col rounded-xl border border-border/30 bg-surface/30 p-5">
-      <h2 className="font-heading text-sm font-bold text-heading">Matrice Potentiel × Reach</h2>
+      <h2 className="font-heading text-sm font-bold text-body">Matrice Potentiel × Reach</h2>
       <p className="mb-4 mt-1 text-xs text-muted">Croisement de la couverture relationnelle et du potentiel de développement.</p>
       
       <div className="flex-1 relative w-full flex items-center justify-center min-h-0">
@@ -71,14 +65,14 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
           role="img"
           aria-label="Graphique à bulles croisant potentiel et reach des comptes"
         >
-          <rect x={mL} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-primary)" opacity="0.055" />
-          <rect x={x(50)} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-success)" opacity="0.075" />
-          <rect x={mL} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-danger)" opacity="0.055" />
-          <rect x={x(50)} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-info)" opacity="0.06" />
-          <text x={mL + 12} y={mT + 18} fill="var(--color-primary)" fontSize={11} fontWeight={700}>À développer</text>
-          <text x={x(50) + 12} y={mT + 18} fill="var(--color-success)" fontSize={11} fontWeight={700}>À activer</text>
-          <text x={mL + 12} y={mT + plotH - 12} fill="var(--color-danger)" fontSize={11} fontWeight={700}>À surveiller</text>
-          <text x={x(50) + 12} y={mT + plotH - 12} fill="var(--color-info)" fontSize={11} fontWeight={700}>À préserver</text>
+          <rect x={mL} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.22" />
+          <rect x={x(50)} y={mT} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.1" />
+          <rect x={mL} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.14" />
+          <rect x={x(50)} y={y(50)} width={plotW / 2} height={plotH / 2} fill="var(--color-surface-hover)" opacity="0.06" />
+          <text x={mL + 12} y={mT + 18} fill="var(--color-body)" fontSize={11} fontWeight={700}>À développer</text>
+          <text x={x(50) + 12} y={mT + 18} fill="var(--color-body)" fontSize={11} fontWeight={700}>À activer</text>
+          <text x={mL + 12} y={mT + plotH - 12} fill="var(--color-body)" fontSize={11} fontWeight={700}>À surveiller</text>
+          <text x={x(50) + 12} y={mT + plotH - 12} fill="var(--color-body)" fontSize={11} fontWeight={700}>À préserver</text>
           {/* Grid lines (25%, 50%, 75%) */}
           {[25, 50, 75].map(tick => (
             <g key={tick} opacity={0.25}>
@@ -237,7 +231,7 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
                     cx={cx}
                     cy={cy}
                     r={radius + 3}
-                    fill="var(--color-dataviz-1)"
+                  fill="var(--color-primary)"
                     opacity={0.2}
                      className="transition-all duration-200 motion-reduce:transition-none"
                   />
@@ -247,14 +241,14 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
                   cx={cx}
                   cy={cy}
                   r={radius}
-                  fill={isSelected ? "var(--color-primary)" : pointColor(point)}
+                  fill={isSelected || isHovered || isFocused ? "var(--color-primary)" : "var(--color-body)"}
                   opacity={isSelected || isHovered || isFocused ? 1 : 0.75}
                   stroke={isSelected ? "var(--color-surface)" : "var(--color-border)"}
                   strokeWidth={1.5}
                    className="transition-all duration-200 motion-reduce:transition-none"
                 />
                 {(isSelected || directlyLabelledIds.has(point.accountId)) && (
-                  <text x={cx + radius + 5} y={cy + 4} fill="var(--color-heading)" fontSize={9} fontWeight={700}>
+                  <text x={cx + radius + 5} y={cy + 4} fill={isSelected ? "var(--color-primary)" : "var(--color-body)"} fontSize={9} fontWeight={700}>
                     {point.name.length > 18 ? `${point.name.slice(0, 16)}…` : point.name}
                   </text>
                 )}
@@ -280,7 +274,7 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
               <text
                 x={tooltipCoords.x + 10}
                 y={tooltipCoords.y + 18}
-                 fill="var(--color-heading)"
+                 fill="var(--color-body)"
                 fontSize={9.5}
                 fontWeight={700}
               >
@@ -298,14 +292,14 @@ export function PotentialReachMatrix({ points, selectedAccountId, onSelectAccoun
               <text x={tooltipCoords.x + 10} y={tooltipCoords.y + 40} fill="var(--color-muted)" fontSize={8.5} fontWeight={500}>
                 Potentiel :
               </text>
-               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 40} textAnchor="end" fill="var(--color-heading)" fontSize={8.5} fontWeight={700}>
+               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 40} textAnchor="end" fill="var(--color-body)" fontSize={8.5} fontWeight={700}>
                 {activePoint.potential}%
               </text>
 
               <text x={tooltipCoords.x + 10} y={tooltipCoords.y + 54} fill="var(--color-muted)" fontSize={8.5} fontWeight={500}>
                 Reach :
               </text>
-               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 54} textAnchor="end" fill="var(--color-heading)" fontSize={8.5} fontWeight={700}>
+               <text x={tooltipCoords.x + TW - 10} y={tooltipCoords.y + 54} textAnchor="end" fill="var(--color-body)" fontSize={8.5} fontWeight={700}>
                 {activePoint.reach}%
               </text>
 

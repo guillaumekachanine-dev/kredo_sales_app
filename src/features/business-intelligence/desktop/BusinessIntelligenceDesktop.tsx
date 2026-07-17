@@ -35,7 +35,7 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
     return (
       <main className="flex min-h-screen items-center justify-center bg-canvas p-8">
         <section className="max-w-md rounded-xl border border-border/40 bg-surface/30 p-6 text-center">
-          <h1 className="text-lg font-semibold text-heading">Données indisponibles</h1>
+          <h1 className="text-lg font-semibold text-body">Données indisponibles</h1>
           <p className="mt-2 text-sm text-muted">La Business Intelligence ne peut pas être chargée pour le moment.</p>
         </section>
       </main>
@@ -50,6 +50,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null)
 
   // Playbooks modal state
   const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
@@ -97,6 +98,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
   }
 
   const handleSelectWindow = (window: SectorActivationWindow) => {
+    setSelectedWindowId(window.id)
     if (window.exposedAccountIds && window.exposedAccountIds.length > 0) {
       const firstExposedId = window.exposedAccountIds[0]
       setSelectedAccountId(firstExposedId)
@@ -148,7 +150,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
       <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
         {viewModel.hasDemoData && (
           <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
-            <span className="mr-2 size-2 shrink-0 rounded-full bg-warning" />
+            <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
             Certaines activités de démonstration sont incluses dans les indicateurs.
           </div>
         )}
@@ -160,7 +162,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
           <PotentialReachMatrix points={filteredMatrixPoints} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} />
           <AccountAttackPanel attackData={selectedAttackData} baseAccount={selectedBaseAccount} />
         </div>
-        <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} />
+        <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} selectedWindowId={selectedWindowId} onShowAll={() => setIsWindowsOpen(true)} />
       </main>
 
       {isPlaybooksOpen && (
@@ -181,7 +183,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
 
       {isStudiesOpen && <SectorStudiesModal open onClose={() => setIsStudiesOpen(false)} snapshot={snapshot} initialSectorId={selectedSector} />}
       <PriorityAccountsModal open={isAccountsOpen} onClose={() => setIsAccountsOpen(false)} accounts={filteredAccounts} selectedAccountId={activeSelectedId} onSelectAccount={(accountId) => { handleSelectAccount(accountId); setIsAccountsOpen(false) }} />
-      <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={viewModel.windowsLedger} onSelectWindow={(window) => { handleSelectWindow(window); setIsWindowsOpen(false) }} />
+      <SectorWindowsModal open={isWindowsOpen} onClose={() => setIsWindowsOpen(false)} windows={snapshot.windows} selectedWindowId={selectedWindowId} onSelectWindow={(window) => { handleSelectWindow(window); setIsWindowsOpen(false) }} />
 
     </div>
   )

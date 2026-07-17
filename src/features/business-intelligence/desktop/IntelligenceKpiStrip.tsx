@@ -18,7 +18,7 @@ export function IntelligenceKpiStrip({ kpis }: IntelligenceKpiStripProps) {
       {items.map((item) => (
         <div key={item.label} className="px-4 py-4 lg:px-5">
           <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{item.label}</span>
-          <span className="mt-1 block font-heading text-2xl font-bold text-heading">{item.value}</span>
+          <span className="mt-1 block font-heading text-2xl font-bold text-body">{item.value}</span>
         </div>
       ))}
     </section>

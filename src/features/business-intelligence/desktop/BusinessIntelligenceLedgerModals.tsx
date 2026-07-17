@@ -2,6 +2,7 @@ import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import type { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
 import type { AccountPriorityItem } from "../models/build-account-prioritization-model"
+import { SectorWindowsTimeline } from "./SectorWindowsTimeline"
 
 export function PriorityAccountsModal({
   open,
@@ -25,7 +26,8 @@ export function PriorityAccountsModal({
       dataTheme="intelligence-reports"
       className="!w-[min(calc(100vw-2rem),72rem)]"
       bodyClassName="!pr-0"
-      footer={<Button variant="secondary" onClick={onClose}>Fermer</Button>}
+      titleClassName="!text-body"
+      footer={<Button variant="secondary" className="!border-border/40 !bg-surface/30 !text-body hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={onClose}>Fermer</Button>}
     >
       <div className="overflow-x-auto border-y border-border/60">
         <table className="w-full min-w-[760px] text-left text-xs">
@@ -38,7 +40,7 @@ export function PriorityAccountsModal({
             {accounts.map((account, index) => {
               const selected = account.accountId === selectedAccountId
               return <tr key={account.accountId} tabIndex={0} onClick={() => onSelectAccount(account.accountId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectAccount(account.accountId) } }} className={`cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${selected ? "border-l-2 border-primary bg-primary/10" : "hover:bg-surface-hover/45"}`}>
-                <td className="px-3 py-3 font-mono text-muted">{index + 1}</td><td className="px-3 py-3 font-semibold text-heading">{account.name}</td><td className="px-3 py-3 text-heading">{account.priority}</td><td className="px-3 py-3 text-body">{account.nativeScore ? `${account.nativeScore.value} · ${account.nativeScore.confidence}%` : "Proxy"}</td><td className="px-3 py-3 text-body">P: {account.potential} · R: {account.reach}</td><td className="max-w-[260px] px-3 py-3 text-body">{account.nextAction ?? "Action non déterminée"}</td>
+                <td className="px-3 py-3 font-mono text-muted">{index + 1}</td><td className="px-3 py-3 font-semibold text-body">{account.name}</td><td className="px-3 py-3 text-body">{account.priority}</td><td className="px-3 py-3 text-body">{account.nativeScore ? `${account.nativeScore.value} · ${account.nativeScore.confidence}%` : "Proxy"}</td><td className="px-3 py-3 text-body">P: {account.potential} · R: {account.reach}</td><td className="max-w-[260px] px-3 py-3 text-body">{account.nextAction ?? "Action non déterminée"}</td>
               </tr>
             })}
           </tbody>
@@ -53,12 +55,14 @@ export function SectorWindowsModal({
   onClose,
   windows,
   onSelectWindow,
+  selectedWindowId,
   isMobile = false,
 }: {
   open: boolean
   onClose: () => void
   windows: SectorActivationWindow[]
   onSelectWindow: (window: SectorActivationWindow) => void
+  selectedWindowId?: string | null
   isMobile?: boolean
 }) {
   return (
@@ -66,11 +70,12 @@ export function SectorWindowsModal({
       open={open}
       onOpenChange={(next) => !next && onClose()}
       title="Fenêtres sectorielles"
-      description="Toutes les fenêtres détectées, triées par priorité."
+      description="Toutes les fenêtres détectées, regroupées chronologiquement."
       dataTheme="intelligence-reports"
       className="!w-[min(calc(100vw-2rem),72rem)]"
       bodyClassName="!pr-0"
-      footer={<Button variant="secondary" onClick={onClose}>Fermer</Button>}
+      titleClassName="!text-body"
+      footer={<Button variant="secondary" className="!border-border/40 !bg-surface/30 !text-body hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={onClose}>Fermer</Button>}
     >
       {isMobile ? (
         <div className="space-y-3">
@@ -82,20 +87,7 @@ export function SectorWindowsModal({
             </button>
           ))}
         </div>
-      ) : <div className="overflow-x-auto border-y border-border/60">
-        <table className="w-full min-w-[860px] text-left text-xs">
-          <thead className="bg-surface-hover/50 text-[10px] uppercase tracking-[0.1em] text-muted">
-            <tr>
-              <th className="px-3 py-3">Fenêtre</th><th className="px-3 py-3">Secteur</th><th className="px-3 py-3">Source</th><th className="px-3 py-3">Practice</th><th className="px-3 py-3">Échéance</th><th className="px-3 py-3">Urgence</th><th className="px-3 py-3">Comptes</th><th className="px-3 py-3">Action suggérée</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/70">
-            {windows.map((window) => <tr key={window.id} tabIndex={0} onClick={() => onSelectWindow(window)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectWindow(window) } }} className="cursor-pointer transition-colors hover:bg-surface-hover/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
-              <td className="max-w-[220px] px-3 py-3 font-semibold text-heading">{window.title}</td><td className="max-w-[160px] px-3 py-3 text-body">{window.sectorName}</td><td className="px-3 py-3 text-body">{window.sourceType === "event" ? "Événement" : window.sourceType === "news" ? "Actualité" : "Réglementation"}</td><td className="px-3 py-3 text-body">{window.practiceLabel}</td><td className="px-3 py-3 text-body">{window.deadlineAt ? new Date(window.deadlineAt).toLocaleDateString("fr-FR") : "—"}</td><td className={window.urgencyScore >= 80 ? "px-3 py-3 font-bold text-danger" : "px-3 py-3 text-heading"}>{window.urgencyScore}</td><td className="px-3 py-3 text-center text-heading">{window.exposedAccountCount}</td><td className="max-w-[260px] px-3 py-3 text-body">{window.suggestedAction}</td>
-            </tr>)}
-          </tbody>
-        </table>
-      </div>}
+      ) : <SectorWindowsTimeline windows={windows} onSelectWindow={onSelectWindow} selectedWindowId={selectedWindowId} mode="expanded" />}
     </AppDialog>
   )
 }

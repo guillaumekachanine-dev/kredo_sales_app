@@ -30,7 +30,7 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
       <section className="rounded-xl border border-border/30 bg-surface/30">
       <div className="border-b border-border/30 bg-surface-hover/20 p-4">
         <div className="flex justify-between items-start mb-2">
-          <h2 className="truncate font-heading text-sm font-bold text-heading" title={baseAccount.name}>{baseAccount.name}</h2>
+          <h2 className="truncate font-heading text-sm font-bold text-body" title={baseAccount.name}>{baseAccount.name}</h2>
           <Badge variant="neutral" className="ml-2 whitespace-nowrap">{baseAccount.priority} / 100</Badge>
         </div>
         <div className="flex items-center space-x-2 text-xs text-muted">
@@ -45,13 +45,13 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded border border-border/30 bg-surface/20 p-3">
             <span className="mb-1 block text-[10px] uppercase text-muted">Score Stratégique</span>
-            <span className="block text-lg font-semibold text-heading">
+            <span className="block text-lg font-semibold text-body">
               {baseAccount.nativeScore ? baseAccount.nativeScore.value : "N/A"}
             </span>
           </div>
           <div className="rounded border border-border/30 bg-surface/20 p-3">
             <span className="mb-1 block text-[10px] uppercase text-muted">Confiance</span>
-            <span className="block text-lg font-semibold text-heading">
+            <span className="block text-lg font-semibold text-body">
               {attackData?.confidence !== null && attackData?.confidence !== undefined ? `${attackData.confidence}%` : "Non disponible"}
             </span>
           </div>
@@ -60,9 +60,9 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
         {/* Drivers & Vigilance */}
         <div className="space-y-4">
           <div>
-            <h4 className="text-xs font-bold text-heading mb-2 uppercase tracking-wide">Drivers Positifs</h4>
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-body">Drivers Positifs</h4>
             {attackData?.positiveDrivers && attackData.positiveDrivers.length > 0 ? (
-              <ul className="list-disc pl-4 text-sm text-heading space-y-1">
+              <ul className="list-disc space-y-1 pl-4 text-sm text-body">
                 {attackData.positiveDrivers.map((driver, idx) => <li key={idx}>{driver}</li>)}
               </ul>
             ) : (
@@ -71,9 +71,9 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
           </div>
 
           <div>
-            <h4 className="text-xs font-bold text-heading mb-2 uppercase tracking-wide">Points de Vigilance</h4>
+            <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-body">Points de Vigilance</h4>
             {attackData?.vigilancePoints && attackData.vigilancePoints.length > 0 ? (
-                <ul className="list-disc pl-4 text-sm text-danger space-y-1">
+                <ul className="list-disc space-y-1 pl-4 text-sm text-body">
                 {attackData.vigilancePoints.map((pt, idx) => <li key={idx}>{pt}</li>)}
               </ul>
             ) : (
@@ -86,26 +86,26 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
         <div className="space-y-4 border-t border-border/30 pt-4">
           <div>
             <span className="mb-1 block text-[10px] uppercase text-muted">Practice recommandée</span>
-            <span className="block text-sm font-medium text-heading">
+            <span className="block text-sm font-medium text-body">
               {attackData?.recommendedPractice ?? <span className="italic text-muted">Practice non déterminée</span>}
             </span>
           </div>
           <div>
             <span className="mb-1 block text-[10px] uppercase text-muted">Angle d&apos;approche</span>
-            <span className="block text-sm font-medium text-heading">
+            <span className="block text-sm font-medium text-body">
               {attackData?.approachAngle ?? <span className="italic text-muted">Angle non déterminé</span>}
             </span>
           </div>
           <div>
             <span className="mb-1 block text-[10px] uppercase text-muted">Prochaine action</span>
-            <span className="block text-sm font-medium text-heading">
+            <span className="block text-sm font-medium text-body">
               {attackData?.nextAction ?? <span className="italic text-muted">Action non déterminée</span>}
             </span>
           </div>
           {attackData?.topSignal && (
             <div>
               <span className="mb-1 block text-[10px] uppercase text-muted">Signal principal</span>
-              <span className="block text-sm font-medium text-heading">
+              <span className="block text-sm font-medium text-body">
                 {attackData.topSignal.title}
               </span>
             </div>
@@ -113,11 +113,11 @@ export function AccountAttackPanel({ attackData, baseAccount }: AccountAttackPan
         </div>
       </div>
 
-      <div className="space-y-2 border-t border-border bg-surface p-4">
-        <Button className="w-full justify-center" onClick={() => router.push(`/prospection/accounts/${baseAccount.accountId}`)}>Ouvrir le Cockpit</Button>
+      <div className="space-y-2 border-t border-border/30 bg-surface/20 p-4">
+        <Button variant="secondary" className="w-full justify-center !border-border/40 !bg-surface/30 !text-body hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={() => router.push(`/prospection/accounts/${baseAccount.accountId}`)}>Ouvrir le Cockpit</Button>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" className="w-full text-xs" onClick={() => openCommunicationComposer({ origin: "account", companyId: baseAccount.accountId, companyName: baseAccount.name, preset: { outputKind: "written_message" } })}>Rédiger un message</Button>
-          <Button variant="secondary" className="w-full text-xs" onClick={() => router.push("/agenda")}>Planifier une action</Button>
+          <Button variant="secondary" className="w-full !border-border/40 !bg-surface/30 !text-body text-xs hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={() => openCommunicationComposer({ origin: "account", companyId: baseAccount.accountId, companyName: baseAccount.name, preset: { outputKind: "written_message" } })}>Rédiger un message</Button>
+          <Button variant="secondary" className="w-full !border-border/40 !bg-surface/30 !text-body text-xs hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={() => router.push("/agenda")}>Planifier une action</Button>
         </div>
       </div>
     </section>

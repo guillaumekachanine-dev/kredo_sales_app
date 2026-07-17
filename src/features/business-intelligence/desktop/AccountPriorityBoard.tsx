@@ -14,7 +14,7 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
   return (
     <section className="overflow-hidden rounded-xl border border-border/30 bg-surface/30">
       <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
-        <h2 className="font-heading text-sm font-bold text-heading">Classement de couverture</h2>
+        <h2 className="font-heading text-sm font-bold text-body">Classement de couverture</h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
@@ -60,18 +60,18 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
                   aria-selected={isSelected}
                 >
                   <td className="py-3 px-4 font-mono text-muted">{index + 1}</td>
-                  <td className="max-w-[200px] px-4 py-3 font-medium text-heading" title={account.name}>
+                  <td className="max-w-[200px] px-4 py-3 font-medium text-body" title={account.name}>
                     {account.name}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center justify-center rounded bg-surface-hover px-2 py-1 text-xs font-bold text-heading">
+                    <span className="inline-flex items-center justify-center rounded bg-surface-hover px-2 py-1 text-xs font-bold text-body">
                       {account.priority}
                     </span>
                   </td>
                   <td className="py-3 px-4">
                     {account.nativeScore ? (
                       <div className="flex flex-col">
-                        <span className="font-semibold text-heading">{account.nativeScore.value}</span>
+                        <span className="font-semibold text-body">{account.nativeScore.value}</span>
                         <span className="text-[10px] text-muted">{provenanceLabel} • {account.nativeScore.confidence}% conf.</span>
                       </div>
                     ) : (
@@ -80,14 +80,14 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
                   </td>
                   <td className="py-3 px-4 hidden lg:table-cell">
                     <div className="flex items-center space-x-2 text-xs">
-                      <span className="text-heading" title="Potentiel">P: {account.potential}</span>
+                      <span className="text-body" title="Potentiel">P: {account.potential}</span>
                       <span className="text-muted">|</span>
-                      <span className={account.reach < 50 ? "text-danger" : "text-heading"} title="Reach">
+                      <span className="text-body" title="Reach">
                         R: {account.reach}
                       </span>
                     </div>
                   </td>
-                  <td className="max-w-[250px] px-4 py-3 text-xs text-heading hidden xl:table-cell" title={account.nextAction ?? "Action non déterminée"}>
+                  <td className="hidden max-w-[250px] px-4 py-3 text-xs text-body xl:table-cell" title={account.nextAction ?? "Action non déterminée"}>
                     {account.nextAction ?? <span className="italic text-muted">Action non déterminée</span>}
                   </td>
                 </tr>
@@ -97,8 +97,8 @@ export function AccountPriorityBoard({ accounts, selectedAccountId, onSelectAcco
         </table>
       </div>
       {onShowAll && accounts.length > visibleAccounts.length ? (
-        <div className="flex justify-end border-t border-border px-5 py-3">
-          <button type="button" onClick={onShowAll} className="min-h-10 text-xs font-bold text-primary transition-colors hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <div className="flex justify-end border-t border-border/30 px-5 py-3">
+          <button type="button" onClick={onShowAll} className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
             Voir tous les comptes ({accounts.length}) <span aria-hidden="true">→</span>
           </button>
         </div>

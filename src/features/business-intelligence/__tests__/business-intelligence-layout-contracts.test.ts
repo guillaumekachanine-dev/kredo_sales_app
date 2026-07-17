@@ -10,6 +10,8 @@ describe("Business Intelligence atelier analytique", () => {
     expect(desktop).toContain("<AccountPriorityBoard")
     expect(desktop).toContain("limit={5}")
     expect(desktop).toContain("<SectorWindowsTimeline")
+    expect(desktop).toContain("onShowAll={() => setIsWindowsOpen(true)}")
+    expect(desktop).toContain("windows={snapshot.windows}")
     expect(desktop).not.toContain("SectorWindowsLedger")
     expect(desktop).toContain("<PriorityAccountsModal")
     expect(desktop).toContain("<SectorWindowsModal")
@@ -30,8 +32,9 @@ describe("Business Intelligence atelier analytique", () => {
     expect(splitDialog).toContain("dialogFocusTrapDestination")
   })
 
-  it("conserve les données métier et les états accessibles de la frise", () => {
+  it("conserve les données métier et les états accessibles de la frise horizontale", () => {
     const timeline = read("src/features/business-intelligence/desktop/SectorWindowsTimeline.tsx")
+    const ledgers = read("src/features/business-intelligence/desktop/BusinessIntelligenceLedgerModals.tsx")
 
     expect(timeline).toContain("SECTOR_ACTIVATION_SOURCE_LABELS")
     expect(timeline).toContain("À dater")
@@ -39,6 +42,11 @@ describe("Business Intelligence atelier analytique", () => {
     expect(timeline).toContain("window.suggestedAction")
     expect(timeline).toContain("aria-pressed={isSelected}")
     expect(timeline).toContain("onSelectWindow(window)")
+    expect(timeline).toContain("grid-rows-[auto_2rem_1rem_2rem_auto]")
+    expect(timeline).toContain("const isUpper = index % 2 === 0")
+    expect(timeline).toContain("groupWindowsByPeriod")
+    expect(ledgers).toContain('mode="expanded"')
+    expect(ledgers).not.toContain("min-w-[860px]")
   })
 
   it("préserve une matrice SVG lisible et une alternative textuelle", () => {
