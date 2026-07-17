@@ -116,19 +116,19 @@ Une étude sectorielle produit du **mutualisable** — ce qui est vrai pour 5 co
 | `parfumerie-aromes` | active | 4.8 | 10 | 8 | 5 | 5 | 7 | **Fiche complète** — référence densité |
 | `banque-finance-assurance` | active | 4.4 | 5 | 8 | 5 | 5 | 0 | **Fiche complète** — référence corpus mince |
 | `nutraceutique-sante-naturelle` | active | 4.3 | 2 | 6 | 3 | 5 | 0 | **Fiche complète** — référence méthode |
+| `sante-medtech-medico-social` | active | 4.2 | 9 | 7 | 6 | 3 | 0 | **Fiche complète** — première fiche Axe A 35/35 (Gate 3 : 94/100). Univet (vétérinaire) détaché du secteur à l'injection : 9 comptes, pas 10 |
 | `transport-mobilite-regionale` | watch | — | 6 | 0 | 0 | 0 | 0 | Coquille vide |
 | `btp-construction-immobilier` | watch | — | 11 | 0 | 0 | 0 | 0 | Coquille vide |
 | `ehpad-residences-seniors` | watch | — | 2 | 0 | 0 | 0 | 0 | Coquille vide |
 | `aeronautique-spatial-defense` | watch | — | 3 | 0 | 0 | 0 | 0 | Coquille vide |
 | `logiciels-saas-services-numeriques` | watch | — | 9 | 0 | 0 | 0 | 0 | Coquille vide |
 | `secteur-public-enseignement-recherche` | watch | — | 11 | 0 | 0 | 0 | 0 | Coquille vide |
-| `sante-medtech-medico-social` | watch | — | 10 | 0 | 0 | 0 | 0 | Coquille vide |
 | `commerce-distribution-services-specialises` | watch | — | 12 | 0 | 0 | 0 | 0 | Coquille vide |
 | `tourisme-hotellerie-loisirs` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
 | `energie-petrochimie-environnement` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
 | `industrie-manufacturiere-electronique-equipements` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
 
-**Lecture :** **96/96 comptes** sont rattachés à un secteur. **3 secteurs sur 14 sont réellement étudiés.** Les 11 « watch » sont des **conteneurs de rattachement**, pas des études — ils ont un `playbook` squelette vide (75 caractères) et zéro contenu.
+**Lecture (mise à jour 2026-07-17) :** **95/96 comptes** sont rattachés à un secteur (Univet, groupe vétérinaire, a été volontairement détaché lors de l'injection de `sante-medtech-medico-social` — aucun conteneur existant ne lui convenait). **4 secteurs sur 14 sont réellement étudiés.** Les 10 « watch » restants sont des **conteneurs de rattachement**, pas des études — ils ont un `playbook` squelette vide (75 caractères) et zéro contenu.
 
 C'est un état **sain et voulu** : un `status = 'watch'` dit honnêtement « on a rangé les comptes ici, on n'a pas encore étudié le marché ». Ne jamais afficher un score sur un `watch`.
 
@@ -152,15 +152,14 @@ Une étude coûte 5 heures. La question « ce secteur est-il prêt ? » se calcu
 
 **Réponse directe à « combien d'analyses clients ? »** — Le seuil pratique est **3 comptes avec `sector_analysis`**. En dessous, tu peux produire une fiche honnête (précédent `banque-finance-assurance` : 4 comptes, score 4.4 assumé), mais tu dois le déclarer en caveat et baisser le score. À **0**, c'est une fiche réglementaire pure (§9), plafond 3.5.
 
-#### État de préparation mesuré (2026-07-16)
+#### État de préparation mesuré (2026-07-16, corrigé le 2026-07-17)
 
-Les 11 secteurs sous veille, classés par ce qui compte réellement — **pas par nombre de comptes** :
+Les 10 secteurs encore sous veille, classés par ce qui compte réellement — **pas par nombre de comptes** :
 
 | Secteur | Comptes | FOLIO | Ancre de preuve | Interactions | Missions | Opps | Verdict |
 |---|---|---|---|---|---|---|---|
-| **`sante-medtech-medico-social`** | 10 | **10/10** | 1 diagnostic | **16** | 3 | **4** | 🥇 **Le plus prêt.** Corpus complet, verbatims disponibles, fit déjà prouvé |
-| **`tourisme-hotellerie-loisirs`** | 5 | 3 | **Voyage Privé (client)** + 2 diagnostics | 10 | **8** | 2 | 🥈 Peu de comptes, mais la **preuve de delivery la plus profonde** |
-| **`transport-mobilite-regionale`** | 6 | 6/6 | 1 diagnostic | **18** | 1 | **4** | 🥉 Le plus de verbatims potentiels |
+| **`tourisme-hotellerie-loisirs`** | 5 | 3 | **Voyage Privé (client)** + 2 diagnostics | 10 | **8** | 2 | 🥇 Peu de comptes, mais la **preuve de delivery la plus profonde** — à vérifier : passer les interactions au filtre `details` (§3.2 note ci-dessous) avant de compter sur des verbatims |
+| **`transport-mobilite-regionale`** | 6 | 6/6 | 1 diagnostic | **18** | 1 | **4** | 🥈 Le plus de verbatims *potentiels* — non vérifié, voir note ci-dessous |
 | `btp-construction-immobilier` | 11 | 8 | **Audemard (client)** + 3 diagnostics | 1 | 0 | 0 | Bonne ancre, mais **1 seule interaction** → pas de verbatim |
 | `logiciels-saas-services-numeriques` | 9 | 9/9 | 2 diagnostics (+1 ancien client) | 2 | 0 | 1 | Corpus complet, relationnel faible |
 | `aeronautique-spatial-defense` | 3 | 2 | **Exail Robotics (client)** | 7 | 1 | 3 | Ancre + pipe, mais corpus mince (plafond 4.0) |
@@ -170,7 +169,18 @@ Les 11 secteurs sous veille, classés par ce qui compte réellement — **pas pa
 | `energie-petrochimie-environnement` | 5 | 5/5 | — | 1 | 0 | 0 | Corpus sans relationnel |
 | `ehpad-residences-seniors` | 2 | 2 | 1 diagnostic | 2 | 0 | 0 | Corpus mince (plafond 4.0) |
 
-> **Ce que ce tableau corrige :** l'intuition « on attaque le secteur qui a le plus de comptes » désigne `commerce-distribution` (12 comptes) — qui est en réalité un des plus faibles : aucune ancre de preuve, 2 interactions, 0 opportunité. Le nombre de comptes ne dit rien de la qualité d'une étude. **`sante-medtech-medico-social` est le prochain à faire.**
+> ⚠️ **Piège découvert en instruisant `sante-medtech-medico-social` (2026-07-17) — ce tableau comptait des données de seed.** La ligne retirée ci-dessus annonçait 16 interactions et 4 opportunités comme « verbatims disponibles » et « fit déjà prouvé ». Vérification réelle : **15 des 16 interactions portaient un marqueur de test** (`details->>'fictional'='true'` ou `'synthetic'='true'`, lots `kredo_fake_2026_jan_aug_v1` et `kredo_staffing_360_v1`), la 16e était un email généré par Kredo lui-même (`source: intel-020-communication`) — **zéro parole client**. Les 3 missions et 4 opportunités du secteur étaient toutes synthétiques (`seed_key`/`synthetic:true`/`gemini_test_dataset`/`fictional:true`). Le secteur n'avait donc ni verbatim ni fit prouvé, contrairement à ce que ce tableau affirmait. À l'échelle de la base : **70 des 143 interactions sont synthétiques**. Le classement des secteurs restants (`tourisme-hotellerie-loisirs`, `transport-mobilite-regionale`) n'a **pas** été revérifié avec ce filtre — leurs rangs `🥇`/`🥈` sont donc à confirmer, pas à prendre pour acquis. Requête de vérification à ajouter systématiquement avant de compter une interaction ou une opportunité comme preuve :
+> ```sql
+> SELECT count(*) FILTER (
+>   WHERE details->>'fictional'='true' OR details->>'synthetic'='true'
+>      OR details ? 'dataset_batch' OR details ? 'seed_key'
+> ) AS synthetiques, count(*) AS total
+> FROM interactions i JOIN companies c ON c.id=i.company_id
+> WHERE c.sector_id = (SELECT id FROM sector_intelligence WHERE slug='[SLUG]');
+> ```
+> Le même piège existe sur `ai_intelligence_results` : un `process_diagnostic` peut être une coquille (`content_json = {"synthese": "Document d'audit stratégique — voir PDF joint."}`, cas réel sur Horus Pharma) — toujours lire `content_json`, ne jamais compter la ligne comme ancre de preuve sans l'avoir lue.
+>
+> **Ce que ce tableau corrige par ailleurs :** l'intuition « on attaque le secteur qui a le plus de comptes » désigne `commerce-distribution` (12 comptes) — qui est en réalité un des plus faibles : aucune ancre de preuve, 2 interactions, 0 opportunité. Le nombre de comptes ne dit rien de la qualité d'une étude.
 
 Requête à rejouer avant de choisir (les chiffres dérivent) :
 
@@ -218,6 +228,8 @@ ORDER BY COUNT(*) FILTER (WHERE c.metadata->'sector_analysis' IS NOT NULL) DESC;
 ### 4.2 Le paquet de requêtes Phase 1 (à exécuter tel quel)
 
 > ⚠️ **Ces requêtes remplacent celles du skill `kredo-sector-intelligence`, qui référencent des tables inexistantes** (`company_audit`) et des colonnes renommées (`ai_score`, `opportunities.status`, `opportunities.amount_eur`). Voir §12.
+>
+> 📌 **Deux colonnes de ce paquet lui-même étaient fausses, découvert en les exécutant réellement le 2026-07-17** (requête 4 : `expected_close_date` → `target_close_date` ; requête 7 : `daily_rate_min`/`daily_rate_max` → `tjm_min`/`tjm_max`). Corrigé ci-dessous. Le document qui corrige le skill cassé avait donc lui aussi ses propres colonnes fantômes — preuve qu'aucune requête de ce paquet ne doit être exécutée les yeux fermés, y compris celles réputées vérifiées.
 
 ```sql
 -- 0. Contexte
@@ -258,12 +270,13 @@ WHERE s.slug = '[SLUG]'
   AND r.status = 'succeeded';
 
 -- 4. Ce qu'on a réellement vendu / perdu dans ce secteur
-SELECT o.title, o.stage, o.estimated_gain, o.target_daily_rate, o.expected_close_date, c.name
+SELECT o.title, o.stage, o.estimated_gain, o.target_daily_rate, o.target_close_date, c.name
 FROM opportunities o
 JOIN companies c ON c.id = o.company_id
 JOIN sector_intelligence s ON s.id = c.sector_id
 WHERE s.slug = '[SLUG]'
-ORDER BY o.expected_close_date DESC NULLS LAST;
+ORDER BY o.target_close_date DESC NULLS LAST;
+-- ⚠️ colonne target_close_date (PAS expected_close_date, qui n'existe pas — corrigé le 2026-07-17)
 
 SELECT m.title, m.practice, m.tjm, m.status, m.start_date, m.end_date, c.name
 FROM missions m
@@ -290,10 +303,11 @@ WHERE s.slug = '[SLUG]'
 ORDER BY sig.urgency_score DESC, sig.detected_at DESC;
 
 -- 7. Ancrage tarifaire réel (pour avg_tjm_min / avg_tjm_max)
-SELECT p.slug AS practice, MIN(g.daily_rate_min) AS tjm_min, MAX(g.daily_rate_max) AS tjm_max
+SELECT p.slug AS practice, MIN(g.tjm_min) AS tjm_min, MAX(g.tjm_max) AS tjm_max
 FROM offer_pricing_grids g
 JOIN offer_practices p ON p.id = g.practice_id
 GROUP BY p.slug;
+-- ⚠️ colonnes tjm_min / tjm_max (PAS daily_rate_min / daily_rate_max, qui n'existent pas — corrigé le 2026-07-17)
 ```
 
 **Classement du corpus à l'issue de la Phase 1 :**
@@ -933,7 +947,7 @@ Comprendre l'aval change la façon d'écrire. **Ce n'est pas cosmétique : le fr
 
 | Route | Rôle | Source |
 |---|---|---|
-| `/prospection/approche-sectorielle` | Liste des secteurs — vitrine | Desktop : `getSectorActivationData()` (DB) · **Mobile : `STRATEGIC_SECTOR_CONFIG` (hardcodé)** |
+| `/prospection/approche-sectorielle` | Liste des secteurs — vitrine | Desktop **et** Mobile : `getSectors()` (DB) — corrigé le 2026-07-17, `STRATEGIC_SECTOR_CONFIG` supprimé, voir §13 dette #2 |
 | `/prospection/approche-sectorielle/[slug]` | **La fiche** — 6 blocs | `getSectorBySlug()` → DB |
 | `/ressources/playbook/[slug]` | **Le notebook commercial** — 4 sections | `getSectorBySlug()` → DB |
 
@@ -1177,22 +1191,24 @@ Le skill a été réécrit sur le principe posé ci-dessus : **une seule source 
 
 ---
 
-## 13. Dettes et bugs identifiés (constatés le 2026-07-16)
+## 13. Dettes et bugs identifiés (constatés le 2026-07-16, réconciliés le 2026-07-17)
 
-Découverts en instruisant ce document. Aucun n'est corrigé ici.
+Découverts en instruisant ce document.
 
 | # | Problème | Impact | Preuve |
 |---|---|---|---|
 | 1 | **Accents mangés sur `nutraceutique-sante-naturelle`** | 🔴 **Visible en production.** La fiche la plus rigoureuse a l'air bâclée. | `"Directrice Qualite / Affaires Reglementaires"`, `"tracabilite"`, `"echeances"` en base |
-| 2 | **`STRATEGIC_SECTOR_CONFIG` = seconde source de vérité, et elle diverge** | 🔴 **Liens morts en mobile.** La liste mobile est construite depuis la config hardcodée. 3 de ses 6 slugs **n'existent pas en base** : `aeronautique-defense` (DB : `aeronautique-spatial-defense`), `travel-tech-ecommerce` (absent), `secteur-public-collectivites` (DB : `secteur-public-enseignement-recherche`). Un clic mobile sur ces cartes → redirect vers la liste. | `src/lib/prospection/sector-strategy-config.ts` vs `SELECT slug FROM sector_intelligence` |
-| 3 | **La config contredit la base sur les fiches qui existent** | 🟠 Le mobile affiche un autre nom et d'autres scores que le desktop. Config : « Luxe, Chimie & Cosmétiques », `practicesFit {data_ai:4.8, cloud_eng:4.0, product:3.0, cyber:3.5}`. Base : « Parfumerie, Arômes & Cosmétique », `{data_ai:5, cloud_eng:3, product:3, cyber:2}`. | Idem |
+| 2 | ~~`STRATEGIC_SECTOR_CONFIG` = seconde source de vérité, et elle diverge~~ | ✅ **Corrigé** (commit `ba686091`, antérieur au 2026-07-16 mais non reflété ici avant réconciliation). La liste mobile lit `getSectors()` (DB), comme le desktop. Le fichier avait néanmoins réapparu à l'identique sur disque (non suivi par git) le 2026-07-17 — **re-supprimé** le même jour, aucun consommateur. | `src/app/(app)/prospection/approche-sectorielle/page.tsx` |
+| 3 | ~~La config contredit la base sur les fiches qui existent~~ | ✅ **Corrigé** — n'a plus d'objet, dette #2 résolue. | Idem |
 | 4 | **Taxonomie de practices incompatible** | 🟠 Le module sectoriel utilise 4 clés legacy (`data_ai`, `cloud_eng`, `product`, `cyber`). Les vraies practices KREDO sont **8** (`offer_practices`). `product` et `cloud_eng` **n'existent pas** comme practices. → Impossible de relier automatiquement un pain point sectoriel à une offre du catalogue. | `src/types/sector.ts` vs `SELECT slug FROM offer_practices` |
-| 5 | **`source_company_ids` vide sur les 2 fiches fondatrices** | 🟠 16 pain points aux fréquences invérifiables. | §12.4 |
+| 5 | **`source_company_ids` vide sur les 2 fiches fondatrices** | 🟠 16 pain points aux fréquences invérifiables. Non reproduit sur `sante-medtech-medico-social` (7/7 traçables, Axe A 35/35). | §12.4 |
 | 6 | **`sector_news` mort sauf parfumerie** | 🟠 7 lignes sur parfumerie, 0 ailleurs. Absent du front. Le bloc « veille » du dispositif n'existe pas. | §3.1 |
-| 7 | **CLAUDE.md périmé sur le sectoriel** | 🟠 Annonce « 14 fiches / 27 comptes sur 95 rattachés ». Réel : 14 fiches (dont 3 étudiées) / **96 sur 96**. | §3.1 |
-| 8 | **La page liste dit « nos 6 secteurs cibles »** | 🟢 Cosmétique, mais faux (14 en base, 3 étudiés). | `approche-sectorielle/page.tsx` |
+| 7 | **CLAUDE.md périmé sur le sectoriel** | 🟠 Annonce « 14 fiches / 27 comptes sur 95 rattachés ». Réel : 14 fiches (dont **4** étudiées) / **95 sur 96** (Univet détaché le 2026-07-17). | §3.1 |
+| 8 | **La page liste dit « nos 6 secteurs cibles »** | 🟢 Cosmétique, mais faux (14 en base, 4 étudiés). | `approche-sectorielle/page.tsx` |
+| 9 | **Deux colonnes fausses dans le paquet de requêtes §4.2** | 🟠 `opportunities.expected_close_date` et `offer_pricing_grids.daily_rate_min/max` n'existent pas — auraient fait échouer P1 sur toute nouvelle étude. Découvert en exécutant réellement les requêtes sur `sante-medtech-medico-social`. | ✅ **Corrigé** le 2026-07-17, voir §4.2 |
+| 10 | **§3.2 comptait des interactions/opportunités de seed comme preuve** | 🔴 Le classement de préparation des secteurs traitait des données `fictional:true`/`synthetic:true` comme des verbatims et un fit réels. A fait passer `sante-medtech-medico-social` pour « le plus prêt » alors qu'il n'avait aucun verbatim ni aucune vente réelle. | ✅ **Corrigé** le 2026-07-17, voir §3.2 — classement des 2 secteurs restants (`tourisme-hotellerie-loisirs`, `transport-mobilite-regionale`) **non revérifié**, à confirmer avant la prochaine étude |
 
-> **Recommandation :** traiter #1 et #2 en priorité — ce sont les deux seuls qui dégradent l'expérience réelle d'un commercial en situation. #4 est le plus structurant à moyen terme (c'est lui qui bloque le lien automatique secteur → offre → pitch).
+> **Recommandation :** traiter #1 en priorité — c'est la seule dette encore ouverte qui dégrade l'expérience réelle d'un commercial en situation. #4 reste le plus structurant à moyen terme (c'est lui qui bloque le lien automatique secteur → offre → pitch). Avant la prochaine étude : revérifier #10 sur `tourisme-hotellerie-loisirs` et `transport-mobilite-regionale`.
 
 ---
 
@@ -1240,8 +1256,8 @@ GROUP BY s.slug, s.status, s.attractiveness_score, s.updated_at;
 
 Sans ça, on ne saura jamais si une fiche à 4.8 vaut mieux qu'une fiche à 4.0. **C'est le trou le plus important du dispositif** (§11).
 
-#### 4. Réparer la double source de vérité (dette #2/#3)
-**Effort : ~2 h. Gain : supprime des liens morts en production.** Supprimer `STRATEGIC_SECTOR_CONFIG` et faire lire la base au mobile comme au desktop. La config n'apporte que `imageUrl` — un champ `image_url` sur `sector_intelligence` suffirait.
+#### ~~4. Réparer la double source de vérité (dette #2/#3)~~ — ✅ **fait**
+Mobile et desktop lisent tous deux `getSectors()` (DB). Migration 057 a ajouté `image_url` sur `sector_intelligence`, qui portait le seul apport propre de l'ancienne config. Voir §13 dette #2.
 
 #### 5. Table de correspondance practices legacy ↔ `offer_practices` (dette #4)
 **Effort : ~3 h. Gain : débloque le lien secteur → offre → pitch.** Le précédent existe : `get_pitch_context` fait déjà un mapping heuristique en CASE SQL pour `missions.practice`. Même dette, même remède. C'est le préalable à toute automatisation du lien étude→offre.
