@@ -21,10 +21,10 @@ function Section({ title, icon: Icon, children }: SectionProps) {
   return (
     <section className="space-y-2 border-b border-border pb-4 last:border-0 last:pb-0">
       <div className="flex items-center gap-2">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-          {Icon ? <Icon className="h-3.5 w-3.5 text-primary" /> : null}
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#1E3150]/10">
+          {Icon ? <Icon className="h-3.5 w-3.5 text-[#1E3150]" /> : null}
         </span>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-heading">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[#1E3150]">
           {title}
         </h3>
       </div>
@@ -46,8 +46,8 @@ function SectionRows({ rows, emptyLabel = "Données non disponibles." }: Section
     <div className="space-y-2.5">
       {visibleRows.map((row) => (
         <div key={`${row.label}-${row.value}`} className="space-y-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{row.label}</p>
-          <p className="text-xs text-body leading-relaxed">{row.value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#243B63]">{row.label}</p>
+          <p className="text-xs text-[#334155] leading-relaxed">{row.value}</p>
         </div>
       ))}
     </div>
@@ -79,7 +79,7 @@ function LabeledBullets({
   if (filtered.length === 0) return null
   return (
     <div className="space-y-1">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#243B63]">{label}</p>
       <SectionBullets items={filtered} />
     </div>
   )
@@ -140,7 +140,7 @@ export function FolioMobileAnalysisSections({ data }: { data: SectorAnalysisData
     .filter((entry): entry is string => Boolean(entry))
 
   return (
-    <div className="space-y-6 bg-surface p-4 rounded-xl border border-border">
+    <div className="space-y-6 bg-[#FFFFFF] p-4 rounded-xl border border-[#CBD5E1]">
       {/* 1. Synthèse sectorielle */}
       <Section title="Synthèse sectorielle" icon={Compass}>
         {syntheseBlocks.length > 0 ? (

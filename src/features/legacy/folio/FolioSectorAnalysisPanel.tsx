@@ -18,8 +18,8 @@ function InfoRow({ label, value }: { label: string; value: string | string[] | u
   if (!displayValue || displayValue === "Non trouvé") return null
   return (
     <div className="space-y-1 text-xs">
-      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-      <p className="text-xs text-slate-200">{displayValue}</p>
+      <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">{label}</span>
+      <p className="text-xs text-[#334155]">{displayValue}</p>
     </div>
   )
 }
@@ -30,7 +30,7 @@ function TagList({ items }: { items: string[] | undefined }) {
   return (
     <div className="flex flex-wrap gap-1 mt-1">
       {filtered.map((item, i) => (
-        <span key={i} className="text-[9px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-650">
+        <span key={i} className="text-[9px] bg-[#F1F5F9] text-[#334155] px-1.5 py-0.5 rounded border border-[#CBD5E1]">
           {item}
         </span>
       ))}
@@ -43,8 +43,8 @@ function BulletList({ label, items }: { label: string; items: string[] | undefin
   if (filtered.length === 0) return null
   return (
     <div className="space-y-1 text-xs">
-      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-      <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-200">
+      <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">{label}</span>
+      <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
         {filtered.map((item, i) => (
           <li key={i}>{item}</li>
         ))}
@@ -63,10 +63,10 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800/40 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-3.5 py-2.5 border-b border-slate-700 bg-slate-800">
-        <Icon className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
+    <div className="rounded-lg border border-[#CBD5E1] bg-[#FFFFFF] overflow-hidden">
+      <div className="flex items-center gap-1.5 px-3.5 py-2.5 border-b border-[#CBD5E1] bg-[#1E3150]">
+        <Icon className="w-3.5 h-3.5 text-[#FBBF24]" />
+        <span className="text-xs font-bold uppercase tracking-wider text-[#FFFFFF]">
           {title}
         </span>
       </div>
@@ -88,18 +88,18 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
   const syntheseBlocks = hasSynthese ? buildSyntheseBlocks(data.synthese_sectorielle ?? "") : []
 
   return (
-    <div className="space-y-6 text-slate-100">
+    <div className="space-y-6 text-[#1E293B]">
       {/* 1. Synthèse sectorielle */}
       {hasSynthese && (
-        <div className="rounded-lg border border-slate-700 bg-slate-800/20 p-5">
+        <div className="rounded-lg border border-[#64748B] bg-[#FFFFFF] p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Compass className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400">
+            <Compass className="w-4 h-4 text-[#D89B16]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#243B63]">
               Synthèse sectorielle
             </h3>
           </div>
-          <div className="border-l-2 border-slate-600 pl-4 py-0.5">
-            <div className="space-y-3 text-sm text-slate-200 leading-relaxed">
+          <div className="border-l-2 border-[#64748B] pl-4 py-0.5">
+            <div className="space-y-3 text-sm text-[#334155] leading-relaxed">
               {syntheseBlocks.map((block, index) =>
                 block.type === "list" ? (
                   <ul key={`list-${index}`} className="list-disc space-y-1.5 pl-5">
@@ -132,14 +132,14 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
         <Section icon={Users} title="Acteurs">
           {leaders.filter((a) => a.nom && a.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Leaders</span>
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Leaders</span>
               <div className="flex flex-wrap gap-1.5">
                 {leaders
                   .filter((a) => a.nom && a.nom !== "Non trouvé")
                   .map((a, i) => (
                     <span
                       key={i}
-                      className="text-[10px] bg-slate-700 text-slate-200 px-2 py-0.5 rounded border border-slate-650"
+                      className="text-[10px] bg-[#F8FAFC] text-[#334155] px-2 py-0.5 rounded border border-[#CBD5E1]"
                       title={a.description}
                     >
                       {a.nom}
@@ -153,12 +153,12 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
           )}
           {challengers.filter((a) => a.nom && a.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Challengers</span>
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Challengers</span>
               <div className="flex flex-wrap gap-1.5">
                 {challengers
                   .filter((a) => a.nom && a.nom !== "Non trouvé")
                   .map((a, i) => (
-                    <span key={i} className="text-[10px] bg-slate-850 text-slate-300 px-2 py-0.5 rounded border border-slate-750">
+                    <span key={i} className="text-[10px] bg-[#F1F5F9] text-[#475569] px-2 py-0.5 rounded border border-[#CBD5E1]">
                       {a.nom}
                     </span>
                   ))}
@@ -167,12 +167,12 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
           )}
           {emergents.filter((a) => a.nom && a.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Émergents</span>
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Émergents</span>
               <div className="flex flex-wrap gap-1.5">
                 {emergents
                   .filter((a) => a.nom && a.nom !== "Non trouvé")
                   .map((a, i) => (
-                    <span key={i} className="text-[10px] bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">
+                    <span key={i} className="text-[10px] bg-[#FEF3C7] text-[#1E293B] px-2 py-0.5 rounded border border-[#D89B16]/30">
                       {a.nom}
                     </span>
                   ))}
@@ -180,7 +180,7 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
             </div>
           )}
           {leaders.length === 0 && challengers.length === 0 && emergents.length === 0 && (
-            <p className="text-xs italic text-slate-450">Données non disponibles.</p>
+            <p className="text-xs italic text-[#64748B]">Données non disponibles.</p>
           )}
         </Section>
 
@@ -196,8 +196,8 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
         <Section icon={Shield} title="Réglementation">
           {reglementationsEnVigueur.filter((r) => r.nom && r.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Réglementations en vigueur</span>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-200">
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Réglementations en vigueur</span>
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
                 {reglementationsEnVigueur
                   .filter((r) => r.nom && r.nom !== "Non trouvé")
                   .map((r, i) => (
@@ -211,8 +211,8 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
           )}
           {reglementationsAVenir.filter((r) => r.nom && r.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Réglementations à venir</span>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-200">
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Réglementations à venir</span>
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
                 {reglementationsAVenir
                   .filter((r) => r.nom && r.nom !== "Non trouvé")
                   .map((r, i) => (
@@ -234,8 +234,8 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
           <InfoRow label={`Positionnement du compte (${companyName})`} value={data.analyse_concurrentielle?.positionnement_client} />
           {concurrentsDirects.filter((c) => c.nom && c.nom !== "Non trouvé").length > 0 && (
             <div className="space-y-1 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Concurrents directs</span>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-200">
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Concurrents directs</span>
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
                 {concurrentsDirects
                   .filter((c) => c.nom && c.nom !== "Non trouvé")
                   .map((c, i) => (
@@ -257,8 +257,8 @@ export function FolioSectorAnalysisPanel({ data, companyName, logoUrl }: Props) 
           <InfoRow label="Profil client type" value={data.segment_clientele?.profil_client_type} />
           {segments.filter((s) => s.segment && s.segment !== "Non trouvé").length > 0 && (
             <div className="space-y-1 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Segmentation</span>
-              <ul className="list-disc space-y-0.5 pl-4 text-xs text-slate-200">
+              <span className="text-[11px] font-bold text-[#243B63] uppercase tracking-wider">Segmentation</span>
+              <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
                 {segments
                   .filter((s) => s.segment && s.segment !== "Non trouvé")
                   .map((s, i) => (
