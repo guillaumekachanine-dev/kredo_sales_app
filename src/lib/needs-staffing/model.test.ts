@@ -8,6 +8,7 @@ import {
   buildFinancialPreset,
 } from "./model"
 import { isActivePositioningStatus } from "./coverage"
+import { NEED_TIMELINE_CONFIG, STAFFING_TIMELINE_CONFIG } from "@/components/needs-staffing/stage-timeline-config"
 
 describe("needs staffing model", () => {
   it("filters and sorts needs rows by shared URL params", () => {
@@ -103,5 +104,65 @@ describe("needs staffing model", () => {
       salesDailyRate: 750,
     })
   })
+
+  describe("Quick Stage Editor Configs", () => {
+
+    it("verifies the right timeline config for needs (nominal and terminal)", () => {
+      const nominalValues = NEED_TIMELINE_CONFIG.nominal.map((s: any) => s.value)
+      const terminalValues = NEED_TIMELINE_CONFIG.terminal.map((s: any) => s.value)
+
+      expect(nominalValues).toEqual([
+        "qualification",
+        "recherche_profil",
+        "cv_envoyes",
+        "entretien_client",
+        "contractualisation",
+        "gagne",
+      ])
+
+      expect(terminalValues).toContain("perdu")
+      expect(terminalValues).toContain("abandonne")
+      expect(terminalValues).toContain("non_traitee")
+    })
+
+    it("verifies the right timeline config for staffings (nominal and terminal)", () => {
+      const nominalValues = STAFFING_TIMELINE_CONFIG.nominal.map((s: any) => s.value)
+      const terminalValues = STAFFING_TIMELINE_CONFIG.terminal.map((s: any) => s.value)
+
+      expect(nominalValues).toEqual([
+        "identifie",
+        "propose_interne",
+        "preselectionne",
+        "envoye_client",
+        "entretien_planifie",
+        "entretien_realise",
+        "retenu",
+        "gagne",
+      ])
+
+      expect(terminalValues).toContain("refuse_client")
+      expect(terminalValues).toContain("refuse_candidat")
+      expect(terminalValues).toContain("abandonne")
+    })
+
+    it("determines correct state for nominal stages (past, current, future)", () => {
+      const currentStage = "cv_envoyes"
+      const nominal = NEED_TIMELINE_CONFIG.nominal
+
+      const currentIndex = nominal.findIndex((s: any) => s.value === currentStage) // 2
+
+      // Past stages
+      const pastStages = nominal.slice(0, currentIndex).map((s: any) => s.value)
+      expect(pastStages).toEqual(["qualification", "recherche_profil"])
+
+      // Current stage
+      expect(nominal[currentIndex].value).toBe("cv_envoyes")
+
+      // Future stages
+      const futureStages = nominal.slice(currentIndex + 1).map((s: any) => s.value)
+      expect(futureStages).toEqual(["entretien_client", "contractualisation", "gagne"])
+    })
+  })
 })
+
 

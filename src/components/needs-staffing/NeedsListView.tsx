@@ -29,6 +29,24 @@ interface NeedsListViewProps {
   acvDirection: NeedsStaffingDirection
   onToggleAcvSort: () => void
   onLaunchFinancialSimulation: (staffing: StaffingListRow) => void
+  onEditStage: (id: string, type: "need" | "staffing", title: string, currentStage: string) => void
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  )
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -114,6 +132,7 @@ export function NeedsListView({
   acvDirection,
   onToggleAcvSort,
   onLaunchFinancialSimulation,
+  onEditStage,
 }: NeedsListViewProps) {
   const { openOpportunityDrawer, openStaffingDrawer } = useStaffingDrawerStore()
   const [expandedNeedIds, setExpandedNeedIds] = useState<Set<string>>(new Set())
@@ -273,7 +292,20 @@ export function NeedsListView({
                     </td>
                     {/* Étape */}
                     <td className="px-4 py-[0.625rem] text-left">
-                      <StageLabel stage={row.stage} />
+                      <div className="flex items-center gap-1.5 group/cell">
+                        <StageLabel stage={row.stage} />
+                        <button
+                          type="button"
+                          title="Modifier l’étape du besoin"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditStage(row.entityId, "need", row.title, row.stage || "qualification")
+                          }}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-muted transition-all duration-150 hover:bg-[#FFC107]/10 hover:text-[#D8A400] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFC107]/35 md:opacity-0 md:group-hover/cell:opacity-100"
+                        >
+                          <PencilIcon className="size-[13px]" />
+                        </button>
+                      </div>
                     </td>
                     {/* Couverture */}
                     <td className="px-4 py-[0.625rem] text-center">
@@ -306,40 +338,77 @@ export function NeedsListView({
                     >
                       {/* Consultant / Candidat avec indentation */}
                       <td className="px-4 py-[0.625rem] text-left pl-11">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Consultant
+                        </span>
                         <span className="truncate font-bold text-heading">{staffing.fullName}</span>
                       </td>
                       {/* Profil Title */}
                       <td className="px-4 py-[0.625rem] text-left">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Profil
+                        </span>
                         <span title={staffing.profileTitle ?? ""} className="block truncate whitespace-nowrap font-medium text-body">
                           {staffing.profileTitle ?? "—"}
                         </span>
                       </td>
                       {/* Practice du profil */}
                       <td className="px-4 py-[0.625rem] text-left">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Practice
+                        </span>
                         <span className="block truncate whitespace-nowrap text-body">{staffing.profilePractice ?? "—"}</span>
                       </td>
                       {/* Priorité parent */}
                       <td className="px-4 py-[0.625rem] text-center text-muted">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Priorité
+                        </span>
                         <span className={cn("text-[11px] font-semibold", row.priority === "haute" ? "text-warning/80" : "text-body/70")}>
                           {getPriorityLabel(row.priority)}
                         </span>
                       </td>
                       {/* Statut du positionnement */}
                       <td className="px-4 py-[0.625rem] text-left">
-                        <span className="text-[11px] font-semibold text-body">
-                          {STATUS_LABELS[staffing.status] ?? staffing.status}
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Étape
                         </span>
+                        <div className="flex items-center gap-1.5 group/cell">
+                          <span className="text-[11px] font-semibold text-heading">
+                            {STATUS_LABELS[staffing.status] ?? staffing.status}
+                          </span>
+                          <button
+                            type="button"
+                            title="Modifier l’étape du staffing"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onEditStage(staffing.id, "staffing", staffing.fullName, staffing.status)
+                            }}
+                            className="flex size-7 shrink-0 items-center justify-center rounded-md border border-transparent text-muted transition-all duration-150 hover:bg-[#9C27B0]/10 hover:text-[#9C27B0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9C27B0]/35 md:opacity-0 md:group-hover/cell:opacity-100"
+                          >
+                            <PencilIcon className="size-[13px]" />
+                          </button>
+                        </div>
                       </td>
                       {/* Disponibilité */}
                       <td className="px-4 py-[0.625rem] text-center">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Disponibilité
+                        </span>
                         <span className="text-body font-medium">{staffing.availableFrom ?? "—"}</span>
                       </td>
                       {/* Salaire */}
                       <td className="px-4 py-[0.625rem] text-right">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-muted/70 mb-0.5">
+                          Salaire
+                        </span>
                         <span className="font-semibold tabular-nums text-heading">{formatEuro(staffing.salary)}</span>
                       </td>
                       {/* Simulation financière */}
                       <td className="px-4 py-[0.625rem] text-right">
+                        <span className="block text-[9px] font-semibold uppercase tracking-[0.08em] text-transparent select-none mb-0.5" aria-hidden="true">
+                          Action
+                        </span>
                         <button
                           type="button"
                           onClick={(event) => {

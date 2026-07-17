@@ -33,7 +33,12 @@ import {
   filterStaffingRows,
 } from "@/lib/needs-staffing/model"
 import { useNeedsStaffingUrlState } from "@/lib/needs-staffing/use-needs-staffing-url-state"
-import { OPPORTUNITY_STAGES } from "@/lib/opportunities/stages"
+import {
+  OPPORTUNITY_STAGES,
+  getOpportunityStageColor,
+  getOpportunityStageLabel,
+} from "@/lib/opportunities/stages"
+import { StageQuickEditorDialog } from "./StageQuickEditorDialog"
 import { cn } from "@/lib/utils"
 import { NeedsListView } from "./NeedsListView"
 import { NewStaffingButton } from "./NewStaffingButton"
@@ -44,6 +49,23 @@ import { UnifiedPlanningView } from "@/components/needs-staffing/UnifiedPlanning
 import { useStaffingDrawerStore } from "@/hooks/use-staffing-drawer-store"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { formatEuro } from "@/lib/formatters"
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  )
+}
 
 const PRIORITY_OPTIONS = [
   { value: "all", label: "Priorité" },
@@ -168,10 +190,12 @@ function NeedsMobileCards({
   rows,
   staffingRows,
   onLaunchFinancialSimulation,
+  onEditStage,
 }: {
   rows: MissionsListRow[]
   staffingRows: Array<StaffingListRow | MobileStaffingRow>
   onLaunchFinancialSimulation: (staffing: any) => void
+  onEditStage: (id: string, type: "need" | "staffing", title: string, currentStage: string) => void
 }) {
   const { openOpportunityDrawer, openStaffingDrawer } = useStaffingDrawerStore()
   const [expandedNeedIds, setExpandedNeedIds] = useState<Set<string>>(new Set())
@@ -283,6 +307,27 @@ function NeedsMobileCards({
                     {row.priority === "haute" ? "Haute" : row.priority === "basse" ? "Basse" : "Normale"}
                   </span>
                 </div>
+
+                {/* Ligne d'édition d'étape Besoin */}
+                <div className="flex items-center justify-between border-t border-border/30 pt-2 mt-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase font-bold text-muted tracking-wider">Étape :</span>
+                    <span className="text-xs font-semibold" style={{ color: getOpportunityStageColor(row.stage ?? "") }}>
+                      {getOpportunityStageLabel(row.stage)}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    title="Modifier l’étape du besoin"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditStage(row.entityId, "need", row.title, row.stage || "qualification")
+                    }}
+                    className="flex size-11 items-center justify-center rounded-full text-muted hover:bg-[#FFC107]/10 hover:text-[#D8A400] active:scale-95 transition-all"
+                  >
+                    <PencilIcon className="size-[14px]" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -321,9 +366,20 @@ function NeedsMobileCards({
                         <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Practice</span>
                         <span className="font-medium text-body">{staffing.profilePractice ?? "—"}</span>
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col relative pr-8">
                         <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Étape</span>
-                        <span className="font-semibold text-body">{STATUS_LABELS[staffing.status] ?? staffing.status}</span>
+                        <span className="font-semibold text-body truncate">{STATUS_LABELS[staffing.status] ?? staffing.status}</span>
+                        <button
+                          type="button"
+                          title="Modifier l’étape du staffing"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditStage(staffing.id, "staffing", staffing.fullName, staffing.status)
+                          }}
+                          className="absolute right-0 bottom-[-8px] flex size-11 items-center justify-center rounded-full text-muted hover:bg-[#9C27B0]/10 hover:text-[#9C27B0] active:scale-95 transition-all"
+                        >
+                          <PencilIcon className="size-[14px]" />
+                        </button>
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[9px] uppercase tracking-wider text-muted font-bold">Disponible le</span>
@@ -415,6 +471,22 @@ export function NeedsStaffingWorkspace({
     modelId: string | null
     preset: FinancialModelingLaunchPreset
   } | null>(null)
+
+  const [editStage, setEditStage] = useState<{
+    id: string
+    type: "need" | "staffing"
+    title: string
+    currentStage: string
+  } | null>(null)
+
+  const handleEditStage = (
+    id: string,
+    type: "need" | "staffing",
+    title: string,
+    currentStage: string
+  ) => {
+    setEditStage({ id, type, title, currentStage })
+  }
 
   const needsRows = needsData?.rows ?? EMPTY_NEEDS_ROWS
   const needsPlanning = needsData?.planningData ?? EMPTY_NEEDS_PLANNING
@@ -708,6 +780,7 @@ export function NeedsStaffingWorkspace({
             rows={mobileNeedsRows}
             staffingRows={mobileStaffingRows || []}
             onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
+            onEditStage={handleEditStage}
           />
 
           <AppDrawer
@@ -755,6 +828,7 @@ export function NeedsStaffingWorkspace({
               acvDirection={state.sort === "acv" ? state.direction : null}
               onToggleAcvSort={handleToggleAcvSort}
               onLaunchFinancialSimulation={handleLaunchFinancialSimulation}
+              onEditStage={handleEditStage}
             />
           ) : state.view === "kanban" ? (
             <OpportunitiesKanbanView
@@ -797,6 +871,17 @@ export function NeedsStaffingWorkspace({
             initialPreset={simulation.preset}
           />
         )
+      )}
+
+      {editStage && (
+        <StageQuickEditorDialog
+          open={editStage !== null}
+          onOpenChange={(open) => !open && setEditStage(null)}
+          entityType={editStage.type}
+          entityId={editStage.id}
+          entityTitle={editStage.title}
+          currentStage={editStage.currentStage}
+        />
       )}
     </div>
   )
