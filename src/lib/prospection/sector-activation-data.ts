@@ -1,16 +1,8 @@
 import { cache } from "react"
 import { formatDate } from "@/lib/formatters"
 import { createClient } from "@/lib/supabase/server"
-import {
-  buildProspectionPortfolioAccounts,
-  type PortfolioCalendarEventRow,
-  type PortfolioCompanyRow,
-  type PortfolioContactRow,
-  type PortfolioInteractionRow,
-  type PortfolioIntelligenceSummaryRow,
-  type PortfolioOpportunityRow,
-  type ProspectionPortfolioAccount,
-} from "@/lib/prospection/portfolio-account-metrics"
+import { getPortfolioIntelligenceSnapshot } from "@/features/business-intelligence/data/get-portfolio-intelligence-snapshot"
+import type { ProspectionPortfolioAccount } from "@/lib/prospection/portfolio-account-metrics"
 import type { PracticeKey, SectorStatus } from "@/types/sector"
 import {
   SECTOR_ACTIVATION_PRACTICE_LABELS,
@@ -464,24 +456,12 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
     const supabase = (await createClient()) as unknown as LooseClient
 
     const [
-      companiesResult,
-      contactsResult,
-      interactionsResult,
-      calendarEventsResult,
-      opportunitiesResult,
-      intelligenceResult,
       sectorsResult,
       painPointsResult,
       sectorEventsResult,
       sectorNewsResult,
       sectorRegulatoryResult,
     ] = await Promise.all([
-      supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at"),
-      supabase.from("contacts").select<PortfolioContactRow>("company_id,relationship_role,decision_power"),
-      supabase.from("interactions").select<PortfolioInteractionRow>("company_id,type,occurred_at"),
-      supabase.from("calendar_events").select<PortfolioCalendarEventRow>("company_id,event_type,starts_at,status"),
-      supabase.from("opportunities").select<PortfolioOpportunityRow>("company_id,stage,weighted_gain"),
-      supabase.from("v_ai_intelligence_summary").select<PortfolioIntelligenceSummaryRow>("company_id,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_legacy_pitches,latest_run_at,latest_run_status,count_runs,count_results"),
       supabase.from("sector_intelligence").select<SectorRow>("id,slug,name,status,attractiveness_score,digital_maturity,practices_fit,updated_at"),
       supabase.from("sector_pain_points").select<SectorPainPointRow>("sector_id,title,description,frequency_count,kredo_practice"),
       supabase.from("sector_events").select<SectorEventRow>("id,sector_id,title,event_type,description,event_date,source_url,commercial_opportunity,status,created_at,updated_at"),
@@ -489,28 +469,14 @@ export const getSectorActivationData = cache(async (): Promise<SectorActivationD
       supabase.from("sector_regulatory_items").select<SectorRegulatoryRow>("id,sector_id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,created_at,updated_at"),
     ])
 
-    const companies = unwrapQueryResult("companies", companiesResult)
-    const contacts = unwrapQueryResult("contacts", contactsResult)
-    const interactions = unwrapQueryResult("interactions", interactionsResult)
-    const calendarEvents = unwrapQueryResult("calendar_events", calendarEventsResult)
-    const opportunities = unwrapQueryResult("opportunities", opportunitiesResult)
-    const intelligenceRows = unwrapQueryResult("v_ai_intelligence_summary", intelligenceResult)
     const sectorRows = unwrapQueryResult("sector_intelligence", sectorsResult)
     const painPointRows = unwrapQueryResult("sector_pain_points", painPointsResult)
     const eventRows = unwrapQueryResult("sector_events", sectorEventsResult)
     const newsRows = unwrapQueryResult("sector_news", sectorNewsResult)
     const regulatoryRows = unwrapQueryResult("sector_regulatory_items", sectorRegulatoryResult)
 
-    const now = Date.now()
-    const portfolio = buildProspectionPortfolioAccounts({
-      companies,
-      contacts,
-      interactions,
-      calendarEvents,
-      opportunities,
-      intelligenceRows,
-      now,
-    })
+    const portfolio = await getPortfolioIntelligenceSnapshot()
+    const now = new Date(portfolio.generatedAt).getTime()
 
     const accounts = portfolio.accounts
     const accountsBySectorId = new Map<string, ProspectionPortfolioAccount[]>()
