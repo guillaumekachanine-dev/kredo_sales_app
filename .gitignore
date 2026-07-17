@@ -47,4 +47,4 @@ next-env.d.ts
 # local agent and playwright test state
 .claude/
 .playwright-cli/
-
+playwright/.auth/

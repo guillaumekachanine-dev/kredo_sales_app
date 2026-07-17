@@ -20,9 +20,16 @@
 ## Validation
 
 - Tests ciblés : presenter Mobile, périodes, sélection compte/fenêtre, filtre secteur par UUID, remise à tous les secteurs, états vides, navigation, redirections, liens et suppression des composants legacy.
-- Validation technique prévue : suite Vitest complète, typecheck, lint ciblé, `git diff --check` et build Next.js.
-- QA Desktop/Mobile : le navigateur intégré a refusé l’accès à `localhost` par sa politique de sécurité. La validation visuelle authentifiée et les captures restent donc à compléter sur une surface autorisée ; aucun contournement n’a été utilisé.
+- Validation technique : tests BI ciblés, typecheck, lint ciblé, `git diff --check` et build Next.js réussis.
+- QA Desktop/Mobile : le navigateur intégré a refusé l’accès à `localhost` par sa politique de sécurité. La validation authentifiée a donc été menée avec Playwright local : Desktop 1440 × 900 et Mobile 390 × 844 avec l’User-Agent iPhone 14. Les données, périodes, fenêtres, secteurs, playbooks et actions ont été vérifiés.
 
 ## Limitations restantes
 
-- La QA visuelle authentifiée 1440 × 900 et 390 × 844 n’est pas validée tant que l’environnement local reste bloqué par le navigateur intégré.
+- WebKit iPhone n’est pas installé localement ; la QA Mobile utilise Chromium avec le descripteur et l’User-Agent iPhone 14.
+
+## Hotfix snapshot
+
+- Cause racine : la projection `account_signals` demandait `description`, colonne absente ; PostgreSQL renvoyait `42703` et le snapshot tombait dans son état d’erreur.
+- Correction : sélection et mapping de `summary` et `recommended_action`, avec type local explicite pour la ligne signal.
+- Erreurs : le loader émet désormais un log serveur structuré sans donnée client, puis renvoie `state: "error"`. Desktop et Mobile affichent `Données indisponibles` au lieu d’une vue vide.
+- QA : les catégories de données de production ont été contrôlées en lecture seule. Playwright authentifié confirme le rendu Desktop et Mobile, avec un User-Agent iPhone pour Mobile.

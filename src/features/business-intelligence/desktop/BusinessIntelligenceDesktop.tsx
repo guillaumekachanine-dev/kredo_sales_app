@@ -25,7 +25,22 @@ interface BusinessIntelligenceDesktopProps {
   snapshot: BusinessIntelligenceSnapshot
 }
 
-export function BusinessIntelligenceDesktop({ viewModel, snapshot }: BusinessIntelligenceDesktopProps) {
+export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopProps) {
+  if (props.snapshot.state === "error") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] p-8">
+        <section className="max-w-md rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
+          <h1 className="text-lg font-semibold text-[var(--color-text-main)]">Données indisponibles</h1>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">La Business Intelligence ne peut pas être chargée pour le moment.</p>
+        </section>
+      </main>
+    )
+  }
+
+  return <BusinessIntelligenceDesktopReady {...props} />
+}
+
+function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntelligenceDesktopProps) {
   // Filters
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")

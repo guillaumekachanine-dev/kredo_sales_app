@@ -38,7 +38,7 @@ export function BusinessIntelligenceMobile({ viewModel, snapshot }: { viewModel:
     setSection("priorities")
   }
 
-  if (viewModel.state === "error") return <main className="min-h-dvh bg-[#071126] py-10"><EmptyPanel title="Snapshot indisponible" description="La Business Intelligence ne peut pas être chargée pour le moment." /></main>
+  if (viewModel.state === "error") return <main className="min-h-dvh bg-[#071126] py-10"><EmptyPanel title="Données indisponibles" description="La Business Intelligence ne peut pas être chargée pour le moment." /></main>
 
   return <main className="min-h-dvh overflow-x-hidden bg-[#071126] pb-[max(1rem,env(safe-area-inset-bottom))] text-white">
     <BusinessIntelligenceMobileHeader period={period} onPeriodChange={setPeriod} />
