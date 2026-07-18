@@ -7,6 +7,7 @@ import { relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants
 import { AccountSignalDetailDrawer } from "./AccountSignalDetailDrawer"
 import { AddSignalDrawer } from "./AddSignalDrawer"
 import { dismissAccountSignal } from "./dismiss-account-signal"
+import { validateAccountSignal } from "./validate-account-signal"
 import { createTask } from "@/lib/tasks/task-actions"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { Button } from "@/components/ui/Button"
@@ -25,6 +26,10 @@ import {
   curateAccountKnowledgeFact,
   type AccountKnowledgeFactSection,
 } from "./curate-account-knowledge"
+import {
+  getInitialAccountSignals,
+  hasVisibleOpenQuestions,
+} from "@/lib/intelligence/client-intelligence-company"
 
 // ADR-0012 Lot 2 — blocs "Connaissance compte" : relationnel KREDO (toujours
 // disponible, sans run n8n) + rendu du contrat account_knowledge généré
@@ -64,6 +69,16 @@ function formatDate(value: string | null): string {
   } catch {
     return value
   }
+}
+
+function formatSignalKind(value: string | null): string {
+  if (!value) return "Signal"
+  const labels: Record<string, string> = {
+    account_watch_news_media: "Veille média compte",
+    folio_news_item: "Actualité FOLIO",
+    folio_growth_trend: "Tendance FOLIO",
+  }
+  return labels[value] ?? value.replace(/_/g, " ")
 }
 
 // ─── Contacts clés — groupés par rôle, priorité en tête ─────────────────────
@@ -216,11 +231,13 @@ function ScorePill({ value, label }: { value: number; label: string }) {
 export function AccountSignalsCard({
   signals: initialSignals,
   isMobile = false,
+  variant = "default",
   companyId,
   companyName,
 }: {
   signals: ClientIntelligenceSignal[]
   isMobile?: boolean
+  variant?: "default" | "companyDesktop"
   companyId: string
   companyName: string
 }) {
@@ -230,9 +247,16 @@ export function AccountSignalsCard({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
+  const [validatedSignalIds, setValidatedSignalIds] = useState<Record<string, true>>({})
+  const [showAllSignals, setShowAllSignals] = useState(false)
   const [, startTransition] = useTransition()
   const [feedbacks, setFeedbacks] = useState<Record<string, { tone: "success" | "error"; message: string }>>({})
   const signals = initialSignals.filter((signal) => !hiddenSignalIds[signal.id])
+  const visibleDesktopSignals = variant === "companyDesktop"
+    ? showAllSignals
+      ? getInitialAccountSignals(signals, signals.length)
+      : getInitialAccountSignals(signals)
+    : signals
 
   const addButton = (
     <Button
@@ -307,6 +331,26 @@ export function AccountSignalsCard({
             return next
           })
         }, 3000)
+      }
+    })
+  }
+
+  function handleValidate(signalId: string) {
+    setPendingActionId(signalId)
+    startTransition(async () => {
+      const result = await validateAccountSignal(signalId)
+      setPendingActionId(null)
+      if (!result.error) {
+        setValidatedSignalIds((current) => ({ ...current, [signalId]: true }))
+        setFeedbacks((current) => ({
+          ...current,
+          [signalId]: { tone: "success", message: "Signal validé" },
+        }))
+      } else {
+        setFeedbacks((current) => ({
+          ...current,
+          [signalId]: { tone: "error", message: result.error! },
+        }))
       }
     })
   }
@@ -407,22 +451,28 @@ export function AccountSignalsCard({
 
   // Desktop layout (Compact Table/List)
   return (
-    <SectionBlock title={`Signaux du compte (${signals.length})`} action={addButton}>
+    <SectionBlock
+      title={`${variant === "companyDesktop" ? "Signaux récents" : "Signaux du compte"} (${signals.length})`}
+      action={addButton}
+    >
       <div className="overflow-hidden rounded-lg border border-border bg-surface">
         <table className="w-full border-collapse text-left text-xs">
           <thead>
             <tr className="border-b border-border bg-canvas/30 text-[10px] font-bold uppercase tracking-wider text-muted">
               <th className="px-4 py-3">Signal</th>
-              <th className="px-4 py-3">Type</th>
+              {variant !== "companyDesktop" && <th className="px-4 py-3">Type</th>}
               <th className="px-4 py-3 text-center">Score Global</th>
               <th className="px-4 py-3 text-center">Urgence</th>
-              <th className="px-4 py-3">Détecté le</th>
+              {variant !== "companyDesktop" && <th className="px-4 py-3">Détecté le</th>}
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {signals.map((signal) => {
+            {visibleDesktopSignals.map((signal) => {
               const feedback = feedbacks[signal.id]
+              const isValidated = signal.status === "validated"
+                || signal.status === "qualified"
+                || Boolean(validatedSignalIds[signal.id])
               return (
                 <tr
                   key={signal.id}
@@ -437,9 +487,19 @@ export function AccountSignalsCard({
                     >
                       {signal.title}
                     </button>
+                    {isValidated && (
+                      <span className="ml-2 inline-flex rounded border border-success/25 bg-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+                        Validé
+                      </span>
+                    )}
                     {signal.summary && (
                       <p className="mt-0.5 text-[11px] text-body line-clamp-1">
                         {signal.summary}
+                      </p>
+                    )}
+                    {variant === "companyDesktop" && (
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {formatSignalKind(signal.type ?? signal.category)} · {formatDate(signal.detectedAt)}
                       </p>
                     )}
                     {feedback && (
@@ -449,9 +509,11 @@ export function AccountSignalsCard({
                     )}
                   </td>
                   {/* Category/Type */}
-                  <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
-                    {signal.type ?? signal.category ?? "signal"}
-                  </td>
+                  {variant !== "companyDesktop" && (
+                    <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
+                      {signal.type ?? signal.category ?? "signal"}
+                    </td>
+                  )}
                   {/* Score Global */}
                   <td className="px-4 py-3.5 align-middle text-center">
                     <ScorePill value={signal.globalScore} label="Score Global" />
@@ -461,9 +523,11 @@ export function AccountSignalsCard({
                     <ScorePill value={signal.urgencyScore} label="Urgence" />
                   </td>
                   {/* Date */}
-                  <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
-                    {formatDate(signal.detectedAt)}
-                  </td>
+                  {variant !== "companyDesktop" && (
+                    <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
+                      {formatDate(signal.detectedAt)}
+                    </td>
+                  )}
                   {/* Actions */}
                   <td className="px-4 py-3.5 align-middle text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1.5">
@@ -483,6 +547,15 @@ export function AccountSignalsCard({
                         disabled={pendingActionId !== null}
                       >
                         Tâche
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleValidate(signal.id)}
+                        loading={pendingActionId === signal.id}
+                        disabled={pendingActionId !== null || isValidated}
+                      >
+                        Valider
                       </Button>
                       <Button
                         variant="ghost"
@@ -509,6 +582,16 @@ export function AccountSignalsCard({
           </tbody>
         </table>
       </div>
+
+      {variant === "companyDesktop" && signals.length > 5 && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={() => setShowAllSignals((current) => !current)}>
+            {showAllSignals
+              ? "Afficher les cinq plus récents"
+              : `Afficher ${signals.length - 5} ${signals.length - 5 > 1 ? "signaux supplémentaires" : "signal supplémentaire"}`}
+          </Button>
+        </div>
+      )}
 
       <AccountSignalDetailDrawer
         signal={selectedSignal}
@@ -656,6 +739,23 @@ function FactSectionBlock({
         ))}
       </div>
     </SectionBlock>
+  )
+}
+
+export function AccountKnowledgeOpenQuestions({
+  data,
+  resultId,
+}: {
+  data: AccountKnowledgeContent
+  resultId: string
+}) {
+  if (!hasVisibleOpenQuestions(data.open_questions)) return null
+  return (
+    <FactSectionBlock
+      section="open_questions"
+      facts={data.open_questions}
+      resultId={resultId}
+    />
   )
 }
 

@@ -9,7 +9,7 @@ import type { FinancialReference } from "@/features/financial-modeling/data/fina
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData, AnalyseClient, AnalyseSector, AnalyseDiagnostic } from "@/lib/intelligence/intelligence-data"
-import type { AccountKnowledgeContent, CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
+import type { CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
 import { DocumentViewerShell } from "@/components/documents/DocumentViewerShell"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
@@ -20,16 +20,11 @@ import {
   SectionBlock,
   TagList,
 } from "./intelligence-parts"
-import {
-  ContactsKeyCard,
-  CommercialRelationCard,
-  AccountSignalsCard,
-  AccountKnowledgeGeneratedContent,
-} from "./AccountKnowledgeBlocks"
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { AccountIssuesTable } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
+import { ClientIntelligenceCompanyTab } from "./ClientIntelligenceCompanyTab"
 import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import { type TabKey } from "./intelligence-process"
@@ -135,10 +130,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               />
             )}
             {activeTab === "connaissance" && (
-              <AnalyseTab
+              <ClientIntelligenceCompanyTab
                 data={data}
-                isExpandedViewer={expandedViewer}
-                onExpandViewer={setExpandedViewer}
+                onOpenAudit={() => setExpandedViewer(true)}
               />
             )}
             {activeTab === "secteur" && (
@@ -494,29 +488,9 @@ function StrategieTab({ data }: { data: ClientIntelligenceData }) {
   )
 }
 
-// ─── Onglet Analyse — sélecteur + raccourcis + sections aérées ───────────────
+// ─── Sections historiques conservées exclusivement pour la vue Mobile ───────
 
 export type AnalysisTypeKey = "client" | "process"
-
-const ANALYSIS_CATALOG: {
-  key: AnalysisTypeKey
-  label: string
-  subtitle: string
-  icon: (p: { className?: string }) => ReactNode
-}[] = [
-  {
-    key: "client",
-    label: "Analyse client",
-    subtitle: "Portrait stratégique · signaux · contexte business",
-    icon: ClientAnalysisIcon,
-  },
-  {
-    key: "process",
-    label: "Diagnostic process",
-    subtitle: "Activités · frictions · pain points · feuille de route",
-    icon: ProcessDiagnosticIcon,
-  },
-]
 
 export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: string; icon: (p: { className?: string }) => ReactNode }[]> = {
   client: [
@@ -536,246 +510,6 @@ export const ANALYSIS_SECTIONS: Record<AnalysisTypeKey, { id: string; label: str
 }
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
-
-function AnalyseTab({
-  data,
-  isExpandedViewer,
-  onExpandViewer,
-}: {
-  data: ClientIntelligenceData
-  isExpandedViewer: boolean
-  onExpandViewer: (v: boolean) => void
-}) {
-  const [selected, setSelected] = useState<AnalysisTypeKey | null>(null)
-  const { client, diagnostic, diagnosticPdfUrl, company, contacts, opportunities, missions, accountSignals } = data
-  const supabase = useMemo(() => createBrowserClient(), [])
-
-  // ADR-0012 Lot 2 — le contenu généré (account_knowledge) démarre avec ce que
-  // la page a déjà persisté (run précédent), puis est remplacé en Realtime dès
-  // qu'un nouveau run réussit — même pattern que SummaryDrawerContent/PitchMailDrawerContent.
-  const [knowledgeContent, setKnowledgeContent] = useState(data.accountKnowledge?.data ?? null)
-  const [knowledgeResultId, setKnowledgeResultId] = useState(data.accountKnowledge?.resultId ?? null)
-  const [runStatus, setRunStatus] = useState<ConnaissanceRunStatus>("idle")
-  const [runId, setRunId] = useState<string | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!runId) return
-    const channel = supabase
-      .channel(`account-knowledge-result-${runId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; content_json: AccountKnowledgeContent }
-          if (row.status === "succeeded") {
-            setKnowledgeContent(row.content_json)
-            setKnowledgeResultId(row.id)
-            setRunStatus("done")
-          } else if (row.status === "failed") {
-            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
-            setRunStatus("error")
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runId])
-
-  async function handleGenerate() {
-    setRunStatus("loading")
-    setErrorMsg(null)
-    try {
-      const res = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflowId: "intel-030-account-knowledge",
-          entityType: "company",
-          entityId: company.id,
-          input: {},
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
-        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
-      }
-      const { runId: newRunId } = (await res.json()) as { runId: string }
-      setRunId(newRunId)
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
-      setRunStatus("error")
-    }
-  }
-
-  function isAvailable(key: AnalysisTypeKey) {
-    if (key === "client") return !!client
-    return !!diagnostic || !!diagnosticPdfUrl
-  }
-
-  function handleSelect(key: AnalysisTypeKey) {
-    const next = selected === key ? null : key
-    setSelected(next)
-    onExpandViewer(next === "process" && !!(diagnostic || diagnosticPdfUrl))
-  }
-
-  const activeSections = selected ? ANALYSIS_SECTIONS[selected] : []
-
-  return (
-    <div className="mx-auto max-w-4xl space-y-6 pt-6">
-      {/* ── Blocs relationnels — toujours disponibles, sans run n8n (ADR-0012 étape 1) ── */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <ContactsKeyCard contacts={contacts} />
-        <CommercialRelationCard opportunities={opportunities} missions={missions} />
-      </div>
-      <AccountSignalsCard
-        signals={accountSignals}
-        isMobile={false}
-        companyId={company.id}
-        companyName={company.name}
-      />
-
-      {/* ── Synthèse générée (account_knowledge, moteur) — quand disponible ── */}
-      {knowledgeContent && knowledgeResultId && (
-        <div>
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
-            Synthèse générée (moteur IA)
-          </p>
-          <AccountKnowledgeGeneratedContent data={knowledgeContent} resultId={knowledgeResultId} />
-        </div>
-      )}
-
-      {/* ── Sélecteur d'analyse (FOLIO / diagnostic) ─────────────────────────── */}
-      <div>
-        <div className="mb-3 flex items-center justify-between gap-4 flex-wrap">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
-            Sélectionner une analyse
-          </p>
-          <div className="flex items-center gap-3">
-            {errorMsg && <p className="text-[11px] font-medium text-danger">{errorMsg}</p>}
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={runStatus === "loading"}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-bold text-primary-fg shadow-sm hover:bg-primary/95 transition-all active:scale-98 cursor-pointer min-h-[38px] disabled:cursor-wait disabled:opacity-60"
-            >
-              <RefreshIcon className={cn("h-3.5 w-3.5", runStatus === "loading" && "animate-spin")} />
-              {runStatus === "loading" ? "Génération en cours…" : "Lancer/actualiser la connaissance compte"}
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {ANALYSIS_CATALOG.map((entry) => {
-            const available = isAvailable(entry.key)
-            const isSelected = selected === entry.key
-            const Icon = entry.icon
-            return (
-              <button
-                key={entry.key}
-                type="button"
-                disabled={!available}
-                onClick={() => handleSelect(entry.key)}
-                className={cn(
-                  "group relative flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition-all duration-200 cursor-pointer min-h-[38px]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  isSelected
-                    ? "border-primary bg-surface"
-                    : available
-                    ? "border-border bg-surface hover:border-primary/50 hover:bg-surface-hover"
-                    : "border-border/40 bg-surface/50 opacity-50 cursor-not-allowed",
-                )}
-              >
-                {isSelected && (
-                  <span
-                    aria-hidden
-                    className="absolute left-0 top-2.5 bottom-2.5 w-0.5 rounded-r-full bg-primary"
-                  />
-                )}
-                <div className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors duration-200",
-                  isSelected
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-canvas/40 text-muted group-hover:border-primary/30 group-hover:text-primary/70",
-                )}>
-                  <Icon className="h-3.5 w-3.5" />
-                </div>
-                <span className={cn(
-                  "font-heading text-xs font-bold leading-tight",
-                  isSelected ? "text-primary" : "text-heading",
-                )}>
-                  {entry.label}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Barre de raccourcis (sticky dans le scroll container de <main>) ─── */}
-      {selected && activeSections.length > 0 && (
-        <div className="sticky top-0 z-10 -mx-6 border-b border-border/30 bg-canvas/90 px-6 py-2.5 backdrop-blur-sm">
-          <div className="flex items-center gap-2 overflow-x-auto justify-start">
-            {activeSections.map((section) => {
-              const SIcon = section.icon
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() =>
-                    document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" })
-                  }
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-surface/80 px-3 py-1 text-[11px] font-semibold text-body transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30 cursor-pointer"
-                >
-                  <SIcon className="h-3 w-3" />
-                  {section.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── Contenu de l'analyse sélectionnée ──────────────────────────────── */}
-      {selected === "client" && client && (
-        <ClientAnalysisContent data={client.data} />
-      )}
-      {selected === "process" && (diagnostic || diagnosticPdfUrl) && !isExpandedViewer && (
-        diagnosticPdfUrl ? (
-          <div className="h-[calc(100vh-220px)] min-h-[600px]">
-            <DocumentViewerShell
-              fileName={`Diagnostic process — ${company.name}`}
-              fileUrl={diagnosticPdfUrl}
-              metadata={{
-                "Compte": company.name,
-                "Type": "Diagnostic process",
-                "Source": diagnostic?.source === "engine" ? "Moteur IA" : "Import",
-              }}
-              actions={
-                <button
-                  type="button"
-                  onClick={() => onExpandViewer(true)}
-                  className="inline-flex items-center gap-1.5 rounded border border-border bg-surface-hover px-2.5 py-1 text-[11px] font-semibold text-body hover:text-heading transition-colors cursor-pointer"
-                >
-                  <ExpandIcon className="h-3 w-3" />
-                  Plein écran
-                </button>
-              }
-            />
-          </div>
-        ) : diagnostic ? (
-          <ProcessDiagnosticContent data={diagnostic.data} />
-        ) : null
-      )}
-
-      {/* État vide global — n'apparaît que si aucun bloc relationnel ni analyse */}
-      {!selected && !client && !diagnostic && !knowledgeContent
-        && contacts.length === 0 && opportunities.length === 0 && missions.length === 0 && accountSignals.length === 0 && (
-        <ComingSoon lot="lot 2">Aucune connaissance disponible pour ce compte</ComingSoon>
-      )}
-    </div>
-  )
-}
 
 function renderJsonValue(value: unknown, depth = 0, hasBullet = false): ReactNode {
   if (value === null || value === undefined) return null

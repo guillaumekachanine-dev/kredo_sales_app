@@ -22,6 +22,16 @@ import {
   type AccountWatchSettingsState,
 } from "@/lib/intelligence/account-watch-settings"
 import { getMonitoredSourceLabels } from "@/lib/intelligence/client-intelligence-home"
+import {
+  normalizeCompanyIdentity,
+  normalizeCompanyMarketPositioning,
+  normalizeCompanyOperationalSnapshot,
+  resolveContactOfferSuggestion,
+  sortCompanyContacts,
+  type CompanyIdentityProfile,
+  type CompanyMarketPositioning,
+  type CompanyOperationalSnapshot,
+} from "@/lib/intelligence/client-intelligence-company"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -116,6 +126,10 @@ export type ClientIntelligenceContact = {
   decisionPower?: string | null
   relationshipLevel?: string | null
   isPriority?: boolean
+  offerSuggestion?: {
+    offerId: string
+    offerName: string
+  } | null
 }
 
 // ADR-0012 Lot 2 — blocs relationnels "Connaissance compte", haute confiance
@@ -130,6 +144,7 @@ export type ClientIntelligenceOpportunity = {
   weightedGain: number | null
   nextActionLabel: string | null
   nextActionAt: string | null
+  targetCloseDate: string | null
   closedAt: string | null
 }
 
@@ -142,6 +157,28 @@ export type ClientIntelligenceMission = {
   startDate: string | null
   endDate: string | null
   grossMarginPct: number | null
+}
+
+export type ClientIntelligenceProject = {
+  id: string
+  title: string
+  status: string
+  startDate: string | null
+  endDate: string | null
+  contractAmount: number | null
+  engagementType: string | null
+  billingModel: string | null
+}
+
+export type ClientIntelligenceCommercialTimelineEntry = {
+  id: string
+  source: "interaction" | "calendar_event"
+  nature: string
+  title: string
+  summary: string | null
+  occurredAt: string
+  contactName: string | null
+  status: string | null
 }
 
 export type ClientIntelligenceSignal = {
@@ -234,6 +271,9 @@ export type ClientIntelligenceData = {
     hqLocation: string
     logoPath: string | null
   }
+  companyProfile: CompanyIdentityProfile
+  companyPositioning: CompanyMarketPositioning
+  operationalSnapshot: CompanyOperationalSnapshot
   diagnosticPdfUrl: string | null
   freshness: {
     latestRunAt: string | null
@@ -266,6 +306,8 @@ export type ClientIntelligenceData = {
   // ADR-0012 Lot 2 — blocs relationnels "Connaissance compte" (relational, sans LLM)
   opportunities: ClientIntelligenceOpportunity[]
   missions: ClientIntelligenceMission[]
+  projects: ClientIntelligenceProject[]
+  commercialTimeline: ClientIntelligenceCommercialTimelineEntry[]
   accountSignals: ClientIntelligenceSignal[]
   accountWatch: AccountWatchSettingsState
   recentDocuments: AccountRecentDocument[]
@@ -470,9 +512,13 @@ function clean(value: string | null | undefined, fallback = "Non renseigné"): s
 type CompanyRow = {
   id: string
   name: string
+  legal_name: string | null
   sector: string | null
   sector_id: string | null
   segment: string | null
+  revenue: string | null
+  employee_count: number | null
+  size_band: string | null
   priority: string
   lifecycle_status: string
   legacy_folio_score: number | string | null
@@ -527,6 +573,7 @@ type OpportunityRow = {
   weighted_gain: number | string | null
   next_action_label: string | null
   next_action_at: string | null
+  target_close_date: string | null
   closed_at: string | null
 }
 
@@ -539,6 +586,52 @@ type MissionRow = {
   start_date: string | null
   end_date: string | null
   gross_margin_pct: number | string | null
+}
+
+type ProjectRow = {
+  id: string
+  title: string
+  status: string
+  start_date_planned: string | null
+  end_date_planned: string | null
+  start_date_actual: string | null
+  end_date_actual: string | null
+  contract_amount: number | string | null
+  offer_engagement_types: {
+    name: string
+    billing_model: string
+  } | {
+    name: string
+    billing_model: string
+  }[] | null
+}
+
+type CommercialInteractionTimelineRow = {
+  id: string
+  type: string
+  occurred_at: string
+  summary: string | null
+  next_action: string | null
+  calendar_event_id: string | null
+  contacts: {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  } | {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  }[] | null
+}
+
+type CommercialCalendarTimelineRow = {
+  id: string
+  event_type: string
+  status: string
+  title: string
+  description: string | null
+  starts_at: string
+  contacts: {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  } | {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  }[] | null
 }
 
 type AccountSignalRow = {
@@ -666,6 +759,9 @@ export async function getClientIntelligence(
     scoreSummary,
     opportunitiesResult,
     missionsResult,
+    projectsResult,
+    commercialInteractionsResult,
+    commercialCalendarResult,
     accountSignalsResult,
     accountWatchResult,
     recentDocumentsResult,
@@ -679,7 +775,7 @@ export async function getClientIntelligence(
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,sector,sector_id,segment,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
+        "id,name,legal_name,sector,sector_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -730,7 +826,7 @@ export async function getClientIntelligence(
     supabase
       .from("opportunities")
       .select<OpportunityRow>(
-        "id,title,stage,opportunity_type,estimated_gain,weighted_gain,next_action_label,next_action_at,closed_at",
+        "id,title,stage,opportunity_type,estimated_gain,weighted_gain,next_action_label,next_action_at,target_close_date,closed_at",
       )
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
@@ -741,6 +837,27 @@ export async function getClientIntelligence(
       .eq("company_id", companyId)
       .order("start_date", { ascending: false, nullsFirst: false })
       .limit(20),
+    supabaseReal
+      .from("projects")
+      .select("id,title,status,start_date_planned,end_date_planned,start_date_actual,end_date_actual,contract_amount,offer_engagement_types(name,billing_model)")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(20)
+      .returns<ProjectRow[]>(),
+    supabaseReal
+      .from("interactions")
+      .select("id,type,occurred_at,summary,next_action,calendar_event_id,contacts(persons(full_name))")
+      .eq("company_id", companyId)
+      .order("occurred_at", { ascending: false })
+      .limit(24)
+      .returns<CommercialInteractionTimelineRow[]>(),
+    supabaseReal
+      .from("calendar_events")
+      .select("id,event_type,status,title,description,starts_at,contacts(persons(full_name))")
+      .eq("company_id", companyId)
+      .order("starts_at", { ascending: false })
+      .limit(24)
+      .returns<CommercialCalendarTimelineRow[]>(),
     supabase
       .from("account_signals")
       .select<AccountSignalRow>(`
@@ -835,6 +952,15 @@ export async function getClientIntelligence(
   if (watchCostStatsResult.error) {
     console.error("[intelligence] watch cost stats query failed:", watchCostStatsResult.error.message, { companyId })
   }
+  if (projectsResult.error) {
+    console.error("[intelligence] projects query failed:", projectsResult.error.message, { companyId })
+  }
+  if (commercialInteractionsResult.error) {
+    console.error("[intelligence] commercial interactions query failed:", commercialInteractionsResult.error.message, { companyId })
+  }
+  if (commercialCalendarResult.error) {
+    console.error("[intelligence] commercial calendar query failed:", commercialCalendarResult.error.message, { companyId })
+  }
 
   const company = companyResult.data
   const summary = summaryResult.data ?? null
@@ -920,14 +1046,43 @@ export async function getClientIntelligence(
   const diagnosticFromEngine = parseAnalyseDiagnostic(engineProcessDiagnostic)
   if (diagnosticFromEngine) diagnostic = { data: diagnosticFromEngine, source: "engine" }
 
+  const companyProfile = normalizeCompanyIdentity({
+    name: company.name,
+    legalName: company.legal_name,
+    hqLocation: company.hq_location,
+    sector: company.sector,
+    segment: company.segment,
+    revenue: company.revenue,
+    employeeCount: company.employee_count,
+    sizeBand: company.size_band,
+  }, company.metadata)
+  const companyPositioning = normalizeCompanyMarketPositioning(company.metadata)
+  const operationalSnapshot = normalizeCompanyOperationalSnapshot(engineProcessDiagnostic)
+
   // Synthèse fallback : description compte si aucune analyse.
   if (client && !client.data.synthese) {
     client.data.synthese = clean(company.description, "Aucune synthèse disponible.")
   }
 
-  const contacts: ClientIntelligenceContact[] = (contactsResult.data ?? []).map((row) => {
+  const offerPracticeNameById = new Map(
+    offerPracticesCatalogRows.map((practice) => [practice.id, practice.name])
+  )
+  const offerCandidates = offersCatalogRows.map((offer) => ({
+    id: offer.id,
+    name: offer.name,
+    practiceName: (offer.practice_id && offerPracticeNameById.get(offer.practice_id)) ?? "",
+    keywords: offer.keywords ?? [],
+    typicalProfiles: offer.typical_profiles ?? [],
+    shortDescription: offer.short_description,
+  }))
+
+  const contacts: ClientIntelligenceContact[] = sortCompanyContacts((contactsResult.data ?? []).map((row) => {
     const person = firstRelation(row.persons)
     const fallbackName = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
+    const offerSuggestion = resolveContactOfferSuggestion({
+      jobTitle: row.job_title,
+      department: row.department,
+    }, offerCandidates)
     return {
       id: row.id,
       fullName: clean(person?.full_name, fallbackName || "Contact sans nom"),
@@ -938,8 +1093,9 @@ export async function getClientIntelligence(
       decisionPower: row.decision_power,
       relationshipLevel: row.relationship_level,
       isPriority: Boolean(row.is_priority),
+      offerSuggestion,
     }
-  })
+  }))
 
   const opportunities: ClientIntelligenceOpportunity[] = (opportunitiesResult.data ?? []).map((row) => ({
     id: row.id,
@@ -950,6 +1106,7 @@ export async function getClientIntelligence(
     weightedGain: toNumber(row.weighted_gain),
     nextActionLabel: row.next_action_label,
     nextActionAt: row.next_action_at,
+    targetCloseDate: row.target_close_date,
     closedAt: row.closed_at,
   }))
 
@@ -963,6 +1120,57 @@ export async function getClientIntelligence(
     endDate: row.end_date,
     grossMarginPct: toNumber(row.gross_margin_pct),
   }))
+
+  const projects: ClientIntelligenceProject[] = (projectsResult.data ?? []).map((row) => {
+    const engagementType = firstRelation(row.offer_engagement_types)
+    return {
+      id: row.id,
+      title: row.title,
+      status: row.status,
+      startDate: row.start_date_actual ?? row.start_date_planned,
+      endDate: row.end_date_actual ?? row.end_date_planned,
+      contractAmount: toNumber(row.contract_amount),
+      engagementType: engagementType?.name ?? null,
+      billingModel: engagementType?.billing_model ?? null,
+    }
+  })
+
+  const linkedCalendarEventIds = new Set(
+    (commercialInteractionsResult.data ?? []).flatMap((row) => row.calendar_event_id ? [row.calendar_event_id] : []),
+  )
+  const interactionTimeline: ClientIntelligenceCommercialTimelineEntry[] = (commercialInteractionsResult.data ?? []).map((row) => {
+    const contact = firstRelation(row.contacts)
+    const person = contact ? firstRelation(contact.persons) : null
+    return {
+      id: `interaction-${row.id}`,
+      source: "interaction",
+      nature: row.type,
+      title: row.summary?.trim() || row.type,
+      summary: row.next_action,
+      occurredAt: row.occurred_at,
+      contactName: person?.full_name ?? null,
+      status: null,
+    }
+  })
+  const calendarTimeline: ClientIntelligenceCommercialTimelineEntry[] = (commercialCalendarResult.data ?? [])
+    .filter((row) => !linkedCalendarEventIds.has(row.id))
+    .map((row) => {
+      const contact = firstRelation(row.contacts)
+      const person = contact ? firstRelation(contact.persons) : null
+      return {
+        id: `calendar-${row.id}`,
+        source: "calendar_event",
+        nature: row.event_type,
+        title: row.title,
+        summary: row.description,
+        occurredAt: row.starts_at,
+        contactName: person?.full_name ?? null,
+        status: row.status,
+      }
+    })
+  const commercialTimeline = [...interactionTimeline, ...calendarTimeline]
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, 24)
 
   const accountSignals: ClientIntelligenceSignal[] = (accountSignalsResult.data ?? [])
     .filter((row) => {
@@ -1064,9 +1272,6 @@ export async function getClientIntelligence(
       }
     : DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS
 
-  const offerPracticeNameById = new Map(
-    offerPracticesCatalogRows.map((practice) => [practice.id, practice.name])
-  )
   const offersCatalog: ClientIntelligenceOfferRef[] = offersCatalogRows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -1088,6 +1293,9 @@ export async function getClientIntelligence(
         hqLocation: clean(company.hq_location),
         logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
       },
+      companyProfile,
+      companyPositioning,
+      operationalSnapshot,
       freshness: {
         latestRunAt: summary?.latest_run_at ?? null,
         latestRunStatus: summary?.latest_run_status ?? null,
@@ -1115,6 +1323,8 @@ export async function getClientIntelligence(
       scoreSummary,
       opportunities,
       missions,
+      projects,
+      commercialTimeline,
       accountSignals,
       accountWatch,
       recentDocuments,

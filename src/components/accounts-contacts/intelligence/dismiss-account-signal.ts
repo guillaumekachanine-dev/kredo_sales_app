@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { createClient } from "@/lib/supabase/server"
+import { updateAccountSignalStatus } from "./update-account-signal-status"
 
 /**
  * Dismisses a specific account signal by setting its status to 'dismissed'.
@@ -10,18 +10,9 @@ import { createClient } from "@/lib/supabase/server"
 export async function dismissAccountSignal(
   signalId: string,
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient()
+  const result = await updateAccountSignalStatus(signalId, "dismissed")
+  if (result.error || !result.companyId) return { error: result.error ?? "Signal introuvable" }
 
-  const { data: row, error: updateError } = await supabase
-    .from("account_signals")
-    .update({ status: "dismissed" })
-    .eq("id", signalId)
-    .select("company_id")
-    .maybeSingle()
-
-  if (updateError) return { error: updateError.message }
-  if (!row) return { error: "Signal introuvable" }
-
-  revalidatePath(`/prospection/accounts/${row.company_id}`)
+  revalidatePath(`/prospection/accounts/${result.companyId}`)
   return { error: null }
 }
