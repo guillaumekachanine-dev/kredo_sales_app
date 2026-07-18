@@ -7,3 +7,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## KREDO design-system routing
 
 When a user request mentions `edito_bright_design`, read `docs/design-systems/edito_bright_design.md` before writing or modifying UI code. Treat that file as the canonical graphic specification and inspect the source components it lists. The identifier alone is an explicit instruction to apply this design system.
+
+When a user request mentions `cockpit_intelligence_design`, read `docs/design-systems/cockpit_intelligence_design.md` and then `docs/design-systems/edito_bright_design.md` before writing or modifying UI code. Treat the current Cockpit Intelligence CEGEMA implementation and the files listed in the reference as the canonical pattern for account intelligence pages. The identifier fixes the visual language but allows alternative page structures when explicitly requested.
