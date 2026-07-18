@@ -186,6 +186,19 @@
   --color-domain-ai: #6B5CF6;
   --color-document-report: #9E5E73;
   --color-document-communication: #3F798B;
+
+  /* ── Edito Bright · analytical reading surfaces ─────────── */
+  --color-edito-canvas: #F8FAFC;
+  --color-edito-surface: #FFFFFF;
+  --color-edito-navy: #1E3150;
+  --color-edito-heading: #243B63;
+  --color-edito-ink: #1E293B;
+  --color-edito-body: #334155;
+  --color-edito-muted: #64748B;
+  --color-edito-border: #CBD5E1;
+  --color-edito-chip: #F1F5F9;
+  --color-edito-brass: #D89B16;
+  --color-edito-gold: #FBBF24;
 }
 
 
@@ -320,6 +333,127 @@
   /* brass → ambre dans ce contexte */
   --color-secondary: #FFC107;
   /* secondary → ambre */
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Thème « Edito Bright » — cockpit intelligence compte.
+   Portée strictement à la vue Desktop compte : une lecture claire,
+   structurée par le navy et des bordures plutôt que par les ombres.
+   ────────────────────────────────────────────────────────────── */
+[data-theme="edito-bright-cockpit"] {
+  /* La fiche source FOLIO emploie Lato pour les intitulés comme pour la
+     prose. On conserve les échelles propres au cockpit mais pas Manrope. */
+  --font-heading: var(--font-sans);
+  --color-canvas: #F4F2ED;
+  --color-surface: #FDFCFA;
+  --color-surface-hover: #EDF0F7;
+  --color-border: #DBE0EB;
+  --color-heading: #1A2540;
+  --color-body: #526074;
+  --color-muted: #93A0B0;
+  --color-primary: #1E3150;
+  --color-primary-deep: #162640;
+  --color-primary-fg: #FFFFFF;
+  --color-brand-brass: #D89B16;
+  --color-brand-brass-hover: #B77E0C;
+  --color-secondary: #FBBF24;
+}
+
+/* Seconde passe éditoriale — quatre repères calmes : une famille de caractères
+   unique, un filet de titre, un état d'onglet précis, et des repères de chapitre.
+   Aucun de ces traitements ne modifie la structure ni les interactions. */
+[data-theme="edito-bright-cockpit"] .edito-title-marker {
+  position: relative;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-title-marker::after {
+  position: absolute;
+  bottom: -0.35rem;
+  left: 0;
+  width: 2.5rem;
+  height: 2px;
+  content: "";
+  background: var(--color-brand-brass);
+}
+
+[data-theme="edito-bright-cockpit"] .edito-cockpit-tab--active::after {
+  position: absolute;
+  right: 50%;
+  bottom: -1px;
+  width: 1.5rem;
+  height: 2px;
+  content: "";
+  transform: translateX(50%);
+  background: var(--color-brand-brass);
+}
+
+[data-theme="edito-bright-cockpit"] .edito-process-rail > button {
+  position: relative;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-process-rail > button::before {
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  width: 1rem;
+  height: 2px;
+  content: "";
+  background: var(--color-brand-brass);
+  transition: width 160ms ease-out;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-process-rail > button:hover::before,
+[data-theme="edito-bright-cockpit"] .edito-process-rail > button:focus-visible::before {
+  width: 1.75rem;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-section-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-section-card > :first-child {
+  position: relative;
+  margin: 0;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+[data-theme="edito-bright-cockpit"] .edito-section-card > :first-child::after {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 2.5rem;
+  height: 1px;
+  content: "";
+  background: color-mix(in srgb, var(--color-brand-brass) 78%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="edito-bright-cockpit"] .edito-process-rail > button::before {
+    transition: none;
+  }
+}
+
+[data-theme="edito-bright-cockpit"] .edito-section-card > :first-child h3 {
+  color: var(--color-primary-fg);
+}
+
+[data-theme="edito-bright-cockpit"] .edito-section-card > :not(:first-child) {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+
+[data-theme="edito-bright-cockpit"] .edito-score {
+  min-width: 7.5rem;
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+[data-theme="edito-bright-cockpit"] .edito-score > :first-child {
+  color: var(--color-brand-brass);
 }
 
 /* ──────────────────────────────────────────────────────────────

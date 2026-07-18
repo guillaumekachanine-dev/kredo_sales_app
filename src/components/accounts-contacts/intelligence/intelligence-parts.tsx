@@ -91,7 +91,7 @@ export function SectionBlock({ title, action, children, className, reading }: {
   reading?: boolean
 }) {
   return (
-    <section className={cn("rounded-lg border border-border bg-surface p-5", reading && "cockpit-reading", className)}>
+    <section className={cn("edito-section-card rounded-lg border border-border bg-surface p-5", reading && "cockpit-reading", className)}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-muted">{title}</h3>
         {action}
@@ -158,19 +158,17 @@ export function SignalList({
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                className="inline-flex min-h-7 items-center justify-center gap-1.5 rounded border border-primary bg-primary px-2 text-[8.5px] font-bold text-primary-fg transition-colors hover:bg-primary-deep"
                 title="Accéder à la source du signal"
               >
-                <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
                 <img
                   src="/icons_set/cockpit_intelligence/recherche_actualités.png"
                   alt=""
                   width={12}
                   height={12}
-                  className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
+                  className="size-3 object-contain"
                 />
-                <span className="relative z-10">Voir la source</span>
+                <span>Voir la source</span>
               </a>
               <ContextualCommunicationButton
                 entryPoint="signal_card"
@@ -178,21 +176,17 @@ export function SignalList({
                 companyName={companyName}
                 primaryEntity={{ type: "company", id: companyId }}
                 label="Contacter sur ce signal"
-                className="group relative overflow-hidden bg-[#2554B8] hover:bg-[#1E4596] hover:-translate-y-0.5 active:scale-[0.97] text-white border-none shadow-[inset_0_1.5px_0_rgba(255,255,255,0.25),0_2px_4px_rgba(37,84,184,0.2)] transition-all duration-200 rounded-xl h-5.5 min-h-[22px] px-2 text-[8.5px] font-bold select-none cursor-pointer flex items-center gap-1.5 justify-center"
+                className="inline-flex min-h-7 items-center justify-center gap-1.5 rounded border border-primary bg-primary px-2 text-[8.5px] font-bold text-primary-fg transition-colors hover:bg-primary-deep"
                 aria-label={`Contacter ${companyName ?? "ce compte"} sur le signal ${i + 1}`}
                 refs={{ signalRef: signal }}
                 leftIcon={
-                  <>
-                    <span className="pointer-events-none absolute -right-6 -top-6 size-16 rounded-full bg-white/15 blur-xl transition-all duration-300 group-hover:scale-110" />
-                    <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:animate-[kredo-action-shine-sweep_0.55s_cubic-bezier(0.4,0,0.2,1)_forwards]" />
-                    <img
-                      src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
-                      alt=""
-                      width={12}
-                      height={12}
-                      className="relative z-10 size-3 object-contain transition-transform duration-200 group-hover:scale-110"
-                    />
-                  </>
+                  <img
+                    src="/icons_set/cockpit_intelligence/redaction_message_ai.png"
+                    alt=""
+                    width={12}
+                    height={12}
+                    className="size-3 object-contain"
+                  />
                 }
               />
             </div>

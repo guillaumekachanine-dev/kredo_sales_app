@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, Fragment, type ReactNode } from "react"
+import { useState, useRef, useEffect, useMemo, type ReactNode } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
@@ -71,14 +71,14 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
   }, [expandedViewer, diagnosticPdfUrl])
 
   return (
-    <div data-theme="cockpit" className="flex h-full overflow-hidden bg-canvas">
+    <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full overflow-hidden bg-canvas">
       {/* ── Colonne gauche : header + onglets + contenu ──────────────────────────
           Le rail droit est pleine hauteur : le header ne fait donc que la largeur
           de cette colonne (= la section principale juste en dessous). ─────────── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* ── Header (compact) ─────────────────────────────────────────────── */}
-        <header className="shrink-0 border-b border-border bg-surface px-6 py-3">
-          <div className="flex flex-col items-start gap-2 w-full">
+        <header className="shrink-0 bg-canvas px-6 pt-5">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
             <div className="flex flex-col items-start">
               <Link
                 href={`/prospection/accounts?drawer=${company.id}`}
@@ -86,12 +86,12 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
               >
                 ← Comptes &amp; contacts
               </Link>
-              <h2 className="font-heading text-xl font-bold text-heading leading-tight mt-1">
+              <h2 className="edito-title-marker mt-1 font-heading text-2xl font-bold leading-tight tracking-tight text-heading">
                 Cockpit intelligence
               </h2>
             </div>
 
-            <div className="flex items-start justify-between gap-6 w-full mt-1">
+            <div className="flex w-full items-start justify-between gap-6 rounded-xl border border-border bg-surface p-5 shadow-sm">
               {/* Côté gauche : Logo + Informations du compte */}
               <div className="flex items-start gap-4">
                 <CompanyLogo
@@ -99,10 +99,10 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
                   logoPath={company.logoPath}
                   website={company.website}
                   size="2xl"
-                  className="bg-white p-1 shrink-0"
+                  className="shrink-0 bg-white p-1"
                 />
                 <div className="flex flex-col items-start gap-1">
-                  <h1 className="font-heading text-2xl font-bold text-white leading-tight">
+                  <h1 className="font-heading text-2xl font-bold leading-tight text-heading">
                     {company.name}
                   </h1>
                   <p className="text-xs text-body leading-normal">
@@ -115,10 +115,10 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
               </div>
 
               {/* Côté droit : Documents + Score de Priorité Commerciale */}
-              <div className="flex items-center gap-4 shrink-0">
+              <div className="flex shrink-0 items-center gap-4">
                 <button
                   onClick={() => setIsDocsModalOpen(true)}
-                  className="flex items-center gap-2 rounded-[2rem] bg-brand-brass border border-brand-brass/25 px-4 py-2 text-white hover:bg-brand-brass-hover transition-all cursor-pointer shadow-sm active:scale-95"
+                  className="flex min-h-10 items-center gap-2 rounded border border-primary bg-surface px-4 py-2 text-primary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
                   <img
                     src="/icons_set/cockpit_intelligence/dossier.png"
@@ -127,50 +127,53 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
                   />
                   <span className="text-sm font-semibold">Consulter les documents</span>
                 </button>
-                <ScoreBadge summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
+                <ScoreBadge className="edito-score" summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
               </div>
             </div>
           </div>
         </header>
 
         {/* ── Onglets ───────────────────────────────────────────────────────── */}
-        <nav className="flex shrink-0 items-center gap-1 border-b border-border bg-surface px-6">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
-                "focus-visible:outline-none focus-visible:text-primary focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30",
-                activeTab === tab.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted hover:text-body",
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <nav className="mt-5 shrink-0 border-y border-border bg-surface px-6">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "edito-cockpit-tab relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:text-primary focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30",
+                  activeTab === tab.key
+                    ? "edito-cockpit-tab--active border-primary text-primary"
+                    : "border-transparent text-muted hover:text-body",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </nav>
 
         {/* ── Contenu de l'onglet actif ─────────────────────────────────────── */}
-        <main className="min-w-0 flex-1 overflow-y-auto px-6 pb-6 pt-0">
-          {activeTab === "accueil" && (
-            <AccueilTab
-              data={data}
-              onOpenTab={(tab) => setActiveTab(tab)}
-              financialReference={financialReference}
-            />
-          )}
-          {activeTab === "connaissance" && (
-            <AnalyseTab
-              data={data}
-              isExpandedViewer={expandedViewer}
-              onExpandViewer={setExpandedViewer}
-            />
-          )}
-          {activeTab === "secteur" && (
-            <div className="mx-auto max-w-4xl pt-6">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-canvas px-6 pb-8">
+          <div className="mx-auto w-full max-w-6xl">
+            {activeTab === "accueil" && (
+              <AccueilTab
+                data={data}
+                onOpenTab={(tab) => setActiveTab(tab)}
+                financialReference={financialReference}
+              />
+            )}
+            {activeTab === "connaissance" && (
+              <AnalyseTab
+                data={data}
+                isExpandedViewer={expandedViewer}
+                onExpandViewer={setExpandedViewer}
+              />
+            )}
+            {activeTab === "secteur" && (
+              <div className="mx-auto max-w-4xl pt-6">
               {/* ADR-0012 Lot 3 : snapshot déterministe mutualisé (sector_intelligence
                   + tables sector_*) en priorité — seulement si le compte a un
                   sector_id (backfill honnête, ~27/95 comptes). Fallback FOLIO/moteur
@@ -182,23 +185,24 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
               ) : (
                 <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>
               )}
-            </div>
-          )}
-          {activeTab === "enjeux" && (
-            <div className="pt-6">
-              <EnjeuxTab data={data} />
-            </div>
-          )}
-          {activeTab === "strategie" && (
-            <div className="pt-6">
-              <StrategieTab data={data} />
-            </div>
-          )}
-          {activeTab === "roadmap" && (
-            <div className="pt-6">
-              <ComingSoon lot="lot 6">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
-            </div>
-          )}
+              </div>
+            )}
+            {activeTab === "enjeux" && (
+              <div className="pt-6">
+                <EnjeuxTab data={data} />
+              </div>
+            )}
+            {activeTab === "strategie" && (
+              <div className="pt-6">
+                <StrategieTab data={data} />
+              </div>
+            )}
+            {activeTab === "roadmap" && (
+              <div className="pt-6">
+                <ComingSoon lot="lot 6">Roadmap commerciale → opportunités, tâches et relances</ComingSoon>
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
@@ -264,11 +268,11 @@ function AccueilTab({
 }) {
   const { signals } = data
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pt-6">
+    <div className="space-y-6 py-6">
       {financialReference ? <FinancialReferenceDesktopCard reference={financialReference} /> : null}
       {/* ── Frise process horizontal ── */}
-      <div className="flex items-stretch gap-2 py-2">
-        {INTELLIGENCE_PROCESS_STEPS.map((step, idx) => {
+      <div className="edito-process-rail grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-border bg-border">
+        {INTELLIGENCE_PROCESS_STEPS.map((step) => {
           const status = getProcessStepStatus(step.key, data)
           const Icon = STEP_ICONS[step.key]
           const toneCls = {
@@ -278,51 +282,46 @@ function AccueilTab({
           }[status.tone]
 
           return (
-            <Fragment key={step.key}>
-              <button
-                type="button"
-                onClick={() => onOpenTab(step.key)}
-                aria-label={`Étape ${idx + 1} : ${step.label}. Statut : ${status.label}`}
-                className={cn(
-                  "flex flex-1 flex-col items-start text-left p-4 rounded-lg border border-border bg-surface",
-                  "transition-all hover:border-primary/40 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  "cursor-pointer shadow-none min-h-[170px]"
-                )}
-              >
-                <div className="mb-3 text-primary shrink-0">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <h3 className="font-heading text-xs font-bold text-heading mb-1 uppercase tracking-wide leading-tight flex-1">
-                  {step.label}
-                </h3>
-                <p className="text-[11px] text-body mb-3 leading-normal line-clamp-3">
-                  {step.description}
-                </p>
-                <div className="mt-auto shrink-0">
-                  <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", toneCls)}>
-                    {status.label}
-                  </span>
-                </div>
-              </button>
-              {idx < INTELLIGENCE_PROCESS_STEPS.length - 1 && (
-                <ChevronRightIcon className="h-5 w-5 text-muted shrink-0 mx-0.5 self-center" />
+            <button
+              key={step.key}
+              type="button"
+              onClick={() => onOpenTab(step.key)}
+              aria-label={`${step.label}. Statut : ${status.label}`}
+              className={cn(
+                "flex min-h-40 flex-col items-start bg-primary p-4 text-left",
+                "transition-colors hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-inset",
               )}
-            </Fragment>
+            >
+              <div className="mb-3 shrink-0 text-secondary">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="mb-1 flex-1 font-heading text-xs font-bold uppercase tracking-wider leading-[16px] text-primary-fg">
+                {step.label}
+              </h3>
+              <p className="mb-3 text-[11px] leading-normal text-white/75 line-clamp-3">
+                {step.description}
+              </p>
+              <span className={cn("mt-auto inline-flex rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", toneCls)}>
+                {status.label}
+              </span>
+            </button>
           )
         })}
       </div>
 
-      <AccountWatchSettingsCard
-        companyId={data.company.id}
-        initialSettings={data.accountWatch}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <AccountWatchSettingsCard
+          companyId={data.company.id}
+          initialSettings={data.accountWatch}
+        />
 
-      {/* ── Signaux récents ── */}
-      {signals && signals.length > 0 && (
-        <SectionBlock title="Signaux récents">
-          <SignalList signals={signals} companyId={data.company.id} companyName={data.company.name} />
-        </SectionBlock>
-      )}
+        {/* ── Signaux récents ── */}
+        {signals && signals.length > 0 && (
+          <SectionBlock title="Signaux récents">
+            <SignalList signals={signals} companyId={data.company.id} companyName={data.company.name} />
+          </SectionBlock>
+        )}
+      </div>
     </div>
   )
 }
@@ -1466,14 +1465,6 @@ function RoadmapIcon({ className }: { className?: string }) {
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
       <line x1="4" y1="22" x2="4" y2="15" />
-    </svg>
-  )
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m9 18 6-6-6-6" />
     </svg>
   )
 }
