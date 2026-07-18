@@ -1,0 +1,3 @@
+export function StrategicAuditBanner() {
+  return <div className="mb-6 rounded-lg border border-[#CBD5E1] bg-[#1E3150] p-4 shadow-sm"><div className="flex items-center gap-2"><span className="shrink-0 rounded bg-[#D89B16] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[#1E293B]">AUDIT STRATÉGIQUE</span><h4 className="text-xs font-bold uppercase tracking-wider text-[#FBBF24]">CARTOGRAPHIES OPÉRATIONNELLES</h4></div><p className="mt-1 text-xs leading-relaxed text-[#CBD5E1]">Extraction structurée de l’audit stratégique Arkopharma — contenu original en lecture seule.</p></div>
+}
