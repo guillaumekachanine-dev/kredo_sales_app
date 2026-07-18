@@ -20,7 +20,7 @@ import {
   SectionBlock,
   TagList,
 } from "./intelligence-parts"
-import { SectorSnapshotContent } from "./SectorSnapshotContent"
+import { ClientIntelligenceSectorTab } from "./ClientIntelligenceSectorTab"
 import { AccountIssuesTable } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
@@ -136,19 +136,16 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
               />
             )}
             {activeTab === "secteur" && (
-              <div className="mx-auto max-w-4xl pt-6">
-              {/* ADR-0012 Lot 3 : snapshot déterministe mutualisé (sector_intelligence
-                  + tables sector_*) en priorité — seulement si le compte a un
-                  sector_id (backfill honnête, ~27/95 comptes). Fallback FOLIO/moteur
-                  sinon, exactement comme avant (Lot 0/2). */}
-              {data.sectorSnapshot ? (
-                <SectorSnapshotContent data={data.sectorSnapshot} />
-              ) : data.sector ? (
-                <SectorAnalysisContent data={data.sector.data} />
-              ) : (
-                <ComingSoon lot="lot 3">Intelligence sectorielle mutualisée, contextualisée pour ce compte</ComingSoon>
-              )}
-              </div>
+              <ClientIntelligenceSectorTab
+                data={data.sectorSnapshot}
+                fallback={data.sector ? {
+                  companyId: company.id,
+                  companyName: company.name,
+                  companySegment: company.segment,
+                  sectorName: company.sector,
+                  sectorAnalysis: data.sector.data,
+                } : null}
+              />
             )}
             {activeTab === "enjeux" && (
               <div className="pt-6">

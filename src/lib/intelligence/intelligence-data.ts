@@ -978,7 +978,12 @@ export async function getClientIntelligence(
   const pdfBucket = str(phase3MetaForPdf.pdf_bucket) || "ai_intelligence_process_diagnostics"
 
   const [sectorSnapshot, signedUrlOutcome] = await Promise.all([
-    company.sector_id ? getSectorSnapshot(company.sector_id) : Promise.resolve(null),
+    company.sector_id
+      ? getSectorSnapshot(company.sector_id, {
+          currentCompanyId: company.id,
+          currentSectorAnalysis: metadata.sector_analysis,
+        })
+      : Promise.resolve(null),
     pdfStoragePath
       ? supabaseReal.storage.from(pdfBucket).createSignedUrl(pdfStoragePath, 3600)
       : Promise.resolve(null),

@@ -21,7 +21,7 @@ import {
   AccountSignalsCard,
   AccountKnowledgeGeneratedContent,
 } from "./AccountKnowledgeBlocks"
-import { SectorSnapshotContent } from "./SectorSnapshotContent"
+import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
@@ -37,7 +37,6 @@ import {
   type AnalysisTypeKey,
   ANALYSIS_SECTIONS,
   ClientAnalysisContent,
-  SectorAnalysisContent,
   ProcessDiagnosticContent,
   ClientAnalysisIcon,
   ProcessDiagnosticIcon,
@@ -513,33 +512,16 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
           )}
 
           {activePanel === "secteur" && (
-            data.sectorSnapshot ? (
-              <SectorSnapshotContent data={data.sectorSnapshot} />
-            ) : sector ? (
-              <>
-                <div className="rounded-lg border border-border bg-surface p-3.5 mb-4 flex items-center justify-between gap-3 shadow-sm">
-                  <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-muted">Mise à jour de l&apos;analyse</span>
-                    <div className="mt-1">
-                      <FreshnessLine
-                        latestRunAt={data.freshness.latestRunAt}
-                        latestRunStatus={data.freshness.latestRunStatus}
-                        fallbackSource={sector.source}
-                      />
-                    </div>
-                  </div>
-                  <ProvenanceBadge source={sector.source} />
-                </div>
-                <SectorAnalysisContent data={sector.data} />
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-canvas/30 px-4 py-8 text-center min-h-[140px]">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted">
-                  Intelligence sectorielle à connecter.
-                </span>
-                <span className="text-[11px] text-muted/70">Disponible au lot 3</span>
-              </div>
-            )
+            <ClientIntelligenceSectorMobileTab
+              data={data.sectorSnapshot}
+              fallback={sector ? {
+                companyId: company.id,
+                companyName: company.name,
+                companySegment: company.segment,
+                sectorName: company.sector,
+                sectorAnalysis: sector.data,
+              } : null}
+            />
           )}
 
           {activePanel === "enjeux" && (
