@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { CrmSectionTabBar } from "./CrmSectionTabBar"
 import { CrmEntityPanel } from "./CrmEntityPanel"
 
@@ -18,6 +19,19 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
   const pathname = usePathname()
   const { tabs, activeTabId, setActiveTab } = useCrmTabStore()
   const isAccountsSection = pathname === ACCOUNTS_PREFIX || pathname.startsWith(ACCOUNTS_PREFIX + "/")
+  const isDirectCockpit = pathname.startsWith(ACCOUNTS_PREFIX + "/")
+  const isCockpitActive = isAccountsSection && (isDirectCockpit || activeTabId !== "home")
+
+  // Le cockpit Desktop possède son propre rail : il prend un verrou de repli
+  // sur la sidebar principale pendant toute sa durée d'affichage. Le compteur
+  // du store évite une restauration prématurée si un autre panneau demande le
+  // même repli en parallèle.
+  useEffect(() => {
+    if (isMobile || !isCockpitActive) return
+
+    useSidebarCollapse.getState().requestCollapse()
+    return () => useSidebarCollapse.getState().requestRestore()
+  }, [isCockpitActive, isMobile])
 
   // Retour à "home" quand on quitte la section comptes
   const prevIsAccounts = useRef(isAccountsSection)
@@ -83,7 +97,7 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
         <div
           key={tab.id}
           className={cn(
-            "flex-1 overflow-y-auto",
+            "flex-1 min-h-0 overflow-hidden",
             tab.id !== activeTabId && "hidden"
           )}
         >

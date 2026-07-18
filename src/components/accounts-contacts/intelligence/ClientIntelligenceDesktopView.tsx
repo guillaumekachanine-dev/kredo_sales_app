@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react"
-import Link from "next/link"
+import Image from "next/image"
+import { usePathname, useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
@@ -33,22 +34,14 @@ import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
 import { ScoreBadge } from "./ScoreBadge"
 import { ScoreDetailModal } from "./ScoreDetailModal"
 import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
+import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
+import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
 import {
   type TabKey,
   type ProcessStepKey,
   INTELLIGENCE_PROCESS_STEPS,
   getProcessStepStatus,
 } from "./intelligence-process"
-
-// ADR-0012 — Scoring sorti des onglets (capacité transverse : badge header + modale).
-const TABS: { key: TabKey; label: string; lot?: string }[] = [
-  { key: "accueil", label: "Accueil" },
-  { key: "connaissance", label: "Connaissance compte" },
-  { key: "secteur", label: "Intelligence sectorielle", lot: "lot 3" },
-  { key: "enjeux", label: "Enjeux", lot: "lot 4" },
-  { key: "strategie", label: "Stratégie", lot: "lot 5" },
-  { key: "roadmap", label: "Roadmap", lot: "lot 6" },
-]
 
 export function ClientIntelligenceDesktopView({ data, financialReference = null }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
@@ -57,6 +50,9 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
   const [scoreModalOpen, setScoreModalOpen] = useState(false)
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
+  const pathname = usePathname()
+  const router = useRouter()
+  const setCrmActiveTab = useCrmTabStore((state) => state.setActiveTab)
   const { company } = data
   const { diagnosticPdfUrl } = data
 
@@ -70,28 +66,33 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
     }
   }, [expandedViewer, diagnosticPdfUrl])
 
+  const handleBackToAccounts = () => {
+    setCrmActiveTab("home")
+    if (pathname !== "/prospection/accounts") {
+      router.push("/prospection/accounts")
+    }
+  }
+
   return (
-    <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full overflow-hidden bg-canvas">
-      {/* ── Colonne gauche : header + onglets + contenu ──────────────────────────
-          Le rail droit est pleine hauteur : le header ne fait donc que la largeur
-          de cette colonne (= la section principale juste en dessous). ─────────── */}
+    <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 overflow-hidden bg-canvas">
+      <ClientIntelligenceSidebar
+        activeTab={activeTab}
+        onBackToAccounts={handleBackToAccounts}
+        onTabChange={setActiveTab}
+      />
+
+      {/* ── Colonne principale : identité + contenu analytique scrollable ─────── */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* ── Header (compact) ─────────────────────────────────────────────── */}
         <header className="shrink-0 bg-canvas px-6 pt-5">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
             <div className="flex flex-col items-start">
-              <Link
-                href={`/prospection/accounts?drawer=${company.id}`}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted transition-colors hover:text-primary"
-              >
-                ← Comptes &amp; contacts
-              </Link>
-              <h2 className="edito-title-marker mt-1 font-heading text-2xl font-bold leading-tight tracking-tight text-heading">
+              <h2 className="edito-title-marker font-heading text-2xl font-bold leading-tight tracking-tight text-heading">
                 Cockpit intelligence
               </h2>
             </div>
 
-            <div className="flex w-full items-start justify-between gap-6 rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <div className="flex w-full items-start justify-between gap-6 rounded-xl border border-cockpit-petrol-medium bg-cockpit-petrol-medium p-5">
               {/* Côté gauche : Logo + Informations du compte */}
               <div className="flex items-start gap-4">
                 <CompanyLogo
@@ -99,16 +100,16 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
                   logoPath={company.logoPath}
                   website={company.website}
                   size="2xl"
-                  className="shrink-0 bg-white p-1"
+                  className="shrink-0 border-white bg-white p-1"
                 />
                 <div className="flex flex-col items-start gap-1">
-                  <h1 className="font-heading text-2xl font-bold leading-tight text-heading">
+                  <h1 className="font-heading text-2xl font-bold leading-tight text-white">
                     {company.name}
                   </h1>
-                  <p className="text-xs text-body leading-normal">
+                  <p className="text-xs leading-normal text-white/85">
                     {company.sector} · {company.segment} · {company.hqLocation}
                   </p>
-                  <span className="text-xs text-muted">
+                  <span className="text-xs text-white/70">
                     {lifecycleLabel(company.lifecycleStatus)}
                   </span>
                 </div>
@@ -118,11 +119,13 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
               <div className="flex shrink-0 items-center gap-4">
                 <button
                   onClick={() => setIsDocsModalOpen(true)}
-                  className="flex min-h-10 items-center gap-2 rounded border border-primary bg-surface px-4 py-2 text-primary transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  className="flex min-h-10 items-center gap-2 rounded border border-white/75 bg-white px-4 py-2 text-cockpit-petrol-medium transition-colors hover:bg-edito-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
-                  <img
+                  <Image
                     src="/icons_set/cockpit_intelligence/dossier.png"
                     alt=""
+                    width={28}
+                    height={28}
                     className="size-7 object-contain"
                   />
                   <span className="text-sm font-semibold">Consulter les documents</span>
@@ -133,30 +136,8 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
           </div>
         </header>
 
-        {/* ── Onglets ───────────────────────────────────────────────────────── */}
-        <nav className="mt-5 shrink-0 border-y border-border bg-surface px-6">
-          <div className="mx-auto flex w-full max-w-6xl items-center gap-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "edito-cockpit-tab relative -mb-px border-b-2 px-3 py-3 text-xs font-semibold transition-colors",
-                  "focus-visible:outline-none focus-visible:text-primary focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/30",
-                  activeTab === tab.key
-                    ? "edito-cockpit-tab--active border-primary text-primary"
-                    : "border-transparent text-muted hover:text-body",
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </nav>
-
         {/* ── Contenu de l'onglet actif ─────────────────────────────────────── */}
-        <main className="min-w-0 flex-1 overflow-y-auto bg-canvas px-6 pb-8">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas px-6 pb-8">
           <div className="mx-auto w-full max-w-6xl">
             {activeTab === "accueil" && (
               <AccueilTab

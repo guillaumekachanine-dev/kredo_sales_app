@@ -144,9 +144,6 @@ export const mainMenuItems: MainMenuItem[] = [
         href: "/prospection",
         icon: "crm",
         primary: true,
-        tabs: [
-          { label: "Comptes & contacts",    shortLabel: "Comptes",      href: "/prospection/accounts" },
-        ],
       },
       {
         label: "Besoins & Staffing",

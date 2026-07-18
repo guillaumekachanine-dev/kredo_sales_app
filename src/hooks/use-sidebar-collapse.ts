@@ -13,6 +13,7 @@ interface SidebarCollapseState {
   isCollapsed: boolean
   pendingRequest: boolean | null
   wasExpandedBeforePanel: boolean
+  collapseRequestCount: number
   reportState: (collapsed: boolean) => void
   requestCollapse: () => void
   requestRestore: () => void
@@ -23,17 +24,37 @@ export const useSidebarCollapse = create<SidebarCollapseState>((set, get) => ({
   isCollapsed: false,
   pendingRequest: null,
   wasExpandedBeforePanel: false,
+  collapseRequestCount: 0,
 
   reportState: (collapsed) => set({ isCollapsed: collapsed }),
 
   requestCollapse: () => {
-    const wasExpanded = !get().isCollapsed
-    set({ wasExpandedBeforePanel: wasExpanded, pendingRequest: wasExpanded ? true : null })
+    const { collapseRequestCount, isCollapsed, wasExpandedBeforePanel } = get()
+    const isFirstRequest = collapseRequestCount === 0
+    const wasExpanded = isFirstRequest && !isCollapsed
+
+    set({
+      collapseRequestCount: collapseRequestCount + 1,
+      wasExpandedBeforePanel: isFirstRequest ? wasExpanded : wasExpandedBeforePanel,
+      pendingRequest: !isCollapsed ? true : null,
+    })
   },
 
   requestRestore: () => {
-    const shouldExpand = get().wasExpandedBeforePanel
-    set({ pendingRequest: shouldExpand ? false : null, wasExpandedBeforePanel: false })
+    const { collapseRequestCount, wasExpandedBeforePanel } = get()
+    if (collapseRequestCount === 0) return
+
+    const remainingRequests = collapseRequestCount - 1
+    if (remainingRequests > 0) {
+      set({ collapseRequestCount: remainingRequests })
+      return
+    }
+
+    set({
+      collapseRequestCount: 0,
+      pendingRequest: wasExpandedBeforePanel ? false : null,
+      wasExpandedBeforePanel: false,
+    })
   },
 
   consumeRequest: () => set({ pendingRequest: null }),

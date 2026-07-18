@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useTransition, useState, useEffect } from "react"
+import { useState, useEffect, useLayoutEffect } from "react"
 import { MainMenuItem, mainMenuItems, getActiveModuleHref } from "@/lib/navigation/main-menu.config"
 import { getNavigationIcon } from "./navigation-icons"
 import { cn } from "@/lib/utils"
@@ -52,12 +52,10 @@ function SidebarToggleIcon({ collapsed }: { collapsed: boolean }) {
 
 function ModuleItem({
   item,
-  pathname,
   isCollapsed,
   activeModuleHref,
 }: {
   item: MainMenuItem
-  pathname: string
   isCollapsed: boolean
   activeModuleHref: string | null
 }) {
@@ -145,10 +143,10 @@ interface DesktopSidebarProps {
 
 export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps) {
   const pathname = usePathname()
-  const [isPending, startTransition] = useTransition()
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
   const activeModuleHref = getActiveModuleHref(pathname)
   const pendingRequest = useSidebarCollapse((s) => s.pendingRequest)
+  const collapseRequestCount = useSidebarCollapse((s) => s.collapseRequestCount)
   const reportState = useSidebarCollapse((s) => s.reportState)
   const consumeRequest = useSidebarCollapse((s) => s.consumeRequest)
   const openSandbox = useLegacySandboxStore((s) => s.open)
@@ -157,7 +155,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   // Reporte l'état réel de la sidebar au store partagé — sert de référence
   // au panneau Cockpit Intelligence pour savoir si elle était dépliée avant
   // son ouverture (et donc si elle doit se redéplier à sa fermeture).
-  useEffect(() => {
+  useLayoutEffect(() => {
     reportState(isCollapsed)
   }, [isCollapsed, reportState])
 
@@ -171,6 +169,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
   }, [pendingRequest, consumeRequest])
 
   const toggle = () => {
+    if (isCollapsed && collapseRequestCount > 0) return
     const next = !isCollapsed
     setIsCollapsed(next)
     persistCollapsed(next)
@@ -226,6 +225,7 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
 
             <IconButton
               onClick={toggle}
+              disabled={isCollapsed && collapseRequestCount > 0}
               aria-label={isCollapsed ? "Développer la navigation" : "Réduire la navigation"}
               aria-expanded={!isCollapsed}
               size="sm"
@@ -253,7 +253,6 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                       <ModuleItem
                         key={module.label}
                         item={module}
-                        pathname={pathname}
                         isCollapsed={isCollapsed}
                         activeModuleHref={activeModuleHref}
                       />
@@ -266,7 +265,6 @@ export function DesktopSidebar({ defaultCollapsed = false }: DesktopSidebarProps
                 <ModuleItem
                   key={item.label}
                   item={item}
-                  pathname={pathname}
                   isCollapsed={isCollapsed}
                   activeModuleHref={activeModuleHref}
                 />
