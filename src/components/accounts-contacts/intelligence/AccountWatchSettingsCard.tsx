@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, type ReactNode } from "react"
 import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
@@ -12,13 +12,18 @@ import {
   type AccountWatchLevel,
   type AccountWatchSettingsState,
 } from "@/lib/intelligence/account-watch-settings"
+import type { AccountWatchOverview } from "@/lib/intelligence/intelligence-data"
+import { estimateMonthlyWatchCost } from "@/lib/intelligence/client-intelligence-home"
 import { SectionBlock } from "./intelligence-parts"
 import { saveAccountWatchSettings } from "./save-account-watch-settings"
 
 type AccountWatchSettingsCardProps = {
   companyId: string
   initialSettings: AccountWatchSettingsState
+  overview?: AccountWatchOverview
+  desktopSignals?: ReactNode
   isMobile?: boolean
+  variant?: "default" | "desktopHome"
 }
 
 type FeedbackState =
@@ -58,10 +63,22 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   )
 }
 
+function formatCurrency(value: number, maximumFractionDigits: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits,
+  }).format(value)
+}
+
 export function AccountWatchSettingsCard({
   companyId,
   initialSettings,
+  overview,
+  desktopSignals,
   isMobile = false,
+  variant = "default",
 }: AccountWatchSettingsCardProps) {
   const [savedSettings, setSavedSettings] = useState(initialSettings)
   const [draft, setDraft] = useState(initialSettings)
@@ -75,6 +92,8 @@ export function AccountWatchSettingsCard({
   const lastRunAtLabel = formatDateTime(savedSettings.lastRunAt)
   const nextRunAtLabel = formatDateTime(savedSettings.nextRunAt)
   const lastStatusLabel = savedSettings.lastStatus ? LAST_STATUS_LABELS[savedSettings.lastStatus] : null
+  const isDesktopHome = variant === "desktopHome" && !isMobile
+  const estimatedMonthlyCost = estimateMonthlyWatchCost(overview?.averageCostPerRun ?? null, draft.cadence)
 
   function handleToggle() {
     setFeedback(null)
@@ -154,6 +173,168 @@ export function AccountWatchSettingsCard({
         })
       }
     })
+  }
+
+  if (isDesktopHome) {
+    const stateLabel = draft.isEnabled
+      ? `Active / ${ACCOUNT_WATCH_LEVEL_LABELS[draft.watchLevel]} / ${ACCOUNT_WATCH_CADENCE_LABELS[draft.cadence]}`
+      : "Inactive"
+
+    return (
+      <SectionBlock
+        title="Veille du compte"
+        className="h-full"
+        action={
+          <span className={cn(
+            "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wide",
+            draft.isEnabled
+              ? "border-success/30 bg-success/10 text-white"
+              : "border-white/25 bg-white/5 text-white/75",
+          )}>
+            {stateLabel}
+          </span>
+        }
+      >
+        <div className="space-y-4 py-4">
+          <div className="rounded-md border border-edito-border bg-edito-canvas/70 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-[0.08em] text-edito-heading">
+                  Paramétrer la veille
+                </h4>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-edito-body">
+                  Active une surveillance ciblée du compte et enregistre le niveau souhaité avant la prochaine exécution.
+                </p>
+                <p className="mt-2 text-[10px] font-semibold uppercase tracking-wide text-edito-muted">
+                  État enregistré : {savedSettings.isEnabled ? "active" : "inactive"}
+                </p>
+              </div>
+              <Button
+                variant={draft.isEnabled ? "secondary" : "primary"}
+                size="sm"
+                onClick={handleToggle}
+                disabled={isBusy}
+                role="switch"
+                aria-checked={draft.isEnabled}
+                className="min-h-10 shrink-0"
+              >
+                {draft.isEnabled ? "Désactiver" : "Activer"}
+              </Button>
+            </div>
+
+            <div className={cn(
+              "grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none",
+              draft.isEnabled ? "mt-4 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+            )}>
+              <div className="overflow-hidden" aria-hidden={!draft.isEnabled} inert={!draft.isEnabled}>
+                <div className="grid gap-4 border-t border-edito-border pt-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label htmlFor="account-watch-level-home" className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">
+                        Niveau de veille
+                      </label>
+                      <Select
+                        id="account-watch-level-home"
+                        value={draft.watchLevel}
+                        onChange={(event) => handleLevelChange(event.target.value as AccountWatchLevel)}
+                        disabled={isBusy}
+                      >
+                        {ACCOUNT_WATCH_LEVELS.map((level) => (
+                          <option key={level} value={level}>{ACCOUNT_WATCH_LEVEL_LABELS[level]}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="rounded border border-edito-border bg-edito-surface px-3 py-2.5">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Cadence correspondante</p>
+                      <p className="mt-1 text-xs font-semibold text-edito-heading">
+                        {ACCOUNT_WATCH_CADENCE_LABELS[draft.cadence]}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded border border-edito-border bg-edito-surface p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Coût moyen par run</p>
+                      <p className="mt-1 text-sm font-bold text-edito-heading">
+                        {overview?.averageCostPerRun === null || overview?.averageCostPerRun === undefined
+                          ? "Estimation indisponible"
+                          : formatCurrency(overview.averageCostPerRun, 4)}
+                      </p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-edito-muted">
+                        Estimation basée sur le coût moyen historique des exécutions.
+                      </p>
+                    </div>
+                    <div className="rounded border border-edito-border bg-edito-surface p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Estimation mensuelle</p>
+                      <p className="mt-1 text-sm font-bold text-edito-heading">
+                        {estimatedMonthlyCost === null ? "Estimation indisponible" : formatCurrency(estimatedMonthlyCost, 2)}
+                      </p>
+                      <p className="mt-1 text-[10px] text-edito-muted">
+                        Pour la cadence {ACCOUNT_WATCH_CADENCE_LABELS[draft.cadence].toLowerCase()}.
+                      </p>
+                    </div>
+                    <div className="rounded border border-edito-border bg-edito-surface p-3 sm:col-span-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Sources surveillées</p>
+                        <span className="text-xs font-bold text-edito-heading">
+                          {overview?.capturedSignalsCount ?? 0} signaux captés
+                        </span>
+                      </div>
+                      {overview?.monitoredSourceLabels.length ? (
+                        <ul className="mt-2 flex flex-wrap gap-1.5">
+                          {overview.monitoredSourceLabels.map((label) => (
+                            <li key={label} className="rounded border border-edito-border bg-edito-chip px-2 py-1 text-[10px] font-semibold text-edito-body">
+                              {label}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-xs text-edito-muted">Aucune source surveillée.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2 rounded border border-edito-border bg-edito-surface p-3 sm:grid-cols-2">
+                  {lastRunAtLabel ? <MetaRow label="Dernière exécution" value={lastRunAtLabel} /> : null}
+                  {nextRunAtLabel ? <MetaRow label="Prochaine exécution" value={nextRunAtLabel} /> : null}
+                  {lastStatusLabel ? <MetaRow label="Statut du dernier run" value={lastStatusLabel} /> : null}
+                  {updatedAtLabel ? <MetaRow label="Paramètres mis à jour" value={updatedAtLabel} /> : null}
+                  {!lastRunAtLabel && !nextRunAtLabel && !lastStatusLabel ? (
+                    <p className="text-xs text-edito-muted sm:col-span-2">Aucune exécution horodatée pour le moment.</p>
+                  ) : null}
+                  {savedSettings.lastError ? (
+                    <p className="rounded border border-danger/25 bg-danger/5 px-2.5 py-2 text-[11px] text-danger sm:col-span-2">
+                      {savedSettings.lastError}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {feedback ? (
+              <p className={cn("mt-3 text-[11px] font-medium", feedback.tone === "success" ? "text-success" : "text-danger")}>
+                {feedback.message}
+              </p>
+            ) : null}
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSave}
+                loading={isSaving}
+                loadingLabel="Enregistrement"
+                disabled={!isDirty || isRefreshing}
+              >
+                Sauvegarder les paramètres
+              </Button>
+            </div>
+          </div>
+          {desktopSignals}
+        </div>
+      </SectionBlock>
+    )
   }
 
   const content = (

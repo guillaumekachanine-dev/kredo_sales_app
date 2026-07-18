@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo, type ReactNode } from "react"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { FinancialReferenceDesktopCard } from "@/components/finance/FinancialReferenceDesktopCard"
+import { AppDialog } from "@/components/ui/AppDialog"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
@@ -18,7 +18,6 @@ import {
   Field,
   lifecycleLabel,
   SectionBlock,
-  SignalList,
   TagList,
 } from "./intelligence-parts"
 import {
@@ -30,25 +29,15 @@ import {
 import { SectorSnapshotContent } from "./SectorSnapshotContent"
 import { AccountIssuesTable } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
-import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
-import { ScoreBadge } from "./ScoreBadge"
-import { ScoreDetailModal } from "./ScoreDetailModal"
-import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
+import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
 import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
-import {
-  type TabKey,
-  type ProcessStepKey,
-  INTELLIGENCE_PROCESS_STEPS,
-  getProcessStepStatus,
-} from "./intelligence-process"
+import { type TabKey } from "./intelligence-process"
 
-export function ClientIntelligenceDesktopView({ data, financialReference = null }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
+export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
-  const [scoreSummary, setScoreSummary] = useState(data.scoreSummary)
-  const [scoreModalOpen, setScoreModalOpen] = useState(false)
-  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -115,22 +104,22 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
                 </div>
               </div>
 
-              {/* Côté droit : Documents + Score de Priorité Commerciale */}
-              <div className="flex shrink-0 items-center gap-4">
+              {/* Côté droit : point d'entrée léger vers les actions du cockpit */}
+              <div className="flex shrink-0 self-center">
                 <button
-                  onClick={() => setIsDocsModalOpen(true)}
+                  type="button"
+                  onClick={() => setQuickActionsOpen(true)}
                   className="flex min-h-10 items-center gap-2 rounded border border-white/75 bg-white px-4 py-2 text-cockpit-petrol-medium transition-colors hover:bg-edito-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   <Image
-                    src="/icons_set/cockpit_intelligence/dossier.png"
+                    src="/icons_set/cockpit_intelligence/suggestion_taches_&_evenements.png"
                     alt=""
                     width={28}
                     height={28}
                     className="size-7 object-contain"
                   />
-                  <span className="text-sm font-semibold">Consulter les documents</span>
+                  <span className="text-sm font-semibold">Actions rapides</span>
                 </button>
-                <ScoreBadge className="edito-score" summary={scoreSummary} onClick={() => setScoreModalOpen(true)} />
               </div>
             </div>
           </div>
@@ -140,10 +129,9 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas px-6 pb-8">
           <div className="mx-auto w-full max-w-6xl">
             {activeTab === "accueil" && (
-              <AccueilTab
+              <ClientIntelligenceHomeTab
                 data={data}
-                onOpenTab={(tab) => setActiveTab(tab)}
-                financialReference={financialReference}
+                onOpenTab={setActiveTab}
               />
             )}
             {activeTab === "connaissance" && (
@@ -217,92 +205,14 @@ export function ClientIntelligenceDesktopView({ data, financialReference = null 
         </dialog>
       )}
 
-      <ScoreDetailModal
-        open={scoreModalOpen}
-        onOpenChange={setScoreModalOpen}
-        companyId={company.id}
-        summary={scoreSummary}
-        onRecomputed={setScoreSummary}
-      />
-
-      <CompanyDocumentsModal
-        open={isDocsModalOpen}
-        onClose={() => setIsDocsModalOpen(false)}
-        companyId={company.id}
-        companyName={company.name}
-        isMobile={false}
-      />
-    </div>
-  )
-}
-
-// ─── Onglet Accueil — synthèse exécutive ──────────────────────────────────────
-
-function AccueilTab({
-  data,
-  onOpenTab,
-  financialReference,
-}: {
-  data: ClientIntelligenceData
-  onOpenTab: (tab: Exclude<TabKey, "accueil">) => void
-  financialReference: FinancialReference | null
-}) {
-  const { signals } = data
-  return (
-    <div className="space-y-6 py-6">
-      {financialReference ? <FinancialReferenceDesktopCard reference={financialReference} /> : null}
-      {/* ── Frise process horizontal ── */}
-      <div className="edito-process-rail grid grid-cols-5 gap-px overflow-hidden rounded-lg border border-border bg-border">
-        {INTELLIGENCE_PROCESS_STEPS.map((step) => {
-          const status = getProcessStepStatus(step.key, data)
-          const Icon = STEP_ICONS[step.key]
-          const toneCls = {
-            success: "text-success bg-success/10 border-success/20",
-            warning: "text-warning bg-warning/10 border-warning/20",
-            neutral: "text-muted bg-surface-hover border-border",
-          }[status.tone]
-
-          return (
-            <button
-              key={step.key}
-              type="button"
-              onClick={() => onOpenTab(step.key)}
-              aria-label={`${step.label}. Statut : ${status.label}`}
-              className={cn(
-                "flex min-h-40 flex-col items-start bg-primary p-4 text-left",
-                "transition-colors hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-inset",
-              )}
-            >
-              <div className="mb-3 shrink-0 text-secondary">
-                <Icon className="h-5 w-5" />
-              </div>
-              <h3 className="mb-1 flex-1 font-heading text-xs font-bold uppercase tracking-wider leading-[16px] text-primary-fg">
-                {step.label}
-              </h3>
-              <p className="mb-3 text-[11px] leading-normal text-white/75 line-clamp-3">
-                {step.description}
-              </p>
-              <span className={cn("mt-auto inline-flex rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", toneCls)}>
-                {status.label}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <AccountWatchSettingsCard
-          companyId={data.company.id}
-          initialSettings={data.accountWatch}
-        />
-
-        {/* ── Signaux récents ── */}
-        {signals && signals.length > 0 && (
-          <SectionBlock title="Signaux récents">
-            <SignalList signals={signals} companyId={data.company.id} companyName={data.company.name} />
-          </SectionBlock>
-        )}
-      </div>
+      <AppDialog
+        open={quickActionsOpen}
+        onOpenChange={setQuickActionsOpen}
+        title="Actions rapides"
+        dataTheme="edito-bright-cockpit"
+      >
+        <p>Les actions dédiées au Cockpit Intelligence seront ajoutées prochainement.</p>
+      </AppDialog>
     </div>
   )
 }
@@ -1280,16 +1190,6 @@ export function ClientAnalysisIcon({ className }: { className?: string }) {
   )
 }
 
-export function SectorStudyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  )
-}
-
 export function PlusCircleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1405,57 +1305,6 @@ function SectionNormatifIcon({ className }: { className?: string }) {
       <line x1="4" y1="21" x2="20" y2="21" />
     </svg>
   )
-}
-
-function AnalyseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <polyline points="14 2 14 8 20 8" />
-      <circle cx="10" cy="13" r="2" />
-      <path d="m16 19-3.5-3.5" />
-    </svg>
-  )
-}
-
-function IssuesMapIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-      <line x1="12" y1="2" x2="12" y2="6" />
-      <line x1="12" y1="18" x2="12" y2="22" />
-      <line x1="2" y1="12" x2="6" y2="12" />
-      <line x1="18" y1="12" x2="22" y2="12" />
-    </svg>
-  )
-}
-
-function StrategyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </svg>
-  )
-}
-
-function RoadmapIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-      <line x1="4" y1="22" x2="4" y2="15" />
-    </svg>
-  )
-}
-
-const STEP_ICONS: Record<ProcessStepKey, (props: { className?: string }) => ReactNode> = {
-  connaissance: AnalyseIcon,
-  secteur: SectorStudyIcon,
-  enjeux: IssuesMapIcon,
-  strategie: StrategyIcon,
-  roadmap: RoadmapIcon,
 }
 
 export function ProcessDiagnosticIcon({ className }: { className?: string }) {

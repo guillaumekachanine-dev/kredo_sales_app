@@ -16,10 +16,12 @@ import {
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import {
+  DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS,
   normalizeAccountWatchSettings,
   type AccountWatchSettingsRow,
   type AccountWatchSettingsState,
 } from "@/lib/intelligence/account-watch-settings"
+import { getMonitoredSourceLabels } from "@/lib/intelligence/client-intelligence-home"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Client Intelligence Hub — couche de lecture (ADR-0008)
@@ -149,6 +151,7 @@ export type ClientIntelligenceSignal = {
   title: string
   summary: string | null
   detectedAt: string
+  lastEvidenceAt?: string | null
   expiresAt: string | null
   globalScore: number
   urgencyScore: number
@@ -162,6 +165,30 @@ export type ClientIntelligenceSignal = {
     source_name: string
     source_url: string | null
   } | null
+}
+
+export type AccountRecentDocument = {
+  id: string
+  title: string
+  documentType: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type AccountCommercialActivity = {
+  id: string
+  type: string
+  occurredAt: string
+  summary: string | null
+  nextAction: string | null
+  contactName: string | null
+}
+
+export type AccountWatchOverview = {
+  capturedSignalsCount: number
+  monitoredSourceLabels: string[]
+  averageCostPerRun: number | null
 }
 
 // ADR-0012 Lot 5 — référentiel offres allégé (résolution id→libellé pour la
@@ -241,6 +268,9 @@ export type ClientIntelligenceData = {
   missions: ClientIntelligenceMission[]
   accountSignals: ClientIntelligenceSignal[]
   accountWatch: AccountWatchSettingsState
+  recentDocuments: AccountRecentDocument[]
+  latestCommercialActivity: AccountCommercialActivity | null
+  accountWatchOverview: AccountWatchOverview
   // ADR-0012 Lot 4 — enjeux ouverts (table account_issues, spine matérialisée)
   accountIssues: ClientIntelligenceIssue[]
   // ADR-0012 Lot 5 — mapping enjeu↔offre + angles/messages/objections
@@ -519,6 +549,7 @@ type AccountSignalRow = {
   summary: string | null
   status: string
   detected_at: string
+  last_evidence_at: string
   expires_at: string | null
   global_score: number
   urgency_score: number
@@ -539,7 +570,40 @@ type AccountSignalRow = {
 
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
-type AccountWatchSettingsSelectRow = AccountWatchSettingsRow
+type AccountWatchSettingsSelectRow = AccountWatchSettingsRow & {
+  include_official_site: boolean
+  include_news: boolean
+  include_jobs: boolean
+  include_public_records: boolean
+  include_tenders: boolean
+  include_social_manual: boolean
+}
+
+type RecentDocumentRow = {
+  id: string
+  title: string
+  document_type: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+type CommercialActivityRow = {
+  id: string
+  type: string
+  occurred_at: string
+  summary: string | null
+  next_action: string | null
+  contacts: {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  } | {
+    persons: { full_name: string | null } | { full_name: string | null }[] | null
+  }[] | null
+}
+
+type WorkflowCostStatsRow = {
+  avg_cost_all_time: number | string | null
+}
 
 type AccountIssueRow = {
   id: string
@@ -604,6 +668,10 @@ export async function getClientIntelligence(
     missionsResult,
     accountSignalsResult,
     accountWatchResult,
+    recentDocumentsResult,
+    latestCommercialActivityResult,
+    capturedSignalsCountResult,
+    watchCostStatsResult,
     accountIssuesResult,
     offersCatalogRows,
     offerPracticesCatalogRows,
@@ -683,6 +751,7 @@ export async function getClientIntelligence(
         summary,
         status,
         detected_at,
+        last_evidence_at,
         expires_at,
         global_score,
         urgency_score,
@@ -698,10 +767,38 @@ export async function getClientIntelligence(
     supabase
       .from("account_watch_settings")
       .select<AccountWatchSettingsSelectRow>(
-        "is_enabled,watch_level,cadence,last_run_at,next_run_at,last_status,last_error,updated_at",
+        "is_enabled,watch_level,cadence,include_official_site,include_news,include_jobs,include_public_records,include_tenders,include_social_manual,last_run_at,next_run_at,last_status,last_error,updated_at",
       )
       .eq("company_id", companyId)
       .maybeSingle(),
+    supabaseReal
+      .from("intelligence_documents")
+      .select("id,title,document_type,status,created_at,updated_at,intelligence_document_links!inner(entity_type,entity_id)")
+      .eq("intelligence_document_links.entity_type", "company")
+      .eq("intelligence_document_links.entity_id", companyId)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .returns<RecentDocumentRow[]>(),
+    supabaseReal
+      .from("interactions")
+      .select("id,type,occurred_at,summary,next_action,contacts(persons(full_name))")
+      .eq("company_id", companyId)
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<CommercialActivityRow>(),
+    supabaseReal
+      .from("account_signals")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId),
+    workspaceId
+      ? supabaseReal
+          .from("v_workflow_cost_stats")
+          .select("avg_cost_all_time")
+          .eq("workspace_id", workspaceId)
+          .eq("run_type", "account_watch_refresh")
+          .maybeSingle<WorkflowCostStatsRow>()
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from("account_issues")
       .select<AccountIssueRow>(
@@ -725,6 +822,18 @@ export async function getClientIntelligence(
   if (!companyResult.data) return { error: "Compte introuvable", data: null }
   if (accountWatchResult.error) {
     console.error("[intelligence] account watch settings query failed:", accountWatchResult.error.message, { companyId })
+  }
+  if (recentDocumentsResult.error) {
+    console.error("[intelligence] recent documents query failed:", recentDocumentsResult.error.message, { companyId })
+  }
+  if (latestCommercialActivityResult.error) {
+    console.error("[intelligence] latest commercial activity query failed:", latestCommercialActivityResult.error.message, { companyId })
+  }
+  if (capturedSignalsCountResult.error) {
+    console.error("[intelligence] captured signals count query failed:", capturedSignalsCountResult.error.message, { companyId })
+  }
+  if (watchCostStatsResult.error) {
+    console.error("[intelligence] watch cost stats query failed:", watchCostStatsResult.error.message, { companyId })
   }
 
   const company = companyResult.data
@@ -879,6 +988,7 @@ export async function getClientIntelligence(
         title: row.title,
         summary: row.summary,
         detectedAt: row.detected_at,
+        lastEvidenceAt: row.last_evidence_at,
         expiresAt: row.expires_at,
         globalScore: row.global_score ?? 0,
         urgencyScore: row.urgency_score ?? 0,
@@ -917,6 +1027,42 @@ export async function getClientIntelligence(
   }))
 
   const accountKnowledgeResultId = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.id ?? null
+
+  const recentDocuments: AccountRecentDocument[] = (recentDocumentsResult.data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    documentType: row.document_type,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }))
+
+  const latestCommercialActivityRow = latestCommercialActivityResult.data
+  const activityContact = latestCommercialActivityRow
+    ? firstRelation(latestCommercialActivityRow.contacts)
+    : null
+  const activityPerson = activityContact ? firstRelation(activityContact.persons) : null
+  const latestCommercialActivity: AccountCommercialActivity | null = latestCommercialActivityRow
+    ? {
+        id: latestCommercialActivityRow.id,
+        type: latestCommercialActivityRow.type,
+        occurredAt: latestCommercialActivityRow.occurred_at,
+        summary: latestCommercialActivityRow.summary,
+        nextAction: latestCommercialActivityRow.next_action,
+        contactName: activityPerson?.full_name ?? null,
+      }
+    : null
+
+  const watchSourceSettings = accountWatchResult.data
+    ? {
+        includeOfficialSite: accountWatchResult.data.include_official_site,
+        includeNews: accountWatchResult.data.include_news,
+        includeJobs: accountWatchResult.data.include_jobs,
+        includePublicRecords: accountWatchResult.data.include_public_records,
+        includeTenders: accountWatchResult.data.include_tenders,
+        includeSocialManual: accountWatchResult.data.include_social_manual,
+      }
+    : DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS
 
   const offerPracticeNameById = new Map(
     offerPracticesCatalogRows.map((practice) => [practice.id, practice.name])
@@ -971,6 +1117,13 @@ export async function getClientIntelligence(
       missions,
       accountSignals,
       accountWatch,
+      recentDocuments,
+      latestCommercialActivity,
+      accountWatchOverview: {
+        capturedSignalsCount: capturedSignalsCountResult.count ?? 0,
+        monitoredSourceLabels: getMonitoredSourceLabels(watchSourceSettings),
+        averageCostPerRun: toNumber(watchCostStatsResult.data?.avg_cost_all_time ?? null),
+      },
       accountIssues,
       commercialStrategy,
       offersCatalog,

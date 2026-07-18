@@ -22,10 +22,13 @@ export type SectorSnapshotRegulatoryItem = {
   id: string
   name: string
   authority: string | null
+  description: string | null
   deadlineDate: string | null
   urgency: string
+  kredoPractice: string | null
   commercialAngle: string | null
   isCommercialWindow: boolean
+  sourceUrl: string | null
 }
 
 export type SectorSnapshotEvent = {
@@ -113,7 +116,7 @@ export async function getSectorSnapshot(sectorId: string): Promise<SectorSnapsho
       .limit(10),
     supabase
       .from("sector_regulatory_items")
-      .select("id,name,authority,deadline_date,urgency,commercial_angle,is_commercial_window")
+      .select("id,name,authority,description,deadline_date,urgency,kredo_practice,commercial_angle,is_commercial_window,source_url")
       .eq("sector_id", sectorId)
       .order("deadline_date", { ascending: true, nullsFirst: false })
       .limit(10),
@@ -150,10 +153,13 @@ export async function getSectorSnapshot(sectorId: string): Promise<SectorSnapsho
     id: row.id,
     name: row.name,
     authority: row.authority,
+    description: row.description,
     deadlineDate: row.deadline_date,
     urgency: row.urgency,
+    kredoPractice: row.kredo_practice,
     commercialAngle: row.commercial_angle,
     isCommercialWindow: Boolean(row.is_commercial_window),
+    sourceUrl: row.source_url,
   }))
 
   const events: SectorSnapshotEvent[] = (eventsResult.data ?? []).map((row) => ({
