@@ -545,3 +545,290 @@
   .kredo-cockpit-desktop *::before,
   .kredo-cockpit-desktop *::after { animation: none !important; transition-duration: 0ms !important; scroll-behavior: auto !important; }
 }
+
+/* Edito Bright — la référence visuelle du Cockpit Desktop est le rendu FOLIO.
+   Ce scope ne change ni la structure ni les comportements des modules. */
+.kredo-cockpit-desktop {
+  --color-canvas: #F4F2ED;
+  --color-bg-canvas: #F4F2ED;
+  --color-surface: #FDFCFA;
+  --color-bg-surface: #FDFCFA;
+  --color-surface-hover: #EDF0F7;
+  --color-bg-surface-hover: #EDF0F7;
+  --color-border: #DBE0EB;
+  --color-border-default: #DBE0EB;
+  --color-border-strong: #C6CFDF;
+  --color-heading: #1A2540;
+  --color-text-primary: #1A2540;
+  --color-body: #526074;
+  --color-text-secondary: #526074;
+  --color-muted: #93A0B0;
+  --color-text-muted: #93A0B0;
+  --color-primary: #1E3150;
+  --color-primary-deep: #162640;
+  --color-primary-fg: #FFFFFF;
+  --color-brand-primary: #1E3150;
+  --color-brand-primary-deep: #162640;
+  --color-brand-brass: #D89B16;
+  --color-brand-brass-hover: #B77E0C;
+  --color-secondary: #F1F5F9;
+  --color-secondary-fg: #1E293B;
+  --color-success: #2C7D5C;
+  --color-status-success: #2C7D5C;
+  --color-warning: #C08A20;
+  --color-status-warning: #C08A20;
+  --color-danger: #BE3E3E;
+  --color-status-danger: #BE3E3E;
+  --color-info: #2E7D8C;
+  --color-status-info: #2E7D8C;
+  --focus-ring-color: #1E3150;
+  --radius-small: 4px;
+  --radius-medium: 6px;
+  --radius-large: 8px;
+  --radius-xlarge: 8px;
+  background: var(--color-canvas);
+  color: var(--color-body);
+}
+
+.kredo-cockpit-desktop__frame {
+  width: min(100%, 1280px);
+  padding: 24px;
+}
+
+.kredo-cockpit-desktop__header {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 8%);
+  padding: 20px;
+}
+
+.kredo-cockpit-desktop__back-link {
+  display: inline-flex;
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-decoration: none;
+}
+
+.kredo-cockpit-desktop__title-block { position: relative; margin-top: 4px; }
+.kredo-cockpit-desktop__header h1 {
+  color: var(--color-heading);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+}
+.kredo-cockpit-desktop__brass-rule {
+  display: block;
+  width: 40px;
+  height: 2px;
+  margin-top: 5px;
+  background: var(--color-brand-brass);
+}
+.kredo-cockpit-desktop__header-context {
+  margin-top: 8px;
+  color: var(--color-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+.kredo-cockpit-desktop__header-side { display: flex; align-items: center; gap: 16px; }
+
+.kredo-cockpit-desktop__diagnostic-status,
+.kredo-cockpit-desktop__section-caption,
+.kredo-cockpit-desktop__account-indicator {
+  min-height: auto;
+  border-color: var(--color-border);
+  border-radius: 4px;
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+.kredo-cockpit-desktop__diagnostic-status { color: var(--color-body); }
+
+.kredo-cockpit-desktop__chapter-rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  margin-top: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-primary);
+}
+.kredo-cockpit-desktop__chapter {
+  position: relative;
+  min-height: 88px;
+  padding: 16px;
+  border-right: 1px solid rgb(255 255 255 / 22%);
+  color: var(--color-primary-fg);
+}
+.kredo-cockpit-desktop__chapter:last-child { border-right: 0; }
+.kredo-cockpit-desktop__chapter-notch {
+  display: block;
+  width: 16px;
+  height: 2px;
+  margin-bottom: 12px;
+  background: var(--color-brand-brass);
+}
+.kredo-cockpit-desktop__chapter p {
+  color: var(--color-primary-fg);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+.kredo-cockpit-desktop__chapter > span:last-child {
+  display: block;
+  margin-top: 4px;
+  color: rgb(255 255 255 / 72%);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.kredo-cockpit-desktop__kpi-strip { gap: 16px; margin-top: 24px; }
+.kredo-cockpit-desktop__kpi-card,
+.kredo-cockpit-desktop__panel {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.kredo-cockpit-desktop__kpi-card {
+  border-left-width: 1px;
+  padding: 16px;
+}
+.kredo-cockpit-desktop__kpi-card[data-accent] { border-left-color: var(--color-border); }
+.kredo-cockpit-desktop__kpi-card p:first-child,
+.kredo-cockpit-desktop__metric-label {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  line-height: 16px;
+}
+.kredo-cockpit-desktop__kpi-card p:nth-child(2) {
+  color: var(--color-heading);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.kredo-cockpit-desktop__primary-grid,
+.kredo-cockpit-desktop__secondary-grid { gap: 24px; margin-top: 24px; }
+.kredo-cockpit-desktop__accounts,
+.kredo-cockpit-desktop__trajectory,
+.kredo-cockpit-desktop__horizons { padding: 0 0 16px; }
+.kredo-cockpit-desktop__panel > :first-child {
+  position: relative;
+  min-height: 48px;
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--color-primary);
+}
+.kredo-cockpit-desktop__panel > :first-child::after {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 40px;
+  height: 1px;
+  content: "";
+  background: color-mix(in srgb, var(--color-brand-brass) 78%, transparent);
+}
+.kredo-cockpit-desktop__panel > :first-child p,
+.kredo-cockpit-desktop__panel > :first-child h2 {
+  color: var(--color-primary-fg);
+}
+.kredo-cockpit-desktop__panel > :first-child p {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  line-height: 16px;
+}
+.kredo-cockpit-desktop__panel > :first-child h2 {
+  margin-top: 2px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+}
+.kredo-cockpit-desktop__panel > :not(:first-child) { margin-right: 16px; margin-left: 16px; }
+.kredo-cockpit-desktop__section-caption { color: rgb(255 255 255 / 68%); }
+
+.kredo-cockpit-desktop__diagnostic > div {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.kredo-cockpit-desktop__diagnostic .grid { gap: 16px; padding: 16px; }
+.kredo-cockpit-desktop__diagnostic .kredo-diagnostic-refresh-button {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.kredo-cockpit-desktop__diagnostic .rounded-full { border-radius: 4px; background: var(--color-primary); }
+
+.kredo-cockpit-desktop__account,
+.kredo-cockpit-desktop__horizon-card-vertical {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.kredo-cockpit-desktop__account { border-left-width: 1px; padding: 12px; }
+.kredo-cockpit-desktop__account[data-accent] { border-left-color: var(--color-border); }
+.kredo-cockpit-desktop__text-link,
+.kredo-cockpit-desktop__list-link { color: var(--color-primary); }
+.kredo-cockpit-desktop__action-link {
+  border-color: var(--color-primary);
+  border-radius: 4px;
+  color: var(--color-primary);
+}
+
+.kredo-cockpit-desktop__timeline { margin-top: 16px; padding-left: 16px; }
+.kredo-cockpit-desktop__timeline-line {
+  width: 1px;
+  background: var(--color-border);
+  opacity: 1;
+}
+.kredo-cockpit-desktop__timeline-dot {
+  left: -16px;
+  width: 10px;
+  height: 10px;
+  border-color: var(--color-brand-brass);
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.kredo-cockpit-desktop__timeline-dot-inner { background: var(--color-brand-brass); }
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__timeline-dot { transform: translateY(-50%); box-shadow: none; }
+.kredo-cockpit-desktop__timeline-item:hover .kredo-cockpit-desktop__horizon-card-vertical {
+  transform: none;
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+  box-shadow: none;
+}
+.kredo-cockpit-desktop__horizon-card-vertical[class*="--"] { border-left: 1px solid var(--color-border); }
+.kredo-cockpit-desktop__horizon-card-days,
+.kredo-cockpit-desktop__horizon-card-vertical--danger .kredo-cockpit-desktop__horizon-card-days,
+.kredo-cockpit-desktop__horizon-card-vertical--warning .kredo-cockpit-desktop__horizon-card-days,
+.kredo-cockpit-desktop__horizon-card-vertical--primary .kredo-cockpit-desktop__horizon-card-days {
+  color: var(--color-primary);
+  text-shadow: none;
+}
+.kredo-cockpit-desktop__horizon-mini-item {
+  border-color: transparent;
+  border-radius: 4px;
+  background: var(--color-canvas);
+}
+.kredo-cockpit-desktop__horizon-mini-item:hover { border-color: var(--color-border); background: var(--color-surface-hover); }
+.kredo-cockpit-desktop__horizon-mini-item:hover .kredo-cockpit-desktop__horizon-item-text { color: var(--color-heading); }
+.kredo-cockpit-desktop__horizon-item-date,
+.kredo-cockpit-desktop__horizon-more-badge { background: var(--color-surface-hover); box-shadow: none; }
+
+.kredo-cockpit-desktop a[href]:hover,
+.kredo-cockpit-desktop button:not(:disabled):hover { background-color: var(--color-surface-hover); }

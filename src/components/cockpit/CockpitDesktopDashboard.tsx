@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { DiagnosticSection } from "@/components/intelligence/diagnostic/DiagnosticSection"
 import { CockpitAccountsToAnimate } from "@/components/cockpit/desktop/CockpitAccountsToAnimate"
 import { CockpitHeaderActions } from "@/components/cockpit/desktop/CockpitHeaderActions"
@@ -51,16 +52,37 @@ export function CockpitDesktopDashboard({
       <div className="kredo-cockpit-desktop__frame">
         <header className="kredo-cockpit-desktop__header">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
+            <Link href="/prospection/accounts" className="kredo-cockpit-desktop__back-link">
+              Comptes & contacts
+            </Link>
+            <div className="kredo-cockpit-desktop__title-block">
               <h1 className="text-[30px] font-semibold leading-none tracking-[-0.02em] text-heading">Cockpit</h1>
-              <span className="kredo-cockpit-desktop__diagnostic-status">
-                {diagnosticFreshnessLabel(diagnostic)}
-              </span>
+              <span className="kredo-cockpit-desktop__brass-rule" aria-hidden="true" />
             </div>
-            <p className="mt-2 text-sm text-muted" suppressHydrationWarning>{currentWeekLabel()}</p>
+            <p className="kredo-cockpit-desktop__header-context" suppressHydrationWarning>{currentWeekLabel()}</p>
           </div>
-          <CockpitHeaderActions />
+          <div className="kredo-cockpit-desktop__header-side">
+            <span className="kredo-cockpit-desktop__diagnostic-status">
+              {diagnosticFreshnessLabel(diagnostic)}
+            </span>
+            <CockpitHeaderActions />
+          </div>
         </header>
+
+        <nav className="kredo-cockpit-desktop__chapter-rail" aria-label="Chapitres du cockpit">
+          {[
+            ["Diagnostic", "Lecture consolidée"],
+            ["Activation", "Comptes à animer"],
+            ["Trajectoire", "Horizon 90 jours"],
+            ["Échéances", "Cadence à venir"],
+          ].map(([label, detail], index) => (
+            <div className="kredo-cockpit-desktop__chapter" data-active={index === 0 || undefined} key={label}>
+              <span className="kredo-cockpit-desktop__chapter-notch" aria-hidden="true" />
+              <p>{label}</p>
+              <span>{detail}</span>
+            </div>
+          ))}
+        </nav>
 
         <CockpitKpiStrip kpis={data.kpis} />
 

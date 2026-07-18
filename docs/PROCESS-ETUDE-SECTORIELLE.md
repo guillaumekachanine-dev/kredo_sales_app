@@ -3,8 +3,9 @@
 > **Document de référence.** Il définit ce qu'est une étude sectorielle KREDO, comment on la produit, ce qu'elle doit contenir, et comment on juge qu'elle est bonne.
 > Il est écrit pour être exécuté par un agent (Claude, ChatGPT, Gemini) **sans contexte préalable du projet**, ou par un humain.
 >
-> **Propriétaire :** Guillaume Kasanin · **Version :** 1.1 · **Date :** 2026-07-17 · **Revue :** à chaque nouvelle fiche produite, puis trimestrielle
-> **Statut des données citées :** vérifiées en base live le 2026-07-17 (projet Supabase `jvzgmhvwirsbdkjpmvla`), suite à la production de la fiche `btp-construction-immobilier`.
+> **Propriétaire :** Guillaume Kasanin · **Version :** 1.2 · **Date :** 2026-07-18 · **Revue :** à chaque nouvelle fiche produite, puis trimestrielle
+> **Statut des données citées :** vérifiées en base live le 2026-07-18 (projet Supabase `jvzgmhvwirsbdkjpmvla`), suite à la production de la fiche `tourisme-hotellerie-loisirs`.
+> ⚠️ **Le tableau §3.1 sous-estime désormais le nombre de fiches actives.** Entre le 17 et le 18/07, des sessions parallèles ont fait passer `aeronautique-spatial-defense`, `energie-petrochimie-environnement`, `industrie-manufacturiere-electronique-equipements` et `logiciels-saas-services-numeriques` de `watch` à `active` (vérifié en base le 2026-07-18 : **10 secteurs actifs sur 14**, pas 6). Seule la ligne `tourisme-hotellerie-loisirs` a été remise à jour ci-dessous ; les 4 autres lignes n'ont pas été réconciliées dans cette passe — ne t'y fie pas pour ces 4 secteurs, revérifie en base avant la prochaine étude.
 
 ---
 
@@ -124,11 +125,11 @@ Une étude sectorielle produit du **mutualisable** — ce qui est vrai pour 5 co
 | `logiciels-saas-services-numeriques` | watch | — | 9 | 0 | 0 | 0 | 0 | Coquille vide |
 | `secteur-public-enseignement-recherche` | watch | — | 11 | 0 | 0 | 0 | 0 | Coquille vide |
 | `commerce-distribution-services-specialises` | watch | — | 12 | 0 | 0 | 0 | 0 | Coquille vide |
-| `tourisme-hotellerie-loisirs` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
-| `energie-petrochimie-environnement` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
-| `industrie-manufacturiere-electronique-equipements` | watch | — | 5 | 0 | 0 | 0 | 0 | Coquille vide |
+| `tourisme-hotellerie-loisirs` | **active** | **4.1** | 5 | 6 | 5 | 4 | 0 | **Fiche complète** (2026-07-18) — corpus riche formel (4/5 comptes FOLIO, ancre client Voyage Privé), mais ancre non probante et **zéro verbatim réel** (les 10 interactions du secteur sont du seed `fictional`/`dataset_batch` ou des e-mails générés par l'outil, aucune parole client) — caveat explicite en base |
+| `energie-petrochimie-environnement` | active | 4.0 | 5 | 6 | 5 | ? | 0 | **Fiche complète** — produite par une session parallèle le 2026-07-18, non auditée dans cette passe |
+| `industrie-manufacturiere-electronique-equipements` | active | 4.0 | 5 | 5 | 5 | ? | 0 | **Fiche complète** — idem, non auditée |
 
-**Lecture (mise à jour 2026-07-17, suite BTP) :** **93/96 comptes** sont rattachés à un secteur (Univet détaché pour `sante-medtech-medico-social` ; Iselection et Keller Williams France détachés pour `btp-construction-immobilier`, même logique de périmètre — aucun des deux ne relève du négoce ou de la construction). **5 secteurs sur 14 sont réellement étudiés.** Les 9 « watch » restants sont des **conteneurs de rattachement**, pas des études — ils ont un `playbook` squelette vide (75 caractères) et zéro contenu.
+**Lecture (mise à jour 2026-07-18, suite tourisme) :** **93/96 comptes** sont rattachés à un secteur (Univet détaché pour `sante-medtech-medico-social` ; Iselection et Keller Williams France détachés pour `btp-construction-immobilier`). **10 secteurs sur 14 sont désormais actifs** (parfumerie, banque, nutraceutique, santé-medtech, BTP, aéronautique, énergie, industrie manufacturière, logiciels/SaaS, tourisme — vérifié en base le 2026-07-18), contre 5 lors de la précédente réconciliation. Seuls `tourisme-hotellerie-loisirs` est audité en détail dans cette révision du document ; `aeronautique-spatial-defense`, `energie-petrochimie-environnement`, `industrie-manufacturiere-electronique-equipements` et `logiciels-saas-services-numeriques` ont été produits par d'autres sessions et n'ont pas été relus ici — leurs lignes ci-dessus sont un état brut de comptage, pas un audit. Les 4 « watch » restants (`commerce-distribution-services-specialises`, `ehpad-residences-seniors`, `secteur-public-enseignement-recherche`, `transport-mobilite-regionale`) sont des **conteneurs de rattachement**, pas des études.
 
 > ⚠️ **Correction (2026-07-17) : la ligne BTP de la version précédente de ce tableau créditait à tort 3 `process_diagnostic` comme matière exploitable.** Vérification en produisant la fiche : les 3 lignes existent bien en base, mais leur `content_json` est une coquille de 62 caractères (`{"synthese": "Document d'audit stratégique — voir PDF joint."}`) — exactement le piège documenté en §3.2 sur Horus Pharma. Elles ne comptent pour rien. Le §3.2 ci-dessous reste tel quel pour préserver la trace de l'ancienne estimation (biffée), mais ne t'y fie pas : relis toujours `content_json`, jamais le seul comptage de lignes.
 
@@ -156,12 +157,11 @@ Une étude coûte 5 heures. La question « ce secteur est-il prêt ? » se calcu
 
 #### État de préparation mesuré (2026-07-16, corrigé le 2026-07-17)
 
-Les 9 secteurs encore sous veille, classés par ce qui compte réellement — **pas par nombre de comptes** :
+Les secteurs encore sous veille au 2026-07-18 (4 restants — tourisme, aéronautique, énergie, industrie et logiciels/SaaS sont passés `active` depuis), classés par ce qui compte réellement — **pas par nombre de comptes** :
 
 | Secteur | Comptes | FOLIO | Ancre de preuve | Interactions | Missions | Opps | Verdict |
 |---|---|---|---|---|---|---|---|
-| **`tourisme-hotellerie-loisirs`** | 5 | 3 | **Voyage Privé (client)** + 2 diagnostics | 10 | **8** | 2 | 🥇 Peu de comptes, mais la **preuve de delivery la plus profonde** — à vérifier : passer les interactions au filtre `details` (§3.2 note ci-dessous) avant de compter sur des verbatims |
-| **`transport-mobilite-regionale`** | 6 | 6/6 | 1 diagnostic | **18** | 1 | **4** | 🥈 Le plus de verbatims *potentiels* — non vérifié, voir note ci-dessous |
+| **`transport-mobilite-regionale`** | 6 | 6/6 | 1 diagnostic | **18** | 1 | **4** | 🥈 Le plus de verbatims *potentiels* — **toujours non vérifié** au filtre synthétique ci-dessous, à faire avant de l'attaquer |
 | `logiciels-saas-services-numeriques` | 9 | 9/9 | 2 diagnostics (+1 ancien client) | 2 | 0 | 1 | Corpus complet, relationnel faible |
 | `aeronautique-spatial-defense` | 3 | 2 | **Exail Robotics (client)** | 7 | 1 | 3 | Ancre + pipe, mais corpus mince (plafond 4.0) |
 | `industrie-manufacturiere-…` | 5 | 5/5 | — | 7 | 0 | 2 | Pas d'ancre → plafond 4.5 |
@@ -180,6 +180,8 @@ Les 9 secteurs encore sous veille, classés par ce qui compte réellement — **
 > WHERE c.sector_id = (SELECT id FROM sector_intelligence WHERE slug='[SLUG]');
 > ```
 > Le même piège existe sur `ai_intelligence_results` : un `process_diagnostic` peut être une coquille (`content_json = {"synthese": "Document d'audit stratégique — voir PDF joint."}`, cas réel sur Horus Pharma) — toujours lire `content_json`, ne jamais compter la ligne comme ancre de preuve sans l'avoir lue. **Reproduit à l'identique sur `btp-construction-immobilier` (2026-07-17) :** ce tableau créditait le secteur de « 3 diagnostics » ; les 3 lignes existaient bien mais portaient exactement la même coquille de 62 caractères que Horus Pharma. La seule ancre réelle était Audemard (`client`), sans mission ni opportunité ni diagnostic exploitable derrière — l'ancre était formelle, pas probante. La fiche a quand même été produite (corpus riche au sens strict du §4.1 : ≥3 comptes FOLIO + 1 ancre client), mais avec ce caveat explicite en base.
+>
+> **Et de nouveau sur `tourisme-hotellerie-loisirs` (2026-07-18)** — c'est le secteur qui avait hérité du rang `🥇` dans la version précédente de ce tableau (« preuve de delivery la plus profonde »), et le filtre synthétique promis n'avait jamais été exécuté. Vérifié en produisant la fiche : **les 10 interactions du secteur étaient toutes non probantes** (6 marquées `fictional:true`+`dataset_batch`, 2 e-mails générés par l'outil lui-même via `source:'intel-020-communication'`, 2 « relance » vides) — **zéro verbatim client réel**. Les 2 `process_diagnostic` (Voyage Privé, Odalys) étaient la même coquille de 62 caractères que Horus Pharma/BTP. Seule ancre réelle : Voyage Privé `client`, formelle mais non probante — mêmes conclusions que BTP, fiche produite quand même avec caveat explicite. Le rang `🥇` était donc faux dès l'origine — la leçon du §3.2 (ne pas se fier à un classement basé sur un comptage brut sans le filtre synthétique) s'applique deux fois de suite sur ce même tableau.
 >
 > **Ce que ce tableau corrige par ailleurs :** l'intuition « on attaque le secteur qui a le plus de comptes » désigne `commerce-distribution` (12 comptes) — qui est en réalité un des plus faibles : aucune ancre de preuve, 2 interactions, 0 opportunité. Le nombre de comptes ne dit rien de la qualité d'une étude.
 
@@ -1207,9 +1209,10 @@ Découverts en instruisant ce document.
 | 7 | **CLAUDE.md périmé sur le sectoriel** | 🟠 Annonce « 14 fiches / 27 comptes sur 95 rattachés ». Réel : 14 fiches (dont **4** étudiées) / **95 sur 96** (Univet détaché le 2026-07-17). | §3.1 |
 | 8 | **La page liste dit « nos 6 secteurs cibles »** | 🟢 Cosmétique, mais faux (14 en base, 4 étudiés). | `approche-sectorielle/page.tsx` |
 | 9 | **Deux colonnes fausses dans le paquet de requêtes §4.2** | 🟠 `opportunities.expected_close_date` et `offer_pricing_grids.daily_rate_min/max` n'existent pas — auraient fait échouer P1 sur toute nouvelle étude. Découvert en exécutant réellement les requêtes sur `sante-medtech-medico-social`. | ✅ **Corrigé** le 2026-07-17, voir §4.2 |
-| 10 | **§3.2 comptait des interactions/opportunités de seed comme preuve** | 🔴 Le classement de préparation des secteurs traitait des données `fictional:true`/`synthetic:true` comme des verbatims et un fit réels. A fait passer `sante-medtech-medico-social` pour « le plus prêt » alors qu'il n'avait aucun verbatim ni aucune vente réelle. | ✅ **Corrigé** le 2026-07-17, voir §3.2 — classement des 2 secteurs restants (`tourisme-hotellerie-loisirs`, `transport-mobilite-regionale`) **non revérifié**, à confirmer avant la prochaine étude |
+| 10 | **§3.2 comptait des interactions/opportunités de seed comme preuve** | 🔴 Le classement de préparation des secteurs traitait des données `fictional:true`/`synthetic:true` comme des verbatims et un fit réels. A fait passer `sante-medtech-medico-social` puis `tourisme-hotellerie-loisirs` pour « le plus prêt » alors qu'aucun des deux n'avait de verbatim ni de vente réelle. | ✅ **Corrigé sur `sante-medtech-medico-social`** (2026-07-17) et **sur `tourisme-hotellerie-loisirs`** (2026-07-18, voir §3.2 — confirmé : 0 verbatim réel, ancre formelle non probante). **`transport-mobilite-regionale` reste non revérifié**, seul secteur watch encore concerné — à confirmer avant de l'attaquer. |
+| 11 | **§3.1 sous-estimait le nombre de fiches actives** | 🟠 Le tableau annonçait 5 secteurs actifs sur 14 (état du 2026-07-17). En réalité, 4 fiches supplémentaires (`aeronautique-spatial-defense`, `energie-petrochimie-environnement`, `industrie-manufacturiere-electronique-equipements`, `logiciels-saas-services-numeriques`) sont passées `active` entre le 17 et le 18/07 via des sessions parallèles non synchronisées avec ce document. | 🟡 **Partiellement corrigé** le 2026-07-18 : les lignes du tableau ont été mises à jour pour refléter `active`, mais seul `tourisme-hotellerie-loisirs` a été réellement audité (corpus, traçabilité, caveats) dans cette révision. Les 4 autres fiches n'ont pas été relues — ne pas se fier à leurs scores/comptages sans re-vérification en base. |
 
-> **Recommandation :** traiter #1 en priorité — c'est la seule dette encore ouverte qui dégrade l'expérience réelle d'un commercial en situation. #4 reste le plus structurant à moyen terme (c'est lui qui bloque le lien automatique secteur → offre → pitch). Avant la prochaine étude : revérifier #10 sur `tourisme-hotellerie-loisirs` et `transport-mobilite-regionale`.
+> **Recommandation :** traiter #1 en priorité — c'est la seule dette encore ouverte qui dégrade l'expérience réelle d'un commercial en situation. #4 reste le plus structurant à moyen terme (c'est lui qui bloque le lien automatique secteur → offre → pitch). Avant la prochaine étude : revérifier #10 sur `transport-mobilite-regionale` (seul secteur watch encore concerné), et auditer les 4 fiches de la dette #11 produites hors de cette session (au minimum : Gate 3 rejoué, traçabilité `source_company_ids`, caveats en base).
 
 ---
 
