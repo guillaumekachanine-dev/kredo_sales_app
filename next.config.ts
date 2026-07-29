@@ -1,3 +1,4 @@
+import bundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 // Dossiers d'assets statiques stables (icônes, logos, images de marque). Servis
@@ -59,4 +60,12 @@ const nextConfig: NextConfig = {
   turbopack: {},
 };
 
-export default nextConfig;
+// Analyse de bundle activée à la demande uniquement : `ANALYZE=true npm run build`.
+// Hors de ce cas le wrapper est un passe-plat, donc aucun impact sur les builds
+// de production ni sur les preview Vercel.
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+  openAnalyzer: false,
+});
+
+export default withBundleAnalyzer(nextConfig);

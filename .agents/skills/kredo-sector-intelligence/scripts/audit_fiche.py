@@ -120,6 +120,13 @@ def scaled(numerator, denominator, max_points):
 def find_desaccented(text):
     if not isinstance(text, str):
         return []
+    # Une URL ne porte jamais d'accent par construction (RFC 3986) : un chemin
+    # officiel comme cyber.gouv.fr/reglementation/... contient légitimement le
+    # marqueur "reglementation" sans que ce soit de la désaccentuation défensive.
+    # Découvert en produisant transport-mobilite-regionale (2026-07-29) — voir
+    # docs/PROCESS-ETUDE-SECTORIELLE.md §13 dette #13.
+    if text.strip().lower().startswith("http"):
+        return []
     return sorted({m.group(0).lower() for m in DESACCENT_RE.finditer(text)})
 
 

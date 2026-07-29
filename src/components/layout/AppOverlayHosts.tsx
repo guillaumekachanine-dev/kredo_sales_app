@@ -8,8 +8,17 @@ const EventDrawer = dynamic(
   { ssr: false },
 )
 
+// Import direct du module du drawer, PAS du barrel @/components/staffing :
+// ce barrel exporte aussi le Server Component SyntheseStaffingSection, qui importe
+// statiquement la couche données serveur (supabase/server.ts → next/headers).
+// Passer par le barrel tire donc du code serveur dans le graphe client, sur toutes
+// les pages (AppOverlayHosts est monté dans (app)/layout.tsx). Turbopack le tolère,
+// webpack le refuse — audit perf Lot 0.
 const StaffingDrawer = dynamic(
-  () => import("@/components/staffing").then((mod) => mod.StaffingDrawer),
+  () =>
+    import("@/components/staffing/AssistanceCaseDrawer").then(
+      (mod) => mod.AssistanceCaseDrawer,
+    ),
   { ssr: false },
 )
 

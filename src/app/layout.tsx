@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Lato, Manrope } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PwaRegistrar } from "@/components/pwa/PwaRegistrar";
 import "./globals.css";
 
@@ -65,6 +66,9 @@ export default function RootLayout({
       <body className="flex min-h-full w-full flex-col">
         <PwaRegistrar />
         {children}
+        {/* Mesure terrain des Core Web Vitals (LCP/INP/CLS). Actif uniquement sur
+            les déploiements Vercel — no-op en local, donc aucun coût en dev. */}
+        <SpeedInsights />
       </body>
     </html>
   );
