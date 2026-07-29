@@ -84,6 +84,16 @@ C'est la seule optimisation du plan dont le rapport gain/effort est indiscutable
 > transaction `ROLLBACK`, et test négatif obligatoire (accès cross-workspace refusé)
 > avant application.
 
+> ⚠️ **CORRECTION APPORTÉE PAR LE LOT 2 (2026-07-29) — ce levier est CLOS sans action.**
+> « 79,7 % du CPU base » est exact en part relative et **vide de sens en absolu**. Sur la
+> fenêtre de mesure (1 419 976 s), la base entière consomme **3 655 s, soit 0,257 % d'un seul
+> cœur** — dont 0,205 % pour Realtime et 0,05 % pour tout le reste de l'application. La base
+> est **au repos**. Décision gravée dans
+> [ADR-0016](adr/ADR-0016-realtime-notifications-cout-mesure.md) : **aucune modification du
+> dispositif Realtime**, avec conditions de réouverture explicites. Contrôles annexes tous
+> négatifs (0 fuite de canal sur 8 fichiers, pas de rétention WAL non bornée).
+> **Conséquence : la moitié « base de données » de l'audit est close. Seul le Levier C reste.**
+
 ### Levier B — Realtime permanent (effort : une décision d'architecture · portée : 80 % du CPU base)
 
 `NotificationBell` est monté dans `AppShell`, donc **abonné en permanence, sur toutes les
@@ -465,6 +475,12 @@ génériques sur la partie base.
    `npx tsc --noEmit` → `npm run build` → `npx vitest run` → `npx eslint` sur les fichiers touchés.
 4. **Aucune migration appliquée sans dry-run `ROLLBACK`** et sans test négatif d'isolation.
 5. **Aucun rapport de gain sans chiffre avant/après.** Une optimisation non mesurée n'a pas eu lieu.
+5 bis. **Toute part relative doit être accompagnée de sa valeur absolue et de sa fenêtre de
+   mesure avant de servir à prioriser.** Règle née du Lot 2 : « 79,7 % du temps de la base » et
+   « 0,2 % d'un cœur » décrivent le même fait — l'un appelle une refonte, l'autre un classement
+   sans suite. Les Lots 1 et 2 ont tous deux été mal priorisés faute d'appliquer cette règle.
+5 ter. **Toujours deux passes de préchauffage avant un `EXPLAIN ANALYZE`.** Règle née du Lot 1 :
+   une première exécution a annoncé une régression de 4× qui n'était qu'un cache froid.
 6. **Vérifier à la source.** Le nombre de tables live diverge de `CLAUDE.md` (drift documenté) :
    toujours interroger le catalogue, jamais la documentation.
 
@@ -476,7 +492,8 @@ génériques sur la partie base.
 
 | Métrique | Avant | Après | Δ |
 |---|---|---|---|
-| M1 · part du polling WAL Realtime | **79,7 %** (2 890 s / 535 001 appels) | | |
+| M1 · part du polling WAL Realtime | **79,7 %** (2 913 s / 539 257 appels) | *inchangé — clos sans action* | ADR-0016 |
+| **M1 bis · charge absolue de TOUTE la base** | **0,257 % d'un cœur** (3 655 s / 1 419 976 s) | — | **la vraie grandeur** |
 | M2 · pire requête applicative (moyenne) | 90,4 ms (`v_crm_account_list`, 341 appels) | | |
 | M2 · pire requête applicative (max) | 1 256 ms (`v_ai_intelligence_summary`) | | |
 | M3 · `seq_scan` sur `profiles` | **689 232** (`idx_scan` = 8) | | |
@@ -624,6 +641,57 @@ nœud `HashAggregate` consomme **14,3 ms des 53 ms**, et deux `Nested Loop Left 
 
 ---
 
-**Tag git `perf-baseline` : non posé** — l'arbre contient du WIP non commité appartenant à
-Guillaume (`audit_fiche.py`, `PROCESS-ETUDE-SECTORIELLE.md`, 2 migrations SQL sectorielles).
-À poser par lui après commit, pour que la baseline soit rejouable.
+---
+
+### Lot 2 — exécuté le 2026-07-29 ✅ *clos SANS action — la prémisse était trompeuse*
+
+**Livrable : [ADR-0016](adr/ADR-0016-realtime-notifications-cout-mesure.md)**, qui grave le
+refus de re-architecturer, avec les chiffres et des conditions de réouverture. Aucune ligne de
+code ni de SQL modifiée.
+
+**L'arithmétique qui ferme le sujet.** Fenêtre `pg_stat_statements` : réinitialisée le
+2026-07-13 10:25 UTC, soit **1 419 976 s** (16 j 10 h).
+
+| Grandeur | Valeur |
+|---|---|
+| Temps d'exécution total, **toutes requêtes** (1 724 distinctes, 718 901 appels) | **3 655 s** |
+| → part d'un seul cœur | **0,257 %** |
+| dont polling WAL Realtime | 2 913 s → **0,205 %** d'un cœur |
+| dont tout le reste de l'application | 742 s → **0,05 %** d'un cœur |
+| Cadence réelle du polling | 1 appel toutes les **2,6 s**, ≈ 1 ligne renvoyée → battement à vide |
+
+Les 79,7 % étaient une **part d'un total négligeable**. Dans une base qui ne fait presque
+rien, le seul processus qui tourne en continu capte mécaniquement la quasi-totalité du temps
+mesuré. L'indicateur était exact et structurellement trompeur — et c'est moi qui l'ai présenté
+comme un problème.
+
+**Trois options écartées** (détail et motifs dans l'ADR) : filtrage serveur sur `user_id`,
+bascule `postgres_changes` → `broadcast` (qui aurait en plus **supprimé l'évaluation RLS**, à
+reconstruire côté applicatif), polling basse fréquence (qui aurait dégradé l'immédiateté de
+l'alerte d'échec de workflow pour un gain nul).
+
+**Contrôles annexes, tous négatifs :**
+- **Fuites de canaux** : 8 fichiers client audités, création et `removeChannel` équilibrés
+  partout. Vérification ciblée sur `NotificationBell` (le seul canal permanent) :
+  `removeChannel` bien placé dans le `return` du `useEffect`, dépendances stables
+  (`[supabase]`). **Aucune fuite.**
+- **Rétention WAL** : 2 slots actifs (16 MB chacun) à une heure d'intervalle, puis **aucun** —
+  Realtime les recrée cycliquement. Pas de risque de saturation disque.
+- **`audit_log`** : plus grosse table (19 MB / 5 063 lignes ≈ 3,8 KB par ligne) mais seulement
+  ≈ 70 insertions/jour → **≈ 100 MB/an**. Retenu en **suivi de stockage**, pas en charge.
+
+**Conséquence stratégique : la moitié « base de données » de l'audit est close.** Les Lots 1
+et 2 ont tous deux vu leur prémisse invalidée par la mesure. Il n'y a rien à optimiser dans
+cette base.
+
+**Priorité révisée : Lot 3 (cache Next 16 / frontière RSC) → Lot 4 (bundle).** C'est cohérent
+avec le profil réel : base au repos, mais 4,8 MB de JS client, 156 KB de chunk de layout sur
+chaque page, 68/71 routes dynamiques, `use cache` jamais employé, 7 `<Suspense>` pour 50
+routes. **Dans une application dont la base ne travaille pas, la latence ressentie est
+intégralement un problème de front-end.** Le Lot 5 devient du confort, pas de la performance.
+
+---
+
+**Tag git `perf-baseline` : posé** sur le commit `f001e0cb` et poussé (2026-07-29), après
+commit du WIP sectoriel de Guillaume qui bloquait initialement l'opération. La baseline est
+donc rejouable : `git checkout perf-baseline`.
