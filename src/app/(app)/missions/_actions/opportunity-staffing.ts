@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeCandidateSeniority, normalizeCurrentTitle } from "@/lib/candidates/profile"

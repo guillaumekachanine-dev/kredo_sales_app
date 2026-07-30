@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { MissionsListRow } from "@/components/missions/MissionsListView"
 import {

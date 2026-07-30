@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import type { RecruitmentStageKey } from "@/lib/recruitment/recruitment-stages"

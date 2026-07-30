@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createHash } from "crypto"
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"

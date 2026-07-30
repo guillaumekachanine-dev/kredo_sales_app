@@ -1,3 +1,5 @@
+import "server-only"
+
 import { cache } from "react"
 import { formatDate } from "@/lib/formatters"
 import { createClient } from "@/lib/supabase/server"

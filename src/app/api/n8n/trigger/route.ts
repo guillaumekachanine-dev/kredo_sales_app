@@ -1,3 +1,5 @@
+import "server-only"
+
 // CORE-001 — Passerelle de déclenchement Next → n8n
 //
 // Ce que fait cette route :

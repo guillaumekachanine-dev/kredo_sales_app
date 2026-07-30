@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { getTodayDateKey, startOfLocalDay } from "@/lib/agenda/agenda-temporal"
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds"

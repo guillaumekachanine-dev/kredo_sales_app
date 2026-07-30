@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"
 import { MATCH_VERSION } from "./match-config"

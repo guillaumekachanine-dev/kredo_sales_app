@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"

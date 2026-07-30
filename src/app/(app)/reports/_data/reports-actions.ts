@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"

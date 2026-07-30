@@ -1,3 +1,5 @@
+import "server-only"
+
 import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { getPortfolioIntelligenceSnapshot } from "./get-portfolio-intelligence-snapshot"

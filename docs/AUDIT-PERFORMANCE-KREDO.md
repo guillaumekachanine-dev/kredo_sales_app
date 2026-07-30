@@ -427,7 +427,7 @@ et chiffrés ; ce qu'il reste est de l'exécution rigoureuse, pas de la recherch
 | **Skills — après** | 1. `/simplify`<br>2. `/code-review` |
 | **Commandes** | `ANALYZE=true npx next build --webpack` puis lire `.next/analyze/client.html` |
 | **Pourquoi ce couple** | Purement volumétrique et réversible, et chaque fichier est gardé par `tsc` + `build` + `vitest`. C'est le seul lot où un modèle rapide est défendable — à condition de ne jamais franchir la barrière de qualité en lot groupé. |
-| **⚠️ Prérequis** | **Ne pas chercher d'autres imports de barrels — c'est fait, et le cas était isolé.** Vérifié à la revue du 2026-07-29 : `src/components/staffing/index.tsx` est le **seul** barrel du projet important du code serveur, et depuis le correctif du Lot 0 aucun fichier client ne l'importe. Le vrai prérequis est ailleurs : **112 des 126 modules important `@/lib/supabase/server` n'ont pas `import "server-only"`**. C'est la cause racine que le Lot 0 n'a pas traitée (il a corrigé le site d'import, pas la garde absente), et sans elle la même classe de bug repassera en silence sous Turbopack — le CI ne lançant pas webpack, rien ne l'attrapera. |
+| **✅ Prérequis — TRAITÉ le 2026-07-29** | La frontière serveur/client est désormais garantie, plus rien à faire ici avant le Lot 4. (1) Le cas du barrel **était isolé** : `src/components/staffing/index.tsx` est le seul barrel important du code serveur, et aucun client ne l'importe depuis le correctif du Lot 0. (2) La cause racine est corrigée : **112 gardes `import "server-only"` posées** (108 modules partagés + 4 `page.tsx`), portant la couverture à 100 % des fichiers important `@/lib/supabase/server` — seuls les 4 fichiers de test restent exclus, par nécessité. (3) L'invariant est **verrouillé** par `npm run check:server-boundary` (instantané, testé en positif ET en négatif), doublé de `npm run build:webpack` pour l'application réelle. Détail en §9. |
 
 ---
 
@@ -464,6 +464,53 @@ et chiffrés ; ce qu'il reste est de l'exécution rigoureuse, pas de la recherch
 pertinent uniquement sur les **Lots 3, 4 et 6**. À ne pas lancer sur les Lots 1, 2 et 5 :
 il ne connaît pas le modèle RLS multi-tenant de KREDO et produirait des recommandations
 génériques sur la partie base.
+
+---
+
+## 6 quater. Frontière serveur/client verrouillée — 2026-07-29
+
+Suite directe de la revue : la cause racine du bug du Lot 0 est traitée, pas seulement
+son symptôme.
+
+**112 gardes `import "server-only"` posées.** 108 modules partagés + les 4 `page.tsx` qui
+importaient `@/lib/supabase/server`. Couverture désormais de 100 % des fichiers concernés,
+à l'exception des 4 fichiers de test — qui ne peuvent pas porter la garde (voir plus bas).
+
+**Trois pièges rencontrés, tous vérifiés plutôt que supposés :**
+
+1. **60 fichiers portent une directive `"use server"`.** J'ai d'abord jugé la garde
+   contradictoire avec la directive (un fichier `"use server"` est *conçu* pour être importé
+   depuis un client, Next y substituant un proxy RPC). **Testé empiriquement** sur
+   `src/lib/tasks/task-actions.ts`, importé par 6 composants clients : le build passe. Le
+   proxy empêche le corps d'entrer dans le graphe client, `server-only` ne lève donc jamais.
+   Les 60 sont gardés, avec l'import inséré **après** la directive — qui doit rester la
+   première instruction du module. Vérifié : aucune directive déplacée.
+2. **`server-only` lève hors bundler**, car il ne résout vers un module vide que sous la
+   condition `react-server`, que Vitest ne pose pas. J'ai d'abord conclu à tort qu'aucune
+   config Vitest n'existait — un glob shell sans correspondance avait avorté ma commande de
+   contrôle. En réalité `vitest.config.ts` **contient déjà** l'alias `server-only` →
+   `empty.js`, posé par une session antérieure. C'est pour cela que les 7 modules serveur
+   sous test ont pu être gardés sans casser un seul test.
+3. **Faux positif à connaître** : `AppOverlayHosts.tsx` (composant client) mentionne
+   `supabase/server.ts` dans un commentaire explicatif et ressort sur tout `grep` naïf. Le
+   script de contrôle matche donc une **instruction d'import réelle**, jamais une occurrence
+   textuelle.
+
+**Aucune autre violation révélée.** Les deux builds passent après l'ajout des gardes, ce qui
+confirme rétroactivement que le cas du barrel était bien isolé.
+
+**Invariant verrouillé.** Deux commandes complémentaires :
+- `npm run check:server-boundary` — assertion statique en quelques millisecondes
+  (`scripts/check-server-boundary.mjs`), à mettre en CI. **Testé en négatif** : retirer une
+  garde le fait sortir en code 1 en nommant le fichier ; la remettre repasse à 0.
+- `npm run build:webpack` — application réelle de la frontière. C'est le **seul** build qui
+  détecte cette classe de problème : Turbopack la tolère en silence.
+
+**Validation** : `check:server-boundary` EXIT 0 · `tsc --noEmit` EXIT 0 · `vitest`
+**698/698** · build Turbopack EXIT 0 · build webpack EXIT 0 · `eslint` sur les 112 fichiers
+touchés → **36 erreurs avant, 36 après** (comparaison faite dans un worktree sur HEAD),
+soit aucune erreur introduite. Les 36 sont les casts `any` de `staffing/_data`, exception
+pragmatique actée en Session 25.
 
 ---
 

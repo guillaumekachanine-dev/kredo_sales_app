@@ -1,3 +1,5 @@
+import "server-only"
+
 // ADR-0010 Lot 2 — Déclenchement du brief hebdomadaire.
 //
 // Contrairement à /api/n8n/trigger (utilisé tel quel par activity_commercial/

@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { parseWorkspaceDiagnostic } from "./parse-diagnostic-content"
 import type { WorkspaceDiagnosticSnapshot } from "./workspace-diagnostic-types"

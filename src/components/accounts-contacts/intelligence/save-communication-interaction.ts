@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import type { CommunicationBrief, CommunicationOutput } from "@/lib/n8n/types"

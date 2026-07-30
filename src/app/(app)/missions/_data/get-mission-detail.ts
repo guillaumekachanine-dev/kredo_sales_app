@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { getActiveFinancialReferenceByMissionId } from "@/features/financial-modeling/data/get-financial-reference"
 import type { Json } from "@/types/database"

@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import {
   VEILLE_RUNS_PER_MONTH,

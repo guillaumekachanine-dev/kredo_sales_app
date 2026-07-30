@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server";
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds";
 import {

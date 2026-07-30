@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { buildAutomationMetricsSnapshot } from "./automation-metrics-model"
 import type { AutomationMetricsFilters, AutomationMetricsIncidentRun, AutomationMetricsRun } from "./automation-metrics-types"

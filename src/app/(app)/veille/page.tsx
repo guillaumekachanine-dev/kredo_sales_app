@@ -1,3 +1,5 @@
+import "server-only"
+
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { createClient } from "@/lib/supabase/server"
 import {

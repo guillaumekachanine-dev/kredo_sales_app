@@ -1,3 +1,5 @@
+import "server-only"
+
 import { getTrajectory2026 } from "@/app/(app)/missions/_data/get-trajectory-2026"
 import { createClient } from "@/lib/supabase/server"
 import { buildCockpitDesktopSnapshot, type CockpitDesktopSources } from "./cockpit-desktop-view-model"

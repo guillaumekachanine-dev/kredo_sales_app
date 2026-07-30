@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import type { Trajectory2026Data, TrajectoryPoint2026 } from "@/components/missions/dashboard/trajectory-2026-types"
 

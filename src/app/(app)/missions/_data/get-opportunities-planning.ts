@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { isStaffingNeedOpportunity, STAFFING_NEED_OR_FILTER } from "@/lib/needs-staffing/coverage"
 import { resolveCompanyEmbed } from "@/lib/companies/resolve-company-embed"

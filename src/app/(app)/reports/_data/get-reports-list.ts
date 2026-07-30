@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/types/database"
 import { SCENARIO_REGISTRY } from "@/lib/communication/communication-scenario-registry"

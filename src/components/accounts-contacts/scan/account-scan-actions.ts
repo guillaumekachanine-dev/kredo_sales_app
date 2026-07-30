@@ -1,5 +1,7 @@
 "use server"
 
+import "server-only"
+
 // Scan rapide compte (Lot 2) — Server Actions authentifiées.
 //
 // applyAccountScanProposals() est le SEUL chemin d'écriture CRM de cette feature.

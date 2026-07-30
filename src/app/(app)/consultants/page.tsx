@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from '@/lib/supabase/server'
 import { getDashboardDevice } from '@/lib/dashboard/dashboard-device'
 import { ConsultantsSyntheseDesktop } from '@/components/consultants/synthese/ConsultantsSyntheseDesktop'
