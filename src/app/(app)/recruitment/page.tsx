@@ -4,8 +4,6 @@ import { RecruitmentWorkspace } from "@/components/recruitment/RecruitmentWorksp
 import { DashboardSkeleton } from "@/components/ui/DashboardSkeleton"
 import { getRecruitmentWorkspace } from "./_data/get-recruitment-workspace"
 
-export const dynamic = "force-dynamic"
-
 async function RecruitmentPageContent() {
   const [device, rows] = await Promise.all([
     getDashboardDevice(),

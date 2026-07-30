@@ -13,8 +13,6 @@ import {
   type YtdActivityRow,
 } from "@/components/consultants/activite-conges/ConsultantsActivityDashboard"
 
-export const dynamic = "force-dynamic"
-
 type QueryResult<T> = {
   label: string
   data: T[]

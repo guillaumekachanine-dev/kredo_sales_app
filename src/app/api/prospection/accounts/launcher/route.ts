@@ -4,8 +4,6 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { extractCrmLauncherAccountIdsFromUiPrefs } from "@/lib/crm/account-launcher-preferences"
 
-export const dynamic = "force-dynamic"
-
 type CrmLauncherAccount = {
   id: string
   name: string

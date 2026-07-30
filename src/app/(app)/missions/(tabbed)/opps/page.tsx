@@ -8,8 +8,6 @@ import { getStaffingsList, getMobileStaffingsList } from "@/app/(app)/staffing/_
 import { getStaffingsPlanning } from "@/app/(app)/staffing/_data/get-staffings-planning"
 import { NeedsStaffingWorkspace } from "@/components/needs-staffing/NeedsStaffingWorkspace"
 
-export const dynamic = "force-dynamic"
-
 interface OppsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }

@@ -4,8 +4,6 @@ import { OpportunityDetailView } from "@/components/missions/opportunity-detail/
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
-export const dynamic = "force-dynamic"
-
 interface OpportunityPageProps {
   params: Promise<{
     id: string

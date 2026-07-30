@@ -115,6 +115,20 @@ Aucune primitive de cache Next 16 n'est utilisée (`use cache` = 0), 8 routes so
 `force-dynamic`, il y a **7 `<Suspense>` pour 50 routes** — donc quasiment aucun streaming :
 chaque navigation attend la totalité des requêtes serveur avant le premier octet utile.
 
+> ⚠️ **CORRECTION APPORTÉE PAR LE LOT 3 (2026-07-30) — trois erreurs de fait dans ce
+> paragraphe, lire avant de s'y fier.**
+> 1. **« 8 routes `force-dynamic` » : il y en avait 27.** Comptage refait à la source.
+> 2. **« quasiment aucun streaming » : FAUX, mesuré.** `src/app/(app)/loading.tsx` pose une
+>    frontière Suspense au-dessus de **toutes** les routes. TTFB mesuré **11–12 ms** contre
+>    2 508 ms de durée totale sur une route sonde à chargement de 2,5 s — coquille et
+>    squelette flushés immédiatement. Compter les `<Suspense>` explicites ne dit rien de
+>    l'état réel du streaming.
+> 3. **`use cache` = 0 est exact mais trompeur** : les référentiels quasi statiques étaient
+>    **déjà cachés** (commit `0c39f3a2`) via `unstable_cache` clé par `workspace_id`.
+>
+> Le seul coût réel de ce levier était l'aller-retour d'authentification (**~170 ms par
+> `getUser()`**), traité au Lot 3. `cacheComponents` est refusé : [ADR-0017](adr/ADR-0017-cache-components-ppr-refuse.md).
+
 S'y ajoute `resolveCurrentWorkspaceId()` : `auth.getUser()` (aller-retour réseau vers l'API
 Auth Supabase) **+** une requête `profiles`, non mémoïsé, sur 12 sites d'appel. Une page qui
 charge 5 jeux de données paie potentiellement 10 allers-retours avant la première requête utile.
@@ -591,8 +605,13 @@ aucune régression). Le résultat était bon ; le processus a échoué.
 | Plus gros chunk partagé | 220 KB (`3794-*.js`) | | |
 | `framework` / `main` / `polyfills` | 188 / 136 / 112 KB | | |
 | Composants `"use client"` | 439 / 673 (65 %) | | |
-| `use cache` / `cacheComponents` | 0 | | |
-| `<Suspense>` | 7 (pour 50 `page.tsx`) | | |
+| `use cache` / `cacheComponents` | 0 | 0 — **refusé** | [ADR-0017](adr/ADR-0017-cache-components-ppr-refuse.md) |
+| `<Suspense>` | 7 (pour 50 `page.tsx`) | 7 | indicateur sans valeur, cf. Lot 3 §4 |
+| **TTFB réel, coquille + squelette** (route sonde, cache chaud) | **11–12 ms** | — | déjà acquis via `(app)/loading.tsx` |
+| Routes `force-dynamic` | **27** (et non 8) | **0** | ✅ Lot 3 — prouvées inertes, diff de routes vide |
+| Aller-retour `auth.getUser()` | **~170 ms** / appel | `getClaims()` local | ✅ Lot 3 (conditionnel clé ES256) |
+| Fichiers dupliquant `getUser()` + `profiles` | 16 | 12 (4 du chemin de rendu convertis) | ✅ Lot 3 |
+| `/sw.js`, `/manifest.json` hors session | **307 → /login** | **200** | ✅ Lot 3 (matcher proxy) |
 
 ### Terrain — indisponible, et c'est un résultat en soi
 
@@ -766,6 +785,95 @@ avec le profil réel : base au repos, mais 4,8 MB de JS client, 156 KB de chunk 
 chaque page, 68/71 routes dynamiques, `use cache` jamais employé, 7 `<Suspense>` pour 50
 routes. **Dans une application dont la base ne travaille pas, la latence ressentie est
 intégralement un problème de front-end.** Le Lot 5 devient du confort, pas de la performance.
+
+---
+
+### Lot 3 — exécuté le 2026-07-30 ✅ *5 étapes traitées · 2 gains réels, 3 prémisses invalidées*
+
+Troisième lot consécutif dont une partie du diagnostic ne survit pas à la mesure. Les
+étapes sont reprises dans l'ordre du protocole (§4, Lot 3).
+
+**Étape 1 — allers-retours d'authentification. Le seul vrai gain de ce lot.**
+`auth.getUser()` interroge l'API Auth Supabase à chaque appel : **~170 ms mesurés**
+(188 / 171 / 172 / 167 / 164 ms depuis le poste de dev — moins depuis Vercel, mais un
+aller-retour réseau reste un aller-retour réseau, payé sur le chemin critique du rendu).
+`resolveCurrentWorkspaceId()` bascule sur `getClaims()` (vérification locale de la
+signature du JWT) et passe sous `cache()` de React — même arbitrage que celui déjà
+appliqué dans `src/proxy.ts`, et **même fenêtre de révocation que la RLS**, qui valide
+elle aussi le JWT sans consulter l'API Auth. Aucun élargissement de surface.
+Point vérifié à la source plutôt que supposé : lecture de `@supabase/auth-js` — si les
+jetons sont encore signés en HS256, `getClaims()` **retombe de lui-même sur `getUser()`**
+(branche `if (!signingKey)`). Le gain est donc conditionnel à la clé asymétrique active
+(le JWKS du projet expose une clé ES256), mais **il n'y a aucune régression possible**
+dans le cas contraire.
+Nouveau `getCurrentUserId()`, mémoïsé lui aussi. **16 fichiers dupliquaient** le motif
+`getUser() + profiles → workspace_id` ; les **4 qui sont sur le chemin de rendu** sont
+convertis au résolveur partagé (`get-commercial-activity-snapshot`,
+`get-workspace-diagnostic`, `get-cockpit-mobile-snapshot`, `aggregate-agenda-snapshot`).
+Les **mutations gardent `getUser()`** : contrôle plus strict, coût ponctuel, hors chemin
+de rendu — choix délibéré, écrit dans le code.
+
+**Étape 2 — `cacheComponents` : NON.** Décision gravée dans
+[ADR-0017](adr/ADR-0017-cache-components-ppr-refuse.md). Le flag a été réellement activé et
+le projet réellement construit avant de trancher : 27 exports `dynamic` incompatibles,
+puis `Uncached data was accessed outside of <Suspense>` au prérendu, plus une classe
+d'erreurs que le protocole n'avait pas anticipée (`new Date()` avant lecture de données de
+requête) — **~50 routes à reprendre**. Et le bénéfice ne se matérialise pas : la coquille
+prérendue s'arrête à `(app)/layout.tsx`, qui lit `headers()` pour distribuer Desktop/Mobile
+(**règle ADR-0006**). **Conflit documentaire relevé et tranché** : `cacheComponents` *est*
+le PPR (il remplace `experimental.ppr`), et **D-13 (ADR-0006) l'avait déjà écarté le
+2026-06-10** — le protocole, rédigé le 2026-07-29, demandait de l'activer sans le savoir.
+La seconde moitié de l'étape (référentiels quasi statiques) **était déjà livrée** au commit
+`0c39f3a2`, en `unstable_cache` clé par `workspace_id` : rien à faire, et surtout rien à
+convertir en `use cache`.
+
+**Étape 3 — les 27 `force-dynamic` : retirés, après preuve qu'ils sont inertes.**
+Le protocole en annonçait 8 ; recomptage à la source : **27**. Build avec, build sans,
+tableau de routes comparé : **diff vide, 68 routes identiques**. Toutes lisent des données
+de requête, elles sont dynamiques de toute façon. Retrait donc sans effet mesurable — mais
+il supprime un faux signal et le premier blocage mécanique d'une adoption future du flag.
+Aucune route ne bascule en `○`/`●`, ce qui écarte tout risque de mise en cache indue.
+
+**Étape 4 — `<Suspense>` et `loading.tsx` : déjà satisfait, mesuré.**
+Route sonde sous `(app)` avec un chargement artificiel de 2,5 s, build de production servi
+localement :
+
+| Grandeur | Valeur |
+|---|---|
+| TTFB (`time_starttransfer`), 3 passes | **0,097 s** (froid) puis **0,011 s** · **0,013 s** |
+| Durée totale | 2,508 s (le délai artificiel) |
+| Premiers octets flushés (51 Ko) | chrome `DesktopSidebar` **+** squelette `animate-pulse` / `aria-busy` |
+
+`src/app/(app)/loading.tsx` pose une frontière Suspense au-dessus de **toutes** les routes.
+La coquille part en 12 ms, les données streament ensuite. Le critère de sortie « TTFB en
+baisse sur les 4 routes lourdes » **est sans objet** : il n'y a pas de baisse à produire,
+le TTFB est déjà celui de la coquille. Reste théoriquement possible : découper des
+`<Suspense>` **à l'intérieur** des pages pour que les blocs arrivent indépendamment
+(ex. `/missions/opps`, 5 jeux de données en `Promise.all`) — écarté, cela impose de casser
+les contrats de composants pour un gain de confort, pas de latence au premier octet.
+
+**Étape 5 — `src/proxy.ts`.** Deux corrections. (1) Les endpoints machine-à-machine
+(`/api/n8n/callback`, les 2 crons) sont court-circuités **avant** `createServerClient` : on
+construisait un client et on vérifiait un JWT pour constater ensuite qu'il n'y en avait pas.
+`/login` et `/auth/callback` restent volontairement dans le flux complet — `/login` a besoin
+de la session pour rediriger un utilisateur déjà connecté. (2) Matcher élargi à `sw.js`,
+`manifest.json`, `robots.txt` et aux extensions de police/icône. **Vérifié en direct sur le
+serveur de production local :** `/sw.js` et `/manifest.json` passent de **307 → /login** à
+**200**, `/cockpit` redirige toujours (**307**), `/login` répond **200**,
+`/api/n8n/callback` répond **405** comme avant. Le service worker se ré-enregistre hors
+session (cf. `PwaRegistrar`) : il recevait donc une redirection pour un fichier statique.
+
+**Barrière de qualité :** `npx tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0, tableau de
+routes identique à la baseline · `npx vitest run` → **698/698 (82 fichiers)** ·
+`npm run check:server-boundary` → EXIT 0 · `npx eslint` sur les 33 fichiers touchés →
+**0 erreur** (1 warning pré-existant sur `veille/page.tsx`, vérifié identique avant/après
+par `git stash`).
+
+**Conséquence sur la suite.** Les Lots 1, 2 et 3 ont chacun vu tout ou partie de leur
+prémisse invalidée par la mesure. Ce qui reste du protocole : le **Lot 4 (bundle client)**,
+seul chantier dont l'ordre de grandeur n'a jamais été contredit — 4,8 MB de JS non
+compressé, 156 KB de chunk de layout sur chaque page, 65 % de composants client. C'est
+désormais le seul levier de latence perçue encore ouvert.
 
 ---
 

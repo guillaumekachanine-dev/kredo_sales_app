@@ -12,6 +12,25 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Endpoints machine-à-machine : appelés par n8n / les crons, JAMAIS par un
+  // navigateur. Ils n'ont pas de session Supabase à rafraîchir et assurent
+  // eux-mêmes leur vérification (HMAC pour le callback n8n, secret partagé pour
+  // les crons). Le court-circuit est placé AVANT createServerClient : sur ces
+  // routes on ne construisait un client et on ne vérifiait un JWT que pour
+  // constater, quelques lignes plus bas, qu'il n'y en avait pas.
+  //
+  // /login et /auth/callback restent volontairement dans le flux complet :
+  // /login a besoin de la session pour rediriger un utilisateur déjà connecté
+  // vers /cockpit, et /auth/callback pose les cookies de session.
+  const isMachineEndpoint =
+    pathname.startsWith("/api/n8n/callback") ||
+    pathname === "/api/reports/weekly-manager/cron-trigger" ||
+    pathname === "/api/reports/workspace-diagnostic/cron-trigger"
+
+  if (isMachineEndpoint) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -43,14 +62,12 @@ export async function proxy(request: NextRequest) {
   const { data: claimsData } = await supabase.auth.getClaims()
   const user = claimsData?.claims ?? null
 
-  // Routes publiques : login + callbacks machine-to-machine. Ces endpoints
-  // n'ont pas de session Supabase et assurent leur propre vérification HMAC.
+  // Routes publiques restantes (les endpoints machine-à-machine sont déjà
+  // sortis plus haut) : elles ont besoin du client Supabase — /login pour
+  // rediriger un utilisateur déjà connecté, /auth/callback pour la session.
   const isPublic =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/callback") ||
-    pathname.startsWith("/api/n8n/callback") ||
-    pathname === "/api/reports/weekly-manager/cron-trigger" ||
-    pathname === "/api/reports/workspace-diagnostic/cron-trigger"
+    pathname.startsWith("/auth/callback")
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()
@@ -73,9 +90,14 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Exclut les fichiers statiques Next.js et les assets publics.
-     * Traite toutes les routes app sauf _next/static, _next/image, favicon.ico.
+     * Exclut les fichiers statiques Next.js et les assets publics servis tels
+     * quels depuis /public. Sans ces exclusions, une requête non authentifiée
+     * pour /sw.js ou /manifest.json déclenchait une vérification de session
+     * puis une redirection 307 vers /login — pour un fichier statique qui n'a
+     * rien à protéger (le service worker se ré-enregistre notamment hors
+     * session, cf. PwaRegistrar). Les extensions de police et d'icône sont
+     * ajoutées pour la même raison que celles d'images déjà présentes.
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|sw\\.js|manifest\\.json|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf)$).*)",
   ],
 }

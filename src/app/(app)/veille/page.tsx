@@ -17,8 +17,6 @@ import {
 } from "./_data/veille-data"
 import { VeilleActualitesPage } from "@/components/veille/VeilleActualitesPage"
 
-export const dynamic = "force-dynamic"
-
 export default async function VeillePage({
   searchParams,
 }: {

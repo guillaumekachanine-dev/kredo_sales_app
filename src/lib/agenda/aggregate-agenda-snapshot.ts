@@ -216,29 +216,18 @@ export async function aggregateAgendaSnapshot(
   }
 }
 
-async function resolveServerAgendaContext(supabase: AgendaSupabaseClient) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+// Délègue au résolveur partagé (mémoïsé par requête, JWT vérifié en local) au
+// lieu de refaire getUser() + profiles. Ne prend plus de client en argument :
+// il n'en avait besoin que pour cette résolution.
+async function resolveServerAgendaContext() {
+  const { resolveCurrentWorkspaceId } = await import("@/lib/supabase/workspace")
+  const workspaceId = await resolveCurrentWorkspaceId()
 
-  if (authError || !user) {
-    throw new Error("Agenda snapshot requires an authenticated user")
+  if (!workspaceId) {
+    throw new Error("Agenda snapshot requires an authenticated user with a workspace")
   }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single()
-
-  if (error || !profile?.workspace_id) {
-    throw new Error("Agenda snapshot requires a workspace_id on profile")
-  }
-
-  return {
-    workspaceId: profile.workspace_id,
-  }
+  return { workspaceId }
 }
 
 export async function loadAgendaSnapshot(
@@ -246,8 +235,10 @@ export async function loadAgendaSnapshot(
   deps: Omit<AggregateAgendaSnapshotDeps, "supabase"> = {},
 ) {
   const { createClient } = await import("@/lib/supabase/server")
-  const supabase = await createClient()
-  const context = await resolveServerAgendaContext(supabase)
+  const [supabase, context] = await Promise.all([
+    createClient(),
+    resolveServerAgendaContext(),
+  ])
   const query = buildAgendaQuery({
     ...input,
     workspaceId: context.workspaceId,

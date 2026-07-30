@@ -5,8 +5,6 @@ import { SectorActivationDesktopView } from "@/features/legacy/sector-approach/S
 import { SectorCardMobile } from "@/features/legacy/sector-approach/SectorCard"
 import { LegacyBanner } from "@/features/legacy/LegacyBanner"
 
-export const dynamic = "force-dynamic"
-
 export default async function LegacyApprocheSectoriellePage() {
   const device = await getDashboardDevice()
 

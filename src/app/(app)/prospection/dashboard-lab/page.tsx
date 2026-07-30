@@ -4,8 +4,6 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getDashboardLabData } from "@/lib/prospection/dashboard-lab-data"
 
-export const dynamic = "force-dynamic"
-
 export default async function ProspectionDashboardLabPage() {
   const [device, data] = await Promise.all([getDashboardDevice(), getDashboardLabData()])
 

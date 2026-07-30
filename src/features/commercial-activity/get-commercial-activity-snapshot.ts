@@ -1,6 +1,7 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server";
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace";
 import { AGENDA_V1_TIMEZONE } from "@/lib/agenda/agenda-thresholds";
 import {
   getLocalDateKey,
@@ -265,21 +266,18 @@ function categoryForInteraction(
   return "unclassified" as const;
 }
 
+// Délègue au résolveur partagé (mémoïsé par requête, vérification du JWT en
+// local) au lieu de refaire ici getUser() + profiles : c'était le même code,
+// mais avec un aller-retour réseau vers l'API Auth à chaque rendu.
 async function resolveWorkspaceId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Authentification requise");
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .single();
-  if (error || !profile?.workspace_id)
-    throw new Error("Espace de travail introuvable");
-  return { supabase, workspaceId: profile.workspace_id };
+  const [supabase, workspaceId] = await Promise.all([
+    createClient(),
+    resolveCurrentWorkspaceId(),
+  ]);
+  // Un seul message : le résolveur partagé renvoie null aussi bien pour une
+  // session absente que pour un profil sans workspace, sans les distinguer.
+  if (!workspaceId) throw new Error("Session ou espace de travail introuvable");
+  return { supabase, workspaceId };
 }
 
 export async function getCommercialActivitySnapshot(

@@ -3,8 +3,6 @@ import { getMissionsList } from "@/app/(app)/missions/_data/get-missions-list"
 import { getActiveMissionsPlanning } from "@/app/(app)/missions/_data/get-active-missions-planning"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
-export const dynamic = "force-dynamic"
-
 export default async function MissionsActivesPage() {
   const [device, allMissions, planningRows] = await Promise.all([
     getDashboardDevice(),

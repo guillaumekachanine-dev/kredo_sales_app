@@ -8,6 +8,7 @@ import type { ScheduledEventItem } from "@/lib/agenda/agenda-types"
 import { getWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/get-workspace-diagnostic"
 import { OPPORTUNITY_ACTIVE_STAGES } from "@/lib/opportunities/stages"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId, resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import type { Database } from "@/types/database"
 import {
   COCKPIT_MOBILE_OPPORTUNITY_LIMIT,
@@ -507,21 +508,15 @@ async function loadSignals(
 }
 
 export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Résolveur partagé : mémoïsé par requête, JWT vérifié localement (plus
+  // d'aller-retour vers l'API Auth pour un id que le jeton porte déjà).
+  const [supabase, workspaceId, userId] = await Promise.all([
+    createClient(),
+    resolveCurrentWorkspaceId(),
+    getCurrentUserId(),
+  ])
 
-  if (authError || !user) return null
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  if (profileError || !profile?.workspace_id) return null
+  if (!workspaceId || !userId) return null
 
   const generatedAt = new Date().toISOString()
   const week = getCockpitMobileWeekRange(generatedAt)
@@ -534,11 +529,11 @@ export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot 
     signals,
     diagnostic,
   ] = await Promise.all([
-    loadScheduledEvents(user.id, generatedAt, week.from, week.to),
-    loadLatestWeeklyBrief(supabase, profile.workspace_id, user.id),
-    loadDismissedPriorityKeys(supabase, profile.workspace_id, user.id, week.weekIso),
-    loadOpportunities(supabase, profile.workspace_id, user.id, generatedAt, week.to),
-    loadSignals(supabase, profile.workspace_id, generatedAt),
+    loadScheduledEvents(userId, generatedAt, week.from, week.to),
+    loadLatestWeeklyBrief(supabase, workspaceId, userId),
+    loadDismissedPriorityKeys(supabase, workspaceId, userId, week.weekIso),
+    loadOpportunities(supabase, workspaceId, userId, generatedAt, week.to),
+    loadSignals(supabase, workspaceId, generatedAt),
     getWorkspaceDiagnostic(),
   ])
 

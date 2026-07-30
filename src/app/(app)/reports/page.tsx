@@ -5,8 +5,6 @@ import { ReportsDesktopView } from "@/components/reports/ReportsDesktopView"
 import { ReportsMobileView } from "@/components/reports/ReportsMobileView"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
-export const dynamic = "force-dynamic"
-
 type SearchParams = Record<string, string | string[] | undefined>
 
 function pickParam(value: string | string[] | undefined) {

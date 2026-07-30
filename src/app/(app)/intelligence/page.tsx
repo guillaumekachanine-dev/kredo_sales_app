@@ -5,8 +5,6 @@ import { buildBusinessIntelligenceMobileModel } from "@/features/business-intell
 import { BusinessIntelligenceDesktop } from "@/features/business-intelligence/desktop/BusinessIntelligenceDesktop"
 import { BusinessIntelligenceMobile } from "@/features/business-intelligence/mobile/BusinessIntelligenceMobile"
 
-export const dynamic = "force-dynamic"
-
 export default async function BusinessIntelligencePage() {
   const device = await getDashboardDevice()
   

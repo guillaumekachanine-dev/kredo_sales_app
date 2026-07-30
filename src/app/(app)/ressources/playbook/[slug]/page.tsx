@@ -3,8 +3,6 @@ import type { Metadata } from 'next'
 import { getSectorBySlug } from '@/lib/supabase/sector'
 import PlaybookPage from '@/components/sector/PlaybookPage'
 
-export const dynamic = 'force-dynamic'
-
 interface Props {
   params: Promise<{ slug: string }>
 }

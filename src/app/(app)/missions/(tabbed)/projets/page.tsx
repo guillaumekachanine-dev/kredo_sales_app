@@ -4,8 +4,6 @@ import { ProjectsDesktopView } from "@/components/missions/ProjectsDesktopView"
 import { ProjectsMobileView } from "@/components/missions/ProjectsMobileView"
 import { formatEuro, formatPct } from "@/lib/formatters"
 
-export const dynamic = "force-dynamic"
-
 export default async function ProjetsPage() {
   const projects = await getProjectsList()
 

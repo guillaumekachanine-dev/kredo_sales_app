@@ -6,8 +6,6 @@ import { SectorDetailView } from '@/features/legacy/sector-study/SectorDetailVie
 import { RegisterBreadcrumbLabel } from '@/components/layout/RegisterBreadcrumbLabel'
 import { LegacyBanner } from '@/features/legacy/LegacyBanner'
 
-export const dynamic = "force-dynamic"
-
 export interface SectorDetailPageProps {
   params: Promise<{ slug: string }>
 }

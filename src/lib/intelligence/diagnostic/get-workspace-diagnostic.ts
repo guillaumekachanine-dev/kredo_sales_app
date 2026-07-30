@@ -1,6 +1,7 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
 import { parseWorkspaceDiagnostic } from "./parse-diagnostic-content"
 import type { WorkspaceDiagnosticSnapshot } from "./workspace-diagnostic-types"
 
@@ -11,26 +12,19 @@ type DiagnosticDocumentRow = {
 }
 
 export async function getWorkspaceDiagnostic(): Promise<WorkspaceDiagnosticSnapshot | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Résolveur partagé : mémoïsé par requête, JWT vérifié localement (plus
+  // d'aller-retour vers l'API Auth pour un id que le jeton porte déjà).
+  const [supabase, workspaceId] = await Promise.all([
+    createClient(),
+    resolveCurrentWorkspaceId(),
+  ])
 
-  if (authError || !user) return null
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("workspace_id")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  if (!profile?.workspace_id) return null
+  if (!workspaceId) return null
 
   const { data, error } = await supabase
     .from("intelligence_documents")
     .select("id,created_at,current_content_json")
-    .eq("workspace_id", profile.workspace_id)
+    .eq("workspace_id", workspaceId)
     .eq("document_type", "workspace_diagnostic")
     .order("created_at", { ascending: false })
     .limit(1)

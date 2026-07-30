@@ -2,8 +2,6 @@ import { SyntheseSection } from "@/features/legacy/crm-synthese"
 import { parseSyntheseDesignVariant } from "@/features/legacy/crm-synthese/design-variants"
 import { LegacyBanner } from "@/features/legacy/LegacyBanner"
 
-export const dynamic = "force-dynamic"
-
 type PageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }

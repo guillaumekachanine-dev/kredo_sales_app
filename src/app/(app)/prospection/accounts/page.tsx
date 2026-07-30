@@ -2,8 +2,6 @@ import { ProspectionAccountsView } from "@/components/accounts-contacts/Accounts
 import { getAccountsContactsData } from "@/lib/accounts-contacts/accounts-contacts-data"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 
-export const dynamic = "force-dynamic"
-
 export default async function ProspectionAccountsPage() {
   const [device, data] = await Promise.all([
     getDashboardDevice(),

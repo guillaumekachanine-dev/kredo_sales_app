@@ -3,8 +3,6 @@ import { getOpportunityDetail } from "@/app/(app)/missions/_data/get-opportunity
 import { OpportunityEditWorkspace } from "@/components/missions/opportunity-detail/OpportunityEditWorkspace"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 
-export const dynamic = "force-dynamic"
-
 interface ModifyOpportunityPageProps {
   params: Promise<{ id: string }>
 }

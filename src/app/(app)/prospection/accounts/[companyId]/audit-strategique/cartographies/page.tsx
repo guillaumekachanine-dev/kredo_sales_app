@@ -7,7 +7,6 @@ import { StrategicAuditCartographiesDesktop } from "@/features/strategic-audits/
 import { StrategicAuditCartographiesMobile } from "@/features/strategic-audits/StrategicAuditCartographiesMobile"
 import { getStrategicAuditCartographies } from "@/features/strategic-audits/strategic-audit-loader"
 
-export const dynamic = "force-dynamic"
 export default async function StrategicAuditCartographiesPage({ params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = await params
   const [device, audit] = await Promise.all([getDashboardDevice(), getStrategicAuditCartographies(companyId)])

@@ -7,8 +7,6 @@ import { getAccountIntelligencePanelData } from "@/lib/intelligence/account-pane
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { getActiveFinancialReferenceByCompanyId } from "@/features/financial-modeling/data/get-financial-reference"
 
-export const dynamic = "force-dynamic"
-
 export default async function ClientIntelligencePage({
   params,
 }: {
