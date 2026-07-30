@@ -1,4 +1,4 @@
-import bundleAnalyzer from "@next/bundle-analyzer";
+import { createRequire } from "node:module";
 import type { NextConfig } from "next";
 
 // Dossiers d'assets statiques stables (icônes, logos, images de marque). Servis
@@ -61,11 +61,21 @@ const nextConfig: NextConfig = {
 };
 
 // Analyse de bundle activée à la demande uniquement : `ANALYZE=true npm run build`.
-// Hors de ce cas le wrapper est un passe-plat, donc aucun impact sur les builds
-// de production ni sur les preview Vercel.
-const withBundleAnalyzer = bundleAnalyzer({
-  enabled: process.env.ANALYZE === "true",
-  openAnalyzer: false,
-});
+//
+// ⚠️ Le module est résolu PARESSEUSEMENT, jamais par un import statique en tête de
+// fichier. `@next/bundle-analyzer` est une devDependency, or Next charge ce fichier
+// aussi bien au `build` qu'au `next start` : un import statique ferait planter le
+// démarrage avec MODULE_NOT_FOUND sur tout environnement installé en production
+// seule (`npm ci --omit=dev`, image Docker multi-stage). Vercel installe les
+// devDependencies, donc le problème y resterait invisible jusqu'au premier
+// self-host. Ici la résolution n'a lieu que si ANALYZE=true.
+function withBundleAnalyzer(config: NextConfig): NextConfig {
+  if (process.env.ANALYZE !== "true") return config;
+  const require = createRequire(import.meta.url);
+  const bundleAnalyzer = require("@next/bundle-analyzer") as (
+    options: { enabled: boolean; openAnalyzer: boolean }
+  ) => (config: NextConfig) => NextConfig;
+  return bundleAnalyzer({ enabled: true, openAnalyzer: false })(config);
+}
 
 export default withBundleAnalyzer(nextConfig);

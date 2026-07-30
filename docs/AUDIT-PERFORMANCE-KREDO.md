@@ -427,7 +427,7 @@ et chiffrés ; ce qu'il reste est de l'exécution rigoureuse, pas de la recherch
 | **Skills — après** | 1. `/simplify`<br>2. `/code-review` |
 | **Commandes** | `ANALYZE=true npx next build --webpack` puis lire `.next/analyze/client.html` |
 | **Pourquoi ce couple** | Purement volumétrique et réversible, et chaque fichier est gardé par `tsc` + `build` + `vitest`. C'est le seul lot où un modèle rapide est défendable — à condition de ne jamais franchir la barrière de qualité en lot groupé. |
-| **⚠️ Prérequis** | Chercher les autres imports de barrels depuis des composants clients : le cas `AppOverlayHosts` → `@/components/staffing` corrigé au Lot 0 n'est probablement pas isolé. Ajouter la garde `server-only` aux modules `_data/` qui en manquent. |
+| **⚠️ Prérequis** | **Ne pas chercher d'autres imports de barrels — c'est fait, et le cas était isolé.** Vérifié à la revue du 2026-07-29 : `src/components/staffing/index.tsx` est le **seul** barrel du projet important du code serveur, et depuis le correctif du Lot 0 aucun fichier client ne l'importe. Le vrai prérequis est ailleurs : **112 des 126 modules important `@/lib/supabase/server` n'ont pas `import "server-only"`**. C'est la cause racine que le Lot 0 n'a pas traitée (il a corrigé le site d'import, pas la garde absente), et sans elle la même classe de bug repassera en silence sous Turbopack — le CI ne lançant pas webpack, rien ne l'attrapera. |
 
 ---
 
@@ -464,6 +464,36 @@ et chiffrés ; ce qu'il reste est de l'exécution rigoureuse, pas de la recherch
 pertinent uniquement sur les **Lots 3, 4 et 6**. À ne pas lancer sur les Lots 1, 2 et 5 :
 il ne connaît pas le modèle RLS multi-tenant de KREDO et produirait des recommandations
 génériques sur la partie base.
+
+---
+
+## 6 ter. Dette relevée à la revue du 2026-07-29 (`/code-review`)
+
+Deux défauts de la migration `059_rls_initplan_wrapping` **ne sont pas corrigés dans le
+fichier** : la règle du projet interdit de modifier une migration déjà appliquée. Ils
+nécessitent une nouvelle migration ou un contrôle de CI, à traiter hors audit.
+
+1. **Garde d'idempotence évaluée sur l'expression entière** (ligne 83). Le test
+   `not like '%SELECT private.current_workspace_id()%'` porte sur la totalité de
+   `qual`/`with_check`, pas par occurrence. Une policy mêlant une forme déjà wrappée et une
+   forme non wrappée serait **exclue de la boucle** tout en restant détectée par le garde-fou
+   `raise exception` (ligne 113) → **`supabase db reset` échouerait intégralement**.
+   Latent : aucune policy à forme mixte n'existe aujourd'hui (vérifié, requête vide).
+2. **Aucun garde-fou contre la dérive.** La migration est un `DO` block one-shot. Toutes les
+   migrations antérieures servent de modèle copié-collé en forme **non wrappée**, donc les
+   futures tables repartiront non wrappées sans qu'aucun contrôle ne le signale — et le
+   compteur M4 (aujourd'hui 0/245) remontera en silence. Or le bénéfice « structurel à plus
+   grand volume » est la **seule** justification retenue pour conserver la migration : ce futur
+   est précisément le moment où la dérive l'aura annulée. Correctif : une assertion en CI sur
+   M4 = 0, ou un test d'intégration sur `pg_policies`.
+
+**Constat de processus, à ne pas répéter.** Ce document déclarait `/code-review` **obligatoire
+avant application** pour le Lot 1. Il n'a pas été lancé : 210 policies RLS ont été appliquées
+en production puis déployées sans revue. Et la lacune qu'il aurait attrapée était réelle — le
+test négatif d'isolation omettait `profiles` et `workspaces`, les deux seules tables au motif
+RLS non standard (2 policies au lieu de 4) et celles dont dépend `current_workspace_id()`.
+Lacune comblée à la revue (`profiles` 1, `workspaces` 1, `audit_log` 5063, `tasks` 30 —
+aucune régression). Le résultat était bon ; le processus a échoué.
 
 ---
 
