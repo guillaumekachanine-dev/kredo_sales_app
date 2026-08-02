@@ -1,16 +1,21 @@
-import type { FinancialModelFormState } from "./financial-model-persistence.types"
+import { DEFAULT_EMPLOYER_CHARGES_RATE } from "../domain/financial-model.constants"
 import type { FinancialModelResult } from "../domain"
+import type { FinancialModelFormState } from "./financial-model-persistence.types"
 
 export function mapFormStateToDb(
   state: FinancialModelFormState,
   result: FinancialModelResult
 ) {
   const input = state.input
-  
-  // Extract snapshots based on cost model
+
+  // Persist the effective calculation assumptions, not only the raw form values.
+  // The engine applies the default employer charges rate when the input is null;
+  // validated rows must therefore snapshot that same rate to remain complete.
   const grossAnnualSnapshot = input.costModel === "salaried" ? input.annualGrossSalary : null
   const variablePaySnapshot = input.costModel === "salaried" ? (input.annualVariablePay ?? 0) : null
-  const chargesRateSnapshot = input.costModel === "salaried" ? (input.employerChargesRate ?? null) : null
+  const chargesRateSnapshot = input.costModel === "salaried"
+    ? (input.employerChargesRate ?? DEFAULT_EMPLOYER_CHARGES_RATE)
+    : null
   const annualWorkingDaysSnapshot = input.annualWorkingDays
   const externalDailyCostSnapshot = input.costModel === "subcontractor_daily_rate" ? input.purchaseDailyRate : null
   const externalFixedCostSnapshot = input.costModel === "fixed_external_cost" ? input.fixedExternalCost : null
