@@ -16,11 +16,15 @@ import { createClient } from "@/lib/supabase/server"
 //    poste de dev, payé sur le chemin critique du rendu. `getClaims()` vérifie
 //    la signature du JWT localement, exactement le même arbitrage que celui
 //    déjà appliqué et documenté dans src/proxy.ts.
-//    ⚠️ Le gain est CONDITIONNEL à une clé de signature asymétrique active
-//    (le JWKS du projet expose une clé ES256). Si les jetons restent signés en
+//    ✅ Vérifié le 2026-08-03 sur un jeton réel de production : en-tête
+//    `{alg:"ES256", kid:"a8d8279d-d0da-475d-8b88-a9ebf95d9669"}` — soit
+//    exactement la clé publiée par le JWKS du projet. La clé asymétrique est
+//    donc bien la clé ACTIVE (et non une clé en standby) : la vérification est
+//    réellement locale, l'aller-retour est réellement supprimé.
+//    À savoir si la question se repose un jour : en cas de retour à des jetons
 //    HS256, `getClaims()` retombe de lui-même sur `getUser()` (lu dans
-//    @supabase/auth-js, branche `if (!signingKey)`) : pas de gain, mais aucune
-//    régression non plus — l'appel reste correct dans les deux mondes.
+//    @supabase/auth-js, branche `if (!signingKey)`) — on perdrait le gain, mais
+//    jamais la justesse.
 //    Pas de dégradation de sécurité : la fenêtre entre révocation et expiration
 //    du jeton existe déjà côté RLS, puisque PostgREST valide lui aussi le JWT
 //    sans consulter l'API Auth. On ne l'élargit pas, on cesse juste de payer un

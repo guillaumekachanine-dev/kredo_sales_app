@@ -609,7 +609,7 @@ aucune régression). Le résultat était bon ; le processus a échoué.
 | `<Suspense>` | 7 (pour 50 `page.tsx`) | 7 | indicateur sans valeur, cf. Lot 3 §4 |
 | **TTFB réel, coquille + squelette** (route sonde, cache chaud) | **11–12 ms** | — | déjà acquis via `(app)/loading.tsx` |
 | Routes `force-dynamic` | **27** (et non 8) | **0** | ✅ Lot 3 — prouvées inertes, diff de routes vide |
-| Aller-retour `auth.getUser()` | **~170 ms** / appel | `getClaims()` local | ✅ Lot 3 (conditionnel clé ES256) |
+| Aller-retour `auth.getUser()` | **~170 ms** / appel | `getClaims()` local | ✅ Lot 3 — clé ES256 active **confirmée** le 2026-08-03 |
 | Fichiers dupliquant `getUser()` + `profiles` | 16 | 12 (4 du chemin de rendu convertis) | ✅ Lot 3 |
 | `/sw.js`, `/manifest.json` hors session | **307 → /login** | **200** | ✅ Lot 3 (matcher proxy) |
 
@@ -802,10 +802,16 @@ signature du JWT) et passe sous `cache()` de React — même arbitrage que celui
 appliqué dans `src/proxy.ts`, et **même fenêtre de révocation que la RLS**, qui valide
 elle aussi le JWT sans consulter l'API Auth. Aucun élargissement de surface.
 Point vérifié à la source plutôt que supposé : lecture de `@supabase/auth-js` — si les
-jetons sont encore signés en HS256, `getClaims()` **retombe de lui-même sur `getUser()`**
-(branche `if (!signingKey)`). Le gain est donc conditionnel à la clé asymétrique active
-(le JWKS du projet expose une clé ES256), mais **il n'y a aucune régression possible**
-dans le cas contraire.
+jetons étaient encore signés en HS256, `getClaims()` **retomberait de lui-même sur
+`getUser()`** (branche `if (!signingKey)`), sans gain mais sans régression.
+**Levée de doute faite le 2026-08-03 sur un jeton réel de production** (en-tête décodé
+en session authentifiée) : `{alg:"ES256", kid:"a8d8279d-d0da-475d-8b88-a9ebf95d9669"}`,
+soit exactement la clé publiée par le JWKS du projet. La clé asymétrique est donc la clé
+**active**, pas une clé en standby — **le gain est acquis, pas conditionnel**.
+À noter pour les mesures futures : ni le JWKS seul ni la `SUPABASE_SERVICE_ROLE_KEY` ne
+permettent de trancher (le JWKS publie aussi les clés en standby, et la configuration des
+clés de signature est au niveau plateforme, pas en base). Il faut soit décoder un jeton
+réel, soit un *personal access token* Supabase pour l'API Management.
 Nouveau `getCurrentUserId()`, mémoïsé lui aussi. **16 fichiers dupliquaient** le motif
 `getUser() + profiles → workspace_id` ; les **4 qui sont sur le chemin de rendu** sont
 convertis au résolveur partagé (`get-commercial-activity-snapshot`,
