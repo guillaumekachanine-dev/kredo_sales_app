@@ -2,24 +2,25 @@ import "server-only"
 
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/workspace"
 import { extractMobilePriorityAccountIdsFromUiPrefs } from "@/lib/accounts-contacts/mobile-account-custom-list"
 import { getMobileAccountLookupData } from "@/lib/accounts-contacts/mobile-account-lookup"
 
 export async function GET() {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Lecture seule sur un chemin interactif : getClaims() (vérification locale du
+  // JWT) plutôt que getUser() et son aller-retour de ~170 ms vers l'API Auth.
+  // Les routes d'écriture gardent getUser().
+  const userId = await getCurrentUserId()
 
-  if (authError || !user) {
+  if (!userId) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
   }
 
   try {
     const [accounts, profileResult] = await Promise.all([
       getMobileAccountLookupData(),
-      supabase.from("profiles").select("ui_prefs").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("ui_prefs").eq("id", userId).maybeSingle(),
     ])
 
     if (profileResult.error) {

@@ -508,15 +508,11 @@ async function loadSignals(
 }
 
 export async function getCockpitMobileSnapshot(): Promise<CockpitMobileSnapshot | null> {
-  // Résolveur partagé : mémoïsé par requête, JWT vérifié localement (plus
-  // d'aller-retour vers l'API Auth pour un id que le jeton porte déjà).
-  const [supabase, workspaceId, userId] = await Promise.all([
-    createClient(),
-    resolveCurrentWorkspaceId(),
-    getCurrentUserId(),
-  ])
-
+  const workspaceId = await resolveCurrentWorkspaceId()
+  const userId = await getCurrentUserId()
   if (!workspaceId || !userId) return null
+
+  const supabase = await createClient()
 
   const generatedAt = new Date().toISOString()
   const week = getCockpitMobileWeekRange(generatedAt)

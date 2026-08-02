@@ -2,6 +2,7 @@ import "server-only"
 
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/workspace"
 import {
   extractCrmLauncherAccountIdsFromUiPrefs,
   mergeCrmLauncherAccountIdsIntoUiPrefs,
@@ -10,12 +11,12 @@ import {
 
 async function requireAuthenticatedProfile() {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Lecture seule sur un chemin interactif : getClaims() (vérification locale du
+  // JWT) plutôt que getUser() et son aller-retour de ~170 ms vers l'API Auth.
+  // Les routes d'écriture gardent getUser().
+  const userId = await getCurrentUserId()
 
-  if (authError || !user) {
+  if (!userId) {
     return {
       errorResponse: NextResponse.json({ error: "Non authentifié" }, { status: 401 }),
       supabase,
@@ -26,7 +27,7 @@ async function requireAuthenticatedProfile() {
   return {
     errorResponse: null,
     supabase,
-    userId: user.id,
+    userId: userId,
   }
 }
 

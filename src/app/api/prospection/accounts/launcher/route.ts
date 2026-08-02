@@ -2,6 +2,7 @@ import "server-only"
 
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/workspace"
 import { extractCrmLauncherAccountIdsFromUiPrefs } from "@/lib/crm/account-launcher-preferences"
 
 type CrmLauncherAccount = {
@@ -68,12 +69,12 @@ export async function GET(request: Request) {
   const supabase = await createClient()
 
   // 1. Authentification
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  // Lecture seule sur un chemin interactif : getClaims() (vérification locale du
+  // JWT) plutôt que getUser() et son aller-retour de ~170 ms vers l'API Auth.
+  // Les routes d'écriture gardent getUser().
+  const userId = await getCurrentUserId()
 
-  if (authError || !user) {
+  if (!userId) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
   }
 
@@ -99,7 +100,7 @@ export async function GET(request: Request) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("ui_prefs")
-        .eq("id", user.id)
+        .eq("id", userId)
         .maybeSingle()
 
       const pinnedIds = extractCrmLauncherAccountIdsFromUiPrefs(profile?.ui_prefs)

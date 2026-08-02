@@ -1,0 +1,519 @@
+{
+  "name": "ADR-0012 Lot 2 — Connaissance compte (intel-030-account-knowledge)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intel-030-account-knowledge",
+        "authentication": "none",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true,
+          "responseCode": 202
+        }
+      },
+      "id": "n1-webhook",
+      "name": "Webhook — Account Knowledge",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "intel-030-account-knowledge"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "type": "SHA256",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "n1b-verify-signature",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nif (body.entityType !== 'company') {\n  throw new Error('intel-030-account-knowledge requiert entityType=\"company\"');\n}\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n  }\n}];"
+      },
+      "id": "n2-validate",
+      "name": "Validate Entity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: \"running\", started_at: new Date().toISOString() } }}",
+        "options": {}
+      },
+      "id": "n3-update-run",
+      "name": "Update Run Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/rpc/get_account_knowledge_context",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Profile",
+              "value": "public"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  p_workspace_id: $('Validate Entity').item.json.workspaceId,\n  p_company_id: $('Validate Entity').item.json.companyId\n} }}",
+        "options": {}
+      },
+      "id": "n4-hydrate-context",
+      "name": "Hydrate Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const upstream = $('Validate Entity').item.json;\nconst context = $input.first().json;\n\n// ADR-0012 D-3 — le LLM ne peut émettre que 3 des 5 valeurs de provenance :\n// - 'relational'   : fait dérivé du relationnel KREDO (contacts/opportunités/missions/signaux)\n//                     OU du diagnostic process (artefact déjà produit par le moteur KREDO,\n//                     pas un import brut — le fit imparfait avec 'engine_researched'\n//                     [pensé pour de la recherche web datée] est un choix documenté ici,\n//                     pas un oubli : processDiagnostic est plus fiable qu'un simple 'inferred').\n// - 'folio_legacy'  : fait dérivé de companies.metadata.analysis_data (import FOLIO, sans source).\n// - 'inferred'      : déduction du LLM non traçable à une entrée précise.\n// 'human_verified' (réservé à la curation manager) et 'engine_researched' (réservé aux futurs\n// workflows de recherche web datée) sont REJETÉS s'ils apparaissent en sortie — cf. Parse & Validate.\n\nconst SYSTEM_PROMPT = `Tu rédiges la \"Connaissance compte\" pour Kredo Digital (ESN premium : Data/IA,\nCloud, Product Management, Cybersécurité) — étape 1 de la chaîne de décision commerciale\n(ADR-0012). Ce n'est PAS une étude marché ni une recommandation d'offre : uniquement ce\nque l'on sait factuellement du compte lui-même.\n\nRÈGLES ABSOLUES :\n1. Le CONTEXTE ci-dessous (JSON) est ta SEULE source. N'invente aucun fait, aucun chiffre,\n   aucun nom qui n'y figure explicitement.\n2. Chaque fait produit doit porter une provenance parmi EXACTEMENT ces 3 valeurs :\n   - \"relational\" : dérivé de context.contacts / context.opportunities / context.missions /\n     context.recentInteractions / context.signals (relationnel KREDO direct) OU de context.processDiagnostic s'il est présent.\n   - \"folio_legacy\" : dérivé de context.folioAnalysisData (import FOLIO, à traiter comme peu fiable\n     et daté — jamais présenté comme une vérité certaine).\n   - \"inferred\" : déduction que tu formules toi-même sans qu'elle soit directement traçable.\n   N'utilise JAMAIS \"human_verified\" ni \"engine_researched\" — ces valeurs sont réservées.\n3. Exclus tout ce qui relève du secteur/marché macro (context ne t'en donne pas — normal),\n   de la recommandation d'offre, ou d'une roadmap d'actions : ce sont d'autres étapes de la chaîne.\n4. Si une section n'a rien de solide à dire, renvoie un tableau vide plutôt que d'inventer.\n5. Style direct, factuel, sans superlatifs creux.\n\nFORMAT DE SORTIE — JSON valide UNIQUEMENT, sans backticks, structure EXACTE :\n{\n  \"schema_version\": 1,\n  \"identity_positioning\": [ { \"text\": \"...\", \"provenance\": \"relational|folio_legacy|inferred\" } ],\n  \"commercial_relationship\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"key_contacts\": [ { \"role_summary\": \"...\" } ],\n  \"organisation_observed\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"frictions_and_signals\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"open_questions\": [ { \"text\": \"...\", \"provenance\": \"inferred\" } ]\n}\nNote : open_questions est TOUJOURS \"inferred\" par nature (ce sont des hypothèses à valider,\npas des faits établis). key_contacts n'a pas de provenance (dérivé mécaniquement des contacts).`;\n\nconst userPrompt = `CONTEXTE (source unique de vérité — JSON) :\\n${JSON.stringify(context, null, 2)}`;\n\nreturn [{\n  json: {\n    ...upstream,\n    context,\n    systemPrompt: SYSTEM_PROMPT,\n    userPrompt,\n  }\n}];"
+      },
+      "id": "n5-assemble-prompt",
+      "name": "Assemble Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  model: \"claude-sonnet-5\",\n  max_tokens: 3000,\n  thinking: { type: \"disabled\" },\n  system: $json.systemPrompt,\n  messages: [ { role: \"user\", content: $json.userPrompt } ]\n} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "n6-call-llm",
+      "name": "Call LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst upstream = $('Assemble Prompt').item.json;\nconst textBlock = (response.content || []).find(b => b.type === 'text');\nconst content = textBlock && textBlock.text;\n\nif (!content) {\n  throw new Error('Le LLM a renvoyé un contenu vide');\n}\n\nlet parsed;\ntry {\n  const clean = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  parsed = JSON.parse(clean);\n} catch (e) {\n  throw new Error('Réponse LLM non-JSON : ' + content.slice(0, 200));\n}\n\nif (parsed.schema_version !== 1) {\n  throw new Error('schema_version doit valoir 1');\n}\n\nconst SECTIONS = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals', 'open_questions'];\nconst ALLOWED_PROVENANCE = new Set(['relational', 'folio_legacy', 'inferred']);\n\nfor (const section of SECTIONS) {\n  if (!Array.isArray(parsed[section])) {\n    throw new Error(`Section manquante ou invalide : ${section}`);\n  }\n  for (const fact of parsed[section]) {\n    if (!fact.text || typeof fact.text !== 'string') {\n      throw new Error(`Fait sans texte dans ${section}`);\n    }\n    if (!ALLOWED_PROVENANCE.has(fact.provenance)) {\n      throw new Error(`Provenance non autorisée dans ${section} : \"${fact.provenance}\" (autorisé: relational, folio_legacy, inferred)`);\n    }\n  }\n}\n\nif (!Array.isArray(parsed.key_contacts)) {\n  throw new Error('key_contacts manquant ou invalide');\n}\nfor (const kc of parsed.key_contacts) {\n  if (!kc.role_summary || typeof kc.role_summary !== 'string') {\n    throw new Error('key_contacts : role_summary manquant');\n  }\n}\n\nconst accountKnowledge = {\n  schema_version: 1,\n  identity_positioning: parsed.identity_positioning,\n  commercial_relationship: parsed.commercial_relationship,\n  key_contacts: parsed.key_contacts,\n  organisation_observed: parsed.organisation_observed,\n  frictions_and_signals: parsed.frictions_and_signals,\n  open_questions: parsed.open_questions,\n  generated_at: new Date().toISOString(),\n};\n\nreturn [{\n  json: {\n    ...upstream,\n    accountKnowledge,\n    llmUsage: {\n      inputTokens: (response.usage && response.usage.input_tokens) || null,\n      outputTokens: (response.usage && response.usage.output_tokens) || null,\n      model: response.model || 'claude-sonnet-5',\n    },\n  }\n}];"
+      },
+      "id": "n7-parse-output",
+      "name": "Parse & Validate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Contrôles qualité — heuristiques simples (pas de NLP), un flag n'est jamais\n// un blocage dur, juste une donnée exposée dans qaFlags côté UI (cf. ADR-0009/INTEL-020).\nconst data = $input.first().json;\nconst ak = data.accountKnowledge;\nconst qaFlags = [];\n\nconst totalFacts = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals', 'open_questions']\n  .reduce((sum, s) => sum + ak[s].length, 0);\nqaFlags.push({ check: 'has_facts', passed: totalFacts > 0, detail: `${totalFacts} faits au total` });\n\nconst hasContacts = (data.context.contacts || []).length > 0;\nqaFlags.push({\n  check: 'key_contacts_present_if_contacts_exist',\n  passed: !hasContacts || ak.key_contacts.length > 0,\n  detail: hasContacts ? `${ak.key_contacts.length} synthèses pour ${data.context.contacts.length} contacts` : 'aucun contact en base',\n});\n\nconst openQuestionsAllInferred = ak.open_questions.every((f) => f.provenance === 'inferred');\nqaFlags.push({\n  check: 'open_questions_are_inferred',\n  passed: openQuestionsAllInferred,\n  detail: openQuestionsAllInferred ? 'OK' : 'des hypothèses ne sont pas taguées inferred',\n});\n\nconst hasFolioInput = !!(data.context.folioAnalysisData && Object.keys(data.context.folioAnalysisData).length > 0);\nconst usesFolio = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals']\n  .some((s) => ak[s].some((f) => f.provenance === 'folio_legacy'));\nqaFlags.push({\n  check: 'folio_provenance_consistent',\n  passed: usesFolio ? hasFolioInput : true,\n  detail: usesFolio && !hasFolioInput ? 'facts tagged folio_legacy mais aucune donnée FOLIO en entrée' : 'OK',\n});\n\nreturn [{ json: { ...data, qaFlags } }];"
+      },
+      "id": "n8-quality-check",
+      "name": "Quality Check",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const data = $input.first().json;\nconst companyName = (data.context.company && data.context.company.name) || 'Compte';\n\nconst sourceRefs = [\n  { entityType: 'company', entityId: data.companyId, label: 'Fiche compte' },\n];\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'succeeded',\n  contentJson: data.accountKnowledge,\n  contentText: [\n    `# Connaissance compte — ${companyName}`,\n    ...data.accountKnowledge.identity_positioning.map((f) => f.text),\n    ...data.accountKnowledge.commercial_relationship.map((f) => f.text),\n  ].join('\\n\\n'),\n  title: `Connaissance compte — ${companyName}`,\n  modelProvider: 'anthropic',\n  modelUsed: (data.llmUsage && data.llmUsage.model) || 'claude-sonnet-5',\n  tokensInput: (data.llmUsage && data.llmUsage.inputTokens) || null,\n  tokensOutput: (data.llmUsage && data.llmUsage.outputTokens) || null,\n  contextSnapshot: data.context,\n  sourceRefs,\n  qaFlags: data.qaFlags || [],\n};\n\nreturn [{\n  json: {\n    callbackUrl: data.callbackUrl,\n    rawBody: JSON.stringify(callbackBody),\n  }\n}];"
+      },
+      "id": "n9-prepare-callback",
+      "name": "Prepare Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "n9b-sign-callback",
+      "name": "Sign Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {}
+      },
+      "id": "n10-callback",
+      "name": "Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2840,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 10000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const errItem = $input.first().json;\nlet runId = null;\nlet callbackUrl = null;\n\ntry {\n  const ve = $('Validate Entity').item.json;\n  runId = ve.runId || null;\n  callbackUrl = ve.callbackUrl || null;\n} catch (e) {\n  // Validate Entity n'a produit aucune sortie exploitable — notification impossible.\n}\n\nlet errorMessage = 'Erreur inconnue dans le workflow intel-030-account-knowledge';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'failed',\n  contentJson: {},\n  errorMessage,\n};\n\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "n11-prepare-failure",
+      "name": "Prepare Failure Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": false,
+        "value": "={{ $json.rawBody }}",
+        "type": "SHA256",
+        "dataPropertyName": "signature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "n11b-sign-failure",
+      "name": "Sign Failure Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-kredo-signature",
+              "value": "=sha256={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.rawBody }}",
+        "options": {}
+      },
+      "id": "n12-callback-failure",
+      "name": "Callback (Failure)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2360,
+        580
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Webhook — Account Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Signature": {
+      "main": [
+        [
+          {
+            "node": "Validate Entity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Entity": {
+      "main": [
+        [
+          {
+            "node": "Update Run Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Run Status": {
+      "main": [
+        [
+          {
+            "node": "Hydrate Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hydrate Context": {
+      "main": [
+        [
+          {
+            "node": "Assemble Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM": {
+      "main": [
+        [
+          {
+            "node": "Parse & Validate Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Validate Output": {
+      "main": [
+        [
+          {
+            "node": "Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Check": {
+      "main": [
+        [
+          {
+            "node": "Prepare Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Sign Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign Failure Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -33,6 +33,14 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Assertion statique (quelques millisecondes) : tout module important
+      # @/lib/supabase/server doit porter la garde `import "server-only"`.
+      # Placée avant les tests et le build parce qu'elle est instantanée et que
+      # son message nomme directement le fichier fautif — alors que le build
+      # Turbopack, lui, tolère silencieusement cette classe de violation.
+      - name: Server/client boundary
+        run: npm run check:server-boundary
+
       - name: Run tests
         run: npm test
 

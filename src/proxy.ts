@@ -12,22 +12,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
-  // Endpoints machine-à-machine : appelés par n8n / les crons, JAMAIS par un
-  // navigateur. Ils n'ont pas de session Supabase à rafraîchir et assurent
-  // eux-mêmes leur vérification (HMAC pour le callback n8n, secret partagé pour
-  // les crons). Le court-circuit est placé AVANT createServerClient : sur ces
-  // routes on ne construisait un client et on ne vérifiait un JWT que pour
-  // constater, quelques lignes plus bas, qu'il n'y en avait pas.
-  //
-  // /login et /auth/callback restent volontairement dans le flux complet :
-  // /login a besoin de la session pour rediriger un utilisateur déjà connecté
-  // vers /cockpit, et /auth/callback pose les cookies de session.
-  const isMachineEndpoint =
+  // Routes sans session à traiter ici — court-circuit placé AVANT
+  // createServerClient : on y construisait un client et on y vérifiait un JWT
+  // pour constater ensuite qu'il n'y en avait pas.
+  //   · endpoints machine-à-machine (n8n, crons) : jamais appelés par un
+  //     navigateur, ils assurent eux-mêmes leur vérification HMAC ;
+  //   · /auth/callback : crée son propre client et fait l'échange de code
+  //     lui-même (src/app/auth/callback/route.ts).
+  // ⚠️ Une route HMAC oubliée ici échoue SILENCIEUSEMENT : elle est redirigée
+  // vers /login, n8n suit la redirection et reçoit un 200 HTML qu'il prend pour
+  // un succès. Toute nouvelle route appelant verifyHmac doit être ajoutée.
+  const skipsSession =
     pathname.startsWith("/api/n8n/callback") ||
+    pathname.startsWith("/auth/callback") ||
     pathname === "/api/reports/weekly-manager/cron-trigger" ||
     pathname === "/api/reports/workspace-diagnostic/cron-trigger"
 
-  if (isMachineEndpoint) {
+  if (skipsSession) {
     return NextResponse.next({ request })
   }
 
@@ -62,14 +63,11 @@ export async function proxy(request: NextRequest) {
   const { data: claimsData } = await supabase.auth.getClaims()
   const user = claimsData?.claims ?? null
 
-  // Routes publiques restantes (les endpoints machine-à-machine sont déjà
-  // sortis plus haut) : elles ont besoin du client Supabase — /login pour
-  // rediriger un utilisateur déjà connecté, /auth/callback pour la session.
-  const isPublic =
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/auth/callback")
+  // Seule route publique qui a encore besoin du client : /login doit connaître
+  // la session pour rediriger un utilisateur déjà connecté vers /cockpit.
+  const isLoginPage = pathname.startsWith("/login")
 
-  if (!user && !isPublic) {
+  if (!user && !isLoginPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("next", pathname)
@@ -95,9 +93,12 @@ export const config = {
      * pour /sw.js ou /manifest.json déclenchait une vérification de session
      * puis une redirection 307 vers /login — pour un fichier statique qui n'a
      * rien à protéger (le service worker se ré-enregistre notamment hors
-     * session, cf. PwaRegistrar). Les extensions de police et d'icône sont
-     * ajoutées pour la même raison que celles d'images déjà présentes.
+     * session, cf. PwaRegistrar).
+     * `favicon.ico` et `icon.png` ne sont plus listés nommément : le groupe
+     * d'extensions les couvre déjà. Les 3 fichiers restants le sont, eux, parce
+     * que leurs extensions (.js/.json/.txt) sont trop larges pour être exclues
+     * en bloc sans risquer d'exclure une future route.
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|sw\\.js|manifest\\.json|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf)$).*)",
+    "/((?!_next/static|_next/image|sw\\.js|manifest\\.json|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf)$).*)",
   ],
 }

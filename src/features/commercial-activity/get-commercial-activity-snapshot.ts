@@ -266,20 +266,6 @@ function categoryForInteraction(
   return "unclassified" as const;
 }
 
-// Délègue au résolveur partagé (mémoïsé par requête, vérification du JWT en
-// local) au lieu de refaire ici getUser() + profiles : c'était le même code,
-// mais avec un aller-retour réseau vers l'API Auth à chaque rendu.
-async function resolveWorkspaceId() {
-  const [supabase, workspaceId] = await Promise.all([
-    createClient(),
-    resolveCurrentWorkspaceId(),
-  ]);
-  // Un seul message : le résolveur partagé renvoie null aussi bien pour une
-  // session absente que pour un profil sans workspace, sans les distinguer.
-  if (!workspaceId) throw new Error("Session ou espace de travail introuvable");
-  return { supabase, workspaceId };
-}
-
 export async function getCommercialActivitySnapshot(
   filters: CommercialActivityFilters,
 ): Promise<CommercialActivitySnapshot> {
@@ -288,7 +274,13 @@ export async function getCommercialActivitySnapshot(
   if (currentFrom >= currentTo)
     throw new Error("La période doit avoir une fin postérieure au début");
   const previous = shiftPeriod(currentFrom, currentTo);
-  const { supabase, workspaceId } = await resolveWorkspaceId();
+
+  // Un seul message d'erreur : le résolveur partagé renvoie null aussi bien pour
+  // une session absente que pour un profil sans workspace, sans les distinguer.
+  const workspaceId = await resolveCurrentWorkspaceId();
+  if (!workspaceId) throw new Error("Session ou espace de travail introuvable");
+  const supabase = await createClient();
+
   const queryFrom = previous.from.toISOString();
   const queryTo = currentTo.toISOString();
 

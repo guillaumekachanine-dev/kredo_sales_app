@@ -12,14 +12,10 @@ type DiagnosticDocumentRow = {
 }
 
 export async function getWorkspaceDiagnostic(): Promise<WorkspaceDiagnosticSnapshot | null> {
-  // Résolveur partagé : mémoïsé par requête, JWT vérifié localement (plus
-  // d'aller-retour vers l'API Auth pour un id que le jeton porte déjà).
-  const [supabase, workspaceId] = await Promise.all([
-    createClient(),
-    resolveCurrentWorkspaceId(),
-  ])
-
+  const workspaceId = await resolveCurrentWorkspaceId()
   if (!workspaceId) return null
+
+  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from("intelligence_documents")

@@ -216,33 +216,23 @@ export async function aggregateAgendaSnapshot(
   }
 }
 
-// Délègue au résolveur partagé (mémoïsé par requête, JWT vérifié en local) au
-// lieu de refaire getUser() + profiles. Ne prend plus de client en argument :
-// il n'en avait besoin que pour cette résolution.
-async function resolveServerAgendaContext() {
-  const { resolveCurrentWorkspaceId } = await import("@/lib/supabase/workspace")
-  const workspaceId = await resolveCurrentWorkspaceId()
-
-  if (!workspaceId) {
-    throw new Error("Agenda snapshot requires an authenticated user with a workspace")
-  }
-
-  return { workspaceId }
-}
-
 export async function loadAgendaSnapshot(
   input: Omit<BuildAgendaQueryInput, "workspaceId">,
   deps: Omit<AggregateAgendaSnapshotDeps, "supabase"> = {},
 ) {
+  // Imports dynamiques délibérés : 3 fichiers de test Vitest importent ce
+  // module, et ces deux dépendances tirent `next/headers`. Les charger
+  // paresseusement les garde hors du graphe de modules des tests.
+  const { resolveCurrentWorkspaceId } = await import("@/lib/supabase/workspace")
   const { createClient } = await import("@/lib/supabase/server")
-  const [supabase, context] = await Promise.all([
-    createClient(),
-    resolveServerAgendaContext(),
-  ])
-  const query = buildAgendaQuery({
-    ...input,
-    workspaceId: context.workspaceId,
-  })
+
+  const workspaceId = await resolveCurrentWorkspaceId()
+  if (!workspaceId) {
+    throw new Error("Agenda snapshot requires an authenticated user with a workspace")
+  }
+
+  const supabase = await createClient()
+  const query = buildAgendaQuery({ ...input, workspaceId })
 
   return aggregateAgendaSnapshot(query, {
     ...deps,
