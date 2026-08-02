@@ -98,6 +98,7 @@ export function FinancialModelingDesktopDialog({
   const [bootstrap, setBootstrap] = useState<FinancialModelingModelingContext | null>(null)
   const [recentSimulations, setRecentSimulations] = useState<FinancialModelRow[]>([])
   const [showConfirmValidation, setShowConfirmValidation] = useState(false)
+  const [showPromoteConfirm, setShowPromoteConfirm] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
@@ -113,6 +114,7 @@ export function FinancialModelingDesktopDialog({
     async function loadBootstrap() {
       setViewMode(initialView)
       setShowPostSaveActions(false)
+      setShowPromoteConfirm(false)
       setShowHistory(false)
       setLoading(true)
       const res = await getFinancialModelingBootstrapAction()
@@ -313,18 +315,18 @@ export function FinancialModelingDesktopDialog({
   }
 
   // 7. Promote to Reference
-  const handlePromoteToReference = async () => {
+  const handlePromoteToReference = () => {
     if (!formState.id) {
       alert("Veuillez d'abord sauvegarder la simulation.")
       return
     }
-    if (
-      !confirm(
-        "Voulez-vous promouvoir cette simulation en référence financière ? Elle deviendra immuable et l'ancienne référence de l'opportunité sera remplacée."
-      )
-    ) {
-      return
-    }
+    setShowPromoteConfirm(true)
+  }
+
+  const confirmPromoteToReference = async () => {
+    if (!formState.id) return
+
+    setShowPromoteConfirm(false)
     setSaving(true)
     const res = await promoteFinancialModelAction(formState.id)
     setSaving(false)
@@ -717,6 +719,54 @@ export function FinancialModelingDesktopDialog({
         </div>
       </AppDialog>
       {formState.id ? <CommercialQuoteDesktopDialog modelId={formState.id} open={quoteOpen} onOpenChange={setQuoteOpen} /> : null}
+
+      <AppDialog
+        open={showPromoteConfirm}
+        onOpenChange={(nextOpen) => {
+          if (!saving) setShowPromoteConfirm(nextOpen)
+        }}
+        title="Définir comme référence financière ?"
+        className="max-w-[30rem]"
+        headerClassName="-mx-4 -mt-4 rounded-t-[var(--radius-medium)] border-b border-[#1E4596] bg-[#2554B8] px-4 py-4 text-white [&_button]:text-white/80 [&_button]:hover:text-white sm:-mx-6 sm:-mt-6 sm:px-6"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={saving}
+              onClick={() => setShowPromoteConfirm(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="brass"
+              size="sm"
+              loading={saving}
+              className="border-amber-400 bg-amber-400 text-amber-950 hover:bg-amber-500"
+              onClick={confirmPromoteToReference}
+            >
+              Confirmer le remplacement
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-xs leading-relaxed text-body">
+          <div className="flex gap-3 rounded-[var(--radius-medium)] border border-amber-500/25 bg-amber-500/5 p-4">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-400/20 text-amber-700" aria-hidden="true">
+              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.7 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />
+              </svg>
+            </div>
+            <div className="space-y-1.5">
+              <p className="font-bold text-heading">Cette action modifie la référence active de l’opportunité.</p>
+              <p>La simulation actuelle deviendra la nouvelle référence financière et sera ensuite immuable.</p>
+            </div>
+          </div>
+          <p className="text-muted">
+            L’ancienne référence sera conservée dans l’historique avec le statut « Remplacé ». Aucun calcul ni document existant ne sera supprimé.
+          </p>
+        </div>
+      </AppDialog>
 
       {/* Confirmation modal for margin/tjm warning validation */}
       <AppDialog
