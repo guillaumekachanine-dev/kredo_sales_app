@@ -24,6 +24,7 @@ import { validateFinancialReferenceEligibility } from "../../domain/financial-re
 import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import {
   applyFinancialModelingLaunchPreset,
+  buildFinancialModelTitle,
   type FinancialModelingLaunchPreset,
 } from "../../domain/financial-modeling-launch-preset"
 import type { FinancialModelStatus } from "../../domain/financial-model.types"
@@ -104,6 +105,7 @@ export function FinancialModelingDesktopDialog({
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"edit" | "summary">(initialView)
   const [showPostSaveActions, setShowPostSaveActions] = useState(false)
+  const [isTitleEditable, setIsTitleEditable] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -116,6 +118,7 @@ export function FinancialModelingDesktopDialog({
       setShowPostSaveActions(false)
       setShowPromoteConfirm(false)
       setShowHistory(false)
+      setIsTitleEditable(false)
       setLoading(true)
       const res = await getFinancialModelingBootstrapAction()
       if (res.success && res.data) {
@@ -167,6 +170,26 @@ export function FinancialModelingDesktopDialog({
     if (!bootstrap || !formState.opportunityId) return null
     return bootstrap.opportunities.find((o) => o.id === formState.opportunityId)
   }, [bootstrap, formState.opportunityId])
+  const selectedCompany = useMemo(() => {
+    if (!bootstrap || !formState.companyId) return null
+    return bootstrap.companies.find((company) => company.id === formState.companyId)
+  }, [bootstrap, formState.companyId])
+  const generatedTitle = useMemo(() => buildFinancialModelTitle({
+    companyName: selectedCompany?.name,
+    consultantName: formState.resourceLabel,
+    opportunityTitle: selectedOpp?.title,
+  }), [formState.resourceLabel, selectedCompany?.name, selectedOpp?.title])
+
+  useEffect(() => {
+    if (formState.id || isTitleEditable || !generatedTitle) return
+
+    setFormState((current) => (
+      current.title === generatedTitle ? current : { ...current, title: generatedTitle }
+    ))
+    setBaselineState((current) => (
+      current.title === generatedTitle ? current : { ...current, title: generatedTitle }
+    ))
+  }, [formState.id, generatedTitle, isTitleEditable])
 
   const eligibility = useMemo(() => {
     return validateFinancialReferenceEligibility(formState, {
@@ -250,9 +273,10 @@ export function FinancialModelingDesktopDialog({
         const defaultState = createDefaultFormState()
         setFormState(defaultState)
         setBaselineState(cloneFormState(defaultState))
+        setIsTitleEditable(false)
       }
       
-      // Refresh list
+      // Refresh recent list
       const recentRes = await getRecentFinancialModelsAction()
       if (recentRes.success && recentRes.data) {
         setRecentSimulations(recentRes.data)
@@ -272,6 +296,7 @@ export function FinancialModelingDesktopDialog({
       const loadedState = cloneFormState(res.data)
       setFormState(loadedState)
       setBaselineState(cloneFormState(loadedState))
+      setIsTitleEditable(false)
     } else {
       alert(res.error || "Erreur de chargement de la simulation")
     }
@@ -294,6 +319,7 @@ export function FinancialModelingDesktopDialog({
       })
       setFormState(duplicated)
       setBaselineState(cloneFormState(duplicated))
+      setIsTitleEditable(true)
     } else {
       alert(res.error || "Erreur de duplication")
     }
@@ -538,11 +564,34 @@ export function FinancialModelingDesktopDialog({
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Contexte de la simulation</h3>
                       <Field label="Titre de la simulation" required>
-                        <Input
-                          value={formState.title}
-                          disabled={fieldsDisabled}
-                          onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={formState.title}
+                            readOnly={!isTitleEditable}
+                            disabled={fieldsDisabled}
+                            className={!isTitleEditable && !fieldsDisabled ? "cursor-default bg-canvas/60 text-muted" : undefined}
+                            onChange={(e) => setFormState({ ...formState, title: e.target.value })}
+                          />
+                          {!fieldsDisabled ? (
+                            <button
+                              type="button"
+                              aria-label="Modifier librement le titre de la simulation"
+                              aria-pressed={isTitleEditable}
+                              title="Modifier librement le titre"
+                              onClick={() => setIsTitleEditable(true)}
+                              className={`inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-small)] border transition-colors ${
+                                isTitleEditable
+                                  ? "border-primary/30 bg-primary/5 text-primary"
+                                  : "border-border bg-surface text-muted hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                              }`}
+                            >
+                              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                              </svg>
+                            </button>
+                          ) : null}
+                        </div>
                       </Field>
                     </div>
 
