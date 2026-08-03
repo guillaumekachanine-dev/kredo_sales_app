@@ -1,16 +1,17 @@
 "use client"
 
-import { startTransition, useState } from "react"
+import { startTransition, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { DocumentCard } from "@/components/reports/DocumentCard"
 import { DocumentMobileDetail } from "@/components/reports/DocumentMobileDetail"
+import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
-import { MobileActionPage } from "@/components/templates/MobileActionPage"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
+import { cn } from "@/lib/utils"
 import type { ReportsFilterState, ReportsListData } from "@/app/(app)/reports/_data/reports-types"
 
 type ReportsMobileViewProps = {
@@ -19,24 +20,48 @@ type ReportsMobileViewProps = {
   listError?: string | null
 }
 
-const SearchIcon = () => (
-  <svg className="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-    <path
-      d="M14 14L16.5 16.5M15.5 9C15.5 12.59 12.59 15.5 9 15.5C5.41 15.5 2.5 12.59 2.5 9C2.5 5.41 5.41 2.5 9 2.5C12.59 2.5 15.5 5.41 15.5 9Z"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
+type ReportsSection = "documents" | "history" | "generate"
+
+const MOBILE_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
+  { id: "documents", label: "Documents" },
+  { id: "history", label: "Historique" },
+  { id: "generate", label: "Générer" },
+]
+
+const DOCUMENT_CATEGORIES = [
+  { label: "Tous", value: "all" },
+  { label: "Rapports", value: "financial" },
+  { label: "Synthèses", value: "client_summary" },
+  { label: "Pitchs", value: "commercial_pitch" },
+  { label: "Mails", value: "communication" },
+]
+
+function formatHistoryDate(value: string) {
+  return new Date(value).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  })
+}
 
 export function ReportsMobileView({ reportsData, filters, listError }: ReportsMobileViewProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [activeSection, setActiveSection] = useState<ReportsSection>("documents")
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [searchDraft, setSearchDraft] = useState(filters.search ?? "")
+  const documentTriggerRef = useRef<HTMLButtonElement | null>(null)
+
+  const openDocument = (documentId: string, trigger: HTMLButtonElement) => {
+    documentTriggerRef.current = trigger
+    setSelectedDocumentId(documentId)
+  }
+
+  const closeDocument = () => {
+    setSelectedDocumentId(null)
+    window.requestAnimationFrame(() => documentTriggerRef.current?.focus())
+  }
 
   const updateParams = (mutate: (params: URLSearchParams) => void) => {
     startTransition(() => {
@@ -48,190 +73,181 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
     })
   }
 
-  const activeDocType = filters.documentType || "all"
-
-  const handleFilterClick = (value: string) => {
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     updateParams((params) => {
-      if (value === "all") {
-        params.delete("documentType")
-      } else {
-        params.set("documentType", value)
-      }
+      const value = searchDraft.trim()
+      if (value) params.set("search", value)
+      else params.delete("search")
     })
   }
 
-  const isActive = (value: string) => {
-    if (value === "all") return activeDocType === "all"
-    return activeDocType === value
+  const handleFilterClick = (value: string) => {
+    updateParams((params) => {
+      if (value === "all") params.delete("documentType")
+      else params.set("documentType", value)
+    })
   }
 
+  const activeDocType = filters.documentType || "all"
+
   return (
-    <>
-      <MobileActionPage
-        header={(
-          <MobilePageHeader
-            title="Rapports & Rédactions"
-            className="[&_h1]:text-lg [&_h1]:font-bold [&_h1]:leading-snug [&>div]:items-center"
-            actions={(
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="size-8 flex items-center justify-center p-0 text-xl font-bold rounded-lg border border-border bg-surface text-heading active:opacity-75 cursor-pointer shadow-sm"
-                aria-label="Nouveau document"
-              >
-                +
-              </button>
-            )}
-          />
-        )}
-      >
-        <Input
-          key={filters.search ?? ""}
-          defaultValue={filters.search ?? ""}
-          onChange={(event) => {
-            const nextSearch = event.target.value.trim()
-            updateParams((params) => {
-              if (nextSearch) params.set("search", nextSearch)
-              else params.delete("search")
-            })
-          }}
-          placeholder="Rechercher un document"
-          leftElement={<SearchIcon />}
-          fullWidth
+    <div className="flex h-[calc(100dvh-var(--layout-mobile-content-bottom-offset)-var(--space-3))] min-h-0 flex-col overflow-hidden bg-canvas text-body">
+      <div className="shrink-0 bg-surface px-4 pb-3 pt-4">
+        <MobilePageHeader
+          title="Rapports & rédaction"
+          className="gap-0 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-7"
         />
+      </div>
 
-        {/* Chips filtres horizontaux */}
-        <div className="-mx-4 overflow-x-auto scrollbar-none flex gap-2 pb-3 px-4">
-          {[
-            { label: "Tous", value: "all" },
-            { label: "Mails", value: "communication" },
-            { label: "Pitch", value: "commercial_pitch" },
-            { label: "Prise de parole", value: "prise_de_parole" },
-            { label: "Rapports", value: "financial" }
-          ].map((chip) => {
-            const active = isActive(chip.value)
-            return (
-              <button
-                key={chip.value}
-                type="button"
-                onClick={() => handleFilterClick(chip.value)}
-                className={`rounded-full px-4 py-1.5 text-[10px] font-bold border shrink-0 min-h-[44px] transition-all cursor-pointer ${
-                  active
-                    ? "bg-primary/10 border-primary text-primary"
-                    : "bg-surface/20 border-border/20 text-muted"
-                }`}
-              >
-                {chip.label}
+      <nav className="grid shrink-0 grid-cols-3 border-y border-border bg-surface" aria-label="Navigation Rapports & rédaction">
+        {MOBILE_SECTIONS.map((section) => {
+          const active = activeSection === section.id
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => setActiveSection(section.id)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "relative min-h-12 px-2 text-sm font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                active ? "bg-primary/[0.04] after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-brand-brass" : "hover:bg-surface-hover/60",
+              )}
+            >
+              {section.label}
+            </button>
+          )
+        })}
+      </nav>
+
+      <main className="min-h-0 flex-1 overflow-hidden pb-[calc(80px+env(safe-area-inset-bottom))]">
+        {activeSection === "documents" ? (
+          <div className="flex h-full min-h-0 flex-col bg-surface">
+            <div className="shrink-0 space-y-3 border-b border-border px-4 py-4">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <Input
+                  value={searchDraft}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                  placeholder="Rechercher un document…"
+                  aria-label="Rechercher un document"
+                  fullWidth
+                />
+                <Button type="submit" variant="secondary" size="sm" className="px-3">
+                  Chercher
+                </Button>
+              </form>
+
+              <div className="flex flex-wrap gap-2" aria-label="Catégories de documents">
+                {DOCUMENT_CATEGORIES.map((category) => {
+                  const active = activeDocType === category.value
+                  return (
+                    <button
+                      key={category.value}
+                      type="button"
+                      onClick={() => handleFilterClick(category.value)}
+                      aria-pressed={active}
+                      className={cn(
+                        "min-h-9 rounded border px-3 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
+                        active ? "border-primary bg-primary text-white" : "border-border bg-surface text-heading hover:bg-surface-hover",
+                      )}
+                    >
+                      {category.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {listError ? (
+                <div className="p-4"><ErrorState title="Impossible de charger les documents" message={listError} /></div>
+              ) : reportsData.items.length === 0 ? (
+                <div className="flex min-h-56 items-center justify-center px-8 text-center text-sm text-muted">
+                  Aucun document ne correspond à cette recherche.
+                </div>
+              ) : (
+                <div aria-label={`${reportsData.totalCount} documents`}>
+                  {reportsData.items.map((document) => (
+                    <DocumentCard
+                      key={document.id}
+                      document={document}
+                      selected={selectedDocumentId === document.id}
+                      onClick={(trigger) => openDocument(document.id, trigger)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {activeSection === "history" ? (
+          <section className="reports-scrollbar h-full overflow-y-auto bg-surface px-4 py-5" aria-labelledby="reports-mobile-history-title">
+            <div className="mb-4 border-b border-border pb-3">
+              <h2 id="reports-mobile-history-title" className="text-base font-bold text-heading">Historique des documents</h2>
+              <p className="mt-1 text-xs text-muted">Modifications disponibles dans la bibliothèque actuelle.</p>
+            </div>
+            {reportsData.items.length === 0 ? (
+              <p className="py-12 text-center text-sm text-muted">Aucun historique disponible.</p>
+            ) : (
+              <ol className="border-l border-border pl-4">
+                {reportsData.items.map((document) => (
+                  <li key={document.id} className="relative border-b border-border py-4 last:border-b-0">
+                    <span className="absolute -left-[19px] top-[23px] size-2 rounded-full border-2 border-surface bg-brand-brass" aria-hidden="true" />
+                    <button type="button" onClick={(event) => openDocument(document.id, event.currentTarget)} className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-heading">
+                      <span className="block text-sm font-bold leading-5 text-heading">{document.title}</span>
+                      <span className="mt-1 block text-xs text-muted">Version {document.versionNumber} · {formatHistoryDate(document.updatedAt)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
+        ) : null}
+
+        {activeSection === "generate" ? (
+          <section className="reports-scrollbar h-full overflow-y-auto bg-surface px-4 py-5" aria-labelledby="reports-mobile-generate-title">
+            <div className="border-b border-border pb-4">
+              <h2 id="reports-mobile-generate-title" className="text-base font-bold text-heading">Créer un document</h2>
+              <p className="mt-1 text-xs leading-5 text-muted">Choisissez un flux déjà disponible dans KREDO.</p>
+            </div>
+            <div className="divide-y divide-border">
+              <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { channel: "email" } })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="write_email" className="size-5" preferVector /></span>
+                <span><span className="block text-sm font-bold text-heading">Rédiger un mail</span><span className="mt-0.5 block text-xs text-muted">Composer une communication assistée.</span></span>
               </button>
-            )
-          })}
-        </div>
+              <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="generate_pitch" className="size-5" preferVector /></span>
+                <span><span className="block text-sm font-bold text-heading">Préparer un pitch</span><span className="mt-0.5 block text-xs text-muted">Réutiliser le flux de rédaction existant.</span></span>
+              </button>
+              <button type="button" onClick={() => openReportGeneration({ origin: "reports_library" })} className="flex min-h-20 w-full items-center gap-4 px-1 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center border border-border bg-canvas text-primary"><IntelligenceIcon name="report" className="size-5" preferVector /></span>
+                <span><span className="block text-sm font-bold text-heading">Générer un rapport</span><span className="mt-0.5 block text-xs text-muted">Ouvrir les paramètres de génération disponibles.</span></span>
+              </button>
+            </div>
+          </section>
+        ) : null}
+      </main>
 
-        {listError ? (
-          <ErrorState title="Impossible de charger les documents" message={listError} />
-        ) : reportsData.items.length === 0 ? (
-          <div className="flex min-h-40 items-center justify-center rounded-[var(--radius-large)] border border-dashed border-border bg-surface px-6 text-center text-sm text-muted">
-            Aucun document ne correspond à cette vue.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {reportsData.items.map((document) => (
-              <DocumentCard key={document.id} document={document} onClick={() => setSelectedDocumentId(document.id)} />
-            ))}
-          </div>
-        )}
-      </MobileActionPage>
+      <footer className="fixed inset-x-0 bottom-[var(--layout-mobile-content-bottom-offset)] z-[calc(var(--z-fab)+1)] border-t border-border bg-surface px-3 pb-3 pt-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="secondary" size="lg" onClick={() => openCommunicationComposer({ origin: "global" })} className="h-12 min-w-0 px-2 text-[13px]" leftIcon={<IntelligenceIcon name="write_email" className="size-5" preferVector />}>
+            Rédiger un mail
+          </Button>
+          <Button variant="brass" size="lg" onClick={() => openReportGeneration({ origin: "reports_library" })} className="h-12 min-w-0 px-2 text-[13px]" leftIcon={<IntelligenceIcon name="report" className="size-5" preferVector />}>
+            Générer un rapport
+          </Button>
+        </div>
+      </footer>
 
       {selectedDocumentId ? (
         <DocumentMobileDetail
           key={selectedDocumentId}
           documentId={selectedDocumentId}
-          open={selectedDocumentId !== null}
-          onClose={() => setSelectedDocumentId(null)}
+          open
+          onClose={closeDocument}
         />
       ) : null}
-
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[var(--z-modal)] flex items-start justify-center bg-black/60 backdrop-blur-sm px-4 pt-20" onClick={() => setIsCreateModalOpen(false)}>
-          <div 
-            className="w-full max-w-sm rounded-2xl bg-[#070913] border border-white/5 p-5 space-y-4 shadow-2xl animate-in slide-in-from-top duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="font-heading text-sm font-bold text-[#E2931D]">
-                Nouveau document
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="text-[#E2931D] hover:opacity-85 p-1 transition-opacity cursor-pointer"
-                aria-label="Fermer"
-              >
-                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3.5 pt-1">
-              {[
-                {
-                  label: "Mail",
-                  imageSrc: "/icons_set/cockpit_intelligence/redaction_message_ai.png",
-                  action: () => {
-                    openCommunicationComposer({ origin: "global", preset: { channel: "email" } })
-                    setIsCreateModalOpen(false)
-                  }
-                },
-                {
-                  label: "Pitch",
-                  imageSrc: "/icons_set/cockpit_intelligence/generation_pitch.png",
-                  action: () => {
-                    openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })
-                    setIsCreateModalOpen(false)
-                  }
-                },
-                {
-                  label: "Rapport",
-                  imageSrc: "/icons_set/cockpit_intelligence/brief_hebdo.png",
-                  action: () => {
-                    openReportGeneration({ origin: "reports_library" })
-                    setIsCreateModalOpen(false)
-                  }
-                },
-                {
-                  label: "Fiche",
-                  imageSrc: "/icons_set/cockpit_intelligence/recherche_actualités.png",
-                  action: () => {
-                    openReportGeneration({ origin: "reports_library", reportType: "activity_commercial" })
-                    setIsCreateModalOpen(false)
-                  }
-                }
-              ].map((opt) => (
-                <button
-                  key={opt.label}
-                  type="button"
-                  onClick={opt.action}
-                  className="group flex flex-col justify-between aspect-[1.1] rounded-2xl border border-white/5 bg-[#0D1222] p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 active:translate-y-0 cursor-pointer"
-                >
-                  <div className="flex items-start">
-                    <img src={opt.imageSrc} className="size-11 object-contain" alt="" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="block text-[13px] font-bold leading-snug text-[#E2931D] transition-colors group-hover:text-primary">
-                      {opt.label}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#10B981]">
-                      <span className="size-1.5 rounded-full bg-[#10B981]" />
-                      DISPONIBLE
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   )
 }

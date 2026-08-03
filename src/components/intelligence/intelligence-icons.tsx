@@ -53,11 +53,13 @@ const iconPaths: Record<IntelligenceIconKey, string> = {
 export function IntelligenceIcon({
   name,
   className = "size-4",
+  preferVector = false,
 }: {
   name: IntelligenceIconKey
   className?: string
+  preferVector?: boolean
 }) {
-  const imageSrc = iconImages[name]
+  const imageSrc = preferVector ? undefined : iconImages[name]
   if (imageSrc) {
     return (
       <Image

@@ -1,12 +1,14 @@
 "use client"
 
-import type { KeyboardEvent } from "react"
-import { StatusPill } from "@/components/ui/StatusPill"
 import type { DocumentListItem } from "@/app/(app)/reports/_data/reports-types"
+import { IconChevron } from "@/components/cockpit/mobile/icons"
+import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import { cn } from "@/lib/utils"
 
 type DocumentCardProps = {
   document: DocumentListItem
-  onClick: () => void
+  onClick: (trigger: HTMLButtonElement) => void
+  selected?: boolean
 }
 
 const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
@@ -31,64 +33,56 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentListItem["documentType"], string> = {
   commercial_quote: "Devis commercial",
 }
 
-const STATUS_LABELS: Record<DocumentListItem["status"], string> = {
-  draft: "Brouillon",
-  ready: "Prêt",
-  used: "Utilisé",
-  archived: "Archivé",
-}
-
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("fr-FR")
+  return new Date(value).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
 }
 
-function handleCardKeyDown(event: KeyboardEvent<HTMLDivElement>, onClick: () => void) {
-  if (event.key === "Enter" || event.key === " ") {
-    event.preventDefault()
-    onClick()
-  }
-}
-
-export function DocumentCard({ document, onClick }: DocumentCardProps) {
+export function DocumentCard({ document, onClick, selected = false }: DocumentCardProps) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(event) => handleCardKeyDown(event, onClick)}
-      className="min-h-14 rounded-[var(--radius-medium)] border border-border/40 bg-surface/30 backdrop-blur-sm p-4 transition-all hover:bg-surface-hover/30 hover:border-primary/50 cursor-pointer group active:scale-[0.99] hover:shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+    <button
+      type="button"
+      onClick={(event) => onClick(event.currentTarget)}
+      aria-current={selected ? "true" : undefined}
+      className={cn(
+        "group relative grid min-h-[92px] w-full grid-cols-[2.25rem_minmax(0,1fr)_1.5rem] items-center gap-3 border-b border-border bg-surface px-4 py-3 text-left outline-none transition-colors",
+        "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+        selected ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/60",
+      )}
       aria-label={`Ouvrir ${document.title}`}
     >
-      <div className="flex flex-col gap-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="min-w-0 flex-1 text-sm font-bold text-body group-hover:text-heading transition-colors line-clamp-2 leading-snug">
+      <span className="inline-flex size-9 items-center justify-center text-heading" aria-hidden="true">
+        <IntelligenceIcon name="report" className="size-6" preferVector />
+      </span>
+
+      <span className="min-w-0">
+        <span className="flex items-start gap-2">
+          <span className="line-clamp-2 flex-1 text-[15px] font-bold leading-5 text-heading">
             {document.title}
-          </h3>
+          </span>
           {document.isFavorite ? (
-            <span className="shrink-0 text-primary animate-pulse" aria-hidden="true">
-              <svg className="size-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 3.5L11.91 7.38L16.19 8L13.09 11.02L13.82 15.28L10 13.27L6.18 15.28L6.91 11.02L3.81 8L8.09 7.38L10 3.5Z" />
-              </svg>
+            <span className="mt-0.5 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-brass">
+              Favori
             </span>
           ) : null}
-        </div>
+        </span>
+        <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-4 text-muted">
+          <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
+          <span aria-hidden="true">·</span>
+          <span>{formatDate(document.updatedAt)}</span>
+          {document.primaryEntity?.label ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="truncate">{document.primaryEntity.label}</span>
+            </>
+          ) : null}
+        </span>
+      </span>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-[6px] border border-border/40 bg-surface-hover/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted group-hover:text-body transition-colors">
-            {STATUS_LABELS[document.status]}
-          </span>
-          <span className="text-[10px] font-medium text-muted group-hover:text-body/80 transition-colors">
-            {DOCUMENT_TYPE_LABELS[document.documentType]}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 text-xxs text-muted group-hover:text-body/60 transition-colors pt-1 border-t border-border/20">
-          <span className="min-w-0 truncate font-medium">
-            {document.primaryEntity?.label ?? "—"}
-          </span>
-          <span className="shrink-0 whitespace-nowrap">{formatDate(document.updatedAt)}</span>
-        </div>
-      </div>
-    </div>
+      <span className="text-heading transition-transform group-hover:translate-x-0.5" aria-hidden="true"><IconChevron /></span>
+    </button>
   )
 }

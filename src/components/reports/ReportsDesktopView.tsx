@@ -1,17 +1,17 @@
 "use client"
 
-import type { CSSProperties, FormEvent } from "react"
-import { useState, useTransition, useMemo } from "react"
+import { useRef, useState, useTransition, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { Button } from "@/components/ui/Button"
+import { IconChevron } from "@/components/cockpit/mobile/icons"
+import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
+import { cn } from "@/lib/utils"
 import {
   duplicateDocument,
   setDocumentFavorite,
@@ -26,17 +26,16 @@ import type {
 } from "@/app/(app)/reports/_data/reports-types"
 import {
   DOCUMENT_OBJECT_LABELS,
-  getDocumentCategory,
   getDocumentTypeLabel,
   getFinancialReferenceDocumentSummary,
-  getPitchBriefLabel,
 } from "./document-display"
-import { ClientSummaryDocumentContent, parseAccountSummaryContent } from "./ClientSummaryDocumentContent"
+import { ClientSummaryDocumentContent } from "./ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "./PitchDocumentContent"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
+import { DocumentCommunicationActions } from "./DocumentCommunicationActions"
 import { DocumentEditor } from "./DocumentEditor"
-import { DocumentVersionHistory } from "./DocumentVersionHistory"
 import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
+import { DocumentVersionHistory } from "./DocumentVersionHistory"
 
 type ReportsDesktopViewProps = {
   reportsData: ReportsListData
@@ -47,6 +46,24 @@ type ReportsDesktopViewProps = {
   selectedDocumentError?: string | null
   listError?: string | null
 }
+
+type ReportsSection = "documents" | "history" | "generation"
+type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
+
+const LOCAL_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
+  { id: "documents", label: "Documents" },
+  { id: "history", label: "Historique" },
+  { id: "generation", label: "Génération" },
+]
+
+const DOCUMENT_CATEGORIES = [
+  { label: "Tous", value: "all" },
+  { label: "Rapports", value: "financial" },
+  { label: "Synthèses", value: "client_summary" },
+  { label: "Pitchs", value: "commercial_pitch" },
+  { label: "Prises de parole", value: "prise_de_parole" },
+  { label: "Mails", value: "communication" },
+]
 
 const STATUS_LABELS: Record<DocumentListItem["status"], string> = {
   draft: "Brouillon",
@@ -68,163 +85,89 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
 }
 
 function formatShortDate(value: string) {
-  const date = new Date(value)
-  const day = String(date.getDate()).padStart(2, "0")
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  return `${day}/${month}`
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function formatLongDate(value: string) {
+  return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })
+}
+
+function formatDocumentSize(document: DocumentDetail) {
+  const content = document.currentContentText ?? JSON.stringify(document.currentContentJson ?? "")
+  const bytes = new Blob([content]).size
+  return bytes < 1024 ? `${bytes} o` : `${Math.max(1, Math.round(bytes / 1024))} Ko`
 }
 
 function countActiveFilters(filters: ReportsFilterState) {
-  let count = 0
-  if (filters.search?.trim()) count += 1
-  if (filters.documentType) count += 1
-  if (filters.status) count += 1
-  if (filters.entityType) count += 1
-  if (filters.entityId) count += 1
-  if (filters.ownerId) count += 1
-  if (filters.favoritesOnly) count += 1
-  if (filters.periodFrom) count += 1
-  if (filters.periodTo) count += 1
-  return count
+  return Object.values(filters).filter((value) => value !== undefined && value !== null && value !== "" && value !== false).length
 }
 
-const SearchIcon = () => (
-  <svg className="size-4" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-    <path
-      d="M14 14L16.5 16.5M15.5 9C15.5 12.59 12.59 15.5 9 15.5C5.41 15.5 2.5 12.59 2.5 9C2.5 5.41 5.41 2.5 9 2.5C12.59 2.5 15.5 5.41 15.5 9Z"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-const FavoriteIcon = ({ active }: { active: boolean }) => (
-  <svg className="size-4" viewBox="0 0 20 20" fill={active ? "currentColor" : "none"} aria-hidden="true">
-    <path
-      d="M10 3.5L11.91 7.38L16.19 8L13.09 11.02L13.82 15.28L10 13.27L6.18 15.28L6.91 11.02L3.81 8L8.09 7.38L10 3.5Z"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinejoin="round"
-    />
-  </svg>
-)
-
-// ─── Run IA helpers ────────────────────────────────────────────────────────
-
-function extractMoteur(doc: DocumentDetail): string {
-  const latestVersion = doc.versions[0] ?? null
-  const brief = latestVersion?.sourceRunInputSnapshot ?? latestVersion?.briefJson ?? null
-  if (brief && typeof brief === "object") {
-    const b = brief as Record<string, unknown>
-    return typeof b.model === "string" ? b.model : typeof b.modelName === "string" ? b.modelName : "KREDO-GPT-4o"
-  }
-  return "KREDO-GPT-4o"
-}
-
-type QaFlagLike = {
-  passed?: boolean
-  detail?: string
-  check?: string
-}
-
-function extractQualiteStatus(doc: DocumentDetail): {
-  label: string | null
-  ok: boolean
-  details: string[]
-} {
-  const latestVersion = doc.versions[0] ?? null
-  const qaFlags = Array.isArray(latestVersion?.qaFlags) ? (latestVersion.qaFlags as QaFlagLike[]) : []
-  if (qaFlags.length === 0) return { label: null, ok: true, details: [] }
-  const failed = qaFlags.filter((f) => f && typeof f === "object" && !f.passed)
-  return {
-    label: failed.length === 0 ? "Qualité OK" : "À vérifier",
-    ok: failed.length === 0,
-    details: failed.map((f) => f.detail || f.check || "Anomalie non spécifiée"),
-  }
-}
-
-function RunIaMoteurRow({ document }: { document: DocumentDetail }) {
-  const moteur = extractMoteur(document)
+function ReportsLocalNavigation({ active, onChange }: { active: ReportsSection; onChange: (section: ReportsSection) => void }) {
   return (
-    <div className="flex justify-between border-b border-border/10 pb-1.5">
-      <span className="text-muted">Moteur</span>
-      <span className="font-semibold text-heading font-mono text-[9px]">{moteur}</span>
-    </div>
+    <aside className="w-[132px] shrink-0 border-r border-border bg-edito-canvas/70">
+      <p className="px-4 pb-5 pt-6 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-heading">
+        Rapports &<br />rédaction
+      </p>
+      <nav aria-label="Navigation locale Rapports & rédaction">
+        {LOCAL_SECTIONS.map((section) => {
+          const activeSection = active === section.id
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => onChange(section.id)}
+              aria-current={activeSection ? "page" : undefined}
+              className={cn(
+                "relative min-h-12 w-full px-4 text-left text-[11px] font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                activeSection ? "bg-primary/[0.07] font-bold before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/70",
+              )}
+            >
+              {section.label}
+            </button>
+          )
+        })}
+      </nav>
+    </aside>
   )
 }
 
-function RunIaQualiteRow({ document }: { document: DocumentDetail }) {
-  const { label, ok, details } = extractQualiteStatus(document)
-  if (!label) return null
-  return (
-    <div className="flex justify-between pb-0.5">
-      <span className="flex items-center gap-1 text-muted">
-        Statut qualité
-        {/* Info tooltip icon */}
-        <span className="relative group/tooltip inline-flex">
-          <svg
-            className="size-3 text-muted/60 hover:text-muted cursor-help"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-label="Détails du statut qualité"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          {/* Tooltip bubble */}
-          <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 rounded-lg border border-border/50 bg-canvas px-2.5 py-2 text-[9px] leading-relaxed text-body shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity duration-150 z-50">
-            {ok
-              ? "Tous les contrôles qualité sont passés avec succès."
-              : details.length > 0
-                ? details.join(" · ")
-                : "Des anomalies qualité ont été détectées."}
-          </span>
-        </span>
-      </span>
-      <span className={`flex items-center gap-1 font-semibold ${ok ? "text-success" : "text-warning"}`}>
-        <span className={`size-1.5 rounded-full ${ok ? "bg-success" : "bg-warning"}`} />
-        {label}
-      </span>
-    </div>
-  )
-}
-
-// ─── Follow-up button for mail documents ──────────────────────────────────
-
-function FollowUpButton({ documentId }: { documentId: string }) {
-  const [isPending, startTransition] = useTransition()
-
-  function handleFollowUp() {
-    startTransition(async () => {
-      const { prepareCommunicationReuse } = await import("@/app/(app)/reports/_data/reports-actions")
-      const result = await prepareCommunicationReuse(documentId, "follow_up")
-      if ("error" in result) return // silently ignore; full action available in DocumentCommunicationActions
-    })
+function DocumentContent({ document }: { document: DocumentDetail }) {
+  if (document.documentType === "financial_reference") {
+    const reference = getFinancialReferenceDocumentSummary(document.currentContentJson)
+    return reference ? (
+      <div className="border border-border bg-edito-canvas p-4 text-xs">
+        <p className="font-bold text-heading">{reference.resource ?? "Ressource non renseignée"}</p>
+        <p className="mt-1 text-body">{reference.profile ?? "Profil non renseigné"}</p>
+        <div className="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-3">
+          <div><p className="text-[9px] font-bold uppercase text-muted">TJM</p><p className="mt-1 font-mono font-bold text-heading">{reference.saleDailyRate === null ? "—" : `${reference.saleDailyRate.toLocaleString("fr-FR")} €`}</p></div>
+          <div><p className="text-[9px] font-bold uppercase text-muted">CA projeté</p><p className="mt-1 font-mono font-bold text-heading">{reference.revenue === null ? "—" : `${reference.revenue.toLocaleString("fr-FR")} €`}</p></div>
+          <div><p className="text-[9px] font-bold uppercase text-muted">Marge</p><p className="mt-1 font-mono font-bold text-heading">{reference.margin === null ? "—" : `${reference.margin.toFixed(1)}%`}</p></div>
+        </div>
+      </div>
+    ) : <p className="text-xs italic text-muted">Référence financière sans données structurées.</p>
   }
 
-  return (
-    <button
-      onClick={handleFollowUp}
-      disabled={isPending}
-      className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors disabled:opacity-50 cursor-pointer"
-    >
-      <span>{isPending ? "Préparation…" : "Relance à partir de ce message"}</span>
-    </button>
+  if (document.documentType === "client_summary") {
+    return <ClientSummaryDocumentContent contentJson={document.currentContentJson} contentText={document.currentContentText} fallbackClassName="whitespace-pre-wrap text-xs leading-relaxed" />
+  }
+
+  if (document.documentType === "financial" || (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "financial")) {
+    return <FinancialReportContent contentJson={document.currentContentJson} contentText={document.currentContentText} />
+  }
+
+  if (document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole") {
+    return <PitchDocumentContent contentJson={document.currentContentJson} contentText={document.currentContentText} briefJson={document.versions[0]?.sourceRunInputSnapshot ?? document.versions[0]?.briefJson ?? null} fallbackClassName="whitespace-pre-wrap text-xs leading-relaxed" />
+  }
+
+  return document.currentContentText ? (
+    <div className="whitespace-pre-wrap text-xs leading-5 text-body">{document.currentContentText}</div>
+  ) : (
+    <p className="text-xs italic text-muted">Aucun contenu disponible pour ce document.</p>
   )
 }
-
-// ──────────────────────────────────────────────────────────────────────────
-
-type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
 
 export function ReportsDesktopView({
   reportsData,
-  kpis,
   filters,
   selectedDocumentId,
   selectedDocument,
@@ -234,9 +177,9 @@ export function ReportsDesktopView({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const viewerRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
-
-  // Custom interface states
+  const [activeSection, setActiveSection] = useState<ReportsSection>("documents")
   const [showFilters, setShowFilters] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -245,6 +188,7 @@ export function ReportsDesktopView({
   const [zoomLevel, setZoomLevel] = useState(100)
 
   const activeFilterCount = countActiveFilters(filters)
+  const activeDocType = filters.documentType || "all"
   const totalPages = Math.max(1, Math.ceil(reportsData.totalCount / reportsData.pageSize))
 
   const applyUrlMutation = (mutate: (params: URLSearchParams) => void) => {
@@ -261,12 +205,8 @@ export function ReportsDesktopView({
       if (typeof value === "boolean") {
         if (value) params.set(key, "true")
         else params.delete(key)
-      } else if (value && value !== "all") {
-        params.set(key, value)
-      } else {
-        params.delete(key)
-      }
-
+      } else if (value && value !== "all") params.set(key, value)
+      else params.delete(key)
       params.delete("page")
       params.delete("doc")
     })
@@ -274,31 +214,18 @@ export function ReportsDesktopView({
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-    handleFilterChange("search", String(formData.get("search") ?? "").trim())
+    handleFilterChange("search", String(new FormData(event.currentTarget).get("search") ?? "").trim())
   }
 
   const handleReset = () => {
     applyUrlMutation((params) => {
-      params.delete("search")
-      params.delete("documentType")
-      params.delete("status")
-      params.delete("entityType")
-      params.delete("entityId")
-      params.delete("ownerId")
-      params.delete("favoritesOnly")
-      params.delete("periodFrom")
-      params.delete("periodTo")
-      params.delete("page")
-      params.delete("doc")
+      for (const key of ["search", "documentType", "status", "entityType", "entityId", "ownerId", "favoritesOnly", "periodFrom", "periodTo", "page", "doc"]) params.delete(key)
     })
   }
 
   const handleSelectDocument = (documentId: string) => {
     setIsEditing(false)
-    applyUrlMutation((params) => {
-      params.set("doc", documentId)
-    })
+    applyUrlMutation((params) => params.set("doc", documentId))
   }
 
   const handlePageChange = (page: number) => {
@@ -309,732 +236,238 @@ export function ReportsDesktopView({
     })
   }
 
-  // Document action runner
-  const runAction = (
-    action: Exclude<PendingAction, "copy">,
-    callback: () => Promise<void>
-  ) => {
+  const runAction = (action: Exclude<PendingAction, "copy">, callback: () => Promise<void>) => {
     setActionError(null)
     setActionLoading(action)
     startTransition(async () => {
-      try {
-        await callback()
-      } finally {
-        setActionLoading(null)
-      }
+      try { await callback() } finally { setActionLoading(null) }
     })
   }
 
-  function handleCopy() {
+  const handleCopy = () => {
     if (!selectedDocument?.currentContentText) return
     setActionLoading("copy")
     void navigator.clipboard.writeText(selectedDocument.currentContentText).then(() => {
       setCopied(true)
       setActionLoading(null)
-      setTimeout(() => setCopied(false), 2000)
+      window.setTimeout(() => setCopied(false), 2000)
     }).catch(() => {
       setActionLoading(null)
       setActionError("Impossible de copier le contenu")
     })
   }
 
-  function handleDuplicate() {
+  const handleDuplicate = () => {
     if (!selectedDocument) return
     runAction("duplicate", async () => {
       const result = await duplicateDocument({ documentId: selectedDocument.id })
-      if (!result.success) {
-        setActionError(result.error)
-        return
-      }
-
+      if (!result.success) { setActionError(result.error); return }
       const params = new URLSearchParams(searchParams.toString())
       params.set("doc", result.documentId)
       router.push(`${pathname}?${params.toString()}`, { scroll: false })
     })
   }
 
-  function handleToggleFavorite() {
+  const handleToggleFavorite = () => {
     if (!selectedDocument) return
     runAction("favorite", async () => {
       const result = await setDocumentFavorite(selectedDocument.id, !selectedDocument.isFavorite)
-      if (!result.success) {
-        setActionError(result.error)
-        return
-      }
-
+      if (!result.success) { setActionError(result.error); return }
       router.refresh()
     })
   }
 
-  function handleArchive() {
+  const handleArchive = () => {
     if (!selectedDocument) return
     runAction("archive", async () => {
       const result = await setDocumentStatus(selectedDocument.id, "archived")
-      if (!result.success) {
-        setActionError(result.error)
-        return
-      }
-
+      if (!result.success) { setActionError(result.error); return }
       router.refresh()
     })
   }
 
-  // Extract custom statistics block if client_summary
-  const summaryStats = useMemo(() => {
-    if (!selectedDocument || selectedDocument.documentType !== "client_summary") return null
-    const structured = parseAccountSummaryContent(selectedDocument.currentContentJson)
-    if (!structured) return null
-    const { facts } = structured
-    return {
-      scoreIa: facts.identity.aiScore !== null ? `${facts.identity.aiScore}/10` : "8.4 /10",
-      contacts: facts.relation.contactsCount || 0,
-      signals: (facts.signals.news ? 1 : 0) + (facts.signals.regulatoryDeadline ? 1 : 0) || 3,
-      opportunities: facts.potential.openOpportunitiesCount || 0,
-    }
-  }, [selectedDocument])
-
-  // Get active chip value from filters
-  const activeDocType = filters.documentType || "all"
+  const handleDownload = () => {
+    if (!selectedDocument) return
+    const blob = new Blob([selectedDocument.currentContentText ?? JSON.stringify(selectedDocument.currentContentJson, null, 2)], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const anchor = window.document.createElement("a")
+    anchor.href = url
+    anchor.download = `${selectedDocument.title.replace(/[^a-z0-9àâçéèêëîïôûùüÿñæœ -]/gi, "").trim() || "document"}.txt`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto px-6 py-8">
-      {/* Sombre Header Éditorial */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-5">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-            Rapports & rédaction
-          </h1>
-          <p className="text-xs text-muted">
-            Bibliothèque éditoriale et productions IA
-          </p>
-        </div>
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas">
+      <ReportsLocalNavigation active={activeSection} onChange={setActiveSection} />
 
-        {/* Header Actions Aligned Right */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${showFilters || activeFilterCount > 0
-                ? "border-primary/50 bg-surface text-primary"
-                : "border-border/40 bg-surface/30 text-muted hover:text-heading hover:bg-surface-hover/30"
-              }`}
-          >
-            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
-            </svg>
-            <span>Filtrer</span>
-            {activeFilterCount > 0 && (
-              <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => openCommunicationComposer({ origin: "global" })}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-          >
-            <svg className="size-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-            </svg>
-            <span>Rédiger un mail</span>
-          </button>
-
-          <button
-            onClick={() => openReportGeneration({ origin: "reports_library" })}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-[0_2px_10px_rgba(255,191,0,0.15)] transition-all cursor-pointer hover:scale-[1.02]"
-          >
-            <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 21l8.982-11.861H13.62l.812-5.043L5.457 15.904h4.356z" />
-            </svg>
-            <span>Générer un rapport</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Expandable Advanced Filters */}
-      {showFilters && (
-        <div className="animate-fade-in">
-          <PageFilterBar
-            activeCount={activeFilterCount}
-            onReset={handleReset}
-            summary={`${reportsData.totalCount} document${reportsData.totalCount > 1 ? "s" : ""}`}
-          >
-            <form onSubmit={handleSearchSubmit} className="flex min-w-[18rem] flex-1 items-center gap-2 sm:flex-initial">
-              <Input
-                size="sm"
-                key={filters.search ?? ""}
-                name="search"
-                defaultValue={filters.search ?? ""}
-                placeholder="Rechercher un document"
-                leftElement={<SearchIcon />}
-                fullWidth
-                className="sm:min-w-[18rem]"
-              />
-              <Button type="submit" variant="secondary" size="sm" loading={isPending}>
-                Rechercher
-              </Button>
-            </form>
-
-            <PageFilterSelect
-              id="reports-document-type-filter"
-              label="Type de document"
-              value={filters.documentType ?? "all"}
-              onChange={(value) => handleFilterChange("documentType", value)}
-              options={[
-                { value: "all", label: "Type" },
-                ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label })),
-              ]}
-            />
-
-            <PageFilterSelect
-              id="reports-status-filter"
-              label="Statut"
-              value={filters.status ?? "all"}
-              onChange={(value) => handleFilterChange("status", value)}
-              options={[
-                { value: "all", label: "Statut" },
-                ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
-              ]}
-            />
-
-            <PageFilterSelect
-              id="reports-entity-type-filter"
-              label="Type d'entité"
-              value={filters.entityType ?? "all"}
-              onChange={(value) => handleFilterChange("entityType", value)}
-              options={[
-                { value: "all", label: "Entité" },
-                ...Object.entries(ENTITY_TYPE_LABELS).map(([value, label]) => ({ value, label })),
-              ]}
-            />
-
-            <Button
-              variant={filters.favoritesOnly ? "primary" : "secondary"}
-              size="sm"
-              leftIcon={<FavoriteIcon active={filters.favoritesOnly ?? false} />}
-              onClick={() => handleFilterChange("favoritesOnly", !(filters.favoritesOnly ?? false))}
-            >
-              Favoris
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex min-h-[76px] shrink-0 items-center justify-between gap-5 border-b border-border bg-surface px-5 py-4">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">Rapports & rédaction</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowFilters((value) => !value)} aria-expanded={showFilters}>
+              Filtrer{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
             </Button>
-          </PageFilterBar>
-        </div>
-      )}
-
-      {/* Main 3-Column Editorial Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[20rem_1fr_20rem] gap-6 items-start">
-
-        {/* Colonne Gauche: Bibliothèque */}
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <h3 className="font-heading text-sm font-bold text-heading">
-              Bibliothèque de documents
-            </h3>
-            <div className="flex items-center justify-between text-xxs text-muted">
-              <span>{reportsData.totalCount} documents</span>
-              <span className="font-medium">Trié par : Date de modification</span>
-            </div>
+            <Button variant="secondary" size="sm" onClick={() => openCommunicationComposer({ origin: "global" })} leftIcon={<IntelligenceIcon name="write_email" className="size-4" preferVector />}>Rédiger un mail</Button>
+            <Button variant="brass" size="sm" onClick={() => openReportGeneration({ origin: "reports_library" })} leftIcon={<IntelligenceIcon name="report" className="size-4" preferVector />}>Générer un rapport</Button>
           </div>
+        </header>
 
-          {/* Category Chips Filters */}
-          <div className="flex flex-wrap gap-1.5 pb-2 border-b border-border/20">
-            {[
-              { label: "Tous", value: "all" },
-              { label: "Rapports", value: "financial" },
-              { label: "Synthèses", value: "client_summary" },
-              { label: "Pitchs", value: "commercial_pitch" },
-              { label: "Prises de parole", value: "prise_de_parole" },
-              { label: "Mails", value: "communication" }
-            ].map((chip) => (
-              <button
-                key={chip.value}
-                onClick={() => handleFilterChange("documentType", chip.value)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer ${(chip.value === "all" && activeDocType === "all") || (chip.value !== "all" && activeDocType === chip.value)
-                    ? "bg-primary text-primary-fg font-bold"
-                    : "bg-surface/30 text-muted border border-border/30 hover:text-heading hover:bg-surface-hover/30"
-                  }`}
-              >
-                {chip.label}
-              </button>
-            ))}
+        {showFilters ? (
+          <div className="shrink-0 border-b border-border bg-edito-canvas px-5 py-3">
+            <PageFilterBar activeCount={activeFilterCount} onReset={handleReset} summary={`${reportsData.totalCount} document${reportsData.totalCount > 1 ? "s" : ""}`}>
+              <form onSubmit={handleSearchSubmit} className="flex min-w-[18rem] items-center gap-2">
+                <Input size="sm" key={filters.search ?? ""} name="search" defaultValue={filters.search ?? ""} placeholder="Rechercher un document" fullWidth />
+                <Button type="submit" variant="secondary" size="sm" loading={isPending}>Rechercher</Button>
+              </form>
+              <PageFilterSelect id="reports-document-type-filter" label="Type de document" value={filters.documentType ?? "all"} onChange={(value) => handleFilterChange("documentType", value)} options={[{ value: "all", label: "Type" }, ...Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => ({ value, label }))]} />
+              <PageFilterSelect id="reports-status-filter" label="Statut" value={filters.status ?? "all"} onChange={(value) => handleFilterChange("status", value)} options={[{ value: "all", label: "Statut" }, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))]} />
+              <PageFilterSelect id="reports-entity-type-filter" label="Type d'entité" value={filters.entityType ?? "all"} onChange={(value) => handleFilterChange("entityType", value)} options={[{ value: "all", label: "Entité" }, ...Object.entries(ENTITY_TYPE_LABELS).map(([value, label]) => ({ value, label }))]} />
+            </PageFilterBar>
           </div>
+        ) : null}
 
-          {/* Cards List */}
-          {listError ? (
-            <ErrorState title="Erreur" message={listError} />
-          ) : reportsData.items.length === 0 ? (
-            <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border/40 bg-surface/10 px-4 text-center">
-              <span className="text-xs font-semibold text-muted">Aucun document</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5 max-h-[62vh] overflow-y-auto pr-1">
-              {reportsData.items.map((item) => {
-                const isActive = item.id === selectedDocumentId
-                const cat = getDocumentTypeLabel(item.documentType)
-                const isMailOrPitch = cat === "mail" || cat === "pitch" || cat === "prise de parole"
-
-                const entityLabel = item.primaryEntity?.label ?? null
-                const typeLabel = DOCUMENT_OBJECT_LABELS[item.documentType]
-
-                // Format creation date as DD/MM/YYYY
-                const createdDate = (() => {
-                  const d = new Date(item.createdAt)
-                  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`
-                })()
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleSelectDocument(item.id)}
-                    className={`group relative flex items-start gap-2.5 rounded-xl border p-3 transition-all cursor-pointer ${isActive
-                        ? "border-primary bg-surface/60 shadow-[0_0_15px_rgba(255,191,0,0.1)]"
-                        : "border-border/30 bg-surface/30 hover:border-border hover:bg-surface-hover/30"
-                      }`}
-                  >
-                    {/* Left icon */}
-                    <div className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${isActive ? "bg-primary/10" : "bg-surface-hover/30"}`}>
-                      {cat === "rapport" ? (
-                        <svg className="size-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      ) : cat === "pitch" || cat === "prise de parole" ? (
-                        <svg className="size-3.5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                        </svg>
-                      ) : (
-                        <svg className="size-3.5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L22 8m-9.28 12H5a2 2 0 01-2-2V9.67l7.89 5.26a2 2 0 002.22 0L22 9.67V18a2 2 0 01-2 2h-6.72z" />
-                        </svg>
-                      )}
-                    </div>
-
-                    {/* Text content */}
-                    <div className="min-w-0 flex-1 pr-10">
-                      {isMailOrPitch ? (
-                        <>
-                          {/* Mail / Pitch — L1: client, L2: scénario, L3: titre */}
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span className={`truncate text-xs font-bold leading-snug transition-colors ${isActive ? "text-primary" : "text-body group-hover:text-heading"
-                              }`}>
-                              {entityLabel ?? "—"}
-                            </span>
-                            {item.isFavorite && (
-                              <span className="shrink-0 text-primary text-[10px] ml-0.5">★</span>
-                            )}
-                          </div>
-                          {item.scenarioLabel && (
-                            <p className="text-[10px] text-muted truncate mb-0.5">
-                              {item.scenarioLabel}
-                            </p>
-                          )}
-                          <p className={`text-[10px] truncate leading-snug transition-colors ${isActive ? "text-primary/80" : "text-muted/70 group-hover:text-body/80"
-                            }`}>
-                            {item.title}
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          {/* Rapport — L1: titre, L2: client + type */}
-                          <div className="flex items-center gap-1 mb-0.5">
-                            <span className={`block truncate text-xs font-bold leading-snug transition-colors ${isActive ? "text-primary" : "text-body group-hover:text-heading"
-                              }`}>
-                              {item.title}
-                            </span>
-                            {item.isFavorite && (
-                              <span className="shrink-0 text-primary text-[10px]">★</span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-muted truncate">
-                            {entityLabel
-                              ? <>{entityLabel}<span className="mx-1 opacity-40">·</span><span className="opacity-70">{typeLabel}</span></>
-                              : <span className="opacity-70">{typeLabel}</span>
-                            }
-                          </p>
-                        </>
-                      )}
-
-                      {/* Line 3 — creation date (all categories) */}
-                      <p className="text-[9px] text-muted/70 mt-0.5">
-                        Créé le {createdDate}
-                      </p>
-                    </div>
-
-                    {/* Category badge — top right */}
-                    <span className={`absolute top-2.5 right-2.5 rounded-[6px] border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${isActive
-                        ? "border-primary/20 bg-primary/10 text-primary"
-                        : "border-border/30 bg-surface-hover/20 text-muted"
-                      }`}>
-                      {cat}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Pagination */}
-          <div className="pt-2 border-t border-border/10 flex justify-center">
-            <div className="scale-90 origin-top">
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={reportsData.page <= 1}
-                    onClick={() => handlePageChange(reportsData.page - 1)}
-                    className="p-1 rounded border border-border/30 hover:bg-surface-hover/30 disabled:opacity-40"
-                  >
-                    ‹
-                  </button>
-                  <span className="text-xxs text-muted px-2">
-                    {reportsData.page} / {totalPages}
-                  </span>
-                  <button
-                    disabled={reportsData.page >= totalPages}
-                    onClick={() => handlePageChange(reportsData.page + 1)}
-                    className="p-1 rounded border border-border/30 hover:bg-surface-hover/30 disabled:opacity-40"
-                  >
-                    ›
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Zone Centrale: Aperçu Éditorial du Document */}
-        <div className="min-w-0 flex-col space-y-4">
-          {selectedDocument ? (
-            <>
-              {/* Document Toolbar */}
-              <div className="flex items-center justify-between rounded-xl border border-border/30 bg-surface/30 p-2.5 text-xs text-muted">
-                {/* Table of contents toggle icon */}
-                <button className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer">
-                  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-                  </svg>
-                </button>
-
-                {/* Simulated Zoom */}
-                <div className="flex items-center gap-2.5 select-none">
-                  <button
-                    onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
-                    className="size-5 rounded border border-border/30 flex items-center justify-center hover:bg-surface-hover/40 transition-colors cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <span className="font-mono text-[10px] w-8 text-center">{zoomLevel}%</span>
-                  <button
-                    onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
-                    className="size-5 rounded border border-border/30 flex items-center justify-center hover:bg-surface-hover/40 transition-colors cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-
-                {/* Print, Download, Fullscreen */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => window.print()}
-                    title="Imprimer"
-                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
-                  >
-                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                    </svg>
-                  </button>
-                  <button
-                    title="Télécharger"
-                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
-                  >
-                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                  <button
-                    title="Plein écran"
-                    className="p-1.5 hover:text-heading hover:bg-surface-hover/40 rounded transition-colors cursor-pointer"
-                  >
-                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5 5" />
-                    </svg>
-                  </button>
+        {activeSection === "documents" ? (
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(230px,280px)_minmax(0,1fr)_minmax(238px,280px)] overflow-hidden">
+            <section className="flex min-h-0 flex-col border-r border-border bg-surface" aria-labelledby="reports-library-title">
+              <div className="shrink-0 border-b border-border px-4 py-4">
+                <h2 id="reports-library-title" className="text-xs font-bold text-heading">Bibliothèque de documents</h2>
+                <p className="mt-1 text-[10px] text-muted">{reportsData.totalCount} documents</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {DOCUMENT_CATEGORIES.map((category) => {
+                    const active = activeDocType === category.value
+                    return (
+                      <button key={category.value} type="button" onClick={() => handleFilterChange("documentType", category.value)} aria-pressed={active} className={cn("min-h-7 rounded border px-2 text-[9px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-heading", active ? "border-primary bg-primary text-white" : "border-border bg-surface text-heading hover:bg-surface-hover")}>{category.label}</button>
+                    )
+                  })}
                 </div>
               </div>
 
-              {/* Editorial Paper Sheet Document Preview */}
-              <div
-                className="paper-sheet p-6 rounded-2xl border border-border/40 shadow-2xl relative overflow-hidden transition-all duration-300 min-h-[58vh] max-h-[72vh] overflow-y-auto"
-	                style={{
-	                  transform: `scale(${zoomLevel / 100})`,
-	                  transformOrigin: "top center",
-	                  backgroundColor: "#FAF9F6",
-	                  color: "#4A5568",
-	                  colorScheme: "light",
-	                  "--color-canvas": "#FAF9F6",
-	                  "--color-surface": "#FFFFFF",
-	                  "--color-surface-hover": "#F5F4F0",
-	                  "--color-border": "#E3DFD5",
-	                  "--color-heading": "#1C2333",
-	                  "--color-body": "#4A5568",
-	                  "--color-muted": "#718096",
-	                  "--color-primary": "#A67A1E",
-	                  "--color-primary-deep": "#8C6615",
-	                  "--color-primary-fg": "#FAF9F6",
-	                } as CSSProperties}
-              >
-                {isEditing ? (
-                  <DocumentEditor
-                    key={`${selectedDocument.id}-${selectedDocument.versionNumber}`}
-                    document={selectedDocument}
-                    onCancel={() => setIsEditing(false)}
-                    onSaved={() => setIsEditing(false)}
-                  />
-                ) : (
-                  <div className="space-y-6">
-                    {/* Paper Masthead */}
-                    <div className="flex items-start justify-between border-b border-border/60 pb-4">
-                      <div>
-                        <span className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase">
-                          KREDO INTELLIGENCE
-                        </span>
-                        <h2 className="font-heading text-lg font-bold text-heading mt-1 leading-snug">
-                          {selectedDocument.title}
-                        </h2>
-                        <span className="text-[9px] font-medium text-muted block mt-0.5">
-                          {DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]}
-                        </span>
-                      </div>
-                      <span className="text-[9px] font-semibold text-muted tracking-wide font-mono">
-                        {formatShortDate(selectedDocument.createdAt)}
-                      </span>
-                    </div>
-
-                    {/* Synthèse Premium Stats Banner if applicable */}
-                    {summaryStats && (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-surface/50 border border-border/50 rounded-xl p-3.5 shadow-inner">
-                        <div className="flex items-center gap-2.5">
-                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">★</span>
-                          <div>
-                            <span className="block text-[8px] font-bold text-muted uppercase">Score IA</span>
-                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.scoreIa}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">👤</span>
-                          <div>
-                            <span className="block text-[8px] font-bold text-muted uppercase">Contacts</span>
-                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.contacts}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">📡</span>
-                          <div>
-                            <span className="block text-[8px] font-bold text-muted uppercase">Signaux</span>
-                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.signals}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary">💼</span>
-                          <div>
-                            <span className="block text-[8px] font-bold text-muted uppercase">Opportunités</span>
-                            <span className="block text-xs font-bold text-heading font-mono">{summaryStats.opportunities}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Main Content Area */}
-                    <div className="prose prose-sm max-w-none text-body">
-                      {selectedDocument.documentType === "financial_reference" ? (() => {
-                        const reference = getFinancialReferenceDocumentSummary(selectedDocument.currentContentJson)
-                        return reference ? (
-                          <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-4 text-xs">
-                            <span className="inline-flex rounded border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">Référence financière</span>
-                            <p className="mt-3 font-bold text-heading">{reference.resource ?? "Ressource non renseignée"}</p>
-                            <p className="text-body">{reference.profile ?? "Profil non renseigné"}</p>
-                            <p className="mt-2 text-muted">{reference.startDate ?? "—"} — {reference.endDate ?? "Sans fin"}</p>
-                            <div className="mt-3 grid grid-cols-3 gap-3 border-t border-border/50 pt-3"><div><p className="text-[9px] font-bold uppercase text-muted">TJM</p><p className="mt-1 font-mono font-bold text-heading">{reference.saleDailyRate === null ? "—" : `${reference.saleDailyRate.toLocaleString("fr-FR")} €`}</p></div><div><p className="text-[9px] font-bold uppercase text-muted">CA projeté</p><p className="mt-1 font-mono font-bold text-heading">{reference.revenue === null ? "—" : `${reference.revenue.toLocaleString("fr-FR")} €`}</p></div><div><p className="text-[9px] font-bold uppercase text-muted">Marge</p><p className="mt-1 font-mono font-bold text-heading">{reference.margin === null ? "—" : `${reference.margin.toFixed(1)}%`}</p></div></div>
-                          </div>
-                        ) : <p className="text-xs text-muted italic">Référence financière sans données structurées.</p>
-                      })() : selectedDocument.documentType === "client_summary" ? (
-                        <ClientSummaryDocumentContent
-                          contentJson={selectedDocument.currentContentJson}
-                          contentText={selectedDocument.currentContentText}
-                          fallbackClassName="text-xs whitespace-pre-wrap leading-relaxed"
-                        />
-                      ) : selectedDocument.documentType === "financial" || (selectedDocument.currentContentJson && typeof selectedDocument.currentContentJson === "object" && (selectedDocument.currentContentJson as Record<string, unknown>).reportType === "financial") ? (
-                        <FinancialReportContent
-                          contentJson={selectedDocument.currentContentJson}
-                          contentText={selectedDocument.currentContentText}
-                        />
-                      ) : selectedDocument.documentType === "commercial_pitch" || selectedDocument.documentType === "prise_de_parole" ? (
-                        <PitchDocumentContent
-                          contentJson={selectedDocument.currentContentJson}
-                          contentText={selectedDocument.currentContentText}
-                          briefJson={selectedDocument.versions[0]?.sourceRunInputSnapshot ?? selectedDocument.versions[0]?.briefJson ?? null}
-                          fallbackClassName="text-xs whitespace-pre-wrap leading-relaxed"
-                        />
-                      ) : selectedDocument.currentContentText ? (
-                        <div className="text-xs whitespace-pre-wrap leading-relaxed text-body bg-canvas/30 p-3.5 rounded-xl border border-border/50">
-                          {selectedDocument.currentContentText}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted italic">Aucun contenu disponible pour ce document.</p>
-                      )}
-                    </div>
-
-                    {/* Paper footer */}
-                    <div className="pt-4 border-t border-border/60 flex items-center justify-between text-[8px] text-muted font-medium">
-                      <span>Document généré par KREDO Intelligence</span>
-                      <span>Confidentiel - Usage interne uniquement</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : selectedDocumentError ? (
-            <SurfaceCard padding="default">
-              <ErrorState
-                title="Erreur de chargement"
-                message={selectedDocumentError}
-              />
-            </SurfaceCard>
-          ) : (
-            /* Centered Empty State */
-            <div className="flex h-[60vh] flex-col items-center justify-center rounded-2xl border border-dashed border-border/30 bg-surface/20 px-6 text-center shadow-xl">
-              <div className="size-12 rounded-full bg-primary/5 flex items-center justify-center text-primary mb-3">
-                <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h2 className="font-heading text-base font-bold text-heading">
-                Sélectionnez un document
-              </h2>
-              <p className="mt-1 max-w-xs text-xs text-muted leading-relaxed">
-                La prévisualisation, les sources, les paramètres appliqués et l’historique s’affichent ici dès qu’un document est ouvert.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Rail Droit: Détails, Paramètres de génération & Actions */}
-        <aside className="space-y-6">
-          {selectedDocument ? (
-            <>
-              {/* Box Run IA / Détails du document */}
-              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-heading text-xs font-bold text-heading">
-                    Run IA
-                  </h4>
-                  <span className="rounded bg-success/15 px-1.5 py-0.5 text-[9px] font-bold text-success uppercase">
-                    Terminé
-                  </span>
-                </div>
-                <div className="text-[10px] space-y-2.5">
-                  <div className="flex justify-between border-b border-border/10 pb-1.5">
-                    <span className="text-muted">Auteur</span>
-                    <span className="font-semibold text-heading">{selectedDocument.ownerName}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-border/10 pb-1.5">
-                    <span className="text-muted">Version</span>
-                    <span className="font-semibold text-heading font-mono">v{selectedDocument.versionNumber}.0</span>
-                  </div>
-                  <div className="flex justify-between border-b border-border/10 pb-1.5">
-                    <span className="text-muted">Modifié le</span>
-                    <span className="font-semibold text-heading">{formatShortDate(selectedDocument.updatedAt)}</span>
-                  </div>
-                  {/* Moteur row (moved from DocumentGenerationParameters) */}
-                  <RunIaMoteurRow document={selectedDocument} />
-                  {/* Statut qualité row with tooltip */}
-                  <RunIaQualiteRow document={selectedDocument} />
-                </div>
-              </div>
-
-              {/* Bloc Paramètres de Génération (Replié par défaut) */}
-              <details className="rounded-xl border border-border/30 bg-surface/30 group">
-                <summary className="cursor-pointer p-4 font-heading text-xs font-bold text-heading flex items-center justify-between select-none list-none [&::-webkit-details-marker]:hidden">
-                  <span>Paramètres de génération</span>
-                  <span className="text-muted group-open:rotate-180 transition-transform duration-200 text-[10px]">▼</span>
-                </summary>
-                <div className="border-t border-border/10 p-4 pt-3">
-                  <DocumentGenerationParameters document={selectedDocument} />
-                </div>
-              </details>
-
-              {/* Actions Section */}
-              <div className="rounded-xl border border-border/30 bg-surface/30 p-4 space-y-3">
-                <h4 className="font-heading text-xs font-bold text-heading">
-                  Actions
-                </h4>
-                <div className="flex flex-col gap-2 pt-1 border-t border-border/10">
-                  {actionError && (
-                    <p className="text-[10px] text-danger text-center font-semibold">{actionError}</p>
-                  )}
-                  <button
-                    onClick={handleCopy}
-                    disabled={!selectedDocument.currentContentText}
-                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors disabled:opacity-40 cursor-pointer"
-                  >
-                    <span>{copied ? "✓ Copié" : "Copier"}</span>
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-                  >
-                    <span>Reprendre / Modifier</span>
-                  </button>
-                  <button
-                    onClick={handleDuplicate}
-                    className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-                  >
-                    <span>Adapter à un autre contexte</span>
-                  </button>
-                  {/* Mail-specific: follow-up action */}
-                  {selectedDocument.documentType === "communication" && (
-                    <FollowUpButton documentId={selectedDocument.id} />
-                  )}
-                  <button
-                    onClick={handleToggleFavorite}
-                    className={`w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border px-4 text-xs font-semibold transition-colors cursor-pointer ${selectedDocument.isFavorite
-                        ? "border-primary/20 bg-primary/10 text-primary"
-                        : "border-border/40 bg-surface text-body hover:text-heading hover:bg-surface-hover/30"
-                      }`}
-                  >
-                    <span>{selectedDocument.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</span>
-                  </button>
-                  {selectedDocument.status !== "archived" && (
-                    <button
-                      onClick={handleArchive}
-                      className="w-full min-h-9 flex items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-surface px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-                    >
-                      <span>Archiver</span>
+              <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {listError ? <div className="p-4"><ErrorState title="Erreur" message={listError} /></div> : reportsData.items.length === 0 ? (
+                  <p className="px-5 py-12 text-center text-xs text-muted">Aucun document.</p>
+                ) : reportsData.items.map((item) => {
+                  const active = item.id === selectedDocumentId
+                  return (
+                    <button key={item.id} type="button" onClick={() => handleSelectDocument(item.id)} aria-current={active ? "true" : undefined} className={cn("relative w-full border-b border-border px-4 py-3 text-left outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset", active ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/60")}>
+                      <span className="block truncate text-[11px] font-bold leading-4 text-heading">{item.title}</span>
+                      <span className="mt-1 block truncate text-[9px] leading-4 text-muted">{getDocumentTypeLabel(item.documentType)} · Créé le {formatShortDate(item.createdAt)}</span>
                     </button>
-                  )}
-                </div>
+                  )
+                })}
               </div>
 
-              {/* Historique des Versions — replié par défaut */}
-              <details className="rounded-xl border border-border/30 bg-surface/30 group">
-                <summary className="cursor-pointer p-4 font-heading text-xs font-bold text-heading flex items-center justify-between select-none list-none [&::-webkit-details-marker]:hidden">
-                  <span>Historique</span>
-                  <span className="text-muted group-open:rotate-180 transition-transform duration-200 text-[10px]">▼</span>
-                </summary>
-                <div className="border-t border-border/10 p-4 pt-3">
-                  <DocumentVersionHistory
-                    key={`${selectedDocument.id}-${selectedDocument.versionNumber}`}
-                    versions={selectedDocument.versions}
-                  />
+              {totalPages > 1 ? (
+                <div className="flex shrink-0 items-center justify-center gap-2 border-t border-border px-4 py-2">
+                  <button type="button" aria-label="Page précédente" disabled={reportsData.page <= 1} onClick={() => handlePageChange(reportsData.page - 1)} className="inline-flex size-8 items-center justify-center border border-border text-heading disabled:opacity-35"><span className="rotate-180" aria-hidden="true"><IconChevron /></span></button>
+                  <span className="text-[10px] text-muted">{reportsData.page} / {totalPages}</span>
+                  <button type="button" aria-label="Page suivante" disabled={reportsData.page >= totalPages} onClick={() => handlePageChange(reportsData.page + 1)} className="inline-flex size-8 items-center justify-center border border-border text-heading disabled:opacity-35"><span aria-hidden="true"><IconChevron /></span></button>
                 </div>
-              </details>
-            </>
-          ) : (
-            /* Fallback sidebar details when nothing selected */
-            <div className="rounded-xl border border-border/30 bg-surface/10 p-5 text-center">
-              <span className="text-[10px] text-muted italic">Aucun détail à afficher</span>
-            </div>
-          )}
-        </aside>
+              ) : null}
+            </section>
 
-      </div>
+            <section className="flex min-h-0 min-w-0 flex-col bg-edito-canvas px-4 pb-4" aria-label="Visualiseur du document">
+              {selectedDocument ? (
+                <>
+                  <div className="flex min-h-12 shrink-0 items-center justify-between border-b border-border text-[10px] text-muted">
+                    <button type="button" onClick={() => setIsEditing(true)} className="inline-flex min-h-9 items-center gap-1.5 px-2 font-semibold text-heading outline-none hover:bg-surface focus-visible:ring-2 focus-visible:ring-heading">Éditer</button>
+                    <div className="flex items-center gap-1">
+                      <span className="mr-1 font-mono">{zoomLevel}%</span>
+                      <button type="button" aria-label="Réduire le zoom" onClick={() => setZoomLevel((value) => Math.max(70, value - 10))} className="inline-flex size-7 items-center justify-center border border-border bg-surface text-heading">−</button>
+                      <button type="button" aria-label="Augmenter le zoom" onClick={() => setZoomLevel((value) => Math.min(130, value + 10))} className="inline-flex size-7 items-center justify-center border border-border bg-surface text-heading">+</button>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => window.print()} className="min-h-9 px-2 font-semibold text-heading hover:bg-surface">Imprimer</button>
+                      <button type="button" onClick={handleDownload} className="min-h-9 px-2 font-semibold text-heading hover:bg-surface">Télécharger</button>
+                      <button type="button" onClick={() => void viewerRef.current?.requestFullscreen?.()} className="min-h-9 px-2 font-semibold text-heading hover:bg-surface">Plein écran</button>
+                    </div>
+                  </div>
+
+                  <div ref={viewerRef} className="reports-scrollbar min-h-0 flex-1 overflow-auto bg-edito-canvas py-4">
+                    <article className="paper-sheet mx-auto min-h-full w-full max-w-[760px] border border-border bg-white px-7 py-6" style={{ fontSize: `${zoomLevel}%` }}>
+                      {isEditing ? (
+                        <DocumentEditor key={`${selectedDocument.id}-${selectedDocument.versionNumber}`} document={selectedDocument} onCancel={() => setIsEditing(false)} onSaved={() => setIsEditing(false)} />
+                      ) : (
+                        <div className="space-y-6">
+                          <header className="border-b border-border pb-5">
+                            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-primary">KREDO Intelligence</p>
+                            <h2 className="mt-2 font-heading text-xl font-bold leading-7 text-heading">{selectedDocument.title}</h2>
+                            <p className="mt-1 text-[10px] text-muted">{DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]} · {formatLongDate(selectedDocument.createdAt)}</p>
+                          </header>
+                          <DocumentContent document={selectedDocument} />
+                          <footer className="flex items-center justify-between border-t border-border pt-4 text-[9px] text-muted"><span>Document généré par KREDO Intelligence</span><span>Usage interne</span></footer>
+                        </div>
+                      )}
+                    </article>
+                  </div>
+                </>
+              ) : selectedDocumentError ? (
+                <div className="p-6"><ErrorState title="Erreur de chargement" message={selectedDocumentError} /></div>
+              ) : (
+                <div className="flex min-h-0 flex-1 items-center justify-center px-8 text-center"><div><IntelligenceIcon name="report" className="mx-auto size-5" preferVector /><h2 className="mt-3 text-sm font-bold text-heading">Sélectionnez un document</h2><p className="mt-1 max-w-sm text-xs leading-5 text-muted">La prévisualisation et sa fiche s’afficheront dans cet espace.</p></div></div>
+              )}
+            </section>
+
+            <aside className="reports-scrollbar min-h-0 overflow-y-auto border-l border-border bg-surface" aria-label="Fiche du document">
+              <div className="border-b border-border px-4 py-4"><h2 className="text-xs font-bold text-heading">Fiche du document</h2></div>
+              {selectedDocument ? (
+                <div className="divide-y divide-border px-4">
+                  <section className="py-4">
+                    <dl className="space-y-2.5 text-[10px]">
+                      {[ ["Type", DOCUMENT_OBJECT_LABELS[selectedDocument.documentType]], ["Auteur", selectedDocument.ownerName], ["Créé le", formatShortDate(selectedDocument.createdAt)], ["Modifié le", formatShortDate(selectedDocument.updatedAt)], ["Taille", formatDocumentSize(selectedDocument)] ].map(([label, value]) => <div key={label} className="grid grid-cols-[72px_1fr] gap-2"><dt className="text-muted">{label}</dt><dd className="font-semibold text-heading">{value}</dd></div>)}
+                    </dl>
+                  </section>
+                  <section className="py-4"><h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.08em] text-heading">Paramètres de génération</h3><DocumentGenerationParameters document={selectedDocument} /></section>
+                  <section className="py-4"><h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.08em] text-heading">Historique des versions</h3><DocumentVersionHistory key={`${selectedDocument.id}-${selectedDocument.versionNumber}`} versions={selectedDocument.versions} /></section>
+                  <section className="py-4">
+                    <h3 className="mb-3 text-[10px] font-bold uppercase tracking-[0.08em] text-heading">Actions</h3>
+                    {actionError ? <p className="mb-2 text-[10px] text-danger">{actionError}</p> : null}
+                    <div className="grid gap-2">
+                      <Button variant="secondary" size="sm" onClick={handleCopy} disabled={!selectedDocument.currentContentText} loading={actionLoading === "copy"}>{copied ? "Copié" : "Copier"}</Button>
+                      <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>Modifier</Button>
+                      <Button variant="secondary" size="sm" onClick={handleDuplicate} loading={actionLoading === "duplicate"}>Adapter à un autre contexte</Button>
+                      <Button variant={selectedDocument.isFavorite ? "brass" : "secondary"} size="sm" onClick={handleToggleFavorite} loading={actionLoading === "favorite"}>{selectedDocument.isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}</Button>
+                      {selectedDocument.status !== "archived" ? <Button variant="ghost" size="sm" onClick={handleArchive} loading={actionLoading === "archive"}>Archiver</Button> : null}
+                      <DocumentCommunicationActions document={selectedDocument} layout="stack" presentation="buttons" buttonClassName="w-full" />
+                    </div>
+                  </section>
+                </div>
+              ) : <p className="px-4 py-10 text-center text-xs text-muted">Aucun détail à afficher.</p>}
+            </aside>
+          </div>
+        ) : null}
+
+        {activeSection === "history" ? (
+          <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto bg-surface px-8 py-7">
+            <div className="mx-auto max-w-4xl">
+              <h2 className="text-lg font-bold text-heading">Historique des documents</h2>
+              <p className="mt-1 text-xs text-muted">Versions et modifications disponibles dans le périmètre chargé.</p>
+              <div className="mt-6 grid grid-cols-[minmax(0,1fr)_280px] gap-8">
+                <ol className="border-l border-border pl-6">
+                  {reportsData.items.length === 0 ? <li className="py-10 text-sm text-muted">Aucun historique disponible.</li> : reportsData.items.map((document) => (
+                    <li key={document.id} className="relative border-b border-border py-4 last:border-0"><span className="absolute -left-[29px] top-6 size-2 rounded-full border-2 border-surface bg-brand-brass" aria-hidden="true" /><button type="button" onClick={() => { handleSelectDocument(document.id); setActiveSection("documents") }} className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-heading"><span className="block text-sm font-bold text-heading">{document.title}</span><span className="mt-1 block text-xs text-muted">Version {document.versionNumber} · Modifié le {formatLongDate(document.updatedAt)} · {document.ownerName}</span></button></li>
+                  ))}
+                </ol>
+                <aside className="border-l border-border pl-5"><h3 className="text-xs font-bold text-heading">Versions du document actif</h3><div className="mt-4">{selectedDocument ? <DocumentVersionHistory versions={selectedDocument.versions} /> : <p className="text-xs text-muted">Sélectionnez un document depuis la bibliothèque pour consulter ses versions.</p>}</div></aside>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeSection === "generation" ? (
+          <div className="reports-scrollbar min-h-0 flex-1 overflow-y-auto bg-surface px-8 py-7">
+            <div className="mx-auto max-w-3xl">
+              <h2 className="text-lg font-bold text-heading">Génération</h2>
+              <p className="mt-1 text-xs text-muted">Accédez aux flux de rédaction et de génération déjà disponibles.</p>
+              <div className="mt-7 divide-y divide-border border-y border-border">
+                <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { channel: "email" } })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="write_email" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Rédiger un mail</span><span className="mt-1 block text-xs text-muted">Composer une communication assistée depuis le flux existant.</span></span></button>
+                <button type="button" onClick={() => openCommunicationComposer({ origin: "global", preset: { scenario: "signal_outreach" } })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="generate_pitch" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Préparer un pitch</span><span className="mt-1 block text-xs text-muted">Réutiliser la rédaction assistée pour une prise de parole.</span></span></button>
+                <button type="button" onClick={() => openReportGeneration({ origin: "reports_library" })} className="flex min-h-24 w-full items-center gap-4 px-3 py-5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"><span className="inline-flex size-11 items-center justify-center border border-border bg-edito-canvas text-primary"><IntelligenceIcon name="report" className="size-5" preferVector /></span><span><span className="block text-sm font-bold text-heading">Générer un rapport</span><span className="mt-1 block text-xs text-muted">Ouvrir les types et paramètres du moteur de génération actuel.</span></span></button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </section>
     </div>
   )
 }

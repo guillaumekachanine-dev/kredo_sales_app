@@ -39,6 +39,7 @@ export interface AppDialogProps {
   asideClassName?: string
   asideWidthClassName?: string
   dataTheme?: string
+  fillHeight?: boolean
 }
 
 export function AppDialog({
@@ -59,8 +60,11 @@ export function AppDialog({
   asideClassName,
   asideWidthClassName,
   dataTheme,
+  fillHeight = false,
 }: AppDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null)
   const portalRoot = useSyncExternalStore(
     subscribePortalRoot,
     getPortalRootSnapshot,
@@ -78,11 +82,16 @@ export function AppDialog({
 
     if (open) {
       if (!dialog.open) {
+        lastFocusedElementRef.current = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null
         dialog.showModal()
+        window.requestAnimationFrame(() => closeButtonRef.current?.focus())
       }
     } else {
       if (dialog.open) {
         dialog.close()
+        lastFocusedElementRef.current?.focus()
       }
     }
   }, [open])
@@ -146,13 +155,14 @@ export function AppDialog({
         className
       )}
     >
-      <div className={cn(hasAside ? "flex h-full min-h-0 p-0" : "p-4 sm:p-6", resolvedMaxHeightClassName)}>
-        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4", hasAside && "p-4 sm:p-6")}>
+      <div className={cn("flex", hasAside ? "h-full min-h-0 p-0" : "p-4 sm:p-6", fillHeight && "h-full min-h-0 overflow-hidden", resolvedMaxHeightClassName)}>
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4", (hasAside || fillHeight) && "h-full", hasAside && "p-4 sm:p-6")}>
           {/* Header */}
           <div className={cn("min-w-0 shrink-0 flex flex-col gap-1.5", headerClassName)}>
             <div className="flex items-center justify-between">
               {titleContent}
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className="shrink-0 text-muted hover:text-heading transition-colors"

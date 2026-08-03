@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition, type CSSProperties } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { AppDrawer } from "@/components/ui/AppDrawer"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { DocumentGenerationParameters } from "@/components/reports/DocumentGenerationParameters"
@@ -67,60 +67,6 @@ type LoadState =
   | { status: "error"; data: null; error: string }
   | { status: "ready"; data: DocumentDetail; error: null }
 
-type QaFlagViewModel = {
-  check: string
-  detail: string | null
-  passed: boolean
-}
-
-function formatSourceRef(value: unknown): string {
-  if (typeof value === "string") return value
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>
-    const label = record.label
-    if (typeof label === "string" && label.trim()) return label.trim()
-    const name = record.name
-    if (typeof name === "string" && name.trim()) return name.trim()
-    const title = record.title
-    if (typeof title === "string" && title.trim()) return title.trim()
-  }
-
-  return JSON.stringify(value) ?? "Source structurée"
-}
-
-function buildQaFlags(values: unknown[]): QaFlagViewModel[] {
-  return values.flatMap((value) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return []
-    const record = value as Record<string, unknown>
-    return [{
-      check: typeof record.check === "string" ? record.check : "Contrôle",
-      detail:
-        typeof record.detail === "string"
-          ? record.detail
-          : typeof record.reason === "string"
-            ? record.reason
-            : null,
-      passed: record.passed === true,
-    }]
-  })
-}
-
-function buildQualityState(document: DocumentDetail | null) {
-  const flags = document?.versions[0]?.qaFlags
-  if (!Array.isArray(flags) || flags.length === 0) return null
-
-  const parsed = flags
-    .map((flag) => {
-      if (!flag || typeof flag !== "object" || Array.isArray(flag)) return null
-      const passed = (flag as { passed?: unknown }).passed
-      return typeof passed === "boolean" ? passed : null
-    })
-    .filter((value): value is boolean => value !== null)
-
-  if (parsed.length === 0) return null
-  return parsed.every(Boolean)
-}
-
 export function DocumentMobileDetail({
   documentId,
   open,
@@ -164,22 +110,9 @@ export function DocumentMobileDetail({
   }, [documentId, open, reloadToken])
 
   const document = loadState.status === "ready" ? loadState.data : null
-  const qualityOk = useMemo(() => buildQualityState(document), [document])
-  const qaFlags = useMemo(
-    () => buildQaFlags(document?.versions[0]?.qaFlags ?? []),
-    [document?.versions]
-  )
-  const failedFlags = qaFlags.filter((flag) => !flag.passed)
   const appliedBrief = document?.versions[0]?.sourceRunInputSnapshot ?? document?.versions[0]?.briefJson ?? null
   const isPitch = document?.documentType === "commercial_pitch" || document?.documentType === "prise_de_parole"
   const pitchLabel = isPitch ? getPitchBriefLabel(appliedBrief) : null
-  const drawerError = loadState.status === "error"
-    ? {
-        title: "Impossible de charger le document",
-        description: loadState.error,
-      }
-    : null
-
   function handleCopy() {
     if (!document?.currentContentText) return
     setActionError(null)
@@ -244,7 +177,7 @@ export function DocumentMobileDetail({
   }
 
   return (
-    <AppDrawer
+    <AppDialog
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
@@ -252,18 +185,22 @@ export function DocumentMobileDetail({
           onClose()
         }
       }}
-      side="bottom"
       title={pitchLabel ?? document?.title ?? "Chargement du document"}
-      loading={loadState.status === "loading"}
-      error={drawerError}
-      showMobileCloseButton
+      dataTheme="edito-bright-reports"
+      fillHeight
+      className="!h-[calc(100dvh-1.5rem)] !w-[calc(100vw-1.5rem)] !max-w-none rounded-lg border-edito-border shadow-[0_18px_48px_rgba(30,49,80,0.18)]"
+      maxHeightClassName="max-h-[calc(100dvh-1.5rem)]"
+      headerClassName="border-b border-border pb-3"
+      titleClassName="pr-2 text-base leading-5 text-heading"
+      bodyClassName="reports-scrollbar -mr-1 min-h-0 flex-1 overflow-y-auto pr-2"
+      footerClassName="border-t border-border pt-3"
       footer={document && !isEditing ? (
-        <>
+        <div className="grid w-full grid-cols-3 gap-2">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="flex-1"
+            className="min-w-0"
           >
             Modifier
           </Button>
@@ -272,7 +209,7 @@ export function DocumentMobileDetail({
             size="sm"
             onClick={handleCopy}
             disabled={!document.currentContentText}
-            className="flex-1"
+            className="min-w-0"
           >
             {copied ? "Copié" : "Copier"}
           </Button>
@@ -281,7 +218,7 @@ export function DocumentMobileDetail({
             size="sm"
             onClick={handleFavoriteToggle}
             loading={isPending}
-            className="flex-1"
+            className="min-w-0"
           >
             {document.isFavorite ? "Retirer favori" : "Ajouter favori"}
           </Button>
@@ -291,15 +228,26 @@ export function DocumentMobileDetail({
               size="sm"
               onClick={handleArchive}
               loading={isPending}
-              className="w-full"
+              className="col-span-3 w-full"
             >
               Archiver
             </Button>
           ) : null}
-        </>
+        </div>
       ) : null}
     >
-      {document ? (
+      {loadState.status === "loading" ? (
+        <div className="space-y-4 py-2" aria-label="Chargement du document">
+          <div className="h-5 w-2/3 animate-pulse rounded bg-edito-chip" />
+          <div className="h-64 animate-pulse rounded border border-edito-border bg-edito-canvas" />
+          <div className="h-24 animate-pulse rounded bg-edito-chip" />
+        </div>
+      ) : loadState.status === "error" ? (
+        <div className="border border-danger/30 bg-danger/5 p-4">
+          <h3 className="font-bold text-danger">Impossible de charger le document</h3>
+          <p className="mt-1 text-sm text-body">{loadState.error}</p>
+        </div>
+      ) : document ? (
         <div className="space-y-5">
           {isEditing ? (
             <DocumentEditor
@@ -330,24 +278,7 @@ export function DocumentMobileDetail({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                   Contenu
                 </h3>
-                <div
-                  className="paper-sheet p-4 rounded-[var(--radius-medium)] border border-border/40 max-h-[45vh] overflow-y-auto leading-relaxed"
-                  style={{
-                    backgroundColor: "#FAF9F6",
-                    color: "#4A5568",
-                    colorScheme: "light",
-                    "--color-canvas": "#FAF9F6",
-                    "--color-surface": "#FFFFFF",
-                    "--color-surface-hover": "#F5F4F0",
-                    "--color-border": "#E3DFD5",
-                    "--color-heading": "#1C2333",
-                    "--color-body": "#4A5568",
-                    "--color-muted": "#718096",
-                    "--color-primary": "#A67A1E",
-                    "--color-primary-deep": "#8C6615",
-                    "--color-primary-fg": "#FAF9F6",
-                  } as CSSProperties}
-                >
+                <div className="paper-sheet rounded border border-border p-4 leading-relaxed">
                   {document.documentType === "financial_reference" ? (() => {
                     const reference = getFinancialReferenceDocumentSummary(document.currentContentJson)
                     return reference ? (
@@ -420,6 +351,6 @@ export function DocumentMobileDetail({
           )}
         </div>
       ) : null}
-    </AppDrawer>
+    </AppDialog>
   )
 }

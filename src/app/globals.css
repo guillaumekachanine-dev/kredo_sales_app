@@ -511,6 +511,64 @@
   --color-primary-fg: #FAF9F6;
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Atlas éditorial — Rapports & rédaction.
+   Scope strict : [data-theme="edito-bright-reports"] sur /reports.
+   ────────────────────────────────────────────────────────────── */
+[data-theme="edito-bright-reports"] {
+  --font-heading: var(--font-sans);
+  --color-canvas: var(--color-edito-canvas);
+  --color-surface: var(--color-edito-surface);
+  --color-surface-hover: var(--color-edito-chip);
+  --color-border: var(--color-edito-border);
+  --color-heading: var(--color-edito-navy);
+  --color-body: var(--color-edito-body);
+  --color-muted: var(--color-edito-muted);
+  --color-primary: #255B61;
+  --color-primary-deep: #1E4A4F;
+  --color-primary-fg: #FFFFFF;
+  --color-brand-brass: var(--color-edito-brass);
+  --color-brand-brass-hover: #BE8410;
+  --color-secondary: var(--color-edito-chip);
+  --color-secondary-fg: var(--color-edito-ink);
+  color-scheme: light;
+}
+
+[data-theme="edito-bright-reports"] .paper-sheet,
+[data-theme="edito-bright-reports"] .paper-sheet * {
+  --color-canvas: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F8FAFC;
+  --color-border: #D9E0E8;
+  --color-heading: var(--color-edito-navy);
+  --color-body: var(--color-edito-body);
+  --color-muted: var(--color-edito-muted);
+  --color-primary: #255B61;
+  --color-primary-deep: #1E4A4F;
+  --color-primary-fg: #FFFFFF;
+}
+
+[data-theme="edito-bright-reports"] .paper-sheet {
+  background: #FFFFFF;
+  color: var(--color-edito-body);
+}
+
+[data-theme="edito-bright-reports"] .reports-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--color-edito-border) 82%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="edito-bright-reports"] *,
+  [data-theme="edito-bright-reports"] *::before,
+  [data-theme="edito-bright-reports"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* Drawer Kredo Intelligence sombre & mat */
 .intelligence-drawer {
   --color-canvas: #0A0D1A !important;

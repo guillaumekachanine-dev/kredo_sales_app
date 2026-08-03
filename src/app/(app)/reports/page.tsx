@@ -94,7 +94,7 @@ export default async function ReportsPage({
 
   if (device === "mobile") {
     return (
-      <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+      <div data-theme="edito-bright-reports" className="h-full min-h-0 bg-canvas text-body">
         <ReportsMobileView
           reportsData={reportsData}
           filters={filters}
@@ -105,7 +105,7 @@ export default async function ReportsPage({
   }
 
   return (
-    <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+    <div data-theme="edito-bright-reports" className="h-full min-h-0 bg-canvas text-body">
       <ReportsDesktopView
         reportsData={reportsData}
         kpis={reportsData.kpis}
