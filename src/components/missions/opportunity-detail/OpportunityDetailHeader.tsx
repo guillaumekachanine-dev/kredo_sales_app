@@ -15,11 +15,12 @@ interface OpportunityDetailHeaderProps {
     website: string | null
   } | null
   isMobile: boolean
-  onBack: () => void
   onCreateEvent: () => void
   onCreateTask: () => void
   onPositionProfile: () => void
 }
+
+const OPPORTUNITIES_ROUTE = "/missions/opps"
 
 function getPriorityLabel(priority: string) {
   if (priority === "haute") return "Haute"
@@ -27,7 +28,7 @@ function getPriorityLabel(priority: string) {
   return "Normale"
 }
 
-function ChevronLeftIcon() {
+function ArrowLeftIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
       <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -84,7 +85,6 @@ export function OpportunityDetailHeader({
   opportunity,
   account,
   isMobile,
-  onBack,
   onCreateEvent,
   onCreateTask,
   onPositionProfile,
@@ -97,10 +97,15 @@ export function OpportunityDetailHeader({
     return (
       <header className="border-b border-border/70 pb-4">
         <div className="flex items-center justify-between">
-          <button type="button" onClick={onBack} aria-label="Retour" className="flex size-11 items-center justify-center rounded-[var(--radius-medium)] border border-border bg-surface text-heading">
-            <span className="size-5"><ChevronLeftIcon /></span>
-          </button>
-          <span className="text-xs font-semibold text-body">Opportunité</span>
+          <Link
+            href={OPPORTUNITIES_ROUTE}
+            className="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-medium)] border border-primary/20 bg-primary/5 px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          >
+            <span className="flex size-6 shrink-0 items-center justify-center">
+              <span className="size-5"><ArrowLeftIcon /></span>
+            </span>
+            Retour aux opportunités
+          </Link>
           <ActionsMenu accountId={account?.id ?? null} onCreateEvent={onCreateEvent} onCreateTask={onCreateTask} />
         </div>
 
@@ -143,9 +148,15 @@ export function OpportunityDetailHeader({
 
   return (
     <header className="border-b border-border pb-5">
-      <p className="text-xs text-muted">
-        Engagements <span className="mx-1.5 text-border">/</span> Opportunités <span className="mx-1.5 text-border">/</span> <span className="font-medium text-primary">{opportunity.title}</span>
-      </p>
+      <Link
+        href={OPPORTUNITIES_ROUTE}
+        className="inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-medium)] border border-primary/20 bg-primary/5 px-3.5 text-sm font-semibold text-primary transition-colors hover:border-primary hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      >
+        <span className="flex size-6 shrink-0 items-center justify-center">
+          <span className="size-5"><ArrowLeftIcon /></span>
+        </span>
+        Retour aux opportunités
+      </Link>
       <div className="mt-4 flex items-start justify-between gap-8">
         <div className="flex min-w-0 items-center gap-4">
           <CompanyLogo name={companyName} website={account?.website ?? null} size="xl" />

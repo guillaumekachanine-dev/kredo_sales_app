@@ -37,7 +37,6 @@ export function OpportunityDetailView({ data, device }: OpportunityDetailViewPro
             opportunity={data.opportunity}
             account={data.account}
             isMobile={isMobile}
-            onBack={() => router.back()}
             onCreateEvent={() => setActiveTab("timeline")}
             onCreateTask={() => setTaskModalOpen(true)}
             onPositionProfile={positionProfile}
