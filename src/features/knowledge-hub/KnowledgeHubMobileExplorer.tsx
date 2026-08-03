@@ -5,8 +5,20 @@ import { mobileDomains } from "./knowledge-hub-mobile-shell-data"
 import { DomainItem } from "./knowledge-hub.types"
 import { KnowledgeHubMobileDomainSheet } from "./KnowledgeHubMobileDomainSheet"
 
-export function KnowledgeHubMobileExplorer() {
+interface MobileExplorerProps {
+  onSelectExpertise: () => void
+}
+
+export function KnowledgeHubMobileExplorer({ onSelectExpertise }: MobileExplorerProps) {
   const [selectedDomain, setSelectedDomain] = useState<DomainItem | null>(null)
+
+  const handleDomainClick = (domain: DomainItem) => {
+    if (domain.id === "expertise-kredo") {
+      onSelectExpertise()
+    } else {
+      setSelectedDomain(domain)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -46,7 +58,7 @@ export function KnowledgeHubMobileExplorer() {
           <button
             key={domain.id}
             type="button"
-            onClick={() => setSelectedDomain(domain)}
+            onClick={() => handleDomainClick(domain)}
             className="flex flex-col justify-between min-h-[140px] rounded-xl border border-edito-border bg-edito-surface p-4 text-left active:bg-edito-chip transition-colors outline-none cursor-pointer"
           >
             <div>

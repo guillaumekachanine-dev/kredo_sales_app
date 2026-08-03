@@ -1,6 +1,8 @@
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { KnowledgeHubDesktop } from "@/features/knowledge-hub/KnowledgeHubDesktop"
 import { KnowledgeHubMobile } from "@/features/knowledge-hub/KnowledgeHubMobile"
+import { resolveCurrentWorkspaceId } from "@/lib/supabase/workspace"
+import { getKredoExpertiseSnapshot } from "@/features/knowledge-hub/expertise/get-kredo-expertise-snapshot"
 
 export const metadata = {
   title: "Knowledge Hub — KREDO",
@@ -8,11 +10,19 @@ export const metadata = {
 }
 
 export default async function KnowledgePage() {
-  const device = await getDashboardDevice()
-
-  if (device === "mobile") {
-    return <KnowledgeHubMobile />
+  const workspaceId = await resolveCurrentWorkspaceId()
+  if (!workspaceId) {
+    throw new Error("Workspace introuvable")
   }
 
-  return <KnowledgeHubDesktop />
+  const [device, snapshot] = await Promise.all([
+    getDashboardDevice(),
+    getKredoExpertiseSnapshot(workspaceId),
+  ])
+
+  if (device === "mobile") {
+    return <KnowledgeHubMobile snapshot={snapshot} />
+  }
+
+  return <KnowledgeHubDesktop snapshot={snapshot} />
 }
