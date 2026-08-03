@@ -14,13 +14,20 @@ export function KnowledgeHubMobileWorkshops() {
 
   return (
     <div className="space-y-4">
-      {/* Intro block */}
-      <div className="rounded-xl border border-edito-border bg-edito-surface p-4">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-edito-brass">
-          Ateliers Métiers
-        </span>
-        <h3 className="text-xs font-bold text-edito-navy mt-0.5">Actions Guidées</h3>
-        <p className="mt-1 text-xs text-edito-body leading-relaxed">
+      {/* Intro block — Navy/Gold intelligence style */}
+      <div className="rounded-xl border border-edito-border bg-edito-navy text-white p-4 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-edito-gold">
+              Ateliers Métiers
+            </span>
+            <h3 className="text-xs font-bold text-white mt-0.5">Actions Guidées</h3>
+          </div>
+          <span className="rounded bg-white/10 px-2.5 py-0.5 text-[8px] font-bold text-edito-gold uppercase tracking-wider">
+            Mode lecture seule
+          </span>
+        </div>
+        <p className="mt-3 text-[11px] text-white/70 leading-relaxed">
           Processus et workflows facilités par l&apos;intelligence documentaire.
         </p>
       </div>

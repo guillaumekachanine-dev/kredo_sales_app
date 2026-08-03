@@ -22,23 +22,26 @@ export function KnowledgeHubMobileExplorer({ onSelectExpertise }: MobileExplorer
 
   return (
     <div className="space-y-4">
-      {/* Search & Intro */}
-      <div className="rounded-xl border border-edito-border bg-edito-surface p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-edito-brass">
-            Explorer le Patrimoine
-          </span>
-          <span className="rounded-full bg-edito-navy/5 px-2 py-0.5 text-[9px] font-semibold text-edito-navy">
+      {/* Search & Intro — Navy/Gold intelligence style */}
+      <div className="rounded-xl border border-edito-border bg-edito-navy text-white p-4 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div>
+            <span className="text-[9px] font-bold uppercase tracking-widest text-edito-gold">
+              Bibliothèque Fédérée
+            </span>
+            <h3 className="text-xs font-bold text-white mt-0.5">Explorer le Patrimoine</h3>
+          </div>
+          <span className="rounded bg-white/10 px-2.5 py-0.5 text-[8px] font-bold text-edito-gold uppercase tracking-wider">
             Socle en construction
           </span>
         </div>
-        <p className="mt-1 text-xs text-edito-body leading-relaxed">
+        <p className="mt-3 text-[11px] text-white/70 leading-relaxed">
           Accédez aux structures de connaissances capitalisées de KREDO.
         </p>
 
-        {/* Visual Search Bar - Non functional */}
+        {/* Visual Search Bar */}
         <div className="mt-3 relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-edito-muted">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 text-white/40">
             <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -47,7 +50,7 @@ export function KnowledgeHubMobileExplorer({ onSelectExpertise }: MobileExplorer
             type="text"
             disabled
             placeholder="Rechercher dans l'atlas... (Recherche inactive)"
-            className="h-9 w-full rounded-md border border-edito-border bg-edito-canvas pl-8 pr-3 text-xs text-edito-body cursor-not-allowed opacity-80"
+            className="h-9 w-full rounded-md border border-white/20 bg-white/5 pl-8 pr-3 text-xs text-white placeholder:text-white/40 cursor-not-allowed opacity-80"
           />
         </div>
       </div>

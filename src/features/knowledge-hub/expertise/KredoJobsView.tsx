@@ -397,19 +397,17 @@ export function KredoJobsView({
               >
                 <div className="flex items-center gap-2.5">
                   <img src={meta.logoUrl} alt="" className="size-8 object-contain" />
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
-                    <span>MÉTIERS DE LA PRACTICE :</span>
-                    <span className={meta.textClass}>{practice.name}</span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy">
+                    MÉTIERS
                   </h3>
                 </div>
-                <div className="flex items-center gap-1.5 text-[9px] font-bold text-edito-muted group-hover:text-edito-brass transition-colors shrink-0">
-                  <span>Fermer la section</span>
-                  <span className="text-[10px]">✕</span>
-                </div>
+                <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${meta.textClass}`}>
+                  {practice.name}
+                </span>
               </button>
 
-              {/* 2 columns layout on desktop */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              {/* grid: 2 col on mobile, 2 col on desktop */}
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mt-2">
                 {practiceJobs.map((job) => renderJobItem(job))}
               </div>
             </div>
