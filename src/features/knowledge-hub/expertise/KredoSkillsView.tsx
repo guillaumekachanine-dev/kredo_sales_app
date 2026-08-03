@@ -78,7 +78,8 @@ export function KredoSkillsView({
       setTimeout(() => {
         const wrapper = viewWrapperRef.current
         if (wrapper) {
-          wrapper.scrollIntoView({ behavior: "smooth", block: "nearest" })
+          const elementPosition = wrapper.getBoundingClientRect().top + window.scrollY
+          window.scrollTo({ top: elementPosition - 170, behavior: "smooth" })
         }
       }, 100)
       prevExpandedId.current = null

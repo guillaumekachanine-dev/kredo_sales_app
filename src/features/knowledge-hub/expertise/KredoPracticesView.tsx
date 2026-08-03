@@ -115,27 +115,31 @@ export function KredoPracticesView({
     onSelectPractice(isExpanded ? null : practice)
   }
 
-  // Smooth scroll tracking travelling hook
+  // Smooth scroll tracking travelling hook — anchor just below sticky header
   useEffect(() => {
     if (expandedPracticeId) {
       prevExpandedId.current = expandedPracticeId
       const card = cardRefs.current[expandedPracticeId]
       if (card) {
-        // Wait for grid transition to begin/end
         setTimeout(() => {
-          card.scrollIntoView({ behavior: "smooth", block: "start" })
+          const elementPosition = card.getBoundingClientRect().top + window.scrollY
+          // 170px offset to clear the sticky tab+search header on mobile, 60px on desktop
+          const offset = isMobile ? 170 : 60
+          window.scrollTo({ top: elementPosition - offset, behavior: "smooth" })
         }, 180)
       }
     } else if (prevExpandedId.current) {
       const card = cardRefs.current[prevExpandedId.current]
       if (card) {
         setTimeout(() => {
-          card.scrollIntoView({ behavior: "smooth", block: "center" })
+          const elementPosition = card.getBoundingClientRect().top + window.scrollY
+          const offset = isMobile ? 170 : 60
+          window.scrollTo({ top: elementPosition - offset, behavior: "smooth" })
         }, 100)
       }
       prevExpandedId.current = null
     }
-  }, [expandedPracticeId])
+  }, [expandedPracticeId, isMobile])
 
   const renderOffersList = (offers: OfferItem[]) => {
     if (offers.length === 0) {
@@ -206,7 +210,11 @@ export function KredoPracticesView({
   }
 
   return (
-    <div className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"} gap-6 transition-all duration-700 ease-in-out`}>
+    <div className={`grid ${
+      isMobile
+        ? "grid-cols-2"
+        : "grid-cols-1 md:grid-cols-2"
+    } gap-4 md:gap-6 transition-all duration-700 ease-in-out`}>
       {practices.map((practice) => {
         const isExpanded = expandedPracticeId === practice.id
         const meta = getPracticeMeta(practice.slug)
@@ -215,11 +223,11 @@ export function KredoPracticesView({
         // Show all tags when expanded, otherwise slice to 5
         const displayTags = isExpanded ? practice.stackTags : practice.stackTags.slice(0, 5)
 
-        return (
+    return (
           <div
             key={practice.id}
             ref={(el) => { cardRefs.current[practice.id] = el }}
-            className={`scroll-mt-24 rounded-lg border bg-edito-surface overflow-hidden transition-all duration-700 ease-in-out ${
+            className={`scroll-mt-28 rounded-lg border bg-edito-surface overflow-hidden transition-all duration-700 ease-in-out ${
               isExpanded
                 ? "md:col-span-2 border-edito-brass ring-1 ring-edito-brass shadow-md"
                 : "border-edito-border hover:border-edito-muted hover:shadow-[0_2px_8px_rgba(216,155,22,0.04)]"
@@ -258,79 +266,81 @@ export function KredoPracticesView({
               </button>
             </div>
 
-            {/* Card Content body */}
-            <div className="p-5 space-y-4">
-              <p className="text-xs leading-relaxed text-edito-body">
-                {practice.description}
-              </p>
+            {/* Card Content body — hidden on mobile when collapsed */}
+            {(!isMobile || isExpanded) && (
+              <div className="p-5 space-y-4">
+                <p className="text-xs leading-relaxed text-edito-body">
+                  {practice.description}
+                </p>
 
-              <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-wider text-edito-muted">
-                <span>📁 {practice.jobCount} {practice.jobCount > 1 ? "métiers" : "métier"}</span>
-                <span>🏷️ {practice.stackTags.length} {practice.stackTags.length > 1 ? "technologies" : "technologie"}</span>
-              </div>
-
-              {/* Practice Technologies */}
-              {practice.stackTags.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-3 border-t border-edito-border/50">
-                  {displayTags.map((tech) => (
-                    <span
-                      key={tech}
-                      className="inline-flex items-center rounded border border-edito-border/60 bg-edito-chip/55 px-2 py-0.5 text-[9px] font-medium text-edito-muted"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                  {!isExpanded && practice.stackTags.length > 5 && (
-                    <span className="text-[9px] font-semibold text-edito-muted pt-0.5 ml-1">
-                      +{practice.stackTags.length - 5}
-                    </span>
-                  )}
+                <div className="flex items-center gap-4 text-[9px] font-bold uppercase tracking-wider text-edito-muted">
+                  <span>📁 {practice.jobCount} {practice.jobCount > 1 ? "métiers" : "métier"}</span>
+                  <span>🏷️ {practice.stackTags.length} {practice.stackTags.length > 1 ? "technologies" : "technologie"}</span>
                 </div>
-              )}
 
-              {/* Collapsible Details Panel: Perimeter, Jobs, and Offers */}
-              <div
-                className={`overflow-hidden transition-all duration-700 ease-in-out ${
-                  isExpanded ? "max-h-[2800px] opacity-100 mt-4 border-t border-edito-border/50 pt-4" : "max-h-0 opacity-0 pointer-events-none"
-                }`}
-              >
-                <div className="space-y-6">
-                  {/* 1. Perimeter / Intervention Scope (moved from sidebar) */}
-                  {practice.perimeter && (
-                    <div className="space-y-1.5">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
-                        <span>🌐</span> Périmètre d&apos;intervention
-                      </h4>
-                      <p className="text-xs text-edito-body leading-relaxed pl-4 border-l border-edito-brass/30">
-                        {practice.perimeter}
-                      </p>
-                    </div>
-                  )}
+                {/* Practice Technologies */}
+                {practice.stackTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-3 border-t border-edito-border/50">
+                    {displayTags.map((tech) => (
+                      <span
+                        key={tech}
+                        className="inline-flex items-center rounded border border-edito-border/60 bg-edito-chip/55 px-2 py-0.5 text-[9px] font-medium text-edito-muted"
+                      >
+                        {tech}
+                      </span>
+                    ))}
+                    {!isExpanded && practice.stackTags.length > 5 && (
+                      <span className="text-[9px] font-semibold text-edito-muted pt-0.5 ml-1">
+                        +{practice.stackTags.length - 5}
+                      </span>
+                    )}
+                  </div>
+                )}
 
-                  {/* 2. Rattachés Job Titles List (moved from sidebar) */}
-                  {practiceJobs.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
-                        <span>👥</span> Métiers rattachés ({practiceJobs.length})
-                      </h4>
-                      <div className="flex flex-wrap gap-2 pl-4">
-                        {practiceJobs.map((job) => (
-                          <span
-                            key={job.id}
-                            className="inline-flex items-center rounded-md border border-edito-border bg-white px-2.5 py-1 text-[10px] font-bold text-edito-navy shadow-3xs"
-                          >
-                            💼 {job.title}
-                          </span>
-                        ))}
+                {/* Collapsible Details Panel: Perimeter, Jobs, and Offers */}
+                <div
+                  className={`overflow-hidden transition-all duration-700 ease-in-out ${
+                    isExpanded ? "max-h-[2800px] opacity-100 mt-4 border-t border-edito-border/50 pt-4" : "max-h-0 opacity-0 pointer-events-none"
+                  }`}
+                >
+                  <div className="space-y-6">
+                    {/* 1. Perimeter / Intervention Scope (moved from sidebar) */}
+                    {practice.perimeter && (
+                      <div className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
+                          <span>🌐</span> Périmètre d&apos;intervention
+                        </h4>
+                        <p className="text-xs text-edito-body leading-relaxed pl-4 border-l border-edito-brass/30">
+                          {practice.perimeter}
+                        </p>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* 3. Detailed Offers (displayed on full width, 2-column format) */}
-                  {renderOffersList(practice.offers)}
+                    {/* 2. Rattachés Job Titles List (moved from sidebar) */}
+                    {practiceJobs.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
+                          <span>👥</span> Métiers rattachés ({practiceJobs.length})
+                        </h4>
+                        <div className="flex flex-wrap gap-2 pl-4">
+                          {practiceJobs.map((job) => (
+                            <span
+                              key={job.id}
+                              className="inline-flex items-center rounded-md border border-edito-border bg-white px-2.5 py-1 text-[10px] font-bold text-edito-navy shadow-3xs"
+                            >
+                              💼 {job.title}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Detailed Offers (displayed on full width, 2-column format) */}
+                    {renderOffersList(practice.offers)}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )
       })}
