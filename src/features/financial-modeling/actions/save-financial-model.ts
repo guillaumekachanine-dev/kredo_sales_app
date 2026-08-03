@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { calculateFinancialModel } from "../domain/calculate-financial-model"
 import { validateFinancialModelInput } from "../domain/financial-model.schema"
+import { buildFinancialModelTitle } from "../domain/financial-modeling-launch-preset"
 import { mapFormStateToDb } from "../persistence/map-financial-model-snapshot"
 import type { FinancialModelFormState } from "../persistence/financial-model-persistence.types"
 
@@ -47,6 +48,47 @@ function saveFinancialModelSnapshotRpc(
   return typedSupabase.rpc("save_financial_model_snapshot", args)
 }
 
+function usesDefaultSimulationTitle(title: string): boolean {
+  const normalizedTitle = title.trim().toLocaleLowerCase("fr-FR")
+
+  return normalizedTitle === "nouvelle simulation"
+    || normalizedTitle === "simulation mobile"
+    || normalizedTitle.startsWith("simulation financière —")
+}
+
+async function resolveLinkedSimulationTitle(
+  supabase: SupabaseClient<Database>,
+  state: FinancialModelFormState,
+): Promise<string> {
+  if (
+    !usesDefaultSimulationTitle(state.title)
+    || !state.companyId
+    || !state.opportunityId
+    || !state.resourceLabel.trim()
+  ) {
+    return state.title
+  }
+
+  const [companyResult, opportunityResult] = await Promise.all([
+    supabase
+      .from("companies")
+      .select("name")
+      .eq("id", state.companyId)
+      .maybeSingle(),
+    supabase
+      .from("opportunities")
+      .select("title")
+      .eq("id", state.opportunityId)
+      .maybeSingle(),
+  ])
+
+  return buildFinancialModelTitle({
+    companyName: companyResult.data?.name,
+    consultantName: state.resourceLabel,
+    opportunityTitle: opportunityResult.data?.title,
+  }) ?? state.title
+}
+
 export async function saveFinancialModelAction(state: FinancialModelFormState) {
   try {
     // 1. Validate input
@@ -60,11 +102,17 @@ export async function saveFinancialModelAction(state: FinancialModelFormState) {
     // 2. Perform server-side calculation
     const result = calculateFinancialModel(state.input)
 
-    // 3. Map to database snapshot structure
-    const { model, expenses } = mapFormStateToDb(state, result)
-
-    // 4. Save via transactional RPC
+    // 3. Resolve the canonical linked title when the UI still uses a default title
     const supabase = await createClient()
+    const stateWithResolvedTitle: FinancialModelFormState = {
+      ...state,
+      title: await resolveLinkedSimulationTitle(supabase, state),
+    }
+
+    // 4. Map to database snapshot structure
+    const { model, expenses } = mapFormStateToDb(stateWithResolvedTitle, result)
+
+    // 5. Save via transactional RPC
     const { data, error } = await saveFinancialModelSnapshotRpc(supabase, {
       p_model_id: state.id ?? null,
       p_expected_updated_at: state.expected_updated_at ?? null,
@@ -83,7 +131,7 @@ export async function saveFinancialModelAction(state: FinancialModelFormState) {
       return { error: error.message || "Erreur lors de la sauvegarde." }
     }
 
-    // 5. Revalidate dashboards
+    // 6. Revalidate dashboards
     revalidatePath("/finance")
 
     if (data && data.length > 0) {
