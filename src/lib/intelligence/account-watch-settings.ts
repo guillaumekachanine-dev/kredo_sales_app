@@ -39,7 +39,6 @@ export type AccountWatchSettingsWorkflowRow = Pick<
   | "cadence"
   | "include_official_site"
   | "include_news"
-  | "include_jobs"
   | "include_public_records"
   | "include_tenders"
   | "include_social_manual"
@@ -65,7 +64,6 @@ export type AccountWatchWorkflowSettings = {
   cadence: AccountWatchCadence
   includeOfficialSite: boolean
   includeNews: boolean
-  includeJobs: boolean
   includePublicRecords: boolean
   includeTenders: boolean
   includeSocialManual: boolean
@@ -91,7 +89,6 @@ export const DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS: AccountWatchWorkflowSettin
   cadence: "weekly",
   includeOfficialSite: true,
   includeNews: true,
-  includeJobs: true,
   includePublicRecords: false,
   includeTenders: false,
   includeSocialManual: true,
@@ -148,7 +145,6 @@ export function toAccountWatchWorkflowSettings(
         : DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS.cadence,
     includeOfficialSite: row.include_official_site,
     includeNews: row.include_news,
-    includeJobs: row.include_jobs,
     includePublicRecords: row.include_public_records,
     includeTenders: row.include_tenders,
     includeSocialManual: row.include_social_manual,

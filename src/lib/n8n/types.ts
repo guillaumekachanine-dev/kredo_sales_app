@@ -115,7 +115,6 @@ export type AccountWatchRefreshSettings = {
   cadence: "weekly" | "twice_weekly" | "daily"
   includeOfficialSite: boolean
   includeNews: boolean
-  includeJobs: boolean
   includePublicRecords: boolean
   includeTenders: boolean
   includeSocialManual: boolean

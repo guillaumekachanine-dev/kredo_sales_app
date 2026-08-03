@@ -95,6 +95,7 @@ export function ClientIntelligenceCompanyTab({
           variant="companyDesktop"
           companyId={data.company.id}
           companyName={data.company.name}
+          lastUpdatedAt={data.accountWatch.lastRunAt}
         />
       </CompanyEditorialSection>
 

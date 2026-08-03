@@ -308,6 +308,9 @@
   /* labels / métadonnées               */
   --color-primary: #FFC107;
   /* liens, soulignement onglet, accents → ambre */
+  --color-info: #8FE0EC;
+  /* teal racine #2E7D8C illisible sur cobalt (contraste ~1,9:1) — éclairci,
+     même rôle (lien de source), ~6:1 sur --color-surface */
   --color-rail: #3688AA;
   /* Tour de contrôle : bleu pétrole */
 }

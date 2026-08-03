@@ -97,3 +97,144 @@ bien vers cette instance n8n avant d'activer.
 Une fois le test §6 validé de bout en bout : activer ce workflow (toggle en haut
 à droite). Il peut être activé indépendamment de `account-watch-scheduler.json`
 (le bouton manuel fonctionne seul).
+
+## 8. Correctif 2026-08-04 — arrêt silencieux de la chaîne (à réimporter)
+
+**Symptôme observé en production** : exécution marquée `succeeded` en ~1,7 s,
+qui s'arrêtait sur `Collect: Public Records` sans erreur ; aucun signal écrit,
+aucun callback émis, run laissé en `running` jusqu'au reaper ops-004
+(9 runs `failed` par reprise, 0 signal `account_watch_*` en base).
+
+**Cause racine** : n8n n'exécute pas un nœud qui reçoit 0 item. Le flux Google
+News « annonces légales » renvoie un canal vide pour la plupart des comptes
+(vérifié : `Robertet` → news 100 items, jobs 47, **public records 0**, tenders 1),
+donc `Collect: Public Records` sortait 0 item et toute la suite du workflow était
+sautée en silence. Rien n'ayant levé d'erreur, l'exécution était comptée en succès.
+C'est le même piège que celui déjà corrigé sur `intel-010-refresh` (Session 23).
+
+**Corrections apportées :**
+
+1. `alwaysOutputData: true` sur les 5 collecteurs (`Collect: *`) et les 4 nœuds
+   d'écriture/lecture Supabase de la partie basse — un collecteur vide émet
+   désormais un item vide, la chaîne continue.
+2. Trois branches de garde explicites, pour qu'un run sans matière se termine
+   proprement au lieu de s'interrompre plus loin :
+   - `IF — Has Items to Qualify?` → si 0 élément, `Skip Qualification` court-circuite
+     l'appel LLM (**zéro token dépensé** pour qualifier une liste vide) ;
+   - `IF — Has Signals to Write?` → saute toute la séquence d'écriture Supabase
+     (un `POST` PostgREST avec un tableau vide ne renvoie aucun item et
+     rebloquait la chaîne) ;
+   - `IF — Has Source Links?` → idem pour `intelligence_source_links`.
+3. Nouveau pivot stable `Finalize Run Summary` : seul point de convergence des
+   branches, lu par `Prepare Callback` et `Update Watch Settings -> Succeeded`.
+   Ces deux nœuds référençaient `Map Signals to Sources`, qui peut ne pas être
+   exécuté — la référence aurait levé.
+4. `Build Source Links Payload` renvoie désormais **un seul item** porteur du
+   tableau (`linksPayload` / `linksCount`) : un Code node qui renvoie `[]` n'émet
+   aucun item et stoppait la chaîne au même titre qu'un collecteur vide.
+5. `modelProvider`/`modelUsed`/`tokens*` valent `null` quand aucun appel LLM n'a
+   eu lieu, au lieu d'un modèle fantôme jamais sollicité (cohérent avec le
+   correctif `intel-010-refresh` de la Session 24, qui alimente `v_ai_*_costs`).
+6. Bug de scoring corrigé au passage : `noisySourcesCapped` comparait un nombre
+   de sources à un nombre d'items (`bySource.size !== capped.length`) et était
+   donc quasi toujours `true` à tort ; il est maintenant positionné uniquement
+   quand une source dépasse réellement le plafond de 20 signaux.
+7. `Build Sources Payload` et `Map Signals to Sources` reçoivent
+   `onError: continueErrorOutput` : leur sortie erreur était câblée vers
+   `Prepare Failure Callback` mais jamais armée.
+
+**Action requise** : réimporter le JSON à jour sur le VPS et réactiver. Aucune
+nouvelle credential ni variable d'environnement.
+
+**Limite connue non traitée** : les collecteurs désactivés dans `settings`
+(`includePublicRecords`/`includeTenders` à `false` par défaut) déclenchent quand
+même la requête HTTP avant que le nœud `Shape+Accumulate` ne jette le résultat.
+C'est du gaspillage de latence, pas un bug — laissé en l'état pour ne pas
+alourdir la topologie de deux `IF` supplémentaires.
+
+## 9. Optimisation 2026-08-04 — rendement de la collecte (même import que §8)
+
+Le premier run réparé a révélé un second défaut, indépendant de l'arrêt silencieux :
+`itemsCollectedTotal: 147` → `itemsAfterDedup: 40` → **`signalsCreated: 5`**, avec
+`noisySourcesCapped: true`.
+
+**Cause** : la règle anti-bruit §10 (« si une source dépasse 20 signaux sur un run,
+n'en garder que les 5 meilleurs ») groupait sur `sourceType::sourceName`, or les
+5 collecteurs passent tous par Google News. Tous les articles tombaient donc dans
+un seul groupe et la règle jetait ~87 % de la collecte à chaque run. Google News
+est un **agrégateur**, pas une source : ses URL pointent toutes vers
+`news.google.com` et son libellé masquait l'éditeur réel.
+
+**Corrections :**
+
+1. **Éditeur réel rétabli** (`Shape+Accumulate: *`) : lecture de `item.source`
+   quand le parser RSS l'expose, sinon extraction du suffixe `« Titre - Éditeur »`
+   que Google News ajoute systématiquement (vérifié 100/100 sur le flux réel).
+   `source_name` porte désormais `Les Echos`, `Tribuca.net`… au lieu de
+   `Google News`, le titre est nettoyé de son suffixe redondant, et le collecteur
+   d'origine est tracé dans `intelligence_sources.technical_metadata.collectedVia`.
+2. **Cap anti-bruit groupé sur l'éditeur réel** — un média qui inonde reste bridé,
+   les 19 autres passent. Sur Robertet, le maximum réel par éditeur est de 4 : la
+   règle ne se déclenche plus du tout, ce qui est le comportement attendu.
+3. **Budget LLM réparti en tourniquet** (`Normalize & Dedup Items`) : le plafond
+   de 40 candidats était consommé par ordre de collecte, donc saturé par la
+   centaine d'actualités — les signaux recrutement et appels d'offres, les plus
+   actionnables pour une ESN, n'étaient jamais qualifiés. Chaque collecteur est
+   désormais servi à tour de rôle, par fraîcheur décroissante.
+4. **Éléments de plus de 120 jours écartés** : au-delà, `freshness()` vaut déjà 0,
+   l'item consommait du budget LLM sans pouvoir peser dans le score. Un item sans
+   date reste conservé (fraîcheur moyenne).
+5. **Déduplication douce par titre normalisé** : une même dépêche reprise à
+   l'identique par plusieurs éditeurs ne crée plus qu'un signal. Comparaison sur
+   titre exact normalisé seulement — deux angles différents restent deux signaux.
+6. **Homonymie traitée** : la recherche par nom ramène des éléments qui ne parlent
+   pas de l'entreprise (le « Prix Robertet » est une course hippique — 9 items sur
+   40 dans le run testé). Le prompt demande explicitement de noter ces cas à 0 sur
+   les trois axes, et `Compute Scores & Apply Rules` ne les écrit plus en base.
+   Seuil très conservateur : il faut être nul sur `pertinence_esn` **et**
+   `fit_practice` **et** `urgence`. Le compte est remonté dans le callback
+   (`contentJson.rejectedOffTopic`).
+
+**Résultat mesuré** (rejeu des 4 flux RSS réels de Robertet, 148 éléments) :
+148 collectés → 40 qualifiés → 9 hors sujet écartés → **31 signaux écrits sur
+19 éditeurs distincts**, contre 5 auparavant. Aucun appel LLM supplémentaire :
+le plafond de 40 candidats par run est inchangé, donc le coût par run l'est aussi.
+
+**Limite constatée, non corrigée** : le collecteur « recrutement » via Google News
+est peu productif — 45 de ses 47 résultats ont plus de 120 jours et sont écartés
+par le filtre de fraîcheur. Obtenir de vrais signaux d'embauche demanderait une
+source dédiée (API job board), hors périmètre de ce correctif.
+
+## 10. Retrait du collecteur « recrutement » (2026-08-04)
+
+Mesuré sur le flux réel : **45 des 47 résultats** du collecteur emploi avaient plus
+de 120 jours et étaient écartés par le filtre de fraîcheur ; les 21 restants étaient
+déjà remontés par le collecteur actualités. Rejeu avec et sans lui : **31 signaux
+dans les deux cas**. Il ne produisait rien, tout en coûtant un appel réseau par run.
+
+- Nœuds `Collect: Job Board Signals` et `Shape+Accumulate: Job Board` supprimés
+  (40 nœuds au lieu de 42) ; `Shape+Accumulate: News Media` enchaîne directement
+  sur `Collect: Public Records`, dont la référence de contexte amont a été
+  repointée en conséquence.
+- `includeJobs` retiré de `Validate Payload`, du contrat `AccountWatchRefreshSettings`
+  (`src/lib/n8n/types.ts`), des réglages (`account-watch-settings.ts`), du mapping
+  (`intelligence-data.ts`), des `select` PostgREST et de la liste de sources
+  affichée dans le cockpit (`client-intelligence-home.ts` — le toggle « Offres
+  d'emploi » ne pilotait plus rien).
+- `job_board` retiré de `RELIABILITY_BY_SOURCE_TYPE` (aucun signal de ce type n'a
+  jamais été écrit en base — vérifié).
+- **La colonne `account_watch_settings.include_jobs` est conservée** : aucune
+  migration destructive pour un champ qui resservirait tel quel le jour où une
+  vraie source d'offres (API job board) sera branchée. Elle n'est simplement plus
+  lue ni exposée.
+
+## 11. Rafraîchissement de la fiche compte (2026-08-04)
+
+`src/app/api/n8n/callback/route.ts` appelle désormais
+`revalidatePath('/prospection/accounts/{companyId}')` sur tout run réussi rattaché
+à un compte. Sans cela, la fiche — un Server Component — n'affichait les nouveaux
+signaux qu'après un rechargement manuel : la veille écrit des lignes
+`account_signals` mais ne produit aucun document, donc rien ne transite par le
+Realtime auquel les drawers sont abonnés. L'appel est encapsulé dans un `try/catch`
+non bloquant : à ce stade le callback a déjà tout persisté, un échec d'invalidation
+ne doit pas renvoyer 500 à n8n, qui rejouerait le callback.

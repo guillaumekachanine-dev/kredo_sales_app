@@ -12,6 +12,7 @@
 // Idempotence : rejouer le même callback est sans danger.
 
 import { NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 import { verifyHmac } from "@/lib/n8n/hmac"
 import { saveResult, updateRunStatus, updateRunN8nIds } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
@@ -150,6 +151,21 @@ export async function POST(request: Request) {
         // confort d'accès — on log et on continue.
         console.error("[callback] user_notifications insert failed:", notificationError.message)
       }
+    }
+  }
+
+  // La fiche compte est un Server Component : sans invalidation, un run terminé
+  // pendant que l'utilisateur la consulte n'apparaît qu'après un rechargement
+  // manuel. Cas le plus visible : la veille (`account_watch_refresh`) écrit des
+  // lignes `account_signals` mais ne produit aucun document, donc rien dans le
+  // Realtime auquel les drawers sont abonnés.
+  // Non bloquant : le callback a déjà tout persisté à ce stade, un échec
+  // d'invalidation ne doit pas faire répondre 500 à n8n (qui rejouerait).
+  if (status === "succeeded" && run.company_id) {
+    try {
+      revalidatePath(`/prospection/accounts/${run.company_id}`)
+    } catch (revalidateError) {
+      console.error("[callback] revalidatePath failed:", revalidateError)
     }
   }
 

@@ -86,10 +86,9 @@ describe("client intelligence home rules", () => {
     expect(getMonitoredSourceLabels({
       includeOfficialSite: true,
       includeNews: false,
-      includeJobs: true,
       includePublicRecords: false,
       includeTenders: true,
       includeSocialManual: false,
-    })).toEqual(["Site officiel", "Offres d’emploi", "Appels d’offres"])
+    })).toEqual(["Site officiel", "Appels d’offres"])
   })
 })

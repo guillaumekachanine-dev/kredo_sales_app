@@ -4,7 +4,6 @@ import type { SectorSnapshotRegulatoryItem } from "@/lib/intelligence/sector-sna
 export type AccountWatchSourceFlags = {
   includeOfficialSite: boolean
   includeNews: boolean
-  includeJobs: boolean
   includePublicRecords: boolean
   includeTenders: boolean
   includeSocialManual: boolean
@@ -16,7 +15,6 @@ const WATCH_SOURCE_LABELS: ReadonlyArray<{
 }> = [
   { key: "includeOfficialSite", label: "Site officiel" },
   { key: "includeNews", label: "Actualités" },
-  { key: "includeJobs", label: "Offres d’emploi" },
   { key: "includePublicRecords", label: "Registres publics" },
   { key: "includeTenders", label: "Appels d’offres" },
   { key: "includeSocialManual", label: "Réseaux sociaux — manuel" },

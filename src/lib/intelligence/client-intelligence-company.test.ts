@@ -214,18 +214,31 @@ describe("visibilité conditionnelle", () => {
     ])).toBe(true)
   })
 
-  it("limite les signaux initiaux aux cinq plus récents", () => {
-    const signals = Array.from({ length: 8 }, (_, index) => ({
-      id: `signal-${index}`,
-      detectedAt: new Date(Date.UTC(2026, 0, index + 1)).toISOString(),
-    }))
+  it("prend les cinq premiers signaux sans re-trier (l'appelant trie déjà par fraîcheur)", () => {
+    // Volontairement dans le désordre chronologique : la fonction ne doit PAS
+    // re-trier, seulement découper — sinon elle romprait le tri par date de
+    // parution appliqué en amont dans intelligence-data.ts.
+    const signals = [
+      { id: "signal-c" },
+      { id: "signal-a" },
+      { id: "signal-e" },
+      { id: "signal-b" },
+      { id: "signal-d" },
+      { id: "signal-f" },
+    ]
 
     expect(getInitialAccountSignals(signals).map((signal) => signal.id)).toEqual([
-      "signal-7",
-      "signal-6",
-      "signal-5",
-      "signal-4",
-      "signal-3",
+      "signal-c",
+      "signal-a",
+      "signal-e",
+      "signal-b",
+      "signal-d",
     ])
+  })
+
+  it("respecte une limite personnalisée", () => {
+    const signals = [{ id: "a" }, { id: "b" }, { id: "c" }]
+    expect(getInitialAccountSignals(signals, 2).map((signal) => signal.id)).toEqual(["a", "b"])
+    expect(getInitialAccountSignals(signals, signals.length)).toHaveLength(3)
   })
 })

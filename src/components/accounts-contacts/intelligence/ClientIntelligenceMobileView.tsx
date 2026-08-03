@@ -333,6 +333,7 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
                   isMobile={true}
                   companyId={company.id}
                   companyName={company.name}
+                  lastUpdatedAt={data.accountWatch.lastRunAt}
                 />
               </div>
 

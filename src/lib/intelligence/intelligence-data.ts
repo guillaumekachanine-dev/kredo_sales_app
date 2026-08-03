@@ -192,7 +192,16 @@ export type ClientIntelligenceSignal = {
   detectedAt: string
   lastEvidenceAt?: string | null
   expiresAt: string | null
+  // Date de parution de la source primaire (intelligence_sources.published_at)
+  // — distincte de detectedAt (date à laquelle Kredo a détecté le signal).
+  // Null pour les signaux sans source datée (ajout manuel, source sans date).
+  publishedAt: string | null
   globalScore: number
+  // Intérêt commercial pour Kredo : recoupe pertinence_esn (alignement mission
+  // ESN) et fit_practice (correspondance practices Kredo) — délibérément
+  // distinct de globalScore, qui mélange aussi fraîcheur et fiabilité de
+  // source (qualité de la donnée, pas intérêt commercial).
+  interestScore: number
   urgencyScore: number
   confidenceScore: number
   status: string
@@ -652,23 +661,38 @@ type AccountSignalRow = {
   primary_source_id: string | null
   recommended_action: string | null
   recommended_practice_id: string | null
+  // Sous-ensemble du détail de scoring persisté par intel-033 (cf. workflow
+  // `Compute Scores & Apply Rules`) — pertinence_esn/fit_practice sont les deux
+  // seules composantes réellement "intérêt commercial pour Kredo" (alignement
+  // mission ESN + practices) ; freshness/reliability/urgence sont d'autres axes,
+  // déjà représentés ailleurs (urgencyScore a sa propre colonne). Absent sur les
+  // signaux ajoutés manuellement (create-manual-signal.ts n'écrit pas ce champ).
+  score_details: { pertinence_esn?: number | null; fit_practice?: number | null } | null
   intelligence_sources?: {
     id: string
     source_name: string
     source_url: string | null
+    published_at: string | null
   } | {
     id: string
     source_name: string
     source_url: string | null
+    published_at: string | null
   }[] | null
 }
 
 const DISMISSED_SIGNAL_STATUSES = new Set(["dismissed", "false_positive", "expired", "archived"])
 
+// Un run de veille produit une trentaine de signaux (cf. intel-033). Les deux
+// plafonds sont distincts à dessein : on récupère large pour que le tri par
+// fraîcheur porte sur un vrai vivier, puis on n'expose que les plus récents —
+// la carte replie à 5 et laisse déplier le reste.
+const ACCOUNT_SIGNALS_FETCH_LIMIT = 60
+const ACCOUNT_SIGNALS_DISPLAY_LIMIT = 30
+
 type AccountWatchSettingsSelectRow = AccountWatchSettingsRow & {
   include_official_site: boolean
   include_news: boolean
-  include_jobs: boolean
   include_public_records: boolean
   include_tenders: boolean
   include_social_manual: boolean
@@ -878,15 +902,16 @@ export async function getClientIntelligence(
         primary_source_id,
         recommended_action,
         recommended_practice_id,
-        intelligence_sources(id, source_name, source_url)
+        score_details,
+        intelligence_sources(id, source_name, source_url, published_at)
       `)
       .eq("company_id", companyId)
       .order("detected_at", { ascending: false })
-      .limit(20),
+      .limit(ACCOUNT_SIGNALS_FETCH_LIMIT),
     supabase
       .from("account_watch_settings")
       .select<AccountWatchSettingsSelectRow>(
-        "is_enabled,watch_level,cadence,include_official_site,include_news,include_jobs,include_public_records,include_tenders,include_social_manual,last_run_at,next_run_at,last_status,last_error,updated_at",
+        "is_enabled,watch_level,cadence,include_official_site,include_news,include_public_records,include_tenders,include_social_manual,last_run_at,next_run_at,last_status,last_error,updated_at",
       )
       .eq("company_id", companyId)
       .maybeSingle(),
@@ -1185,17 +1210,30 @@ export async function getClientIntelligence(
       if (row.expires_at && new Date(row.expires_at) < new Date()) return false
       return true
     })
-    .slice(0, 10)
+    // "Signaux récents" : un seul critère de tri, la fraîcheur de PARUTION
+    // (published_at de la source primaire), pas la date de détection — deux
+    // runs de veille rapprochés détectent le même jour un article vieux d'une
+    // semaine et un du matin même, seule la date de parution les distingue.
+    // Repli sur detected_at quand la source n'a pas de date (ajout manuel).
+    // Trier AVANT de plafonner : un tri après slice coupe sur le mauvais
+    // sous-ensemble (bug déjà rencontré sur ce même bloc).
     .sort((a, b) => {
-      const scoreA = a.global_score ?? 0
-      const scoreB = b.global_score ?? 0
-      if (scoreB !== scoreA) {
-        return scoreB - scoreA
-      }
-      return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime()
+      const freshnessA = new Date(firstRelation(a.intelligence_sources)?.published_at || a.detected_at).getTime()
+      const freshnessB = new Date(firstRelation(b.intelligence_sources)?.published_at || b.detected_at).getTime()
+      return freshnessB - freshnessA
     })
+    .slice(0, ACCOUNT_SIGNALS_DISPLAY_LIMIT)
     .map((row) => {
       const primarySource = firstRelation(row.intelligence_sources)
+      const pertinenceEsn = row.score_details?.pertinence_esn
+      const fitPractice = row.score_details?.fit_practice
+      // Renormalisation des poids LLM d'origine (0.35 pertinence / 0.15 fit,
+      // cf. intel-033 "Compute Scores & Apply Rules") sur les deux seuls axes
+      // qui définissent l'intérêt commercial. Repli sur globalScore pour les
+      // signaux sans score_details (ajout manuel, cf. create-manual-signal.ts).
+      const interestScore = typeof pertinenceEsn === "number" || typeof fitPractice === "number"
+        ? 0.7 * (pertinenceEsn ?? 0) + 0.3 * (fitPractice ?? 0)
+        : row.global_score ?? 0
       return {
         id: row.id,
         category: row.signal_category,
@@ -1205,7 +1243,9 @@ export async function getClientIntelligence(
         detectedAt: row.detected_at,
         lastEvidenceAt: row.last_evidence_at,
         expiresAt: row.expires_at,
+        publishedAt: primarySource?.published_at ?? null,
         globalScore: row.global_score ?? 0,
+        interestScore,
         urgencyScore: row.urgency_score ?? 0,
         confidenceScore: row.confidence_score ?? 0,
         status: row.status,
@@ -1272,7 +1312,6 @@ export async function getClientIntelligence(
     ? {
         includeOfficialSite: accountWatchResult.data.include_official_site,
         includeNews: accountWatchResult.data.include_news,
-        includeJobs: accountWatchResult.data.include_jobs,
         includePublicRecords: accountWatchResult.data.include_public_records,
         includeTenders: accountWatchResult.data.include_tenders,
         includeSocialManual: accountWatchResult.data.include_social_manual,

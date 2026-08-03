@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { relationshipRoleLabel } from "@/lib/accounts-contacts/contact-constants"
 import { AccountSignalDetailDrawer } from "./AccountSignalDetailDrawer"
 import { AddSignalDrawer } from "./AddSignalDrawer"
 import { dismissAccountSignal } from "./dismiss-account-signal"
-import { validateAccountSignal } from "./validate-account-signal"
 import { createTask } from "@/lib/tasks/task-actions"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { Button } from "@/components/ui/Button"
@@ -69,16 +69,6 @@ function formatDate(value: string | null): string {
   } catch {
     return value
   }
-}
-
-function formatSignalKind(value: string | null): string {
-  if (!value) return "Signal"
-  const labels: Record<string, string> = {
-    account_watch_news_media: "Veille média compte",
-    folio_news_item: "Actualité FOLIO",
-    folio_growth_trend: "Tendance FOLIO",
-  }
-  return labels[value] ?? value.replace(/_/g, " ")
 }
 
 // ─── Contacts clés — groupés par rôle, priorité en tête ─────────────────────
@@ -211,20 +201,196 @@ export function CommercialRelationCard({
 
 // ─── Signaux propres au compte ──────────────────────────────────────────────
 
-function ScorePill({ value, label }: { value: number; label: string }) {
+// tone="risk" (défaut) : une valeur haute est alarmante (urgence) → rouge/ambre.
+// tone="opportunity" : une valeur haute est une BONNE nouvelle (intérêt
+// commercial) → vert/or. Réutiliser le même dégradé rouge pour les deux aurait
+// affiché "fort intérêt pour Kredo" comme un signal d'alerte.
+function ScorePill({ value, label, tone = "risk" }: { value: number; label: string; tone?: "risk" | "opportunity" }) {
   const pct = Math.round(value * 100)
-  const tone =
-    value >= 0.8 ? "border-danger/25 bg-danger/10 text-danger" :
-    value >= 0.6 ? "border-warning/25 bg-warning/10 text-warning" :
-    "border-border bg-surface text-muted"
+  const toneClass = tone === "opportunity"
+    ? value >= 0.6 ? "border-success/25 bg-success/10 text-success" :
+      value >= 0.35 ? "border-brand-brass/30 bg-brand-brass/10 text-brand-brass" :
+      "border-border bg-surface text-muted"
+    : value >= 0.8 ? "border-danger/25 bg-danger/10 text-danger" :
+      value >= 0.6 ? "border-warning/25 bg-warning/10 text-warning" :
+      "border-border bg-surface text-muted"
 
   return (
     <span
-      className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-bold", tone)}
+      className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-bold", toneClass)}
       title={`${label} : ${pct}%`}
     >
       {pct}%
     </span>
+  )
+}
+
+// Lien coloré vers la source primaire — élément visuel distinctif volontairement
+// distinct des couleurs déjà utilisées par les boutons d'action (navy/brass/rouge)
+// pour ne pas laisser croire que le nom de la source est lui-même une action.
+function SignalSourceLink({ source }: { source: ClientIntelligenceSignal["primarySource"] }) {
+  if (!source) return <span className="text-[11px] font-semibold text-muted">Source inconnue</span>
+  if (!source.source_url) {
+    return <span className="text-[11px] font-semibold text-info">{source.source_name}</span>
+  }
+  return (
+    <a
+      href={source.source_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="text-[11px] font-semibold text-info hover:underline"
+    >
+      {source.source_name}
+    </a>
+  )
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="size-3" aria-hidden="true">
+      <path d="M6 3.5L10.5 8L6 12.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function DotsVerticalIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden="true">
+      <circle cx="8" cy="3" r="1.4" />
+      <circle cx="8" cy="8" r="1.4" />
+      <circle cx="8" cy="13" r="1.4" />
+    </svg>
+  )
+}
+
+function formatUpdatedAtLabel(lastUpdatedAt: string | null): string {
+  if (!lastUpdatedAt) return ""
+  return ` — dernière mise à jour le ${formatDate(lastUpdatedAt)}`
+}
+
+// Menu contextuel "⋮" — remplace les 3 boutons d'action distincts de la
+// colonne Actions par un seul déclencheur, pour redonner sa largeur à la
+// colonne Signal. Fermeture au clic extérieur reprise de
+// CommunicationIntentMenu.tsx ; positionnement en portail repris de
+// Select.tsx — le tableau parent a un wrapper `overflow-hidden` (coins
+// arrondis, border-collapse empêche de le poser directement sur <table>),
+// qui couperait le menu ouvert sur la dernière ligne visible sans portail.
+function SignalActionsMenu({
+  signal,
+  companyId,
+  companyName,
+  isPending,
+  onCreateTask,
+  onDismiss,
+}: {
+  signal: ClientIntelligenceSignal
+  companyId: string
+  companyName: string
+  isPending: boolean
+  onCreateTask: () => void
+  onDismiss: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const updateCoords = () => {
+    const rect = triggerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    // Ancré au coin bas-droit du déclencheur ; le menu (w-40 = 10rem) déborde
+    // à gauche du bord droit du bouton pour rester dans le viewport.
+    setCoords({ top: rect.bottom + 4, left: rect.right - 160 })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    updateCoords()
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node
+      if (triggerRef.current?.contains(target)) return
+      if (menuRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("resize", updateCoords)
+    window.addEventListener("scroll", updateCoords, { capture: true })
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("resize", updateCoords)
+      window.removeEventListener("scroll", updateCoords, { capture: true })
+    }
+  }, [open])
+
+  const menuItemClassName = "flex w-full items-center rounded px-3 py-2 text-left text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-[var(--opacity-disabled)]"
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Actions sur ce signal"
+        onClick={(event) => {
+          event.stopPropagation()
+          setOpen((current) => !current)
+        }}
+        className="inline-flex size-9 items-center justify-center rounded border border-border bg-surface text-body transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]"
+      >
+        <DotsVerticalIcon />
+      </button>
+      {open && coords && typeof document !== "undefined" && createPortal(
+        // onClick sur le conteneur : ferme le menu après le clic sur
+        // n'importe quel item, par bubbling — sauf ContextualCommunicationButton
+        // qui stoppe sa propagation par défaut (stopPropagation={false} ci-dessous).
+        <div
+          ref={menuRef}
+          role="menu"
+          onClick={() => setOpen(false)}
+          style={{ position: "fixed", top: coords.top, left: coords.left }}
+          className="z-50 w-40 rounded-lg border border-border bg-surface p-1 shadow-xl"
+        >
+          <ContextualCommunicationButton
+            entryPoint="signal_card"
+            companyId={companyId}
+            companyName={companyName}
+            refs={{ signalRef: signal.id }}
+            label="Pitch"
+            variant="ghost"
+            size="sm"
+            fullWidth
+            stopPropagation={false}
+            className="justify-start px-3 text-xs font-semibold"
+          />
+          <button
+            role="menuitem"
+            type="button"
+            onClick={onCreateTask}
+            disabled={isPending}
+            className={cn(menuItemClassName, "text-body hover:bg-canvas")}
+          >
+            Tâche
+          </button>
+          <button
+            role="menuitem"
+            type="button"
+            onClick={onDismiss}
+            disabled={isPending}
+            className={cn(menuItemClassName, "text-danger hover:bg-danger/10")}
+          >
+            Ignorer
+          </button>
+        </div>,
+        document.body,
+      )}
+    </>
   )
 }
 
@@ -234,12 +400,16 @@ export function AccountSignalsCard({
   variant = "default",
   companyId,
   companyName,
+  lastUpdatedAt = null,
 }: {
   signals: ClientIntelligenceSignal[]
   isMobile?: boolean
   variant?: "default" | "companyDesktop"
   companyId: string
   companyName: string
+  /** account_watch.lastRunAt — dernière exécution de la veille. Repli sur la
+   *  détection la plus récente si aucun run n'a encore réussi. */
+  lastUpdatedAt?: string | null
 }) {
   const router = useRouter()
   const [hiddenSignalIds, setHiddenSignalIds] = useState<Record<string, true>>({})
@@ -247,16 +417,20 @@ export function AccountSignalsCard({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false)
   const [pendingActionId, setPendingActionId] = useState<string | null>(null)
-  const [validatedSignalIds, setValidatedSignalIds] = useState<Record<string, true>>({})
   const [showAllSignals, setShowAllSignals] = useState(false)
   const [, startTransition] = useTransition()
   const [feedbacks, setFeedbacks] = useState<Record<string, { tone: "success" | "error"; message: string }>>({})
   const signals = initialSignals.filter((signal) => !hiddenSignalIds[signal.id])
-  const visibleDesktopSignals = variant === "companyDesktop"
-    ? showAllSignals
-      ? getInitialAccountSignals(signals, signals.length)
-      : getInitialAccountSignals(signals)
-    : signals
+  // Les deux vues répliquent aux 5 plus récents et se déplient à l'identique —
+  // "signals" est déjà trié par fraîcheur de parution (intelligence-data.ts),
+  // on se contente de découper.
+  const visibleSignals = showAllSignals ? signals : getInitialAccountSignals(signals)
+  const resolvedUpdatedAt = lastUpdatedAt
+    ?? signals.reduce<string | null>((latest, s) => {
+      if (!latest) return s.detectedAt
+      return new Date(s.detectedAt).getTime() > new Date(latest).getTime() ? s.detectedAt : latest
+    }, null)
+  const titleSuffix = formatUpdatedAtLabel(resolvedUpdatedAt)
 
   const addButton = (
     <Button
@@ -270,7 +444,7 @@ export function AccountSignalsCard({
 
   if (signals.length === 0) {
     return (
-      <SectionBlock title="Signaux du compte" action={addButton}>
+      <SectionBlock title={`Signaux du compte${titleSuffix}`} action={addButton}>
         <p className="text-xs text-muted">Aucun signal actif détecté pour ce compte.</p>
         <AddSignalDrawer
           open={isAddDrawerOpen}
@@ -335,26 +509,6 @@ export function AccountSignalsCard({
     })
   }
 
-  function handleValidate(signalId: string) {
-    setPendingActionId(signalId)
-    startTransition(async () => {
-      const result = await validateAccountSignal(signalId)
-      setPendingActionId(null)
-      if (!result.error) {
-        setValidatedSignalIds((current) => ({ ...current, [signalId]: true }))
-        setFeedbacks((current) => ({
-          ...current,
-          [signalId]: { tone: "success", message: "Signal validé" },
-        }))
-      } else {
-        setFeedbacks((current) => ({
-          ...current,
-          [signalId]: { tone: "error", message: result.error! },
-        }))
-      }
-    })
-  }
-
   function handleOpenDetails(signal: ClientIntelligenceSignal) {
     setSelectedSignal(signal)
     setIsDrawerOpen(true)
@@ -362,23 +516,24 @@ export function AccountSignalsCard({
 
   if (isMobile) {
     return (
-      <SectionBlock title={`Signaux du compte (${signals.length})`} action={addButton}>
+      <SectionBlock title={`Signaux du compte (${signals.length})${titleSuffix}`} action={addButton}>
         <div className="space-y-3">
-          {signals.map((signal) => {
+          {visibleSignals.map((signal) => {
             const feedback = feedbacks[signal.id]
             return (
-              <div key={signal.id} className="rounded-lg border border-border bg-surface p-3.5 shadow-sm space-y-3">
+              <div key={signal.id} className="rounded-lg border border-border bg-surface p-3.5 shadow-sm space-y-2">
                 <div className="flex items-start justify-between gap-2" onClick={() => handleOpenDetails(signal)}>
                   <div className="min-w-0 flex-1 cursor-pointer">
                     <p className="text-xs font-bold text-heading hover:underline">{signal.title}</p>
-                    <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                      {signal.type ?? signal.category ?? "signal"}
-                    </p>
                   </div>
-                  <div className="flex shrink-0 gap-1 items-center">
-                    <span className="text-[10px] text-muted mr-1">{formatDate(signal.detectedAt)}</span>
-                    <ScorePill value={signal.globalScore} label="Score Global" />
+                  <div className="flex shrink-0 items-center">
+                    <ScorePill value={signal.interestScore} label="Intérêt" tone="opportunity" />
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <SignalSourceLink source={signal.primarySource} />
+                  <span className="shrink-0 text-[10px] text-muted">{formatDate(signal.publishedAt ?? signal.detectedAt)}</span>
                 </div>
 
                 {signal.summary && (
@@ -429,6 +584,16 @@ export function AccountSignalsCard({
           })}
         </div>
 
+        {signals.length > 5 && (
+          <div className="mt-3 flex justify-center">
+            <Button variant="ghost" size="sm" onClick={() => setShowAllSignals((current) => !current)}>
+              {showAllSignals
+                ? "Afficher les cinq plus récents"
+                : `Afficher ${signals.length - 5} ${signals.length - 5 > 1 ? "signaux supplémentaires" : "signal supplémentaire"}`}
+            </Button>
+          </div>
+        )}
+
         <AccountSignalDetailDrawer
           signal={selectedSignal}
           open={isDrawerOpen}
@@ -449,131 +614,83 @@ export function AccountSignalsCard({
     )
   }
 
-  // Desktop layout (Compact Table/List)
+  // Desktop layout (Compact Table/List) — les deux variants desktop en usage
+  // réel (`companyDesktop`, `default`) rendent la même structure ; `variant`
+  // ne pilote plus que le libellé du titre.
   return (
     <SectionBlock
-      title={`${variant === "companyDesktop" ? "Signaux récents" : "Signaux du compte"} (${signals.length})`}
+      title={`${variant === "companyDesktop" ? "Signaux récents" : "Signaux du compte"} (${signals.length})${titleSuffix}`}
       action={addButton}
     >
       <div className="overflow-hidden rounded-lg border border-border bg-surface">
-        <table className="w-full border-collapse text-left text-xs">
+        <table className="w-full border-collapse text-left text-xs table-fixed">
           <thead>
             <tr className="border-b border-border bg-canvas/30 text-[10px] font-bold uppercase tracking-wider text-muted">
+              {/* Largeur non contrainte : la colonne Signal absorbe tout l'espace
+                  restant une fois les 3 colonnes de droite fixées. */}
               <th className="px-4 py-3">Signal</th>
-              {variant !== "companyDesktop" && <th className="px-4 py-3">Type</th>}
-              <th className="px-4 py-3 text-center">Score Global</th>
-              <th className="px-4 py-3 text-center">Urgence</th>
-              {variant !== "companyDesktop" && <th className="px-4 py-3">Détecté le</th>}
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="w-24 px-3 py-3 text-center">Intérêt</th>
+              <th className="w-24 px-3 py-3 text-center">Urgence</th>
+              <th className="w-16 px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {visibleDesktopSignals.map((signal) => {
+            {visibleSignals.map((signal) => {
               const feedback = feedbacks[signal.id]
-              const isValidated = signal.status === "validated"
-                || signal.status === "qualified"
-                || Boolean(validatedSignalIds[signal.id])
               return (
                 <tr
                   key={signal.id}
                   className="transition-colors hover:bg-canvas/20"
                 >
-                  {/* Title & Summary */}
-                  <td className="px-4 py-3.5 max-w-sm">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenDetails(signal)}
-                      className="text-left font-bold text-heading hover:underline focus:outline-none"
-                    >
-                      {signal.title}
-                    </button>
-                    {isValidated && (
-                      <span className="ml-2 inline-flex rounded border border-success/25 bg-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
-                        Validé
-                      </span>
-                    )}
+                  {/* Title (+ Détails en fin de ligne), source datée & résumé */}
+                  <td className="px-4 py-3.5">
+                    <p className="font-bold text-heading">
+                      {signal.title}{" "}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetails(signal)}
+                        className="inline-flex items-center gap-0.5 rounded bg-primary px-1.5 py-0.5 align-middle text-[10px] font-bold text-primary-fg transition-colors hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-[var(--focus-ring-width)] focus-visible:ring-[var(--focus-ring-color)]"
+                      >
+                        Détails
+                        <ChevronRightIcon />
+                      </button>
+                    </p>
                     {signal.summary && (
                       <p className="mt-0.5 text-[11px] text-body line-clamp-1">
                         {signal.summary}
                       </p>
                     )}
-                    {variant === "companyDesktop" && (
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                        {formatSignalKind(signal.type ?? signal.category)} · {formatDate(signal.detectedAt)}
-                      </p>
-                    )}
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <SignalSourceLink source={signal.primarySource} />
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {formatDate(signal.publishedAt ?? signal.detectedAt)}
+                      </span>
+                    </div>
                     {feedback && (
                       <p className={cn("mt-1 text-[10px] font-semibold", feedback.tone === "success" ? "text-success" : "text-danger")}>
                         {feedback.message}
                       </p>
                     )}
                   </td>
-                  {/* Category/Type */}
-                  {variant !== "companyDesktop" && (
-                    <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
-                      {signal.type ?? signal.category ?? "signal"}
-                    </td>
-                  )}
-                  {/* Score Global */}
-                  <td className="px-4 py-3.5 align-middle text-center">
-                    <ScorePill value={signal.globalScore} label="Score Global" />
+                  {/* Intérêt */}
+                  <td className="px-3 py-3.5 align-middle text-center">
+                    <ScorePill value={signal.interestScore} label="Intérêt" tone="opportunity" />
                   </td>
                   {/* Urgence */}
-                  <td className="px-4 py-3.5 align-middle text-center">
+                  <td className="px-3 py-3.5 align-middle text-center">
                     <ScorePill value={signal.urgencyScore} label="Urgence" />
                   </td>
-                  {/* Date */}
-                  {variant !== "companyDesktop" && (
-                    <td className="px-4 py-3.5 align-middle text-muted whitespace-nowrap">
-                      {formatDate(signal.detectedAt)}
-                    </td>
-                  )}
                   {/* Actions */}
                   <td className="px-4 py-3.5 align-middle text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <ContextualCommunicationButton
-                        entryPoint="signal_card"
+                    <div className="flex items-center justify-end">
+                      <SignalActionsMenu
+                        signal={signal}
                         companyId={companyId}
                         companyName={companyName}
-                        refs={{ signalRef: signal.id }}
-                        label="Pitch"
-                        size="sm"
+                        isPending={pendingActionId !== null}
+                        onCreateTask={() => handleCreateTask(signal)}
+                        onDismiss={() => handleDismiss(signal.id)}
                       />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleCreateTask(signal)}
-                        loading={pendingActionId === signal.id}
-                        disabled={pendingActionId !== null}
-                      >
-                        Tâche
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleValidate(signal.id)}
-                        loading={pendingActionId === signal.id}
-                        disabled={pendingActionId !== null || isValidated}
-                      >
-                        Valider
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDismiss(signal.id)}
-                        loading={pendingActionId === signal.id}
-                        disabled={pendingActionId !== null}
-                        className="text-muted hover:text-danger"
-                      >
-                        Ignorer
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDetails(signal)}
-                        className="rounded border border-border/80 bg-surface px-2 py-1 text-[10px] font-semibold text-body hover:bg-canvas transition-colors"
-                      >
-                        Détails
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -583,7 +700,7 @@ export function AccountSignalsCard({
         </table>
       </div>
 
-      {variant === "companyDesktop" && signals.length > 5 && (
+      {signals.length > 5 && (
         <div className="mt-3 flex justify-center">
           <Button variant="ghost" size="sm" onClick={() => setShowAllSignals((current) => !current)}>
             {showAllSignals

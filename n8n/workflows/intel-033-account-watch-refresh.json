@@ -44,7 +44,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workspaceId', 'companyId', 'userId', 'settings', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nconst settings = body.settings || {};\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    companyId: body.companyId,\n    userId: body.userId,\n    triggerMode: body.triggerMode || 'manual',\n    watchLevel: body.watchLevel || settings.watchLevel || 'standard',\n    settings: {\n      isEnabled: settings.isEnabled !== false,\n      watchLevel: settings.watchLevel || 'standard',\n      cadence: settings.cadence || 'weekly',\n      includeOfficialSite: settings.includeOfficialSite !== false,\n      includeNews: settings.includeNews !== false,\n      includeJobs: settings.includeJobs !== false,\n      includePublicRecords: settings.includePublicRecords === true,\n      includeTenders: settings.includeTenders === true,\n      includeSocialManual: settings.includeSocialManual === true,\n      queryAliases: Array.isArray(settings.queryAliases) ? settings.queryAliases.filter((v) => typeof v === 'string') : [],\n    },\n    callbackUrl: body.callbackUrl,\n  }\n}];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workspaceId', 'companyId', 'userId', 'settings', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nconst settings = body.settings || {};\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workspaceId: body.workspaceId,\n    companyId: body.companyId,\n    userId: body.userId,\n    triggerMode: body.triggerMode || 'manual',\n    watchLevel: body.watchLevel || settings.watchLevel || 'standard',\n    settings: {\n      isEnabled: settings.isEnabled !== false,\n      watchLevel: settings.watchLevel || 'standard',\n      cadence: settings.cadence || 'weekly',\n      includeOfficialSite: settings.includeOfficialSite !== false,\n      includeNews: settings.includeNews !== false,\n      includePublicRecords: settings.includePublicRecords === true,\n      includeTenders: settings.includeTenders === true,\n      includeSocialManual: settings.includeSocialManual === true,\n      queryAliases: Array.isArray(settings.queryAliases) ? settings.queryAliases.filter((v) => typeof v === 'string') : [],\n    },\n    callbackUrl: body.callbackUrl,\n  }\n}];"
       },
       "id": "n2-validate",
       "name": "Validate Payload",
@@ -228,12 +228,13 @@
         1680,
         300
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Extraction best-effort : le site officiel n'a pas d'API standard, on scanne\n// le HTML de la homepage pour repérer des liens de type \"actualités/presse\".\n// Source la moins fiable des 5 collecteurs — reliability_score plus bas (0.75).\nconst ctx = $('Build Targeted Queries').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeOfficialSite && ctx.company.website) {\n  const html = (raw[0] && (raw[0].json.data || raw[0].json.body || raw[0].json.html)) || '';\n  const anchorRegex = /<a\\s[^>]*href=[\"']([^\"']+)[\"'][^>]*>([^<]{4,120})<\\/a>/gi;\n  const keywords = /actualit|presse|news|communiqu|blog/i;\n  const seen = new Set();\n  let match;\n  while ((match = anchorRegex.exec(html)) && newItems.length < 8) {\n    const href = match[1];\n    const text = match[2].replace(/\\s+/g, ' ').trim();\n    if (!keywords.test(href) && !keywords.test(text)) continue;\n    if (seen.has(href)) continue;\n    seen.add(href);\n    let absoluteUrl = href;\n    try { absoluteUrl = new URL(href, ctx.company.website).toString(); } catch (e) { continue; }\n    newItems.push({\n      title: text || 'Actualité — site officiel',\n      url: absoluteUrl,\n      publishedAt: null,\n      snippet: text,\n      sourceType: 'official_site',\n      sourceName: ctx.company.name || 'Site officiel',\n      collectionMethod: 'scrape',\n    });\n  }\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
+        "jsCode": "// Extraction best-effort : le site officiel n'a pas d'API standard, on scanne\n// le HTML de la homepage pour repérer des liens de type \"actualités/presse\".\n// Source la moins fiable des 5 collecteurs — reliability_score plus bas (0.75).\nconst ctx = $('Build Targeted Queries').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeOfficialSite && ctx.company.website) {\n  const html = (raw[0] && (raw[0].json.data || raw[0].json.body || raw[0].json.html)) || '';\n  const anchorRegex = /<a\\s[^>]*href=[\"']([^\"']+)[\"'][^>]*>([^<]{4,120})<\\/a>/gi;\n  const keywords = /actualit|presse|news|communiqu|blog/i;\n  const seen = new Set();\n  let match;\n  while ((match = anchorRegex.exec(html)) && newItems.length < 8) {\n    const href = match[1];\n    const text = match[2].replace(/\\s+/g, ' ').trim();\n    if (!keywords.test(href) && !keywords.test(text)) continue;\n    if (seen.has(href)) continue;\n    seen.add(href);\n    let absoluteUrl = href;\n    try { absoluteUrl = new URL(href, ctx.company.website).toString(); } catch (e) { continue; }\n    newItems.push({\n      title: text || 'Actualité — site officiel',\n      url: absoluteUrl,\n      publishedAt: null,\n      snippet: text,\n      sourceType: 'official_site',\n      sourceName: ctx.company.name || 'Site officiel',\n      collectedVia: 'Site officiel',\n      collectionMethod: 'scrape',\n    });\n  }\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
       },
       "id": "n7b-shape-official-site",
       "name": "Shape+Accumulate: Official Site",
@@ -259,12 +260,13 @@
         2160,
         300
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $('Shape+Accumulate: Official Site').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeNews) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => ({\n    title: i.json.title,\n    url: i.json.link,\n    publishedAt: i.json.isoDate || i.json.pubDate || null,\n    snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n    sourceType: 'news_media',\n    sourceName: 'Google News',\n    collectionMethod: 'scrape',\n  }));\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
+        "jsCode": "const ctx = $('Shape+Accumulate: Official Site').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\n// Google News est un AGREGATEUR, pas une source : toutes ses URL pointent vers\n// news.google.com et son libelle ecrase l'editeur reel (Les Echos, Tribuca.net...).\n// On retablit l'editeur, sans quoi la regle anti-bruit du scoring traite 100\n// articles de 30 medias differents comme une seule source qui inonde.\nfunction extractPublisher(entry, fallback) {\n  const src = entry.source;\n  const fromField = typeof src === 'string' ? src : ((src && (src.title || src.name)) || null);\n  if (fromField && String(fromField).trim()) return String(fromField).trim();\n  // Fallback : Google News suffixe systematiquement le titre par \" - Editeur\"\n  // (verifie sur 100/100 items du flux reel).\n  const t = entry.title || '';\n  const sep = t.lastIndexOf(' - ');\n  if (sep > 0) {\n    const suffix = t.slice(sep + 3).trim();\n    if (suffix && suffix.length <= 60) return suffix;\n  }\n  return fallback;\n}\n\nfunction stripPublisher(title, publisher) {\n  if (!title || !publisher) return title;\n  const suffix = ' - ' + publisher;\n  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;\n}\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeNews) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => {\n    const publisher = extractPublisher(i.json, 'Google News');\n    return {\n      title: stripPublisher(i.json.title, publisher),\n      url: i.json.link,\n      publishedAt: i.json.isoDate || i.json.pubDate || null,\n      snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n      sourceType: 'news_media',\n      sourceName: publisher,\n      collectedVia: 'Google News',\n      collectionMethod: 'scrape',\n    };\n  });\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
       },
       "id": "n8b-shape-news",
       "name": "Shape+Accumulate: News Media",
@@ -272,37 +274,6 @@
       "typeVersion": 2,
       "position": [
         2400,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "url": "=https://news.google.com/rss/search?q={{ encodeURIComponent('\"' + $json.primaryName + '\" (recrutement OR emploi OR \"offre d\\'emploi\")') }}&hl=fr&gl=FR&ceid=FR:fr",
-        "options": {
-          "ignoreSSL": true
-        }
-      },
-      "id": "n9a-collect-jobs",
-      "name": "Collect: Job Board Signals",
-      "type": "n8n-nodes-base.rssFeedRead",
-      "typeVersion": 1.2,
-      "position": [
-        2640,
-        300
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $('Shape+Accumulate: News Media').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeJobs) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => ({\n    title: i.json.title,\n    url: i.json.link,\n    publishedAt: i.json.isoDate || i.json.pubDate || null,\n    snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n    sourceType: 'job_board',\n    sourceName: 'Google News (recrutement)',\n    collectionMethod: 'scrape',\n  }));\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
-      },
-      "id": "n9b-shape-jobs",
-      "name": "Shape+Accumulate: Job Board",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2880,
         300
       ]
     },
@@ -318,23 +289,24 @@
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.2,
       "position": [
-        3120,
-        300
+        18816,
+        2160
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $('Shape+Accumulate: Job Board').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includePublicRecords) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => ({\n    title: i.json.title,\n    url: i.json.link,\n    publishedAt: i.json.isoDate || i.json.pubDate || null,\n    snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n    sourceType: 'regulatory_filing',\n    sourceName: 'Google News (annonces légales)',\n    collectionMethod: 'scrape',\n  }));\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
+        "jsCode": "const ctx = $('Shape+Accumulate: News Media').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\n// Google News est un AGREGATEUR, pas une source : toutes ses URL pointent vers\n// news.google.com et son libelle ecrase l'editeur reel (Les Echos, Tribuca.net...).\n// On retablit l'editeur, sans quoi la regle anti-bruit du scoring traite 100\n// articles de 30 medias differents comme une seule source qui inonde.\nfunction extractPublisher(entry, fallback) {\n  const src = entry.source;\n  const fromField = typeof src === 'string' ? src : ((src && (src.title || src.name)) || null);\n  if (fromField && String(fromField).trim()) return String(fromField).trim();\n  // Fallback : Google News suffixe systematiquement le titre par \" - Editeur\"\n  // (verifie sur 100/100 items du flux reel).\n  const t = entry.title || '';\n  const sep = t.lastIndexOf(' - ');\n  if (sep > 0) {\n    const suffix = t.slice(sep + 3).trim();\n    if (suffix && suffix.length <= 60) return suffix;\n  }\n  return fallback;\n}\n\nfunction stripPublisher(title, publisher) {\n  if (!title || !publisher) return title;\n  const suffix = ' - ' + publisher;\n  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;\n}\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includePublicRecords) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => {\n    const publisher = extractPublisher(i.json, 'Google News (annonces legales)');\n    return {\n      title: stripPublisher(i.json.title, publisher),\n      url: i.json.link,\n      publishedAt: i.json.isoDate || i.json.pubDate || null,\n      snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n      sourceType: 'regulatory_filing',\n      sourceName: publisher,\n      collectedVia: 'Google News (annonces legales)',\n      collectionMethod: 'scrape',\n    };\n  });\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
       },
       "id": "n10b-shape-public-records",
       "name": "Shape+Accumulate: Public Records",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3360,
-        300
+        19056,
+        2160
       ]
     },
     {
@@ -349,29 +321,30 @@
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.2,
       "position": [
-        3600,
-        300
+        19296,
+        2160
       ],
-      "onError": "continueErrorOutput"
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $('Shape+Accumulate: Public Records').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeTenders) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => ({\n    title: i.json.title,\n    url: i.json.link,\n    publishedAt: i.json.isoDate || i.json.pubDate || null,\n    snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n    sourceType: 'public_tender',\n    sourceName: 'Google News (marchés publics)',\n    collectionMethod: 'scrape',\n  }));\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
+        "jsCode": "const ctx = $('Shape+Accumulate: Public Records').first().json;\nconst raw = $input.all();\nconst errorItem = raw.find((i) => i.json && i.json.error);\n\n// Google News est un AGREGATEUR, pas une source : toutes ses URL pointent vers\n// news.google.com et son libelle ecrase l'editeur reel (Les Echos, Tribuca.net...).\n// On retablit l'editeur, sans quoi la regle anti-bruit du scoring traite 100\n// articles de 30 medias differents comme une seule source qui inonde.\nfunction extractPublisher(entry, fallback) {\n  const src = entry.source;\n  const fromField = typeof src === 'string' ? src : ((src && (src.title || src.name)) || null);\n  if (fromField && String(fromField).trim()) return String(fromField).trim();\n  // Fallback : Google News suffixe systematiquement le titre par \" - Editeur\"\n  // (verifie sur 100/100 items du flux reel).\n  const t = entry.title || '';\n  const sep = t.lastIndexOf(' - ');\n  if (sep > 0) {\n    const suffix = t.slice(sep + 3).trim();\n    if (suffix && suffix.length <= 60) return suffix;\n  }\n  return fallback;\n}\n\nfunction stripPublisher(title, publisher) {\n  if (!title || !publisher) return title;\n  const suffix = ' - ' + publisher;\n  return title.endsWith(suffix) ? title.slice(0, -suffix.length).trim() : title;\n}\n\nlet newItems = [];\nif (!errorItem && ctx.settings.includeTenders) {\n  newItems = raw.filter((i) => i.json && i.json.title).map((i) => {\n    const publisher = extractPublisher(i.json, 'Google News (marches publics)');\n    return {\n      title: stripPublisher(i.json.title, publisher),\n      url: i.json.link,\n      publishedAt: i.json.isoDate || i.json.pubDate || null,\n      snippet: (i.json.contentSnippet || i.json.content || '').slice(0, 600),\n      sourceType: 'public_tender',\n      sourceName: publisher,\n      collectedVia: 'Google News (marches publics)',\n      collectionMethod: 'scrape',\n    };\n  });\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    collectedItems: [...ctx.collectedItems, ...newItems],\n  }\n}];"
       },
       "id": "n11b-shape-tenders",
       "name": "Shape+Accumulate: Tenders",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3840,
-        300
+        19536,
+        2160
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const ctx = $input.first().json;\nconst items = Array.isArray(ctx.collectedItems) ? ctx.collectedItems : [];\nconst existingKeys = new Set(ctx.existingDedupeKeys || []);\n\nfunction simpleHash(str) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return Math.abs(hash).toString(36);\n}\n\nconst seenInBatch = new Set();\nconst deduped = [];\nfor (const it of items) {\n  if (!it.url || !it.title) continue;\n  const dedupeKey = `${it.sourceType}:${simpleHash(it.url)}`;\n  if (existingKeys.has(dedupeKey)) continue;\n  if (seenInBatch.has(dedupeKey)) continue;\n  seenInBatch.add(dedupeKey);\n  deduped.push({ ...it, dedupeKey, id: `item_${deduped.length}` });\n}\n\n// Garde-fou coût LLM : même plafond que la veille hebdomadaire (40 candidats max).\nconst capped = deduped.slice(0, 40);\n\nreturn [{\n  json: {\n    runId: ctx.runId,\n    workspaceId: ctx.workspaceId,\n    companyId: ctx.companyId,\n    callbackUrl: ctx.callbackUrl,\n    company: ctx.company,\n    normalizedItems: capped,\n    itemsCollectedTotal: items.length,\n    itemsAfterDedup: capped.length,\n  }\n}];"
+        "jsCode": "const ctx = $input.first().json;\nconst items = Array.isArray(ctx.collectedItems) ? ctx.collectedItems : [];\nconst existingKeys = new Set(ctx.existingDedupeKeys || []);\n\nconst MAX_AGE_DAYS = 120;\nconst MAX_ITEMS = 40;\n\nfunction simpleHash(str) {\n  let hash = 0;\n  for (let i = 0; i < str.length; i++) {\n    hash = ((hash << 5) - hash) + str.charCodeAt(i);\n    hash |= 0;\n  }\n  return Math.abs(hash).toString(36);\n}\n\nfunction normalizeTitle(t) {\n  return (t || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nconst seenKeys = new Set();\nconst seenTitles = new Set();\nconst kept = [];\n\nfor (const it of items) {\n  if (!it.url || !it.title) continue;\n\n  // Au-dela de 120 jours, freshness() vaut deja 0 : l'item consomme du budget\n  // LLM sans jamais pouvoir peser dans le score. Un item sans date est garde\n  // (traite en fraicheur moyenne plus bas dans le scoring).\n  if (it.publishedAt) {\n    const d = new Date(it.publishedAt);\n    if (!isNaN(d) && (Date.now() - d.getTime()) / 86400000 > MAX_AGE_DAYS) continue;\n  }\n\n  const dedupeKey = `${it.sourceType}:${simpleHash(it.url)}`;\n  if (existingKeys.has(dedupeKey) || seenKeys.has(dedupeKey)) continue;\n\n  // Dedup douce sur le titre normalise : un meme evenement (depeche AFP,\n  // communique) est repris a l'identique par plusieurs editeurs. On garde la\n  // premiere occurrence. Comparaison sur titre EXACT normalise seulement —\n  // deux angles differents sur le meme fait restent deux signaux distincts.\n  const titleKey = normalizeTitle(it.title);\n  if (titleKey && seenTitles.has(titleKey)) continue;\n\n  seenKeys.add(dedupeKey);\n  if (titleKey) seenTitles.add(titleKey);\n  kept.push({ ...it, dedupeKey });\n}\n\n// Garde-fou cout LLM (40 candidats max), reparti en TOURNIQUET entre\n// collecteurs et par fraicheur decroissante. Un simple slice(0, 40) sur l'ordre\n// de collecte laissait la centaine d'actualites saturer tout le budget : les\n// signaux de recrutement et d'appels d'offres — les plus actionnables pour une\n// ESN — n'etaient jamais qualifies.\nconst byType = new Map();\nfor (const it of kept) {\n  if (!byType.has(it.sourceType)) byType.set(it.sourceType, []);\n  byType.get(it.sourceType).push(it);\n}\nfor (const group of byType.values()) {\n  group.sort((a, b) => {\n    const da = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;\n    const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;\n    return db - da;\n  });\n}\n\nconst queues = Array.from(byType.values());\nconst capped = [];\nlet progress = true;\nwhile (capped.length < MAX_ITEMS && progress) {\n  progress = false;\n  for (const queue of queues) {\n    if (queue.length === 0) continue;\n    capped.push(queue.shift());\n    progress = true;\n    if (capped.length >= MAX_ITEMS) break;\n  }\n}\n\ncapped.forEach((it, idx) => { it.id = `item_${idx}`; });\n\nreturn [{\n  json: {\n    runId: ctx.runId,\n    workspaceId: ctx.workspaceId,\n    companyId: ctx.companyId,\n    callbackUrl: ctx.callbackUrl,\n    company: ctx.company,\n    normalizedItems: capped,\n    itemsCollectedTotal: items.length,\n    itemsAfterDedup: capped.length,\n  }\n}];"
       },
       "id": "n12-normalize-dedup",
       "name": "Normalize & Dedup Items",
@@ -385,15 +358,15 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\nconst items = data.normalizedItems;\n\nconst TAXONOMY = ['leadership_change','growth_event','it_transformation','cyber_risk','regulatory_window','public_tender','hiring_signal','market_pressure','partnership_or_vendor','weak_signal'];\n\nconst itemsBlock = items.length > 0\n  ? items.map((it) => `id: ${it.id}\\ntitre: ${it.title}\\nsource: ${it.sourceName} (${it.sourceType})\\ndate: ${it.publishedAt || 'inconnue'}\\nextrait: ${(it.snippet || '').slice(0, 400)}`).join('\\n\\n---\\n\\n')\n  : '(aucun élément collecté ce run)';\n\nconst prompt = `# CONTEXTE\nTu qualifies des signaux de veille commerciale ciblée pour KREDO (ESN), sur le\ncompte \"${data.company.name || 'compte inconnu'}\" (secteur: ${data.company.sector || 'non renseigné'}).\nCes éléments ont déjà été collectés spécifiquement pour ce compte (recherche ciblée,\npas une veille marché générale) — traite-les tous, ne filtre pas par pertinence sectorielle.\nSi la liste des ÉLÉMENTS À QUALIFIER est vide ou indique qu'aucun élément n'a été\ncollecté, réponds directement {\"items\":[]} sans chercher à inventer un signal.\n\n# TÂCHE\nPour CHAQUE élément ci-dessous, fournis :\n- category : exactement une valeur parmi ${TAXONOMY.join(', ')}\n- pertinence_esn (0 à 1) : alignement avec une mission ESN (régie/forfait/conseil tech)\n- urgence (0 à 1) : présence d'une échéance ou d'un signal d'action imminente\n- fit_practice (0 à 1) : correspondance avec les practices KREDO (Cloud/Data-IA/Dev/Cyber/PM)\n- confidence (0 à 1) : ta confiance dans la qualification (mets < 0.4 si l'extrait est trop vague)\n- summary : résumé factuel en UNE SEULE phrase courte (20 mots maximum), sans invention\n- justification : UNE SEULE phrase très courte (15 mots maximum)\n- recommended_action : action commerciale concrète en 15 mots maximum, ou chaîne vide si aucune\n\n# RÈGLES\nNe jamais inventer de faits absents de l'extrait. Rester factuel et neutre.\nSois systématiquement concis sur summary/justification/recommended_action : ta réponse\ndoit couvrir TOUS les éléments de la liste sans jamais être coupée par la limite de\ntokens — la concision de chaque champ prime sur le détail.\n\n# FORMAT DE SORTIE\nJSON valide UNIQUEMENT, une seule ligne, sans backticks, structure exacte :\n{\"items\":[{\"id\":\"item_0\",\"category\":\"...\",\"pertinence_esn\":0.0,\"urgence\":0.0,\"fit_practice\":0.0,\"confidence\":0.0,\"summary\":\"...\",\"justification\":\"...\",\"recommended_action\":\"\"}]}\n\n# ÉLÉMENTS À QUALIFIER\n${itemsBlock}`;\n\nreturn [{ json: { ...data, prompt } }];"
+        "jsCode": "const data = $input.first().json;\nconst items = data.normalizedItems;\n\nconst TAXONOMY = ['leadership_change','growth_event','it_transformation','cyber_risk','regulatory_window','public_tender','hiring_signal','market_pressure','partnership_or_vendor','weak_signal'];\n\nconst itemsBlock = items.length > 0\n  ? items.map((it) => `id: ${it.id}\\ntitre: ${it.title}\\nsource: ${it.sourceName} (${it.sourceType})\\ndate: ${it.publishedAt || 'inconnue'}\\nextrait: ${(it.snippet || '').slice(0, 400)}`).join('\\n\\n---\\n\\n')\n  : '(aucun élément collecté ce run)';\n\nconst prompt = `# CONTEXTE\nTu qualifies des signaux de veille commerciale ciblée pour KREDO (ESN), sur le\ncompte \"${data.company.name || 'compte inconnu'}\" (secteur: ${data.company.sector || 'non renseigné'}).\nCes éléments ont déjà été collectés spécifiquement pour ce compte (recherche ciblée,\npas une veille marché générale) — traite-les tous, ne filtre pas par pertinence sectorielle.\nSi la liste des ÉLÉMENTS À QUALIFIER est vide ou indique qu'aucun élément n'a été\ncollecté, réponds directement {\"items\":[]} sans chercher à inventer un signal.\n\n# TÂCHE\nPour CHAQUE élément ci-dessous, fournis :\n- category : exactement une valeur parmi ${TAXONOMY.join(', ')}\n- pertinence_esn (0 à 1) : alignement avec une mission ESN (régie/forfait/conseil tech)\n- urgence (0 à 1) : présence d'une échéance ou d'un signal d'action imminente\n- fit_practice (0 à 1) : correspondance avec les practices KREDO (Cloud/Data-IA/Dev/Cyber/PM)\n- confidence (0 à 1) : ta confiance dans la qualification (mets < 0.4 si l'extrait est trop vague)\n- summary : résumé factuel en UNE SEULE phrase courte (20 mots maximum), sans invention\n- justification : UNE SEULE phrase très courte (15 mots maximum)\n- recommended_action : action commerciale concrète en 15 mots maximum, ou chaîne vide si aucune\n\n# RÈGLES\nNe jamais inventer de faits absents de l'extrait. Rester factuel et neutre.\nHOMONYMIE — la recherche par nom ramène des éléments qui ne parlent PAS de l'entreprise :\ncourse hippique ou trophée portant le même nom, homonyme, simple mention en liste.\nPour ces cas, mets pertinence_esn, fit_practice ET urgence à 0, et dis-le en justification.\nNe force jamais une note haute pour remplir : un élément hors sujet doit ressortir à zéro\nsur les trois axes.\nSois systématiquement concis sur summary/justification/recommended_action : ta réponse\ndoit couvrir TOUS les éléments de la liste sans jamais être coupée par la limite de\ntokens — la concision de chaque champ prime sur le détail.\n\n# FORMAT DE SORTIE\nJSON valide UNIQUEMENT, une seule ligne, sans backticks, structure exacte :\n{\"items\":[{\"id\":\"item_0\",\"category\":\"...\",\"pertinence_esn\":0.0,\"urgence\":0.0,\"fit_practice\":0.0,\"confidence\":0.0,\"summary\":\"...\",\"justification\":\"...\",\"recommended_action\":\"\"}]}\n\n# ÉLÉMENTS À QUALIFIER\n${itemsBlock}`;\n\nreturn [{ json: { ...data, prompt } }];"
       },
       "id": "n13-build-prompt",
       "name": "Build Qualification Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4320,
-        300
+        4560,
+        180
       ]
     },
     {
@@ -424,8 +397,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4560,
-        300
+        4800,
+        180
       ],
       "retryOnFail": true,
       "maxTries": 2,
@@ -451,38 +424,39 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4800,
-        300
+        5040,
+        180
       ],
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\n\nconst RELIABILITY_BY_SOURCE_TYPE = {\n  official_site: 0.75,\n  news_media: 0.55,\n  job_board: 0.6,\n  regulatory_filing: 0.7,\n  public_tender: 0.65,\n};\n\nfunction freshness(publishedAt) {\n  if (!publishedAt) return 0.5;\n  const d = new Date(publishedAt);\n  if (isNaN(d)) return 0.5;\n  const ageHours = (Date.now() - d.getTime()) / 3600000;\n  if (ageHours <= 48) return 1.0;\n  const ageDays = ageHours / 24;\n  if (ageDays >= 30) return 0.0;\n  return Math.max(0, Math.min(1, 1 - (ageDays - 2) / 28));\n}\n\nlet scored = data.qualifiedItems.map((it) => {\n  const reliability = RELIABILITY_BY_SOURCE_TYPE[it.sourceType] ?? 0.5;\n  const fresh = freshness(it.publishedAt);\n  const globalScore = Math.round((0.35 * it.pertinenceEsn + 0.20 * fresh + 0.20 * it.urgence + 0.15 * it.fitPractice + 0.10 * reliability) * 1000) / 1000;\n  const now = new Date();\n  const detectedAt = now.toISOString();\n  const expiresAt = new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString();\n  const status = it.confidence < 0.40 ? 'needs_review' : 'new';\n\n  return {\n    ...it,\n    reliability,\n    freshness: fresh,\n    globalScore,\n    detectedAt,\n    expiresAt,\n    status,\n  };\n});\n\n// Règle \"source trop bruyante\" (§10) : si une source dépasse 20 signaux sur ce run,\n// ne conserver que les 5 au score global le plus élevé pour cette source.\nconst bySource = new Map();\nfor (const it of scored) {\n  const key = `${it.sourceType}::${it.sourceName}`;\n  if (!bySource.has(key)) bySource.set(key, []);\n  bySource.get(key).push(it);\n}\n\nlet capped = [];\nfor (const group of bySource.values()) {\n  if (group.length > 20) {\n    group.sort((a, b) => b.globalScore - a.globalScore);\n    capped.push(...group.slice(0, 5));\n  } else {\n    capped.push(...group);\n  }\n}\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: capped,\n    noisySourcesCapped: bySource.size !== capped.length ? true : false,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
+        "jsCode": "const data = $input.first().json;\n\nconst RELIABILITY_BY_SOURCE_TYPE = {\n  official_site: 0.75,\n  news_media: 0.55,\n  regulatory_filing: 0.7,\n  public_tender: 0.65,\n};\n\nfunction freshness(publishedAt) {\n  if (!publishedAt) return 0.5;\n  const d = new Date(publishedAt);\n  if (isNaN(d)) return 0.5;\n  const ageHours = (Date.now() - d.getTime()) / 3600000;\n  if (ageHours <= 48) return 1.0;\n  const ageDays = ageHours / 24;\n  if (ageDays >= 30) return 0.0;\n  return Math.max(0, Math.min(1, 1 - (ageDays - 2) / 28));\n}\n\n// Un element hors sujet (homonymie : le \"Prix Robertet\" est une course\n// hippique, pas le parfumeur) ressort a zero sur les TROIS axes de\n// qualification. On ne l'ecrit pas en base : un signal non actionnable pollue\n// le cockpit autant qu'il coute a stocker. Le compte reste trace dans le\n// resume du run. Seuil volontairement tres conservateur — il faut etre nul\n// PARTOUT pour etre ecarte : un signal faible mais reel sur un seul axe passe.\nconst MIN_SIGNAL = 0.2;\nconst relevantItems = data.qualifiedItems.filter(\n  (it) => it.pertinenceEsn >= MIN_SIGNAL || it.fitPractice >= MIN_SIGNAL || it.urgence >= MIN_SIGNAL\n);\nconst rejectedOffTopic = data.qualifiedItems.length - relevantItems.length;\n\nlet scored = relevantItems.map((it) => {\n  const reliability = RELIABILITY_BY_SOURCE_TYPE[it.sourceType] ?? 0.5;\n  const fresh = freshness(it.publishedAt);\n  const globalScore = Math.round((0.35 * it.pertinenceEsn + 0.20 * fresh + 0.20 * it.urgence + 0.15 * it.fitPractice + 0.10 * reliability) * 1000) / 1000;\n  const now = new Date();\n  const detectedAt = now.toISOString();\n  const expiresAt = new Date(now.getTime() + 60 * 24 * 3600 * 1000).toISOString();\n  const status = it.confidence < 0.40 ? 'needs_review' : 'new';\n\n  return {\n    ...it,\n    reliability,\n    freshness: fresh,\n    globalScore,\n    detectedAt,\n    expiresAt,\n    status,\n  };\n});\n\n// Règle \"source trop bruyante\" (§10) : si une source dépasse 20 signaux sur ce run,\n// ne conserver que les 5 au score global le plus élevé pour cette source.\nconst bySource = new Map();\nfor (const it of scored) {\n  const key = it.sourceName || it.sourceType;\n  if (!bySource.has(key)) bySource.set(key, []);\n  bySource.get(key).push(it);\n}\n\nlet capped = [];\nlet noisySourcesCapped = false;\nfor (const group of bySource.values()) {\n  if (group.length > 20) {\n    noisySourcesCapped = true;\n    group.sort((a, b) => b.globalScore - a.globalScore);\n    capped.push(...group.slice(0, 5));\n  } else {\n    capped.push(...group);\n  }\n}\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: capped,\n    rejectedOffTopic,\n    noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
       },
       "id": "n16-compute-scores",
       "name": "Compute Scores & Apply Rules",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5040,
+        5280,
         300
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\n\nfunction canonicalUrl(url) {\n  try {\n    const u = new URL(url);\n    u.search = '';\n    u.hash = '';\n    return u.toString();\n  } catch (e) {\n    return url;\n  }\n}\n\nconst bySourceKey = new Map();\nfor (const it of data.scoredItems) {\n  const sourceKey = `account_watch:${it.sourceType}:${it.dedupeKey}`;\n  if (bySourceKey.has(sourceKey)) continue;\n  bySourceKey.set(sourceKey, {\n    workspace_id: data.workspaceId,\n    source_type: it.sourceType,\n    source_name: it.sourceName,\n    source_url: it.url,\n    canonical_url: canonicalUrl(it.url),\n    published_at: it.publishedAt || null,\n    source_key: sourceKey,\n    evidence_excerpt: (it.snippet || it.summary || '').slice(0, 500),\n    reliability_score: it.reliability,\n    collection_method: it.collectionMethod,\n    technical_metadata: { collector: 'intel-033-account-watch-refresh', runId: data.runId },\n  });\n}\n\nconst sourcesPayload = Array.from(bySourceKey.values());\nconst sourceKeys = Array.from(bySourceKey.keys());\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: data.scoredItems,\n    sourcesPayload,\n    sourceKeys,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
+        "jsCode": "const data = $input.first().json;\n\nfunction canonicalUrl(url) {\n  try {\n    const u = new URL(url);\n    u.search = '';\n    u.hash = '';\n    return u.toString();\n  } catch (e) {\n    return url;\n  }\n}\n\nconst bySourceKey = new Map();\nfor (const it of data.scoredItems) {\n  const sourceKey = `account_watch:${it.sourceType}:${it.dedupeKey}`;\n  if (bySourceKey.has(sourceKey)) continue;\n  bySourceKey.set(sourceKey, {\n    workspace_id: data.workspaceId,\n    source_type: it.sourceType,\n    source_name: it.sourceName,\n    source_url: it.url,\n    canonical_url: canonicalUrl(it.url),\n    published_at: it.publishedAt || null,\n    source_key: sourceKey,\n    evidence_excerpt: (it.snippet || it.summary || '').slice(0, 500),\n    reliability_score: it.reliability,\n    collection_method: it.collectionMethod,\n    technical_metadata: { collector: 'intel-033-account-watch-refresh', collectedVia: it.collectedVia || null, runId: data.runId },\n  });\n}\n\nconst sourcesPayload = Array.from(bySourceKey.values());\nconst sourceKeys = Array.from(bySourceKey.keys());\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    scoredItems: data.scoredItems,\n    sourcesPayload,\n    sourceKeys,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
       },
       "id": "n17-build-sources-payload",
       "name": "Build Sources Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5280,
-        300
-      ]
+        5760,
+        180
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -512,8 +486,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5520,
-        300
+        6000,
+        180
       ],
       "onError": "continueErrorOutput",
       "credentials": {
@@ -521,7 +495,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -554,8 +529,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5760,
-        300
+        6240,
+        180
       ],
       "onError": "continueErrorOutput",
       "credentials": {
@@ -563,7 +538,8 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -575,9 +551,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6000,
-        300
-      ]
+        6480,
+        180
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -607,8 +584,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6240,
-        300
+        6720,
+        180
       ],
       "onError": "continueErrorOutput",
       "credentials": {
@@ -616,20 +593,21 @@
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const insertedSignals = $input.all().map((i) => i.json).filter((r) => r && r.id);\n\nconst linksPayload = insertedSignals\n  .filter((s) => s.primary_source_id)\n  .map((s) => ({\n    workspace_id: s.workspace_id,\n    source_id: s.primary_source_id,\n    object_type: 'signal',\n    object_id: s.id,\n    link_role: 'supporting',\n  }));\n\nreturn linksPayload.map((l) => ({ json: l }));"
+        "jsCode": "// Sortie en UN SEUL item porteur du tableau : un Code node qui renvoie [] n'emet\n// aucun item, et n8n n'execute pas un noeud sans item en entree — la chaine\n// s'arreterait ici en silence (execution \"succeeded\", zero ecriture, zero callback).\nconst insertedSignals = $input.all().map((i) => i.json).filter((r) => r && r.id && r.primary_source_id);\n\nconst linksPayload = insertedSignals.map((s) => ({\n  workspace_id: s.workspace_id,\n  source_id: s.primary_source_id,\n  object_type: 'signal',\n  object_id: s.id,\n  link_role: 'supporting',\n}));\n\nreturn [{ json: { linksPayload, linksCount: linksPayload.length } }];"
       },
       "id": "n22-build-links-payload",
       "name": "Build Source Links Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6480,
-        300
+        6960,
+        180
       ]
     },
     {
@@ -650,7 +628,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ $input.all().map(i => i.json) }}",
+        "jsonBody": "={{ $('Build Source Links Payload').first().json.linksPayload }}",
         "options": {
           "timeout": 30000
         }
@@ -660,22 +638,22 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6720,
-        300
+        7440,
+        120
       ],
-      "executeOnce": true,
       "onError": "continueErrorOutput",
       "credentials": {
         "supabaseApi": {
           "id": "GBrm2aWU0dDf85QS",
           "name": "Supabase_Service_Role_KREDO"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_watch_settings?company_id=eq.{{ $('Map Signals to Sources').first().json.companyId }}&workspace_id=eq.{{ $('Map Signals to Sources').first().json.workspaceId }}",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/account_watch_settings?company_id=eq.{{ $json.companyId }}&workspace_id=eq.{{ $json.workspaceId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
@@ -700,7 +678,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6960,
+        7920,
         300
       ],
       "onError": "continueErrorOutput",
@@ -714,14 +692,14 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const data = $('Map Signals to Sources').first().json;\n\nconst byCategory = {};\nfor (const s of data.signalsPayload) {\n  byCategory[s.signal_category] = (byCategory[s.signal_category] || 0) + 1;\n}\n\nconst contentJson = {\n  companyName: data.company.name,\n  itemsCollectedTotal: data.itemsCollectedTotal,\n  itemsAfterDedup: data.itemsAfterDedup,\n  signalsCreated: data.signalsPayload.length,\n  signalsByCategory: byCategory,\n  noisySourcesCapped: data.noisySourcesCapped,\n};\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_watch_refresh',\n  status: 'succeeded',\n  contentJson,\n  contentText: `Veille compte ${data.company.name || ''} : ${data.signalsPayload.length} signal(aux) sur ${data.itemsAfterDedup} élément(s) retenu(s) (${data.itemsCollectedTotal} collecté(s)).`,\n  title: `Veille — ${data.company.name || 'Compte'}`,\n  modelProvider: 'anthropic',\n  modelUsed: data.llmModel,\n  tokensInput: data.llmTokensInput,\n  tokensOutput: data.llmTokensOutput,\n  contextSnapshot: { itemsAfterDedup: data.itemsAfterDedup, signalsCreated: data.signalsPayload.length },\n  sourceRefs: [],\n  qaFlags: [],\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+        "jsCode": "const data = $('Finalize Run Summary').first().json;\n\nconst contentJson = {\n  companyName: data.company.name,\n  itemsCollectedTotal: data.itemsCollectedTotal,\n  itemsAfterDedup: data.itemsAfterDedup,\n  signalsScored: data.signalsScored,\n  rejectedOffTopic: data.rejectedOffTopic,\n  signalsCreated: data.signalsWritten,\n  signalsByCategory: data.signalsByCategory,\n  noisySourcesCapped: data.noisySourcesCapped,\n};\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_watch_refresh',\n  status: 'succeeded',\n  contentJson,\n  contentText: `Veille compte ${data.company.name || ''} : ${data.signalsWritten} signal(aux) cree(s) sur ${data.signalsScored} qualifie(s), ${data.itemsAfterDedup} element(s) retenu(s) sur ${data.itemsCollectedTotal} collecte(s).`,\n  title: `Veille — ${data.company.name || 'Compte'}`,\n  // Pas d'appel LLM sur un run sans element a qualifier : on renvoie null\n  // plutot qu'un modele fantome jamais sollicite (cf. correctif intel-010).\n  modelProvider: data.llmModel ? 'anthropic' : null,\n  modelUsed: data.llmModel,\n  tokensInput: data.llmTokensInput,\n  tokensOutput: data.llmTokensOutput,\n  contextSnapshot: { itemsAfterDedup: data.itemsAfterDedup, signalsCreated: data.signalsWritten },\n  sourceRefs: [],\n  qaFlags: [],\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
       },
       "id": "n25-prepare-callback",
       "name": "Prepare Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        7200,
+        8160,
         300
       ]
     },
@@ -740,7 +718,7 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        7440,
+        8400,
         300
       ]
     },
@@ -774,7 +752,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        7680,
+        8640,
         300
       ],
       "retryOnFail": true,
@@ -890,6 +868,131 @@
       "retryOnFail": true,
       "maxTries": 2,
       "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1f0a2c4-0001-4a10-9b01-2f0e5a7c1101",
+              "leftValue": "={{ $json.normalizedItems.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1f0a2c4-0001-4a10-9b01-2f0e5a7c1101",
+      "name": "IF — Has Items to Qualify?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aucun element collecte (ou tout deja connu) : on court-circuite l'appel LLM\n// — zero token depense pour qualifier une liste vide — et on produit\n// directement la forme de sortie attendue par \"Compute Scores & Apply Rules\".\nconst upstream = $('Normalize & Dedup Items').first().json;\n\nreturn [{\n  json: {\n    runId: upstream.runId,\n    workspaceId: upstream.workspaceId,\n    companyId: upstream.companyId,\n    callbackUrl: upstream.callbackUrl,\n    company: upstream.company,\n    itemsCollectedTotal: upstream.itemsCollectedTotal,\n    itemsAfterDedup: upstream.itemsAfterDedup,\n    qualifiedItems: [],\n    llmModel: null,\n    llmTokensInput: null,\n    llmTokensOutput: null,\n  }\n}];"
+      },
+      "id": "b1f0a2c4-0002-4a10-9b01-2f0e5a7c1102",
+      "name": "Skip Qualification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4560,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1f0a2c4-0003-4a10-9b01-2f0e5a7c1103",
+              "leftValue": "={{ $json.scoredItems.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1f0a2c4-0003-4a10-9b01-2f0e5a7c1103",
+      "name": "IF — Has Signals to Write?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1f0a2c4-0004-4a10-9b01-2f0e5a7c1104",
+              "leftValue": "={{ $json.linksCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1f0a2c4-0004-4a10-9b01-2f0e5a7c1104",
+      "name": "IF — Has Source Links?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pivot stable de fin de run : lit \"Compute Scores & Apply Rules\", seul noeud\n// traverse par TOUTES les branches (avec ou sans signal a ecrire). Ne jamais\n// referencer ici un noeud d'ecriture Supabase sans garde : selon la branche\n// empruntee il peut n'avoir jamais ete execute, et la reference leve alors.\nconst data = $('Compute Scores & Apply Rules').first().json;\n\nconst byCategory = {};\nfor (const s of data.scoredItems) {\n  byCategory[s.category] = (byCategory[s.category] || 0) + 1;\n}\n\nlet signalsWritten = 0;\ntry {\n  signalsWritten = $('Supabase: Upsert Signals').all().filter((i) => i.json && i.json.id).length;\n} catch (e) {\n  signalsWritten = 0;\n}\n\nreturn [{\n  json: {\n    runId: data.runId,\n    workspaceId: data.workspaceId,\n    companyId: data.companyId,\n    callbackUrl: data.callbackUrl,\n    company: data.company,\n    itemsCollectedTotal: data.itemsCollectedTotal,\n    itemsAfterDedup: data.itemsAfterDedup,\n    signalsScored: data.scoredItems.length,\n    rejectedOffTopic: data.rejectedOffTopic ?? 0,\n    signalsWritten,\n    signalsByCategory: byCategory,\n    noisySourcesCapped: data.noisySourcesCapped,\n    llmModel: data.llmModel,\n    llmTokensInput: data.llmTokensInput,\n    llmTokensOutput: data.llmTokensOutput,\n  }\n}];"
+      },
+      "id": "b1f0a2c4-0005-4a10-9b01-2f0e5a7c1105",
+      "name": "Finalize Run Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7680,
+        300
+      ]
     }
   ],
   "connections": {
@@ -1049,35 +1152,6 @@
       "main": [
         [
           {
-            "node": "Collect: Job Board Signals",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Collect: Job Board Signals": {
-      "main": [
-        [
-          {
-            "node": "Shape+Accumulate: Job Board",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Shape+Accumulate: Job Board",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Shape+Accumulate: Job Board": {
-      "main": [
-        [
-          {
             "node": "Collect: Public Records",
             "type": "main",
             "index": 0
@@ -1147,7 +1221,7 @@
       "main": [
         [
           {
-            "node": "Build Qualification Prompt",
+            "node": "IF — Has Items to Qualify?",
             "type": "main",
             "index": 0
           }
@@ -1205,7 +1279,7 @@
       "main": [
         [
           {
-            "node": "Build Sources Payload",
+            "node": "IF — Has Signals to Write?",
             "type": "main",
             "index": 0
           }
@@ -1306,7 +1380,7 @@
       "main": [
         [
           {
-            "node": "Supabase: Insert Source Links",
+            "node": "IF — Has Source Links?",
             "type": "main",
             "index": 0
           }
@@ -1317,14 +1391,14 @@
       "main": [
         [
           {
-            "node": "Supabase: Update Watch Settings -> Succeeded",
+            "node": "Finalize Run Summary",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Supabase: Update Watch Settings -> Succeeded",
+            "node": "Finalize Run Summary",
             "type": "main",
             "index": 0
           }
@@ -1405,6 +1479,82 @@
         [
           {
             "node": "Callback (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Has Items to Qualify?": {
+      "main": [
+        [
+          {
+            "node": "Build Qualification Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Qualification": {
+      "main": [
+        [
+          {
+            "node": "Compute Scores & Apply Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Has Signals to Write?": {
+      "main": [
+        [
+          {
+            "node": "Build Sources Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF — Has Source Links?": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Insert Source Links",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finalize Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Run Summary": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Update Watch Settings -> Succeeded",
             "type": "main",
             "index": 0
           }

@@ -494,8 +494,10 @@ export function hasVisibleOpenQuestions(facts: readonly AccountKnowledgeFact[] |
   return getVisibleOpenQuestions(facts).length > 0
 }
 
-export function getInitialAccountSignals<T extends { detectedAt: string }>(signals: readonly T[], limit = 5): T[] {
-  return [...signals]
-    .sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime())
-    .slice(0, limit)
+// Ne re-trie PAS : intelligence-data.ts trie déjà `accountSignals` par
+// fraîcheur de parution avant de les transmettre. Un second tri ici (par
+// exemple sur detectedAt) romprait cet ordre — un des deux critères gagnerait
+// arbitrairement selon leur écart, comme le bug déjà corrigé sur ce même flux.
+export function getInitialAccountSignals<T>(signals: readonly T[], limit = 5): T[] {
+  return signals.slice(0, limit)
 }

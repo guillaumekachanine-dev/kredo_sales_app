@@ -690,7 +690,12 @@ export function VeilleActualitesMobile({
             summary: detailSignal.summary,
             detectedAt: detailSignal.detectedAt,
             expiresAt: null,
+            // WatchedAccountSignal (veille sectorielle) n'a ni date de parution
+            // ni score_details dédiés à l'intérêt Kredo — même repli que pour
+            // les signaux de compte ajoutés manuellement (globalScore).
+            publishedAt: null,
             globalScore: detailSignal.globalScore,
+            interestScore: detailSignal.globalScore,
             urgencyScore: detailSignal.urgencyScore,
             confidenceScore: detailSignal.confidenceScore,
             status: detailSignal.status,
