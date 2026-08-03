@@ -29,18 +29,19 @@ function FinanceMetric({ label, value, strong = false }: { label: string; value:
 }
 
 export function OpportunityFinanceTab({ data, isMobile }: OpportunityFinanceTabProps) {
-  const { opportunity, financialReference } = data
+  const { opportunity, account, financialReference } = data
   const [simulationOpen, setSimulationOpen] = useState(false)
   const weightedGain = opportunity.weighted_gain ?? (
     opportunity.acv === null ? null : opportunity.acv * opportunity.conviction / 100
   )
   const simulationPreset = useMemo<FinancialModelingLaunchPreset>(() => ({
     mode: "full",
-    title: `Simulation financière — ${opportunity.title}`,
     companyId: opportunity.company_id,
+    companyName: account?.name ?? null,
     opportunityId: opportunity.id,
+    opportunityTitle: opportunity.title,
     salesDailyRate: opportunity.target_daily_rate,
-  }), [opportunity.company_id, opportunity.id, opportunity.target_daily_rate, opportunity.title])
+  }), [account?.name, opportunity.company_id, opportunity.id, opportunity.target_daily_rate, opportunity.title])
 
   return (
     <section>

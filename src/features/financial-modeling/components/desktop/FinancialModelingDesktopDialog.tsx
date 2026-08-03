@@ -106,6 +106,7 @@ export function FinancialModelingDesktopDialog({
   const [viewMode, setViewMode] = useState<"edit" | "summary">(initialView)
   const [showPostSaveActions, setShowPostSaveActions] = useState(false)
   const [isTitleEditable, setIsTitleEditable] = useState(false)
+  const [isTitleEditing, setIsTitleEditing] = useState(false)
 
   type FinancialModelingModelingContext = FinancialModelingBootstrapData
 
@@ -119,6 +120,7 @@ export function FinancialModelingDesktopDialog({
       setShowPromoteConfirm(false)
       setShowHistory(false)
       setIsTitleEditable(false)
+      setIsTitleEditing(false)
       setLoading(true)
       const res = await getFinancialModelingBootstrapAction()
       if (res.success && res.data) {
@@ -564,31 +566,53 @@ export function FinancialModelingDesktopDialog({
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Contexte de la simulation</h3>
                       <Field label="Titre de la simulation" required>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={formState.title}
-                            readOnly={!isTitleEditable}
-                            disabled={fieldsDisabled}
-                            className={!isTitleEditable && !fieldsDisabled ? "cursor-default bg-canvas/60 text-muted" : undefined}
-                            onChange={(e) => setFormState({ ...formState, title: e.target.value })}
-                          />
+                        <div className="flex w-full items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <Input
+                              value={formState.title}
+                              readOnly={!isTitleEditing}
+                              disabled={fieldsDisabled}
+                              className={`min-w-0 flex-1 ${
+                                isTitleEditing
+                                  ? "border-amber-500/70 bg-amber-500/10 ring-2 ring-amber-400/25"
+                                  : !fieldsDisabled
+                                    ? "cursor-default bg-canvas/60 text-muted"
+                                    : ""
+                              }`}
+                              onChange={(e) => setFormState({ ...formState, title: e.target.value })}
+                            />
+                          </div>
                           {!fieldsDisabled ? (
                             <button
                               type="button"
-                              aria-label="Modifier librement le titre de la simulation"
-                              aria-pressed={isTitleEditable}
-                              title="Modifier librement le titre"
-                              onClick={() => setIsTitleEditable(true)}
-                              className={`inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-small)] border transition-colors ${
-                                isTitleEditable
-                                  ? "border-primary/30 bg-primary/5 text-primary"
+                              aria-label={isTitleEditing ? "Valider le titre de la simulation" : "Modifier librement le titre de la simulation"}
+                              aria-pressed={isTitleEditing}
+                              title={isTitleEditing ? "Valider le titre" : "Modifier librement le titre"}
+                              onClick={() => {
+                                if (isTitleEditing) {
+                                  setIsTitleEditing(false)
+                                  return
+                                }
+
+                                setIsTitleEditable(true)
+                                setIsTitleEditing(true)
+                              }}
+                              className={`ml-auto inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-small)] border transition-colors ${
+                                isTitleEditing
+                                  ? "border-primary bg-primary text-white hover:bg-primary/90"
                                   : "border-border bg-surface text-muted hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
                               }`}
                             >
-                              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                              </svg>
+                              {isTitleEditing ? (
+                                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="m5 12 4 4L19 6" />
+                                </svg>
+                              ) : (
+                                <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                              )}
                             </button>
                           ) : null}
                         </div>

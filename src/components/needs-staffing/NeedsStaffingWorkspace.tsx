@@ -194,7 +194,7 @@ function NeedsMobileCards({
 }: {
   rows: MissionsListRow[]
   staffingRows: Array<StaffingListRow | MobileStaffingRow>
-  onLaunchFinancialSimulation: (staffing: any) => void
+  onLaunchFinancialSimulation: (staffing: StaffingListRow | MobileStaffingRow) => void
   onEditStage: (id: string, type: "need" | "staffing", title: string, currentStage: string) => void
 }) {
   const { openOpportunityDrawer, openStaffingDrawer } = useStaffingDrawerStore()
@@ -493,15 +493,21 @@ export function NeedsStaffingWorkspace({
   const staffingRows = staffingData?.rows ?? EMPTY_STAFFING_ROWS
   const staffingPlanning = staffingData?.planningData ?? EMPTY_STAFFING_PLANNING
 
-  const handleLaunchFinancialSimulation = async (staffing: any) => {
+  const handleLaunchFinancialSimulation = async (staffing: StaffingListRow | MobileStaffingRow) => {
     const candidateId = staffing.candidateId
     const candidateName = staffing.fullName
     const salary = staffing.salary
     const opportunityId = staffing.opportunityId
 
     const opportunity = needsRows.find((o) => o.entityId === opportunityId)
-    const companyId = opportunity?.companyId ?? staffing.companyId ?? null
-    const salesDailyRate = opportunity?.targetDailyRate ?? staffing.opportunityTargetDailyRate ?? null
+    const companyId = opportunity?.companyId
+      ?? ("companyId" in staffing ? staffing.companyId : null)
+    const companyName = opportunity?.client
+      ?? ("clientName" in staffing ? staffing.clientName : null)
+    const opportunityTitle = opportunity?.title
+      ?? ("opportunityTitle" in staffing ? staffing.opportunityTitle : null)
+    const salesDailyRate = opportunity?.targetDailyRate
+      ?? ("opportunityTargetDailyRate" in staffing ? staffing.opportunityTargetDailyRate : null)
 
     const result = await getFinancialModelForStaffingAction(opportunityId, candidateId)
     if (!result.success) {
@@ -513,12 +519,13 @@ export function NeedsStaffingWorkspace({
       modelId: result.id ?? null,
       preset: {
         mode: "flash",
-        title: `Simulation financière — ${candidateName}`,
         candidateId,
         candidateName,
         annualGrossSalary: salary,
         companyId,
+        companyName,
         opportunityId,
+        opportunityTitle,
         salesDailyRate,
       },
     })

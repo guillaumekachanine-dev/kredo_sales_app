@@ -33,15 +33,16 @@ export function OpportunityStaffingTab({
 
     return {
       mode: "full",
-      title: `Simulation financière — ${simulationProfile.full_name}`,
       candidateId: simulationProfile.candidate_id,
       candidateName: simulationProfile.full_name,
       annualGrossSalary: simulationProfile.expected_salary,
       companyId: account?.id ?? null,
+      companyName: account?.name ?? null,
       opportunityId: opportunity.id,
+      opportunityTitle: opportunity.title,
       salesDailyRate: opportunity.target_daily_rate,
     }
-  }, [account?.id, opportunity.id, opportunity.target_daily_rate, simulationProfile])
+  }, [account?.id, account?.name, opportunity.id, opportunity.target_daily_rate, opportunity.title, simulationProfile])
 
   const handleLaunchFinancialSimulation = async (profile: OpportunityStandingProfile) => {
     const result = await getFinancialModelForStaffingAction(opportunity.id, profile.candidate_id)

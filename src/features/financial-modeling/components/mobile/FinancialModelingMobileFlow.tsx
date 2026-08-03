@@ -23,6 +23,7 @@ import { validateFinancialReferenceEligibility } from "../../domain/financial-re
 import { FINANCIAL_MODEL_ENGINE_VERSION, FINANCIAL_MODEL_STATUS_LABELS } from "../../domain/financial-model.constants"
 import {
   applyFinancialModelingLaunchPreset,
+  buildFinancialModelTitle,
   type FinancialModelingLaunchPreset,
 } from "../../domain/financial-modeling-launch-preset"
 import {
@@ -102,12 +103,14 @@ export function FinancialModelingMobileFlow({
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"edit" | "summary">(initialView)
   const [showPostSaveActions, setShowPostSaveActions] = useState(false)
+  const [isTitleAutoManaged, setIsTitleAutoManaged] = useState(true)
 
   const resetFlow = () => {
     const defaultState = createDefaultFormState()
     setStep(1)
     setFormState(defaultState)
     setBaselineState(cloneFormState(defaultState))
+    setIsTitleAutoManaged(true)
   }
 
   useEffect(() => {
@@ -123,6 +126,7 @@ export function FinancialModelingMobileFlow({
         setRecentSimulations(res.data.recentSimulations || [])
       }
       if (initialId) {
+        setIsTitleAutoManaged(false)
         const modelRes = await getFinancialModelAction(initialId)
         if (modelRes.success && modelRes.data) {
           const loadedState = cloneFormState(modelRes.data)
@@ -131,6 +135,7 @@ export function FinancialModelingMobileFlow({
           setStep(1)
         }
       } else {
+        setIsTitleAutoManaged(!initialPreset?.title)
         const defaultState = res.success && res.data
           ? applyFinancialModelingLaunchPreset(createDefaultFormState(), initialPreset, res.data.catalog)
           : createDefaultFormState()
@@ -188,6 +193,23 @@ export function FinancialModelingMobileFlow({
     [baselineState, formState],
   )
 
+  const handleFormStateChange = (nextState: FinancialModelFormState) => {
+    if (nextState.id || !isTitleAutoManaged || !bootstrap) {
+      setFormState(nextState)
+      return
+    }
+
+    const company = bootstrap.companies.find((item) => item.id === nextState.companyId)
+    const opportunity = bootstrap.opportunities.find((item) => item.id === nextState.opportunityId)
+    const generatedTitle = buildFinancialModelTitle({
+      companyName: company?.name,
+      consultantName: nextState.resourceLabel,
+      opportunityTitle: opportunity?.title,
+    })
+
+    setFormState(generatedTitle ? { ...nextState, title: generatedTitle } : nextState)
+  }
+
   const handleOpenSimulation = async (id: string) => {
     setLoading(true)
     const res = await getFinancialModelAction(id)
@@ -220,6 +242,7 @@ export function FinancialModelingMobileFlow({
       })
       setFormState(duplicated)
       setBaselineState(cloneFormState(duplicated))
+      setIsTitleAutoManaged(false)
       setShowMobileHistory(false)
       setStep(1)
     } else {
@@ -377,7 +400,7 @@ export function FinancialModelingMobileFlow({
             <h3 className="text-xs font-bold text-heading uppercase tracking-wider">1. Ressource</h3>
             <FinancialResourceFields
               value={formState}
-              onChange={setFormState}
+              onChange={handleFormStateChange}
               catalog={bootstrap.catalog}
               assumptions={bootstrap.assumptions}
               disabled={isReadOnly}
@@ -388,10 +411,10 @@ export function FinancialModelingMobileFlow({
         return (
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-heading uppercase tracking-wider">2. Mission & TJM</h3>
-            <FinancialPeriodFields value={formState} onChange={setFormState} disabled={isReadOnly} />
+            <FinancialPeriodFields value={formState} onChange={handleFormStateChange} disabled={isReadOnly} />
             <FinancialPricingFields
               value={formState}
-              onChange={setFormState}
+              onChange={handleFormStateChange}
               pricing={bootstrap.pricing}
               companies={bootstrap.companies}
               opportunities={bootstrap.opportunities}
@@ -416,7 +439,7 @@ export function FinancialModelingMobileFlow({
 
             {/* Optional details: Expenses */}
             <div className="border-t border-border/60 pt-4">
-              <FinancialExpenseFields value={formState} onChange={setFormState} result={clientResult} disabled={isReadOnly} />
+              <FinancialExpenseFields value={formState} onChange={handleFormStateChange} result={clientResult} disabled={isReadOnly} />
             </div>
           </div>
         )
