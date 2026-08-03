@@ -1,16 +1,18 @@
-import { SectionDashboardTemplate } from "@/components/dashboard/SectionDashboardTemplate"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
-import { knowledgeDashboardConfig } from "@/lib/dashboard/configs/knowledge-dashboard.config"
-import { mockKnowledgeDashboardData } from "@/lib/dashboard/mock-dashboard-data"
+import { KnowledgeHubDesktop } from "@/features/knowledge-hub/KnowledgeHubDesktop"
+import { KnowledgeHubMobile } from "@/features/knowledge-hub/KnowledgeHubMobile"
+
+export const metadata = {
+  title: "Knowledge Hub — KREDO",
+  description: "Portail de capitalisation des connaissances et d'intelligence collective.",
+}
 
 export default async function KnowledgePage() {
   const device = await getDashboardDevice()
 
-  return (
-    <SectionDashboardTemplate
-      device={device}
-      config={knowledgeDashboardConfig}
-      data={mockKnowledgeDashboardData}
-    />
-  )
+  if (device === "mobile") {
+    return <KnowledgeHubMobile />
+  }
+
+  return <KnowledgeHubDesktop />
 }
