@@ -82,7 +82,7 @@ export async function getOpportunitiesPlanning(
         companies (
           name,
           website,
-          metadata
+          meta_logo_path
         )
       `)
 

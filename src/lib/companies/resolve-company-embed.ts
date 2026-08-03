@@ -9,6 +9,12 @@ export interface CompanyEmbedLike {
   id?: string | null
   name?: string | null
   website?: string | null
+  /**
+   * Colonne générée `companies.meta_logo_path` (migration 060). À privilégier :
+   * `metadata` pèse 14 Ko en moyenne et n'était tiré que pour ce chemin.
+   */
+  meta_logo_path?: string | null
+  /** Repli pour les appelants qui sélectionnent encore le blob complet. */
   metadata?: Json | null
 }
 
@@ -48,7 +54,7 @@ export function resolveCompanyEmbed(
     id: record?.id ?? null,
     name: record?.name ?? FALLBACK_COMPANY_NAME,
     website: record?.website ?? null,
-    logoPath: extractLogoPath(record?.metadata),
+    logoPath: record?.meta_logo_path ?? extractLogoPath(record?.metadata),
   }
 }
 

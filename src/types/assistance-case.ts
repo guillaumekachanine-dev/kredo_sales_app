@@ -66,11 +66,16 @@ export interface AssistanceCaseOpportunity {
   next_action_at: string | null
   required_headcount: number
   client_contacts: AssistanceCaseClientContact[]
+  /**
+   * `meta_logo_path` (colonne générée, migration 060) remplace le blob `metadata`
+   * (14 Ko par compte) qui n'était tiré que pour ce chemin de logo.
+   * Cf. Audit de performance Lot 5.
+   */
   company: {
     id: string
     name: string
     website: string | null
-    metadata: Json | null
+    meta_logo_path: string | null
   } | null
   opportunity_skills: AssistanceCaseSkillRequirement[]
   opportunity_candidates: AssistanceCasePositioning[]

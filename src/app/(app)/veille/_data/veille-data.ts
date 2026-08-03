@@ -83,7 +83,7 @@ export async function getCompaniesContextStats(): Promise<{ data: CompanyContext
     // 1. Fetch companies
     const { data: companies, error: compError } = await supabase
       .from("companies")
-      .select("id, name, sector, lifecycle_status, website, metadata")
+      .select("id, name, sector, lifecycle_status, website, meta_logo_path")
       
     if (compError) return { data: [], error: compError }
     if (!companies) return { data: [], error: null }
@@ -121,8 +121,7 @@ export async function getCompaniesContextStats(): Promise<{ data: CompanyContext
     })
 
     const mapped: CompanyContextStats[] = companies.map(c => {
-      const metadata = c.metadata && typeof c.metadata === "object" && !Array.isArray(c.metadata) ? c.metadata as Record<string, any> : {}
-      const logoPath = typeof metadata.logo_path === "string" ? metadata.logo_path : null
+      const logoPath = typeof c.meta_logo_path === "string" ? c.meta_logo_path : null
 
       return {
         id: c.id,
@@ -203,7 +202,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
         recommended_action,
         recommended_practice_id,
         company_id,
-        companies(id, name, website, metadata),
+        companies(id, name, website, meta_logo_path),
         intelligence_sources(id, source_name, source_url)
       `)
       .in("company_id", companyIds)
@@ -217,10 +216,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
       const companyRow = Array.isArray(row.companies) ? row.companies[0] : row.companies
       const sourceRow = Array.isArray(row.intelligence_sources) ? row.intelligence_sources[0] : row.intelligence_sources
 
-      const metadata = companyRow?.metadata && typeof companyRow.metadata === "object" && !Array.isArray(companyRow.metadata) 
-        ? companyRow.metadata as Record<string, any> 
-        : {}
-      const logoPath = typeof metadata.logo_path === "string" ? metadata.logo_path : null
+      const logoPath = typeof companyRow?.meta_logo_path === "string" ? companyRow.meta_logo_path : null
 
       return {
         id: row.id,

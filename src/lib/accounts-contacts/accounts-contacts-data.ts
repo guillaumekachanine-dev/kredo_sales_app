@@ -104,6 +104,13 @@ type LooseSupabaseClient = {
  * Ligne issue de la vue v_crm_account_list (projection légère sans metadata complet).
  * Les champs logo_path, nb_contacts, nb_with_email et has_study sont extraits
  * côté Postgres — seules les valeurs scalaires traversent le réseau.
+ *
+ * Le second bloc (sector_attachment_name → has_commercial_strategy) est lui aussi
+ * calculé par la vue. Il remplaçait auparavant 5 requêtes parallèles distinctes
+ * (`companies.sector_intelligence`, `account_watch_settings`,
+ * `v_ai_intelligence_summary`, `account_issues`, `ai_intelligence_results`) dont
+ * chacune re-dérivait, côté application, une colonne que la vue produisait déjà.
+ * Cf. Audit de performance Lot 5.
  */
 type AccountViewRow = {
   id: string
@@ -123,46 +130,16 @@ type AccountViewRow = {
   nb_contacts: number | null
   nb_with_email: number | null
   has_study: boolean | null
-}
-
-type SectorRelation = {
-  name: string | null
-}
-
-type CompanySectorAttachmentRow = {
-  id: string
-  sector_intelligence: SectorRelation | SectorRelation[] | null
-}
-
-type AccountWatchSettingsRow = {
-  company_id: string | null
-  is_enabled: boolean | null
-}
-
-type AccountIntelligenceSummaryRow = {
-  company_id: string
+  sector_attachment_name: string | null
+  has_dedicated_watch: boolean | null
   has_client_analysis: boolean | null
   has_sector_analysis: boolean | null
   has_process_diagnostic: boolean | null
   has_roadmap: boolean | null
   has_legacy_analysis: boolean | null
   has_legacy_sector: boolean | null
-}
-
-type AccountIssueListRow = {
-  company_id: string | null
-}
-
-type CommercialStrategyResultRow = {
-  company_id: string | null
-}
-
-type AccountAnalysisMeta = {
-  sectorAttachmentName: string | null
-  hasDedicatedWatch: boolean
-  summary: AccountIntelligenceSummaryRow | null
-  hasAccountIssues: boolean
-  hasCommercialStrategy: boolean
+  has_account_issues: boolean | null
+  has_commercial_strategy: boolean | null
 }
 
 type TaskQueryRow = {
@@ -229,33 +206,35 @@ function logOptionalEnrichmentError(source: string, error: SupabaseError | null)
   }
 }
 
-function getLatestAnalysisStep(meta: AccountAnalysisMeta): string | null {
-  const summary = meta.summary
-  if (summary?.has_roadmap) return "Roadmap commerciale"
-  if (meta.hasCommercialStrategy) return "Stratégie commerciale"
-  if (meta.hasAccountIssues || summary?.has_process_diagnostic) return "Cartographie des enjeux"
-  if (summary?.has_sector_analysis || summary?.has_legacy_sector || meta.sectorAttachmentName) return "Intelligence sectorielle"
-  if (summary?.has_client_analysis || summary?.has_legacy_analysis) return "Connaissance compte"
+function getLatestAnalysisStep(row: AccountViewRow, sectorAttachment: string | null): string | null {
+  if (row.has_roadmap) return "Roadmap commerciale"
+  if (row.has_commercial_strategy) return "Stratégie commerciale"
+  if (row.has_account_issues || row.has_process_diagnostic) return "Cartographie des enjeux"
+  if (row.has_sector_analysis || row.has_legacy_sector || sectorAttachment) return "Intelligence sectorielle"
+  if (row.has_client_analysis || row.has_legacy_analysis) return "Connaissance compte"
   return null
 }
 
-function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number, meta: AccountAnalysisMeta): AccountRow {
+function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number): AccountRow {
   const importedContacts = Number(row.nb_contacts ?? 0) || 0
   const importedEmails  = Number(row.nb_with_email ?? 0) || 0
+  // Trimé une seule fois : un nom composé uniquement d'espaces ne doit compter
+  // ni comme rattachement affiché, ni comme étape « Intelligence sectorielle ».
+  const sectorAttachment = row.sector_attachment_name?.trim() || null
 
   return {
     id: row.id,
     name: row.name,
     sector: cleanText(row.sector),
-    sectorAttachment: meta.sectorAttachmentName,
+    sectorAttachment,
     segment: cleanText(row.segment, "Segment non renseigné"),
     revenue: cleanText(row.revenue),
     location: cleanText(row.hq_location),
     sizeBand: row.size_band,
     priority: row.priority,
     status: row.lifecycle_status,
-    analysisStep: getLatestAnalysisStep(meta),
-    hasDedicatedWatch: meta.hasDedicatedWatch,
+    analysisStep: getLatestAnalysisStep(row, sectorAttachment),
+    hasDedicatedWatch: row.has_dedicated_watch === true,
     score: toNumber(row.legacy_folio_score),
     website: row.website,
     contactCount: Math.max(contactCount, importedContacts),
@@ -331,15 +310,10 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     accountsResult,
     contactsResult,
     tasksResult,
-    sectorAttachmentsResult,
-    watchSettingsResult,
-    intelligenceSummaryResult,
-    accountIssuesResult,
-    commercialStrategyResult,
   ] = await Promise.all([
     supabase
       .from<AccountViewRow>("v_crm_account_list")
-      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study")
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study,sector_attachment_name,has_dedicated_watch,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_account_issues,has_commercial_strategy")
       .order("legacy_folio_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
       .limit(300),
@@ -352,48 +326,15 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .from<TaskQueryRow>("tasks")
       .select("id,entity_id,entity_type")
       .limit(2000),
-    supabase
-      .from<CompanySectorAttachmentRow>("companies")
-      .select("id,sector_intelligence(name)")
-      .limit(300),
-    supabase
-      .from<AccountWatchSettingsRow>("account_watch_settings")
-      .select("company_id,is_enabled")
-      .eq("is_enabled", true)
-      .limit(300),
-    supabase
-      .from<AccountIntelligenceSummaryRow>("v_ai_intelligence_summary")
-      .select("company_id,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector")
-      .limit(300),
-    supabase
-      .from<AccountIssueListRow>("account_issues")
-      .select("company_id")
-      .eq("status", "open")
-      .limit(1000),
-    supabase
-      .from<CommercialStrategyResultRow>("ai_intelligence_results")
-      .select("company_id")
-      .eq("status", "succeeded")
-      .eq("result_type", "commercial_strategy")
-      .limit(1000),
   ])
 
   if (accountsResult.error) throw new Error(accountsResult.error.message)
   if (contactsResult.error) throw new Error(contactsResult.error.message)
-  logOptionalEnrichmentError("sector attachments", sectorAttachmentsResult.error)
-  logOptionalEnrichmentError("account watch settings", watchSettingsResult.error)
-  logOptionalEnrichmentError("intelligence summary", intelligenceSummaryResult.error)
-  logOptionalEnrichmentError("account issues", accountIssuesResult.error)
-  logOptionalEnrichmentError("commercial strategy", commercialStrategyResult.error)
+  logOptionalEnrichmentError("tasks", tasksResult.error)
 
   const rawAccounts = accountsResult.data ?? []
   const rawContacts = contactsResult.data ?? []
-  const rawTasks    = tasksResult.data ?? []
-  const rawSectorAttachments = sectorAttachmentsResult.error ? [] : (sectorAttachmentsResult.data ?? [])
-  const rawWatchSettings = watchSettingsResult.error ? [] : (watchSettingsResult.data ?? [])
-  const rawIntelligenceSummaries = intelligenceSummaryResult.error ? [] : (intelligenceSummaryResult.data ?? [])
-  const rawAccountIssues = accountIssuesResult.error ? [] : (accountIssuesResult.data ?? [])
-  const rawCommercialStrategies = commercialStrategyResult.error ? [] : (commercialStrategyResult.data ?? [])
+  const rawTasks    = tasksResult.error ? [] : (tasksResult.data ?? [])
 
   // Comptage contacts par entreprise (depuis les contacts chargés)
   const contactCounts = new Map<string, number>()
@@ -411,38 +352,6 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     }
   }
 
-  const sectorAttachmentByCompanyId = new Map<string, string>()
-  for (const row of rawSectorAttachments) {
-    const sector = firstRelation(row.sector_intelligence)
-    const name = sector?.name?.trim()
-    if (name) {
-      sectorAttachmentByCompanyId.set(row.id, name)
-    }
-  }
-
-  const dedicatedWatchCompanyIds = new Set(
-    rawWatchSettings
-      .filter((row) => row.is_enabled === true && row.company_id)
-      .map((row) => row.company_id as string),
-  )
-
-  const intelligenceSummaryByCompanyId = new Map<string, AccountIntelligenceSummaryRow>()
-  for (const summary of rawIntelligenceSummaries) {
-    intelligenceSummaryByCompanyId.set(summary.company_id, summary)
-  }
-
-  const accountIssueCompanyIds = new Set(
-    rawAccountIssues
-      .map((row) => row.company_id)
-      .filter((companyId): companyId is string => Boolean(companyId)),
-  )
-
-  const commercialStrategyCompanyIds = new Set(
-    rawCommercialStrategies
-      .map((row) => row.company_id)
-      .filter((companyId): companyId is string => Boolean(companyId)),
-  )
-
   // Map companyId → infos légères pour la construction des contacts
   const companyById = new Map<string, CompanyMapValue>()
   for (const row of rawAccounts) {
@@ -455,13 +364,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   }
 
   const accounts = rawAccounts
-    .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0, {
-      sectorAttachmentName: sectorAttachmentByCompanyId.get(row.id) ?? null,
-      hasDedicatedWatch: dedicatedWatchCompanyIds.has(row.id),
-      summary: intelligenceSummaryByCompanyId.get(row.id) ?? null,
-      hasAccountIssues: accountIssueCompanyIds.has(row.id),
-      hasCommercialStrategy: commercialStrategyCompanyIds.has(row.id),
-    }))
+    .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
 
   const contacts = rawContacts

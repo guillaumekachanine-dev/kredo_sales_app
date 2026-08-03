@@ -585,8 +585,14 @@ aucune régression). Le résultat était bon ; le processus a échoué.
 |---|---|---|---|
 | M1 · part du polling WAL Realtime | **79,7 %** (2 913 s / 539 257 appels) | *inchangé — clos sans action* | ADR-0016 |
 | **M1 bis · charge absolue de TOUTE la base** | **0,257 % d'un cœur** (3 655 s / 1 419 976 s) | — | **la vraie grandeur** |
-| M2 · pire requête applicative (moyenne) | 90,4 ms (`v_crm_account_list`, 341 appels) | | |
-| M2 · pire requête applicative (max) | 1 256 ms (`v_ai_intelligence_summary`) | | |
+| M2 · pire requête applicative (moyenne) | 90,4 ms (`v_crm_account_list`, 341 appels) | **3,47 ms** (mesure directe) | ✅ Lot 5 — **× 11,4** |
+| M2 · pire requête applicative (max) | 1 256 ms (`v_ai_intelligence_summary`) | **3,61 ms** (mesure directe) | ✅ Lot 5 — **× 6,4** |
+| M9 · `v_crm_account_list`, 17 colonnes PostgREST | 39,4 ms · **2 685 buffers** | **3,47 ms · 39 buffers** | ✅ Lot 5 — **69 × moins de buffers** |
+| M9 · `v_ai_intelligence_summary`, 12 colonnes PostgREST | 23,0 ms · 1 378 buffers | **3,61 ms · 423 buffers** | ✅ Lot 5 |
+| M9 · page Comptes & Contacts (total base) | ~75 ms sur **6 requêtes** | **3,41 ms sur 1 requête** | ✅ Lot 5 |
+| Tables jamais `ANALYZE`-ées | **70 / 71** (`last_analyze` NULL) | **0 / 71** | ✅ Lot 5 |
+| Tables aux seuils d'autoanalyze atteignables | **0 / 71** (défauts 50 + 10 %) | **71 / 71** (10 + 5 %) | ✅ migration 061 |
+| Fenêtre `pg_stat_statements` | 2026-07-13 (20 j, pré-optimisation) | **2026-08-02 23:23 UTC** | réinitialisée sur décision |
 | M3 · `seq_scan` sur `profiles` | **689 232** (`idx_scan` = 8) | | |
 | M3 · `seq_scan` sur `workspaces` | 3 751 (`idx_scan` = 0) | | |
 | M4 · policies non wrappées | **210 / 245** (chiffre corrigé) | **0 / 245** | ✅ Lot 1 |
@@ -880,6 +886,186 @@ prémisse invalidée par la mesure. Ce qui reste du protocole : le **Lot 4 (bund
 seul chantier dont l'ordre de grandeur n'a jamais été contredit — 4,8 MB de JS non
 compressé, 156 KB de chunk de layout sur chaque page, 65 % de composants client. C'est
 désormais le seul levier de latence perçue encore ouvert.
+
+---
+
+### Lot 5 — exécuté le 2026-08-03 ✅ *le seul lot dont la cible n'était pas là où le protocole la cherchait*
+
+Le protocole annonçait « ce lot peut se révéler quasi vide après le Lot 1 ». Il ne l'est pas —
+mais la cause n'a rien à voir avec ce que les Lots 1 à 3 avaient supposé. Ce n'était ni les RLS,
+ni un index manquant, ni un plan de jointure : **c'était de la décompression.**
+
+**Étape 1 — relecture de M2 : sans valeur, et il faut le dire.**
+La fenêtre `pg_stat_statements` n'a pas été réinitialisée depuis le 2026-07-13 (20 j 12 h).
+`v_crm_account_list` y affiche **exactement 341 appels / 90,39 ms**, soit les chiffres de la
+baseline du 2026-07-29 au centième près : **aucun appel n'a eu lieu depuis**. M2 ne peut donc
+rien dire de l'effet du Lot 1 — il n'y a pas eu de trafic. Compteur **non réinitialisé**
+délibérément (l'historique est la seule preuve conservée des Lots 0-3) ; toutes les mesures
+ci-dessous sont des `EXPLAIN (ANALYZE, BUFFERS)` directs, en session `authenticated`, cache
+chaud, deux passes de préchauffage (règle 5 ter).
+
+**Étape 2 — la mesure qui déplace le problème.** Décomposition de `v_crm_account_list` par
+liste de sélection :
+
+| Requête | Temps | Buffers |
+|---|---|---|
+| `select id, name` | 1,25 ms | 122 |
+| `select id, logo_path` | 8,13 ms | 569 |
+| les 17 colonnes réellement demandées par PostgREST | **39,4 ms** | **2 685** |
+
+Le coût est **linéaire dans le nombre de références à `companies.metadata`**, pas dans les
+jointures. `metadata` pèse 14 Ko en moyenne (max 20 Ko, 1,36 Mo au total) : il est stocké
+hors-ligne en TOAST et compressé, et **chaque référence dans la liste de sélection le détoaste
+intégralement**. La vue en comptait 6 (`logo_path`, `nb_contacts`, `nb_with_email`, et 3 dans
+`has_study`), `v_ai_intelligence_summary` 3 — ~6,9 ms et ~447 buffers par référence, sur
+96 lignes. **97 % du temps de la requête la plus lente de l'application était la décompression
+répétée d'un blob JSON qui n'est jamais renvoyé.**
+
+**Étape 3 — correctif.** Migration
+[`20260802225335_060_company_metadata_projection.sql`](../supabase/migrations/20260802225335_060_company_metadata_projection.sql) :
+6 colonnes générées `STORED` sur `companies` (`meta_logo_path`, `meta_contact_stats`,
+`meta_has_study`, `meta_has_analysis_data`, `meta_has_sector_analysis`, `meta_has_pitches`)
+projettent une fois pour toutes, à l'écriture, ce que les vues recalculaient à chaque lecture.
+Elles sont minuscules (≤ 174 octets) donc stockées inline : le TOAST n'est plus jamais ouvert.
+
+Trois pièges rencontrés, tous vérifiés plutôt que supposés :
+1. **`jsonb_build_object()` est `STABLE`, pas `IMMUTABLE`** — donc interdit dans une colonne
+   générée (`42P17: generation expression is not immutable`). Un unique `metadata_digest jsonb`
+   était le premier dessin ; abandonné pour des colonnes typées construites uniquement
+   d'opérateurs vérifiés `IMMUTABLE` au catalogue (`->`, `->>`, `?`, `jsonb_typeof`, `<>`).
+2. **Aucun cast de donnée utilisateur n'a été remonté en écriture.** Les `::integer` sur
+   `contact_stats` restent dans la vue : une valeur JSON malformée échoue toujours en lecture,
+   comme aujourd'hui, et ne peut pas bloquer une écriture sur `companies`.
+3. **`security_invoker = true` reconduit explicitement** sur les deux vues. L'omettre dans un
+   `CREATE OR REPLACE VIEW` les ferait tourner avec les droits du propriétaire — contournement
+   complet de la RLS. C'est le seul vrai risque du lot, et il est vérifié après application.
+
+Second correctif, indépendant : `v_ai_intelligence_summary` joignait `ai_intelligence_runs`
+**et** `ai_intelligence_results` sur la même ligne `companies`, produisant un produit cartésien
+(96 comptes → **786 lignes intermédiaires**) que `count(DISTINCT …)` dédupliquait ensuite.
+Négligeable aux volumes actuels, mais en O(runs × résultats) par compte — un compte porte déjà
+27 runs et 23 résultats. Remplacé par deux agrégats latéraux indépendants.
+
+**Étape 4 — sur-récupérations.** Deux familles traitées, l'une côté base, l'autre côté réseau.
+
+- **6 requêtes → 1.** `getAccountsContactsData()` lançait 8 requêtes parallèles, dont **5
+  re-dérivaient côté application des colonnes que `v_crm_account_list` produisait déjà**
+  (`sector_intelligence`, `account_watch_settings`, `v_ai_intelligence_summary`,
+  `account_issues`, `ai_intelligence_results`). Elles sont supprimées au profit de 11 colonnes
+  supplémentaires sur la requête existante. Équivalence prouvée en SQL avant suppression :
+  `EXCEPT ALL` dans les deux sens sur les 11 colonnes, 96 lignes, **0 écart** — avec des
+  drapeaux réellement peuplés (7 enjeux, 5 stratégies, 4 veilles, 93 rattachements sectoriels).
+- **Le blob sur le réseau.** Cinq requêtes tiraient `companies.metadata` (14 Ko/compte) à
+  travers PostgREST pour n'en extraire qu'un chemin de logo de 58 caractères — dont la liste de
+  veille, sur **96 comptes, soit ~1,35 Mo de JSON par chargement**. Basculées sur
+  `meta_logo_path` : `get-opportunities-list`, `get-opportunities-planning`,
+  `get-staffings-list`, `veille-data` (×2), `AssistanceCaseDrawer`.
+  `resolveCompanyEmbed()` lit désormais `meta_logo_path` avec repli sur `metadata`, donc les
+  appelants non convertis continuent de fonctionner.
+
+  **Régression évitée par le typage, à noter.** Réduire l'embed du drawer d'assistance à
+  `(id, name)` — `website`/`metadata` n'y étant lus nulle part dans le fichier — a fait échouer
+  `tsc` : `StaffingProcessStepper` lit bien ces deux champs, deux composants plus loin, via
+  `StaffingDrawerViewModel`. Le premier jet aurait supprimé le logo et le site du client dans
+  le stepper. Corrigé en propageant `meta_logo_path` jusqu'au composant.
+
+  **Non converti, et assumé** : `company.metadata.logo_path` est lu dans ~10 composants de
+  détail (missions, projets, drawers CRM, recrutement) à travers des view models partagés avec
+  l'UI. Les convertir est un refactor transverse, pas une optimisation de requête — hors
+  périmètre de ce lot, à traiter séparément.
+
+**Étape 5 — statistiques du planificateur : le trou dormant.**
+`last_analyze` était **NULL sur 70 des 71 tables** du schéma (seule `ai_intelligence_runs` avait
+connu un autoanalyze, le 2026-07-17). Tous les plans de cette base étaient donc construits sur
+des estimations de `reltuples` héritées de la création des tables, et la dérive était réelle :
+`opportunity_candidates` **8 estimées / 34 réelles (× 4,25)**, `ai_intelligence_results` 107/150,
+`opportunities` 16/24. `ANALYZE` global exécuté → 71/71. Effet visible immédiatement dans les
+plans : apparition d'un nœud `Memoize` sur `sector_intelligence` (81 hits / 15 misses).
+
+**Étape 6 — index : aucun ajouté, et c'est le résultat.**
+Les 4 index de clé étrangère nécessaires aux nouveaux agrégats latéraux existaient déjà
+(migration 056). Les deux autres requêtes lourdes de M2 ont été instrumentées avant de conclure :
+`contacts` + embed `persons` (61,9 ms, 642 lignes) et l'embed `opportunity_candidates` à
+5 niveaux (63,0 ms, 34 lignes) tournent **entièrement sur index**, sans `Rows Removed by Filter`
+significatif. Leur coût est la forme de la requête imposée par PostgREST (un `LEFT JOIN LATERAL`
+avec `LIMIT` par ligne, non convertible en jointure par hachage) et le `row_to_json` par niveau,
+pas un accès manquant. **Aucun index ne les aiderait** — le seul levier serait de réduire la
+profondeur des embeds, ce qui est un choix de produit (le second remonte
+`collaborator_compensation`, donnée confidentielle, pour une liste de staffing).
+
+**Résultat mesuré**
+
+| Requête | Avant | Après | Gain |
+|---|---|---|---|
+| `v_crm_account_list`, 17 colonnes PostgREST | 39,4 ms · 2 685 buffers | **3,47 ms · 39 buffers** | **× 11,4** · 69 × moins de buffers |
+| `v_ai_intelligence_summary`, 12 colonnes | 23,0 ms · 1 378 buffers | **3,61 ms · 423 buffers** | **× 6,4** |
+| Page Comptes & Contacts, total base | ~75 ms · **6 allers-retours** | **3,41 ms · 1 aller-retour** | **× 22** |
+
+Effet de bord non prévu, et bienvenu : une fois `v_ai_intelligence_summary` débarrassée de son
+`GROUP BY`, le planificateur **élimine complètement** la jointure vers elle quand ses colonnes
+ne sont pas demandées — `v_crm_account_list` se réduit alors à un unique `Seq Scan` sur
+`companies`. Le `GROUP BY` bloquait cette élimination.
+
+**Isolation vérifiée après application** (session `authenticated` réelle) : utilisateur réel →
+`v_crm_account_list` 96 · `v_ai_intelligence_summary` 96 · `companies` 96 ; utilisateur inconnu
+→ **0 partout**, y compris sur les 6 tables atteintes par les nouveaux agrégats latéraux
+(`ai_intelligence_results`, `ai_intelligence_runs`, `account_issues`,
+`account_watch_settings`, `sector_intelligence`). `security_invoker=true` confirmé présent sur
+les deux vues après recréation. `get_advisors(security)` : **aucun avertissement nouveau** (les
+21 restants sont ceux, documentés, de la Session 26 et du Lot 058).
+
+**Chemin d'écriture vérifié plutôt que supposé.** Les colonnes générées rejettent toute
+écriture. Corps de `private.perform_proposal_apply()` relu intégralement : chaque
+`UPDATE public.companies SET …` cible une colonne **littérale** issue d'un `CASE` fermé de
+9 attributs, avec un `ELSE RAISE attribute_not_allowed`. Aucun SQL dynamique, donc aucun chemin
+d'enrichissement ne peut atteindre une colonne générée.
+
+**Barrière de qualité :** `npx tsc --noEmit` → EXIT 0 · `npm run build` → EXIT 0, tableau de
+routes inchangé · `npx vitest run` → **698/698 (82 fichiers)** ·
+`npm run check:server-boundary` → EXIT 0 · `npx eslint` sur les 10 fichiers touchés →
+**0 erreur** (2 warnings `<img>` pré-existants ; et **3 erreurs `any` pré-existantes retirées**
+au passage, comptage avant/après vérifié par `git stash`).
+Les 6 messages `DYNAMIC_SERVER_USAGE` du build sont **identiques avant et après** (comptés dans
+un arbre stashé) — pré-existants, hérités du retrait des `force-dynamic` au Lot 3, à traiter
+hors audit.
+
+**Suites décidées et exécutées le 2026-08-03, après arbitrage de Guillaume.**
+
+- **`pg_stat_statements` réinitialisé.** L'ancienne fenêtre (2026-07-13 → 2026-08-02, 1 829
+  requêtes distinctes, 3 817 s cumulés) est close ; ses valeurs utiles sont transcrites en §8
+  et dans les journaux des Lots 0 à 3. **Nouvelle fenêtre : 2026-08-02 23:23:34 UTC.** M2
+  mesure désormais l'état optimisé — mais ne dira rien tant qu'il n'y aura pas de trafic réel.
+- **Statistiques : correctif durable posé, et ma recommandation initiale corrigée.**
+  J'avais proposé un `ANALYZE` **hebdomadaire**, en calant la cadence sur un volume d'écriture
+  d'environ 70 lignes/jour mesuré au Lot 2. Guillaume a signalé que cette fenêtre couvrait ses
+  congés : le volume n'était pas représentatif. Le défaut n'est pas le chiffre, c'est la
+  méthode — **asseoir un déclenchement par horloge sur une estimation de trafic** est fragile
+  par construction dans une application dont l'activité est irrégulière (congés, démos, imports
+  de masse, backfills sectoriels). Toute nouvelle estimation aurait été fausse à son tour.
+  Correctif retenu, en deux temps, dans
+  [`20260802232433_061`](../supabase/migrations/20260802232433_061_planner_statistics_maintenance.sql) :
+  1. **Déclenchement par le changement, pas par l'horloge** — seuils d'autoanalyze abaissés sur
+     les **71 tables** (`threshold` 50 → **10**, `scale_factor` 0,1 → **0,05**). Les valeurs par
+     défaut de PostgreSQL sont dimensionnées pour des tables de millions de lignes : elles
+     exigeaient 53 modifications sur `opportunity_candidates` (34 lignes) et 60 sur `companies`
+     (96 lignes), seuils jamais atteints — d'où l'unique autoanalyze constaté en 20 jours.
+     Les nouveaux seuils déclenchent à ~12, ~15, ~42 et ~263 modifications respectivement sur
+     `opportunity_candidates`, `companies`, `contacts` et `audit_log`. **Aucune estimation de
+     trafic n'est requise : le mécanisme s'adapte de lui-même à l'usage réel.**
+  2. **Filet de sécurité quotidien** — job `pg_cron` `analyze-public-schema` (`15 3 * * *`,
+     jobid 2, à côté de `reap-stale-intelligence-runs`). Quotidien et non hebdomadaire parce que
+     le coût est nul (55 Mo, passage sous la seconde) : il n'y a aucune raison d'être avare
+     d'une opération gratuite dont on ne sait pas prédire le besoin. Il couvre ce que
+     l'autoanalyze ne voit pas — table figée dont les statistiques se périment après une
+     restauration, ou démon autovacuum saturé.
+
+  Vérifié après application : **71/71 tables portent les nouveaux seuils**, 71/71 ont un
+  `last_analyze`, job cron actif.
+
+**Ce que le lot ne ferme toujours pas.** Les ~10 composants de détail lisant encore
+`company.metadata.logo_path` (dont 4 convertibles : `get-missions-list`, `get-projects-list`,
+`get-project-detail`, `get-recruitment-workspace`) — refactor de frontière data/UI traité comme
+chantier suivant.
 
 ---
 

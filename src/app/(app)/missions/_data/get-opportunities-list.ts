@@ -101,7 +101,7 @@ export async function getOpportunitiesList(
           id,
           name,
           website,
-          metadata
+          meta_logo_path
         )
       `)
 

@@ -79,6 +79,9 @@ Supabase, tâches lourdes externalisées sur n8n via webhooks.
 | 20260707201824 | 051_account_issues_context_rpc (ADR-0012 Lot 4 — hydratation déterministe intel-031-issues-map) |
 | 20260707225318 | 052_commercial_strategy_context_rpc (ADR-0012 Lot 5 — hydratation déterministe intel-032-strategy) |
 | 20260707225628 | 053_commercial_strategy_document_type (ajout valeur enum intelligence_document_type) |
+| 20260729203143 | 059_rls_initplan_wrapping (audit perf Lot 1 — 210 policies wrappées `(SELECT …)`) |
+| 20260802225335 | 060_company_metadata_projection (audit perf Lot 5 — 6 colonnes générées `companies.meta_*` + réécriture des 2 vues de liste) |
+| 20260802232433 | 061_planner_statistics_maintenance (seuils autoanalyze 10 + 5 % sur les 71 tables + cron `analyze-public-schema`) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -126,6 +129,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 `contacts.relationship_role` : `decideur` · `prescripteur` · `acheteur` · `operationnel` · `sponsor` · `utilisateur_final` · `rh` · `manager_technique` · `dsi` · `direction_metier`
 
 `skills.category` : `langage` · `framework` · `cloud` · `data` · `devops` · `methode` · `fonctionnel` · `secteur` · `soft_skill` · `langue` · `certification`
+
+`companies.meta_logo_path` / `meta_contact_stats` / `meta_has_study` / `meta_has_analysis_data` / `meta_has_sector_analysis` / `meta_has_pitches` — colonnes **GÉNÉRÉES STORED** (migration 060) projetant les scalaires dérivés de `metadata`. **Toujours les lire plutôt que `metadata`** : le blob pèse 14 Ko en moyenne, il est TOASTé, et chaque déréférencement le décompresse intégralement (39,4 ms → 3,47 ms sur la liste comptes). `resolveCompanyEmbed()` privilégie `meta_logo_path`. `jsonb_build_object()` étant `STABLE`, aucune colonne générée ne peut la contenir.
 
 `companies.size_band` — colonne **GÉNÉRÉE** à partir de `employee_count` (tranches 1-20/21-100/101-500/501-1000/1001-5000/+5k). `companies.legacy_folio_score` (ex-`ai_score`, renommé migration 027/ADR-0011 Lot 0) : score legacy FOLIO déprécié, non recalculé — voir [[ai-cost-monitoring-initiative]] et section ADR-0011 dans le journal de sessions.
 
@@ -317,8 +322,8 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 ### Vues (17)
 | Vue | Description |
 |---|---|
-| `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches` sur `companies.metadata`), dernier run, compteurs |
-| `v_crm_account_list` | Vue consolidée fiche compte — contacts, `has_study`, `has_dedicated_watch`, `has_client_analysis`/`sector_analysis`/`process_diagnostic`/`roadmap`, `has_account_issues`, `has_commercial_strategy`. Source de la liste comptes `/prospection` |
+| `v_ai_intelligence_summary` (`security_invoker`) | Par compte, présence par phase + **fallbacks FOLIO** (`has_legacy_analysis`/`sector`/`pitches`), dernier run, compteurs. **Migration 060** : 2 agrégats latéraux au lieu d'un produit cartésien runs × résultats ; drapeaux FOLIO lus sur les colonnes générées `companies.meta_has_*` |
+| `v_crm_account_list` (`security_invoker`) | Vue consolidée fiche compte — contacts, `has_study`, `has_dedicated_watch`, `has_client_analysis`/`sector_analysis`/`process_diagnostic`/`roadmap`, `has_account_issues`, `has_commercial_strategy`. Source de la liste comptes `/prospection`. **Migration 060** : lit `companies.meta_*` au lieu de dérefencer `metadata` 6 fois par ligne |
 | `v_collaborator_activity_summary` (migration 025) | 1 ligne par collaborateur × mois — activité (business/billable/pto/sick/non_billable), finance (revenue, employer_cost, real_margin, real_margin_pct), marge théorique |
 | `v_collaborator_ytd_activity` (migration 025) | Taux d'activité YTD pondéré (pas moyenne des %), gap vs TACI cible, finance YTD |
 | `v_profitability_alerts` (migration 025) | Flags booléens : `alert_low_activity` (<70%), `alert_low_margin` (<15%), `alert_negative_margin`, `alert_high_sick_days` (≥5j), `alert_cra_not_validated` |
@@ -950,6 +955,23 @@ Le bouton "n8n" du header (en réalité `NotificationBell`, logo n8n, déjà bra
 **Validation** : `tsc --noEmit` → EXIT 0 · `eslint` sur les 4 fichiers TS touchés → 0 erreur · `npm run build` → EXIT 0 · `vitest run` → **648/648** · 22/22 nœuds n8n syntaxiquement valides après patch.
 
 **Non fait** : import/réactivation des 11 workflows patchés sur le VPS n8n (aucune config/credential nouvelle requise — `$execution`/`$workflow` sont des variables n8n natives déjà disponibles, un simple réimport du JSON à jour suffit) ; ajout de `NEXT_PUBLIC_N8N_BASE_URL` sur Vercel (prod + preview, cf. [[vercel-prod-env-config]]) ; QA visuelle réelle du bounce/anneau rouge et du lien n8n (pas de Chrome DevTools MCP, cf. [[feedback-no-chrome]]) — à faire par Guillaume.
+
+---
+
+### Session 29 — Audit de performance, Lot 5 : requêtes et vues lentes (2026-08-03)
+
+Protocole : `docs/AUDIT-PERFORMANCE-KREDO.md` (§9, journal Lot 5 — détail complet des mesures).
+
+- **Cause racine mesurée, pas supposée** : le coût de la requête la plus lente de l'app n'était ni les RLS, ni un index manquant, ni un plan de jointure — c'était la **détoastification répétée de `companies.metadata`** (14 Ko en moyenne, TOASTé + compressé). `v_crm_account_list` le déréférençait 6 fois par ligne, `v_ai_intelligence_summary` 3 fois : ~6,9 ms et ~447 buffers **par référence** sur 96 lignes. Démontré par décomposition (`select id,name` = 1,25 ms ; `+ logo_path` = 8,13 ms ; les 17 colonnes réelles = 39,4 ms).
+- **Migration `20260802225335_060`** : 6 colonnes générées `STORED` sur `companies` (`meta_logo_path`, `meta_contact_stats`, `meta_has_study`, `meta_has_analysis_data`, `meta_has_sector_analysis`, `meta_has_pitches`) + réécriture des 2 vues + dé-fan-out de `v_ai_intelligence_summary` (produit cartésien runs × résultats → 2 agrégats latéraux). Équivalence prouvée en transaction annulée (`EXCEPT ALL` dans les deux sens, 0 écart, 96 lignes) **avant** application.
+- **Pièges** : `jsonb_build_object()` est `STABLE` → interdit en colonne générée (premier dessin, un `metadata_digest jsonb` unique, abandonné) ; aucun cast de donnée utilisateur remonté en écriture (les `::integer` restent dans la vue) ; **`security_invoker=true` reconduit explicitement** sur les deux vues — l'omettre dans un `CREATE OR REPLACE VIEW` contournerait toute la RLS.
+- **Sur-récupérations** : `getAccountsContactsData()` lançait 8 requêtes dont **5 re-dérivaient des colonnes que la vue produisait déjà** → 6 requêtes fusionnées en 1 (équivalence SQL prouvée sur les 11 colonnes). 5 requêtes tiraient le blob `metadata` par le réseau pour un chemin de logo de 58 caractères (dont la veille : ~1,35 Mo par chargement) → basculées sur `meta_logo_path`. **Régression évitée par `tsc`** : réduire l'embed du drawer d'assistance à `(id, name)` cassait le logo et le site client dans `StaffingProcessStepper`, deux composants plus loin.
+- **Statistiques** : `last_analyze` était **NULL sur 70 des 71 tables** — tous les plans reposaient sur des `reltuples` de création (`opportunity_candidates` : 8 estimées / 34 réelles). `ANALYZE` global → 71/71.
+- **Aucun index ajouté**, et c'est le résultat : les 2 autres requêtes lourdes de M2 (`contacts` + embed `persons` 61,9 ms ; embed `opportunity_candidates` à 5 niveaux 63,0 ms) tournent **entièrement sur index** — leur coût est la forme d'embed imposée par PostgREST, pas un accès manquant.
+- **Gains** : `v_crm_account_list` 39,4 → **3,47 ms** (2 685 → 39 buffers) · `v_ai_intelligence_summary` 23,0 → **3,61 ms** · page Comptes & Contacts ~75 ms sur 6 allers-retours → **3,41 ms sur 1**.
+- **Validation** : `tsc --noEmit` EXIT 0 · `npm run build` EXIT 0 · `vitest` **698/698** · `check:server-boundary` EXIT 0 · `eslint` 10 fichiers → 0 erreur (3 erreurs `any` pré-existantes retirées au passage). Isolation RLS revérifiée après application (utilisateur réel 96 / utilisateur inconnu 0 sur les 2 vues et les 6 tables des nouveaux latéraux). `get_advisors(security)` sans avertissement nouveau.
+- **Suites décidées par Guillaume et exécutées le même jour** : `pg_stat_statements` **réinitialisé** (ancienne fenêtre 2026-07-13 → 2026-08-02 close, nouvelle au 2026-08-02 23:23 UTC — M2 mesure désormais l'état optimisé, mais restera muet sans trafic réel). **Migration `20260802232433_061`** : ma recommandation initiale d'un `ANALYZE` hebdomadaire était calée sur un volume d'écriture mesuré **pendant les congés de Guillaume**, donc non représentatif — le défaut de méthode étant d'asseoir un déclenchement par horloge sur une estimation de trafic dans une app à activité irrégulière. Remplacé par un déclenchement **par le changement** : seuils d'autoanalyze abaissés sur les 71 tables (`threshold` 50→10, `scale_factor` 0,1→0,05 — les défauts PostgreSQL, dimensionnés pour des millions de lignes, exigeaient 53 modifications sur une table de 34 lignes), plus un filet quotidien `pg_cron` `analyze-public-schema` (`15 3 * * *`, jobid 2). Vérifié : 71/71 tables aux nouveaux seuils, 71/71 analysées, job actif.
+- **Non fait** : conversion des ~10 composants de détail lisant encore `company.metadata.logo_path` — dont 4 convertibles (`get-missions-list`, `get-projects-list`, `get-project-detail`, `get-recruitment-workspace`), **chantier suivant validé**. Lot 4 (bundle client) et Lot 6 (mesure terrain) toujours ouverts.
 
 ---
 

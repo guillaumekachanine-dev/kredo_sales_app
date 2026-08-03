@@ -2405,6 +2405,12 @@ export type Database = {
           legacy_folio_score: number | null
           legal_name: string | null
           lifecycle_status: string
+          meta_contact_stats: Json | null
+          meta_has_analysis_data: boolean | null
+          meta_has_pitches: boolean | null
+          meta_has_sector_analysis: boolean | null
+          meta_has_study: boolean | null
+          meta_logo_path: string | null
           metadata: Json
           naf_code: string | null
           name: string
@@ -2435,6 +2441,12 @@ export type Database = {
           legacy_folio_score?: number | null
           legal_name?: string | null
           lifecycle_status?: string
+          meta_contact_stats?: Json | null
+          meta_has_analysis_data?: boolean | null
+          meta_has_pitches?: boolean | null
+          meta_has_sector_analysis?: boolean | null
+          meta_has_study?: boolean | null
+          meta_logo_path?: string | null
           metadata?: Json
           naf_code?: string | null
           name: string
@@ -2465,6 +2477,12 @@ export type Database = {
           legacy_folio_score?: number | null
           legal_name?: string | null
           lifecycle_status?: string
+          meta_contact_stats?: Json | null
+          meta_has_analysis_data?: boolean | null
+          meta_has_pitches?: boolean | null
+          meta_has_sector_analysis?: boolean | null
+          meta_has_study?: boolean | null
+          meta_logo_path?: string | null
           metadata?: Json
           naf_code?: string | null
           name?: string

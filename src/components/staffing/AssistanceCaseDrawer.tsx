@@ -255,7 +255,7 @@ export function AssistanceCaseDrawer() {
               target_daily_rate, target_margin_pct, duration_days, estimated_gain, acv,
               opened_at, start_date, target_close_date, next_action_label, next_action_at,
               required_headcount,
-              company:companies ( id, name, website, metadata ),
+              company:companies ( id, name, website, meta_logo_path ),
               opportunity_contacts (
                 role,
                 contacts (

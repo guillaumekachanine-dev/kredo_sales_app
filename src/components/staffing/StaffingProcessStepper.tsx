@@ -5,7 +5,6 @@ import { TimelineRecordDisclosure } from "@/components/staffing/TimelineRecordDi
 import { cn } from "@/lib/utils"
 import { mapDbStatusToStaffingStage, type StaffingStageKey } from "@/lib/staffing/stages"
 import type { StaffingDrawerViewModel } from "@/types/staffing-drawer"
-import type { Json } from "@/types/database"
 
 interface StaffingTimelineEvent {
   id: string
@@ -72,14 +71,6 @@ function findEvent(
         predicate(event, normalize(`${event.title} ${event.description ?? ""}`)),
       ) ?? null
   )
-}
-
-function extractLogoPath(metadata: Json | null | undefined) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return null
-  }
-  const record = metadata as Record<string, unknown>
-  return typeof record.logo_path === "string" ? record.logo_path : null
 }
 
 function getIssueResult(status: string): StaffingResult {
@@ -271,7 +262,7 @@ export function StaffingProcessStepper({
   const currentStepIdx = STAFFING_STEPS.findIndex(
     (step) => step.key === activeStageKey,
   )
-  const clientLogoPath = extractLogoPath(data.opportunity.company?.metadata)
+  const clientLogoPath = data.opportunity.company?.meta_logo_path ?? null
   const clientName = data.opportunity.company?.name ?? "Client"
   const issueLabel = getIssueLabel(data.status)
   const shineHeight = (currentStepIdx + 1) * 76

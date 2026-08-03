@@ -101,7 +101,8 @@ export interface StaffingDrawerOpportunity {
     id: string
     name: string
     website: string | null
-    metadata: Json | null
+    /** Colonne générée `companies.meta_logo_path` (migration 060) — cf. Audit Lot 5. */
+    meta_logo_path: string | null
   } | null
 }
 

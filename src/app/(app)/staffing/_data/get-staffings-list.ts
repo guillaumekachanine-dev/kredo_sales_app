@@ -90,7 +90,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
           company:companies (
             name,
             website,
-            metadata
+            meta_logo_path
           )
         ),
         candidate:candidates (
@@ -137,10 +137,7 @@ export async function getStaffingsList(): Promise<StaffingListRow[]> {
       const opportunity = item.opportunity
       const company = opportunity?.company
       const companyRecord = Array.isArray(company) ? company[0] : company
-      const compMeta = companyRecord?.metadata && typeof companyRecord.metadata === "object"
-        ? companyRecord.metadata as Record<string, any>
-        : null
-      const clientLogoPath = compMeta?.logo_path || null
+      const clientLogoPath = companyRecord?.meta_logo_path || null
 
       const candidate = item.candidate
       const person = candidate?.person
