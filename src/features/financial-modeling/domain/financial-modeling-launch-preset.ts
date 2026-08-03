@@ -9,8 +9,37 @@ export interface FinancialModelingLaunchPreset {
   candidateName?: string | null
   annualGrossSalary?: number | null
   companyId?: string | null
+  companyName?: string | null
   opportunityId?: string | null
+  opportunityTitle?: string | null
   salesDailyRate?: number | null
+}
+
+interface FinancialModelTitleParts {
+  companyName?: string | null
+  consultantName?: string | null
+  opportunityTitle?: string | null
+}
+
+function normalizeTitlePart(value?: string | null): string | null {
+  const normalized = value?.trim().replace(/\s+/g, " ")
+  return normalized ? normalized : null
+}
+
+export function buildFinancialModelTitle({
+  companyName,
+  consultantName,
+  opportunityTitle,
+}: FinancialModelTitleParts): string | null {
+  const normalizedCompanyName = normalizeTitlePart(companyName)
+  const normalizedConsultantName = normalizeTitlePart(consultantName)
+  const normalizedOpportunityTitle = normalizeTitlePart(opportunityTitle)
+
+  if (!normalizedCompanyName || !normalizedConsultantName || !normalizedOpportunityTitle) {
+    return null
+  }
+
+  return `${normalizedCompanyName} - ${normalizedConsultantName} - ${normalizedOpportunityTitle}`
 }
 
 export function applyFinancialModelingLaunchPreset(
@@ -24,6 +53,11 @@ export function applyFinancialModelingLaunchPreset(
     ? catalog.candidates.find((item) => item.id === preset.candidateId)
     : undefined
   const candidateName = preset.candidateName?.trim() || candidate?.label || base.resourceLabel
+  const generatedTitle = buildFinancialModelTitle({
+    companyName: preset.companyName,
+    consultantName: candidateName,
+    opportunityTitle: preset.opportunityTitle,
+  })
   const fallbackGrossSalary = base.input.costModel === "salaried"
     ? base.input.annualGrossSalary
     : 0
@@ -39,7 +73,7 @@ export function applyFinancialModelingLaunchPreset(
   if (!preset.candidateId) {
     return {
       ...base,
-      title: preset.title ?? base.title,
+      title: generatedTitle ?? preset.title ?? base.title,
       companyId: preset.companyId ?? base.companyId,
       opportunityId: preset.opportunityId ?? base.opportunityId,
       input: sharedInput,
@@ -48,7 +82,7 @@ export function applyFinancialModelingLaunchPreset(
 
   return {
     ...base,
-    title: preset.title ?? `Simulation financière — ${candidateName || "candidat"}`,
+    title: generatedTitle ?? preset.title ?? `Simulation financière — ${candidateName || "candidat"}`,
     collaboratorId: null,
     candidateId: preset.candidateId,
     resourceLabel: candidateName,
