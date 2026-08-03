@@ -7,14 +7,17 @@ import { KnowledgeHubMobileDomainSheet } from "./KnowledgeHubMobileDomainSheet"
 
 interface MobileExplorerProps {
   onSelectExpertise: () => void
+  onSelectTalents: () => void
 }
 
-export function KnowledgeHubMobileExplorer({ onSelectExpertise }: MobileExplorerProps) {
+export function KnowledgeHubMobileExplorer({ onSelectExpertise, onSelectTalents }: MobileExplorerProps) {
   const [selectedDomain, setSelectedDomain] = useState<DomainItem | null>(null)
 
   const handleDomainClick = (domain: DomainItem) => {
     if (domain.id === "expertise-kredo") {
       onSelectExpertise()
+    } else if (domain.id === "talents") {
+      onSelectTalents()
     } else {
       setSelectedDomain(domain)
     }

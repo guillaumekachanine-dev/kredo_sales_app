@@ -8,18 +8,23 @@ import { KnowledgeHubMobileWorkshops } from "./KnowledgeHubMobileWorkshops"
 import { KnowledgeHubMobileAsk } from "./KnowledgeHubMobileAsk"
 import { KredoExpertiseSnapshot } from "./expertise/kredo-expertise.types"
 import { KredoExpertiseMobile } from "./expertise/KredoExpertiseMobile"
+import { TalentKnowledgeMobile } from "./talents/TalentKnowledgeMobile"
+import { TalentKnowledgeSnapshot } from "./talents/talent-knowledge.types"
 
 interface KnowledgeHubMobileProps {
   snapshot: KredoExpertiseSnapshot
+  talentSnapshot: TalentKnowledgeSnapshot
 }
 
-export function KnowledgeHubMobile({ snapshot }: KnowledgeHubMobileProps) {
+export function KnowledgeHubMobile({ snapshot, talentSnapshot }: KnowledgeHubMobileProps) {
   const [activeMode, setActiveMode] = useState<KnowledgeHubMode>("library")
   const [showExpertise, setShowExpertise] = useState(false)
+  const [showTalents, setShowTalents] = useState(false)
 
   const handleModeChange = (mode: KnowledgeHubMode) => {
     setActiveMode(mode)
     setShowExpertise(false)
+    setShowTalents(false)
   }
 
   if (showExpertise && activeMode === "library") {
@@ -29,6 +34,10 @@ export function KnowledgeHubMobile({ snapshot }: KnowledgeHubMobileProps) {
         onBack={() => setShowExpertise(false)}
       />
     )
+  }
+
+  if (showTalents && activeMode === "library") {
+    return <TalentKnowledgeMobile snapshot={talentSnapshot} onBack={() => setShowTalents(false)} />
   }
 
   return (
@@ -54,7 +63,7 @@ export function KnowledgeHubMobile({ snapshot }: KnowledgeHubMobileProps) {
       {/* Main Mode View Container */}
       <main className="px-4 py-4 space-y-4">
         {activeMode === "library" && (
-          <KnowledgeHubMobileExplorer onSelectExpertise={() => setShowExpertise(true)} />
+          <KnowledgeHubMobileExplorer onSelectExpertise={() => setShowExpertise(true)} onSelectTalents={() => setShowTalents(true)} />
         )}
         {activeMode === "workshops" && <KnowledgeHubMobileWorkshops />}
         {activeMode === "ask" && <KnowledgeHubMobileAsk />}
