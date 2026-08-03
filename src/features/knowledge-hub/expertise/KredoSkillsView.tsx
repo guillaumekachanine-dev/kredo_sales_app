@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { SkillItem } from "./kredo-expertise.types"
 
@@ -10,22 +10,28 @@ interface SkillsViewProps {
 
 const CATEGORY_METADATA: Record<string, { label: string; icon: string }> = {
   framework: { label: "Frameworks & Librairies", icon: "📦" },
-  devops: { label: "DevOps, CI/CD & Dev", icon: "🔄" },
+  devops: { label: "DevOps & CI/CD", icon: "🔄" },
   fonctionnel: { label: "Conception & Métier", icon: "📐" },
-  data: { label: "Data Intelligence & IA", icon: "📊" },
-  langage: { label: "Langages de programmation", icon: "💻" },
-  cloud: { label: "Cloud & Systèmes", icon: "☁️" },
+  data: { label: "Data & IA", icon: "📊" },
+  langage: { label: "Langages & Code", icon: "💻" },
+  cloud: { label: "Cloud & Infra", icon: "☁️" },
   certification: { label: "Certifications", icon: "🛡️" },
-  methode: { label: "Méthodologies & Agilité", icon: "⏱️" },
+  methode: { label: "Méthodologies", icon: "⏱️" },
   soft_skill: { label: "Soft Skills", icon: "💡" },
-  secteur: { label: "Secteurs d&apos;activité", icon: "🏢" },
-  autre: { label: "Autres compétences", icon: "🔌" },
+  secteur: { label: "Secteurs", icon: "🏢" },
+  autre: { label: "Autres", icon: "🔌" },
 }
 
 export function KredoSkillsView({
   skills,
 }: SkillsViewProps) {
   const [search, setSearch] = useState("")
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null)
+
+  // Refs for auto-scroll tracking
+  const viewWrapperRef = useRef<HTMLDivElement | null>(null)
+  const expandedContainerRef = useRef<HTMLDivElement | null>(null)
+  const prevExpandedId = useRef<string | null>(null)
 
   const filteredSkills = skills.filter(
     (skill) =>
@@ -51,6 +57,33 @@ export function KredoSkillsView({
       orderedCategories.push(cat)
     }
   }
+
+  // Smooth viewport scrolling traveling
+  useEffect(() => {
+    if (expandedCategoryId) {
+      prevExpandedId.current = expandedCategoryId
+      setTimeout(() => {
+        const container = expandedContainerRef.current
+        if (container) {
+          // Align container perfectly below the sticky header controls
+          const elementPosition = container.getBoundingClientRect().top + window.scrollY
+          const offsetPosition = elementPosition - 170
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: "smooth"
+          })
+        }
+      }, 180)
+    } else if (prevExpandedId.current) {
+      setTimeout(() => {
+        const wrapper = viewWrapperRef.current
+        if (wrapper) {
+          wrapper.scrollIntoView({ behavior: "smooth", block: "nearest" })
+        }
+      }, 100)
+      prevExpandedId.current = null
+    }
+  }, [expandedCategoryId])
 
   const renderSkillRow = (skill: SkillItem) => {
     return (
@@ -81,74 +114,110 @@ export function KredoSkillsView({
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Link to Pool of Skills */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-edito-surface p-5 rounded-xl border border-edito-border shadow-xs">
-        <div className="flex items-start gap-3">
-          <span className="text-2xl mt-0.5" role="img" aria-hidden="true">🌐</span>
-          <div>
-            <h3 className="text-xs font-bold text-edito-navy">Référentiel des Compétences</h3>
-            <p className="text-[10px] text-edito-muted mt-0.5 leading-relaxed">
-              Consultez la cartographie des compétences et leur répartition opérationnelle au sein du cabinet.
-            </p>
+    <div ref={viewWrapperRef} className="scroll-mt-24 space-y-6 animate-fade-in">
+      {/* Search Input and Pool Button on the same row, Sticky at top */}
+      <div className="sticky top-[101px] md:top-0 z-30 bg-edito-canvas/90 backdrop-blur-md py-2 w-full">
+        <div className="flex items-center gap-3 w-full min-w-0 bg-edito-surface p-3 rounded-xl border border-edito-border shadow-xs">
+          {/* Search */}
+          <div className="relative flex-1 min-w-0">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-edito-muted">
+              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher une compétence..."
+              className="h-9 w-full rounded-md border border-edito-border bg-edito-canvas pl-9 pr-3 text-xs text-edito-body placeholder:text-edito-muted outline-none focus:border-edito-brass min-w-0"
+            />
           </div>
+
+          {/* Pool Button */}
+          <Link
+            href="/consultants/pool-competences"
+            className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-edito-navy px-4 py-2 text-xs font-bold text-white hover:bg-edito-navy/95 transition-colors outline-none whitespace-nowrap shadow-xs shrink-0"
+          >
+            👥 Pool de compétences
+          </Link>
         </div>
-        <Link
-          href="/consultants/pool-competences"
-          className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-edito-navy px-4 py-2 text-xs font-bold text-white hover:bg-edito-navy/95 transition-colors outline-none whitespace-nowrap shadow-xs"
-        >
-          👥 Voir dans le Pool de compétences
-        </Link>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-edito-muted">
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </span>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher une compétence..."
-          className="h-9 w-full rounded-md border border-edito-border bg-edito-surface pl-9 pr-3 text-xs text-edito-body placeholder:text-edito-muted outline-none focus:border-edito-brass"
-        />
-      </div>
-
-      {/* Categories of Skills */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Grid of Category cards: 8 per line on Desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
         {orderedCategories.map((category) => {
           const catSkills = skillsByCategory.get(category) ?? []
           const meta = CATEGORY_METADATA[category] || { label: category.toUpperCase(), icon: "⚙️" }
+          const isExpanded = expandedCategoryId === category
 
           return (
-            <div
+            <button
               key={category}
-              className="bg-edito-surface rounded-xl border border-edito-border p-5 space-y-3.5 shadow-xs"
+              type="button"
+              onClick={() => setExpandedCategoryId(isExpanded ? null : category)}
+              className={`kredo-cockpit-hover-motion aspect-square flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all duration-200 cursor-pointer outline-none ${
+                isExpanded
+                  ? "border-edito-brass border-2 bg-white ring-1 ring-edito-brass/10 shadow-sm"
+                  : "border-edito-border bg-edito-surface hover:border-edito-muted"
+              }`}
             >
-              <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy border-b border-edito-border/50 pb-2.5 flex items-center gap-2">
-                <span className="text-sm" role="img" aria-hidden="true">{meta.icon}</span>
-                <span>{meta.label}</span>
-                <span className="ml-1 rounded-full bg-edito-chip px-2 py-0.5 text-[8px] font-bold text-edito-muted border border-edito-border/40">
-                  {catSkills.length}
-                </span>
-              </h3>
-              <div className="divide-y divide-edito-border/15">
+              <span className="text-lg" role="img" aria-hidden="true">{meta.icon}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider mt-1.5 line-clamp-2 w-full text-edito-navy">
+                {meta.label}
+              </span>
+              <span className="text-[7px] font-bold text-edito-muted uppercase tracking-wide mt-0.5 block">
+                {catSkills.length} {catSkills.length > 1 ? "compétences" : "compétence"}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Expanded Category skills list */}
+      {expandedCategoryId && (() => {
+        const catSkills = skillsByCategory.get(expandedCategoryId) ?? []
+        const meta = CATEGORY_METADATA[expandedCategoryId] || { label: expandedCategoryId.toUpperCase(), icon: "⚙️" }
+
+        return (
+          <div
+            ref={expandedContainerRef}
+            className="scroll-mt-36 bg-edito-surface rounded-xl border border-edito-brass/30 ring-1 ring-edito-brass/10 p-5 shadow-sm animate-fade-in"
+          >
+            <div className="space-y-4">
+              {/* Clickable Header Trigger to collapse the section easily */}
+              <button
+                type="button"
+                onClick={() => setExpandedCategoryId(null)}
+                className="w-full text-left flex items-center justify-between border-b border-edito-border/50 pb-3 hover:opacity-85 transition-opacity cursor-pointer group outline-none"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">{meta.icon}</span>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-edito-navy flex items-center gap-1.5">
+                    <span>COMPÉTENCES :</span>
+                    <span className="text-edito-brass">{meta.label}</span>
+                  </h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-[9px] font-bold text-edito-muted group-hover:text-edito-brass transition-colors shrink-0">
+                  <span>Fermer la section</span>
+                  <span className="text-[10px]">✕</span>
+                </div>
+              </button>
+
+              <div className="divide-y divide-edito-border/15 mt-2">
                 {catSkills.map((skill) => renderSkillRow(skill))}
               </div>
             </div>
-          )
-        })}
-
-        {filteredSkills.length === 0 && (
-          <div className="bg-edito-surface py-12 text-center text-xs text-edito-muted rounded-xl border border-edito-border shadow-xs flex flex-col items-center justify-center gap-2">
-            <span className="text-lg">📭</span>
-            <span>Aucune compétence ne correspond à votre recherche.</span>
           </div>
-        )}
-      </div>
+        )
+      })()}
+
+      {filteredSkills.length === 0 && (
+        <div className="bg-edito-surface py-12 text-center text-xs text-edito-muted rounded-xl border border-edito-border shadow-xs flex flex-col items-center justify-center gap-2">
+          <span className="text-lg">📭</span>
+          <span>Aucune compétence ne correspond à votre recherche.</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { KredoExpertiseSnapshot, PracticeItem } from "./kredo-expertise.types"
+import { KredoExpertiseSnapshot } from "./kredo-expertise.types"
 import { KredoExpertiseNavigation, ExpertiseTab } from "./KredoExpertiseNavigation"
 import { KredoPracticesView } from "./KredoPracticesView"
 import { KredoJobsView } from "./KredoJobsView"
@@ -18,11 +18,16 @@ export function KredoExpertiseMobile({
   onBack,
 }: KredoExpertiseMobileProps) {
   const [activeTab, setActiveTab] = useState<ExpertiseTab>("practices")
-  const [selectedPractice, setSelectedPractice] = useState<PracticeItem | null>(null)
 
   const handleTabChange = (tab: ExpertiseTab) => {
     setActiveTab(tab)
-    setSelectedPractice(null)
+  }
+
+  const counts = {
+    practices: snapshot.practices.length,
+    jobs: snapshot.jobs.length,
+    skills: snapshot.skills.length,
+    techs: snapshot.technologies.length,
   }
 
   return (
@@ -43,26 +48,13 @@ export function KredoExpertiseMobile({
         <div className="w-12" />
       </header>
 
-      {/* KPI Stats Strip */}
-      <div className="grid grid-cols-4 gap-2 bg-edito-surface border-b border-edito-border/50 p-3 text-center">
-        {[
-          { label: "Practices", count: snapshot.practices.length },
-          { label: "Métiers", count: snapshot.jobs.length },
-          { label: "Compétences", count: snapshot.skills.length },
-          { label: "Techs", count: snapshot.technologies.length },
-        ].map((kpi) => (
-          <div key={kpi.label} className="py-1">
-            <span className="block text-sm font-bold text-edito-navy">{kpi.count}</span>
-            <span className="block text-[8px] font-bold uppercase tracking-wider text-edito-muted mt-0.5">
-              {kpi.label}
-            </span>
-          </div>
-        ))}
-      </div>
-
       {/* Sticky Tab switcher sub-navigation */}
       <div className="sticky top-[53px] z-20">
-        <KredoExpertiseNavigation activeTab={activeTab} onChangeTab={handleTabChange} />
+        <KredoExpertiseNavigation
+          activeTab={activeTab}
+          onChangeTab={handleTabChange}
+          counts={counts}
+        />
       </div>
 
       {/* Mobile content tab view */}
@@ -70,8 +62,8 @@ export function KredoExpertiseMobile({
         {activeTab === "practices" && (
           <KredoPracticesView
             practices={snapshot.practices}
-            selectedPractice={selectedPractice}
-            onSelectPractice={setSelectedPractice}
+            jobs={snapshot.jobs}
+            onSelectPractice={() => {}}
             isMobile
           />
         )}
@@ -80,6 +72,7 @@ export function KredoExpertiseMobile({
           <KredoJobsView
             jobs={snapshot.jobs}
             practices={snapshot.practices}
+            skills={snapshot.skills}
           />
         )}
 

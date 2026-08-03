@@ -19,23 +19,26 @@ export function KnowledgeWorkshopsModeDesktop({
 }: WorkshopsModeProps) {
   return (
     <div className="space-y-6">
-      {/* Introduction Banner */}
-      <div className="rounded-xl border border-edito-border bg-edito-surface p-6">
+      {/* Introduction Banner - Navy/Gold intelligence style */}
+      <div className="rounded-xl border border-edito-border bg-edito-navy text-white p-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-edito-navy">Ateliers Métiers</h2>
-            <p className="mt-1 text-sm text-edito-body">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-edito-gold">
+              Ateliers Métiers
+            </span>
+            <h2 className="text-lg font-bold text-white mt-0.5">Processus Décisionnels</h2>
+            <p className="mt-1 text-xs text-white/70">
               Actions métiers intelligentes et processus décisionnels alimentés par le Knowledge Hub.
             </p>
           </div>
-          <span className="rounded bg-edito-chip px-2.5 py-1 text-[10px] font-semibold text-edito-navy">
+          <span className="rounded bg-white/10 px-2.5 py-0.5 text-[9px] font-bold text-edito-gold uppercase tracking-wider">
             Mode lecture seule
           </span>
         </div>
       </div>
 
-      {/* Grid Layout (8 Workshops) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Grid Layout (8 Workshops) - 3 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {workshops.map((workshop) => {
           const isSelected = selectedWorkshop?.id === workshop.id
           return (
@@ -49,16 +52,8 @@ export function KnowledgeWorkshopsModeDesktop({
                   : "border-edito-border hover:border-edito-muted"
               }`}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl" role="img" aria-hidden="true">
-                    {workshop.icon}
-                  </span>
-                  <h3 className="text-sm font-bold text-edito-navy">{workshop.title}</h3>
-                </div>
-                <span className="inline-flex items-center rounded-full bg-edito-brass/10 px-2 py-0.5 text-[9px] font-bold text-edito-brass uppercase tracking-wider">
-                  {workshop.status}
-                </span>
+              <div className="flex items-start">
+                <h3 className="text-sm font-bold text-edito-navy">{workshop.title}</h3>
               </div>
               
               <p className="mt-3 text-xs leading-relaxed text-edito-body">
@@ -116,14 +111,8 @@ export function KnowledgeWorkshopsModeMobile() {
             onClick={() => setSelectedWorkshop(workshop)}
             className="w-full min-h-[48px] rounded-xl border border-edito-border bg-edito-surface p-4 text-left active:bg-edito-chip transition-colors outline-none"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{workshop.icon}</span>
-                <span className="text-xs font-bold text-edito-navy">{workshop.title}</span>
-              </div>
-              <span className="rounded bg-edito-brass/10 px-1.5 py-0.5 text-[8px] font-bold text-edito-brass uppercase tracking-wider shrink-0">
-                {workshop.status}
-              </span>
+            <div className="flex items-start">
+              <span className="text-xs font-bold text-edito-navy">{workshop.title}</span>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-edito-body line-clamp-2">
               {workshop.description}

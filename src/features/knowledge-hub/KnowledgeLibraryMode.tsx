@@ -21,30 +21,25 @@ export function KnowledgeLibraryModeDesktop({
 
   return (
     <div className="space-y-6">
-      {/* Editorial Header */}
-      <div className="rounded-xl border border-edito-border bg-edito-surface p-6">
+      {/* Editorial Header - Navy/Gold intelligence style */}
+      <div className="rounded-xl border border-edito-border bg-edito-navy text-white p-5 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold tracking-tight text-edito-navy">Bibliothèque Fédérée</h2>
-              <span className="inline-flex items-center rounded-full bg-edito-brass/10 px-2.5 py-0.5 text-[10px] font-bold text-edito-brass">
-                Socle en construction
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-edito-body">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-edito-gold">
+              Bibliothèque Fédérée
+            </span>
+            <h2 className="text-lg font-bold text-white mt-0.5">Patrimoine de Connaissances</h2>
+            <p className="mt-1 text-xs text-white/70">
               Accès unifié au patrimoine de connaissances KREDO et cartographie des relations.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-edito-muted">Statut :</span>
-            <span className="rounded bg-edito-chip px-2 py-1 text-[10px] font-semibold text-edito-navy">
-              Contenus hors ligne
-            </span>
-          </div>
+          <span className="rounded bg-white/10 px-2.5 py-0.5 text-[9px] font-bold text-edito-gold uppercase tracking-wider shrink-0">
+            Socle en construction
+          </span>
         </div>
 
         {/* Visual Search Bar - Disabled */}
-        <div className="mt-6">
+        <div className="mt-4">
           <div className="relative">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-edito-muted">
               <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -57,29 +52,14 @@ export function KnowledgeLibraryModeDesktop({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher dans la bibliothèque fédérée... (Recherche inactive pendant la construction)"
-              className="h-10 w-full rounded-md border border-edito-border bg-edito-canvas pl-9 pr-4 text-sm text-edito-body placeholder:text-edito-muted cursor-not-allowed opacity-80"
+              className="h-10 w-full rounded-md border border-white/20 bg-white pl-9 pr-4 text-sm text-edito-body placeholder:text-edito-muted cursor-not-allowed opacity-80 focus:outline-none"
             />
           </div>
         </div>
-
-        {/* Shortcuts */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-edito-border pt-4">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-edito-muted mr-2">Raccourcis futurs :</span>
-          {["★ Favoris", "🕒 Récents", "⚠️ À réviser"].map((label) => (
-            <button
-              key={label}
-              type="button"
-              disabled
-              className="rounded-md border border-edito-border bg-edito-surface px-3 py-1 text-[10px] font-semibold text-edito-muted cursor-not-allowed hover:bg-edito-chip transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Grid Layout (6 Domains) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Grid Layout (6 Domains) - 3 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {domains.map((domain) => {
           const isSelected = selectedDomain?.id === domain.id
           return (

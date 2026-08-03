@@ -1,10 +1,12 @@
 import { OfferPracticeCatalogRow } from "@/lib/reference-data/get-offer-practices-catalog"
 import { JobProfileCatalogRow } from "@/lib/reference-data/get-job-profiles-catalog"
+import { SkillCatalogRow } from "@/lib/reference-data/get-skills-catalog"
 import { TechItem } from "./kredo-expertise.types"
 
 export function buildTechnologies(
   practices: OfferPracticeCatalogRow[],
-  jobs: JobProfileCatalogRow[]
+  jobs: JobProfileCatalogRow[],
+  skills: SkillCatalogRow[]
 ): TechItem[] {
   const canonicalMap = new Map<string, string>()
   const techJobs = new Map<string, Set<string>>() 
@@ -48,15 +50,22 @@ export function buildTechnologies(
     }
   }
 
+  const skillDescMap = new Map<string, string | null>()
+  for (const s of skills) {
+    skillDescMap.set(s.name.toLowerCase(), s.skill_description)
+  }
+
   const techs: TechItem[] = []
   for (const [key, canonicalName] of canonicalMap.entries()) {
     const practicesList = Array.from(techPractices.get(key) ?? [])
     const jobIds = techJobs.get(key) ?? new Set()
+    const description = skillDescMap.get(key) ?? null
 
     techs.push({
       name: canonicalName,
       practices: practicesList,
       jobCount: jobIds.size,
+      description,
     })
   }
 
