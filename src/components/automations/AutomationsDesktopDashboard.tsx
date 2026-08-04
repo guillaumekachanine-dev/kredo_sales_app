@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -13,8 +13,6 @@ import {
   type DataTableColumn,
   type DataTableSort,
 } from "@/components/ui/data-table/DataTable"
-import { createClient } from "@/lib/supabase/client"
-import { ensureRealtimeAuth } from "@/lib/supabase/realtime-auth"
 import { formatDateTime } from "@/lib/formatters"
 import type { AutomationsDashboardData, RunJournalRow, WorkflowHealthRow } from "@/lib/automations/automations-data"
 import {
@@ -30,6 +28,9 @@ import { RunDrillDownDialog } from "./RunDrillDownDialog"
 import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
 import { CostTimelineChart } from "./CostTimelineChart"
 import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
+import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
+import { JournalLiveStatus } from "./JournalLiveStatus"
+import { useRunJournalRealtime } from "./use-run-journal-realtime"
 
 const AutomationMetricsModal = dynamic(
   () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
@@ -185,46 +186,26 @@ function WorkflowCostBar({ workflow, maxCost }: { workflow: WorkflowHealthRow; m
 export function AutomationsDesktopDashboard({ data, initialRunId }: { data: AutomationsDashboardData; initialRunId?: string }) {
   const initialRun = initialRunId ? data.journal.find((run) => run.id === initialRunId) ?? null : null
   const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
-  const [journal, setJournal] = useState<RunJournalRow[]>(data.journal)
-  const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(initialRun)
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(initialRun?.id ?? null)
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 
-  // Realtime : les mises à jour de statut d'un run déjà présent dans le journal
-  useEffect(() => {
-    const supabase = createClient()
-    // Sans jeton utilisateur, ce canal se souscrit « avec succès » puis reste
-    // muet (cf. lib/supabase/realtime-auth.ts).
-    let disposed = false
-    let channel: ReturnType<typeof supabase.channel> | null = null
-    void (async () => {
-      await ensureRealtimeAuth(supabase)
-      if (disposed) return
-      channel = supabase
-        .channel("automations-runs-journal")
-        .on(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "ai_intelligence_runs" },
-          (payload) => {
-            const row = payload.new as { id: string; status: string; error_message: string | null; failed_at: string | null; completed_at: string | null }
-            setJournal((current) =>
-              current.map((run) =>
-                run.id === row.id
-                  ? { ...run, status: row.status, errorMessage: row.error_message, failedAt: row.failed_at, completedAt: row.completed_at }
-                  : run
-              )
-            )
-          }
-        )
-        .subscribe()
-    })()
+  // Journal en direct : nouveaux runs (INSERT) ET transitions de statut
+  // (UPDATE), rehydratés côté serveur pour porter durée, coût, compte et
+  // propriétaire — que le payload Realtime ne transporte pas.
+  const { journal, lastUpdatedAt, isRefreshing, refreshError, refresh } = useRunJournalRealtime(
+    data.journal,
+    data.fetchedAt,
+  )
 
-    return () => {
-      disposed = true
-      if (channel) void supabase.removeChannel(channel)
-    }
-  }, [])
+  // Le run affiché dans le drill-down est dérivé du journal, pas copié : quand
+  // Realtime fait passer un run à « succeeded », la modale ouverte sur ce run
+  // affiche immédiatement sa durée et son coût.
+  const selectedRun = useMemo(
+    () => (selectedRunId ? journal.find((run) => run.id === selectedRunId) ?? null : null),
+    [journal, selectedRunId],
+  )
 
   const alerts = useMemo(
     () =>
@@ -479,9 +460,17 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
       lowerContent={
         activeTab === "sante" ? (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 border-b border-border/40 pb-2 mb-1">
-              <span className="inline-flex size-2 bg-primary rounded-full" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Journal d&apos;exécution</h2>
+            <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-2 mb-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex size-2 bg-primary rounded-full" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Journal d&apos;exécution</h2>
+              </div>
+              <JournalLiveStatus
+                lastUpdatedAt={lastUpdatedAt}
+                isRefreshing={isRefreshing}
+                refreshError={refreshError}
+                onRefresh={refresh}
+              />
             </div>
             <div className="overflow-hidden rounded-xl border border-border/50 bg-surface shadow-sm">
               <DataTable
@@ -492,7 +481,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
                 onSortChange={setSort}
                 ariaLabel="Journal d'exécution des workflows IA"
                 onRowClick={(row) => {
-                  setSelectedRun(row)
+                  setSelectedRunId(row.id)
                   setDialogOpen(true)
                 }}
                 emptyState={<p className="p-6 text-center text-sm text-muted">Aucune exécution récente.</p>}
@@ -502,6 +491,8 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
         ) : null
       }
     >
+      <AutomationsDataErrorBanner errors={data.dataErrors} />
+
       <div className="mb-5 flex justify-start">
         <AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />
       </div>

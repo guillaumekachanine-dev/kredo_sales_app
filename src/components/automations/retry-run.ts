@@ -1,16 +1,19 @@
-import type { RunJournalRow } from "@/lib/automations/automations-data"
+import { getRunRetryPayload } from "@/lib/automations/run-journal-actions"
 
 export type RetryRunResult = { ok: true; runId: string } | { ok: false; error: string }
 
-// Relance un run échoué avec exactement le même payload que l'appel d'origine
-// (config.workflowId + primary_entity_type/id + company_id + input_snapshot).
-// Repose sur POST /api/n8n/trigger (CORE-001) — aucune nouvelle plomberie.
-export async function retryFailedRun(run: RunJournalRow): Promise<RetryRunResult> {
-  const workflowId = (run.config as { workflowId?: string } | null)?.workflowId
+// Relance un run échoué avec exactement le même payload que l'appel d'origine.
+// Le payload (config.workflowId + primary_entity_type/id + company_id +
+// input_snapshot) est relu côté serveur au moment du clic : `input_snapshot` ne
+// voyage plus avec les 50 lignes du journal, et le serveur revérifie que le run
+// appartient bien au workspace et est bien en échec.
+// Le déclenchement passe toujours par POST /api/n8n/trigger (CORE-001) — aucune
+// nouvelle plomberie.
+export async function retryFailedRun(runId: string): Promise<RetryRunResult> {
+  const payloadResult = await getRunRetryPayload(runId)
+  if (!payloadResult.ok) return { ok: false, error: payloadResult.error }
 
-  if (!workflowId) {
-    return { ok: false, error: "workflowId introuvable dans ce run (config manquante) — relance impossible." }
-  }
+  const { workflowId, entityType, entityId, companyId, input } = payloadResult.payload
 
   try {
     const res = await fetch("/api/n8n/trigger", {
@@ -18,10 +21,10 @@ export async function retryFailedRun(run: RunJournalRow): Promise<RetryRunResult
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         workflowId,
-        entityType: run.primaryEntityType ?? undefined,
-        entityId: run.primaryEntityId ?? undefined,
-        companyId: run.companyId ?? undefined,
-        input: run.inputSnapshot ?? {},
+        entityType: entityType ?? undefined,
+        entityId: entityId ?? undefined,
+        companyId: companyId ?? undefined,
+        input,
       }),
     })
 

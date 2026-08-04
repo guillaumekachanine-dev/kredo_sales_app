@@ -1,6 +1,7 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
+import { JOURNAL_LIMIT } from "./run-journal-merge"
 import {
   VEILLE_RUNS_PER_MONTH,
   type VeilleCadence,
@@ -15,6 +16,13 @@ import { workflowLabelForRunType } from "./workflow-labels"
 //  ici, tout vient de la base. Un seul passage de fetch pour toute la page
 //  (onglets Santé + Coûts) : le changement d'onglet est un simple état client,
 //  pas un refetch serveur.
+//
+//  Le journal d'exécution est aussi rechargé à chaud, run par run, depuis
+//  `getRunJournalRowsByIds()` (Server Action `fetchRunJournalRows`) quand
+//  Realtime signale un changement — d'où l'extraction de `JOURNAL_SELECT` et
+//  de `mapRunJournalRows()` : une seule et même projection pour le chargement
+//  initial et pour l'hydratation live, jamais deux implémentations à faire
+//  diverger.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type WorkflowHealthRow = {
@@ -57,7 +65,6 @@ export type RunJournalRow = {
   hasPricingGap: boolean
   hasTokensGap: boolean
   config: Record<string, unknown> | null
-  inputSnapshot: Record<string, unknown> | null
 }
 
 export type AutomationsKpis = {
@@ -95,15 +102,63 @@ export type AutomationsCostData = {
   veilleSimulator: VeilleSimulatorBaseline
 }
 
+// Une requête tombée ne doit plus disparaître en silence : c'est exactement ce
+// qui a laissé le journal d'exécution vide pendant deux mois (embed
+// `owner:profiles(...)` impossible faute de clé étrangère → PGRST200 → `.data`
+// null → `?? []`). Chaque échec est désormais remonté jusqu'à l'écran.
+export type AutomationsDataError = {
+  source: string
+  message: string
+}
+
 export type AutomationsDashboardData = {
   kpis: AutomationsKpis
   workflows: WorkflowHealthRow[]
   journal: RunJournalRow[]
   costs: AutomationsCostData
+  dataErrors: AutomationsDataError[]
+  fetchedAt: string
 }
 
 type CompanyEmbed = { name: string | null } | { name: string | null }[] | null
-type OwnerEmbed = { full_name: string | null } | { full_name: string | null }[] | null
+type OwnerEmbed =
+  | { full_name: string | null; email: string | null }
+  | { full_name: string | null; email: string | null }[]
+  | null
+
+type RunCostRow = {
+  run_id: string
+  duration_ms: number | null
+  cost_estimate: number | null
+  has_pricing_gap: boolean | null
+  has_tokens_gap: boolean | null
+}
+
+type JournalRunRow = {
+  id: string
+  run_type: string
+  status: string
+  trigger_source: string
+  error_message: string | null
+  created_at: string
+  started_at: string | null
+  completed_at: string | null
+  failed_at: string | null
+  company_id: string | null
+  primary_entity_type: string | null
+  primary_entity_id: string | null
+  config: unknown
+  company: CompanyEmbed
+  owner: OwnerEmbed
+}
+
+// `input_snapshot` est volontairement absent : jusqu'à 5,3 ko par run, utile
+// uniquement à la relance d'UN run (lu côté serveur par `retryRun`), pas aux
+// 50 lignes sérialisées vers le client.
+const JOURNAL_SELECT =
+  "id, run_type, status, trigger_source, error_message, created_at, started_at, completed_at, failed_at, company_id, primary_entity_type, primary_entity_id, config, company:companies(name), owner:profiles(full_name, email)"
+
+const RUN_COSTS_SELECT = "run_id, duration_ms, cost_estimate, has_pricing_gap, has_tokens_gap"
 
 function firstOf<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
@@ -114,58 +169,20 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-export async function getAutomationsDashboardData(): Promise<AutomationsDashboardData> {
-  const supabase = await createClient()
-  const now = new Date()
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+// `profiles.full_name` peut être null (aucune contrainte) — retomber sur
+// l'e-mail plutôt que d'afficher « — » alors que le propriétaire est connu.
+function resolveOwnerName(owner: OwnerEmbed): string | null {
+  const resolved = firstOf(owner)
+  if (!resolved) return null
+  return resolved.full_name ?? resolved.email ?? null
+}
 
-  // Requêtes indépendantes en parallèle (pas de cascade) : santé par workflow,
-  // stats de coût par workflow, journal des runs récents, compteur de runs
-  // repris par le reaper, timeline de coût complète, réglages de veille actifs.
-  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes] = await Promise.all([
-    supabase.from("v_workflow_health").select("*"),
-    supabase.from("v_workflow_cost_stats").select("run_type, avg_cost_30d, total_cost_30d, has_pricing_gap, has_tokens_gap, avg_cost_all_time"),
-    supabase
-      .from("ai_intelligence_runs")
-      .select(
-        "id, run_type, status, trigger_source, error_message, created_at, started_at, completed_at, failed_at, company_id, primary_entity_type, primary_entity_id, config, input_snapshot, company:companies(name), owner:profiles(full_name)"
-      )
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("ai_intelligence_runs")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "failed")
-      .ilike("error_message", "Run repris automatiquement (ops-004)%")
-      .gte("failed_at", sevenDaysAgo.toISOString()),
-    supabase
-      .from("v_ai_cost_timeline")
-      .select("day, owner_id, cost_estimate, runs"),
-    supabase
-      .from("account_watch_settings")
-      .select("cadence")
-      .eq("is_enabled", true),
-  ])
+function mapRunJournalRows(runRows: JournalRunRow[], costRows: RunCostRow[]): RunJournalRow[] {
+  const costsByRunId = new Map(costRows.map((c) => [c.run_id, c]))
 
-  const runRows = journalRunsRes.data ?? []
-  const runIds = runRows.map((r) => r.id)
-
-  // Dépend des IDs retournés ci-dessus — ne peut pas être parallélisée avec
-  // le lot précédent, mais reste une seule requête ciblée (pas de N+1 par run).
-  const costsRes =
-    runIds.length > 0
-      ? await supabase
-          .from("v_ai_run_costs")
-          .select("run_id, duration_ms, cost_estimate, has_pricing_gap, has_tokens_gap")
-          .in("run_id", runIds)
-      : { data: [] as { run_id: string; duration_ms: number | null; cost_estimate: number | null; has_pricing_gap: boolean | null; has_tokens_gap: boolean | null }[] }
-
-  const costsByRunId = new Map((costsRes.data ?? []).map((c) => [c.run_id, c]))
-
-  const journal: RunJournalRow[] = runRows.map((r) => {
+  return runRows.map((r) => {
     const cost = costsByRunId.get(r.id)
-    const company = firstOf(r.company as CompanyEmbed)
-    const owner = firstOf(r.owner as OwnerEmbed)
+    const company = firstOf(r.company)
 
     return {
       id: r.id,
@@ -182,15 +199,131 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       companyName: company?.name ?? null,
       primaryEntityType: r.primary_entity_type,
       primaryEntityId: r.primary_entity_id,
-      ownerName: owner?.full_name ?? null,
+      ownerName: resolveOwnerName(r.owner),
       durationMs: cost?.duration_ms ?? null,
       costEstimate: cost?.cost_estimate ?? null,
       hasPricingGap: cost?.has_pricing_gap ?? false,
       hasTokensGap: cost?.has_tokens_gap ?? false,
       config: (r.config as Record<string, unknown>) ?? null,
-      inputSnapshot: (r.input_snapshot as Record<string, unknown>) ?? null,
     }
   })
+}
+
+// ─── Hydratation ciblée (Realtime) ───────────────────────────────────────────
+// Recharge un lot de runs précis avec exactement la même projection que la
+// liste initiale. Appelée depuis la Server Action `fetchRunJournalRows`.
+export async function getRunJournalRowsByIds(runIds: string[]): Promise<RunJournalRow[]> {
+  if (runIds.length === 0) return []
+
+  const supabase = await createClient()
+
+  const [runsRes, costsRes] = await Promise.all([
+    supabase.from("ai_intelligence_runs").select(JOURNAL_SELECT).in("id", runIds),
+    supabase.from("v_ai_run_costs").select(RUN_COSTS_SELECT).in("run_id", runIds),
+  ])
+
+  if (runsRes.error) {
+    console.error("[automations] getRunJournalRowsByIds:", runsRes.error.message)
+    return []
+  }
+
+  return mapRunJournalRows(
+    (runsRes.data ?? []) as unknown as JournalRunRow[],
+    (costsRes.data ?? []) as RunCostRow[],
+  )
+}
+
+// ─── Rechargement complet du journal (bouton « Rafraîchir ») ─────────────────
+// Renvoie `null` en cas d'échec plutôt qu'une liste vide : un journal vidé par
+// une erreur silencieuse est précisément le défaut corrigé par ce chantier.
+export async function getLatestRunJournalRows(): Promise<RunJournalRow[] | null> {
+  const supabase = await createClient()
+
+  const runsRes = await supabase
+    .from("ai_intelligence_runs")
+    .select(JOURNAL_SELECT)
+    .order("created_at", { ascending: false })
+    .limit(JOURNAL_LIMIT)
+
+  if (runsRes.error) {
+    console.error("[automations] getLatestRunJournalRows:", runsRes.error.message)
+    return null
+  }
+
+  const runRows = (runsRes.data ?? []) as unknown as JournalRunRow[]
+  const runIds = runRows.map((r) => r.id)
+
+  const costsRes =
+    runIds.length > 0
+      ? await supabase.from("v_ai_run_costs").select(RUN_COSTS_SELECT).in("run_id", runIds)
+      : { data: [] as RunCostRow[], error: null }
+
+  if (costsRes.error) console.error("[automations] getLatestRunJournalRows (coûts):", costsRes.error.message)
+
+  return mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
+}
+
+export async function getAutomationsDashboardData(): Promise<AutomationsDashboardData> {
+  const supabase = await createClient()
+  const now = new Date()
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const dataErrors: AutomationsDataError[] = []
+
+  function collectError(source: string, error: { message: string } | null) {
+    if (!error) return
+    console.error(`[automations] ${source}:`, error.message)
+    dataErrors.push({ source, message: error.message })
+  }
+
+  // Requêtes indépendantes en parallèle (pas de cascade) : santé par workflow,
+  // stats de coût par workflow, journal des runs récents, compteur de runs
+  // repris par le reaper, timeline de coût complète, réglages de veille actifs.
+  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes] = await Promise.all([
+    supabase.from("v_workflow_health").select("*"),
+    supabase.from("v_workflow_cost_stats").select("run_type, avg_cost_30d, total_cost_30d, has_pricing_gap, has_tokens_gap, avg_cost_all_time"),
+    supabase
+      .from("ai_intelligence_runs")
+      .select(JOURNAL_SELECT)
+      .order("created_at", { ascending: false })
+      .limit(JOURNAL_LIMIT),
+    supabase
+      .from("ai_intelligence_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "failed")
+      .ilike("error_message", "Run repris automatiquement (ops-004)%")
+      .gte("failed_at", sevenDaysAgo.toISOString()),
+    // L'embed vers profiles est possible depuis la migration 065 (clé étrangère
+    // ai_intelligence_runs.owner_id → profiles.id) : PostgREST la propage aux
+    // vues qui exposent owner_id. Une requête de résolution des noms en moins.
+    supabase
+      .from("v_ai_cost_timeline")
+      .select("day, owner_id, cost_estimate, runs, owner:profiles(full_name, email)"),
+    supabase
+      .from("account_watch_settings")
+      .select("cadence")
+      .eq("is_enabled", true),
+  ])
+
+  collectError("Santé des workflows", healthRes.error)
+  collectError("Coûts par workflow", costStatsRes.error)
+  collectError("Journal d'exécution", journalRunsRes.error)
+  collectError("Runs repris (7j)", reapedRes.error)
+  collectError("Timeline de coût", timelineRes.error)
+  collectError("Réglages de veille", watchSettingsRes.error)
+
+  const runRows = (journalRunsRes.data ?? []) as unknown as JournalRunRow[]
+  const runIds = runRows.map((r) => r.id)
+
+  // Dépend des IDs retournés ci-dessus — ne peut pas être parallélisée avec
+  // le lot précédent, mais reste une seule requête ciblée (pas de N+1 par run).
+  const costsRes =
+    runIds.length > 0
+      ? await supabase.from("v_ai_run_costs").select(RUN_COSTS_SELECT).in("run_id", runIds)
+      : { data: [] as RunCostRow[], error: null }
+
+  collectError("Coûts par run", costsRes.error)
+
+  const journal = mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
 
   const workflows: WorkflowHealthRow[] = (healthRes.data ?? [])
     .map((h) => ({
@@ -234,16 +367,13 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
   const totalDecided = totalSucceeded30d + totalFailed30d
 
   // ── Onglet Coûts ──────────────────────────────────────────────────────────
-  // Pas d'embed PostgREST possible ici : v_ai_cost_timeline est une vue, sans
-  // métadonnée de FK vers profiles — résolution des noms via une requête
-  // séparée par lot d'IDs (pas de N+1).
-  const timelineRows = timelineRes.data ?? []
-  const ownerIds = [...new Set(timelineRows.map((r) => r.owner_id).filter((id): id is string => Boolean(id)))]
-  const ownerNamesRes =
-    ownerIds.length > 0
-      ? await supabase.from("profiles").select("id, full_name").in("id", ownerIds)
-      : { data: [] as { id: string; full_name: string | null }[] }
-  const ownerNameById = new Map((ownerNamesRes.data ?? []).map((p) => [p.id, p.full_name]))
+  const timelineRows = (timelineRes.data ?? []) as unknown as {
+    day: string | null
+    owner_id: string | null
+    cost_estimate: number | null
+    runs: number | null
+    owner: OwnerEmbed
+  }[]
 
   const todayIso = isoDate(now)
   const sevenDaysAgoIso = isoDate(sevenDaysAgo)
@@ -278,11 +408,18 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
     }
     byDay.set(row.day, existingDay)
 
-    const ownerName = (row.owner_id ? ownerNameById.get(row.owner_id) : null) ?? "Système / cron"
-    const existingOwner = byOwnerMap.get(ownerName) ?? { name: ownerName, costEstimate: 0, runs: 0 }
+    // Un run porte toujours un owner_id (colonne NOT NULL) : « Système / cron »
+    // est réservé au cas où il n'y en aurait réellement aucun, et un
+    // propriétaire connu mais sans nom ni e-mail n'est pas maquillé en cron.
+    const ownerKey = row.owner_id ?? "__system__"
+    const ownerName =
+      row.owner_id === null
+        ? "Système / cron"
+        : (resolveOwnerName(row.owner) ?? "Utilisateur sans nom")
+    const existingOwner = byOwnerMap.get(ownerKey) ?? { name: ownerName, costEstimate: 0, runs: 0 }
     existingOwner.runs += row.runs ?? 0
     if (row.cost_estimate !== null) existingOwner.costEstimate += row.cost_estimate
-    byOwnerMap.set(ownerName, existingOwner)
+    byOwnerMap.set(ownerKey, existingOwner)
 
     if (row.cost_estimate !== null) {
       costAllTime += row.cost_estimate
@@ -369,5 +506,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
         currentMonthlyCostEstimate,
       },
     },
+    dataErrors,
+    fetchedAt: now.toISOString(),
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import { MobileActionPage } from "@/components/templates/MobileActionPage"
@@ -9,7 +9,7 @@ import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
 import { MobileActionCard } from "@/components/ui/mobile/MobileActionCard"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { AutomationsDashboardData, CostTimelinePoint, RunJournalRow } from "@/lib/automations/automations-data"
+import type { AutomationsDashboardData, CostTimelinePoint } from "@/lib/automations/automations-data"
 import {
   runStatusVariant,
   runStatusLabel,
@@ -22,6 +22,9 @@ import {
 import { RunDrillDownDialog } from "./RunDrillDownDialog"
 import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
 import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
+import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
+import { JournalLiveStatus } from "./JournalLiveStatus"
+import { useRunJournalRealtime } from "./use-run-journal-realtime"
 
 const AutomationMetricsModal = dynamic(
   () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
@@ -58,9 +61,23 @@ function CostMiniSparkline({ points }: { points: CostTimelinePoint[] }) {
 
 export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboardData }) {
   const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
-  const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(null)
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [metricsOpen, setMetricsOpen] = useState(false)
+
+  // Même hook que le desktop : la logique temps réel est partagée, les deux
+  // vues restent des composants distincts (aucun rendu masqué en CSS).
+  const { journal, lastUpdatedAt, isRefreshing, refreshError, refresh } = useRunJournalRealtime(
+    data.journal,
+    data.fetchedAt,
+  )
+
+  const selectedRun = useMemo(
+    () => (selectedRunId ? journal.find((run) => run.id === selectedRunId) ?? null : null),
+    [journal, selectedRunId],
+  )
+
+  const recentRuns = useMemo(() => journal.slice(0, 10), [journal])
 
   const { costs } = data
 
@@ -115,6 +132,8 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
       }
       context={<AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />}
     >
+      <AutomationsDataErrorBanner errors={data.dataErrors} />
+
       {activeTab === "sante" ? (
         <>
           <div className="flex flex-col gap-3">
@@ -138,27 +157,39 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
           </div>
 
           <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Dernières exécutions</h2>
-            {data.journal.slice(0, 10).map((run) => (
-              <MobileActionCard
-                key={run.id}
-                title={run.runTypeLabel}
-                description={run.companyName ?? formatRelativeTime(run.createdAt)}
-                status={<StatusPill label={runStatusLabel(run.status)} variant={runStatusVariant(run.status)} />}
-                primaryAction={
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-primary"
-                    onClick={() => {
-                      setSelectedRun(run)
-                      setDialogOpen(true)
-                    }}
-                  >
-                    Détail
-                  </button>
-                }
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-heading">Dernières exécutions</h2>
+              <JournalLiveStatus
+                lastUpdatedAt={lastUpdatedAt}
+                isRefreshing={isRefreshing}
+                refreshError={refreshError}
+                onRefresh={refresh}
               />
-            ))}
+            </div>
+            {recentRuns.length === 0 ? (
+              <p className="text-sm text-muted">Aucune exécution récente.</p>
+            ) : (
+              recentRuns.map((run) => (
+                <MobileActionCard
+                  key={run.id}
+                  title={run.runTypeLabel}
+                  description={run.companyName ?? formatRelativeTime(run.createdAt)}
+                  status={<StatusPill label={runStatusLabel(run.status)} variant={runStatusVariant(run.status)} />}
+                  primaryAction={
+                    <button
+                      type="button"
+                      className="min-h-11 text-sm font-medium text-primary"
+                      onClick={() => {
+                        setSelectedRunId(run.id)
+                        setDialogOpen(true)
+                      }}
+                    >
+                      Détail
+                    </button>
+                  }
+                />
+              ))
+            )}
           </div>
         </>
       ) : (

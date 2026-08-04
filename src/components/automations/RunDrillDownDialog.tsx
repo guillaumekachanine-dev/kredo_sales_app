@@ -32,7 +32,7 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
     if (!run) return
     setRetryFeedback(null)
     startRetryTransition(async () => {
-      const result = await retryFailedRun(run)
+      const result = await retryFailedRun(run.id)
       if (result.ok) {
         setRetryFeedback("Relance déclenchée — le nouveau run apparaîtra dans le journal.")
         onRetried?.(result.runId)
