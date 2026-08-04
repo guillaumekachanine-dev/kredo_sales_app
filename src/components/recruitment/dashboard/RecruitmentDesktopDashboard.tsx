@@ -3,7 +3,6 @@
 import { useState } from "react"
 import Link from "next/link"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { Select } from "@/components/ui/Select"
 
 export interface Candidate {
@@ -153,8 +152,6 @@ export function RecruitmentDesktopDashboard({
             <option value="Digital">Digital / Next.js</option>
           </Select>
 <HeaderCalendar />
-
-<HeaderAlerts />
 
           {/* User Avatar */}
           <div className="flex items-center gap-2">

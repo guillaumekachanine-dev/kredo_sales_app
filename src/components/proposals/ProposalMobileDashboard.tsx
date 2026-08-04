@@ -6,7 +6,6 @@ import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
 import type { ProposalDashboardData } from "@/lib/proposals/proposals-data"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 
 export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData }) {
   const { kpis } = data
@@ -86,8 +85,6 @@ export function ProposalMobileDashboard({ data }: { data: ProposalDashboardData 
 
         <div className="flex items-center gap-3">
 <HeaderCalendar />
-
-<HeaderAlerts />
 
           {/* User GK Initials Avatar */}
           <div className="w-7 h-7 rounded-full bg-primary border border-border flex items-center justify-center font-extrabold text-[10px] text-white">

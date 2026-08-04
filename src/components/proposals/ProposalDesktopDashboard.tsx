@@ -7,7 +7,6 @@ import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
 import type { ProposalDashboardData, ProposalAuditItem } from "@/lib/proposals/proposals-data"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 
 export function ProposalDesktopDashboard({ data }: { data: ProposalDashboardData }) {
   const { kpis, timeline, bottlenecks, audits } = data
@@ -60,8 +59,6 @@ export function ProposalDesktopDashboard({ data }: { data: ProposalDashboardData
         {/* Right Header Actions */}
         <div className="flex items-center gap-4">
 <HeaderCalendar />
-
-<HeaderAlerts />
 
           {/* User GK initials avatar */}
           <div className="flex items-center gap-2">

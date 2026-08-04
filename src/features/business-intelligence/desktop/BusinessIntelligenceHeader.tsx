@@ -1,6 +1,5 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/Button"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 
 interface BusinessIntelligenceHeaderProps {
   onPlaybooksClick?: () => void
@@ -31,7 +30,6 @@ export function BusinessIntelligenceHeader({ onPlaybooksClick, onStudiesClick }:
         <Button variant="ghost" size="sm" className="!text-body hover:!border-primary hover:!bg-primary/5 hover:!text-primary" onClick={() => router.push("/agenda")}>
           Agenda
         </Button>
-        <HeaderAlerts />
       </div>
     </header>
   )

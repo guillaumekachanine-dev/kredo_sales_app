@@ -12,10 +12,7 @@ ne rédige rien lui-même : il se contente de sonner **chaque lundi 07:00
 2. Pour chacun, calcule la semaine ISO en cours et appelle
    `getWeeklyManagerBrief()` (périmètre personnel, `isWorkspaceWide: false`).
 3. Déclenche un run `report-weekly-manager` par profil, avec
-   `triggerSource: "cron"` — cette marque distingue le run d'un déclenchement
-   manuel : `/api/n8n/callback` ne crée une notification (`user_notifications`)
-   que pour les runs `trigger_source = "cron"`, jamais pour un clic manuel
-   (déjà visible en Realtime dans le drawer ouvert par l'utilisateur).
+   `triggerSource: "cron"`.
 
 Un échec sur un profil (agenda indisponible, RPC en erreur, etc.) n'interrompt
 jamais la boucle — voir le commentaire en tête de
@@ -64,10 +61,7 @@ partira à 07:00 UTC au lieu de 07:00 Europe/Paris.
    ligne par profil avec `trigger_source = 'cron'`.
 4. Attendre la fin d'exécution de `report-weekly-manager` (celui-ci doit déjà
    être actif — voir `report-weekly-manager.SETUP.md`) puis vérifier
-   `user_notifications` : une ligne `notification_type = 'weekly_brief_ready'`
-   par profil, avec `deep_link` pointant vers `/reports?doc=...`.
-5. Se connecter à Kredo avec le compte du profil testé → la cloche du header
-   doit afficher un badge non-lu et lister la notification.
+   dans Supabase qu'une ligne correspondante à la génération a été créée dans `ai_intelligence_results`.
 
 ## 5. Activation
 
@@ -76,8 +70,5 @@ Une fois le test §4 validé de bout en bout : activer `report-weekly-manager`
 
 ## 6. Non fait dans cette session (Lot 4)
 
-- Notification en cas d'échec cron (V1 : silencieux, log serveur uniquement).
-- Cloche de notification sur la vue mobile (uniquement câblée dans `AppHeader.tsx`,
-  desktop — la navigation mobile utilise `IntelligenceFAB`, pas ce header).
 - Filtre "profils actifs" — la boucle couvre tous les profils sans notion de
   statut (aucune colonne de ce type n'existe sur `profiles` aujourd'hui).

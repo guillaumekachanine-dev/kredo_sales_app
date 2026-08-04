@@ -1,6 +1,5 @@
 "use client"
 
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import type { BusinessIntelligenceMobilePeriod } from "../presenters/build-business-intelligence-mobile-model"
 
 export function BusinessIntelligenceMobileHeader({
@@ -19,7 +18,6 @@ export function BusinessIntelligenceMobileHeader({
           <h1 className="font-heading text-[22px] font-bold tracking-tight text-white">Business Intelligence</h1>
           <p className="mt-1 max-w-[270px] text-xs leading-relaxed text-white/60">Décider et agir sur les comptes prioritaires</p>
         </div>
-        <HeaderAlerts />
       </div>
       <div className="mt-4 grid grid-cols-3 rounded-xl border border-white/10 bg-[#071126] p-1" role="group" aria-label="Période d'analyse">
         {periods.map((value) => {

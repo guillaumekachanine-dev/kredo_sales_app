@@ -4,7 +4,6 @@ import { startTransition, useDeferredValue, useMemo, useState } from "react"
 import { EmptyState } from "@/components/dashboard/widgets/EmptyState"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { KpiCard } from "@/components/ui/KpiCard"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
@@ -236,7 +235,6 @@ function ReadySectorActivationDesktopView({
       actions={(
         <div className="flex items-center gap-2">
           <HeaderCalendar />
-          <HeaderAlerts />
         </div>
       )}
       toolbar={(

@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils"
 import { Breadcrumb } from "./Breadcrumb"
-import { NotificationBell } from "./NotificationBell"
 import { IntelligenceToggle } from "@/components/intelligence/IntelligenceToggle"
 
 interface AppHeaderProps {
@@ -18,7 +17,6 @@ export function AppHeader({ className }: AppHeaderProps) {
       <Breadcrumb />
 
       <div className="flex items-center gap-4 shrink-0">
-        <NotificationBell />
         <IntelligenceToggle />
       </div>
     </header>

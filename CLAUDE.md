@@ -316,7 +316,6 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 #### Domaine Notifications & Weekly Brief
 | Table | Rows | Description |
 |---|---|---|
-| `user_notifications` | 10 | Notifications in-app adressées à un utilisateur précis (`weekly_brief_ready` déposé par le cron n8n du lundi, `ai_run_reaped` déposé par le reaper ops-004, ADR-0010/[[ai-cost-monitoring-initiative]]) |
 | `weekly_brief_dismissals` | 0 | Items du brief hebdomadaire explicitement ignorés par un manager (ADR-0010) — append-only, pas de trigger `log_audit` |
 
 ### Vues (17)

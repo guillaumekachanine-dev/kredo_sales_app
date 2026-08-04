@@ -2,7 +2,6 @@
 
 import { startTransition, useDeferredValue, useState } from "react"
 import { ErrorState } from "@/components/ui/ErrorState"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { PageFilterBar } from "@/components/ui/PageFilterBar"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
@@ -149,7 +148,6 @@ function ReadySyntheseDesktopView({
         actions={(
           <div className="flex items-center gap-2">
             <HeaderCalendar />
-            <HeaderAlerts />
           </div>
         )}
         toolbar={(

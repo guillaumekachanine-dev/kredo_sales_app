@@ -133,10 +133,11 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
-      .from("user_notifications")
+      .from("ai_intelligence_runs")
       .select("id", { count: "exact", head: true })
-      .eq("notification_type", "ai_run_reaped")
-      .gte("created_at", sevenDaysAgo.toISOString()),
+      .eq("status", "failed")
+      .ilike("error_message", "Run repris automatiquement (ops-004)%")
+      .gte("failed_at", sevenDaysAgo.toISOString()),
     supabase
       .from("v_ai_cost_timeline")
       .select("day, owner_id, cost_estimate, runs"),

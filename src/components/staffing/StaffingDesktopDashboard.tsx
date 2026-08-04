@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { DrawerSection } from "@/components/ui/DrawerSection"
@@ -135,7 +134,6 @@ export function StaffingDesktopDashboard({ data }: { data: StaffingDashboardData
 
         <div className="flex items-center gap-4">
           <HeaderCalendar />
-          <HeaderAlerts />
           <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-primary text-xs font-bold text-white">
             GK
           </div>

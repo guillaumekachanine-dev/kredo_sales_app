@@ -1,7 +1,6 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { HeaderAlerts } from "@/components/ui/HeaderAlerts"
 import { HeaderCalendar } from "@/components/ui/HeaderCalendar"
 import { Badge } from "@/components/ui/Badge"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
@@ -80,7 +79,6 @@ function HeaderActions() {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <HeaderCalendar />
-      <HeaderAlerts />
     </div>
   )
 }

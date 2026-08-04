@@ -102,5 +102,4 @@ Une fois le test §6 validé de bout en bout : activer le workflow (toggle en ha
 
 - UI de déclenchement (bouton "Brief hebdomadaire" dans l'agenda/cockpit intelligence) — Lot 3.
 - Actions 1-clic post-génération (ajouter à l'agenda, créer tâche, générer communication, dismiss) — Lot 3.
-- Cron auto lundi 07:00 + notification in-app (`user_notifications`, table créée en Lot 0 mais pas encore
-  alimentée) — Lot 4, workflow séparé `report-weekly-manager-cron`.
+- Cron auto lundi 07:00 — Lot 4, workflow séparé `report-weekly-manager-cron`.
