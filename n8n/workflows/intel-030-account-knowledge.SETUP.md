@@ -53,6 +53,10 @@ workflows déjà déployés**.
 
 Aucune nouvelle variable d'environnement, aucune nouvelle table, aucun nouveau fournisseur payant.
 
+### 4.3 Règle de versionnement des secrets
+
+Un export n8n destiné à Git ne doit jamais contenir de credential, clé, token, mot de passe, secret de callback ou header d'authentification inline. Avant tout commit, conserver uniquement les placeholders, variables autorisées ou références au credential store n8n et expurger toute valeur injectée dans l'instance distante.
+
 ## 5. Ce que le workflow n'a PAS le droit de faire
 
 Ces règles sont vérifiées par le harnais de test (§6), pas seulement par le prompt :
