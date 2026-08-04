@@ -5,10 +5,11 @@ DROP TRIGGER IF EXISTS trg_notify_on_run_failed ON public.ai_intelligence_runs;
 DROP FUNCTION IF EXISTS public.notify_on_run_failed();
 
 -- 2. Retrait de la table de la publication Realtime (si présente)
-ALTER POLICY IF EXISTS user_notifications_select ON public.user_notifications;
-ALTER POLICY IF EXISTS user_notifications_insert ON public.user_notifications;
-ALTER POLICY IF EXISTS user_notifications_update ON public.user_notifications;
-ALTER POLICY IF EXISTS user_notifications_delete ON public.user_notifications;
+-- Corrigé : `ALTER POLICY ... ;` sans action n'est pas une syntaxe valide
+-- (42601 à l'application) — et de toute façon inutile : DROP TABLE CASCADE
+-- ci-dessous supprime les policies et retire la table de la publication
+-- Realtime de lui-même.
+ALTER PUBLICATION supabase_realtime DROP TABLE public.user_notifications;
 
 -- 3. Suppression de la table user_notifications
 DROP TABLE IF EXISTS public.user_notifications CASCADE;
