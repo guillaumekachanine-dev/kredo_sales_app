@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition, type FormEvent } from "react"
+import { useRef, useState, useTransition, useEffect, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/Button"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
@@ -12,6 +12,7 @@ import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { openReportGeneration } from "@/lib/reports/report-generation"
 import { cn } from "@/lib/utils"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import {
   duplicateDocument,
   setDocumentFavorite,
@@ -51,7 +52,7 @@ type ReportsSection = "documents" | "history" | "generation"
 type PendingAction = "copy" | "duplicate" | "favorite" | "archive" | null
 
 const LOCAL_SECTIONS: Array<{ id: ReportsSection; label: string }> = [
-  { id: "documents", label: "Documents" },
+  { id: "documents", label: "Bibliothèque" },
   { id: "history", label: "Historique" },
   { id: "generation", label: "Génération" },
 ]
@@ -102,32 +103,179 @@ function countActiveFilters(filters: ReportsFilterState) {
   return Object.values(filters).filter((value) => value !== undefined && value !== null && value !== "" && value !== false).length
 }
 
+function getDocumentIcon(documentType: string) {
+  const commonProps = {
+    className: "size-4 shrink-0 text-muted",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  }
+
+  switch (documentType) {
+    case "communication":
+    case "internal_note":
+      return (
+        <svg {...commonProps}>
+          <rect width="20" height="16" x="2" y="4" rx="2" />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </svg>
+      )
+    case "commercial_pitch":
+    case "campaign":
+      return (
+        <svg {...commonProps}>
+          <path d="m3 11 18-5v12L3 13v-2Z" />
+          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+        </svg>
+      )
+    case "prise_de_parole":
+      return (
+        <svg {...commonProps}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      )
+    case "client_summary":
+    case "account_portfolio":
+      return (
+        <svg {...commonProps}>
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      )
+    case "commercial_strategy":
+    case "strategic_watch_analysis":
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+        </svg>
+      )
+    case "activity_commercial":
+    case "activity_recruitment":
+    case "workspace_diagnostic":
+      return (
+        <svg {...commonProps}>
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      )
+    case "financial":
+    case "delivery_profitability":
+    case "financial_reference":
+    case "commercial_quote":
+      return (
+        <svg {...commonProps}>
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      )
+    case "staffing_capacity":
+      return (
+        <svg {...commonProps}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      )
+    case "planning_deadlines":
+    case "weekly_manager":
+    case "quarterly_review":
+    default:
+      return (
+        <svg {...commonProps}>
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      )
+  }
+}
+
+function ReportsSidebarIcon({ name }: { name: ReportsSection }) {
+  const commonProps = {
+    className: "size-4 shrink-0",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  }
+
+  if (name === "documents") {
+    return (
+      <svg {...commonProps}>
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+        <polyline points="14 2 14 8 20 8" />
+      </svg>
+    )
+  }
+  if (name === "generation") {
+    return (
+      <svg {...commonProps}>
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+      </svg>
+    )
+  }
+  return (
+    <svg {...commonProps}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  )
+}
+
 function ReportsLocalNavigation({ active, onChange }: { active: ReportsSection; onChange: (section: ReportsSection) => void }) {
   return (
-    <aside className="w-[132px] shrink-0 border-r border-border bg-edito-canvas/70">
-      <p className="px-4 pb-5 pt-6 text-[9px] font-bold uppercase leading-4 tracking-[0.12em] text-heading">
-        Rapports &<br />rédaction
-      </p>
-      <nav aria-label="Navigation locale Rapports & rédaction">
-        {LOCAL_SECTIONS.map((section) => {
-          const activeSection = active === section.id
-          return (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => onChange(section.id)}
-              aria-current={activeSection ? "page" : undefined}
-              className={cn(
-                "relative min-h-12 w-full px-4 text-left text-[11px] font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
-                activeSection ? "bg-primary/[0.07] font-bold before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/70",
-              )}
-            >
-              {section.label}
-            </button>
-          )
-        })}
-      </nav>
-    </aside>
+    <nav
+      aria-label="Navigation locale Rapports & rédaction"
+      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
+    >
+      {/* Title box positioned exactly like 'Retour aux comptes' button */}
+      <div className="flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-bold text-edito-navy select-none">
+        <span>Rapports & rédaction</span>
+      </div>
+
+      <div className="mt-5 border-t border-edito-border pt-4">
+        <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
+          Chapitres
+        </p>
+        <div className="mt-2 space-y-1">
+          {LOCAL_SECTIONS.map((section) => {
+            const activeSection = active === section.id
+            return (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => onChange(section.id)}
+                aria-current={activeSection ? "page" : undefined}
+                className={cn(
+                  "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 px-3 text-left text-xs font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+                  activeSection
+                    ? "border-l-edito-brass bg-edito-surface text-edito-navy"
+                    : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
+                )}
+              >
+                <span className={cn("text-edito-navy", !activeSection && "opacity-75")}>
+                  <ReportsSidebarIcon name={section.id} />
+                </span>
+                <span className="truncate">{section.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </nav>
   )
 }
 
@@ -186,6 +334,12 @@ export function ReportsDesktopView({
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<PendingAction>(null)
   const [zoomLevel, setZoomLevel] = useState(100)
+
+  // Repli automatique de la sidebar principale
+  useEffect(() => {
+    useSidebarCollapse.getState().requestCollapse()
+    return () => useSidebarCollapse.getState().requestRestore()
+  }, [])
 
   const activeFilterCount = countActiveFilters(filters)
   const activeDocType = filters.documentType || "all"
@@ -332,14 +486,21 @@ export function ReportsDesktopView({
             <section className="flex min-h-0 flex-col border-r border-border bg-surface" aria-labelledby="reports-library-title">
               <div className="shrink-0 border-b border-border px-4 py-4">
                 <h2 id="reports-library-title" className="text-xs font-bold text-heading">Bibliothèque de documents</h2>
-                <p className="mt-1 text-[10px] text-muted">{reportsData.totalCount} documents</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {DOCUMENT_CATEGORIES.map((category) => {
-                    const active = activeDocType === category.value
-                    return (
-                      <button key={category.value} type="button" onClick={() => handleFilterChange("documentType", category.value)} aria-pressed={active} className={cn("min-h-7 rounded border px-2 text-[9px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-heading", active ? "border-primary bg-primary text-white" : "border-border bg-surface text-heading hover:bg-surface-hover")}>{category.label}</button>
-                    )
-                  })}
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <select
+                    className="min-h-8 rounded border border-border bg-surface px-2.5 text-[11px] font-semibold text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    value={activeDocType}
+                    onChange={(e) => handleFilterChange("documentType", e.target.value)}
+                  >
+                    {DOCUMENT_CATEGORIES.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[10px] text-muted font-medium shrink-0">
+                    {reportsData.totalCount} document{reportsData.totalCount > 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
 
@@ -350,8 +511,15 @@ export function ReportsDesktopView({
                   const active = item.id === selectedDocumentId
                   return (
                     <button key={item.id} type="button" onClick={() => handleSelectDocument(item.id)} aria-current={active ? "true" : undefined} className={cn("relative w-full border-b border-border px-4 py-3 text-left outline-none transition-colors focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset", active ? "bg-primary/[0.07] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-brand-brass" : "hover:bg-surface-hover/60")}>
-                      <span className="block truncate text-[11px] font-bold leading-4 text-heading">{item.title}</span>
-                      <span className="mt-1 block truncate text-[9px] leading-4 text-muted">{getDocumentTypeLabel(item.documentType)} · Créé le {formatShortDate(item.createdAt)}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded bg-canvas">
+                          {getDocumentIcon(item.documentType)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-[11px] font-bold leading-4 text-heading">{item.title}</span>
+                          <span className="mt-0.5 block truncate text-[9px] leading-4 text-muted">{getDocumentTypeLabel(item.documentType)} · Créé le {formatShortDate(item.createdAt)}</span>
+                        </div>
+                      </div>
                     </button>
                   )
                 })}

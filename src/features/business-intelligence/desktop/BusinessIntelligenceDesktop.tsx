@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { BusinessIntelligenceDesktopViewModel } from "../presenters/build-business-intelligence-desktop-model"
 import { BusinessIntelligenceHeader } from "./BusinessIntelligenceHeader"
 import { StrategicBrief } from "./StrategicBrief"
@@ -12,6 +13,8 @@ import { SectorWindowsTimeline } from "./SectorWindowsTimeline"
 import { PriorityAccountsModal, SectorWindowsModal } from "./BusinessIntelligenceLedgerModals"
 import { BusinessIntelligenceSnapshot } from "../data/business-intelligence-types"
 import { SectorActivationWindow } from "@/lib/prospection/sector-activation-types"
+import { Button } from "@/components/ui/Button"
+import { BusinessIntelligenceLocalNavigation, BiTabKey } from "./BusinessIntelligenceLocalNavigation"
 import dynamic from "next/dynamic"
 
 const SectorPlaybooksModal = dynamic(
@@ -51,6 +54,13 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<BiTabKey>("priorities")
+
+  // Repli automatique de la sidebar principale
+  useEffect(() => {
+    useSidebarCollapse.getState().requestCollapse()
+    return () => useSidebarCollapse.getState().requestRestore()
+  }, [])
 
   // Playbooks modal state
   const [isPlaybooksOpen, setIsPlaybooksOpen] = useState(false)
@@ -112,58 +122,90 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
   const selectedAttackData = activeSelectedId ? periodData.attackPanelData[activeSelectedId] ?? null : null
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
+    <div className="flex h-screen min-h-0 overflow-hidden bg-canvas">
+      <BusinessIntelligenceLocalNavigation active={activeTab} onChange={setActiveTab} />
 
-      {/* Filter Bar */}
-      <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
-        <select 
-          className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          value={period}
-          onChange={(e) => setPeriod(Number(e.target.value) as 30 | 90 | 180)}
-        >
-          <option value={30}>30 derniers jours</option>
-          <option value={90}>90 derniers jours</option>
-          <option value={180}>180 derniers jours</option>
-        </select>
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
 
-        <select 
-          className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          value={selectedSector}
-          onChange={(e) => setSelectedSector(e.target.value)}
-        >
-          <option value="all">Tous les secteurs</option>
-          {snapshot.sectors.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <div className="flex-1 overflow-y-auto">
+          {/* Filter Bar */}
+          <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
+            <select 
+              className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={period}
+              onChange={(e) => setPeriod(Number(e.target.value) as 30 | 90 | 180)}
+            >
+              <option value={30}>30 derniers jours</option>
+              <option value={90}>90 derniers jours</option>
+              <option value={180}>180 derniers jours</option>
+            </select>
 
-        <input 
-          type="search"
-          placeholder="Rechercher un compte..."
-          className="min-h-9 w-full rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body placeholder:text-muted transition-colors hover:bg-surface-hover/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-72"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+            <select 
+              className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={selectedSector}
+              onChange={(e) => setSelectedSector(e.target.value)}
+            >
+              <option value="all">Tous les secteurs</option>
+              {snapshot.sectors.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
 
-      <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
-        {viewModel.hasDemoData && (
-          <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
-            <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
-            Certaines activités de démonstration sont incluses dans les indicateurs.
+            <input 
+              type="search"
+              placeholder="Rechercher un compte..."
+              className="min-h-9 w-full rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body placeholder:text-muted transition-colors hover:bg-surface-hover/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-72"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        )}
 
-        <StrategicBrief brief={periodData.strategicBrief} />
-        <IntelligenceKpiStrip kpis={periodData.kpis} />
-        <AccountPriorityBoard accounts={filteredAccounts} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} limit={5} onShowAll={() => setIsAccountsOpen(true)} />
-        <div className="grid gap-6 xl:grid-cols-2">
-          <PotentialReachMatrix points={filteredMatrixPoints} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} />
-          <AccountAttackPanel attackData={selectedAttackData} baseAccount={selectedBaseAccount} />
+          <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
+            {viewModel.hasDemoData && (
+              <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
+                <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
+                Certaines activités de démonstration sont incluses dans les indicateurs.
+              </div>
+            )}
+
+            {activeTab === "priorities" && (
+              <>
+                <StrategicBrief brief={periodData.strategicBrief} />
+                <IntelligenceKpiStrip kpis={periodData.kpis} />
+                <AccountPriorityBoard accounts={filteredAccounts} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} limit={5} onShowAll={() => setIsAccountsOpen(true)} />
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <PotentialReachMatrix points={filteredMatrixPoints} selectedAccountId={activeSelectedId} onSelectAccount={handleSelectAccount} />
+                  <AccountAttackPanel attackData={selectedAttackData} baseAccount={selectedBaseAccount} />
+                </div>
+              </>
+            )}
+
+            {activeTab === "windows" && (
+              <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} selectedWindowId={selectedWindowId} onShowAll={() => setIsWindowsOpen(true)} />
+            )}
+
+            {activeTab === "sectors" && (
+              <div className="max-w-4xl space-y-6">
+                <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
+                  <h3 className="text-lg font-bold text-heading">Études sectorielles</h3>
+                  <p className="mt-2 text-sm text-body leading-relaxed">
+                    Accédez aux études sectorielles actives et en veille pour KREDO. Les études détaillent la réglementation, la chaîne de valeur, et les stratégies de prospection adaptées à chaque industrie.
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-4">
+                    <Button variant="secondary" onClick={() => setIsStudiesOpen(true)}>
+                      Consulter les études sectorielles ({snapshot.sectors.length})
+                    </Button>
+                    <Button variant="secondary" onClick={() => setIsPlaybooksOpen(true)}>
+                      Consulter les playbooks commerciaux
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
         </div>
-        <SectorWindowsTimeline windows={viewModel.windowsLedger} onSelectWindow={handleSelectWindow} selectedWindowId={selectedWindowId} onShowAll={() => setIsWindowsOpen(true)} />
-      </main>
+      </div>
 
       {isPlaybooksOpen && (
         <SectorPlaybooksModal

@@ -1,12 +1,13 @@
 "use client"
 
-import {useMemo, useRef, useState} from "react"
+import {useMemo, useRef, useState, useEffect} from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { Button } from "@/components/ui/Button"
+import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { formatDateFr } from "@/lib/formatters"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
@@ -478,6 +479,12 @@ export function VeilleActualitesDesktop({
   const [opportunityOpen, setOpportunityOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+
+  // Repli automatique de la sidebar principale
+  useEffect(() => {
+    useSidebarCollapse.getState().requestCollapse()
+    return () => useSidebarCollapse.getState().requestRestore()
+  }, [])
 
   const filteredArticles = useMemo(() => articles.filter((article) => {
     const haystack = `${article.titre_fr} ${article.resume} ${article.secteur_principal} ${article.source_name}`.toLocaleLowerCase("fr")
