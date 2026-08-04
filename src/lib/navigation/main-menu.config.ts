@@ -139,7 +139,7 @@ export const mainMenuItems: MainMenuItem[] = [
     label: "Commerce",
     items: [
       {
-        label: "CRM & Prospection",
+        label: "CRM - Comptes",
         shortLabel: "CRM",
         href: "/prospection/accounts",
         icon: "crm",

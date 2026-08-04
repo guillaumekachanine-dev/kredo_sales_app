@@ -67,12 +67,16 @@ export function ClientIntelligenceSidebar({
       <button
         type="button"
         onClick={onBackToAccounts}
-        className="inline-flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-semibold text-edito-body transition-colors hover:border-edito-muted hover:text-edito-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30"
+        className={cn(
+          "inline-flex min-h-10 w-full items-center gap-2.5 rounded-md border px-3 text-left text-xs font-bold transition-all shadow-sm",
+          "bg-edito-brass/8 border-edito-brass/25 text-edito-navy hover:bg-edito-brass/15 hover:border-edito-brass/45",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass/30"
+        )}
       >
-        <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg className="size-4 shrink-0 text-edito-brass" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="m15 18-6-6 6-6" />
         </svg>
-        <span>Retour aux comptes</span>
+        <span>Liste des comptes</span>
       </button>
 
       <div className="mt-5 border-t border-edito-border pt-4">

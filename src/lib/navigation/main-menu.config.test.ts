@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { getModuleTabs, getSectionTabsForPath } from "./main-menu.config"
 
 describe("navigation de section", () => {
-  it("ne rend plus de navigation de section dans CRM & Prospection", () => {
+  it("ne rend plus de navigation de section dans CRM - Comptes", () => {
     expect(getModuleTabs("/prospection/accounts")).toEqual([])
     expect(getSectionTabsForPath("/prospection/accounts")).toEqual([])
     expect(getSectionTabsForPath("/prospection/accounts/company-id")).toEqual([])
