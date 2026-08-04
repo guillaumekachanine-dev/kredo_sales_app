@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react"
-import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
-import { AppDialog } from "@/components/ui/AppDialog"
 import type { FinancialReference } from "@/features/financial-modeling/data/financial-reference-presenter"
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
@@ -32,7 +30,6 @@ import { type TabKey } from "./intelligence-process"
 export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligenceData; financialReference?: FinancialReference | null }) {
   const [activeTab, setActiveTab] = useState<TabKey>("accueil")
   const [expandedViewer, setExpandedViewer] = useState(false)
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
   const pathname = usePathname()
   const router = useRouter()
@@ -99,23 +96,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 </div>
               </div>
 
-              {/* Côté droit : point d'entrée léger vers les actions du cockpit */}
-              <div className="flex shrink-0 self-center">
-                <button
-                  type="button"
-                  onClick={() => setQuickActionsOpen(true)}
-                  className="flex min-h-10 items-center gap-2 rounded border border-white/75 bg-white px-4 py-2 text-cockpit-petrol-medium transition-colors hover:bg-edito-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                >
-                  <Image
-                    src="/icons_set/cockpit_intelligence/suggestion_taches_&_evenements.png"
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="size-7 object-contain"
-                  />
-                  <span className="text-sm font-semibold">Actions rapides</span>
-                </button>
-              </div>
+              {/* Lot 1 : le bouton « Actions rapides » (modale placeholder, jamais
+                  branchée) a été retiré. L'action réelle de l'onglet Entreprise
+                  est « Mettre à jour l'entreprise », dans l'onglet lui-même. */}
             </div>
           </div>
         </header>
@@ -196,14 +179,6 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
         </dialog>
       )}
 
-      <AppDialog
-        open={quickActionsOpen}
-        onOpenChange={setQuickActionsOpen}
-        title="Actions rapides"
-        dataTheme="edito-bright-cockpit"
-      >
-        <p>Les actions dédiées au Cockpit Intelligence seront ajoutées prochainement.</p>
-      </AppDialog>
     </div>
   )
 }

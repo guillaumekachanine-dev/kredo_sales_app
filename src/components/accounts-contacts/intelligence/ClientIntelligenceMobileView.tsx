@@ -8,7 +8,7 @@ import type { FinancialReference } from "@/features/financial-modeling/data/fina
 import { cn } from "@/lib/utils"
 import { createClient as createBrowserClient } from "@/lib/supabase/client"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
-import type { AccountKnowledgeContent, CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
+import type { CommercialStrategyContent } from "@/lib/intelligence/account-intelligence-contracts"
 import {
   lifecycleLabel,
   ProvenanceBadge,
@@ -20,7 +20,10 @@ import {
   CommercialRelationCard,
   AccountSignalsCard,
   AccountKnowledgeGeneratedContent,
+  AccountKnowledgeOpenQuestionsV2,
 } from "./AccountKnowledgeBlocks"
+import { AccountKnowledgeUpdateControlsMobile } from "./AccountKnowledgeUpdateControls"
+import { useAccountKnowledgeRun } from "./use-account-knowledge-run"
 import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
@@ -62,63 +65,15 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
   const pdfDialogRef = useRef<HTMLDialogElement>(null)
 
-  // ADR-0012 Lot 2 — même pattern que le desktop : contenu généré démarre avec
-  // le dernier run persisté, remplacé en Realtime dès qu'un nouveau run réussit.
-  const [knowledgeContent, setKnowledgeContent] = useState(data.accountKnowledge?.data ?? null)
-  const [knowledgeResultId, setKnowledgeResultId] = useState(data.accountKnowledge?.resultId ?? null)
-  const [knowledgeRunStatus, setKnowledgeRunStatus] = useState<ConnaissanceRunStatus>("idle")
-  const [knowledgeRunId, setKnowledgeRunId] = useState<string | null>(null)
-  const [knowledgeErrorMsg, setKnowledgeErrorMsg] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!knowledgeRunId) return
-    const channel = supabase
-      .channel(`account-knowledge-result-mobile-${knowledgeRunId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${knowledgeRunId}` },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; content_json: AccountKnowledgeContent }
-          if (row.status === "succeeded") {
-            setKnowledgeContent(row.content_json)
-            setKnowledgeResultId(row.id)
-            setKnowledgeRunStatus("done")
-          } else if (row.status === "failed") {
-            setKnowledgeErrorMsg("La génération a échoué. Réessaie plus tard.")
-            setKnowledgeRunStatus("error")
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [knowledgeRunId])
-
-  async function handleGenerateKnowledge() {
-    setKnowledgeRunStatus("loading")
-    setKnowledgeErrorMsg(null)
-    try {
-      const res = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflowId: "intel-030-account-knowledge",
-          entityType: "company",
-          entityId: company.id,
-          input: {},
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
-        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
-      }
-      const { runId: newRunId } = (await res.json()) as { runId: string }
-      setKnowledgeRunId(newRunId)
-    } catch (err) {
-      setKnowledgeErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
-      setKnowledgeRunStatus("error")
-    }
-  }
+  // Lot 1 — le contenu affiché vient directement de `data` (Server Component),
+  // rafraîchi par `router.refresh()` au succès du run. Aucun miroir local : la
+  // copie précédente se désynchronisait de la fiche après une curation.
+  const knowledge = data.accountKnowledge
+  const {
+    status: knowledgeRunStatus,
+    errorMessage: knowledgeErrorMsg,
+    trigger: triggerKnowledgeRun,
+  } = useAccountKnowledgeRun(company.id)
 
   // ADR-0012 Lot 4 — enjeux (matérialisation côté callback, D-5) : pas de
   // contenu à parser côté client, on recharge la liste ouverte au succès.
@@ -337,25 +292,29 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
                 />
               </div>
 
-              {/* Bouton de génération — connaissance compte moteur */}
-              <button
-                type="button"
-                onClick={handleGenerateKnowledge}
-                disabled={knowledgeRunStatus === "loading"}
-                className="mb-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-fg shadow-sm active:scale-98 transition-all min-h-[44px] disabled:opacity-60"
-              >
-                {knowledgeRunStatus === "loading" ? "Génération en cours…" : "Actualiser la connaissance compte"}
-              </button>
-              {knowledgeErrorMsg && (
-                <p className="mb-3 text-[11px] font-medium text-danger">{knowledgeErrorMsg}</p>
-              )}
+              {/* Lot 1 — action réelle de l'onglet Entreprise */}
+              <AccountKnowledgeUpdateControlsMobile
+                state={knowledge}
+                status={knowledgeRunStatus}
+                errorMessage={knowledgeErrorMsg}
+                onUpdate={() => void triggerKnowledgeRun()}
+              />
 
-              {knowledgeContent && knowledgeResultId && (
+              {knowledge?.version === 1 && (
                 <div className="mb-3">
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
                     Synthèse générée (moteur IA)
                   </p>
-                  <AccountKnowledgeGeneratedContent data={knowledgeContent} resultId={knowledgeResultId} />
+                  <AccountKnowledgeGeneratedContent data={knowledge.data} resultId={knowledge.resultId} />
+                </div>
+              )}
+
+              {knowledge?.version === 2 && (
+                <div className="mb-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+                    Synthèse générée (moteur IA)
+                  </p>
+                  <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
                 </div>
               )}
 

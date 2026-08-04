@@ -1,101 +1,103 @@
-# ADR-0012 Lot 2 — intel-030-account-knowledge : import & configuration VPS
+# intel-030-account-knowledge — import & configuration VPS (V2, Lot 1)
 
-## 1. Rôle dans la chaîne de décision
+## 1. Rôle
 
-Étape 1 (« Connaissance compte ») de la chaîne de décision ADR-0012. Génère l'artefact
-`account_knowledge` (`content_json` conforme au contrat `AccountKnowledgeContent`,
-`src/lib/intelligence/account-intelligence-contracts.ts`) à partir du relationnel KREDO
-(contacts/opportunités/missions/interactions/signaux — haute confiance) + FOLIO en passthrough
-brut (basse confiance) + diagnostic process en enrichissement optionnel (D-2). **15 nœuds**,
-squelette identique à `report-account-summary.json`.
+Étape « Connaissance entreprise » du Cockpit Intelligence. Produit **exclusivement** un artefact
+`account_knowledge` en `schema_version: 2` (`AccountKnowledgeContentV2`,
+`src/lib/intelligence/account-intelligence-contracts.ts`), dont **toute affirmation est sourcée** :
+chaque `Claim` cite un ou plusieurs `intelligence_sources.id` réels du workspace.
 
-Déclenché par le bouton « Lancer/actualiser la connaissance compte » de l'onglet Connaissance
-compte (`ClientIntelligenceDesktopView.tsx`/`ClientIntelligenceMobileView.tsx`) via
+**30 nœuds.** Un seul workflow — aucun workflow sectoriel n'est appelé, aucun second workflow créé.
+
+Déclenché par le bouton **« Mettre à jour l'entreprise »** de l'onglet Entreprise
+(`ClientIntelligenceCompanyTab.tsx` en desktop, `ClientIntelligenceMobileView.tsx` en mobile) via
 `POST /api/n8n/trigger` (`workflowId: "intel-030-account-knowledge"`, `entityType: "company"`).
 
-## 2. Import
+## 2. Séquence
 
-1. n8n → **Workflows → Import from File** → sélectionner `intel-030-account-knowledge.json`.
+| # | Nœud | Rôle |
+|---|---|---|
+| 1-3 | Webhook → Verify Signature → **Validate Entity** | HMAC + `entityType=company` + UUID `runId`/`entityId`/`workspaceId` + cohérence `companyId`/`entityId` |
+| 4 | Update Run Status | run → `running` |
+| 5 | Hydrate Context | `get_account_knowledge_context` (appel unique) |
+| 6 | **Prepare Deterministic Context** | sépare canonique / faits vérifiés / sources / relationnel / diagnostic ; **FOLIO isolé comme legacy non sourcé** ; calcule les cibles de recherche (manquant ou périmé uniquement) |
+| 7-11 | Needs External Research? → Fetch Official Site → Fetch Public Registry → **Collect External Evidence** / Skip External Research | recherche ciblée : page du site officiel réellement récupérée + API publique `recherche-entreprises.api.gouv.fr` (INSEE Sirene). **Aucun moteur de recherche, aucun snippet.** |
+| 12-14 | Build Source Catalogue → **Upsert Sources** → Resolve Source Ids | upsert idempotent sur `intelligence_sources` (`on_conflict=workspace_id,source_key`, `resolution=ignore-duplicates`) — mécanisme existant réutilisé, aucun nouveau RPC |
+| 15-16 | Assemble Prompt → Call LLM | le modèle ne peut citer que les identifiants du catalogue |
+| 17-18 | **Parse & Validate Output** → Quality Check | validation stricte V2 + couverture de sourcing calculée |
+| 19-23 | Load Active Proposals → **Build Enrichment Proposals** → Delete Stale → Has New? → Insert Fresh | propositions d'enrichissement idempotentes |
+| 24-26 | Prepare Callback → Sign → Callback | `result_type=account_knowledge`, modèle/tokens/durée, `source_refs`, `qa_flags` |
+| 27-29 | Prepare Failure Callback → Sign → Callback (Failure) | **toute** sortie d'erreur y mène : un run n'est jamais laissé en `running` |
+
+## 3. Import
+
+1. n8n → **Workflows → Import from File** → `intel-030-account-knowledge.json`.
 2. Ne pas activer tout de suite (`active: false` par défaut).
 
-## 3. Configuration requise
+## 4. Configuration requise
 
-### 3.1 Secret HMAC (nœuds Crypto)
+### 4.1 Secret HMAC (3 nœuds Crypto)
 
-**"Verify Signature"**, **"Sign Callback"** et **"Sign Failure Callback"** contiennent le
-placeholder `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET`. Remplacer par la même valeur que la variable
-d'environnement `N8N_WEBHOOK_SECRET` côté Vercel (déjà configurée pour les workflows précédents —
-copier le même secret).
+`Verify Signature`, `Sign Callback` et `Sign Failure Callback` portent le placeholder
+`REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` (convention des autres workflows du projet).
+Le remplacer par la valeur de `N8N_WEBHOOK_SECRET` côté Vercel — **le même secret que les
+workflows déjà déployés**.
 
-### 3.2 Credentials
+### 4.2 Credentials
 
-| Credential n8n | Type | Utilisé par |
-|---|---|---|
-| Supabase (service_role) | `supabaseApi` | "Update Run Status", "Hydrate Context" |
-| Anthropic | `anthropicApi` | "Call LLM" |
+| Nœuds | Credential |
+|---|---|
+| `Update Run Status`, `Hydrate Context`, `Upsert Sources`, `Resolve Source Ids`, `Load Active Proposals`, `Delete Stale Proposals`, `Insert Fresh Proposals` | `Supabase_Service_Role_KREDO` (`supabaseApi`) |
+| `Call LLM` | credential `anthropicApi` existante |
+| `Fetch Official Site`, `Fetch Public Registry`, `Callback`, `Callback (Failure)` | aucune (`authentication: none`) — l'API `recherche-entreprises.api.gouv.fr` est publique et sans clé |
 
-Sélectionner ces credentials sur les nœuds correspondants après import (n8n ne les reporte pas
-automatiquement).
+Aucune nouvelle variable d'environnement, aucune nouvelle table, aucun nouveau fournisseur payant.
 
-### 3.3 RPC prérequise
+## 5. Ce que le workflow n'a PAS le droit de faire
 
-`get_account_knowledge_context(p_workspace_id uuid, p_company_id uuid)` — migration
-`20260707183536_049_account_knowledge_context_rpc.sql`, déjà appliquée en base (testée en direct
-sur Voyage Privé : 7 missions, 1 opportunité, 6 contacts, 5 signaux FOLIO). `GRANT EXECUTE TO
-service_role` — aucune config supplémentaire requise côté Supabase.
+Ces règles sont vérifiées par le harnais de test (§6), pas seulement par le prompt :
 
-## 4. Provenance — contrainte spécifique à ce workflow (D-3)
+- **Jamais d'écriture directe dans `companies`.** Toute donnée canonique (raison sociale, SIREN,
+  code NAF, siège, effectif, activité principale, site) passe par `enrichment_proposals`, et
+  seulement si la valeur **diffère réellement** de la valeur actuelle.
+- **Jamais de `Claim` sans `source_refs`** — ni pour un fait, ni pour une analyse.
+- **Jamais de source `folio_legacy` fabriquée.** FOLIO peut orienter une recherche ; il ne devient
+  jamais une source citable, faute d'origine vérifiable.
+- **Jamais de marqueur d'absence** (« Non trouvé », « N/A »…) comme contenu métier : une section
+  sans matière reste vide.
+- **Jamais de macro-sectoriel, de recommandation commerciale ou de roadmap.**
+- **`identity.dynamic` vaut toujours `null` en sortie de workflow** : l'indicateur est calculé
+  hors modèle par `account-dynamic-v1` (`src/lib/intelligence/account-dynamic.ts`) et injecté par
+  le callback applicatif.
 
-Le nœud **"Parse & Validate Output"** rejette toute valeur de `provenance` hors de
-`{relational, folio_legacy, inferred}` — **`human_verified`** (réservé à la curation manager côté
-app, jamais émis par un LLM) et **`engine_researched`** (réservé aux futurs workflows de recherche
-web datée, ce que celui-ci ne fait pas) sont des erreurs de génération, pas des valeurs valides
-pour ce workflow. Si le run échoue systématiquement sur ce contrôle, relire le prompt système —
-c'est un signal que le modèle dérive, pas un bug du garde-fou.
+## 6. Tests
 
-Décision documentée dans le prompt système : les faits dérivés de `context.processDiagnostic`
-(diagnostic déjà produit par le moteur KREDO, pas un import FOLIO ni une recherche web) sont tagués
-`relational` — le fit avec les 5 valeurs de l'enum est imparfait ici (aucune ne décrit exactement
-"artefact moteur historique"), c'est un choix assumé documenté dans le code, pas un oubli.
+```bash
+node n8n/workflows/__tests__/intel-030-account-knowledge.test.js
+```
 
-## 5. Test avant activation
+69 assertions exécutant réellement les nœuds Code extraits de ce JSON (mocks n8n dans un `vm`) :
+validation d'entrée, isolation FOLIO, ciblage de la recherche, collecte de preuves, déduplication
+des sources, rejets de sortie (fait/analyse non sourcés, source hors catalogue, placeholder,
+confiance hors bornes, `identity.dynamic` produit par le modèle, contact halluciné), idempotence
+des propositions, callbacks succès/échec, et trois profils de comptes réels
+(riche / sans FOLIO / peu documenté).
 
-1. Dans n8n, ouvrir "Webhook — Account Knowledge" → copier l'URL de test.
-2. Depuis Kredo, ouvrir un compte avec du relationnel riche (ex. Voyage Privé — 7 missions, 1 opp,
-   6 contacts, 5 signaux) et cliquer "Lancer/actualiser la connaissance compte" dans l'onglet
-   Connaissance compte.
-3. Vérifier dans n8n → **Executions** que les 11 nœuds du chemin nominal s'exécutent sans erreur
-   (Webhook → Verify Signature → Validate Entity → Update Run Status → Hydrate Context → Assemble
-   Prompt → Call LLM → Parse & Validate Output → Quality Check → Prepare Callback → Sign Callback → Callback).
-4. Vérifier dans Supabase qu'une ligne apparaît dans `ai_intelligence_results` avec
-   `result_type = 'account_knowledge'`, `content_json.schema_version = 1`, et les 6 clés attendues
-   (`identity_positioning`, `commercial_relationship`, `key_contacts`, `organisation_observed`,
-   `frictions_and_signals`, `open_questions`).
-5. Vérifier que l'onglet Connaissance compte affiche la synthèse générée (section "Synthèse générée
-   (moteur IA)") avec les boutons de curation (✓ confirmer / ★ épingler / ✕ écarter) fonctionnels.
-6. Tester un échec volontaire (couper `ANTHROPIC_API_KEY` temporairement) pour vérifier que le run
-   passe à `failed` proprement et que l'UI affiche le message d'erreur.
+## 7. Double barrière côté application
 
-## 6. Validation déjà faite dans cette session (sans VPS)
+Le callback (`src/app/api/n8n/callback/route.ts`) refait la validation via
+`ingestAccountKnowledgeArtifact` : structure V2, existence et appartenance au workspace de chaque
+UUID de source, présence du `company_id`, injection de l'indicateur déterministe, recalcul de
+`source_coverage`. Un artefact refusé bascule le run en `failed` et répond 400 — il n'est jamais
+persisté à moitié, et le run ne reste pas en `running`.
 
-- Syntaxe JS des 6 nœuds `code` validée via `node --check`.
-- **Exécution réelle** (pas seulement syntaxique) via harnais Node avec mocks réalistes
-  (`Validate Entity` bon/mauvais `entityType`, `Parse & Validate Output` bon cas + cas de rejet
-  provenance interdite, `Quality Check`, `Prepare Callback`, `Prepare Failure Callback`).
-- **Cross-check de contrat** : le `contentJson` produit par "Prepare Callback" a été comparé
-  programmatiquement aux clés exactes attendues par `parseAccountKnowledgeContent()`
-  (`src/lib/intelligence/intelligence-data.ts`) — match confirmé.
-- RPC `get_account_knowledge_context` testée en direct sur données réelles (voir §3.3).
+## 8. Test de bout en bout après activation
 
-## 7. Activation
-
-Une fois le test §5 validé de bout en bout : activer le workflow (toggle en haut à droite de
-l'écran n8n).
-
-## 8. Non fait dans cette session (Lot 2)
-
-- Import/activation réels sur le VPS (checklist ci-dessus à dérouler par Guillaume).
-- Tiering Haiku/Sonnet (D-6 de l'ADR) — ce workflow utilise Sonnet comme tous les workflows
-  existants ; le tiering économique reste une optimisation à appliquer plus tard, pas un blocage V1.
-- Parsers dédiés côté UI pour un futur `sector_snapshot` (Lot 3) — sans rapport direct avec ce
-  workflow mais noté dans `intelligence-data.ts` pour la session suivante.
+1. Compte riche en données (ex. **Schneider** — FOLIO, 21 contacts, 12 signaux) : vérifier que
+   l'artefact cite bien des sources, que la couverture affichée est de 100 %, et que l'indicateur
+   de dynamique remonte 5 preuves (les 7 signaux FOLIO non sourcés doivent être écartés).
+2. Compte sans FOLIO (ex. **Thalès Alénia Space**) : la génération doit réussir, sections vides
+   plutôt que remplies d'hypothèses.
+3. Compte peu documenté (ex. **Griesser**) : recherche externe déclenchée sur raison sociale /
+   siège / effectif / activité, propositions d'enrichissement créées, `companies` inchangée.
+4. Relancer le même compte : aucune proposition dupliquée, aucune source dupliquée.

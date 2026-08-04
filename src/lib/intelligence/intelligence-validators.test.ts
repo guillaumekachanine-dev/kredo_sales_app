@@ -229,7 +229,16 @@ function accountKnowledgeV2() {
       headquarters: claim(),
       revenue: null,
       employee_count: null,
-      dynamic: claim({ nature: "analysis" }),
+      // Indicateur déterministe injecté hors LLM (account-dynamic-v1), pas un Claim.
+      dynamic: {
+        label: "Activité détectée modérée",
+        score: 42,
+        period_start: "2026-01-08T00:00:00.000Z",
+        period_end: "2026-07-07T00:00:00.000Z",
+        evidence_count: 3,
+        method_version: "account-dynamic-v1",
+        source_refs: [SOURCE_A],
+      },
     },
     account_summary: claim({ nature: "analysis" }),
     market_positioning: {

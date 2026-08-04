@@ -9,13 +9,17 @@ import {
   ACCOUNT_KNOWLEDGE_RESULT_TYPE,
   SECTOR_SNAPSHOT_RESULT_TYPE,
   COMMERCIAL_STRATEGY_RESULT_TYPE,
-  type AccountKnowledgeContent,
   type AccountIssueCategory,
   type AccountIssueEvidenceLevel,
   type AccountIssueStatus,
   type IntelligenceProvenance,
   type CommercialStrategyContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
+import {
+  resolveAccountKnowledgeState,
+  type AccountKnowledgeState,
+} from "@/lib/intelligence/account-knowledge-state"
+export type { AccountKnowledgeState } from "@/lib/intelligence/account-knowledge-state"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import {
   DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS,
@@ -298,7 +302,10 @@ export type ClientIntelligenceData = {
   // distinct de `client` (forme FOLIO historique). null tant qu'aucun run
   // account_knowledge n'a réussi (workflow intel-030 pas encore importé sur le
   // VPS) — l'UI retombe alors sur `client` (FOLIO) exactement comme avant.
-  accountKnowledge: { data: AccountKnowledgeContent; resultId: string } | null
+  // Lot 1 : le dernier V2 réussi prime, sinon le dernier V1 réussi, sinon null
+  // (état vide). Aucune conversion silencieuse V1 → V2 : la version est portée
+  // explicitement et les consommateurs se branchent dessus.
+  accountKnowledge: AccountKnowledgeState | null
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
   // depuis sector_intelligence + tables sector_* mutualisées. null tant que le
   // compte n'a pas de sector_id (majorité du parc — cf. ADR §backfill honnête,
@@ -420,18 +427,6 @@ function parseAnalyseClient(raw: unknown): AnalyseClient | null {
       tendances: str(contexte.tendances_sectorielles),
     },
   }
-}
-
-/**
- * ADR-0012 Lot 2 — parseur du contrat account_knowledge (schema_version 1),
- * distinct de parseAnalyseClient (forme FOLIO). Ne PAS fusionner : les deux
- * schémas n'ont aucun champ en commun, volontairement (la connaissance compte
- * est plus riche que l'ancienne analyse client, cf. ADR-0012 §5 étape 1).
- */
-function parseAccountKnowledgeContent(raw: unknown): AccountKnowledgeContent | null {
-  const root = asRecord(raw)
-  if (root.schema_version !== 1) return null
-  return root as unknown as AccountKnowledgeContent
 }
 
 /**
@@ -1031,10 +1026,9 @@ export async function getClientIntelligence(
   // `phase === 1` seul faisait passer le rapport le plus récent d'un compte
   // pour son "analyse client moteur" (bug live corrigé ici, cf. ADR-0012 Lot 1).
   //
-  // Aucun résultat account_knowledge/sector_snapshot n'existe encore (Lots 2/3
-  // à venir) : ces deux lookups renvoient donc undefined aujourd'hui et le
-  // fallback FOLIO s'applique correctement — c'est le comportement attendu.
-  const engineAccountKnowledge = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)?.content_json
+  // account_knowledge est résolu plus bas par resolveAccountKnowledgeState
+  // (dernier V2, à défaut dernier V1) — il n'est volontairement PAS lu ici :
+  // `client` reste le contrat FOLIO legacy, les deux ne se mélangent pas.
   const engineSectorSnapshot = results.find((r) => r.result_type === SECTOR_SNAPSHOT_RESULT_TYPE)?.content_json
   const engineProcessDiagnostic = results.find((r) => r.result_type === "process_diagnostic")?.content_json
 
@@ -1055,12 +1049,9 @@ export async function getClientIntelligence(
     commercialStrategy = { data: commercialStrategyContent, resultId: commercialStrategyResultRow.id }
   }
 
-  const accountKnowledgeResultRow = results.find((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE)
-  let accountKnowledge: ClientIntelligenceData["accountKnowledge"] = null
-  const accountKnowledgeContent = parseAccountKnowledgeContent(engineAccountKnowledge)
-  if (accountKnowledgeContent && accountKnowledgeResultRow) {
-    accountKnowledge = { data: accountKnowledgeContent, resultId: accountKnowledgeResultRow.id }
-  }
+  const accountKnowledge = resolveAccountKnowledgeState(
+    results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE),
+  )
 
   // Note Lot 3 : engineSectorSnapshot suivra le contrat SectorSnapshotContent
   // (sector_id/top_pain_points/...), pas la forme FOLIO — parseAnalyseSector

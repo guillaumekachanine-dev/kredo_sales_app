@@ -18,7 +18,11 @@ import { saveResult, updateRunStatus, updateRunN8nIds } from "@/lib/n8n/runs"
 import { createClient } from "@supabase/supabase-js"
 import { saveResultAsDocumentWithSupabaseClient } from "@/components/accounts-contacts/intelligence/save-as-document"
 import { materializeAccountIssues } from "@/lib/intelligence/materialize-account-issues"
-import { ACCOUNT_ISSUES_MAP_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
+import { ingestAccountKnowledgeArtifact } from "@/lib/intelligence/account-knowledge-ingest"
+import {
+  ACCOUNT_ISSUES_MAP_RESULT_TYPE,
+  ACCOUNT_KNOWLEDGE_RESULT_TYPE,
+} from "@/lib/intelligence/account-intelligence-contracts"
 import { isEligibleDocumentResultType } from "@/lib/communication/communication-result-documents"
 import type { Database } from "@/types/database"
 import type { N8nCallbackPayload } from "@/lib/n8n/types"
@@ -71,6 +75,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Run introuvable" }, { status: 404 })
   }
 
+  // ── 4 bis. Portail account_knowledge (Lot 1) ──────────────────────────────
+  // V1 et V2 sont toutes deux acceptées ; V2 est validée, ses sources vérifiées
+  // contre le workspace du run, et son indicateur de dynamique recalculé
+  // côté applicatif (jamais celui du LLM). Un artefact refusé ne doit JAMAIS
+  // laisser le run en `running` : on le bascule explicitement en `failed`.
+  let persistedPayload = payload
+  if (status === "succeeded" && resultType === ACCOUNT_KNOWLEDGE_RESULT_TYPE) {
+    const ingest = await ingestAccountKnowledgeArtifact(supabase, {
+      workspaceId: run.workspace_id,
+      companyId: run.company_id,
+      contentJson,
+    })
+
+    if (!ingest.ok) {
+      const detail = ingest.issues.map((issue) => `${issue.path}: ${issue.message}`).join(" | ")
+      console.error("[callback] account_knowledge rejeté:", ingest.error, detail)
+      try {
+        await updateRunStatus(runId, "failed", {
+          phase,
+          errorMessage: `${ingest.error}${detail ? ` — ${detail}` : ""}`.slice(0, 2000),
+        })
+      } catch (err) {
+        console.error("[callback] updateRunStatus(failed) after rejection failed:", err)
+      }
+      return NextResponse.json({ error: ingest.error, issues: ingest.issues }, { status: 400 })
+    }
+
+    persistedPayload = { ...payload, contentJson: ingest.content as unknown as N8nCallbackPayload["contentJson"] }
+  }
+
   // ── 5. Sauvegarde du résultat (upsert idempotent) ─────────────────────────
   let resultId: string
   try {
@@ -79,7 +113,7 @@ export async function POST(request: Request) {
       run.company_id,
       run.workspace_id,
       run.owner_id,
-      payload
+      persistedPayload
     )
   } catch (err) {
     console.error("[callback] saveResult failed:", err)

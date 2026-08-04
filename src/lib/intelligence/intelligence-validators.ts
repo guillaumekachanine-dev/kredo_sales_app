@@ -342,8 +342,20 @@ export function validateAccountKnowledgeV2(raw: unknown): ValidationResult<Accou
   if (!isRecord(raw.identity)) {
     issues.push({ path: "$.identity", message: "Section obligatoire absente." })
   } else {
-    for (const key of ["primary_activity", "headquarters", "revenue", "employee_count", "dynamic"] as const) {
+    for (const key of ["primary_activity", "headquarters", "revenue", "employee_count"] as const) {
       issues.push(...validateNullableClaim(raw.identity[key], `$.identity.${key}`))
+    }
+    // `dynamic` n'est PAS un Claim : c'est un indicateur déterministe calculé
+    // hors LLM (account-dynamic-v1) et injecté côté applicatif. `null` est donc
+    // l'état légitime d'un artefact tout juste sorti du workflow.
+    if (raw.identity.dynamic !== null && raw.identity.dynamic !== undefined) {
+      const dynamic = validateDeterministicIndicator(raw.identity.dynamic, "$.identity.dynamic")
+      if (!dynamic.valid) issues.push(...dynamic.issues)
+    } else if (raw.identity.dynamic === undefined) {
+      issues.push({
+        path: "$.identity.dynamic",
+        message: "Champ requis (DeterministicIndicator ou null explicite).",
+      })
     }
   }
 

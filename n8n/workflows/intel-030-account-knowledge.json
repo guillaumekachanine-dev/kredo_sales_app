@@ -1,23 +1,21 @@
 {
-  "name": "ADR-0012 Lot 2 — Connaissance compte (intel-030-account-knowledge)",
+  "name": "intel-030-account-knowledge",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "intel-030-account-knowledge",
-        "authentication": "none",
         "responseMode": "onReceived",
         "options": {
-          "rawBody": true,
-          "responseCode": 202
+          "rawBody": false
         }
       },
-      "id": "n1-webhook",
+      "id": "n030-00",
       "name": "Webhook — Account Knowledge",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        200,
+        -1120,
         300
       ],
       "webhookId": "intel-030-account-knowledge"
@@ -25,33 +23,32 @@
     {
       "parameters": {
         "action": "hmac",
-        "binaryData": true,
-        "binaryPropertyName": "data",
         "type": "SHA256",
+        "value": "={{ JSON.stringify($json.body) }}",
         "dataPropertyName": "computedSignature",
         "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
         "encoding": "hex"
       },
-      "id": "n1b-verify-signature",
+      "id": "n030-01",
       "name": "Verify Signature",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        440,
+        -920,
         300
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\n\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nif (body.entityType !== 'company') {\n  throw new Error('intel-030-account-knowledge requiert entityType=\"company\"');\n}\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n  }\n}];"
+        "jsCode": "// Lot 1 — validation d'entrée. Toute incohérence d'entité ou de workspace est\n// rejetée immédiatement, avant la moindre écriture ou le moindre token.\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\n\nconst receivedSignature = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expectedSignature = 'sha256=' + (item.computedSignature || '');\nif (!receivedSignature || receivedSignature !== expectedSignature) {\n  throw new Error('Signature HMAC invalide (X-KREDO-Signature) — requête rejetée');\n}\n\nconst required = ['runId', 'workflowId', 'entityType', 'entityId', 'workspaceId', 'userId', 'callbackUrl'];\nfor (const field of required) {\n  if (!body[field]) throw new Error(`Champ requis manquant dans le payload : ${field}`);\n}\n\nif (body.entityType !== 'company') {\n  throw new Error('intel-030-account-knowledge requiert entityType=\"company\"');\n}\n\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nfor (const field of ['runId', 'entityId', 'workspaceId']) {\n  if (!UUID.test(String(body[field]))) throw new Error(`UUID invalide pour ${field}`);\n}\n\n// companyId, s'il est envoyé séparément, doit désigner la même entité.\nif (body.companyId && body.companyId !== body.entityId) {\n  throw new Error('Incohérence d\\'entité : companyId différent de entityId');\n}\n\nreturn [{\n  json: {\n    runId: body.runId,\n    workflowId: body.workflowId,\n    workspaceId: body.workspaceId,\n    userId: body.userId,\n    companyId: body.entityId,\n    callbackUrl: body.callbackUrl,\n    startedAtMs: Date.now(),\n  }\n}];"
       },
-      "id": "n2-validate",
+      "id": "n030-02",
       "name": "Validate Entity",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        680,
+        -720,
         300
       ],
       "onError": "continueErrorOutput"
@@ -60,8 +57,6 @@
       "parameters": {
         "method": "PATCH",
         "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -74,15 +69,19 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ { status: \"running\", started_at: new Date().toISOString() } }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ status: 'running', started_at: new Date().toISOString(), current_phase: 1 }) }}",
+        "options": {
+          "timeout": 20000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
-      "id": "n3-update-run",
+      "id": "n030-03",
       "name": "Update Run Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        920,
+        -520,
         300
       ],
       "onError": "continueErrorOutput"
@@ -91,8 +90,6 @@
       "parameters": {
         "method": "POST",
         "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/rpc/get_account_knowledge_context",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -105,15 +102,19 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  p_workspace_id: $('Validate Entity').item.json.workspaceId,\n  p_company_id: $('Validate Entity').item.json.companyId\n} }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ p_workspace_id: $('Validate Entity').item.json.workspaceId, p_company_id: $('Validate Entity').item.json.companyId }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
-      "id": "n4-hydrate-context",
+      "id": "n030-04",
       "name": "Hydrate Context",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1160,
+        -320,
         300
       ],
       "onError": "continueErrorOutput"
@@ -121,16 +122,236 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const upstream = $('Validate Entity').item.json;\nconst context = $input.first().json;\n\n// ADR-0012 D-3 — le LLM ne peut émettre que 3 des 5 valeurs de provenance :\n// - 'relational'   : fait dérivé du relationnel KREDO (contacts/opportunités/missions/signaux)\n//                     OU du diagnostic process (artefact déjà produit par le moteur KREDO,\n//                     pas un import brut — le fit imparfait avec 'engine_researched'\n//                     [pensé pour de la recherche web datée] est un choix documenté ici,\n//                     pas un oubli : processDiagnostic est plus fiable qu'un simple 'inferred').\n// - 'folio_legacy'  : fait dérivé de companies.metadata.analysis_data (import FOLIO, sans source).\n// - 'inferred'      : déduction du LLM non traçable à une entrée précise.\n// 'human_verified' (réservé à la curation manager) et 'engine_researched' (réservé aux futurs\n// workflows de recherche web datée) sont REJETÉS s'ils apparaissent en sortie — cf. Parse & Validate.\n\nconst SYSTEM_PROMPT = `Tu rédiges la \"Connaissance compte\" pour Kredo Digital (ESN premium : Data/IA,\nCloud, Product Management, Cybersécurité) — étape 1 de la chaîne de décision commerciale\n(ADR-0012). Ce n'est PAS une étude marché ni une recommandation d'offre : uniquement ce\nque l'on sait factuellement du compte lui-même.\n\nRÈGLES ABSOLUES :\n1. Le CONTEXTE ci-dessous (JSON) est ta SEULE source. N'invente aucun fait, aucun chiffre,\n   aucun nom qui n'y figure explicitement.\n2. Chaque fait produit doit porter une provenance parmi EXACTEMENT ces 3 valeurs :\n   - \"relational\" : dérivé de context.contacts / context.opportunities / context.missions /\n     context.recentInteractions / context.signals (relationnel KREDO direct) OU de context.processDiagnostic s'il est présent.\n   - \"folio_legacy\" : dérivé de context.folioAnalysisData (import FOLIO, à traiter comme peu fiable\n     et daté — jamais présenté comme une vérité certaine).\n   - \"inferred\" : déduction que tu formules toi-même sans qu'elle soit directement traçable.\n   N'utilise JAMAIS \"human_verified\" ni \"engine_researched\" — ces valeurs sont réservées.\n3. Exclus tout ce qui relève du secteur/marché macro (context ne t'en donne pas — normal),\n   de la recommandation d'offre, ou d'une roadmap d'actions : ce sont d'autres étapes de la chaîne.\n4. Si une section n'a rien de solide à dire, renvoie un tableau vide plutôt que d'inventer.\n5. Style direct, factuel, sans superlatifs creux.\n\nFORMAT DE SORTIE — JSON valide UNIQUEMENT, sans backticks, structure EXACTE :\n{\n  \"schema_version\": 1,\n  \"identity_positioning\": [ { \"text\": \"...\", \"provenance\": \"relational|folio_legacy|inferred\" } ],\n  \"commercial_relationship\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"key_contacts\": [ { \"role_summary\": \"...\" } ],\n  \"organisation_observed\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"frictions_and_signals\": [ { \"text\": \"...\", \"provenance\": \"...\" } ],\n  \"open_questions\": [ { \"text\": \"...\", \"provenance\": \"inferred\" } ]\n}\nNote : open_questions est TOUJOURS \"inferred\" par nature (ce sont des hypothèses à valider,\npas des faits établis). key_contacts n'a pas de provenance (dérivé mécaniquement des contacts).`;\n\nconst userPrompt = `CONTEXTE (source unique de vérité — JSON) :\\n${JSON.stringify(context, null, 2)}`;\n\nreturn [{\n  json: {\n    ...upstream,\n    context,\n    systemPrompt: SYSTEM_PROMPT,\n    userPrompt,\n  }\n}];"
+        "jsCode": "// Préparation DÉTERMINISTE du contexte (aucun LLM ici).\n// Sépare explicitement ce qui est canonique, ce qui est vérifié, ce qui est\n// relationnel, et ce qui est FOLIO — ce dernier restant isolé comme legacy NON\n// SOURCÉ : il peut orienter une recherche, jamais devenir un Claim.\nconst upstream = $('Validate Entity').item.json;\nconst raw = $input.first().json;\nconst ctx = (raw && raw.company) ? raw : (Array.isArray(raw) ? raw[0] : (raw && raw.data) || {});\n\nif (!ctx || !ctx.company || !ctx.company.id) {\n  throw new Error('Contexte compte introuvable (RPC get_account_knowledge_context vide)');\n}\nif (ctx.company.id !== upstream.companyId) {\n  throw new Error('Incohérence d\\'entité : le contexte ne correspond pas au compte demandé');\n}\n\nfunction txt(v) {\n  if (v === null || v === undefined) return null;\n  const t = String(v).replace(/\\s+/g, ' ').trim();\n  return t.length > 0 ? t : null;\n}\n\nconst c = ctx.company;\nconst canonical = {\n  id: c.id,\n  name: txt(c.name),\n  legal_name: txt(c.legal_name),\n  hq_location: txt(c.hq_location),\n  revenue: txt(c.revenue),\n  employee_count: (typeof c.employee_count === 'number') ? c.employee_count : null,\n  size_band: txt(c.size_band),\n  website: txt(c.website),\n  sector: txt(c.sector),\n  segment: txt(c.segment),\n  description: txt(c.description),\n  lifecycle_status: txt(c.lifecycle_status),\n};\n\n// Faits VÉRIFIÉS uniquement (verified_at non nul) — un fait courant mais jamais\n// vérifié n'est pas approuvé, seulement \"pas périmé\" (même règle que Lot 0).\nconst verifiedFacts = (ctx.accountFacts || []).filter((f) => f && f.verified_at);\nconst factSources = ctx.factSources || [];\nconst factSourceLinks = ctx.factSourceLinks || [];\n\nconst relational = {\n  contacts: ctx.contacts || [],\n  recentInteractions: ctx.recentInteractions || [],\n  opportunities: ctx.opportunities || [],\n  missions: ctx.missions || [],\n  signals: ctx.signals || [],\n};\n\n// FOLIO — jamais fusionné au reste, jamais présenté comme sourcé.\nconst folioLegacy = {\n  analysisData: ctx.folioAnalysisData || null,\n  sectorAnalysis: ctx.folioSectorAnalysis || null,\n};\nconst hasFolio = !!(folioLegacy.analysisData && Object.keys(folioLegacy.analysisData).length > 0);\n\n// ── Cibles de recherche externe : uniquement le MANQUANT ou le PÉRIMÉ ───────\nconst STALE_AFTER_DAYS = 365;\nconst nowMs = Date.now();\nconst verifiedByType = new Map();\nfor (const f of verifiedFacts) {\n  verifiedByType.set(f.fact_type, f);\n}\n// « Périmé » suppose une vérification qui a existé et qui a vieilli. Une valeur\n// renseignée mais jamais vérifiée n'est PAS périmée : elle est non vérifiée, et\n// la vérification est un geste humain (D-4) qu'on ne déclenche pas d'office.\n// Sans cette distinction, tout champ renseigné déclencherait une recherche\n// externe à chaque run — coût et bruit garantis, pour une donnée déjà présente.\nfunction isStale(factType) {\n  const f = verifiedByType.get(factType);\n  if (!f) return false;\n  const ageDays = (nowMs - new Date(f.verified_at).getTime()) / 86400000;\n  return ageDays > STALE_AFTER_DAYS;\n}\n\nconst CANONICAL_TARGETS = [\n  { field: 'legal_name', factType: 'legal_name' },\n  { field: 'hq_location', factType: 'headquarters' },\n  { field: 'employee_count', factType: 'employee_count' },\n  { field: 'revenue', factType: 'revenue' },\n  { field: 'website', factType: 'website' },\n  { field: 'description', factType: 'primary_activity' },\n];\n\nconst researchTargets = [];\nfor (const t of CANONICAL_TARGETS) {\n  const value = canonical[t.field];\n  const missing = value === null || value === undefined || value === '';\n  if (missing) researchTargets.push({ field: t.field, reason: 'missing' });\n  else if (isStale(t.factType)) researchTargets.push({ field: t.field, reason: 'stale' });\n}\n\nconst siteUrl = canonical.website && /^https?:\\/\\//i.test(canonical.website) ? canonical.website : null;\nconst needsResearch = researchTargets.length > 0;\n\nreturn [{\n  json: {\n    ...upstream,\n    canonical,\n    verifiedFacts,\n    factSources,\n    factSourceLinks,\n    relational,\n    processDiagnostic: ctx.processDiagnostic || null,\n    folioLegacy,\n    hasFolio,\n    researchTargets,\n    needsResearch,\n    // Sentinelle documentée : le nœud de fetch du site officiel s'exécute sur la\n    // branche \"recherche nécessaire\" même sans site connu. Une URL invalide y est\n    // volontairement passée (le nœud est en continueRegularOutput) et la réponse\n    // est écartée en aval — plus lisible qu'un second IF pour ce seul cas.\n    siteUrl: siteUrl || 'https://kredo.invalid/no-official-site',\n    hasSiteUrl: !!siteUrl,\n    dataCutoffAt: ctx.dataCutoffAt || new Date().toISOString(),\n  }\n}];"
       },
-      "id": "n5-assemble-prompt",
+      "id": "n030-05",
+      "name": "Prepare Deterministic Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-needs-research",
+              "leftValue": "={{ $json.needsResearch }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n030-06",
+      "name": "Needs External Research?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.siteUrl }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 3
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "n030-07",
+      "name": "Fetch Official Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        180
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "=https://recherche-entreprises.api.gouv.fr/search?q={{ encodeURIComponent($('Prepare Deterministic Context').item.json.canonical.name || '') }}&per_page=3&page=1",
+        "authentication": "none",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n030-08",
+      "name": "Fetch Public Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        180
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Constitution des PREUVES externes. Règle absolue : seule une page réellement\n// récupérée fait preuve. Aucun moteur de recherche n'est interrogé, aucun\n// snippet n'est utilisé — uniquement le site officiel du compte (HTML réel) et\n// l'API publique Recherche d'entreprises (data.gouv.fr / INSEE Sirene).\nconst ctx = $('Prepare Deterministic Context').first().json;\nconst siteResponse = $('Fetch Official Site').first().json || {};\nconst registryResponse = $input.first().json || {};\n\nfunction simpleHash(str) {\n  let h = 5381;\n  const s = String(str == null ? '' : str);\n  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;\n  return (h >>> 0).toString(16);\n}\n\nfunction canonicalUrl(url) {\n  try {\n    const u = new URL(url);\n    u.search = '';\n    u.hash = '';\n    return u.toString();\n  } catch (e) {\n    return url;\n  }\n}\n\nfunction htmlToText(html) {\n  return String(html || '')\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&amp;/gi, '&')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction normalizeName(v) {\n  return String(v || '')\n    .toLowerCase()\n    .normalize('NFD')\n    .replace(/[̀-ͯ]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .trim();\n}\n\nconst nowIso = new Date().toISOString();\nconst evidence = [];\nconst warnings = [];\n\n// ── Site officiel ──────────────────────────────────────────────────────────\nconst siteStatus = Number(siteResponse.statusCode || 0);\nconst siteBody = typeof siteResponse.body === 'string' ? siteResponse.body : '';\nif (!ctx.hasSiteUrl) {\n  warnings.push(\"Aucun site officiel connu sur la fiche compte — recherche limitée au registre public.\");\n} else if (siteStatus < 200 || siteStatus >= 300 || siteBody.length === 0) {\n  warnings.push(`Site officiel injoignable (statut ${siteStatus || 'inconnu'}) — aucune preuve retenue.`);\n} else {\n  const text = htmlToText(siteBody).slice(0, 12000);\n  if (text.length < 120) {\n    warnings.push('Site officiel récupéré mais sans texte exploitable (rendu JS probable).');\n  } else {\n    evidence.push({\n      kind: 'official_site',\n      sourceKey: `account_knowledge:site:${simpleHash(canonicalUrl(ctx.siteUrl))}`,\n      sourceType: 'official_site',\n      sourceName: `${ctx.canonical.name} — site officiel`,\n      url: ctx.siteUrl,\n      canonicalUrl: canonicalUrl(ctx.siteUrl),\n      publishedAt: null,\n      reliability: 0.75,\n      collectionMethod: 'scrape',\n      excerpt: text.slice(0, 500),\n      text,\n      covers: \"Discours officiel du compte : activité revendiquée, offre, implantations, clients cités.\",\n    });\n  }\n}\n\n// ── Registre public (INSEE Sirene via data.gouv.fr) ─────────────────────────\nconst registryStatus = Number(registryResponse.statusCode || 0);\nconst registryBody = registryResponse.body || {};\nconst results = Array.isArray(registryBody.results) ? registryBody.results : [];\nif (registryStatus < 200 || registryStatus >= 300) {\n  warnings.push(`Registre public injoignable (statut ${registryStatus || 'inconnu'}).`);\n} else if (results.length === 0) {\n  warnings.push('Aucune entité juridique trouvée au registre public pour ce nom.');\n} else {\n  const target = normalizeName(ctx.canonical.legal_name || ctx.canonical.name);\n  const scored = results.map((r) => {\n    const candidate = normalizeName(r.nom_raison_sociale || r.nom_complet);\n    let score = 0;\n    if (candidate === target) score = 1;\n    else if (candidate.startsWith(target) || target.startsWith(candidate)) score = 0.8;\n    else if (candidate.includes(target) || target.includes(candidate)) score = 0.6;\n    return { r, score };\n  }).sort((a, b) => b.score - a.score);\n\n  const best = scored[0];\n  // Sous 0.6, la correspondance n'est pas assez nette : on ne rattache rien\n  // plutôt que de sourcer le compte sur une homonymie.\n  if (!best || best.score < 0.6) {\n    warnings.push(\"Correspondance au registre public trop incertaine — aucune donnée légale retenue.\");\n  } else {\n    const r = best.r;\n    const siege = r.siege || {};\n    const tranche = String(r.tranche_effectif_salarie || siege.tranche_effectif_salarie || '');\n    const TRANCHES = {\n      '00': 0, '01': 2, '02': 4, '03': 7, '11': 15, '12': 35, '21': 75,\n      '22': 150, '31': 225, '32': 375, '41': 750, '42': 1500, '51': 3500, '52': 7500,\n    };\n    evidence.push({\n      kind: 'registry',\n      sourceKey: `account_knowledge:registry:${r.siren}`,\n      sourceType: 'regulatory_filing',\n      sourceName: \"Recherche d'entreprises (data.gouv.fr / INSEE Sirene)\",\n      url: `https://recherche-entreprises.api.gouv.fr/search?q=${r.siren}`,\n      canonicalUrl: `https://annuaire-entreprises.data.gouv.fr/entreprise/${r.siren}`,\n      publishedAt: r.date_mise_a_jour || null,\n      reliability: 0.97,\n      collectionMethod: 'api',\n      excerpt: `SIREN ${r.siren} — ${r.nom_raison_sociale || r.nom_complet}`.slice(0, 500),\n      covers: \"Identité juridique officielle : raison sociale, SIREN, code NAF, siège, tranche d'effectif.\",\n      registry: {\n        siren: r.siren || null,\n        legalName: r.nom_raison_sociale || r.nom_complet || null,\n        nafCode: r.activite_principale || null,\n        activityLabel: r.libelle_activite_principale || null,\n        hqLocation: [siege.libelle_commune, siege.code_postal].filter(Boolean).join(' ') || null,\n        employeeCount: Object.prototype.hasOwnProperty.call(TRANCHES, tranche) ? TRANCHES[tranche] : null,\n        employeeCountIsEstimate: true,\n        matchScore: best.score,\n      },\n      text: JSON.stringify({\n        siren: r.siren,\n        raison_sociale: r.nom_raison_sociale || r.nom_complet,\n        activite_principale: r.activite_principale,\n        libelle_activite_principale: r.libelle_activite_principale,\n        siege: { commune: siege.libelle_commune, code_postal: siege.code_postal },\n        tranche_effectif_salarie: tranche,\n      }),\n    });\n  }\n}\n\nreturn [{ json: { externalEvidence: evidence, researchWarnings: warnings, researchPerformed: true } }];"
+      },
+      "id": "n030-09",
+      "name": "Collect External Evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        180
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aucune donnée canonique manquante ni périmée : aucune requête externe.\n// Un item est renvoyé malgré tout — un nœud Code qui renvoie [] n'émet aucun\n// item, et n8n n'exécute pas le nœud suivant : la chaîne s'arrêterait ici en\n// silence, run bloqué en \"running\" (piège déjà rencontré sur intel-010/033).\nreturn [{ json: { externalEvidence: [], researchWarnings: [], researchPerformed: false } }];"
+      },
+      "id": "n030-10",
+      "name": "Skip External Research",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Point de convergence STABLE des deux branches de recherche : ce nœud relit le\n// contexte depuis \"Prepare Deterministic Context\" (toujours exécuté) et ne\n// référence jamais une branche IF qui pourrait ne pas s'être exécutée.\nconst ctx = $('Prepare Deterministic Context').first().json;\nconst research = $input.first().json || {};\nconst evidence = research.externalEvidence || [];\n\nconst nowIso = new Date().toISOString();\n\n// Source interne « base relationnelle KREDO ». Ce n'est PAS une source inventée :\n// c'est une origine réelle, identifiable et datée, prévue par le schéma\n// (source_type 'internal_crm'). Sans elle, aucun fait tiré du CRM ne pourrait\n// être cité — or le contrat V2 exige une source pour toute affirmation.\nconst crmSource = {\n  workspace_id: ctx.workspaceId,\n  source_type: 'internal_crm',\n  source_name: `Base relationnelle KREDO — ${ctx.canonical.name}`,\n  source_url: null,\n  canonical_url: null,\n  published_at: null,\n  collected_at: nowIso,\n  source_key: `account_knowledge:crm:${ctx.companyId}`,\n  evidence_excerpt: `Contacts: ${ctx.relational.contacts.length} · interactions: ${ctx.relational.recentInteractions.length} · opportunités: ${ctx.relational.opportunities.length} · missions: ${ctx.relational.missions.length} · signaux: ${ctx.relational.signals.length}`.slice(0, 500),\n  reliability_score: 0.9,\n  collection_method: 'system_sync',\n  technical_metadata: { collector: 'intel-030-account-knowledge', runId: ctx.runId },\n};\n\nconst sourcesPayload = [crmSource];\nfor (const e of evidence) {\n  sourcesPayload.push({\n    workspace_id: ctx.workspaceId,\n    source_type: e.sourceType,\n    source_name: e.sourceName,\n    source_url: e.url,\n    canonical_url: e.canonicalUrl,\n    published_at: e.publishedAt,\n    collected_at: nowIso,\n    source_key: e.sourceKey,\n    evidence_excerpt: e.excerpt,\n    reliability_score: e.reliability,\n    collection_method: e.collectionMethod,\n    technical_metadata: { collector: 'intel-030-account-knowledge', runId: ctx.runId, kind: e.kind },\n  });\n}\n\n// Déduplication sur source_key AVANT l'appel : l'upsert est idempotent côté\n// base (index unique workspace_id+source_key), mais un même lot porteur de deux\n// fois la même clé serait rejeté par PostgREST.\nconst bySourceKey = new Map();\nfor (const s of sourcesPayload) {\n  if (!bySourceKey.has(s.source_key)) bySourceKey.set(s.source_key, s);\n}\nconst deduped = Array.from(bySourceKey.values());\n\nreturn [{\n  json: {\n    ...ctx,\n    externalEvidence: evidence,\n    researchWarnings: research.researchWarnings || [],\n    researchPerformed: !!research.researchPerformed,\n    sourcesPayload: deduped,\n    sourceKeys: Array.from(bySourceKey.keys()),\n  }\n}];"
+      },
+      "id": "n030-11",
+      "name": "Build Source Catalogue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/intelligence_sources?on_conflict=workspace_id,source_key",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=ignore-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Build Source Catalogue').first().json.sourcesPayload }}",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "n030-12",
+      "name": "Upsert Sources",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/intelligence_sources",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "workspace_id",
+              "value": "=eq.{{ $('Build Source Catalogue').first().json.workspaceId }}"
+            },
+            {
+              "name": "source_key",
+              "value": "=in.({{ $('Build Source Catalogue').first().json.sourceKeys.join(',') }})"
+            },
+            {
+              "name": "select",
+              "value": "id,source_key,source_type,source_name,canonical_url,source_url,published_at,reliability_score"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "n030-13",
+      "name": "Resolve Source Ids",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const ctx = $('Build Source Catalogue').first().json;\nconst resolved = $input.all().map((i) => i.json).filter((r) => r && r.id && r.source_key);\nconst idBySourceKey = new Map(resolved.map((r) => [r.source_key, r.id]));\n\nif (idBySourceKey.size === 0) {\n  throw new Error('Aucune source résolue : impossible de produire un artefact sourcé');\n}\n\nconst crmSourceId = idBySourceKey.get(`account_knowledge:crm:${ctx.companyId}`) || null;\nif (!crmSourceId) {\n  throw new Error('Source interne (base relationnelle KREDO) non résolue');\n}\n\n// ── Catalogue des sources citables ─────────────────────────────────────────\n// Le modèle ne peut citer QUE ces identifiants. Toute autre valeur est rejetée\n// par \"Parse & Validate Output\", puis à nouveau par le callback applicatif.\nconst catalogue = [];\n\ncatalogue.push({\n  source_id: crmSourceId,\n  type: 'internal_crm',\n  name: 'Base relationnelle KREDO',\n  covers: \"Contacts, interactions, opportunités, missions et signaux du compte tels qu'enregistrés dans KREDO.\",\n});\n\nfor (const e of ctx.externalEvidence) {\n  const id = idBySourceKey.get(e.sourceKey);\n  if (!id) continue;\n  catalogue.push({\n    source_id: id,\n    type: e.sourceType,\n    name: e.sourceName,\n    url: e.canonicalUrl || e.url,\n    published_at: e.publishedAt,\n    covers: e.covers,\n    content: e.text ? String(e.text).slice(0, 9000) : null,\n  });\n}\n\n// Sources déjà rattachées aux faits vérifiés du compte (Lot 0) : citables aussi,\n// puisqu'elles existent réellement en base et appartiennent au workspace.\nconst linksByFact = new Map();\nfor (const l of (ctx.factSourceLinks || [])) {\n  if (!linksByFact.has(l.fact_id)) linksByFact.set(l.fact_id, []);\n  linksByFact.get(l.fact_id).push(l.source_id);\n}\nfor (const s of (ctx.factSources || [])) {\n  if (catalogue.some((c) => c.source_id === s.id)) continue;\n  catalogue.push({\n    source_id: s.id,\n    type: s.source_type,\n    name: s.source_name,\n    url: s.canonical_url || s.source_url,\n    published_at: s.published_at,\n    covers: 'Source déjà rattachée à un fait vérifié du compte.',\n    excerpt: s.evidence_excerpt || null,\n  });\n}\n\nconst verifiedFacts = (ctx.verifiedFacts || []).map((f) => ({\n  fact_type: f.fact_type,\n  fact_subtype: f.fact_subtype,\n  value: f.value_text || f.normalized_value || f.value_json,\n  verified_at: f.verified_at,\n  source_refs: [f.primary_source_id, ...(linksByFact.get(f.id) || [])].filter(Boolean),\n}));\n\nconst SYSTEM_PROMPT = `Tu rédiges la \"Connaissance entreprise\" d'un compte pour Kredo Digital (ESN premium).\nTu produis un artefact machine, en JSON strict, au schéma account_knowledge V2.\n\nRÈGLE FONDATRICE — TOUTE AFFIRMATION EST SOURCÉE.\nChaque objet \"Claim\" que tu produis a la forme :\n  { \"text\": \"...\", \"nature\": \"fact\"|\"analysis\", \"source_refs\": [\"<uuid>\"], \"confidence\": 0.0-1.0, \"verified_at\": null }\n- \"source_refs\" ne peut contenir QUE des identifiants présents dans SOURCE_CATALOGUE ci-dessous.\n  N'invente JAMAIS d'identifiant. Un Claim sans source valide est refusé et fait échouer la génération.\n- \"fact\" = énoncé vérifiable dans une source citée.\n- \"analysis\" = déduction ; elle DOIT citer les sources des faits sur lesquels elle s'appuie.\n- \"confidence\" reflète ta certitude, strictement entre 0 et 1.\n- \"verified_at\" vaut toujours null (la vérification est un geste humain, pas le tien).\n\nINTERDICTIONS ABSOLUES :\n1. Ne jamais écrire \"Non trouvé\", \"N/A\", \"Non renseigné\", \"-\" ni aucun marqueur d'absence.\n   Une section sans matière solide reste VIDE (tableau vide, ou null pour un champ unique).\n2. FOLIO_LEGACY (bloc plus bas) est une donnée d'import ANCIENNE et NON SOURCÉE.\n   Elle peut t'indiquer quoi chercher dans les sources réelles ; elle ne peut JAMAIS devenir un Claim\n   à elle seule. Si une information n'existe QUE dans FOLIO_LEGACY, ne la produis pas.\n3. Aucune donnée sectorielle macro (taille de marché, croissance du secteur, réglementation\n   sectorielle, concurrence générale du secteur) : c'est une autre étape de la chaîne.\n   Les concurrents cités doivent être ceux du compte, attestés par une source.\n4. Aucune recommandation commerciale, aucun plan d'action, aucune roadmap, aucune offre suggérée.\n5. \"identity.dynamic\" vaut TOUJOURS null : cet indicateur est calculé de façon déterministe\n   par l'application, hors modèle. Toute autre valeur fait échouer la génération.\n\nFORMAT DE SORTIE — JSON valide UNIQUEMENT, sans backticks, structure EXACTE :\n{\n  \"schema_version\": 2,\n  \"identity\": {\n    \"primary_activity\": Claim|null,\n    \"headquarters\": Claim|null,\n    \"revenue\": Claim|null,\n    \"employee_count\": Claim|null,\n    \"dynamic\": null\n  },\n  \"account_summary\": Claim|null,\n  \"market_positioning\": {\n    \"positioning\": Claim|null,\n    \"direct_competitors\": [Claim],\n    \"customer_segments\": [Claim],\n    \"differentiators\": [Claim],\n    \"uncovered_scope\": [Claim],\n    \"claimed_identity\": Claim|null,\n    \"threats\": [Claim],\n    \"opportunities\": [Claim]\n  },\n  \"company_value_chain\": {\n    \"description\": Claim|null,\n    \"value_proposition\": Claim|null,\n    \"key_links\": [Claim],\n    \"dependencies\": [Claim],\n    \"vulnerabilities\": [Claim],\n    \"customer_base\": [Claim]\n  },\n  \"organisation\": {\n    \"departments\": [Claim],\n    \"strategic_weight\": Claim|null,\n    \"key_contacts\": [ { \"contact_id\": \"<uuid d'un contact fourni>\", \"role_summary\": Claim } ],\n    \"process_observations\": [Claim]\n  },\n  \"open_questions\": [ { \"question\": \"...\", \"why_it_matters\": \"...\" } ],\n  \"generated_at\": \"<ISO8601>\"\n}\n\n\"open_questions\" n'est PAS un Claim : on y pose ce qu'on ignore, on n'y affirme rien — donc pas de source.\n\"organisation.key_contacts[].contact_id\" doit être l'identifiant exact d'un contact de CONTEXT.relational.contacts.\nStyle direct, factuel, sans superlatif.`;\n\nconst userPayload = {\n  SOURCE_CATALOGUE: catalogue,\n  CANONICAL: ctx.canonical,\n  VERIFIED_FACTS: verifiedFacts,\n  RELATIONAL: ctx.relational,\n  PROCESS_DIAGNOSTIC: ctx.processDiagnostic,\n  FOLIO_LEGACY_NON_SOURCE: ctx.folioLegacy,\n  RESEARCH_TARGETS: ctx.researchTargets,\n  DATA_CUTOFF_AT: ctx.dataCutoffAt,\n};\n\nreturn [{\n  json: {\n    ...ctx,\n    catalogue,\n    allowedSourceIds: catalogue.map((c) => c.source_id),\n    crmSourceId,\n    sourceIdByKey: Array.from(idBySourceKey.entries()).map(([source_key, id]) => ({ source_key, id })),\n    systemPrompt: SYSTEM_PROMPT,\n    userPrompt: `CONTEXTE (source unique de vérité — JSON) :\\n${JSON.stringify(userPayload, null, 2)}`,\n  }\n}];"
+      },
+      "id": "n030-14",
       "name": "Assemble Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1400,
+        1480,
         300
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -150,17 +371,17 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  model: \"claude-sonnet-5\",\n  max_tokens: 3000,\n  thinking: { type: \"disabled\" },\n  system: $json.systemPrompt,\n  messages: [ { role: \"user\", content: $json.userPrompt } ]\n} }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 8000, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
         "options": {
-          "timeout": 60000
+          "timeout": 180000
         }
       },
-      "id": "n6-call-llm",
+      "id": "n030-15",
       "name": "Call LLM",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1640,
+        1680,
         300
       ],
       "onError": "continueErrorOutput"
@@ -168,9 +389,9 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const response = $input.first().json;\nconst upstream = $('Assemble Prompt').item.json;\nconst textBlock = (response.content || []).find(b => b.type === 'text');\nconst content = textBlock && textBlock.text;\n\nif (!content) {\n  throw new Error('Le LLM a renvoyé un contenu vide');\n}\n\nlet parsed;\ntry {\n  const clean = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  parsed = JSON.parse(clean);\n} catch (e) {\n  throw new Error('Réponse LLM non-JSON : ' + content.slice(0, 200));\n}\n\nif (parsed.schema_version !== 1) {\n  throw new Error('schema_version doit valoir 1');\n}\n\nconst SECTIONS = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals', 'open_questions'];\nconst ALLOWED_PROVENANCE = new Set(['relational', 'folio_legacy', 'inferred']);\n\nfor (const section of SECTIONS) {\n  if (!Array.isArray(parsed[section])) {\n    throw new Error(`Section manquante ou invalide : ${section}`);\n  }\n  for (const fact of parsed[section]) {\n    if (!fact.text || typeof fact.text !== 'string') {\n      throw new Error(`Fait sans texte dans ${section}`);\n    }\n    if (!ALLOWED_PROVENANCE.has(fact.provenance)) {\n      throw new Error(`Provenance non autorisée dans ${section} : \"${fact.provenance}\" (autorisé: relational, folio_legacy, inferred)`);\n    }\n  }\n}\n\nif (!Array.isArray(parsed.key_contacts)) {\n  throw new Error('key_contacts manquant ou invalide');\n}\nfor (const kc of parsed.key_contacts) {\n  if (!kc.role_summary || typeof kc.role_summary !== 'string') {\n    throw new Error('key_contacts : role_summary manquant');\n  }\n}\n\nconst accountKnowledge = {\n  schema_version: 1,\n  identity_positioning: parsed.identity_positioning,\n  commercial_relationship: parsed.commercial_relationship,\n  key_contacts: parsed.key_contacts,\n  organisation_observed: parsed.organisation_observed,\n  frictions_and_signals: parsed.frictions_and_signals,\n  open_questions: parsed.open_questions,\n  generated_at: new Date().toISOString(),\n};\n\nreturn [{\n  json: {\n    ...upstream,\n    accountKnowledge,\n    llmUsage: {\n      inputTokens: (response.usage && response.usage.input_tokens) || null,\n      outputTokens: (response.usage && response.usage.output_tokens) || null,\n      model: response.model || 'claude-sonnet-5',\n    },\n  }\n}];"
+        "jsCode": "// Validation STRICTE avant toute écriture. Ce nœud est le miroir JS de\n// validateAccountKnowledgeV2 (src/lib/intelligence/intelligence-validators.ts) :\n// le callback applicatif refera la même vérification côté Next — la double\n// barrière est volontaire (n8n tourne en service_role, il ne se valide pas seul).\nconst response = $input.first().json;\nconst upstream = $('Assemble Prompt').item.json;\n\nconst textBlock = (response.content || []).find((b) => b.type === 'text');\nconst content = textBlock && textBlock.text;\nif (!content) throw new Error('Le LLM a renvoyé un contenu vide');\n\nlet parsed;\ntry {\n  parsed = JSON.parse(content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim());\n} catch (e) {\n  throw new Error('Réponse LLM non-JSON : ' + content.slice(0, 200));\n}\n\nif (parsed.schema_version !== 2) throw new Error('schema_version doit valoir 2');\n\nconst allowed = new Set(upstream.allowedSourceIds || []);\nconst contactIds = new Set((upstream.relational.contacts || []).map((c) => c.id));\nconst UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\n\nconst PLACEHOLDERS = new Set(['non trouve', 'non renseigne', 'non communique', 'non disponible', 'inconnu', 'n/a', 'na', 'nc', '-', '--']);\nfunction isPlaceholder(text) {\n  const n = String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\\s+/g, ' ').trim();\n  return n.length === 0 || PLACEHOLDERS.has(n);\n}\n\nconst errors = [];\nconst claims = [];\n\nfunction checkClaim(value, path) {\n  if (value === null || value === undefined) {\n    errors.push(`${path} : Claim ou null explicite attendu`);\n    return;\n  }\n  if (typeof value !== 'object' || Array.isArray(value)) {\n    errors.push(`${path} : objet Claim attendu`);\n    return;\n  }\n  if (typeof value.text !== 'string' || value.text.trim().length === 0) errors.push(`${path}.text : texte requis`);\n  else if (isPlaceholder(value.text)) errors.push(`${path}.text : marqueur d'absence interdit (\"${value.text.trim()}\")`);\n\n  if (value.nature !== 'fact' && value.nature !== 'analysis') errors.push(`${path}.nature : \"fact\" ou \"analysis\" attendu`);\n\n  if (!Array.isArray(value.source_refs) || value.source_refs.length === 0) {\n    errors.push(`${path}.source_refs : au moins une source requise (aucune affirmation non sourcée)`);\n  } else {\n    value.source_refs.forEach((ref, i) => {\n      if (!UUID.test(String(ref))) errors.push(`${path}.source_refs[${i}] : UUID invalide`);\n      else if (!allowed.has(ref)) errors.push(`${path}.source_refs[${i}] : source hors catalogue (${ref})`);\n    });\n  }\n\n  if (typeof value.confidence !== 'number' || !isFinite(value.confidence)) errors.push(`${path}.confidence : nombre requis`);\n  else if (value.confidence < 0 || value.confidence > 1) errors.push(`${path}.confidence : hors bornes [0,1]`);\n\n  if (value.verified_at !== null && value.verified_at !== undefined) {\n    errors.push(`${path}.verified_at : doit rester null (vérification humaine)`);\n  }\n  value.verified_at = null;\n\n  claims.push({ path, sourced: Array.isArray(value.source_refs) && value.source_refs.length > 0, refs: value.source_refs || [] });\n}\n\nfunction checkNullableClaim(value, path) {\n  if (value === null) return;\n  if (value === undefined) { errors.push(`${path} : champ requis (Claim ou null)`); return; }\n  checkClaim(value, path);\n}\n\nfunction checkClaimArray(value, path) {\n  if (!Array.isArray(value)) { errors.push(`${path} : tableau requis`); return; }\n  value.forEach((c, i) => checkClaim(c, `${path}[${i}]`));\n}\n\nfunction section(obj, path) {\n  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {\n    errors.push(`${path} : section obligatoire absente`);\n    return null;\n  }\n  return obj;\n}\n\n// identity\nconst identity = section(parsed.identity, 'identity');\nif (identity) {\n  ['primary_activity', 'headquarters', 'revenue', 'employee_count'].forEach((k) => checkNullableClaim(identity[k], `identity.${k}`));\n  // Indicateur déterministe : le modèle n'a pas le droit de le produire.\n  if (identity.dynamic !== null && identity.dynamic !== undefined) {\n    errors.push('identity.dynamic : doit valoir null (indicateur calculé hors modèle)');\n  }\n  identity.dynamic = null;\n}\n\ncheckNullableClaim(parsed.account_summary, 'account_summary');\n\nconst mp = section(parsed.market_positioning, 'market_positioning');\nif (mp) {\n  checkNullableClaim(mp.positioning, 'market_positioning.positioning');\n  checkNullableClaim(mp.claimed_identity, 'market_positioning.claimed_identity');\n  ['direct_competitors', 'customer_segments', 'differentiators', 'uncovered_scope', 'threats', 'opportunities']\n    .forEach((k) => checkClaimArray(mp[k], `market_positioning.${k}`));\n}\n\nconst vc = section(parsed.company_value_chain, 'company_value_chain');\nif (vc) {\n  checkNullableClaim(vc.description, 'company_value_chain.description');\n  checkNullableClaim(vc.value_proposition, 'company_value_chain.value_proposition');\n  ['key_links', 'dependencies', 'vulnerabilities', 'customer_base']\n    .forEach((k) => checkClaimArray(vc[k], `company_value_chain.${k}`));\n}\n\nconst org = section(parsed.organisation, 'organisation');\nif (org) {\n  checkClaimArray(org.departments, 'organisation.departments');\n  checkClaimArray(org.process_observations, 'organisation.process_observations');\n  checkNullableClaim(org.strategic_weight, 'organisation.strategic_weight');\n  if (!Array.isArray(org.key_contacts)) errors.push('organisation.key_contacts : tableau requis');\n  else org.key_contacts.forEach((kc, i) => {\n    const p = `organisation.key_contacts[${i}]`;\n    if (!kc || typeof kc !== 'object') { errors.push(`${p} : objet attendu`); return; }\n    if (!UUID.test(String(kc.contact_id))) errors.push(`${p}.contact_id : UUID invalide`);\n    else if (!contactIds.has(kc.contact_id)) errors.push(`${p}.contact_id : contact inconnu du compte`);\n    checkClaim(kc.role_summary, `${p}.role_summary`);\n  });\n}\n\nif (!Array.isArray(parsed.open_questions)) errors.push('open_questions : tableau requis');\nelse parsed.open_questions.forEach((q, i) => {\n  if (!q || typeof q !== 'object' || typeof q.question !== 'string' || q.question.trim().length === 0) {\n    errors.push(`open_questions[${i}].question : question requise`);\n  } else if (isPlaceholder(q.question)) {\n    errors.push(`open_questions[${i}].question : marqueur d'absence interdit`);\n  }\n});\n\nif (errors.length > 0) {\n  throw new Error(`Artefact account_knowledge V2 invalide (${errors.length}) : ` + errors.slice(0, 12).join(' | '));\n}\n\n// ── Couverture de sourcing, calculée (jamais rédigée par le modèle) ─────────\nconst displayed = claims.length;\nconst sourced = claims.filter((c) => c.sourced).length;\nconst sourceCoverage = {\n  displayed_claims: displayed,\n  sourced_claims: sourced,\n  coverage_rate: displayed === 0 ? 1 : sourced / displayed,\n  missing_source_paths: claims.filter((c) => !c.sourced).map((c) => c.path),\n  stale_source_paths: [],\n  contradiction_paths: [],\n  passed: sourced === displayed,\n};\n\nconst accountKnowledge = {\n  schema_version: 2,\n  identity: parsed.identity,\n  account_summary: parsed.account_summary === undefined ? null : parsed.account_summary,\n  market_positioning: parsed.market_positioning,\n  company_value_chain: parsed.company_value_chain,\n  organisation: parsed.organisation,\n  open_questions: parsed.open_questions,\n  source_coverage: sourceCoverage,\n  generated_at: new Date().toISOString(),\n};\n\nconst usedSourceIds = Array.from(new Set(claims.flatMap((c) => c.refs)));\n\nreturn [{\n  json: {\n    ...upstream,\n    accountKnowledge,\n    usedSourceIds,\n    llmUsage: {\n      inputTokens: (response.usage && response.usage.input_tokens) || null,\n      outputTokens: (response.usage && response.usage.output_tokens) || null,\n      model: response.model || 'claude-sonnet-5',\n    },\n  }\n}];"
       },
-      "id": "n7-parse-output",
+      "id": "n030-16",
       "name": "Parse & Validate Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -183,152 +404,332 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Contrôles qualité — heuristiques simples (pas de NLP), un flag n'est jamais\n// un blocage dur, juste une donnée exposée dans qaFlags côté UI (cf. ADR-0009/INTEL-020).\nconst data = $input.first().json;\nconst ak = data.accountKnowledge;\nconst qaFlags = [];\n\nconst totalFacts = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals', 'open_questions']\n  .reduce((sum, s) => sum + ak[s].length, 0);\nqaFlags.push({ check: 'has_facts', passed: totalFacts > 0, detail: `${totalFacts} faits au total` });\n\nconst hasContacts = (data.context.contacts || []).length > 0;\nqaFlags.push({\n  check: 'key_contacts_present_if_contacts_exist',\n  passed: !hasContacts || ak.key_contacts.length > 0,\n  detail: hasContacts ? `${ak.key_contacts.length} synthèses pour ${data.context.contacts.length} contacts` : 'aucun contact en base',\n});\n\nconst openQuestionsAllInferred = ak.open_questions.every((f) => f.provenance === 'inferred');\nqaFlags.push({\n  check: 'open_questions_are_inferred',\n  passed: openQuestionsAllInferred,\n  detail: openQuestionsAllInferred ? 'OK' : 'des hypothèses ne sont pas taguées inferred',\n});\n\nconst hasFolioInput = !!(data.context.folioAnalysisData && Object.keys(data.context.folioAnalysisData).length > 0);\nconst usesFolio = ['identity_positioning', 'commercial_relationship', 'organisation_observed', 'frictions_and_signals']\n  .some((s) => ak[s].some((f) => f.provenance === 'folio_legacy'));\nqaFlags.push({\n  check: 'folio_provenance_consistent',\n  passed: usesFolio ? hasFolioInput : true,\n  detail: usesFolio && !hasFolioInput ? 'facts tagged folio_legacy mais aucune donnée FOLIO en entrée' : 'OK',\n});\n\nreturn [{ json: { ...data, qaFlags } }];"
+        "jsCode": "// Contrôles qualité exposés dans qa_flags. Les manquements bloquants ont déjà\n// fait échouer \"Parse & Validate Output\" : ce qui reste ici est informatif.\nconst data = $input.first().json;\nconst ak = data.accountKnowledge;\nconst cov = ak.source_coverage;\nconst qaFlags = [];\n\nqaFlags.push({ check: 'all_claims_sourced', passed: cov.passed, detail: `${cov.sourced_claims}/${cov.displayed_claims} affirmations sourcées` });\nqaFlags.push({ check: 'dynamic_left_to_engine', passed: ak.identity.dynamic === null, detail: 'indicateur de dynamique calculé hors modèle' });\nqaFlags.push({ check: 'external_research_performed', passed: !!data.researchPerformed, detail: data.researchPerformed ? `${(data.externalEvidence || []).length} preuve(s) externe(s) collectée(s)` : 'aucune donnée canonique manquante ou périmée' });\n\n// Aucune source de type folio_legacy ne doit apparaître au catalogue : FOLIO n'a\n// aucune origine vérifiable, en fabriquer une serait un faux sourcing.\nconst folioSources = (data.catalogue || []).filter((c) => c.type === 'folio_legacy');\nqaFlags.push({ check: 'no_folio_source', passed: folioSources.length === 0, detail: folioSources.length === 0 ? 'OK' : `${folioSources.length} source folio_legacy au catalogue` });\n\nconst emptySections = [];\nif ((ak.market_positioning.direct_competitors || []).length === 0) emptySections.push('market_positioning.direct_competitors');\nif ((ak.organisation.departments || []).length === 0) emptySections.push('organisation.departments');\nif ((ak.company_value_chain.key_links || []).length === 0) emptySections.push('company_value_chain.key_links');\nqaFlags.push({ check: 'sections_populated', passed: emptySections.length === 0, detail: emptySections.length === 0 ? 'OK' : `vides (honnêtement, faute de source) : ${emptySections.join(', ')}` });\n\nconst hasContacts = (data.relational.contacts || []).length > 0;\nqaFlags.push({\n  check: 'key_contacts_present_if_contacts_exist',\n  passed: !hasContacts || (ak.organisation.key_contacts || []).length > 0,\n  detail: hasContacts ? `${(ak.organisation.key_contacts || []).length} synthèses pour ${data.relational.contacts.length} contacts` : 'aucun contact en base',\n});\n\nfor (const w of (data.researchWarnings || [])) {\n  qaFlags.push({ check: 'research_warning', passed: true, detail: w });\n}\n\nreturn [{ json: { ...data, qaFlags } }];"
       },
-      "id": "n8-quality-check",
+      "id": "n030-17",
       "name": "Quality Check",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2120,
+        2080,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/enrichment_proposals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "workspace_id",
+              "value": "=eq.{{ $('Validate Entity').item.json.workspaceId }}"
+            },
+            {
+              "name": "target_type",
+              "value": "eq.company"
+            },
+            {
+              "name": "target_id",
+              "value": "=eq.{{ $('Validate Entity').item.json.companyId }}"
+            },
+            {
+              "name": "status",
+              "value": "in.(proposed,needs_review,conflicting,validated)"
+            },
+            {
+              "name": "select",
+              "value": "id,attribute_name,proposal_key,status,proposed_value"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "n030-18",
+      "name": "Load Active Proposals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Propositions d'enrichissement — SEUL chemin d'écriture vers les données\n// canoniques du compte. Ce workflow n'écrit JAMAIS dans `companies` : une\n// donnée canonique ne change qu'après validation humaine\n// (validate_and_apply_enrichment_proposals).\n//\n// L'espace de nommage `account_scan:{companyId}:{attribut}` est VOLONTAIREMENT\n// partagé avec intel-010-refresh : la clé identifie l'attribut du compte, pas le\n// workflow producteur. Deux préfixes distincts créeraient deux propositions\n// concurrentes pour le même champ, toutes deux \"actives\" (l'index unique porte\n// sur workspace_id + proposal_key). Ici, le plus récent remplace le précédent\n// tant qu'aucune décision humaine n'a été prise.\nconst data = $('Quality Check').first().json;\nconst activeProposals = $input.all().map((i) => i.json).filter((r) => r && r.proposal_key);\nconst sourceIdByKey = new Map((data.sourceIdByKey || []).map((r) => [r.source_key, r.id]));\n\nfunction simpleHash(str) {\n  let h = 5381;\n  const s = String(str == null ? '' : str);\n  for (let i = 0; i < s.length; i += 1) h = ((h << 5) + h + s.charCodeAt(i)) | 0;\n  return (h >>> 0).toString(16);\n}\n\nfunction norm(v) {\n  if (v === null || v === undefined) return null;\n  const t = String(v).replace(/\\s+/g, ' ').trim();\n  return t.length > 0 ? t.toLowerCase() : null;\n}\n\nconst registryEvidence = (data.externalEvidence || []).find((e) => e.kind === 'registry');\nconst siteEvidence = (data.externalEvidence || []).find((e) => e.kind === 'official_site');\nconst canonical = data.canonical;\nconst candidates = [];\nconst warnings = [];\n\nfunction propose({ attribute, value, sourceKey, confidence, justification, currentValue }) {\n  const proposed = norm(value);\n  if (!proposed) return;\n  // Ne créer une proposition QUE si la valeur diffère réellement de l'actuelle.\n  if (norm(currentValue) === proposed) return;\n  candidates.push({\n    proposal_key: `account_scan:${data.companyId}:${attribute}`,\n    target_type: 'company',\n    target_id: data.companyId,\n    attribute_name: attribute,\n    proposed_value: String(value).trim(),\n    normalized_value: proposed,\n    normalized_value_hash: simpleHash(proposed),\n    initial_snapshot: { current: currentValue === undefined ? null : currentValue },\n    primary_source_id: sourceIdByKey.get(sourceKey) || null,\n    origin: 'external',\n    confidence_score: confidence,\n    justification,\n    status: confidence < 0.45 ? 'needs_review' : 'proposed',\n    run_id: data.runId,\n    workspace_id: data.workspaceId,\n  });\n}\n\nif (registryEvidence && registryEvidence.registry) {\n  const r = registryEvidence.registry;\n  const key = registryEvidence.sourceKey;\n  propose({ attribute: 'legal_name', value: r.legalName, sourceKey: key, confidence: 0.95,\n    justification: `Raison sociale au registre public (SIREN ${r.siren}).`, currentValue: canonical.legal_name });\n  propose({ attribute: 'siren', value: r.siren, sourceKey: key, confidence: 0.95,\n    justification: 'SIREN issu du registre public.', currentValue: null });\n  propose({ attribute: 'naf_code', value: r.nafCode, sourceKey: key, confidence: 0.9,\n    justification: `Code NAF déclaré : ${r.activityLabel || r.nafCode}.`, currentValue: null });\n  propose({ attribute: 'hq_location', value: r.hqLocation, sourceKey: key, confidence: 0.85,\n    justification: 'Commune du siège au registre public.', currentValue: canonical.hq_location });\n  if (r.employeeCount !== null) {\n    // Tranche INSEE ramenée à son point médian : une ESTIMATION, jamais\n    // présentée avec la même certitude qu'une valeur exacte.\n    propose({ attribute: 'employee_count', value: r.employeeCount, sourceKey: key, confidence: 0.55,\n      justification: \"Estimation issue de la tranche d'effectif INSEE (point médian de la tranche).\",\n      currentValue: canonical.employee_count });\n  }\n  if (r.activityLabel) {\n    propose({ attribute: 'description', value: r.activityLabel, sourceKey: key, confidence: 0.6,\n      justification: \"Libellé de l'activité principale déclarée au registre public.\",\n      currentValue: canonical.description });\n  }\n} else {\n  warnings.push('Aucune entité juridique résolue : aucune proposition sur les données canoniques légales.');\n}\n\nif (siteEvidence && !canonical.website) {\n  propose({ attribute: 'website', value: siteEvidence.canonicalUrl || siteEvidence.url, sourceKey: siteEvidence.sourceKey,\n    confidence: 0.7, justification: 'Site officiel effectivement récupéré.', currentValue: canonical.website });\n}\n\n// ── Réconciliation idempotente ─────────────────────────────────────────────\nconst byKey = new Map(activeProposals.map((p) => [p.proposal_key, p]));\n// Une proposition 'validated' ou 'conflicting' porte une décision humaine ou un\n// conflit non résolu : jamais régénérée en silence.\nconst untouched = new Set(activeProposals.filter((p) => ['validated', 'conflicting'].includes(p.status)).map((p) => p.proposal_key));\n\nconst toInsert = [];\nconst staleIdsToDelete = [];\nfor (const c of candidates) {\n  if (untouched.has(c.proposal_key)) {\n    warnings.push(`Proposition déjà décidée ou en conflit pour \"${c.attribute_name}\" — non régénérée.`);\n    continue;\n  }\n  const existing = byKey.get(c.proposal_key);\n  if (existing && ['proposed', 'needs_review'].includes(existing.status)) {\n    // Même valeur qu'une proposition déjà en attente : rien à réécrire.\n    if (norm(existing.proposed_value) === c.normalized_value) continue;\n    staleIdsToDelete.push(existing.id);\n  }\n  toInsert.push(c);\n}\n\nreturn [{\n  json: {\n    ...data,\n    proposalWarnings: warnings,\n    toInsert,\n    staleIdsToDelete,\n    proposalsCount: toInsert.length,\n  }\n}];"
+      },
+      "id": "n030-19",
+      "name": "Build Enrichment Proposals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/enrichment_proposals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=in.({{ $json.staleIdsToDelete.length > 0 ? $json.staleIdsToDelete.join(',') : '00000000-0000-0000-0000-000000000000' }})"
+            },
+            {
+              "name": "workspace_id",
+              "value": "=eq.{{ $json.workspaceId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
+      },
+      "id": "n030-20",
+      "name": "Delete Stale Proposals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2680,
+        300
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-has-proposals",
+              "leftValue": "={{ $('Build Enrichment Proposals').first().json.proposalsCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n030-21",
+      "name": "Has New Proposals?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2880,
         300
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const data = $input.first().json;\nconst companyName = (data.context.company && data.context.company.name) || 'Compte';\n\nconst sourceRefs = [\n  { entityType: 'company', entityId: data.companyId, label: 'Fiche compte' },\n];\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'succeeded',\n  contentJson: data.accountKnowledge,\n  contentText: [\n    `# Connaissance compte — ${companyName}`,\n    ...data.accountKnowledge.identity_positioning.map((f) => f.text),\n    ...data.accountKnowledge.commercial_relationship.map((f) => f.text),\n  ].join('\\n\\n'),\n  title: `Connaissance compte — ${companyName}`,\n  modelProvider: 'anthropic',\n  modelUsed: (data.llmUsage && data.llmUsage.model) || 'claude-sonnet-5',\n  tokensInput: (data.llmUsage && data.llmUsage.inputTokens) || null,\n  tokensOutput: (data.llmUsage && data.llmUsage.outputTokens) || null,\n  contextSnapshot: data.context,\n  sourceRefs,\n  qaFlags: data.qaFlags || [],\n};\n\nreturn [{\n  json: {\n    callbackUrl: data.callbackUrl,\n    rawBody: JSON.stringify(callbackBody),\n  }\n}];"
+        "method": "POST",
+        "url": "https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/enrichment_proposals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $('Build Enrichment Proposals').first().json.toInsert }}",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi"
       },
-      "id": "n9-prepare-callback",
+      "id": "n030-22",
+      "name": "Insert Fresh Proposals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Aucune proposition à écrire. Un item est renvoyé quand même : sans lui, le\n// nœud suivant ne serait pas exécuté et le run resterait bloqué en \"running\".\nreturn [{ json: { proposalsInserted: 0 } }];"
+      },
+      "id": "n030-23",
+      "name": "Skip Proposals Insert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Point de convergence stable : relit tout depuis \"Build Enrichment Proposals\",\n// jamais depuis une branche IF qui a pu ne pas s'exécuter.\nconst data = $('Build Enrichment Proposals').first().json;\nconst companyName = (data.canonical && data.canonical.name) || 'Compte';\n\n// Union des sources : celles réellement citées par les Claims, plus celles\n// mobilisées par l'indicateur déterministe côté applicatif (résolues là-bas).\nconst sourceRefs = Array.from(new Set(data.usedSourceIds || [])).map((id) => ({\n  entityType: 'intelligence_source',\n  entityId: id,\n  label: (data.catalogue || []).find((c) => c.source_id === id)?.name || 'Source',\n}));\n\nconst qaFlags = [\n  ...(data.qaFlags || []),\n  ...(data.proposalWarnings || []).map((w) => ({ check: 'proposal_warning', passed: true, detail: w })),\n  { check: 'enrichment_proposals_written', passed: true, detail: `${data.proposalsCount} proposition(s) d'enrichissement` },\n];\n\nconst startedAt = $('Validate Entity').item.json.startedAtMs || null;\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId: data.runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'succeeded',\n  contentJson: data.accountKnowledge,\n  contentText: [\n    `# Connaissance entreprise — ${companyName}`,\n    data.accountKnowledge.account_summary ? data.accountKnowledge.account_summary.text : '',\n  ].filter(Boolean).join('\\n\\n'),\n  title: `Connaissance entreprise — ${companyName}`,\n  modelProvider: 'anthropic',\n  modelUsed: (data.llmUsage && data.llmUsage.model) || 'claude-sonnet-5',\n  tokensInput: (data.llmUsage && data.llmUsage.inputTokens) || null,\n  tokensOutput: (data.llmUsage && data.llmUsage.outputTokens) || null,\n  durationMs: startedAt ? (Date.now() - startedAt) : null,\n  contextSnapshot: {\n    canonical: data.canonical,\n    researchTargets: data.researchTargets,\n    researchPerformed: data.researchPerformed,\n    catalogue: (data.catalogue || []).map(({ content, ...rest }) => rest),\n    dataCutoffAt: data.dataCutoffAt,\n  },\n  sourceRefs,\n  qaFlags,\n};\n\nreturn [{ json: { callbackUrl: data.callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+      },
+      "id": "n030-24",
       "name": "Prepare Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2360,
+        3280,
         300
       ]
     },
     {
       "parameters": {
         "action": "hmac",
-        "binaryData": false,
-        "value": "={{ $json.rawBody }}",
         "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
         "dataPropertyName": "signature",
         "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
         "encoding": "hex"
       },
-      "id": "n9b-sign-callback",
+      "id": "n030-25",
       "name": "Sign Callback",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        2600,
+        3480,
         300
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.callbackUrl }}",
+        "url": "={{ $('Prepare Callback').item.json.callbackUrl }}",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
               "name": "x-kredo-signature",
               "value": "=sha256={{ $json.signature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $json.rawBody }}",
-        "options": {}
+        "body": "={{ $('Prepare Callback').item.json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
       },
-      "id": "n10-callback",
+      "id": "n030-26",
       "name": "Callback",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2840,
+        3680,
         300
-      ],
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 10000
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const errItem = $input.first().json;\nlet runId = null;\nlet callbackUrl = null;\n\ntry {\n  const ve = $('Validate Entity').item.json;\n  runId = ve.runId || null;\n  callbackUrl = ve.callbackUrl || null;\n} catch (e) {\n  // Validate Entity n'a produit aucune sortie exploitable — notification impossible.\n}\n\nlet errorMessage = 'Erreur inconnue dans le workflow intel-030-account-knowledge';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'failed',\n  contentJson: {},\n  errorMessage,\n};\n\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
+        "jsCode": "// Chemin d'échec : quelle que soit l'étape fautive, le run doit être notifié en\n// \"failed\". Un run laissé en \"running\" ne serait repris que par le reaper\n// (ops-004), 30 minutes plus tard — l'utilisateur resterait devant un écran\n// « en cours » sans issue.\nconst errItem = $input.first().json;\nlet runId = null;\nlet callbackUrl = null;\n\ntry {\n  const ve = $('Validate Entity').item.json;\n  runId = ve.runId || null;\n  callbackUrl = ve.callbackUrl || null;\n} catch (e) {\n  // Validate Entity n'a produit aucune sortie exploitable — notification impossible.\n}\n\nlet errorMessage = 'Erreur inconnue dans le workflow intel-030-account-knowledge';\nif (errItem && errItem.error) {\n  errorMessage = typeof errItem.error === 'string' ? errItem.error : (errItem.error.message || JSON.stringify(errItem.error));\n} else if (errItem && errItem.message) {\n  errorMessage = errItem.message;\n}\n\nconst callbackBody = {\n  n8nExecutionId: $execution.id,\n  n8nWorkflowId: $workflow.id,\n  runId,\n  phase: 1,\n  resultType: 'account_knowledge',\n  status: 'failed',\n  contentJson: {},\n  errorMessage: String(errorMessage).slice(0, 2000),\n};\n\nreturn [{ json: { callbackUrl, rawBody: JSON.stringify(callbackBody) } }];"
       },
-      "id": "n11-prepare-failure",
+      "id": "n030-27",
       "name": "Prepare Failure Callback",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1880,
-        580
+        2480,
+        620
       ]
     },
     {
       "parameters": {
         "action": "hmac",
-        "binaryData": false,
-        "value": "={{ $json.rawBody }}",
         "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
         "dataPropertyName": "signature",
         "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
         "encoding": "hex"
       },
-      "id": "n11b-sign-failure",
+      "id": "n030-28",
       "name": "Sign Failure Callback",
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        2120,
-        580
+        2680,
+        620
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.callbackUrl }}",
+        "url": "={{ $('Prepare Failure Callback').item.json.callbackUrl }}",
+        "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
               "name": "x-kredo-signature",
               "value": "=sha256={{ $json.signature }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
             }
           ]
         },
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={{ $json.rawBody }}",
-        "options": {}
+        "body": "={{ $('Prepare Failure Callback').item.json.rawBody }}",
+        "options": {
+          "timeout": 30000
+        }
       },
-      "id": "n12-callback-failure",
+      "id": "n030-29",
       "name": "Callback (Failure)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2360,
-        580
-      ],
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000
+        2880,
+        620
+      ]
     }
   ],
   "connections": {
@@ -394,6 +795,147 @@
       "main": [
         [
           {
+            "node": "Prepare Deterministic Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Deterministic Context": {
+      "main": [
+        [
+          {
+            "node": "Needs External Research?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs External Research?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Official Site",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip External Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Official Site": {
+      "main": [
+        [
+          {
+            "node": "Fetch Public Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Public Registry": {
+      "main": [
+        [
+          {
+            "node": "Collect External Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect External Evidence": {
+      "main": [
+        [
+          {
+            "node": "Build Source Catalogue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip External Research": {
+      "main": [
+        [
+          {
+            "node": "Build Source Catalogue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Source Catalogue": {
+      "main": [
+        [
+          {
+            "node": "Upsert Sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Sources": {
+      "main": [
+        [
+          {
+            "node": "Resolve Source Ids",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Source Ids": {
+      "main": [
+        [
+          {
             "node": "Assemble Prompt",
             "type": "main",
             "index": 0
@@ -413,6 +955,13 @@
         [
           {
             "node": "Call LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
             "type": "main",
             "index": 0
           }
@@ -456,6 +1005,114 @@
       ]
     },
     "Quality Check": {
+      "main": [
+        [
+          {
+            "node": "Load Active Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Active Proposals": {
+      "main": [
+        [
+          {
+            "node": "Build Enrichment Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Enrichment Proposals": {
+      "main": [
+        [
+          {
+            "node": "Delete Stale Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Stale Proposals": {
+      "main": [
+        [
+          {
+            "node": "Has New Proposals?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Proposals?": {
+      "main": [
+        [
+          {
+            "node": "Insert Fresh Proposals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Proposals Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Fresh Proposals": {
+      "main": [
+        [
+          {
+            "node": "Prepare Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Failure Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Proposals Insert": {
       "main": [
         [
           {
@@ -515,5 +1172,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "pinData": {}
+  "tags": []
 }

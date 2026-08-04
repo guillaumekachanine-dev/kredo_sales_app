@@ -2,7 +2,13 @@
 
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import { hasVisibleOpenQuestions } from "@/lib/intelligence/client-intelligence-company"
-import { AccountKnowledgeOpenQuestions, AccountSignalsCard } from "./AccountKnowledgeBlocks"
+import {
+  AccountKnowledgeOpenQuestions,
+  AccountKnowledgeOpenQuestionsV2,
+  AccountSignalsCard,
+} from "./AccountKnowledgeBlocks"
+import { AccountKnowledgeUpdateControlsDesktop } from "./AccountKnowledgeUpdateControls"
+import { useAccountKnowledgeRun } from "./use-account-knowledge-run"
 import { CompanyCommercialContent } from "./CompanyCommercialContent"
 import { CompanyEditorialSection } from "./CompanyEditorialSection"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
@@ -22,13 +28,23 @@ export function ClientIntelligenceCompanyTab({
   data: ClientIntelligenceData
   onOpenAudit: () => void
 }) {
-  const hasQuestions = Boolean(
-    data.accountKnowledge
-    && hasVisibleOpenQuestions(data.accountKnowledge.data.open_questions),
-  )
+  const knowledge = data.accountKnowledge
+  const { status, errorMessage, trigger } = useAccountKnowledgeRun(data.company.id)
+
+  const hasQuestions = knowledge
+    ? knowledge.version === 1
+      ? hasVisibleOpenQuestions(knowledge.data.open_questions)
+      : knowledge.data.open_questions.some((question) => !question.dismissed)
+    : false
 
   return (
     <div className="space-y-6 pt-6">
+      <AccountKnowledgeUpdateControlsDesktop
+        state={knowledge}
+        status={status}
+        errorMessage={errorMessage}
+        onUpdate={() => void trigger()}
+      />
       <nav aria-label="Sections de l’onglet Entreprise" className="sticky top-0 z-10 -mx-1 overflow-x-auto border-b border-border bg-canvas/95 px-1 py-2 backdrop-blur-sm">
         <div className="flex min-w-max items-center gap-1">
           {[...SECTION_LINKS, ...(hasQuestions ? [{ id: "company-questions", label: "Hypothèses à valider" }] : [])].map((link, index) => (
@@ -99,12 +115,13 @@ export function ClientIntelligenceCompanyTab({
         />
       </CompanyEditorialSection>
 
-      {hasQuestions && data.accountKnowledge ? (
+      {hasQuestions && knowledge ? (
         <div id="company-questions" className="scroll-mt-6">
-          <AccountKnowledgeOpenQuestions
-            data={data.accountKnowledge.data}
-            resultId={data.accountKnowledge.resultId}
-          />
+          {knowledge.version === 1 ? (
+            <AccountKnowledgeOpenQuestions data={knowledge.data} resultId={knowledge.resultId} />
+          ) : (
+            <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
+          )}
         </div>
       ) : null}
     </div>

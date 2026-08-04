@@ -19,6 +19,7 @@ import type {
 } from "@/lib/intelligence/intelligence-data"
 import type {
   AccountKnowledgeContent,
+  AccountKnowledgeContentV2,
   AccountKnowledgeFact,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { SectionBlock, FactProvenanceBadge } from "./intelligence-parts"
@@ -873,6 +874,32 @@ export function AccountKnowledgeOpenQuestions({
       facts={data.open_questions}
       resultId={resultId}
     />
+  )
+}
+
+/**
+ * Lot 1 — hypothèses à valider d'un artefact V2. Structure différente de V1
+ * (`AccountKnowledgeOpenQuestion` n'est pas un fait à provenance : on interroge,
+ * on n'affirme pas), donc pas de curation par provenance ici. Rendu volontairement
+ * aligné sur le bloc V1 : aucune refonte visuelle dans ce lot.
+ */
+export function AccountKnowledgeOpenQuestionsV2({ data }: { data: AccountKnowledgeContentV2 }) {
+  const questions = (data.open_questions ?? []).filter((question) => !question.dismissed)
+  if (questions.length === 0) return null
+
+  return (
+    <SectionBlock title={SECTION_LABELS.open_questions}>
+      <div className="space-y-1.5">
+        {questions.map((question, index) => (
+          <div key={index} className="rounded border border-border/60 bg-canvas/40 px-3 py-2">
+            <p className="text-xs leading-relaxed text-body">{question.question}</p>
+            {question.why_it_matters ? (
+              <p className="mt-1 text-[11px] leading-relaxed text-muted">{question.why_it_matters}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </SectionBlock>
   )
 }
 

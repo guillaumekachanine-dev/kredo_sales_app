@@ -1,5 +1,5 @@
 import type { Database } from "@/types/database"
-import type { Claim, QualitySummary } from "./intelligence-common-contracts"
+import type { Claim, DeterministicIndicator, QualitySummary } from "./intelligence-common-contracts"
 
 // ─── ADR-0012 — Contrats de la chaîne de décision commerciale ───────────────
 // Lot 1 : types des artefacts générés par les 5 étapes + enum de provenance
@@ -94,8 +94,17 @@ export type AccountKnowledgeIdentityV2 = {
   headquarters: Claim | null
   revenue: Claim | null
   employee_count: Claim | null
-  /** Dynamique observée (croissance, restructuration, atonie). */
-  dynamic: Claim | null
+  /**
+   * Dynamique du compte — DeterministicIndicator, et non un Claim : cette
+   * valeur n'est jamais rédigée par le LLM. Elle est calculée par
+   * `computeAccountDynamic` (méthode `account-dynamic-v1`) et injectée
+   * côté callback applicatif. Le workflow doit émettre `null` ici ; toute
+   * autre valeur en provenance du modèle est rejetée.
+   *
+   * Mesure une intensité d'activité DÉTECTÉE et sourcée sur une fenêtre datée
+   * — ni une croissance économique, ni un sentiment (cf. account-dynamic.ts).
+   */
+  dynamic: DeterministicIndicator | null
 }
 
 export type AccountKnowledgeMarketPositioningV2 = {
