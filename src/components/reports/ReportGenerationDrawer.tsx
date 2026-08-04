@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { AlertBlock } from "@/components/ui/AlertBlock"
@@ -14,7 +14,7 @@ import type {
   ReportPeriodPreset,
   WeeklyManagerContent,
 } from "@/app/(app)/reports/_data/reports-types"
-import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import {
   getReportGenerationOption,
   type ReportGenerationKind,
@@ -135,7 +135,6 @@ export function ReportGenerationDrawer({
     reportType === "weekly_manager" ||
     reportType === "financial"
   const isWeeklyManager = reportType === "weekly_manager"
-  const supabase = useMemo(() => createClient(), [])
 
   const [periodPreset, setPeriodPreset] = useState<ReportPeriodPreset>("month")
   const [customStart, setCustomStart] = useState("")
@@ -177,45 +176,25 @@ export function ReportGenerationDrawer({
     resetExecutionState()
   }
 
-  useEffect(() => {
-    if (!runId || !isReadyReport) return
-
-    const channel = supabase
-      .channel(`activity-report-result-${runId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ai_intelligence_results",
-          filter: `run_id=eq.${runId}`,
-        },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            status: string
-            content_json: ReportContent
-          }
-
-          if (row.status === "succeeded") {
-            setResultId(row.id)
-            setContent(row.content_json)
-            setRunStatus("done")
-            return
-          }
-
-          if (row.status === "failed") {
-            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
-            setRunStatus("error")
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      void supabase.removeChannel(channel)
-    }
-  }, [isReadyReport, runId, supabase])
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie.
+  useRunTracker<ReportContent>({
+    runId: isReadyReport ? runId : null,
+    onSucceeded: (result) => {
+      if (!result) return
+      setResultId(result.id)
+      setContent(result.contentJson)
+      setRunStatus("done")
+    },
+    onFailed: (message) => {
+      setErrorMsg(message || "La génération a échoué. Vérifie les logs n8n et réessaie.")
+      setRunStatus("error")
+    },
+    onTimeout: () => {
+      setErrorMsg("Le traitement dépasse le délai habituel. Il continue côté serveur : rouvre ce panneau dans quelques minutes.")
+      setRunStatus("error")
+    },
+  })
 
   async function handleGenerate() {
     if (!isReadyReport || !option) {

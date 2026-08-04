@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import type { ClientIntelligenceData, ClientIntelligenceContact } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type {
   CommunicationBrief,
   CommunicationOutput,
@@ -281,47 +282,31 @@ export function PitchMailDrawerContent({
     return () => { cancelled = true }
   }, [supabase])
 
-  // Abonnement Realtime : dès qu'on a un runId, on écoute le résultat
-  useEffect(() => {
-    if (!runId) return
-
-    const channel = supabase
-      .channel(`communication-result-${runId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ai_intelligence_results",
-          filter: `run_id=eq.${runId}`,
-        },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            status: string
-            content_json: CommunicationOutput | PitchOutput
-            qa_flags: CommunicationQaFlag[]
-          }
-          if (row.status === "succeeded") {
-            setResultId(row.id)
-            setResult(row.content_json)
-            setQaFlags(row.qa_flags || [])
-            setRunStatus("done")
-          } else if (row.status === "failed") {
-            // INTEL-020 Lot 11 — surface la raison réelle du rejet (contrôle
-            // qualité ou erreur de génération) via les qa_flags échoués, déjà
-            // formulés de façon lisible et sans fuite technique côté n8n.
-            const failedFlags = (row.qa_flags || []).filter((f) => !f.passed)
-            const reason = failedFlags.map((f) => f.detail).filter(Boolean).join(" ")
-            setErrorMsg(reason || "La génération n'a pas abouti. Réessaie dans un instant.")
-            setRunStatus("error")
-          }
-        }
-      )
-      .subscribe()
-
-    return () => { void supabase.removeChannel(channel) }
-  }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie.
+  useRunTracker<CommunicationOutput | PitchOutput, CommunicationQaFlag[]>({
+    runId,
+    onSucceeded: (trackedResult) => {
+      if (!trackedResult) return
+      setResultId(trackedResult.id)
+      setResult(trackedResult.contentJson)
+      setQaFlags(trackedResult.qaFlags ?? [])
+      setRunStatus("done")
+    },
+    onFailed: (message, trackedResult) => {
+      // INTEL-020 Lot 11 — surface la raison réelle du rejet (contrôle qualité
+      // ou erreur de génération) via les qa_flags échoués, déjà formulés de
+      // façon lisible et sans fuite technique côté n8n.
+      const failedFlags = (trackedResult?.qaFlags ?? []).filter((flag) => !flag.passed)
+      const reason = failedFlags.map((flag) => flag.detail).filter(Boolean).join(" ")
+      setErrorMsg(reason || message || "La génération n'a pas abouti. Réessaie dans un instant.")
+      setRunStatus("error")
+    },
+    onTimeout: () => {
+      setErrorMsg("Le traitement dépasse le délai habituel. Il continue côté serveur : rouvre ce panneau dans quelques minutes.")
+      setRunStatus("error")
+    },
+  })
 
   useEffect(() => {
     if (runStatus !== "done" || !result) return undefined
@@ -559,7 +544,6 @@ export function SummaryDrawerContent({
 }) {
   const { company } = data
   const isMobile = variant === "mobile"
-  const supabase = createClient()
 
   const [additionalInstructions, setAdditionalInstructions] = useState("")
   const [runStatus, setRunStatus] = useState<RunStatus>("idle")
@@ -569,40 +553,23 @@ export function SummaryDrawerContent({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
 
-  // Abonnement Realtime : dès qu'on a un runId, on écoute le résultat
-  useEffect(() => {
-    if (!runId) return
-
-    const channel = supabase
-      .channel(`account-summary-result-${runId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ai_intelligence_results",
-          filter: `run_id=eq.${runId}`,
-        },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            status: string
-            content_json: AccountSummaryContent
-          }
-          if (row.status === "succeeded") {
-            setResultId(row.id)
-            setContent(row.content_json)
-            setRunStatus("done")
-          } else if (row.status === "failed") {
-            setErrorMsg("La génération a échoué. Vérifie les logs n8n et réessaie.")
-            setRunStatus("error")
-          }
-        }
-      )
-      .subscribe()
-
-    return () => { void supabase.removeChannel(channel) }
-  }, [runId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useRunTracker<AccountSummaryContent>({
+    runId,
+    onSucceeded: (trackedResult) => {
+      if (!trackedResult) return
+      setResultId(trackedResult.id)
+      setContent(trackedResult.contentJson)
+      setRunStatus("done")
+    },
+    onFailed: (message) => {
+      setErrorMsg(message || "La génération a échoué. Vérifie les logs n8n et réessaie.")
+      setRunStatus("error")
+    },
+    onTimeout: () => {
+      setErrorMsg("Le traitement dépasse le délai habituel. Il continue côté serveur : rouvre ce panneau dans quelques minutes.")
+      setRunStatus("error")
+    },
+  })
 
   async function handleGenerate() {
     setRunStatus("loading")

@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import {useMemo, useState, useTransition} from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
-import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { cn } from "@/lib/utils"
 import { saveGlobalWatchSettingsAction } from "@/app/(app)/veille/_actions/veille-actions"
 import type { VeilleDigest } from "@/app/(app)/veille/_data/veille-data"
@@ -116,41 +116,35 @@ export function VeilleHeaderActions({
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  useEffect(() => {
-    if (!currentRunId) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`veille-global-run-${currentRunId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "ai_intelligence_runs", filter: `id=eq.${currentRunId}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
-            created_at: string
-            completed_at: string | null
-            error_message: string | null
-          }
-          const state = row.status === "cancelled" ? "failed" : row.status
-          setHealth((current) => ({
-            ...current,
-            state,
-            label: state === "succeeded" ? "OK" : state === "failed" ? "Erreur" : "En cours",
-            runId: row.id,
-            lastRunAt: row.created_at,
-            lastSucceededAt: state === "succeeded" ? row.completed_at ?? row.created_at : null,
-            errorMessage: row.error_message,
-          }))
-          if (state === "succeeded" || state === "failed") {
-            setCurrentRunId(null)
-            router.refresh()
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-  }, [currentRunId, router])
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie.
+  useRunTracker({
+    runId: currentRunId,
+    withResult: false,
+    onSucceeded: () => {
+      setHealth((current) => ({
+        ...current,
+        state: "succeeded",
+        label: "OK",
+        lastSucceededAt: new Date().toISOString(),
+        errorMessage: null,
+      }))
+      setCurrentRunId(null)
+      router.refresh()
+    },
+    onFailed: (message) => {
+      setHealth((current) => ({ ...current, state: "failed", label: "Erreur", errorMessage: message }))
+      setCurrentRunId(null)
+      router.refresh()
+    },
+    onTimeout: () => {
+      setCurrentRunId(null)
+    },
+    onRunning: () => {
+      setHealth((current) => ({ ...current, state: "running", label: "En cours" }))
+    },
+  })
+
 
   const activeParameters = useMemo(() => {
     const values = [

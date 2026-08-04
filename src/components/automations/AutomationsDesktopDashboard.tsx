@@ -14,6 +14,7 @@ import {
   type DataTableSort,
 } from "@/components/ui/data-table/DataTable"
 import { createClient } from "@/lib/supabase/client"
+import { ensureRealtimeAuth } from "@/lib/supabase/realtime-auth"
 import { formatDateTime } from "@/lib/formatters"
 import type { AutomationsDashboardData, RunJournalRow, WorkflowHealthRow } from "@/lib/automations/automations-data"
 import {
@@ -193,26 +194,35 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
   // Realtime : les mises à jour de statut d'un run déjà présent dans le journal
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
-      .channel("automations-runs-journal")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "ai_intelligence_runs" },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; error_message: string | null; failed_at: string | null; completed_at: string | null }
-          setJournal((current) =>
-            current.map((run) =>
-              run.id === row.id
-                ? { ...run, status: row.status, errorMessage: row.error_message, failedAt: row.failed_at, completedAt: row.completed_at }
-                : run
+    // Sans jeton utilisateur, ce canal se souscrit « avec succès » puis reste
+    // muet (cf. lib/supabase/realtime-auth.ts).
+    let disposed = false
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    void (async () => {
+      await ensureRealtimeAuth(supabase)
+      if (disposed) return
+      channel = supabase
+        .channel("automations-runs-journal")
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "ai_intelligence_runs" },
+          (payload) => {
+            const row = payload.new as { id: string; status: string; error_message: string | null; failed_at: string | null; completed_at: string | null }
+            setJournal((current) =>
+              current.map((run) =>
+                run.id === row.id
+                  ? { ...run, status: row.status, errorMessage: row.error_message, failedAt: row.failed_at, completedAt: row.completed_at }
+                  : run
+              )
             )
-          )
-        }
-      )
-      .subscribe()
+          }
+        )
+        .subscribe()
+    })()
 
     return () => {
-      void supabase.removeChannel(channel)
+      disposed = true
+      if (channel) void supabase.removeChannel(channel)
     }
   }, [])
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, Fragment } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from "react"
 import Link from "next/link"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { FinancialReferenceMobileCard } from "@/components/finance/FinancialReferenceMobileCard"
@@ -34,6 +34,12 @@ import {
 } from "./AccountKnowledgeV2Blocks"
 import { AccountKnowledgeUpdateControlsMobile } from "./AccountKnowledgeUpdateControls"
 import { useAccountKnowledgeRun } from "./use-account-knowledge-run"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
+import { triggerN8nWorkflow } from "@/lib/n8n/trigger-client"
+import {
+  ACCOUNT_ISSUES_MAP_RESULT_TYPE,
+  COMMERCIAL_STRATEGY_RESULT_TYPE,
+} from "@/lib/intelligence/account-intelligence-contracts"
 import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
@@ -92,83 +98,79 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
   // ADR-0012 Lot 4 — enjeux (matérialisation côté callback, D-5) : pas de
   // contenu à parser côté client, on recharge la liste ouverte au succès.
   const [issues, setIssues] = useState(data.accountIssues)
-  const [issuesRunStatus, setIssuesRunStatus] = useState<ConnaissanceRunStatus>("idle")
   const [issuesRunId, setIssuesRunId] = useState<string | null>(null)
   const [issuesErrorMsg, setIssuesErrorMsg] = useState<string | null>(null)
+  const [issuesTriggering, setIssuesTriggering] = useState(false)
+  const issuesInFlightRef = useRef(false)
 
-  useEffect(() => {
-    if (!issuesRunId) return
-    const channel = supabase
-      .channel(`account-issues-result-mobile-${issuesRunId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${issuesRunId}` },
-        (payload) => {
-          const row = payload.new as { status: string }
-          if (row.status === "succeeded") {
-            void supabase
-              .from("account_issues")
-              .select("id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at")
-              .eq("company_id", company.id)
-              .eq("status", "open")
-              .order("importance", { ascending: false })
-              .then(({ data: rows }) => {
-                if (rows) {
-                  setIssues(rows.map((r) => ({
-                    id: r.id,
-                    title: r.title,
-                    category: r.category,
-                    problemStatement: r.problem_statement,
-                    evidenceLevel: r.evidence_level,
-                    provenance: r.provenance,
-                    importance: r.importance,
-                    urgency: r.urgency,
-                    criticality: r.criticality,
-                    businessImpact: r.business_impact,
-                    accessibility: r.accessibility,
-                    kredoFit: r.kredo_fit,
-                    contactIds: r.contact_ids ?? [],
-                    recommendedNextProbe: r.recommended_next_probe,
-                    status: r.status,
-                    createdAt: r.created_at,
-                  })))
-                }
-                setIssuesRunStatus("done")
-              })
-          } else if (row.status === "failed") {
-            setIssuesErrorMsg("La génération a échoué. Réessaie plus tard.")
-            setIssuesRunStatus("error")
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [issuesRunId])
+  const reloadIssues = useCallback(async () => {
+    const { data: rows } = await supabase
+      .from("account_issues")
+      .select("id,title,category,problem_statement,evidence_level,provenance,importance,urgency,criticality,business_impact,accessibility,kredo_fit,contact_ids,recommended_next_probe,status,created_at")
+      .eq("company_id", company.id)
+      .eq("status", "open")
+      .order("importance", { ascending: false })
+    if (!rows) return
+    setIssues(rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      category: r.category,
+      problemStatement: r.problem_statement,
+      evidenceLevel: r.evidence_level,
+      provenance: r.provenance,
+      importance: r.importance,
+      urgency: r.urgency,
+      criticality: r.criticality,
+      businessImpact: r.business_impact,
+      accessibility: r.accessibility,
+      kredoFit: r.kredo_fit,
+      contactIds: r.contact_ids ?? [],
+      recommendedNextProbe: r.recommended_next_probe,
+      status: r.status,
+      createdAt: r.created_at,
+    })))
+  }, [supabase, company.id])
+
+  const issuesTracker = useRunTracker({
+    runId: issuesRunId,
+    resultType: ACCOUNT_ISSUES_MAP_RESULT_TYPE,
+    withResult: false,
+    onSucceeded: () => {
+      issuesInFlightRef.current = false
+      void reloadIssues()
+    },
+    onFailed: (message) => {
+      issuesInFlightRef.current = false
+      setIssuesErrorMsg(message)
+    },
+    onTimeout: () => { issuesInFlightRef.current = false },
+  })
+
+  const issuesRunStatus: ConnaissanceRunStatus = issuesTriggering || issuesTracker.phase === "tracking"
+    ? "loading"
+    : issuesTracker.phase === "succeeded"
+      ? "done"
+      : issuesErrorMsg || issuesTracker.phase === "failed" || issuesTracker.phase === "timeout"
+        ? "error"
+        : "idle"
 
   async function handleGenerateIssues() {
-    setIssuesRunStatus("loading")
+    if (issuesInFlightRef.current) return
+    issuesInFlightRef.current = true
+    setIssuesTriggering(true)
     setIssuesErrorMsg(null)
+    setIssuesRunId(null)
     try {
-      const res = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflowId: "intel-031-issues-map",
-          entityType: "company",
-          entityId: company.id,
-          input: {},
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
-        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
-      }
-      const { runId: newRunId } = (await res.json()) as { runId: string }
-      setIssuesRunId(newRunId)
+      setIssuesRunId(await triggerN8nWorkflow({
+        workflowId: "intel-031-issues-map",
+        entityType: "company",
+        entityId: company.id,
+      }))
     } catch (err) {
       setIssuesErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
-      setIssuesRunStatus("error")
+      issuesInFlightRef.current = false
+    } finally {
+      setIssuesTriggering(false)
     }
   }
 
@@ -178,56 +180,50 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
 
   // ADR-0012 Lot 5 — même pattern que knowledgeContent (content_json pur, D-5).
   const [strategy, setStrategy] = useState(data.commercialStrategy)
-  const [strategyRunStatus, setStrategyRunStatus] = useState<ConnaissanceRunStatus>("idle")
   const [strategyRunId, setStrategyRunId] = useState<string | null>(null)
   const [strategyErrorMsg, setStrategyErrorMsg] = useState<string | null>(null)
+  const [strategyTriggering, setStrategyTriggering] = useState(false)
+  const strategyInFlightRef = useRef(false)
 
-  useEffect(() => {
-    if (!strategyRunId) return
-    const channel = supabase
-      .channel(`commercial-strategy-result-mobile-${strategyRunId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${strategyRunId}` },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; content_json: CommercialStrategyContent }
-          if (row.status === "succeeded") {
-            setStrategy({ data: row.content_json, resultId: row.id })
-            setStrategyRunStatus("done")
-          } else if (row.status === "failed") {
-            setStrategyErrorMsg("La génération a échoué. Réessaie plus tard.")
-            setStrategyRunStatus("error")
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [strategyRunId])
+  const strategyTracker = useRunTracker<CommercialStrategyContent>({
+    runId: strategyRunId,
+    resultType: COMMERCIAL_STRATEGY_RESULT_TYPE,
+    onSucceeded: (result) => {
+      strategyInFlightRef.current = false
+      if (result) setStrategy({ data: result.contentJson, resultId: result.id })
+    },
+    onFailed: (message) => {
+      strategyInFlightRef.current = false
+      setStrategyErrorMsg(message)
+    },
+    onTimeout: () => { strategyInFlightRef.current = false },
+  })
+
+  const strategyRunStatus: ConnaissanceRunStatus = strategyTriggering || strategyTracker.phase === "tracking"
+    ? "loading"
+    : strategyTracker.phase === "succeeded"
+      ? "done"
+      : strategyErrorMsg || strategyTracker.phase === "failed" || strategyTracker.phase === "timeout"
+        ? "error"
+        : "idle"
 
   async function handleGenerateStrategy() {
-    setStrategyRunStatus("loading")
+    if (strategyInFlightRef.current) return
+    strategyInFlightRef.current = true
+    setStrategyTriggering(true)
     setStrategyErrorMsg(null)
+    setStrategyRunId(null)
     try {
-      const res = await fetch("/api/n8n/trigger", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workflowId: "intel-032-strategy",
-          entityType: "company",
-          entityId: company.id,
-          input: {},
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
-        throw new Error((err as { error?: string }).error ?? "Erreur réseau")
-      }
-      const { runId: newRunId } = (await res.json()) as { runId: string }
-      setStrategyRunId(newRunId)
+      setStrategyRunId(await triggerN8nWorkflow({
+        workflowId: "intel-032-strategy",
+        entityType: "company",
+        entityId: company.id,
+      }))
     } catch (err) {
       setStrategyErrorMsg(err instanceof Error ? err.message : "Erreur inattendue")
-      setStrategyRunStatus("error")
+      strategyInFlightRef.current = false
+    } finally {
+      setStrategyTriggering(false)
     }
   }
 

@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import {useMemo, useRef, useState} from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
 import { Button } from "@/components/ui/Button"
-import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { formatDateFr } from "@/lib/formatters"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
@@ -300,32 +300,34 @@ function StrategicAnalysisSection({
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
 
-  useEffect(() => {
-    if (!run || (run.status !== "queued" && run.status !== "running")) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`monthly-watch-${run.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "ai_intelligence_runs", filter: `id=eq.${run.id}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string
-            status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
-            created_at: string
-            error_message: string | null
-          }
-          setRun({ id: row.id, status: row.status, createdAt: row.created_at, errorMessage: row.error_message })
-          if (row.status === "succeeded" || row.status === "failed" || row.status === "cancelled") {
-            setPending(false)
-            setError(row.status === "succeeded" ? null : row.error_message ?? "La génération a échoué.")
-            router.refresh()
-          }
-        },
-      )
-      .subscribe()
-    return () => { void supabase.removeChannel(channel) }
-  }, [run, router])
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie. L'abonnement précédent dépendait de `run`
+  // tout en le mettant à jour — il se détruisait et se recréait à chaque
+  // événement reçu, avec une fenêtre d'événements perdus entre les deux.
+  const trackedRunId = run && (run.status === "queued" || run.status === "running") ? run.id : null
+
+  useRunTracker({
+    runId: trackedRunId,
+    withResult: false,
+    onSucceeded: () => {
+      setRun((current) => (current ? { ...current, status: "succeeded" } : current))
+      setPending(false)
+      setError(null)
+      router.refresh()
+    },
+    onFailed: (message) => {
+      setRun((current) => (current ? { ...current, status: "failed", errorMessage: message } : current))
+      setPending(false)
+      setError(message)
+      router.refresh()
+    },
+    onTimeout: () => {
+      setPending(false)
+    },
+    onRunning: () => {
+      setRun((current) => (current ? { ...current, status: "running" } : current))
+    },
+  })
 
   const generate = async () => {
     setPending(true)

@@ -1,41 +1,52 @@
 "use client"
 
-// ─── Déclenchement + suivi d'un run « Mettre à jour l'entreprise » ──────────
-// Lot 1. Logique partagée par les vues Desktop et Mobile — un hook, pas un
-// composant : chaque vue garde son propre rendu, aucun markup lourd n'est
-// chargé puis masqué sur l'autre.
-//
-// Le suivi écoute DEUX tables :
-//   - `ai_intelligence_results` : cas nominal (le callback a écrit un résultat) ;
-//   - `ai_intelligence_runs`    : filet indispensable pour l'échec sans résultat.
-//     Le portail account_knowledge du callback (Lot 1) refuse un artefact
-//     invalide AVANT `saveResult` : il bascule le run en `failed` sans jamais
-//     écrire de ligne de résultat. Sans cette seconde souscription, l'UI
-//     resterait bloquée sur « en cours » indéfiniment.
+// ─── Déclenchement + suivi du run « Mettre à jour l'entreprise » ────────────
+// Le suivi lui-même est délégué à `useRunTracker` (src/lib/n8n) : Realtime en
+// accélérateur, relance périodique en garantie. Ce hook ne porte plus que le
+// déclenchement et la traduction en états d'affichage.
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 
-import { createClient as createBrowserClient } from "@/lib/supabase/client"
+import { ACCOUNT_KNOWLEDGE_RESULT_TYPE } from "@/lib/intelligence/account-intelligence-contracts"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 
 export type AccountKnowledgeRunStatus = "idle" | "running" | "done" | "error"
 
 export function useAccountKnowledgeRun(companyId: string) {
   const router = useRouter()
-  const [status, setStatus] = useState<AccountKnowledgeRunStatus>("idle")
   const [runId, setRunId] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [triggerError, setTriggerError] = useState<string | null>(null)
+  const [isTriggering, setIsTriggering] = useState(false)
 
-  // Garde anti-double-déclenchement : `status` ne bascule qu'au prochain rendu,
-  // deux clics rapprochés le liraient tous les deux à "idle". Une ref est mise
-  // à jour de façon synchrone et ferme la fenêtre.
+  // Garde anti-double-clic : `isTriggering` ne bascule qu'au prochain rendu,
+  // deux clics rapprochés le liraient tous les deux à « libre ».
   const inFlightRef = useRef(false)
+
+  const tracker = useRunTracker({
+    runId,
+    resultType: ACCOUNT_KNOWLEDGE_RESULT_TYPE,
+    // Le contenu est relu côté serveur par le loader : inutile de le tirer ici.
+    withResult: false,
+    onSucceeded: () => {
+      inFlightRef.current = false
+      // Rafraîchit le Server Component uniquement : l'onglet actif, le scroll
+      // et l'état local sont conservés.
+      router.refresh()
+    },
+    onFailed: () => {
+      inFlightRef.current = false
+    },
+    onTimeout: () => {
+      inFlightRef.current = false
+    },
+  })
 
   const trigger = useCallback(async () => {
     if (inFlightRef.current) return
     inFlightRef.current = true
-    setStatus("running")
-    setErrorMessage(null)
+    setIsTriggering(true)
+    setTriggerError(null)
     setRunId(null)
 
     try {
@@ -59,72 +70,27 @@ export function useAccountKnowledgeRun(companyId: string) {
       const { runId: newRunId } = (await response.json()) as { runId: string }
       setRunId(newRunId)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Erreur inattendue.")
-      setStatus("error")
+      setTriggerError(error instanceof Error ? error.message : "Erreur inattendue.")
       inFlightRef.current = false
+    } finally {
+      setIsTriggering(false)
     }
   }, [companyId])
 
-  useEffect(() => {
-    if (!runId) return
+  const status: AccountKnowledgeRunStatus = triggerError
+    ? "error"
+    : isTriggering || tracker.phase === "tracking"
+      ? "running"
+      : tracker.phase === "succeeded"
+        ? "done"
+        : tracker.phase === "failed" || tracker.phase === "timeout"
+          ? "error"
+          : "idle"
 
-    const supabase = createBrowserClient()
-    let disposed = false
-
-    const finish = (nextStatus: AccountKnowledgeRunStatus, message: string | null) => {
-      if (disposed) return
-      disposed = true
-      inFlightRef.current = false
-      setStatus(nextStatus)
-      setErrorMessage(message)
-      // Rafraîchissement du Server Component uniquement — pas de rechargement
-      // complet de la page : l'onglet, le scroll et l'état local sont conservés.
-      if (nextStatus === "done") router.refresh()
-    }
-
-    const channel = supabase
-      .channel(`account-knowledge-run-${runId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ai_intelligence_results",
-          filter: `run_id=eq.${runId}`,
-        },
-        (payload) => {
-          const row = payload.new as { status?: string } | null
-          if (row?.status === "succeeded") finish("done", null)
-          else if (row?.status === "failed") finish("error", "La génération a échoué.")
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "ai_intelligence_runs",
-          filter: `id=eq.${runId}`,
-        },
-        (payload) => {
-          const row = payload.new as { status?: string; error_message?: string | null } | null
-          if (row?.status === "failed") {
-            finish("error", row.error_message ?? "La génération a échoué.")
-          } else if (row?.status === "succeeded") {
-            finish("done", null)
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      void supabase.removeChannel(channel)
-    }
-    // `finish` capture volontairement `runId` seul : ré-abonner à chaque
-    // changement de statut détruirait puis recréerait le canal qui vient de
-    // produire l'événement, avec une fenêtre d'événements perdus entre les deux.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runId])
-
-  return { status, errorMessage, isRunning: status === "running", trigger }
+  return {
+    status,
+    errorMessage: triggerError ?? tracker.errorMessage,
+    isRunning: status === "running",
+    trigger,
+  }
 }

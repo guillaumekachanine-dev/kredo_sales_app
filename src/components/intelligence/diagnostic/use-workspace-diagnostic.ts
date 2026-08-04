@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import { parseWorkspaceDiagnostic } from "@/lib/intelligence/diagnostic/parse-diagnostic-content"
 import type {
   WorkspaceDiagnostic,
@@ -11,36 +11,30 @@ import type {
 
 export type WorkspaceDiagnosticRunState = "idle" | "loading" | "error"
 
-type DiagnosticResultRow = {
-  status?: string
-  result_type?: string
-  content_json?: unknown
-}
 
 export function useWorkspaceDiagnostic(initialSnapshot: WorkspaceDiagnosticSnapshot | null) {
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
   const [liveDiagnostic, setLiveDiagnostic] = useState<WorkspaceDiagnostic | null>(null)
   const [runId, setRunId] = useState<string | null>(null)
   const [runState, setRunState] = useState<WorkspaceDiagnosticRunState>("idle")
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!runId) return
-
-    let cancelled = false
-
-    function consumeResult(row: DiagnosticResultRow) {
-      if (cancelled || row.result_type !== "workspace_diagnostic") return
-      if (row.status === "failed") {
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie. La vérification immédiate au montage ferme
+  // aussi la fenêtre de course entre la réponse 202 du trigger et l'ouverture
+  // du canal, que ce hook traitait auparavant à la main.
+  useRunTracker<unknown>({
+    runId,
+    resultType: "workspace_diagnostic",
+    onSucceeded: (result) => {
+      if (!result) {
         setRunState("error")
-        setError("La génération a échoué. Le dernier diagnostic valide reste affiché.")
+        setError("Le run a abouti sans diagnostic exploitable.")
         setRunId(null)
         return
       }
-      if (row.status !== "succeeded") return
 
-      const parsed = parseWorkspaceDiagnostic(row.content_json, {
+      const parsed = parseWorkspaceDiagnostic(result.contentJson, {
         allowMonoAxisCorrelations: true,
       })
       if (!parsed.ok) {
@@ -55,45 +49,18 @@ export function useWorkspaceDiagnostic(initialSnapshot: WorkspaceDiagnosticSnaps
       setError(null)
       setRunId(null)
       router.refresh()
-    }
-
-    const channel = supabase
-      .channel(`workspace-diagnostic-${runId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "ai_intelligence_results",
-          filter: `run_id=eq.${runId}`,
-        },
-        (payload) => {
-          consumeResult(payload.new as DiagnosticResultRow)
-        },
-      )
-      .subscribe((status) => {
-        if (status !== "SUBSCRIBED") return
-
-        // Ferme la fenêtre de course entre la réponse 202 du trigger et
-        // l'ouverture effective du canal Realtime.
-        void supabase
-          .from("ai_intelligence_results")
-          .select("status,result_type,content_json")
-          .eq("run_id", runId)
-          .eq("result_type", "workspace_diagnostic")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-          .then(({ data }) => {
-            if (data) consumeResult(data as DiagnosticResultRow)
-          })
-      })
-
-    return () => {
-      cancelled = true
-      void supabase.removeChannel(channel)
-    }
-  }, [router, runId, supabase])
+    },
+    onFailed: () => {
+      setRunState("error")
+      setError("La génération a échoué. Le dernier diagnostic valide reste affiché.")
+      setRunId(null)
+    },
+    onTimeout: () => {
+      setRunState("error")
+      setError("Le traitement dépasse le délai habituel. Il continue côté serveur : recharge la page dans quelques minutes.")
+      setRunId(null)
+    },
+  })
 
   const refresh = useCallback(async () => {
     setRunState("loading")

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
+import { ensureRealtimeAuth } from "@/lib/supabase/realtime-auth"
 import { formatDateTime } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 
@@ -53,22 +54,29 @@ export function NotificationBell() {
 
     void loadInitial()
 
-    const channel = supabase
-      .channel("user-notifications-bell")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "user_notifications" },
-        (payload) => {
-          const notification = payload.new as Notification
-          setNotifications((current) => [notification, ...current].slice(0, MAX_VISIBLE))
-          if (FAILURE_TYPES.has(notification.notification_type)) setAlertBounce(true)
-        },
-      )
-      .subscribe()
+    // Un canal ouvert sans jeton utilisateur se souscrit « avec succès » puis
+    // reste muet à jamais (cf. lib/supabase/realtime-auth.ts).
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    void (async () => {
+      await ensureRealtimeAuth(supabase)
+      if (cancelled) return
+      channel = supabase
+        .channel("user-notifications-bell")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "user_notifications" },
+          (payload) => {
+            const notification = payload.new as Notification
+            setNotifications((current) => [notification, ...current].slice(0, MAX_VISIBLE))
+            if (FAILURE_TYPES.has(notification.notification_type)) setAlertBounce(true)
+          },
+        )
+        .subscribe()
+    })()
 
     return () => {
       cancelled = true
-      void supabase.removeChannel(channel)
+      if (channel) void supabase.removeChannel(channel)
     }
   }, [supabase])
 

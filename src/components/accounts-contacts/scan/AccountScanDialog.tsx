@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { createClient } from "@/lib/supabase/client"
+import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { AccountScanOutput, AccountScanResolutionCandidate } from "@/lib/n8n/types"
 import { cn } from "@/lib/utils"
 import { AccountScanSetup, type AccountScanSetupCompany } from "./AccountScanSetup"
@@ -61,7 +62,6 @@ interface AccountScanDialogProps {
   onOpenContact?: (contactId: string) => void
 }
 
-const FALLBACK_RECHECK_DELAY_MS = 20000
 
 function StepIndicator({
   phase,
@@ -192,28 +192,12 @@ export function AccountScanDialog({
     locationHint: null,
   })
   const autoAppliedRunIdRef = useRef<string | null>(null)
-  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydratedOnceRef = useRef(false)
-  const removeChannelRef = useRef<(() => void) | null>(null)
   const phaseRef = useRef<Phase>("loading")
 
   useEffect(() => {
     phaseRef.current = phase
   }, [phase])
-
-  const clearFallbackTimer = useCallback(() => {
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current)
-      fallbackTimerRef.current = null
-    }
-  }, [])
-
-  const teardownRealtimeChannel = useCallback(() => {
-    if (removeChannelRef.current) {
-      removeChannelRef.current()
-      removeChannelRef.current = null
-    }
-  }, [])
 
   const knownCompany = {
     name: company.name,
@@ -293,9 +277,6 @@ export function AccountScanDialog({
     resultId: string | null,
     contentJson: Record<string, unknown> | null,
   ) => {
-    clearFallbackTimer()
-    teardownRealtimeChannel()
-
     if (resultStatus !== "succeeded" || !contentJson) {
       setErrorMessage("La génération a échoué. Vérifier les logs n8n et réessayer.")
       setPhase("error")
@@ -333,7 +314,7 @@ export function AccountScanDialog({
     }
 
     void loadProposalRows(targetRunId, output)
-  }, [clearFallbackTimer, teardownRealtimeChannel, loadProposalRows])
+  }, [loadProposalRows])
 
   const hydrateFromLatestRun = useCallback(async () => {
     const latest = await getLatestAccountScanRun(company.id)
@@ -373,61 +354,42 @@ export function AccountScanDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, company.id])
 
-  useEffect(() => {
-    if (!runId) return
-    const currentPhase = phaseRef.current
-    const isTracked = currentPhase === "information_queued" ||
-      currentPhase === "information_running" ||
-      currentPhase === "contacts_queued" ||
-      currentPhase === "contacts_running"
-    if (!isTracked) return
-    const runPhase = currentPhase.startsWith("contacts") ? "contacts" : "information"
+  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
+  // relance périodique en garantie. Remplace l'abonnement local ET le repli
+  // ponctuel à 20 s, qui n'était qu'un pansement sur un Realtime peu fiable.
+  const trackedPhase = phase === "information_queued" || phase === "information_running"
+    ? "information"
+    : phase === "contacts_queued" || phase === "contacts_running"
+      ? "contacts"
+      : null
 
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`account-scan-${runId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "ai_intelligence_runs", filter: `id=eq.${runId}` },
-        (payload) => {
-          const row = payload.new as { status: string; error_message: string | null }
-          if (row.status === "running") {
-            setPhase((p) => (p === `${runPhase}_queued` ? `${runPhase}_running` as Phase : p))
-          } else if (row.status === "failed" || row.status === "cancelled") {
-            clearFallbackTimer()
-            teardownRealtimeChannel()
-            setErrorMessage(row.error_message)
-            setPhase("error")
-          }
-        }
+  useRunTracker<Record<string, unknown>>({
+    runId: trackedPhase ? runId : null,
+    resultType: "account_scan",
+    onSucceeded: (result) => {
+      const runPhase = phaseRef.current.startsWith("contacts") ? "contacts" : "information"
+      if (!runId) return
+      handleTerminalResult(runId, runPhase, result?.status ?? null, result?.id ?? null, result?.contentJson ?? null)
+    },
+    onFailed: (message) => {
+      setErrorMessage(message)
+      setPhase("error")
+    },
+    onTimeout: () => {
+      setErrorMessage("Le scan dépasse le délai habituel. Il continue côté serveur : rouvre cette fenêtre dans quelques minutes.")
+      setPhase("error")
+    },
+    // Transition « en file » → « en cours », lisible par l'utilisateur.
+    onRunning: () => {
+      setPhase((current) =>
+        current === "information_queued"
+          ? "information_running"
+          : current === "contacts_queued"
+            ? "contacts_running"
+            : current,
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "ai_intelligence_results", filter: `run_id=eq.${runId}` },
-        (payload) => {
-          const row = payload.new as { id: string; status: string; content_json: Record<string, unknown>; result_type: string }
-          if (row.result_type !== "account_scan") return
-          handleTerminalResult(runId, runPhase, row.status, row.id, row.content_json)
-        }
-      )
-      .subscribe()
-
-    removeChannelRef.current = () => { void supabase.removeChannel(channel) }
-
-    fallbackTimerRef.current = setTimeout(() => {
-      void (async () => {
-        const latest = await getLatestAccountScanRun(company.id)
-        if (latest && latest.runId === runId && latest.resultStatus) {
-          handleTerminalResult(runId, latest.runPhase, latest.resultStatus, latest.resultId, latest.contentJson)
-        }
-      })()
-    }, FALLBACK_RECHECK_DELAY_MS)
-
-    return () => {
-      clearFallbackTimer()
-      teardownRealtimeChannel()
-    }
-  }, [runId, company.id, clearFallbackTimer, teardownRealtimeChannel, handleTerminalResult])
+    },
+  })
 
   async function triggerInformationScan(setup: AccountScanSetupValues) {
     lastSetupRef.current = setup
