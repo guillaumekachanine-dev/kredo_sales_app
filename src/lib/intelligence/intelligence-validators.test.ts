@@ -6,15 +6,26 @@ import {
 } from "./intelligence-common-contracts"
 import {
   isAccountKnowledgeV2,
+  isAccountKnowledgeV3,
   parseAccountKnowledgeArtifact,
+  validateAccountKnowledgeClaimV3,
   validateAccountKnowledgeV1,
   validateAccountKnowledgeV2,
+  validateAccountKnowledgeV3,
+  validateAccountKnowledgeVerificationResultV3,
   validateClaim,
   validateDeterministicIndicator,
   validateQualitySummary,
   validateSectorArtifactBinding,
   validateSectorIntelligenceV1,
 } from "./intelligence-validators"
+import {
+  ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER,
+  collectAccountKnowledgeV3Claims,
+  type AccountKnowledgeClaimV3,
+  type AccountKnowledgeContentV3,
+  type AccountKnowledgeVerificationResultV3,
+} from "./account-intelligence-contracts"
 
 // UUID v4 valides, réutilisés comme identifiants de sources/contacts/secteurs.
 const SOURCE_A = "11111111-1111-4111-8111-111111111111"
@@ -500,5 +511,547 @@ describe("validateSectorArtifactBinding", () => {
       content,
     })
     expect(result.valid).toBe(false)
+  })
+})
+
+// ─── AccountKnowledge V3 (Lot 2) ─────────────────────────────────────────────
+// Le contrat V3 impose que chaque claim publié soit :
+//   1. correctement sourcé (règle héritée de V2) ;
+//   2. porteur d'une `attribution` explicite ;
+//   3. accompagné d'un et un seul `verification_results` confirmé.
+// Les fixtures ci-dessous respectent ces trois invariants pour rester
+// représentatives d'un artefact réel — les tests de rejet mutent une copie
+// pour isoler chaque cas.
+
+const SIGNAL_A = "77777777-7777-4777-8777-777777777777"
+const SIGNAL_B = "88888888-8888-4888-8888-888888888888"
+const SIGNAL_C = "99999999-9999-4999-8999-999999999999"
+
+function v3Claim(overrides: Partial<AccountKnowledgeClaimV3> = {}): AccountKnowledgeClaimV3 {
+  return {
+    text: "L'entreprise a livré un site industriel à Grasse en 2025.",
+    nature: "fact",
+    source_refs: [SOURCE_A],
+    confidence: 0.8,
+    verified_at: null,
+    attribution: "independent",
+    ...overrides,
+  }
+}
+
+function verification(
+  claimPath: string,
+  overrides: Partial<AccountKnowledgeVerificationResultV3> = {},
+): AccountKnowledgeVerificationResultV3 {
+  return {
+    claim_path: claimPath,
+    verdict: "confirmed",
+    checked_at: "2026-08-05T10:00:00Z",
+    supporting_source_refs: [SOURCE_B],
+    contradicting_source_refs: [],
+    rationale: null,
+    ...overrides,
+  }
+}
+
+/** Artefact V3 valide, aussi vide que possible mais toutes sections présentes. */
+function accountKnowledgeV3Minimal(): AccountKnowledgeContentV3 {
+  return {
+    schema_version: 3,
+    account_summary: null,
+    identity: {
+      company_name: null,
+      legal_name: null,
+      primary_activity: null,
+      headquarters: null,
+      sector: null,
+      business_segment: null,
+      revenue: null,
+      employee_count: null,
+      geographic_reach: [],
+      dynamic: null,
+    },
+    market_positioning: {
+      account_positioning: null,
+      competitive_environment: null,
+      direct_competitors: [],
+      competitive_advantages: [],
+      opportunities: [],
+      threats: [],
+      policy_and_ambitions: {
+        purpose: null,
+        philosophy: null,
+        culture: [],
+        public_statements: [],
+        ambitions: [],
+        strategic_axes: [],
+        leadership_posture: [],
+        claimed_identity: null,
+      },
+    },
+    offers_and_customers: {
+      core_business: null,
+      offers: [],
+      covered_domains: [],
+      services: [],
+      service_models: [],
+      complementary_activities: [],
+      uncovered_activities: [],
+      customer_profile: null,
+      customer_segments: [],
+      segment_weights: [],
+      behavioral_trends: [],
+      unmet_needs: [],
+    },
+    value_chain: {
+      description: null,
+      value_proposition: null,
+      key_links: [],
+      critical_partners_or_suppliers: [],
+      dependencies: [],
+      vulnerabilities: [],
+      end_customer_relationship: null,
+    },
+    regulatory_environment: {
+      current_regulations: [],
+      required_certifications: [],
+      compliance_risks: [],
+    },
+    trends_and_news: {
+      analysis: null,
+      significant_signal_ids: [],
+    },
+    verification_results: [],
+    source_coverage: qualitySummary(),
+    generated_at: "2026-08-05T10:00:00Z",
+  }
+}
+
+/** Artefact V3 dense — plusieurs claims dans chacune des sept sections. */
+function accountKnowledgeV3Dense(): AccountKnowledgeContentV3 {
+  const base = accountKnowledgeV3Minimal()
+  const analysisClaim = v3Claim({ nature: "analysis" })
+  const institutionalClaim = v3Claim({ attribution: "institutional" })
+
+  return {
+    ...base,
+    account_summary: analysisClaim,
+    identity: {
+      ...base.identity,
+      company_name: v3Claim(),
+      primary_activity: v3Claim(),
+      revenue: v3Claim(),
+      geographic_reach: [v3Claim(), v3Claim()],
+      dynamic: {
+        label: "Activité détectée modérée",
+        score: 42,
+        period_start: "2026-01-08T00:00:00.000Z",
+        period_end: "2026-07-07T00:00:00.000Z",
+        evidence_count: 3,
+        method_version: "account-dynamic-v1",
+        source_refs: [SOURCE_A],
+      },
+    },
+    market_positioning: {
+      ...base.market_positioning,
+      account_positioning: v3Claim(),
+      competitive_environment: analysisClaim,
+      direct_competitors: [v3Claim()],
+      competitive_advantages: [analysisClaim],
+      opportunities: [analysisClaim],
+      threats: [analysisClaim],
+      policy_and_ambitions: {
+        ...base.market_positioning.policy_and_ambitions,
+        purpose: institutionalClaim,
+        philosophy: institutionalClaim,
+        public_statements: [institutionalClaim, institutionalClaim],
+        ambitions: [institutionalClaim],
+        strategic_axes: [institutionalClaim],
+        claimed_identity: institutionalClaim,
+      },
+    },
+    offers_and_customers: {
+      ...base.offers_and_customers,
+      core_business: v3Claim(),
+      offers: [v3Claim(), v3Claim()],
+      services: [v3Claim()],
+      uncovered_activities: [analysisClaim],
+      customer_profile: v3Claim(),
+      customer_segments: [v3Claim()],
+      behavioral_trends: [analysisClaim],
+      unmet_needs: [analysisClaim],
+    },
+    value_chain: {
+      ...base.value_chain,
+      description: analysisClaim,
+      value_proposition: v3Claim(),
+      key_links: [v3Claim(), v3Claim()],
+      critical_partners_or_suppliers: [v3Claim()],
+      dependencies: [analysisClaim],
+      vulnerabilities: [analysisClaim],
+      end_customer_relationship: analysisClaim,
+    },
+    regulatory_environment: {
+      current_regulations: [v3Claim(), v3Claim()],
+      required_certifications: [v3Claim()],
+      compliance_risks: [analysisClaim],
+    },
+    trends_and_news: {
+      analysis: analysisClaim,
+      significant_signal_ids: [SIGNAL_A, SIGNAL_B, SIGNAL_C],
+    },
+    verification_results: [],
+  }
+}
+
+/**
+ * Complète un artefact V3 en produisant un `verification_results` confirmé
+ * pour chaque claim réellement présent. Isole les tests des évolutions du
+ * contenu : un ajout de claim est automatiquement couvert.
+ */
+function withVerifications(content: AccountKnowledgeContentV3): AccountKnowledgeContentV3 {
+  const entries = collectAccountKnowledgeV3Claims(content)
+  return {
+    ...content,
+    verification_results: entries.map((entry) => verification(entry.path)),
+  }
+}
+
+describe("AccountKnowledgeClaimV3 — attribution", () => {
+  it("accepte un fait indépendant correctement sourcé", () => {
+    expect(validateAccountKnowledgeClaimV3(v3Claim(), "$.x").valid).toBe(true)
+  })
+
+  it("accepte une déclaration institutionnelle en tant que fait", () => {
+    const claim = v3Claim({ attribution: "institutional", nature: "fact" })
+    expect(validateAccountKnowledgeClaimV3(claim, "$.x").valid).toBe(true)
+  })
+
+  it("refuse une analyse portée par une attribution institutionnelle", () => {
+    const claim = v3Claim({ attribution: "institutional", nature: "analysis" })
+    const result = validateAccountKnowledgeClaimV3(claim, "$.x")
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.x.attribution")
+    expect(result.issues.find((i) => i.path === "$.x.attribution")?.message).toContain(
+      "incompatible avec une analyse",
+    )
+  })
+
+  it("refuse une attribution absente ou inconnue", () => {
+    const missing = { ...v3Claim() } as Record<string, unknown>
+    delete missing.attribution
+    expect(validateAccountKnowledgeClaimV3(missing, "$.x").valid).toBe(false)
+
+    const invalid = v3Claim({ attribution: "official" as never })
+    expect(validateAccountKnowledgeClaimV3(invalid, "$.x").valid).toBe(false)
+  })
+
+  it("refuse un UUID de source invalide (règle héritée de Claim)", () => {
+    const result = validateAccountKnowledgeClaimV3(
+      v3Claim({ source_refs: ["source-x"] }),
+      "$.x",
+    )
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.x.source_refs[0]")
+  })
+
+  it("refuse un marqueur d'absence comme texte", () => {
+    const result = validateAccountKnowledgeClaimV3(v3Claim({ text: "Non trouvé" }), "$.x")
+    expect(result.valid).toBe(false)
+    expect(result.issues[0].message).toContain("Marqueur d'absence")
+  })
+
+  it("refuse une clé inconnue sur le claim", () => {
+    const extra = { ...v3Claim(), attribution_source: "site officiel" }
+    const result = validateAccountKnowledgeClaimV3(extra, "$.x")
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.x.attribution_source")
+  })
+})
+
+describe("AccountKnowledgeVerificationResultV3", () => {
+  it("valide un résultat confirmé complet", () => {
+    expect(
+      validateAccountKnowledgeVerificationResultV3(verification("$.account_summary"), "$.v").valid,
+    ).toBe(true)
+  })
+
+  it("refuse un verdict inconnu", () => {
+    const result = validateAccountKnowledgeVerificationResultV3(
+      verification("$.account_summary", { verdict: "maybe" as never }),
+      "$.v",
+    )
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.v.verdict")
+  })
+
+  it("refuse un UUID invalide dans les sources supportantes", () => {
+    const result = validateAccountKnowledgeVerificationResultV3(
+      verification("$.x", { supporting_source_refs: ["oups"] }),
+      "$.v",
+    )
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.v.supporting_source_refs[0]")
+  })
+})
+
+describe("AccountKnowledge V3 — artefact complet", () => {
+  it("valide un artefact minimal (toutes sections vides mais présentes)", () => {
+    const result = validateAccountKnowledgeV3(accountKnowledgeV3Minimal())
+    expect(result.issues).toEqual([])
+    expect(result.valid).toBe(true)
+  })
+
+  it("valide un artefact dense couvrant les sept sections", () => {
+    const result = validateAccountKnowledgeV3(withVerifications(accountKnowledgeV3Dense()))
+    expect(result.issues).toEqual([])
+    expect(result.valid).toBe(true)
+  })
+
+  it("refuse un claim non sourcé profondément niché, avec son chemin", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.market_positioning.direct_competitors = [v3Claim({ source_refs: [] })]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain(
+      "$.market_positioning.direct_competitors[0].source_refs",
+    )
+  })
+
+  it("refuse un placeholder textuel", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.identity.company_name = v3Claim({ text: "Non renseigné" })
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((i) => i.path === "$.identity.company_name.text")).toBe(true)
+  })
+
+  it("refuse une clé inconnue au niveau racine", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense()) as unknown as Record<
+      string,
+      unknown
+    >
+    artifact.unknown_root_section = { anything: true }
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.unknown_root_section")
+  })
+
+  it("refuse la rubrique upcoming_regulations dans regulatory_environment", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense()) as unknown as Record<
+      string,
+      unknown
+    >
+    ;(artifact.regulatory_environment as Record<string, unknown>).upcoming_regulations = [v3Claim()]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain(
+      "$.regulatory_environment.upcoming_regulations",
+    )
+  })
+
+  it("refuse les anciens blocs V2 organisation / commercial_relationship / operational_activities", () => {
+    for (const forbidden of [
+      "organisation",
+      "commercial_relationship",
+      "operational_activities",
+    ] as const) {
+      const artifact = withVerifications(accountKnowledgeV3Dense()) as unknown as Record<
+      string,
+      unknown
+    >
+      artifact[forbidden] = {}
+      const result = validateAccountKnowledgeV3(artifact)
+      expect(result.valid).toBe(false)
+      expect(result.issues.map((i) => i.path)).toContain(`$.${forbidden}`)
+    }
+  })
+
+  it("refuse plus de trois signaux significatifs", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.trends_and_news.significant_signal_ids = [
+      SIGNAL_A,
+      SIGNAL_B,
+      SIGNAL_C,
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain("$.trends_and_news.significant_signal_ids")
+  })
+
+  it("refuse des signaux dupliqués", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.trends_and_news.significant_signal_ids = [SIGNAL_A, SIGNAL_A]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((i) => i.path)).toContain(
+      "$.trends_and_news.significant_signal_ids[1]",
+    )
+  })
+
+  it("refuse un claim publié sans résultat de vérification associé", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.verification_results = artifact.verification_results.filter(
+      (result) => result.claim_path !== "$.account_summary",
+    )
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((i) => i.message.includes("$.account_summary"))).toBe(true)
+  })
+
+  it("refuse deux résultats visant le même claim (doublon)", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.verification_results = [
+      ...artifact.verification_results,
+      verification("$.account_summary"),
+    ]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((i) => i.message.includes("en double"))).toBe(true)
+  })
+
+  it("refuse un résultat qui vise un chemin de claim inexistant", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.verification_results = [
+      ...artifact.verification_results,
+      verification("$.identity.employee_count"),
+    ]
+    const result = validateAccountKnowledgeV3(artifact)
+    expect(result.valid).toBe(false)
+    expect(
+      result.issues.some((i) => i.message.includes("Chemin sans claim correspondant")),
+    ).toBe(true)
+  })
+
+  it("refuse un verdict contradicted ou insufficient_evidence sur un claim publié", () => {
+    for (const badVerdict of ["contradicted", "insufficient_evidence"] as const) {
+      const artifact = withVerifications(accountKnowledgeV3Dense())
+      artifact.verification_results = artifact.verification_results.map((result) =>
+        result.claim_path === "$.account_summary"
+          ? { ...result, verdict: badVerdict, supporting_source_refs: [] }
+          : result,
+      )
+      const validation = validateAccountKnowledgeV3(artifact)
+      expect(validation.valid).toBe(false)
+      expect(validation.issues.some((i) => i.message.includes("doit être confirmé"))).toBe(true)
+    }
+  })
+
+  it("refuse un verdict confirmé sans source de confirmation", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.verification_results = artifact.verification_results.map((result) =>
+      result.claim_path === "$.account_summary"
+        ? { ...result, supporting_source_refs: [] }
+        : result,
+    )
+    const validation = validateAccountKnowledgeV3(artifact)
+    expect(validation.valid).toBe(false)
+    expect(
+      validation.issues.some((i) => i.message.includes("source de confirmation")),
+    ).toBe(true)
+  })
+
+  it("refuse un verdict confirmé accompagné de sources contradictoires", () => {
+    const artifact = withVerifications(accountKnowledgeV3Dense())
+    artifact.verification_results = artifact.verification_results.map((result) =>
+      result.claim_path === "$.account_summary"
+        ? { ...result, contradicting_source_refs: [SOURCE_A] }
+        : result,
+    )
+    const validation = validateAccountKnowledgeV3(artifact)
+    expect(validation.valid).toBe(false)
+    expect(
+      validation.issues.some((i) => i.message.includes("sources contredisant")),
+    ).toBe(true)
+  })
+})
+
+describe("collectAccountKnowledgeV3Claims — ordre canonique", () => {
+  it("renvoie tous les paths dans l'ordre des sept sections", () => {
+    const artifact = accountKnowledgeV3Dense()
+    const paths = collectAccountKnowledgeV3Claims(artifact).map((entry) => entry.path)
+    // Doit commencer par account_summary (section 1) puis identity (2), etc.
+    const firstOfEach: Record<string, string> = {}
+    for (const path of paths) {
+      const key = path.split(".")[1]?.replace(/\[.*/, "") ?? ""
+      if (!(key in firstOfEach)) firstOfEach[key] = path
+    }
+    const seenOrder = Object.keys(firstOfEach)
+    // L'ordre observé doit être un sous-ensemble strictement croissant de
+    // ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER — sections vides sautées, jamais réordonnées.
+    let lastIndex = -1
+    for (const section of seenOrder) {
+      const rank = ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER.indexOf(
+        section as (typeof ACCOUNT_KNOWLEDGE_V3_SECTION_ORDER)[number],
+      )
+      expect(rank).toBeGreaterThanOrEqual(0)
+      expect(rank).toBeGreaterThan(lastIndex)
+      lastIndex = rank
+    }
+  })
+
+  it("saute proprement les sections vides (aucun path fantôme)", () => {
+    const minimal = accountKnowledgeV3Minimal()
+    expect(collectAccountKnowledgeV3Claims(minimal)).toEqual([])
+  })
+
+  it("ignore identity.dynamic (indicateur, pas un Claim)", () => {
+    const artifact = accountKnowledgeV3Minimal()
+    artifact.identity.dynamic = {
+      label: "x",
+      score: 0.5,
+      period_start: "2026-01-01T00:00:00Z",
+      period_end: "2026-06-30T00:00:00Z",
+      evidence_count: 1,
+      method_version: "v1",
+      source_refs: [SOURCE_A],
+    }
+    expect(collectAccountKnowledgeV3Claims(artifact)).toEqual([])
+  })
+})
+
+describe("parseAccountKnowledgeArtifact — V3", () => {
+  it("route un V3 valide vers le validateur V3", () => {
+    const parsed = parseAccountKnowledgeArtifact(withVerifications(accountKnowledgeV3Dense()))
+    expect(parsed.version).toBe(3)
+    if (parsed.version === 3) {
+      expect(isAccountKnowledgeV3(parsed.content)).toBe(true)
+      expect(isAccountKnowledgeV2(parsed.content)).toBe(false)
+    }
+  })
+
+  it("ne convertit JAMAIS un V1 en V3 (compat stricte)", () => {
+    // Le versionneur doit renvoyer version=1 sur un V1, jamais promu.
+    const parsed = parseAccountKnowledgeArtifact(accountKnowledgeV1())
+    expect(parsed.version).toBe(1)
+    if (parsed.version === 1) {
+      // Un V1 n'a pas les sections V3 (identity, market_positioning, etc.)
+      expect((parsed.content as unknown as Record<string, unknown>).market_positioning).toBeUndefined()
+    }
+  })
+
+  it("ne convertit JAMAIS un V2 en V3 (compat stricte)", () => {
+    const parsed = parseAccountKnowledgeArtifact(accountKnowledgeV2())
+    expect(parsed.version).toBe(2)
+    if (parsed.version === 2) {
+      expect(isAccountKnowledgeV3(parsed.content)).toBe(false)
+      // Un V2 conserve ses sections propres, non présentes en V3.
+      expect(parsed.content.company_value_chain).toBeDefined()
+      expect(parsed.content.organisation).toBeDefined()
+    }
+  })
+
+  it("V1 et V2 restent valides sans être durcis par les règles V3", () => {
+    // Les fixtures historiques doivent continuer à passer telles quelles.
+    expect(validateAccountKnowledgeV1(accountKnowledgeV1()).valid).toBe(true)
+    expect(validateAccountKnowledgeV2(accountKnowledgeV2()).valid).toBe(true)
+  })
+
+  it("rejette un V3 invalide sans le réparer avec des valeurs par défaut", () => {
+    const truncated = { schema_version: 3, generated_at: "2026-08-05T10:00:00Z" }
+    const parsed = parseAccountKnowledgeArtifact(truncated)
+    expect(parsed.version).toBeNull()
+    expect(parsed.content).toBeNull()
   })
 })

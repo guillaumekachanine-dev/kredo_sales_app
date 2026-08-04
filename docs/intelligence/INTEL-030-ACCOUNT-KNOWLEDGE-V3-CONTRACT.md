@@ -257,6 +257,8 @@ Conclusion du Lot 0 : ce socle est suffisant pour figer le contrat fonctionnel V
 - garantir la lecture inchangée de V1 et V2 ;
 - ajouter les tests de contrat sans conversion rétroactive.
 
+Réalisé le 2026-08-05. Le contrat technique est désormais matérialisé dans `src/lib/intelligence/account-intelligence-contracts.ts` (`AccountKnowledgeContentV3`, `AccountKnowledgeClaimV3`, `AccountKnowledgeVerificationResultV3`, ordre canonique et helper `collectAccountKnowledgeV3Claims`) et `src/lib/intelligence/intelligence-validators.ts` (`validateAccountKnowledgeClaimV3`, `validateAccountKnowledgeVerificationResultV3`, `validateAccountKnowledgeV3`, `isAccountKnowledgeV3`, extension de `parseAccountKnowledgeArtifact` à `schema_version: 3`). Voir `docs/intelligence/LOT-2-HANDOFF.md` pour le détail des invariants, l'exécution de tests et les points transmis au Lot 3.
+
 ### Lot 3 — Recherche, génération et vérification
 
 - concevoir le workflow V3 de recherche et de restitution ;

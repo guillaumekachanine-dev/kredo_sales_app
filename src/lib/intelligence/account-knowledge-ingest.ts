@@ -205,6 +205,22 @@ export async function ingestAccountKnowledgeArtifact(
     return { ok: true, version: 1, content: parsed.content }
   }
 
+  // V3 : contrat technique livré au Lot 2, ingestion réservée au Lot 4.
+  // Refuser explicitement plutôt que de tomber dans le chemin V2, qui
+  // fabriquerait des sections V2 absentes du contrat V3.
+  if (parsed.version === 3) {
+    return {
+      ok: false,
+      error: "Ingestion V3 non branchée dans ce lot (réservée au Lot 4).",
+      issues: [
+        {
+          path: "$.schema_version",
+          message: "schema_version=3 accepté par le contrat mais pas encore ingéré.",
+        },
+      ],
+    }
+  }
+
   const content = parsed.content
 
   const sourceIds = collectAccountKnowledgeV2SourceIds(content)

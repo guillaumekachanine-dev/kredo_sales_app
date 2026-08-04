@@ -18,10 +18,16 @@ import {
   type DeterministicIndicator,
   type QualitySummary,
 } from "./intelligence-common-contracts"
-import type {
-  AccountKnowledgeArtifact,
-  AccountKnowledgeContent,
-  AccountKnowledgeContentV2,
+import {
+  collectAccountKnowledgeV3Claims,
+  type AccountKnowledgeArtifact,
+  type AccountKnowledgeClaimAttributionV3,
+  type AccountKnowledgeClaimV3,
+  type AccountKnowledgeContent,
+  type AccountKnowledgeContentV2,
+  type AccountKnowledgeContentV3,
+  type AccountKnowledgeVerificationResultV3,
+  type AccountKnowledgeVerificationVerdictV3,
 } from "./account-intelligence-contracts"
 import type { SectorIntelligenceAnalysisContent } from "./sector-intelligence-contracts"
 
@@ -445,11 +451,547 @@ export function validateAccountKnowledgeV2(raw: unknown): ValidationResult<Accou
   return issues.length > 0 ? fail(issues) : ok(raw as unknown as AccountKnowledgeContentV2)
 }
 
+// ─── AccountKnowledge V3 (Lot 2) ────────────────────────────────────────────
+// Sept sections figées + vérification indépendante des affirmations.
+// Contrairement à V1/V2, les clés inconnues sont refusées à tous les niveaux :
+// V3 est un nouveau contrat, on ne veut pas laisser dériver silencieusement
+// des noms alternatifs (ex. `upcoming_regulations`). Cette rigueur ne
+// s'applique PAS rétroactivement à V1/V2 — ces validateurs restent inchangés.
+
+const V3_ATTRIBUTIONS = new Set<AccountKnowledgeClaimAttributionV3>([
+  "independent",
+  "institutional",
+])
+
+const V3_VERIFICATION_VERDICTS = new Set<AccountKnowledgeVerificationVerdictV3>([
+  "confirmed",
+  "contradicted",
+  "insufficient_evidence",
+])
+
+/** Contrôle qu'un objet ne porte pas de clé hors de la liste autorisée. */
+function checkAllowedKeys(
+  raw: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
+  path: string,
+): ValidationIssue[] {
+  const unknown = Object.keys(raw).filter((key) => !allowed.has(key))
+  return unknown.map((key) => ({
+    path: `${path}.${key}`,
+    message: `Clé inconnue dans V3 (autorisées : ${Array.from(allowed).join(", ")}).`,
+  }))
+}
+
+// Clés autorisées, alignées sur les types V3. Toute évolution du contrat
+// TypeScript doit synchroniser ces listes — c'est le prix de la validation
+// stricte, assumé pour éviter le drift.
+const V3_ROOT_KEYS = new Set([
+  "schema_version",
+  "account_summary",
+  "identity",
+  "market_positioning",
+  "offers_and_customers",
+  "value_chain",
+  "regulatory_environment",
+  "trends_and_news",
+  "verification_results",
+  "source_coverage",
+  "generated_at",
+])
+const V3_IDENTITY_KEYS = new Set([
+  "company_name",
+  "legal_name",
+  "primary_activity",
+  "headquarters",
+  "sector",
+  "business_segment",
+  "revenue",
+  "employee_count",
+  "geographic_reach",
+  "dynamic",
+])
+const V3_POLICY_KEYS = new Set([
+  "purpose",
+  "philosophy",
+  "culture",
+  "public_statements",
+  "ambitions",
+  "strategic_axes",
+  "leadership_posture",
+  "claimed_identity",
+])
+const V3_MARKET_KEYS = new Set([
+  "account_positioning",
+  "competitive_environment",
+  "direct_competitors",
+  "competitive_advantages",
+  "opportunities",
+  "threats",
+  "policy_and_ambitions",
+])
+const V3_OFFERS_KEYS = new Set([
+  "core_business",
+  "offers",
+  "covered_domains",
+  "services",
+  "service_models",
+  "complementary_activities",
+  "uncovered_activities",
+  "customer_profile",
+  "customer_segments",
+  "segment_weights",
+  "behavioral_trends",
+  "unmet_needs",
+])
+const V3_VALUE_CHAIN_KEYS = new Set([
+  "description",
+  "value_proposition",
+  "key_links",
+  "critical_partners_or_suppliers",
+  "dependencies",
+  "vulnerabilities",
+  "end_customer_relationship",
+])
+const V3_REGULATORY_KEYS = new Set([
+  "current_regulations",
+  "required_certifications",
+  "compliance_risks",
+])
+const V3_TRENDS_KEYS = new Set(["analysis", "significant_signal_ids"])
+const V3_CLAIM_KEYS = new Set([
+  "text",
+  "nature",
+  "source_refs",
+  "confidence",
+  "verified_at",
+  "attribution",
+])
+const V3_VERIFICATION_KEYS = new Set([
+  "claim_path",
+  "verdict",
+  "checked_at",
+  "supporting_source_refs",
+  "contradicting_source_refs",
+  "rationale",
+])
+
+// ─── Claim V3 ───────────────────────────────────────────────────────────────
+
+export function validateAccountKnowledgeClaimV3(
+  raw: unknown,
+  path: string,
+): ValidationResult<AccountKnowledgeClaimV3> {
+  if (!isRecord(raw)) {
+    return fail([{ path, message: "Claim V3 attendu : objet requis." }])
+  }
+
+  // Le socle Claim (texte, nature, sources, confiance, verified_at) est déjà
+  // pris en charge par validateClaim — on n'en refait pas le contrôle ici.
+  const baseResult = validateClaim(raw, path)
+  const issues: ValidationIssue[] = baseResult.valid ? [] : [...baseResult.issues]
+
+  // Strict keys : bloque un futur `attribution_source` ou équivalent.
+  issues.push(...checkAllowedKeys(raw, V3_CLAIM_KEYS, path))
+
+  if (raw.attribution === undefined) {
+    issues.push({
+      path: `${path}.attribution`,
+      message: "Attribution requise (independent ou institutional).",
+    })
+  } else if (
+    typeof raw.attribution !== "string" ||
+    !V3_ATTRIBUTIONS.has(raw.attribution as AccountKnowledgeClaimAttributionV3)
+  ) {
+    issues.push({
+      path: `${path}.attribution`,
+      message: 'Attribution attendue : "independent" ou "institutional".',
+    })
+  } else if (raw.attribution === "institutional" && raw.nature === "analysis") {
+    // Une analyse est un travail d'interprétation : elle ne peut pas être portée
+    // par l'entreprise elle-même, seulement citer ses prises de parole.
+    issues.push({
+      path: `${path}.attribution`,
+      message: "Attribution institutionnelle incompatible avec une analyse.",
+    })
+  }
+
+  return issues.length > 0
+    ? fail(issues)
+    : ok(raw as unknown as AccountKnowledgeClaimV3)
+}
+
+function validateNullableClaimV3(raw: unknown, path: string): ValidationIssue[] {
+  if (raw === null) return []
+  if (raw === undefined) {
+    return [{ path, message: "Champ requis (Claim V3 ou null explicite)." }]
+  }
+  const result = validateAccountKnowledgeClaimV3(raw, path)
+  return result.valid ? [] : result.issues
+}
+
+function validateClaimV3Array(raw: unknown, path: string): ValidationIssue[] {
+  if (!Array.isArray(raw)) return [{ path, message: "Tableau de Claim V3 requis." }]
+  return raw.flatMap((item, index) => {
+    const result = validateAccountKnowledgeClaimV3(item, `${path}[${index}]`)
+    return result.valid ? [] : result.issues
+  })
+}
+
+// ─── Résultat de vérification V3 ────────────────────────────────────────────
+
+export function validateAccountKnowledgeVerificationResultV3(
+  raw: unknown,
+  path: string,
+): ValidationResult<AccountKnowledgeVerificationResultV3> {
+  if (!isRecord(raw)) {
+    return fail([{ path, message: "Résultat de vérification attendu : objet requis." }])
+  }
+
+  const issues: ValidationIssue[] = []
+  issues.push(...checkAllowedKeys(raw, V3_VERIFICATION_KEYS, path))
+
+  if (typeof raw.claim_path !== "string" || raw.claim_path.trim().length === 0) {
+    issues.push({ path: `${path}.claim_path`, message: "Chemin de claim requis." })
+  }
+
+  if (
+    typeof raw.verdict !== "string" ||
+    !V3_VERIFICATION_VERDICTS.has(raw.verdict as AccountKnowledgeVerificationVerdictV3)
+  ) {
+    issues.push({
+      path: `${path}.verdict`,
+      message: 'Verdict attendu : "confirmed", "contradicted" ou "insufficient_evidence".',
+    })
+  }
+
+  if (!isIsoDateString(raw.checked_at)) {
+    issues.push({ path: `${path}.checked_at`, message: "Date ISO requise." })
+  }
+
+  const supporting = raw.supporting_source_refs
+  if (!Array.isArray(supporting)) {
+    issues.push({
+      path: `${path}.supporting_source_refs`,
+      message: "Tableau d'UUID requis.",
+    })
+  } else {
+    supporting.forEach((ref, index) => {
+      if (!isUuid(ref)) {
+        issues.push({
+          path: `${path}.supporting_source_refs[${index}]`,
+          message: "UUID de source invalide.",
+        })
+      }
+    })
+  }
+
+  const contradicting = raw.contradicting_source_refs
+  if (!Array.isArray(contradicting)) {
+    issues.push({
+      path: `${path}.contradicting_source_refs`,
+      message: "Tableau d'UUID requis.",
+    })
+  } else {
+    contradicting.forEach((ref, index) => {
+      if (!isUuid(ref)) {
+        issues.push({
+          path: `${path}.contradicting_source_refs[${index}]`,
+          message: "UUID de source invalide.",
+        })
+      }
+    })
+  }
+
+  if (raw.rationale !== null && (typeof raw.rationale !== "string" || raw.rationale.trim().length === 0)) {
+    issues.push({
+      path: `${path}.rationale`,
+      message: "Justification textuelle ou null attendu.",
+    })
+  }
+
+  return issues.length > 0
+    ? fail(issues)
+    : ok(raw as unknown as AccountKnowledgeVerificationResultV3)
+}
+
+// ─── AccountKnowledge V3 — validateur d'artefact ────────────────────────────
+
+export function validateAccountKnowledgeV3(
+  raw: unknown,
+): ValidationResult<AccountKnowledgeContentV3> {
+  const issues: ValidationIssue[] = []
+
+  if (!isRecord(raw)) {
+    return fail([{ path: "$", message: "Objet requis." }])
+  }
+  if (raw.schema_version !== 3) {
+    return fail([{ path: "$.schema_version", message: "schema_version attendu : 3." }])
+  }
+
+  issues.push(...checkAllowedKeys(raw, V3_ROOT_KEYS, "$"))
+
+  // 1 — account_summary
+  issues.push(...validateNullableClaimV3(raw.account_summary, "$.account_summary"))
+
+  // 2 — identity
+  if (!isRecord(raw.identity)) {
+    issues.push({ path: "$.identity", message: "Section obligatoire absente." })
+  } else {
+    issues.push(...checkAllowedKeys(raw.identity, V3_IDENTITY_KEYS, "$.identity"))
+    for (const key of [
+      "company_name",
+      "legal_name",
+      "primary_activity",
+      "headquarters",
+      "sector",
+      "business_segment",
+      "revenue",
+      "employee_count",
+    ] as const) {
+      issues.push(...validateNullableClaimV3(raw.identity[key], `$.identity.${key}`))
+    }
+    issues.push(...validateClaimV3Array(raw.identity.geographic_reach, "$.identity.geographic_reach"))
+    if (raw.identity.dynamic !== null && raw.identity.dynamic !== undefined) {
+      const dyn = validateDeterministicIndicator(raw.identity.dynamic, "$.identity.dynamic")
+      if (!dyn.valid) issues.push(...dyn.issues)
+    } else if (raw.identity.dynamic === undefined) {
+      issues.push({
+        path: "$.identity.dynamic",
+        message: "Champ requis (DeterministicIndicator ou null explicite).",
+      })
+    }
+  }
+
+  // 3 — market_positioning
+  if (!isRecord(raw.market_positioning)) {
+    issues.push({ path: "$.market_positioning", message: "Section obligatoire absente." })
+  } else {
+    const mp = raw.market_positioning
+    issues.push(...checkAllowedKeys(mp, V3_MARKET_KEYS, "$.market_positioning"))
+    issues.push(...validateNullableClaimV3(mp.account_positioning, "$.market_positioning.account_positioning"))
+    issues.push(
+      ...validateNullableClaimV3(mp.competitive_environment, "$.market_positioning.competitive_environment"),
+    )
+    for (const key of [
+      "direct_competitors",
+      "competitive_advantages",
+      "opportunities",
+      "threats",
+    ] as const) {
+      issues.push(...validateClaimV3Array(mp[key], `$.market_positioning.${key}`))
+    }
+    if (!isRecord(mp.policy_and_ambitions)) {
+      issues.push({
+        path: "$.market_positioning.policy_and_ambitions",
+        message: "Sous-section obligatoire absente.",
+      })
+    } else {
+      const pa = mp.policy_and_ambitions
+      const paBase = "$.market_positioning.policy_and_ambitions"
+      issues.push(...checkAllowedKeys(pa, V3_POLICY_KEYS, paBase))
+      issues.push(...validateNullableClaimV3(pa.purpose, `${paBase}.purpose`))
+      issues.push(...validateNullableClaimV3(pa.philosophy, `${paBase}.philosophy`))
+      issues.push(...validateNullableClaimV3(pa.claimed_identity, `${paBase}.claimed_identity`))
+      for (const key of [
+        "culture",
+        "public_statements",
+        "ambitions",
+        "strategic_axes",
+        "leadership_posture",
+      ] as const) {
+        issues.push(...validateClaimV3Array(pa[key], `${paBase}.${key}`))
+      }
+    }
+  }
+
+  // 4 — offers_and_customers
+  if (!isRecord(raw.offers_and_customers)) {
+    issues.push({ path: "$.offers_and_customers", message: "Section obligatoire absente." })
+  } else {
+    const oc = raw.offers_and_customers
+    issues.push(...checkAllowedKeys(oc, V3_OFFERS_KEYS, "$.offers_and_customers"))
+    issues.push(...validateNullableClaimV3(oc.core_business, "$.offers_and_customers.core_business"))
+    issues.push(...validateNullableClaimV3(oc.customer_profile, "$.offers_and_customers.customer_profile"))
+    for (const key of [
+      "offers",
+      "covered_domains",
+      "services",
+      "service_models",
+      "complementary_activities",
+      "uncovered_activities",
+      "customer_segments",
+      "segment_weights",
+      "behavioral_trends",
+      "unmet_needs",
+    ] as const) {
+      issues.push(...validateClaimV3Array(oc[key], `$.offers_and_customers.${key}`))
+    }
+  }
+
+  // 5 — value_chain
+  if (!isRecord(raw.value_chain)) {
+    issues.push({ path: "$.value_chain", message: "Section obligatoire absente." })
+  } else {
+    const vc = raw.value_chain
+    issues.push(...checkAllowedKeys(vc, V3_VALUE_CHAIN_KEYS, "$.value_chain"))
+    issues.push(...validateNullableClaimV3(vc.description, "$.value_chain.description"))
+    issues.push(...validateNullableClaimV3(vc.value_proposition, "$.value_chain.value_proposition"))
+    issues.push(
+      ...validateNullableClaimV3(vc.end_customer_relationship, "$.value_chain.end_customer_relationship"),
+    )
+    for (const key of [
+      "key_links",
+      "critical_partners_or_suppliers",
+      "dependencies",
+      "vulnerabilities",
+    ] as const) {
+      issues.push(...validateClaimV3Array(vc[key], `$.value_chain.${key}`))
+    }
+  }
+
+  // 6 — regulatory_environment (trois sous-sections seulement — pas d'upcoming_regulations)
+  if (!isRecord(raw.regulatory_environment)) {
+    issues.push({ path: "$.regulatory_environment", message: "Section obligatoire absente." })
+  } else {
+    const re = raw.regulatory_environment
+    issues.push(...checkAllowedKeys(re, V3_REGULATORY_KEYS, "$.regulatory_environment"))
+    for (const key of ["current_regulations", "required_certifications", "compliance_risks"] as const) {
+      issues.push(...validateClaimV3Array(re[key], `$.regulatory_environment.${key}`))
+    }
+  }
+
+  // 7 — trends_and_news
+  if (!isRecord(raw.trends_and_news)) {
+    issues.push({ path: "$.trends_and_news", message: "Section obligatoire absente." })
+  } else {
+    const tn = raw.trends_and_news
+    issues.push(...checkAllowedKeys(tn, V3_TRENDS_KEYS, "$.trends_and_news"))
+    issues.push(...validateNullableClaimV3(tn.analysis, "$.trends_and_news.analysis"))
+    if (!Array.isArray(tn.significant_signal_ids)) {
+      issues.push({
+        path: "$.trends_and_news.significant_signal_ids",
+        message: "Tableau d'UUID requis (jusqu'à 3 signaux).",
+      })
+    } else {
+      if (tn.significant_signal_ids.length > 3) {
+        issues.push({
+          path: "$.trends_and_news.significant_signal_ids",
+          message: "Au maximum trois signaux significatifs.",
+        })
+      }
+      const seen = new Set<string>()
+      tn.significant_signal_ids.forEach((id, index) => {
+        if (!isUuid(id)) {
+          issues.push({
+            path: `$.trends_and_news.significant_signal_ids[${index}]`,
+            message: "UUID de signal invalide.",
+          })
+          return
+        }
+        if (seen.has(id)) {
+          issues.push({
+            path: `$.trends_and_news.significant_signal_ids[${index}]`,
+            message: "Signal en double.",
+          })
+        } else {
+          seen.add(id)
+        }
+      })
+    }
+  }
+
+  // source_coverage / generated_at
+  const coverage = validateQualitySummary(raw.source_coverage, "$.source_coverage")
+  if (!coverage.valid) issues.push(...coverage.issues)
+  if (!isIsoDateString(raw.generated_at)) {
+    issues.push({ path: "$.generated_at", message: "Date ISO requise." })
+  }
+
+  // verification_results — un par claim publié, verdict confirmé, sans doublon.
+  // On ne peut construire le catalogue déterministe des claims que si la forme
+  // est passée : sinon `collectAccountKnowledgeV3Claims` accéderait à des
+  // sous-objets absents.
+  if (!Array.isArray(raw.verification_results)) {
+    issues.push({
+      path: "$.verification_results",
+      message: "Tableau de résultats de vérification requis.",
+    })
+  } else if (issues.length === 0) {
+    // Structure OK — on peut collecter les claims et croiser.
+    const content = raw as unknown as AccountKnowledgeContentV3
+    const claimEntries = collectAccountKnowledgeV3Claims(content)
+    const claimPaths = new Set(claimEntries.map((entry) => entry.path))
+    const resultsByPath = new Map<string, number>()
+
+    raw.verification_results.forEach((result, index) => {
+      const path = `$.verification_results[${index}]`
+      const validated = validateAccountKnowledgeVerificationResultV3(result, path)
+      if (!validated.valid) {
+        issues.push(...validated.issues)
+        return
+      }
+      const value = validated.value
+
+      if (!claimPaths.has(value.claim_path)) {
+        issues.push({
+          path: `${path}.claim_path`,
+          message: `Chemin sans claim correspondant dans l'artefact : ${value.claim_path}.`,
+        })
+        return
+      }
+      if (resultsByPath.has(value.claim_path)) {
+        issues.push({
+          path: `${path}.claim_path`,
+          message: `Résultat en double pour ${value.claim_path}.`,
+        })
+        return
+      }
+      resultsByPath.set(value.claim_path, index)
+
+      if (value.verdict !== "confirmed") {
+        // Le contrat interdit de publier un claim contredit ou insuffisamment
+        // prouvé. Les deux verdicts restent dans l'enum pour le workflow de
+        // vérification, mais ils sortent l'affirmation du contenu — jamais ici.
+        issues.push({
+          path: `${path}.verdict`,
+          message:
+            "Un claim publié doit être confirmé — un verdict contradicted ou insufficient_evidence retire l'affirmation du contenu.",
+        })
+      }
+      if (value.verdict === "confirmed" && value.supporting_source_refs.length === 0) {
+        issues.push({
+          path: `${path}.supporting_source_refs`,
+          message: "Un verdict confirmé exige au moins une source de confirmation.",
+        })
+      }
+      if (value.verdict === "confirmed" && value.contradicting_source_refs.length > 0) {
+        issues.push({
+          path: `${path}.contradicting_source_refs`,
+          message: "Un verdict confirmé ne peut pas porter de sources contredisant l'affirmation.",
+        })
+      }
+    })
+
+    // Chaque claim doit avoir SON résultat — pas de tolérance.
+    for (const { path: claimPath } of claimEntries) {
+      if (!resultsByPath.has(claimPath)) {
+        issues.push({
+          path: "$.verification_results",
+          message: `Résultat de vérification manquant pour ${claimPath}.`,
+        })
+      }
+    }
+  }
+
+  return issues.length > 0 ? fail(issues) : ok(raw as unknown as AccountKnowledgeContentV3)
+}
+
 // ─── Parseur versionné ──────────────────────────────────────────────────────
 
 export type AccountKnowledgeParseResult =
   | { version: 1; content: AccountKnowledgeContent }
   | { version: 2; content: AccountKnowledgeContentV2 }
+  | { version: 3; content: AccountKnowledgeContentV3 }
   | { version: null; content: null; issues: ValidationIssue[] }
 
 /**
@@ -460,6 +1002,13 @@ export type AccountKnowledgeParseResult =
 export function parseAccountKnowledgeArtifact(raw: unknown): AccountKnowledgeParseResult {
   if (!isRecord(raw)) {
     return { version: null, content: null, issues: [{ path: "$", message: "Objet requis." }] }
+  }
+
+  if (raw.schema_version === 3) {
+    const result = validateAccountKnowledgeV3(raw)
+    return result.valid
+      ? { version: 3, content: result.value }
+      : { version: null, content: null, issues: result.issues }
   }
 
   if (raw.schema_version === 2) {
@@ -493,6 +1042,12 @@ export function isAccountKnowledgeV2(
   artifact: AccountKnowledgeArtifact,
 ): artifact is AccountKnowledgeContentV2 {
   return artifact.schema_version === 2
+}
+
+export function isAccountKnowledgeV3(
+  artifact: AccountKnowledgeArtifact,
+): artifact is AccountKnowledgeContentV3 {
+  return artifact.schema_version === 3
 }
 
 // ─── SectorIntelligence V1 ──────────────────────────────────────────────────
