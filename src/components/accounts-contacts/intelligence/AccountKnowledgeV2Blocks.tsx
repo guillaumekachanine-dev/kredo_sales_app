@@ -133,7 +133,10 @@ function ClaimGroup({
 // ─── Indicateur déterministe ────────────────────────────────────────────────
 
 function DynamicIndicatorCard({ indicator }: { indicator: DeterministicIndicator }) {
-  const period = `${new Date(indicator.period_start).toLocaleDateString("fr-FR")} → ${new Date(indicator.period_end).toLocaleDateString("fr-FR")}`
+  // Fuseau explicite : cf. note d'hydratation dans AccountKnowledgeUpdateControls.
+  const formatDay = (iso: string) =>
+    new Date(iso).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })
+  const period = `${formatDay(indicator.period_start)} → ${formatDay(indicator.period_end)}`
   return (
     <div className="rounded border border-border/60 bg-canvas/40 px-3 py-2">
       <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-heading">Dynamique du compte</span>

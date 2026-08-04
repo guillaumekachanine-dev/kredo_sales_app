@@ -8,12 +8,16 @@
 import type { AccountKnowledgeState } from "@/lib/intelligence/intelligence-data"
 import type { AccountKnowledgeRunStatus } from "./use-account-knowledge-run"
 
+// Fuseau explicite : sans lui, le rendu serveur (UTC) et le rendu client
+// (heure locale) diffèrent, ce qui casse l'hydratation React (erreur #418) et
+// affiche brièvement une heure fausse. KREDO est un outil français mono-fuseau.
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   day: "2-digit",
   month: "short",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Europe/Paris",
 }
 
 function formatUpdatedAt(state: AccountKnowledgeState | null): string {
