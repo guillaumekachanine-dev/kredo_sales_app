@@ -76,13 +76,28 @@ Ces règles sont vérifiées par le harnais de test (§6), pas seulement par le 
 node n8n/workflows/__tests__/intel-030-account-knowledge.test.js
 ```
 
-74 assertions exécutant réellement les nœuds Code extraits de ce JSON (mocks n8n dans un `vm`) :
+76 assertions exécutant réellement les nœuds Code extraits de ce JSON (mocks n8n dans un `vm`) :
 validation d'entrée, isolation FOLIO, ciblage de la recherche, collecte de preuves, déduplication
 des sources, robustesse du parsing (bloc Markdown, CRLF, texte d'introduction, réponse tronquée),
 rejets de sortie (fait/analyse non sourcés, source hors catalogue, placeholder,
 confiance hors bornes, `identity.dynamic` produit par le modèle, contact halluciné), idempotence
 des propositions, callbacks succès/échec, et trois profils de comptes réels
 (riche / sans FOLIO / peu documenté).
+
+### 5.1 Piège n8n : zéro item = chaîne interrompue
+
+Un nœud qui n'émet aucun item n'exécute pas le suivant. L'exécution se termine alors en
+**« Succeeded »** sans avoir rien fait, et le run reste en `running` jusqu'au reaper — c'est le
+mode de défaillance le plus trompeur de ce workflow. Cas réellement rencontrés :
+
+- `Upsert Sources` avec `resolution=ignore-duplicates` renvoie `[]` quand **toutes** les sources
+  existent déjà (dès le 2ᵉ run sur un compte) ;
+- `Delete Stale Proposals` / `Insert Fresh Proposals` en `return=minimal` ne renvoient rien ;
+- `Load Active Proposals` renvoie `[]` sur un compte sans proposition active.
+
+Tous les nœuds HTTP portent donc `alwaysOutputData: true`, et les nœuds Code en aval relisent leur
+contexte via `$('Nœud nommé')` plutôt que via l'item reçu. Les deux règles sont vérifiées par le
+harnais — **ne pas les retirer à l'édition dans n8n**.
 
 ## 7. Double barrière côté application
 

@@ -698,6 +698,31 @@ async function main() {
   )
   check("Les étapes à risque exposent bien une sortie d'erreur", errorNodes.length >= 12)
 
+  // Un nœud n8n qui n'émet aucun item n'exécute pas le suivant : la chaîne
+  // s'arrête, l'exécution se déclare « succeeded », et le run reste en
+  // `running`. Tous les appels HTTP de la chaîne doivent donc émettre un item
+  // même quand la réponse est vide (upsert entièrement dédupliqué,
+  // `return=minimal`, liste de propositions vide…).
+  const httpWithoutOutput = workflow.nodes
+    .filter((n) => n.type === "n8n-nodes-base.httpRequest" && n.alwaysOutputData !== true)
+    .map((n) => n.name)
+  check(
+    "Aucun appel HTTP ne peut interrompre la chaîne en renvoyant zéro item",
+    httpWithoutOutput.length === 0,
+    httpWithoutOutput.join(", "),
+  )
+
+  // Corollaire : les nœuds Code placés après un appel HTTP doivent lire leur
+  // contexte via $('Nœud nommé'), jamais via le contenu de l'item reçu — sinon
+  // l'item vide ci-dessus les ferait échouer au lieu de les déclencher.
+  const contextFromInput = ["Build Source Catalogue", "Assemble Prompt", "Build Enrichment Proposals"]
+    .filter((name) => !/\$\('[^']+'\)\.(first|item)/.test(nodes[name].parameters.jsCode))
+  check(
+    "Les nœuds post-HTTP relisent leur contexte depuis un nœud nommé",
+    contextFromInput.length === 0,
+    contextFromInput.join(", "),
+  )
+
   console.log(`\n${passed} succès, ${failed} échec(s)`)
   if (failed > 0) process.exit(1)
 }

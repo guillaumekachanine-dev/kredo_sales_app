@@ -84,6 +84,7 @@
         -520,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -117,6 +118,7 @@
         -320,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -197,8 +199,8 @@
         280,
         180
       ],
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -222,8 +224,8 @@
         480,
         180
       ],
-      "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -300,6 +302,7 @@
         1080,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -336,6 +339,7 @@
         1280,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -384,6 +388,7 @@
         1680,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -458,6 +463,7 @@
         2280,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -515,6 +521,7 @@
         2680,
         300
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -581,6 +588,7 @@
         3080,
         200
       ],
+      "alwaysOutputData": true,
       "onError": "continueErrorOutput"
     },
     {
@@ -662,7 +670,8 @@
       "position": [
         3680,
         300
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -729,7 +738,8 @@
       "position": [
         2880,
         620
-      ]
+      ],
+      "alwaysOutputData": true
     }
   ],
   "connections": {
