@@ -3,7 +3,7 @@ import { getModuleTabs, getSectionTabsForPath } from "./main-menu.config"
 
 describe("navigation de section", () => {
   it("ne rend plus de navigation de section dans CRM & Prospection", () => {
-    expect(getModuleTabs("/prospection")).toEqual([])
+    expect(getModuleTabs("/prospection/accounts")).toEqual([])
     expect(getSectionTabsForPath("/prospection/accounts")).toEqual([])
     expect(getSectionTabsForPath("/prospection/accounts/company-id")).toEqual([])
   })

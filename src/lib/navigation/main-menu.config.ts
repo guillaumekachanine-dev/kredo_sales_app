@@ -141,7 +141,7 @@ export const mainMenuItems: MainMenuItem[] = [
       {
         label: "CRM & Prospection",
         shortLabel: "CRM",
-        href: "/prospection",
+        href: "/prospection/accounts",
         icon: "crm",
         primary: true,
       },

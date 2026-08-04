@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 
 export type BiTabKey = "priorities" | "windows" | "sectors"
 
@@ -95,6 +96,31 @@ export function BusinessIntelligenceLocalNavigation({
               </button>
             )
           })}
+          <div className="my-2 border-t border-edito-border/50" />
+          <button
+            type="button"
+            onClick={() => useCrmAccountLauncherStore.getState().open()}
+            className={cn(
+              "flex min-h-10 w-full items-center gap-2.5 rounded-r-md border-l-2 border-l-transparent px-3 text-left text-xs font-semibold text-edito-muted transition-colors hover:bg-edito-surface/70 hover:text-edito-body",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/30",
+            )}
+          >
+            <span className="text-edito-navy opacity-75">
+              <svg
+                className="size-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3.75 21h16.5M4.5 3h15A1.5 1.5 0 0 1 21 4.5V21H3V4.5A1.5 1.5 0 0 1 4.5 3zM8.25 7.5h.008v.008H8.25V7.5zm0 3.75h.008v.008H8.25v-.008zm0 3.75h.008v.008H8.25V15zm3.742-7.5H12v.008h-.008V7.5zm0 3.75H12v.008h-.008v-.008zm0 3.75H12v.008h-.008V15zm3.75-7.5h.008v.008h-.008V7.5zm0 3.75h.008v.008h-.008v-.008zm0 3.75h.008v.008h-.008V15z" />
+              </svg>
+            </span>
+            <span className="truncate">CRM Launcher</span>
+          </button>
         </div>
       </div>
     </nav>

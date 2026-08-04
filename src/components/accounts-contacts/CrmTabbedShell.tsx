@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
@@ -32,15 +32,6 @@ export function CrmTabbedShell({ children, isMobile = false }: CrmTabbedShellPro
     useSidebarCollapse.getState().requestCollapse()
     return () => useSidebarCollapse.getState().requestRestore()
   }, [isCockpitActive, isMobile])
-
-  // Retour à "home" quand on quitte la section comptes
-  const prevIsAccounts = useRef(isAccountsSection)
-  useEffect(() => {
-    if (prevIsAccounts.current && !isAccountsSection) {
-      setActiveTab("home")
-    }
-    prevIsAccounts.current = isAccountsSection
-  }, [isAccountsSection, setActiveTab])
 
   // Vue mobile : si onglet entité actif sur accounts, afficher le panel + bouton retour
   if (isMobile) {

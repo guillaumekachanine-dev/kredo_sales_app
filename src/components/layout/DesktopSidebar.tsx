@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils"
 import { IconButton } from "@/components/ui/IconButton"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 
-import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 import { useLegacySandboxStore } from "@/features/legacy/LegacySandboxStore"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,7 +58,6 @@ function ModuleItem({
   isCollapsed: boolean
   activeModuleHref: string | null
 }) {
-  const openLauncher = useCrmAccountLauncherStore((s) => s.open)
   const isActive = item.href ? item.href === activeModuleHref : false
 
   const canNavigate = !item.disabled && !item.comingSoon && !!item.href
@@ -97,18 +95,10 @@ function ModuleItem({
     </div>
   )
 
-  const handleLinkClick = (e: React.MouseEvent) => {
-    if (item.href === "/prospection" || item.icon === "crm") {
-      e.preventDefault()
-      openLauncher()
-    }
-  }
-
   if (canNavigate) {
     return (
       <Link
         href={item.href === "/prospection" ? "/prospection/accounts" : item.href!}
-        onClick={handleLinkClick}
         className={baseClasses}
         aria-label={isCollapsed ? item.label : undefined}
         aria-current={isActive ? "page" : undefined}
