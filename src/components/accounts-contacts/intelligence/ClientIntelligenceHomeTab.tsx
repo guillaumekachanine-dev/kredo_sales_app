@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
+import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
@@ -71,6 +72,7 @@ function formatDateTime(value: string): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: KREDO_TIME_ZONE,
   })
 }
 

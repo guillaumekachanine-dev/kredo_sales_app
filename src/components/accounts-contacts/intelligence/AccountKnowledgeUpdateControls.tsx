@@ -5,19 +5,18 @@
 // fonctions de formatage — chaque vue n'importe que le sien, rien n'est chargé
 // puis masqué en CSS.
 
+import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
 import type { AccountKnowledgeState } from "@/lib/intelligence/intelligence-data"
 import type { AccountKnowledgeRunStatus } from "./use-account-knowledge-run"
 
-// Fuseau explicite : sans lui, le rendu serveur (UTC) et le rendu client
-// (heure locale) diffèrent, ce qui casse l'hydratation React (erreur #418) et
-// affiche brièvement une heure fausse. KREDO est un outil français mono-fuseau.
+// Fuseau explicite : cf. lib/formatting/date-fr.ts.
 const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   day: "2-digit",
   month: "short",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
-  timeZone: "Europe/Paris",
+  timeZone: KREDO_TIME_ZONE,
 }
 
 function formatUpdatedAt(state: AccountKnowledgeState | null): string {

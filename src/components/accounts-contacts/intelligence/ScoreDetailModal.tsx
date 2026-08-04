@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import { recomputeAccountScore } from "@/lib/account-scoring/actions"
@@ -27,9 +28,9 @@ const BAND_TONE: Record<string, StatusPillVariant> = {
 function formatCalculatedAt(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) +
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: KREDO_TIME_ZONE }) +
     " à " +
-    d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: KREDO_TIME_ZONE })
 }
 
 export function ScoreDetailModal({

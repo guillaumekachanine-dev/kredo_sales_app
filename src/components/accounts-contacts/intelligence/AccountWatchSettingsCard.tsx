@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, type ReactNode } from "react"
+import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
 import { Button } from "@/components/ui/Button"
 import { Select } from "@/components/ui/Select"
 import { cn } from "@/lib/utils"
@@ -47,6 +48,7 @@ function formatDateTime(value: string | null): string | null {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: KREDO_TIME_ZONE,
   })
 }
 

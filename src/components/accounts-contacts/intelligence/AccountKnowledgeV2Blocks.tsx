@@ -18,6 +18,7 @@ import type {
   AccountKnowledgeCitedSource,
   ClientIntelligenceContact,
 } from "@/lib/intelligence/intelligence-data"
+import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
 import { SectionBlock } from "./intelligence-parts"
 
 export type SourceIndex = Map<string, AccountKnowledgeCitedSource>
@@ -133,9 +134,9 @@ function ClaimGroup({
 // ─── Indicateur déterministe ────────────────────────────────────────────────
 
 function DynamicIndicatorCard({ indicator }: { indicator: DeterministicIndicator }) {
-  // Fuseau explicite : cf. note d'hydratation dans AccountKnowledgeUpdateControls.
+  // Fuseau explicite : cf. lib/formatting/date-fr.ts.
   const formatDay = (iso: string) =>
-    new Date(iso).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })
+    new Date(iso).toLocaleDateString("fr-FR", { timeZone: KREDO_TIME_ZONE })
   const period = `${formatDay(indicator.period_start)} → ${formatDay(indicator.period_end)}`
   return (
     <div className="rounded border border-border/60 bg-canvas/40 px-3 py-2">
