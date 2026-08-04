@@ -21,6 +21,21 @@ export const SECTOR_INTELLIGENCE_ANALYSIS_RESULT_TYPE = "sector_intelligence_ana
 // (tables `sector_pain_points`, `sector_regulatory_items`, `sector_events`).
 // L'artefact les RÉFÉRENCE au lieu de les recopier : dupliquer leur libellé ici
 // garantirait une divergence dès la première correction en base.
+//
+// PRÉREQUIS LOT 2 — sourcing des Claim générés à partir de ces tables :
+// `sector_news`, `sector_events` et `sector_regulatory_items` portent chacune
+// une URL propre (`url`/`source_url`), mais AUCUNE des trois n'est reliée à
+// `intelligence_sources`. Un `Claim` exige des `source_refs` pointant vers
+// `intelligence_sources.id` (cf. intelligence-common-contracts.ts) — pas une
+// URL brute. Avant que le workflow Lot 2 puisse citer un article `sector_news`
+// ou une échéance `sector_regulatory_items` comme source d'un Claim, cette URL
+// doit d'abord être upsertée dans `intelligence_sources` (même schéma que le
+// pipeline intel-033 : source_type/source_name/source_url/published_at), pour
+// obtenir l'UUID à placer dans `source_refs`. Ne jamais construire un
+// `source_refs` à partir de l'UUID de la ligne `sector_news`/`sector_events`/
+// `sector_regulatory_items` elle-même : ce n'est pas une `intelligence_sources`,
+// la validation `isUuid`-sur-la-bonne-table ne le détecterait pas mais le
+// Claim pointerait vers une ligne inexistante dans la table attendue.
 
 export type SectorPainPointRef = {
   /** UUID de `sector_pain_points.id`. */
