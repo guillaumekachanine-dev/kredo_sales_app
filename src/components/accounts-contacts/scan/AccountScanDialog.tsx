@@ -398,6 +398,10 @@ export function AccountScanDialog({
     setProposalRows([])
     setSelectedIds(new Set())
     setBilanByProposalId(new Map())
+    // Le runId précédent est effacé AVANT le déclenchement : sans cela, le
+    // suivi repartirait sur l'ancien run (restauré à l'ouverture) pendant tout
+    // le temps de l'appel, et pourrait aboutir sur son résultat périmé.
+    setRunId(null)
     setPhase("information_queued")
 
     try {
@@ -435,6 +439,10 @@ export function AccountScanDialog({
     setContactsResultId(null)
     setSelectedContactKeys(new Set())
     setImportResult(null)
+    // Le runId précédent est effacé AVANT le déclenchement : sans cela, le
+    // suivi repartirait sur l'ancien run (restauré à l'ouverture) pendant tout
+    // le temps de l'appel, et pourrait aboutir sur son résultat périmé.
+    setRunId(null)
     setPhase("contacts_queued")
 
     try {
