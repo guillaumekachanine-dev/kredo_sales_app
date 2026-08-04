@@ -3,13 +3,18 @@ import "server-only"
 import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { createClient } from "@/lib/supabase/server"
 import {
-  getLatestVeilleDigest,
   getVeilleArticles,
   getPastVeilleDigests,
   getSectorNews,
   getSectorEvents,
   getCompaniesContextStats,
   getWatchedAccountsSignals,
+  getWatchedCompanyIds,
+  getGlobalWatchSettings,
+  getGlobalWatchWorkflowHealth,
+  getLatestStrategicWatchAnalysis,
+  getStrategicWatchAnalysisHistory,
+  getMonthlyWatchGenerationContext,
   type VeilleDigest,
   type VeilleArticle,
   type SectorNews,
@@ -25,15 +30,31 @@ export default async function VeillePage({
   const resolvedParams = await searchParams
   const digestId = resolvedParams.digestId
 
-  const [device, companiesResult, watchedSignalsResult] = await Promise.all([
+  const [
+    device,
+    companiesResult,
+    watchedSignalsResult,
+    watchedCompanyIds,
+    pastDigestsResult,
+    globalWatchSettings,
+    globalWatchHealth,
+    latestAnalysis,
+    analysisHistory,
+    monthlyGeneration,
+  ] = await Promise.all([
     getDashboardDevice(),
     getCompaniesContextStats(),
     getWatchedAccountsSignals(),
+    getWatchedCompanyIds(),
+    getPastVeilleDigests(10),
+    getGlobalWatchSettings(),
+    getGlobalWatchWorkflowHealth(),
+    getLatestStrategicWatchAnalysis(),
+    getStrategicWatchAnalysisHistory(12),
+    getMonthlyWatchGenerationContext(),
   ])
 
-  // 1. Fetch past digests
-  const { data: pastDigestsData } = await getPastVeilleDigests(10)
-  const pastDigests = pastDigestsData || []
+  const pastDigests = pastDigestsResult.data || []
 
   // 2. Determine selected digest
   let selectedDigest: VeilleDigest | null = null
@@ -74,7 +95,10 @@ export default async function VeillePage({
   const watchedSignals = watchedSignalsResult.data || []
 
   return (
-    <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
+    <div
+      data-theme={device === "mobile" ? "intelligence-reports" : "edito-bright-veille"}
+      className={device === "mobile" ? "min-h-screen bg-canvas text-body" : "h-full min-h-0 bg-canvas text-body"}
+    >
       <VeilleActualitesPage
         device={device}
         digest={selectedDigest}
@@ -84,8 +108,13 @@ export default async function VeillePage({
         sectorEvents={sectorEvents}
         companies={companies}
         watchedSignals={watchedSignals}
+        watchedCompanyIds={watchedCompanyIds}
+        globalWatchSettings={globalWatchSettings}
+        globalWatchHealth={globalWatchHealth}
+        latestAnalysis={latestAnalysis}
+        analysisHistory={analysisHistory}
+        monthlyGeneration={monthlyGeneration}
       />
     </div>
   )
 }
-

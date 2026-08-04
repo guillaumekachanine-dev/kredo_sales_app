@@ -2,6 +2,7 @@
 export const WORKFLOW_LABELS: Record<string, string> = {
   "intel-010-refresh": "Scan rapide compte",
   "intel-020-communication": "Rédaction (pitch / mail)",
+  "intel-021-monthly-watch-analysis": "Analyse mensuelle de la veille",
   "intel-020-pitch-mail": "Rédaction (legacy)",
   "intel-030-account-knowledge": "Connaissance compte",
   "intel-031-issues-map": "Cartographie des enjeux",

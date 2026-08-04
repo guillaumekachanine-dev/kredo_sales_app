@@ -198,6 +198,9 @@
   --color-edito-border: #CBD5E1;
   --color-edito-chip: #F1F5F9;
   --color-edito-brass: #D89B16;
+  --color-edito-brass-hover: #BE8410;
+  --color-edito-petrol: #255B61;
+  --color-edito-petrol-deep: #1E4A4F;
   --color-edito-gold: #FBBF24;
   --color-cockpit-petrol-medium: #1E5E99;
 }
@@ -561,10 +564,60 @@
   scrollbar-width: thin;
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Atlas éditorial + Revue analytique — Veille Desktop.
+   Scope strict : [data-theme="edito-bright-veille"] sur /veille.
+   ────────────────────────────────────────────────────────────── */
+[data-theme="edito-bright-veille"] {
+  --font-heading: var(--font-sans);
+  --color-canvas: var(--color-edito-canvas);
+  --color-surface: var(--color-edito-surface);
+  --color-surface-hover: var(--color-edito-chip);
+  --color-border: var(--color-edito-border);
+  --color-heading: var(--color-edito-navy);
+  --color-body: var(--color-edito-body);
+  --color-muted: var(--color-edito-muted);
+  --color-primary: var(--color-edito-petrol);
+  --color-primary-deep: var(--color-edito-petrol-deep);
+  --color-primary-fg: var(--color-edito-surface);
+  --color-brand-brass: var(--color-edito-brass);
+  --color-brand-brass-hover: var(--color-edito-brass-hover);
+  --color-secondary: var(--color-edito-chip);
+  --color-secondary-fg: var(--color-edito-ink);
+  color-scheme: light;
+}
+
+[data-theme="edito-bright-veille"] .paper-sheet,
+[data-theme="edito-bright-veille"] .paper-sheet * {
+  --color-canvas: var(--color-edito-surface);
+  --color-surface: var(--color-edito-surface);
+  --color-surface-hover: var(--color-edito-canvas);
+  --color-border: var(--color-edito-border);
+  --color-heading: var(--color-edito-navy);
+  --color-body: var(--color-edito-body);
+  --color-muted: var(--color-edito-muted);
+  --color-primary: var(--color-edito-petrol);
+  --color-primary-deep: var(--color-edito-petrol-deep);
+  --color-primary-fg: var(--color-edito-surface);
+}
+
+[data-theme="edito-bright-veille"] .veille-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--color-edito-border) 82%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-theme="edito-bright-reports"] *,
   [data-theme="edito-bright-reports"] *::before,
   [data-theme="edito-bright-reports"] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  [data-theme="edito-bright-veille"] *,
+  [data-theme="edito-bright-veille"] *::before,
+  [data-theme="edito-bright-veille"] *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;

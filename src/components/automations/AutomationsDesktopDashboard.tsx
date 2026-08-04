@@ -181,11 +181,12 @@ function WorkflowCostBar({ workflow, maxCost }: { workflow: WorkflowHealthRow; m
   )
 }
 
-export function AutomationsDesktopDashboard({ data }: { data: AutomationsDashboardData }) {
+export function AutomationsDesktopDashboard({ data, initialRunId }: { data: AutomationsDashboardData; initialRunId?: string }) {
+  const initialRun = initialRunId ? data.journal.find((run) => run.id === initialRunId) ?? null : null
   const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
   const [journal, setJournal] = useState<RunJournalRow[]>(data.journal)
-  const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedRun, setSelectedRun] = useState<RunJournalRow | null>(initialRun)
+  const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 

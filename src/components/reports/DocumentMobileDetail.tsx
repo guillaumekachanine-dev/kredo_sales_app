@@ -46,6 +46,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentDetail["documentType"], string> = {
   workspace_diagnostic: "Diagnostic du centre de profit",
   financial_reference: "Référence financière",
   commercial_quote: "Devis commercial",
+  strategic_watch_analysis: "Analyse stratégique de la veille",
 }
 
 const STATUS_LABELS: Record<DocumentDetail["status"], string> = {

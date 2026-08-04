@@ -2,11 +2,183 @@ import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/types/database"
+import {
+  GLOBAL_WATCH_WORKFLOW_ID,
+  MONTHLY_WATCH_WORKFLOW_ID,
+  healthFromRun,
+  parseGlobalWatchSettings,
+  parseMonthlyWatchAnalysisOutput,
+  previousCalendarMonth,
+  type GlobalWatchSettings,
+  type GlobalWatchWorkflowHealth,
+  type MonthlyWatchGenerationContext,
+  type StrategicWatchAnalysis,
+} from "@/components/veille/veille-desktop-contracts"
 
 export type VeilleDigest = Database["public"]["Tables"]["veille_digests"]["Row"]
 export type VeilleArticle = Database["public"]["Tables"]["veille_articles"]["Row"]
 export type SectorNews = Database["public"]["Tables"]["sector_news"]["Row"]
 export type SectorEvent = Database["public"]["Tables"]["sector_events"]["Row"]
+
+async function getAuthenticatedWorkspace() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { supabase, workspaceId: null as string | null }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .maybeSingle()
+  return { supabase, workspaceId: profile?.workspace_id ?? null }
+}
+
+export async function getGlobalWatchSettings(): Promise<GlobalWatchSettings> {
+  const { supabase, workspaceId } = await getAuthenticatedWorkspace()
+  if (!workspaceId) return parseGlobalWatchSettings(null)
+  const { data } = await supabase
+    .from("workspaces")
+    .select("settings")
+    .eq("id", workspaceId)
+    .maybeSingle()
+  return parseGlobalWatchSettings(data?.settings)
+}
+
+export async function getGlobalWatchWorkflowHealth(): Promise<GlobalWatchWorkflowHealth> {
+  const { supabase, workspaceId } = await getAuthenticatedWorkspace()
+  if (!workspaceId || !GLOBAL_WATCH_WORKFLOW_ID) {
+    return healthFromRun({ workflowId: GLOBAL_WATCH_WORKFLOW_ID, run: null })
+  }
+  const { data } = await supabase
+    .from("ai_intelligence_runs")
+    .select("id, status, created_at, completed_at, error_message")
+    .eq("workspace_id", workspaceId)
+    .eq("run_type", GLOBAL_WATCH_WORKFLOW_ID)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return healthFromRun({ workflowId: GLOBAL_WATCH_WORKFLOW_ID, run: data })
+}
+
+function mapStrategicWatchAnalysis(row: {
+  id: string
+  title: string
+  status: Database["public"]["Enums"]["intelligence_document_status"]
+  period_start: string | null
+  period_end: string | null
+  created_at: string
+  updated_at: string
+  version_number: number
+  current_content_json: Database["public"]["Tables"]["intelligence_documents"]["Row"]["current_content_json"]
+}): StrategicWatchAnalysis {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    versionNumber: row.version_number,
+    content: parseMonthlyWatchAnalysisOutput(row.current_content_json),
+  }
+}
+
+export async function getStrategicWatchAnalysisHistory(limit = 12): Promise<StrategicWatchAnalysis[]> {
+  const { supabase, workspaceId } = await getAuthenticatedWorkspace()
+  if (!workspaceId) return []
+  const { data, error } = await supabase
+    .from("intelligence_documents")
+    .select("id, title, status, period_start, period_end, created_at, updated_at, version_number, current_content_json")
+    .eq("workspace_id", workspaceId)
+    .eq("document_type", "strategic_watch_analysis")
+    .neq("status", "archived")
+    .order("period_start", { ascending: false })
+    .limit(limit)
+  if (error) {
+    console.error("[veille] strategic analysis history:", error.message)
+    return []
+  }
+  return (data ?? []).map(mapStrategicWatchAnalysis)
+}
+
+export async function getLatestStrategicWatchAnalysis(): Promise<StrategicWatchAnalysis | null> {
+  const rows = await getStrategicWatchAnalysisHistory(1)
+  return rows[0] ?? null
+}
+
+export async function getMonthlyWatchGenerationContext(reference = new Date()): Promise<MonthlyWatchGenerationContext> {
+  const { supabase, workspaceId } = await getAuthenticatedWorkspace()
+  const period = previousCalendarMonth(reference)
+  const emptyInput = {
+    schemaVersion: 1 as const,
+    periodStart: period.start,
+    periodEnd: period.end,
+    digestIds: [],
+    articleIds: [],
+    requestedAt: reference.toISOString(),
+    triggerMode: "manual" as const,
+  }
+  if (!workspaceId) return { input: emptyInput, isAlreadyCovered: false, activeRun: null, latestRun: null }
+
+  const [digestsResult, documentResult, runsResult] = await Promise.all([
+    supabase
+      .from("veille_digests")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .gte("digest_date", period.start)
+      .lte("digest_date", period.end)
+      .order("digest_date", { ascending: true }),
+    supabase
+      .from("intelligence_documents")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("document_type", "strategic_watch_analysis")
+      .eq("period_start", period.start)
+      .eq("period_end", period.end)
+      .neq("status", "archived")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("ai_intelligence_runs")
+      .select("id, status, created_at, error_message")
+      .eq("workspace_id", workspaceId)
+      .eq("run_type", MONTHLY_WATCH_WORKFLOW_ID)
+      .order("created_at", { ascending: false })
+      .limit(1),
+  ])
+
+  const digestIds = (digestsResult.data ?? []).map((row) => row.id)
+  const articleResult = digestIds.length > 0
+    ? await supabase
+        .from("veille_articles")
+        .select("id")
+        .eq("workspace_id", workspaceId)
+        .in("digest_id", digestIds)
+        .order("selection_rank", { ascending: true })
+    : { data: [] as Array<{ id: string }>, error: null }
+  const latestRunRow = runsResult.data?.[0] ?? null
+  const latestRun = latestRunRow
+    ? {
+        id: latestRunRow.id,
+        status: latestRunRow.status,
+        createdAt: latestRunRow.created_at,
+        errorMessage: latestRunRow.error_message,
+      }
+    : null
+
+  return {
+    input: {
+      ...emptyInput,
+      digestIds,
+      articleIds: (articleResult.data ?? []).map((row) => row.id),
+    },
+    isAlreadyCovered: Boolean(documentResult.data),
+    activeRun: latestRun && (latestRun.status === "queued" || latestRun.status === "running")
+      ? { id: latestRun.id, status: latestRun.status, createdAt: latestRun.createdAt }
+      : null,
+    latestRun,
+  }
+}
 
 export async function getLatestVeilleDigest() {
   const supabase = await createClient()
@@ -76,7 +248,7 @@ export type CompanyContextStats = {
   docsCount: number
 }
 
-export async function getCompaniesContextStats(): Promise<{ data: CompanyContextStats[]; error: any }> {
+export async function getCompaniesContextStats(): Promise<{ data: CompanyContextStats[]; error: unknown }> {
   try {
     const supabase = await createClient()
     
@@ -170,7 +342,20 @@ export type WatchedAccountSignal = {
   } | null
 }
 
-export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccountSignal[]; error: any }> {
+export async function getWatchedCompanyIds(): Promise<string[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("account_watch_settings")
+    .select("company_id")
+    .eq("is_enabled", true)
+  if (error) {
+    console.error("[veille] watched company ids:", error.message)
+    return []
+  }
+  return Array.from(new Set((data ?? []).map((row) => row.company_id).filter(Boolean)))
+}
+
+export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccountSignal[]; error: unknown }> {
   try {
     const supabase = await createClient()
 
@@ -252,4 +437,3 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
     return { data: [], error: err }
   }
 }
-

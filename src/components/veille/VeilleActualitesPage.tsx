@@ -9,6 +9,12 @@ import type {
 } from "@/app/(app)/veille/_data/veille-data"
 import { VeilleActualitesDesktop } from "./VeilleActualitesDesktop"
 import { VeilleActualitesMobile } from "./VeilleActualitesMobile"
+import type {
+  GlobalWatchSettings,
+  GlobalWatchWorkflowHealth,
+  MonthlyWatchGenerationContext,
+  StrategicWatchAnalysis,
+} from "./veille-desktop-contracts"
 
 interface VeilleActualitesPageProps {
   device: DashboardDevice
@@ -19,6 +25,12 @@ interface VeilleActualitesPageProps {
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
+  watchedCompanyIds: string[]
+  globalWatchSettings: GlobalWatchSettings
+  globalWatchHealth: GlobalWatchWorkflowHealth
+  latestAnalysis: StrategicWatchAnalysis | null
+  analysisHistory: StrategicWatchAnalysis[]
+  monthlyGeneration: MonthlyWatchGenerationContext
 }
 
 export function VeilleActualitesPage({
@@ -30,6 +42,12 @@ export function VeilleActualitesPage({
   sectorEvents,
   companies,
   watchedSignals,
+  watchedCompanyIds,
+  globalWatchSettings,
+  globalWatchHealth,
+  latestAnalysis,
+  analysisHistory,
+  monthlyGeneration,
 }: VeilleActualitesPageProps) {
   if (device === "mobile") {
     return (
@@ -54,7 +72,12 @@ export function VeilleActualitesPage({
       sectorEvents={sectorEvents}
       companies={companies}
       watchedSignals={watchedSignals}
+      watchedCompanyIds={watchedCompanyIds}
+      globalWatchSettings={globalWatchSettings}
+      globalWatchHealth={globalWatchHealth}
+      latestAnalysis={latestAnalysis}
+      analysisHistory={analysisHistory}
+      monthlyGeneration={monthlyGeneration}
     />
   )
 }
-

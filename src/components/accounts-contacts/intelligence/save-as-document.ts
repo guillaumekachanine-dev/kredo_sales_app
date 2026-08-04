@@ -64,18 +64,18 @@ function getContentPeriod(contentJson: Json): { start: string | null; end: strin
   if (!contentJson || typeof contentJson !== "object" || Array.isArray(contentJson)) {
     return { start: null, end: null }
   }
-  const facts = (contentJson as Record<string, unknown>).facts
-  if (!facts || typeof facts !== "object" || Array.isArray(facts)) {
-    return { start: null, end: null }
-  }
-  const period = (facts as Record<string, unknown>).period
+  const root = contentJson as Record<string, unknown>
+  const facts = root.facts
+  const period = facts && typeof facts === "object" && !Array.isArray(facts)
+    ? (facts as Record<string, unknown>).period
+    : root.period
   if (!period || typeof period !== "object" || Array.isArray(period)) {
     return { start: null, end: null }
   }
-  const { startDate, endDate } = period as Record<string, unknown>
+  const { startDate, endDate, start, end } = period as Record<string, unknown>
   return {
-    start: typeof startDate === "string" ? startDate : null,
-    end: typeof endDate === "string" ? endDate : null,
+    start: typeof startDate === "string" ? startDate : typeof start === "string" ? start : null,
+    end: typeof endDate === "string" ? endDate : typeof end === "string" ? end : null,
   }
 }
 
@@ -89,12 +89,13 @@ function getContentDataCutoffAt(contentJson: Json): string | null {
     return null
   }
 
-  const facts = (contentJson as Record<string, unknown>).facts
-  if (!facts || typeof facts !== "object" || Array.isArray(facts)) {
-    return null
-  }
-
-  const dataCutoffAt = (facts as Record<string, unknown>).dataCutoffAt
+  const root = contentJson as Record<string, unknown>
+  const facts = root.facts
+  const dataCutoffAt = root.dataCutoffAt ?? (
+    facts && typeof facts === "object" && !Array.isArray(facts)
+      ? (facts as Record<string, unknown>).dataCutoffAt
+      : null
+  )
   return typeof dataCutoffAt === "string" && dataCutoffAt.trim() ? dataCutoffAt : null
 }
 
@@ -202,6 +203,47 @@ export async function saveResultAsDocumentWithSupabaseClient(
     runPrimaryEntityType: run.primary_entity_type,
     runPrimaryEntityId: run.primary_entity_id,
   })
+
+  if (documentType === "strategic_watch_analysis") {
+    if (!contentPeriod.start || !contentPeriod.end) {
+      return { error: "Période mensuelle absente du résultat d’analyse stratégique" }
+    }
+    const dataCutoffAt = getContentDataCutoffAt(result.content_json)
+      ?? `${contentPeriod.end}T23:59:59.999Z`
+    const { data: documentId, error: upsertError } = await supabase.rpc(
+      "upsert_strategic_watch_document",
+      {
+        p_workspace_id: result.workspace_id ?? run.workspace_id,
+        p_actor_user_id: documentOwnerId,
+        p_source_result_id: result.id,
+        p_title: buildDocumentTitle(result, documentType, run.input_snapshot),
+        p_content_text: contentText ?? "",
+        p_content_json: result.content_json,
+        p_period_start: contentPeriod.start,
+        p_period_end: contentPeriod.end,
+        p_data_cutoff_at: dataCutoffAt,
+        p_scope_json: {
+          scope: "workspace",
+          periodStart: contentPeriod.start,
+          periodEnd: contentPeriod.end,
+          source: "veille_digests_and_articles",
+        },
+        p_brief_json: run.input_snapshot,
+        p_source_refs: result.source_refs,
+        p_qa_flags: result.qa_flags,
+      },
+    )
+    if (upsertError || !documentId) {
+      return { error: upsertError?.message ?? "Impossible de versionner l’analyse stratégique" }
+    }
+    revalidateReportsSafely()
+    try {
+      revalidatePath("/veille")
+    } catch {
+      // Le callback peut être testé hors contexte de requête Next.
+    }
+    return { success: true, documentId }
+  }
 
   const creation = await saveAsDocumentWithClient(
     supabase,

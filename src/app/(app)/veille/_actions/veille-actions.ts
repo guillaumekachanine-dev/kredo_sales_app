@@ -4,7 +4,11 @@ import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
-import type { Database } from "@/types/database"
+import type { Database, Json } from "@/types/database"
+import {
+  validateGlobalWatchSettings,
+  type GlobalWatchSettings,
+} from "@/components/veille/veille-desktop-contracts"
 
 export interface UpdateVeilleArticleInput {
   titre_fr?: string
@@ -54,8 +58,56 @@ export async function updateVeilleArticleAction(
 
     revalidatePath("/veille")
     return { success: true }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Erreur serveur mise à jour veille article:", err)
-    return { error: err.message || "Une erreur inattendue est survenue." }
+    return { error: err instanceof Error ? err.message : "Une erreur inattendue est survenue." }
   }
+}
+
+export async function saveGlobalWatchSettingsAction(value: unknown): Promise<
+  | { success: true; settings: GlobalWatchSettings }
+  | { success: false; error: string }
+> {
+  const validation = validateGlobalWatchSettings(value)
+  if (!validation.success) return validation
+
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: "Non authentifié." }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("workspace_id")
+    .eq("id", user.id)
+    .maybeSingle()
+  if (profileError || !profile?.workspace_id) {
+    return { success: false, error: "Workspace introuvable." }
+  }
+
+  const { data: workspace, error: workspaceError } = await supabase
+    .from("workspaces")
+    .select("settings")
+    .eq("id", profile.workspace_id)
+    .maybeSingle()
+  if (workspaceError || !workspace) {
+    return { success: false, error: workspaceError?.message ?? "Configuration introuvable." }
+  }
+
+  const currentSettings = workspace.settings && typeof workspace.settings === "object" && !Array.isArray(workspace.settings)
+    ? workspace.settings as Record<string, Json | undefined>
+    : {}
+  const nextSettings = {
+    ...currentSettings,
+    veille: validation.data,
+  } as Json
+
+  const { error: updateError } = await supabase
+    .from("workspaces")
+    .update({ settings: nextSettings })
+    .eq("id", profile.workspace_id)
+    .eq("owner_id", user.id)
+
+  if (updateError) return { success: false, error: updateError.message }
+  revalidatePath("/veille")
+  return { success: true, settings: validation.data }
 }

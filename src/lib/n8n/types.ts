@@ -9,6 +9,7 @@ export type N8nWorkflowId =
   | "intel-010-refresh"             // INTEL-010 : client_intelligence_refresh
   | "intel-011-sector"              // INTEL-011 : étude sectorielle mutualisée
   | "intel-020-communication"       // INTEL-020 : rédaction assistée (email/LinkedIn/note)
+  | "intel-021-monthly-watch-analysis" // INTEL-021 : synthèse mensuelle de la veille globale
   | "intel-022-campaign"            // INTEL-022 : création campagne
   | "intel-030-account-knowledge"   // ADR-0012 Lot 2 : connaissance compte (étape 1 chaîne de décision)
   | "intel-031-issues-map"          // ADR-0012 Lot 4 : cartographie des enjeux (étape 3 chaîne de décision)
@@ -103,6 +104,35 @@ export type TriggerResponse = {
 
 export type TriggerErrorResponse = {
   error: string
+}
+
+export type MonthlyWatchAnalysisInput = {
+  schemaVersion: 1
+  periodStart: string
+  periodEnd: string
+  digestIds: string[]
+  articleIds: string[]
+  requestedAt: string
+  triggerMode: "manual" | "scheduled"
+}
+
+export type MonthlyWatchAnalysisOutput = {
+  schemaVersion: 1
+  period: { start: string; end: string; label: string }
+  executiveSummary: string
+  majorTrends: Array<{ title: string; synthesis: string; articleIds: string[]; sectors: string[]; confidence: number }>
+  weakSignals: Array<{ title: string; synthesis: string; articleIds: string[] }>
+  regulatoryDevelopments: Array<{ title: string; impact: string; articleIds: string[] }>
+  commercialOpportunities: Array<{
+    title: string
+    rationale: string
+    recommendedAction: string
+    practices: string[]
+    articleIds: string[]
+  }>
+  risksAndWatchpoints: Array<{ title: string; explanation: string; articleIds: string[] }>
+  priorityActions: Array<{ title: string; action: string; horizon: "immediate" | "30_days" | "quarter" }>
+  coverage: { digestsCount: number; articlesCount: number; sourcesCount: number }
 }
 
 // ─── Account watch refresh (veille spécifique compte) ───────────────────────

@@ -1,0 +1,273 @@
+{
+  "name": "INTEL-021 — Analyse mensuelle de la veille",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "intel-021-monthly-watch-analysis",
+        "authentication": "none",
+        "responseMode": "onReceived",
+        "options": { "rawBody": true, "responseCode": 202 }
+      },
+      "id": "webhook",
+      "name": "Webhook — Monthly Watch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 280],
+      "webhookId": "intel-021-monthly-watch-analysis"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "type": "SHA256",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "verify-signature",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [400, 280]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst received = headers['x-kredo-signature'] || headers['X-KREDO-Signature'] || '';\nconst expected = 'sha256=' + (item.computedSignature || '');\nif (!received || received !== expected) throw new Error('Signature HMAC invalide');\nfor (const field of ['runId','workflowId','workspaceId','userId','input','callbackUrl']) { if (!body[field]) throw new Error('Champ requis manquant : ' + field); }\nif (body.workflowId !== 'intel-021-monthly-watch-analysis') throw new Error('workflowId invalide');\nconst input = body.input;\nif (input.schemaVersion !== 1) throw new Error('schemaVersion doit valoir 1');\nfor (const field of ['periodStart','periodEnd','digestIds','articleIds','requestedAt','triggerMode']) { if (input[field] === undefined) throw new Error('Champ input manquant : ' + field); }\nif (!Array.isArray(input.digestIds) || !Array.isArray(input.articleIds) || input.articleIds.length === 0) throw new Error('digestIds/articleIds invalides');\nif (!['manual','scheduled'].includes(input.triggerMode)) throw new Error('triggerMode invalide');\nreturn [{ json: { runId: body.runId, workspaceId: body.workspaceId, userId: body.userId, callbackUrl: body.callbackUrl, input } }];"
+      },
+      "id": "validate",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/ai_intelligence_runs?id=eq.{{ $json.runId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Prefer", "value": "return=minimal" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { status: 'running', started_at: new Date().toISOString() } }}",
+        "options": {}
+      },
+      "id": "mark-running",
+      "name": "Mark Run Running",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_digests?select=id,digest_date,titre_digest,resume_hebdo,nb_sources_actives&id=in.({{ $('Validate Input').item.json.input.digestIds.join(',') }})&workspace_id=eq.{{ $('Validate Input').item.json.workspaceId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "load-digests",
+      "name": "Load Digests",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://jvzgmhvwirsbdkjpmvla.supabase.co/rest/v1/veille_articles?select=id,digest_id,published_at,selection_rank,source_name,titre_fr,resume,categorie,secteur_principal,analyse_kredo,action_commerciale,tags&id=in.({{ $('Validate Input').item.json.input.articleIds.join(',') }})&workspace_id=eq.{{ $('Validate Input').item.json.workspaceId }}&order=selection_rank.asc",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "load-articles",
+      "name": "Load Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $('Validate Input').item.json;\nconst digestsRaw = $('Load Digests').all().map(i => i.json);\nconst articlesRaw = $('Load Articles').all().map(i => i.json);\nconst digests = digestsRaw.flatMap(v => Array.isArray(v) ? v : [v]).filter(v => v && v.id);\nconst articles = articlesRaw.flatMap(v => Array.isArray(v) ? v : [v]).filter(v => v && v.id);\nif (articles.length === 0) throw new Error('Aucun article hydraté');\nconst allowedIds = new Set(base.input.articleIds);\nif (articles.some(a => !allowedIds.has(a.id))) throw new Error('Article hors contrat');\nconst systemPrompt = `Tu produis une analyse stratégique mensuelle à partir des seuls articles fournis. Règles absolues : aucune recherche externe, aucun chiffre inventé, aucune conclusion sans articleIds justificatifs. La sortie est un JSON strict respectant exactement le schéma demandé. Les niveaux de confiance sont entre 0 et 1.`;\nconst schema = { schemaVersion: 1, period: { start: base.input.periodStart, end: base.input.periodEnd, label: 'libellé français du mois' }, executiveSummary: 'string', majorTrends: [{ title:'string', synthesis:'string', articleIds:['uuid'], sectors:['string'], confidence:0.8 }], weakSignals:[{title:'string',synthesis:'string',articleIds:['uuid']}], regulatoryDevelopments:[{title:'string',impact:'string',articleIds:['uuid']}], commercialOpportunities:[{title:'string',rationale:'string',recommendedAction:'string',practices:['string'],articleIds:['uuid']}], risksAndWatchpoints:[{title:'string',explanation:'string',articleIds:['uuid']}], priorityActions:[{title:'string',action:'string',horizon:'immediate|30_days|quarter'}], coverage:{digestsCount:digests.length,articlesCount:articles.length,sourcesCount:new Set(articles.map(a=>a.source_name).filter(Boolean)).size} };\nreturn [{ json: { ...base, digests, articles, systemPrompt, userPrompt: 'SCHÉMA ATTENDU\\n' + JSON.stringify(schema) + '\\n\\nARTICLES — SOURCE UNIQUE\\n' + JSON.stringify(articles) } }];"
+      },
+      "id": "assemble",
+      "name": "Assemble Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "anthropic-version", "value": "2023-06-01" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: 'claude-sonnet-5', max_tokens: 5000, thinking: { type: 'disabled' }, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] } }}",
+        "options": { "timeout": 90000 }
+      },
+      "id": "llm",
+      "name": "Call LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1720, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst base = $('Assemble Prompt').item.json;\nconst text = (response.content || []).find(b => b.type === 'text')?.text || '';\nlet output;\ntry { output = JSON.parse(text.replace(/```json\\n?/g,'').replace(/```\\n?/g,'').trim()); } catch { throw new Error('Réponse LLM non JSON'); }\nconst arrays = ['majorTrends','weakSignals','regulatoryDevelopments','commercialOpportunities','risksAndWatchpoints','priorityActions'];\nif (output.schemaVersion !== 1 || !output.period || !output.executiveSummary || arrays.some(k => !Array.isArray(output[k])) || !output.coverage) throw new Error('Sortie structurée invalide');\nconst allowed = new Set(base.articles.map(a => a.id));\nfor (const key of arrays.slice(0,5)) for (const item of output[key]) { if (!Array.isArray(item.articleIds) || item.articleIds.length === 0 || item.articleIds.some(id => !allowed.has(id))) throw new Error('Traçabilité articleIds invalide dans ' + key); }\noutput.period = { start: base.input.periodStart, end: base.input.periodEnd, label: output.period.label };\noutput.coverage = { digestsCount: base.digests.length, articlesCount: base.articles.length, sourcesCount: new Set(base.articles.map(a => a.source_name).filter(Boolean)).size };\nconst qaFlags = [{check:'article_traceability',passed:true},{check:'coverage_from_source_rows',passed:true},{check:'no_external_collection',passed:true}];\nreturn [{ json: { ...base, output, qaFlags, llmUsage: response.usage || {}, model: response.model || 'claude-sonnet-5' } }];"
+      },
+      "id": "validate-output",
+      "name": "Validate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, 280],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const d = $input.first().json;\nconst o = d.output;\nconst lines = ['# Analyse stratégique de la veille — ' + o.period.label, o.executiveSummary, '', '## Tendances majeures', ...o.majorTrends.map(x => '- ' + x.title + ' — ' + x.synthesis), '', '## Signaux faibles', ...o.weakSignals.map(x => '- ' + x.title + ' — ' + x.synthesis), '', '## Opportunités commerciales', ...o.commercialOpportunities.map(x => '- ' + x.title + ' — ' + x.recommendedAction), '', '## Risques et points de veille', ...o.risksAndWatchpoints.map(x => '- ' + x.title + ' — ' + x.explanation), '', '## Actions prioritaires', ...o.priorityActions.map(x => '- ' + x.title + ' — ' + x.action)];\nconst sourceRefs = d.articles.map(a => ({ entityType:'veille_article', entityId:a.id, label:a.titre_fr, sourceName:a.source_name }));\nconst callback = { n8nExecutionId:$execution.id, n8nWorkflowId:$workflow.id, runId:d.runId, phase:1, resultType:'strategic_watch_analysis', status:'succeeded', contentJson:{ ...o, dataCutoffAt:d.input.periodEnd + 'T23:59:59.999Z' }, contentText:lines.join('\\n'), title:'Analyse stratégique de la veille — ' + o.period.label, modelProvider:'anthropic', modelUsed:d.model, tokensInput:d.llmUsage.input_tokens || null, tokensOutput:d.llmUsage.output_tokens || null, contextSnapshot:d.input, sourceRefs, qaFlags:d.qaFlags };\nreturn [{ json:{ callbackUrl:d.callbackUrl, rawBody:JSON.stringify(callback) } }];"
+      },
+      "id": "prepare-callback",
+      "name": "Prepare Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 280]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_CALLBACK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-callback",
+      "name": "Sign Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [2380, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Callback').item.json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-kredo-signature", "value": "=sha256={{ $json.computedSignature }}" }, { "name": "content-type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Callback').item.json.rawBody }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "callback",
+      "name": "Callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2600, 280]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const failure = $input.first().json;\nconst webhook = $('Webhook — Monthly Watch').item.json.body || {};\nconst validated = (() => { try { return $('Validate Input').item.json; } catch { return null; } })();\nconst runId = validated?.runId || webhook.runId;\nconst callbackUrl = validated?.callbackUrl || webhook.callbackUrl;\nif (!runId || !callbackUrl) throw new Error('Impossible de notifier l’échec : runId/callbackUrl absents');\nconst message = failure.error?.message || failure.message || failure.errorMessage || 'Échec du workflow INTEL-021';\nconst callback = { n8nExecutionId:$execution.id, n8nWorkflowId:$workflow.id, runId, phase:1, resultType:'strategic_watch_analysis', status:'failed', contentJson:{ error:message }, contentText:'', title:'Analyse stratégique de la veille — échec', errorMessage:message };\nreturn [{ json:{ callbackUrl, rawBody:JSON.stringify(callback) } }];"
+      },
+      "id": "prepare-failure",
+      "name": "Prepare Failure Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 480]
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $json.rawBody }}",
+        "dataPropertyName": "computedSignature",
+        "secret": "REMPLACE_PAR_TON_N8N_CALLBACK_SECRET",
+        "encoding": "hex"
+      },
+      "id": "sign-failure",
+      "name": "Sign Failure Callback",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [2380, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare Failure Callback').item.json.callbackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-kredo-signature", "value": "=sha256={{ $json.computedSignature }}" }, { "name": "content-type", "value": "application/json" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Prepare Failure Callback').item.json.rawBody }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "callback-failure",
+      "name": "Callback (Failure)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2600, 480]
+    },
+    {
+      "parameters": { "rule": { "interval": [{ "field": "months", "monthsInterval": 1, "triggerAtDayOfMonth": 2, "triggerAtHour": 6 }] } },
+      "id": "schedule",
+      "name": "Schedule — Monthly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [180, 560]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.KREDO_APP_URL + '/api/veille/monthly-watch/cron' }}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "x-kredo-cron-secret", "value": "={{ $env.N8N_CRON_SECRET }}" }] },
+        "options": { "timeout": 30000 }
+      },
+      "id": "schedule-trigger-api",
+      "name": "Trigger Scheduled Contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 560]
+    }
+  ],
+  "connections": {
+    "Webhook — Monthly Watch": { "main": [[{ "node": "Verify Signature", "type": "main", "index": 0 }]] },
+    "Verify Signature": { "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]] },
+    "Validate Input": { "main": [[{ "node": "Mark Run Running", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Mark Run Running": { "main": [[{ "node": "Load Digests", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Load Digests": { "main": [[{ "node": "Load Articles", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Load Articles": { "main": [[{ "node": "Assemble Prompt", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Assemble Prompt": { "main": [[{ "node": "Call LLM", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Call LLM": { "main": [[{ "node": "Validate Output", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Validate Output": { "main": [[{ "node": "Prepare Callback", "type": "main", "index": 0 }], [{ "node": "Prepare Failure Callback", "type": "main", "index": 0 }]] },
+    "Prepare Callback": { "main": [[{ "node": "Sign Callback", "type": "main", "index": 0 }]] },
+    "Sign Callback": { "main": [[{ "node": "Callback", "type": "main", "index": 0 }]] },
+    "Prepare Failure Callback": { "main": [[{ "node": "Sign Failure Callback", "type": "main", "index": 0 }]] },
+    "Sign Failure Callback": { "main": [[{ "node": "Callback (Failure)", "type": "main", "index": 0 }]] },
+    "Schedule — Monthly": { "main": [[{ "node": "Trigger Scheduled Contract", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Paris" },
+  "pinData": {}
+}

@@ -1,27 +1,42 @@
 "use client"
 
-import { useState } from "react"
-import { formatDateFr } from "@/lib/formatters"
+import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
+import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import { Button } from "@/components/ui/Button"
+import { createClient } from "@/lib/supabase/client"
+import { formatDateFr } from "@/lib/formatters"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
-import { SignalListCard } from "./SignalListCard"
+import { cn } from "@/lib/utils"
+import type {
+  CompanyContextStats,
+  SectorEvent,
+  SectorNews,
+  VeilleArticle,
+  VeilleDigest,
+  WatchedAccountSignal,
+} from "@/app/(app)/veille/_data/veille-data"
 import {
-  QualifySignalDialog,
   CreateAccountNoteDialog,
   CreateOpportunityDialog,
+  QualifySignalDialog,
 } from "./SignalDialogs"
-import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
-import { cn } from "@/lib/utils"
-import { getRelativeTimeFr, extractMatchedCompany } from "./veille-utils"
-import type {
-  VeilleDigest,
-  VeilleArticle,
-  SectorNews,
-  SectorEvent,
-  CompanyContextStats,
-  WatchedAccountSignal
-} from "@/app/(app)/veille/_data/veille-data"
+import { VeilleHeaderActions } from "./VeilleHeaderActions"
+import { VeilleLocalNavigation } from "./VeilleLocalNavigation"
+import { extractMatchedCompany, getRelativeTimeFr } from "./veille-utils"
+import {
+  MONTHLY_WATCH_WORKFLOW_ID,
+  getSecondaryItems,
+  type GlobalWatchSettings,
+  type GlobalWatchWorkflowHealth,
+  type MonthlyWatchGenerationContext,
+  type StrategicWatchAnalysis,
+  type VeilleSection,
+} from "./veille-desktop-contracts"
 
 interface VeilleActualitesDesktopProps {
   digest: VeilleDigest | null
@@ -31,6 +46,409 @@ interface VeilleActualitesDesktopProps {
   sectorEvents: SectorEvent[]
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
+  watchedCompanyIds: string[]
+  globalWatchSettings: GlobalWatchSettings
+  globalWatchHealth: GlobalWatchWorkflowHealth
+  latestAnalysis: StrategicWatchAnalysis | null
+  analysisHistory: StrategicWatchAnalysis[]
+  monthlyGeneration: MonthlyWatchGenerationContext
+}
+
+const FILTERS = ["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"] as const
+
+function confidenceLabel(rank: number) {
+  return rank <= 2 ? "élevée" : rank <= 4 ? "moyenne" : "faible"
+}
+
+function formatPeriod(start: string | null, end: string | null) {
+  if (!start || !end) return "Période non renseignée"
+  return `${formatDateFr(start)} — ${formatDateFr(end)}`
+}
+
+function EmptyState({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-border bg-surface px-6 py-12 text-center">
+      <h2 className="font-heading text-base font-bold text-heading">{title}</h2>
+      <div className="mx-auto mt-2 max-w-xl text-sm leading-6 text-body">{children}</div>
+    </div>
+  )
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="border-b border-border pb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-heading">
+      {children}
+    </h2>
+  )
+}
+
+function NewsFilters({
+  search,
+  onSearch,
+  selectedFilter,
+  onFilter,
+}: {
+  search: string
+  onSearch: (value: string) => void
+  selectedFilter: typeof FILTERS[number]
+  onFilter: (value: typeof FILTERS[number]) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-y border-border bg-surface px-3 py-2.5" aria-label="Filtres des actualités">
+      <label className="relative min-w-[15rem] flex-1">
+        <span className="sr-only">Rechercher un article</span>
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => onSearch(event.target.value)}
+          placeholder="Rechercher un signal, un secteur, une source…"
+          className="h-9 w-full border border-border bg-canvas/40 px-3 text-xs text-heading outline-none placeholder:text-muted focus-visible:ring-2 focus-visible:ring-heading"
+        />
+      </label>
+      <div className="flex flex-wrap gap-1" role="group" aria-label="Catégorie">
+        {FILTERS.map((filter) => (
+          <button
+            key={filter}
+            type="button"
+            aria-pressed={selectedFilter === filter}
+            onClick={() => onFilter(filter)}
+            className={cn(
+              "min-h-9 border px-3 text-[10px] font-bold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
+              selectedFilter === filter
+                ? "border-primary bg-primary text-primary-fg"
+                : "border-border bg-surface text-body hover:bg-surface-hover",
+            )}
+          >
+            {filter}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EditorialArticle({ article, headingRef }: { article: VeilleArticle; headingRef: React.RefObject<HTMLHeadingElement | null> }) {
+  return (
+    <article className="border border-border bg-edito-canvas/80 p-3 sm:p-4">
+      <div className="paper-sheet border border-border/80 bg-surface px-8 py-9 lg:px-12 lg:py-11">
+        <div className="mx-auto max-w-[74ch]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">{article.categorie || "Actualité"}</p>
+          <h2 ref={headingRef} tabIndex={-1} className="mt-3 font-heading text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading">
+            {article.titre_fr}
+          </h2>
+          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
+            <span>{getRelativeTimeFr(article.published_at)}</span><span aria-hidden="true">·</span>
+            <span>Confiance {confidenceLabel(article.selection_rank)}</span><span aria-hidden="true">·</span>
+            <span>via {article.source_name}</span>
+          </div>
+          <p className="mt-8 text-[15px] leading-[1.72] text-body">{article.resume}</p>
+
+          {article.analyse_kredo ? (
+            <section className="mt-9 border-t border-border pt-6">
+              <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
+                <IntelligenceIcon name="recommendations" preferVector className="size-4 text-brand-brass" />
+                Pourquoi c’est important
+              </h3>
+              <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.analyse_kredo}</p>
+            </section>
+          ) : null}
+
+          {article.action_commerciale ? (
+            <section className="mt-7 border-t border-border pt-6">
+              <h3 className="flex items-center gap-2 font-heading text-[15px] font-bold text-heading">
+                <IntelligenceIcon name="generate_pitch" preferVector className="size-4 text-primary" />
+                Lecture commerciale
+              </h3>
+              <p className="mt-3 text-[14px] leading-[1.72] text-body">{article.action_commerciale}</p>
+            </section>
+          ) : null}
+
+          <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+            <div className="flex flex-wrap gap-1.5">
+              {article.tags.map((tag) => <span key={tag} className="border border-border bg-edito-chip px-2 py-1 text-[9px] text-body">#{tag}</span>)}
+            </div>
+            {article.url ? (
+              <a href={article.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-heading">
+                Lire la source <span className="sr-only">(nouvel onglet)</span>
+              </a>
+            ) : null}
+          </footer>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ArticleRail({
+  company,
+  watched,
+  onPitch,
+  onNote,
+  onQualify,
+  onOpportunity,
+}: {
+  company: CompanyContextStats | null
+  watched: boolean
+  onPitch: () => void
+  onNote: () => void
+  onQualify: () => void
+  onOpportunity: () => void
+}) {
+  const actions = [
+    { label: "Créer une note compte", icon: "write_email" as const, onClick: onNote },
+    { label: "Qualifier le signal", icon: "prioritize" as const, onClick: onQualify },
+    { label: "Transformer en opportunité", icon: "detect_risks" as const, onClick: onOpportunity },
+  ]
+  return (
+    <aside className="border border-border bg-edito-canvas/55">
+      <section className="p-4">
+        <SectionHeading>Actions recommandées</SectionHeading>
+        <div className="mt-3 space-y-2">
+          <Button variant="brass" size="sm" fullWidth onClick={onPitch} leftIcon={<IntelligenceIcon name="generate_pitch" preferVector />} className="justify-between">
+            Générer un pitch
+          </Button>
+          {actions.map((action) => (
+            <Button key={action.label} variant="secondary" size="sm" fullWidth onClick={action.onClick} leftIcon={<IntelligenceIcon name={action.icon} preferVector />} className="justify-start">
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </section>
+      <section className="border-t border-border p-4">
+        <SectionHeading>Contexte mobilisable</SectionHeading>
+        <dl className="mt-3 divide-y divide-border text-[11px]">
+          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Fiche compte</dt><dd className={cn("font-bold", company ? "text-success" : "text-danger")}>{company ? company.name : "Non détecté"}</dd></div>
+          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Interactions</dt><dd className="font-bold text-heading">{company?.interactionsCount ?? "—"}</dd></div>
+          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Contacts clés</dt><dd className="font-bold text-heading">{company?.contactsCount ?? "—"}</dd></div>
+          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Analyses liées</dt><dd className="font-bold text-heading">{company?.docsCount ?? "—"}</dd></div>
+          <div className="flex items-center justify-between gap-3 py-2.5"><dt className="text-muted">Statut de veille</dt><dd className="font-bold text-heading">{company ? (watched ? "Surveillé" : "Non surveillé") : "—"}</dd></div>
+        </dl>
+        {company ? <Link href={`/prospection/accounts?drawer=${company.id}`} className="mt-3 block border border-border bg-surface px-3 py-2 text-center text-[11px] font-bold text-primary hover:bg-surface-hover">Voir le compte</Link> : null}
+      </section>
+    </aside>
+  )
+}
+
+function OtherArticles({ articles, selectedId, onSelect }: { articles: VeilleArticle[]; selectedId: string; onSelect: (article: VeilleArticle) => void }) {
+  const others = getSecondaryItems(articles, selectedId, 3)
+  return (
+    <section className="mt-7">
+      <SectionHeading>Autres articles de la semaine</SectionHeading>
+      {others.length === 0 ? <p className="mt-4 text-xs text-muted">Aucun autre article ne correspond aux filtres.</p> : (
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          {others.map((article) => (
+            <button key={article.id} type="button" onClick={() => onSelect(article)} className="min-h-[8rem] border border-border bg-surface p-4 text-left outline-none transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
+              <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-primary">{article.categorie || article.source_name}</span>
+              <span className="mt-2 block text-[13px] font-bold leading-5 text-heading line-clamp-3">{article.titre_fr}</span>
+              <span className="mt-3 block text-[10px] text-muted">{article.source_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }) {
+  const [selected, setSelected] = useState(signals[0] ?? null)
+  if (!selected) return <EmptyState title="Aucun signal de compte surveillé"><p>Les signaux apparaîtront ici après une collecte de veille compte.</p></EmptyState>
+  return (
+    <div className="grid grid-cols-[18rem_minmax(0,1fr)] border border-border bg-surface">
+      <section className="border-r border-border bg-edito-canvas/50 p-3">
+        <SectionHeading>Signaux détectés ({signals.length})</SectionHeading>
+        <div className="mt-3 max-h-[calc(100dvh-13rem)] space-y-2 overflow-y-auto veille-scrollbar">
+          {signals.map((signal) => (
+            <button key={signal.id} type="button" onClick={() => setSelected(signal)} aria-pressed={selected.id === signal.id} className={cn("w-full border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading", selected.id === signal.id ? "border-brand-brass bg-primary/[0.05]" : "border-border bg-surface hover:bg-surface-hover")}>
+              <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-primary">{signal.category}</span>
+              <span className="mt-1 block text-xs font-bold leading-5 text-heading">{signal.title}</span>
+              <span className="mt-2 flex justify-between text-[10px] text-muted"><span>{signal.company.name}</span><span>{Math.round(signal.globalScore * 100)}%</span></span>
+            </button>
+          ))}
+        </div>
+      </section>
+      <article className="paper-sheet px-8 py-8 lg:px-12">
+        <div className="flex items-start justify-between gap-5 border-b border-border pb-5">
+          <div><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">{selected.category} · {selected.type}</p><p className="mt-1 text-[11px] text-muted">Détecté le {formatDateFr(selected.detectedAt)}</p></div>
+          <div className="flex items-center gap-2 border border-border bg-edito-canvas/60 px-3 py-2"><CompanyLogo name={selected.company.name} logoPath={selected.company.logoPath} website={selected.company.website} size="md" /><span className="text-xs font-bold text-heading">{selected.company.name}</span></div>
+        </div>
+        <h2 className="mt-7 max-w-[32ch] font-heading text-2xl font-bold leading-tight text-heading">{selected.title}</h2>
+        <p className="mt-5 max-w-[74ch] whitespace-pre-wrap text-sm leading-7 text-body">{selected.summary || "Aucune synthèse disponible."}</p>
+        {selected.recommendedAction ? <section className="mt-7 border-y border-border py-5"><h3 className="text-sm font-bold text-heading">Action recommandée</h3><p className="mt-2 text-sm leading-6 text-body">{selected.recommendedAction}</p></section> : null}
+        <dl className="mt-6 grid grid-cols-3 divide-x divide-border border-y border-border py-4 text-center">
+          <div><dt className="text-[9px] font-bold uppercase text-muted">Score global</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.globalScore * 100)}%</dd></div>
+          <div><dt className="text-[9px] font-bold uppercase text-muted">Urgence</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.urgencyScore * 100)}%</dd></div>
+          <div><dt className="text-[9px] font-bold uppercase text-muted">Confiance</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.confidenceScore * 100)}%</dd></div>
+        </dl>
+        <div className="mt-6 flex items-center justify-between gap-3">
+          {selected.primarySource?.source_url ? <a href={selected.primarySource.source_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline">Ouvrir la source <span className="sr-only">(nouvel onglet)</span></a> : <span />}
+          <ContextualCommunicationButton intent="signal_outreach" origin="veille_signal" companyId={selected.company.id} companyName={selected.company.name} signalId={selected.id} refs={{ signalRef: selected.id }} label="Rédiger" variant="primary" className="h-10 border border-primary bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep" />
+        </div>
+      </article>
+    </div>
+  )
+}
+
+function StrategicAnalysisSection({
+  analysis,
+  generation,
+}: {
+  analysis: StrategicWatchAnalysis | null
+  generation: MonthlyWatchGenerationContext
+}) {
+  const router = useRouter()
+  const [run, setRun] = useState(generation.latestRun)
+  const [pending, setPending] = useState(Boolean(generation.activeRun))
+  const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
+
+  useEffect(() => {
+    if (!run || (run.status !== "queued" && run.status !== "running")) return
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`monthly-watch-${run.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "ai_intelligence_runs", filter: `id=eq.${run.id}` },
+        (payload) => {
+          const row = payload.new as {
+            id: string
+            status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+            created_at: string
+            error_message: string | null
+          }
+          setRun({ id: row.id, status: row.status, createdAt: row.created_at, errorMessage: row.error_message })
+          if (row.status === "succeeded" || row.status === "failed" || row.status === "cancelled") {
+            setPending(false)
+            setError(row.status === "succeeded" ? null : row.error_message ?? "La génération a échoué.")
+            router.refresh()
+          }
+        },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [run, router])
+
+  const generate = async () => {
+    setPending(true)
+    setError(null)
+    const response = await fetch("/api/n8n/trigger", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workflowId: MONTHLY_WATCH_WORKFLOW_ID,
+        entityType: "workspace",
+        input: { ...generation.input, requestedAt: new Date().toISOString(), triggerMode: "manual" },
+      }),
+    })
+    const payload = await response.json() as { runId?: string; error?: string }
+    if (!response.ok || !payload.runId) {
+      setPending(false)
+      setError(payload.error ?? "Impossible de lancer l’analyse.")
+      return
+    }
+    setRun({ id: payload.runId, status: "queued", createdAt: new Date().toISOString(), errorMessage: null })
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">Mois civil précédent</p>
+          <h2 className="mt-1 font-heading text-xl font-bold text-heading">Analyse stratégique de {generation.input.periodStart.slice(0, 7)}</h2>
+          <p className="mt-1 text-xs text-muted">{generation.input.digestIds.length} digest(s) · {generation.input.articleIds.length} article(s) collectés</p>
+        </div>
+        <Button variant="brass" onClick={generate} loading={pending} loadingLabel="Génération" disabled={generation.input.articleIds.length === 0}>
+          {generation.isAlreadyCovered ? "Régénérer l’analyse" : "Générer l’analyse du mois écoulé"}
+        </Button>
+      </div>
+
+      {pending ? (
+        <div aria-live="polite" className="border border-brand-brass/35 bg-brand-brass/[0.06] p-4 text-sm text-heading">
+          <span className="mr-2 inline-block size-3 animate-spin rounded-full border-2 border-brand-brass/30 border-t-brand-brass align-[-1px] motion-reduce:animate-none" aria-hidden="true" />
+          Analyse en cours. Le rapport sera ajouté à la bibliothèque après le callback.
+        </div>
+      ) : null}
+      {error ? (
+        <div role="alert" className="flex items-center justify-between gap-4 border border-danger/30 bg-danger/[0.04] p-4 text-sm text-danger">
+          <span>{error}</span>
+          <Link href={run ? `/automations?run=${run.id}` : "/automations"} className="font-bold underline">Voir le run</Link>
+        </div>
+      ) : null}
+
+      {analysis ? (
+        <article className="grid grid-cols-[minmax(0,1fr)_15rem] border border-border bg-surface">
+          <div className="paper-sheet px-8 py-9 lg:px-12">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-brass">Dernier rapport disponible</p>
+            <h3 className="mt-2 font-heading text-2xl font-bold text-heading">{analysis.title}</h3>
+            <p className="mt-2 text-xs text-muted">{formatPeriod(analysis.periodStart, analysis.periodEnd)} · généré le {formatDateFr(analysis.updatedAt)}</p>
+            <p className="mt-7 max-w-[74ch] text-[15px] leading-7 text-body">
+              {analysis.content?.executiveSummary ?? "Le document est disponible dans la bibliothèque de rapports."}
+            </p>
+            <Button variant="secondary" className="mt-7" onClick={() => router.push(`/reports?doc=${analysis.id}`)}>Ouvrir le rapport complet</Button>
+          </div>
+          <aside className="border-l border-border bg-edito-canvas/55 p-5">
+            <SectionHeading>Fiche du rapport</SectionHeading>
+            <dl className="mt-3 divide-y divide-border text-[11px]">
+              <div className="flex justify-between py-2.5"><dt className="text-muted">État</dt><dd className="font-bold text-success">{analysis.status}</dd></div>
+              <div className="flex justify-between py-2.5"><dt className="text-muted">Version</dt><dd className="font-bold text-heading">v{analysis.versionNumber}</dd></div>
+              <div className="flex justify-between py-2.5"><dt className="text-muted">Digests</dt><dd className="font-bold text-heading">{analysis.content?.coverage.digestsCount ?? "—"}</dd></div>
+              <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{analysis.content?.coverage.articlesCount ?? "—"}</dd></div>
+              <div className="flex justify-between py-2.5"><dt className="text-muted">Sources</dt><dd className="font-bold text-heading">{analysis.content?.coverage.sourcesCount ?? "—"}</dd></div>
+            </dl>
+          </aside>
+        </article>
+      ) : (
+        <EmptyState title="Aucune analyse stratégique disponible">
+          <p>La première synthèse mensuelle utilisera uniquement les digests et articles déjà collectés sur le mois civil précédent.</p>
+        </EmptyState>
+      )}
+    </div>
+  )
+}
+
+function HistorySection({ digests, analyses }: { digests: VeilleDigest[]; analyses: StrategicWatchAnalysis[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-6">
+      <section>
+        <SectionHeading>Digests de veille</SectionHeading>
+        <div className="mt-3 divide-y divide-border border border-border bg-surface">
+          {digests.length === 0 ? <p className="p-5 text-xs text-muted">Aucun digest disponible.</p> : digests.map((digest) => (
+            <Link key={digest.id} href={`/veille?digestId=${digest.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
+              <p className="text-[10px] text-muted">{formatDateFr(digest.digest_date)}</p>
+              <h3 className="mt-1 text-sm font-bold text-heading">{digest.titre_digest}</h3>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-body">{digest.super_short_summary || digest.resume_hebdo}</p>
+              <p className="mt-2 text-[10px] text-muted">{digest.nb_sources_actives} sources · {digest.nb_candidats_evalues} candidats évalués</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section>
+        <SectionHeading>Analyses stratégiques</SectionHeading>
+        <div className="mt-3 divide-y divide-border border border-border bg-surface">
+          {analyses.length === 0 ? <p className="p-5 text-xs text-muted">Aucune analyse disponible.</p> : analyses.map((analysis) => (
+            <Link key={analysis.id} href={`/reports?doc=${analysis.id}`} className="block p-4 transition-colors hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading">
+              <p className="text-[10px] text-muted">{formatPeriod(analysis.periodStart, analysis.periodEnd)}</p>
+              <h3 className="mt-1 text-sm font-bold text-heading">{analysis.title}</h3>
+              <p className="mt-2 text-[10px] text-muted">v{analysis.versionNumber} · {analysis.status} · {formatDateFr(analysis.updatedAt)}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function NewsFallback({ news, events }: { news: SectorNews[]; events: SectorEvent[] }) {
+  return (
+    <div className="space-y-5">
+      <EmptyState title="Aucun digest de veille disponible"><p>Le lecteur s’activera dès que le workflow global aura produit un digest.</p></EmptyState>
+      {news.length > 0 || events.length > 0 ? (
+        <div className="grid grid-cols-2 gap-5">
+          <section className="border border-border bg-surface p-4"><SectionHeading>Actualités sectorielles récentes</SectionHeading><div className="mt-3 divide-y divide-border">{news.map((item) => <div key={item.id} className="py-3"><p className="text-[10px] text-muted">{formatDateFr(item.published_at)}</p><p className="mt-1 text-xs font-bold text-heading">{item.title}</p></div>)}</div></section>
+          <section className="border border-border bg-surface p-4"><SectionHeading>Événements déclencheurs</SectionHeading><div className="mt-3 divide-y divide-border">{events.map((item) => <div key={item.id} className="py-3"><p className="text-[10px] text-muted">{formatDateFr(item.event_date)}</p><p className="mt-1 text-xs font-bold text-heading">{item.title}</p></div>)}</div></section>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 export function VeilleActualitesDesktop({
@@ -41,931 +459,122 @@ export function VeilleActualitesDesktop({
   sectorEvents,
   companies,
   watchedSignals,
+  watchedCompanyIds,
+  globalWatchSettings,
+  globalWatchHealth,
+  latestAnalysis,
+  analysisHistory,
+  monthlyGeneration,
 }: VeilleActualitesDesktopProps) {
-  const [activeTab, setActiveTab] = useState<"globale" | "comptes">("globale")
-  const [articles, setArticles] = useState<VeilleArticle[]>(initialArticles)
-  const [selectedArticle, setSelectedArticle] = useState<VeilleArticle | null>(() => {
-    return initialArticles.length > 0 ? initialArticles[0] : null
-  })
-  const [selectedWatchedSignal, setSelectedWatchedSignal] = useState<WatchedAccountSignal | null>(() => {
-    return watchedSignals.length > 0 ? watchedSignals[0] : null
-  })
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Tous")
+  const [section, setSection] = useState<VeilleSection>("news")
+  const [articles, setArticles] = useState(initialArticles)
+  const [selectedArticle, setSelectedArticle] = useState(initialArticles[0] ?? null)
+  const [search, setSearch] = useState("")
+  const [filter, setFilter] = useState<typeof FILTERS[number]>("Tous")
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [qualifyOpen, setQualifyOpen] = useState(false)
+  const [opportunityOpen, setOpportunityOpen] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
-  // Dialog States
-  const [isNoteOpen, setIsNoteOpen] = useState(false)
-  const [isOpportunityOpen, setIsOpportunityOpen] = useState(false)
-  const [isQualifyOpen, setIsQualifyOpen] = useState(false)
+  const filteredArticles = useMemo(() => articles.filter((article) => {
+    const haystack = `${article.titre_fr} ${article.resume} ${article.secteur_principal} ${article.source_name}`.toLocaleLowerCase("fr")
+    if (!haystack.includes(search.trim().toLocaleLowerCase("fr"))) return false
+    if (filter === "Tous") return true
+    if (filter === "Comptes") return Boolean(extractMatchedCompany(article.titre_fr, article.resume, companies))
+    const category = article.categorie.toLocaleLowerCase("fr")
+    if (filter === "Réglementaire") return category.includes("réglement")
+    if (filter === "Nominations") return category.includes("nominat")
+    return category.includes("marché") || category.includes("invest")
+  }), [articles, companies, filter, search])
 
-  // Toast State
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const matchedCompany = selectedArticle ? extractMatchedCompany(selectedArticle.titre_fr, selectedArticle.resume, companies) : null
+  const watched = Boolean(matchedCompany && watchedCompanyIds.includes(matchedCompany.id))
 
-  // Toast trigger helper
-  const showToast = (message: string) => {
-    setToastMessage(message)
-    setTimeout(() => {
-      setToastMessage(null)
-    }, 4000)
+  const selectArticle = (article: VeilleArticle) => {
+    setSelectedArticle(article)
+    window.requestAnimationFrame(() => {
+      headingRef.current?.focus()
+      headingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
   }
 
-  // Email outreach helper
-  const handleGeneratePitch = (article: VeilleArticle, matchedCompany: CompanyContextStats | null) => {
-    const parts = [
-      `Signal : ${article.titre_fr}`,
-      article.source_name ? `Source : ${article.source_name}` : null,
-      `Résumé : ${article.resume}`,
-      article.analyse_kredo ? `Analyse KREDO : ${article.analyse_kredo}` : null,
-      article.action_commerciale ? `Action commerciale proposée : ${article.action_commerciale}` : null,
-      article.secteur_principal || article.categorie
-        ? `Contexte : ${[article.secteur_principal, article.categorie].filter(Boolean).join(" / ")}`
-        : null,
-    ]
-    const mustInclude = parts.filter(Boolean).join("\n")
-
+  const pitch = () => {
+    if (!selectedArticle) return
+    const mustInclude = [
+      `Signal : ${selectedArticle.titre_fr}`,
+      `Source : ${selectedArticle.source_name}`,
+      `Résumé : ${selectedArticle.resume}`,
+      selectedArticle.analyse_kredo ? `Analyse KREDO : ${selectedArticle.analyse_kredo}` : null,
+      selectedArticle.action_commerciale ? `Action commerciale proposée : ${selectedArticle.action_commerciale}` : null,
+    ].filter(Boolean).join("\n")
     const preset = buildCommunicationEntryPreset("signal_outreach", {
       origin: "veille_signal",
-      companyId: matchedCompany?.id || null,
-      companyName: matchedCompany?.name || null,
-      signalId: article.id,
-      sectorName: article.secteur_principal ?? article.categorie ?? null,
+      companyId: matchedCompany?.id ?? null,
+      companyName: matchedCompany?.name ?? null,
+      signalId: selectedArticle.id,
+      sectorName: selectedArticle.secteur_principal || selectedArticle.categorie,
       mustInclude,
     })
-    if (preset.ok) {
-      openCommunicationComposer(preset.request)
-    }
+    if (preset.ok) openCommunicationComposer(preset.request)
   }
 
-  // Filter articles based on search & category chip
-  const filteredArticles = articles.filter((article) => {
-    const matchesSearch =
-      article.titre_fr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      article.resume.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (article.secteur_principal || "").toLowerCase().includes(searchQuery.toLowerCase())
-
-    if (!matchesSearch) return false
-
-    if (selectedCategory === "Tous") return true
-    if (selectedCategory === "Comptes") {
-      const matched = extractMatchedCompany(article.titre_fr, article.resume, companies)
-      return matched !== null
-    }
-    if (selectedCategory === "Réglementaire") {
-      return article.categorie?.toLowerCase().includes("réglement")
-    }
-    if (selectedCategory === "Nominations") {
-      return article.categorie?.toLowerCase().includes("nominat")
-    }
-    if (selectedCategory === "Marché") {
-      return (
-        article.categorie?.toLowerCase().includes("marché") ||
-        article.categorie?.toLowerCase().includes("invest")
-      )
-    }
-    return true
-  })
-
-  // Compute matched company details for selected article
-  const matchedCompany = selectedArticle
-    ? extractMatchedCompany(selectedArticle.titre_fr, selectedArticle.resume, companies)
-    : null
-
-  // Compute dynamic weekly digest counts
-  const nominationsCount = articles.filter((a) => a.categorie?.toLowerCase().includes("nominat")).length
-  const regulatoryCount = articles.filter((a) => a.categorie?.toLowerCase().includes("réglement")).length
-  const marketCount = articles.filter(
-    (a) => a.categorie?.toLowerCase().includes("marché") || a.categorie?.toLowerCase().includes("invest")
-  ).length
-
-  // Explore other signals (up to 3) excluding the currently selected one
-  const exploreSignals = articles
-    .filter((a) => a.id !== selectedArticle?.id)
-    .slice(0, 3)
-
-  const handleArticleQualifySuccess = (updated: VeilleArticle) => {
-    setArticles((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
-    setSelectedArticle(updated)
-    showToast("Signal qualifié et mis à jour avec succès.")
+  const requireCompany = (action: () => void) => {
+    if (matchedCompany) action()
+    else setMessage("Aucun compte n’est détecté pour ce signal. Qualifiez-le avant cette action.")
   }
 
-  const watchedView = (
-    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-      {/* Colonne Gauche — Liste des signaux */}
-      <section className="xl:col-span-1 space-y-6">
-        <div className="space-y-3">
-          <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-heading flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-primary" />
-            Signaux détectés ({watchedSignals.length})
-          </h2>
-
-          {watchedSignals.length === 0 ? (
-            <div className="rounded-lg border border-border/20 bg-surface/10 p-6 text-center text-xs text-muted italic">
-              Aucun signal de compte surveillé pour le moment.
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
-              {watchedSignals.map((sig) => (
-                <button
-                  key={sig.id}
-                  onClick={() => setSelectedWatchedSignal(sig)}
-                  className={cn(
-                    "w-full text-left rounded-xl border p-4 transition-all duration-200 cursor-pointer flex flex-col gap-2.5",
-                    selectedWatchedSignal?.id === sig.id
-                      ? "bg-primary/[0.03] border-primary/50 shadow-md"
-                      : "bg-surface/30 border-border/30 hover:border-border/60 hover:bg-surface/40"
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-surface/50 border border-border/40 px-1.5 py-0.5 text-[9px] font-bold text-muted uppercase tracking-wider">
-                        {sig.category}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-muted">
-                      {formatDateFr(sig.detectedAt)}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-heading hover:underline leading-snug">
-                      {sig.title}
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-semibold text-muted">Sur</span>
-                      <span className="text-[10px] font-bold text-primary">
-                        {sig.company.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2.5 items-center justify-between pt-2 border-t border-border/20 text-xxs text-muted">
-                    <div className="flex gap-1.5 items-center">
-                      <span>Global :</span>
-                      <span className={cn(
-                        "font-bold",
-                        sig.globalScore >= 0.8 ? "text-danger" : sig.globalScore >= 0.6 ? "text-warning" : "text-heading"
-                      )}>
-                        {Math.round(sig.globalScore * 100)}%
-                      </span>
-                    </div>
-                    <div className="flex gap-1.5 items-center">
-                      <span>Urgence :</span>
-                      <span className="font-bold text-heading">
-                        {Math.round(sig.urgencyScore * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Zone Centrale — Détail du signal */}
-      <section className="xl:col-span-3 space-y-6">
-        {selectedWatchedSignal ? (
-          <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-6 space-y-6 shadow-md">
-            <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-4">
-              <div className="space-y-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
-                  {selectedWatchedSignal.category} · {selectedWatchedSignal.type}
-                </span>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xxs text-muted">
-                  <span>Détecté le {formatDateFr(selectedWatchedSignal.detectedAt)}</span>
-                  {selectedWatchedSignal.primarySource?.source_name && (
-                    <>
-                      <span>•</span>
-                      <span>Source : {selectedWatchedSignal.primarySource.source_name}</span>
-                    </>
-                  )}
+  const content = section === "watched-accounts"
+    ? <WatchedAccountsSection signals={watchedSignals} />
+    : section === "strategic-analysis"
+      ? <StrategicAnalysisSection analysis={latestAnalysis} generation={monthlyGeneration} />
+      : section === "history"
+        ? <HistorySection digests={pastDigests} analyses={analysisHistory} />
+        : selectedArticle
+          ? (
+              <>
+                <NewsFilters search={search} onSearch={setSearch} selectedFilter={filter} onFilter={setFilter} />
+                <div className="mt-5 grid grid-cols-[minmax(0,1fr)_18rem] items-start gap-4">
+                  <EditorialArticle article={selectedArticle} headingRef={headingRef} />
+                  <ArticleRail
+                    company={matchedCompany}
+                    watched={watched}
+                    onPitch={pitch}
+                    onNote={() => requireCompany(() => setNoteOpen(true))}
+                    onQualify={() => setQualifyOpen(true)}
+                    onOpportunity={() => requireCompany(() => setOpportunityOpen(true))}
+                  />
                 </div>
-              </div>
-
-              {/* Company Context Widget */}
-              <div className="flex items-center gap-2.5 bg-surface-hover/30 border border-border/30 rounded-lg p-1.5 px-3">
-                <CompanyLogo
-                  name={selectedWatchedSignal.company.name}
-                  logoPath={selectedWatchedSignal.company.logoPath}
-                  website={selectedWatchedSignal.company.website}
-                  size="md"
-                />
-                <span className="text-xs font-bold text-heading truncate max-w-[150px]">
-                  {selectedWatchedSignal.company.name}
-                </span>
-              </div>
-            </div>
-
-            <h2 className="font-heading text-xl md:text-2xl font-bold tracking-tight text-heading leading-tight">
-              {selectedWatchedSignal.title}
-            </h2>
-
-            <p className="text-xs text-body leading-relaxed whitespace-pre-wrap">
-              {selectedWatchedSignal.summary}
-            </p>
-
-            {/* Recommended Action */}
-            {selectedWatchedSignal.recommendedAction && (
-              <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-4 space-y-2">
-                <h3 className="font-heading text-xs font-bold text-primary flex items-center gap-2">
-                  <svg className="size-4 shrink-0 text-[#E2931D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Action recommandée
-                </h3>
-                <p className="text-xs leading-relaxed text-heading font-medium">
-                  {selectedWatchedSignal.recommendedAction}
-                </p>
-              </div>
-            )}
-
-            {/* Scores grids */}
-            <div className="grid grid-cols-3 gap-4 border-t border-b border-border/40 py-4 text-center">
-              <div>
-                <p className="text-[10px] uppercase font-bold text-muted mb-1">Score Global</p>
-                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.globalScore * 100)}%</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-muted mb-1">Urgence</p>
-                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.urgencyScore * 100)}%</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-muted mb-1">Confiance</p>
-                <p className="text-lg font-bold text-heading">{Math.round(selectedWatchedSignal.confidenceScore * 100)}%</p>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="flex items-center gap-3 justify-between pt-4">
-              {selectedWatchedSignal.primarySource?.source_url ? (
-                <a
-                  href={selectedWatchedSignal.primarySource.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-                >
-                  Ouvrir la source →
-                </a>
-              ) : (
-                <div />
-              )}
-
-              <ContextualCommunicationButton
-                intent="signal_outreach"
-                origin="veille_signal"
-                companyId={selectedWatchedSignal.company.id}
-                companyName={selectedWatchedSignal.company.name}
-                signalId={selectedWatchedSignal.id}
-                refs={{ signalRef: selectedWatchedSignal.id }}
-                label="Rédiger"
-                variant="primary"
-                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-md transition-all cursor-pointer hover:scale-[1.02]"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-border/20 bg-surface/10 p-12 text-center text-xs text-muted italic">
-            Sélectionnez un signal sur la gauche pour l&apos;étudier.
-          </div>
-        )}
-      </section>
-    </div>
-  )
+                <OtherArticles articles={filteredArticles} selectedId={selectedArticle.id} onSelect={selectArticle} />
+              </>
+            )
+          : <NewsFallback news={sectorNews} events={sectorEvents} />
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-8 space-y-6">
-      {/* Toast Alert overlay */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[var(--z-modal)] flex items-center gap-2 bg-[#E2931D] text-[#0A0D1A] font-bold text-xs px-4 py-3 rounded-lg shadow-lg animate-fade-in">
-          <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border/40 pb-5">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
-            Veille & actualités
-          </h1>
-          <p className="text-xs text-muted">
-            Signaux stratégiques, analyses brèves et actions commerciales
-          </p>
-        </div>
-
-        {/* Actions header à droite */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => showToast("Mise à jour de la veille lancée...")}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-          >
-            <svg className="size-3.5 text-muted animate-spin-hover" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-            <span>Mettre à jour</span>
-          </button>
-
-          <button
-            onClick={() => showToast("Configuration de la veille (redirection vers automations)...")}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border/40 bg-surface/30 px-4 text-xs font-semibold text-body hover:text-heading hover:bg-surface-hover/30 transition-colors cursor-pointer"
-          >
-            <svg className="size-3.5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.99l1.005.831a1.125 1.125 0 01.26 1.43l-1.297 2.247a1.125 1.125 0 01-1.37.491l-1.216-.456c-.356-.133-.751-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.831a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.645-.869l.214-1.28z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Configurer la veille</span>
-          </button>
-
-          {selectedArticle && (
-            <button
-              onClick={() => handleGeneratePitch(selectedArticle, matchedCompany)}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow-[0_2px_10px_rgba(255,191,0,0.15)] transition-all cursor-pointer hover:scale-[1.02]"
-            >
-              <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-              </svg>
-              <span>Générer un pitch depuis ce signal</span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Tab Switcher */}
-      <div className="flex border-b border-border/40">
-        <button
-          onClick={() => setActiveTab("globale")}
-          className={cn(
-            "px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer",
-            activeTab === "globale"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted hover:text-heading"
-          )}
-        >
-          Veille globale (Actualités)
-        </button>
-        <button
-          onClick={() => setActiveTab("comptes")}
-          className={cn(
-            "px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5",
-            activeTab === "comptes"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted hover:text-heading"
-          )}
-        >
-          <span>Comptes surveillés</span>
-          {watchedSignals.length > 0 && (
-            <span className="rounded-full bg-[#E2931D]/10 border border-[#E2931D]/30 px-1.5 py-0.5 text-[9px] font-bold text-[#E2931D]">
-              {watchedSignals.length}
-            </span>
-          )}
-        </button>
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-canvas text-body">
+      <VeilleLocalNavigation active={section} onChange={setSection} />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="z-20 flex min-h-[76px] shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
+          <h1 className="font-heading text-2xl font-bold tracking-[-0.02em] text-heading">Veille & actualités</h1>
+          <VeilleHeaderActions initialSettings={globalWatchSettings} initialHealth={globalWatchHealth} latestDigest={pastDigests[0] ?? digest} />
+        </header>
+        <main className="veille-scrollbar min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1480px] px-6 py-6">{content}</div>
+        </main>
       </div>
 
-      {activeTab === "globale" ? (
-        digest ? (
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
-          {/* ──────────────────────────────────────────────────────────────
-             COLONNE GAUCHE — Recherche & signaux
-             ────────────────────────────────────────────────────────────── */}
-          <section className="xl:col-span-1 space-y-6">
-            {/* Recherche & Filtres */}
-            <div className="bg-surface/30 border border-border/40 rounded-xl p-4 space-y-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Rechercher un signal..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-border/40 bg-surface/50 pl-9 pr-3 text-xs text-heading placeholder-muted outline-none focus:border-primary transition-colors"
-                />
-                <svg className="absolute left-3 top-2.5 size-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-
-              {/* Chips filtres */}
-              <div className="flex flex-wrap gap-1.5">
-                {["Tous", "Comptes", "Réglementaire", "Nominations", "Marché"].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`rounded px-2.5 py-1 text-[10px] font-bold border transition-all cursor-pointer ${selectedCategory === cat
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-surface/10 border-border/20 text-muted hover:text-heading hover:bg-surface/30"
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Liste de signaux à la une */}
-            <div className="space-y-3">
-              <h2 className="font-heading text-xs font-bold uppercase tracking-wider text-heading flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-primary" />
-                À la une
-              </h2>
-
-              {filteredArticles.length === 0 ? (
-                <div className="rounded-lg border border-border/20 bg-surface/10 p-6 text-center text-xxs text-muted italic">
-                  Aucun signal trouvé.
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1 custom-scrollbar">
-                  {filteredArticles.map((article) => {
-                    const matched = extractMatchedCompany(article.titre_fr, article.resume, companies)
-                    return (
-                      <SignalListCard
-                        key={article.id}
-                        article={article}
-                        isActive={selectedArticle?.id === article.id}
-                        onClick={() => setSelectedArticle(article)}
-                        companyName={matched?.name}
-                      />
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Digest Hebdo */}
-            <div className="bg-surface/30 border border-border/40 rounded-xl p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-heading text-xs font-bold text-heading">Digest hebdo</h3>
-                <span className="text-[10px] text-primary hover:underline cursor-pointer">
-                  Voir le digest complet →
-                </span>
-              </div>
-              <ul className="space-y-3 text-xxs text-body">
-                <li className="flex items-center justify-between border-b border-border/20 pb-1.5">
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">1</span> Nominations clés
-                  </span>
-                  <span className="rounded bg-surface/50 px-1.5 py-0.5 font-bold text-heading">
-                    {nominationsCount}
-                  </span>
-                </li>
-                <li className="flex items-center justify-between border-b border-border/20 pb-1.5">
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">2</span> Réglementations
-                  </span>
-                  <span className="rounded bg-surface/50 px-1.5 py-0.5 font-bold text-heading">
-                    {regulatoryCount}
-                  </span>
-                </li>
-                <li className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold text-primary">3</span> Investissements
-                  </span>
-                  <span className="rounded bg-surface/50 px-1.5 py-0.5 font-bold text-heading">
-                    {marketCount}
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </section>
-
-          {/* ──────────────────────────────────────────────────────────────
-             ZONE CENTRALE — Signal prioritaire & Exploration
-             ────────────────────────────────────────────────────────────── */}
-          <section className="xl:col-span-2 space-y-6">
-            {selectedArticle ? (
-              <>
-                {/* Paper sheet strategic view */}
-                <div className="paper-sheet rounded-xl border border-[var(--color-border)] p-6 space-y-6 shadow-md transition-all duration-300">
-                  {/* Top categorization */}
-                  <div className="flex items-center justify-between gap-4 border-b border-border/40 pb-4">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
-                        {selectedArticle.categorie || "Signal stratégique"}
-                      </span>
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xxs text-muted">
-                        <span>{getRelativeTimeFr(selectedArticle.published_at)}</span>
-                        <span>•</span>
-                        <span className="font-medium text-heading">
-                          Confiance {selectedArticle.selection_rank <= 2 ? "élevée" : selectedArticle.selection_rank <= 4 ? "moyenne" : "faible"}
-                        </span>
-                        {selectedArticle.source_name && (
-                          <>
-                            <span>•</span>
-                            <span>via {selectedArticle.source_name}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Matched account logo & name */}
-                    {matchedCompany && (
-                      <div className="flex items-center gap-2.5 bg-surface-hover/30 border border-border/30 rounded-lg p-1.5 px-3">
-                        <CompanyLogo
-                          name={matchedCompany.name}
-                          logoPath={matchedCompany.logoPath}
-                          website={matchedCompany.website}
-                          size="md"
-                        />
-                        <span className="text-xs font-bold text-heading truncate max-w-[100px]">
-                          {matchedCompany.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Big title */}
-                  <h2 className="font-heading text-xl md:text-2xl font-bold tracking-tight text-heading leading-tight">
-                    {selectedArticle.titre_fr}
-                  </h2>
-
-                  {/* Summary paragraph */}
-                  <p className="text-xs text-body leading-relaxed whitespace-pre-wrap">
-                    {selectedArticle.resume}
-                  </p>
-
-                  {/* "Pourquoi c'est important" */}
-                  {selectedArticle.analyse_kredo && (
-                    <div className="rounded-lg border border-primary/20 bg-primary/[0.03] p-4 space-y-2">
-                      <h3 className="font-heading text-xs font-bold text-primary flex items-center gap-2">
-                        <svg className="size-4 shrink-0 text-[#E2931D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Pourquoi c&apos;est important
-                      </h3>
-                      <p className="text-xs leading-relaxed text-heading font-medium">
-                        {selectedArticle.analyse_kredo}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* "Lecture commerciale" */}
-                  {selectedArticle.action_commerciale && (
-                    <div className="rounded-lg border border-border/60 bg-surface-hover/10 p-4 space-y-2">
-                      <h3 className="font-heading text-xs font-bold text-heading flex items-center gap-2">
-                        <svg className="size-4 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        Lecture commerciale
-                      </h3>
-                      <p className="text-xs leading-relaxed text-body">
-                        {selectedArticle.action_commerciale}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Tags */}
-                  {selectedArticle.tags && selectedArticle.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/20">
-                      {selectedArticle.tags.map((tag) => (
-                        <span key={tag} className="rounded-md border border-border/40 bg-surface/50 px-2 py-0.5 text-[10px] text-muted">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Autres signaux à explorer */}
-                <div className="space-y-3">
-                  <h3 className="font-heading text-xs font-bold uppercase tracking-wider text-heading">
-                    Autres signaux à explorer
-                  </h3>
-
-                  {exploreSignals.length === 0 ? (
-                    <p className="text-xxs text-muted italic">Aucun autre signal disponible dans ce digest.</p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {exploreSignals.map((signal) => (
-                        <div
-                          key={signal.id}
-                          className="bg-surface/30 border border-border/40 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-primary/50 transition-colors"
-                        >
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-2 text-[9px] text-muted">
-                              <span className="uppercase font-bold tracking-wider text-primary">
-                                {signal.categorie || "Signal"}
-                              </span>
-                              <span>{getRelativeTimeFr(signal.published_at)}</span>
-                            </div>
-                            <h4 className="font-heading text-xxs font-bold text-heading line-clamp-2 leading-snug">
-                              {signal.titre_fr}
-                            </h4>
-                            <p className="text-[10px] text-body line-clamp-2 leading-relaxed">
-                              {signal.resume}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => setSelectedArticle(signal)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline cursor-pointer mt-1"
-                          >
-                            <span>Consulter</span>
-                            <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="rounded-xl border border-border/20 bg-surface/10 p-12 text-center text-xs text-muted italic">
-                Sélectionnez un signal sur la gauche pour l&apos;étudier.
-              </div>
-            )}
-          </section>
-
-          {/* ──────────────────────────────────────────────────────────────
-             RAIL DROIT — Actions & contexte
-             ────────────────────────────────────────────────────────────── */}
-          <section className="xl:col-span-1 space-y-6">
-            {/* Actions recommandées */}
-            <div className="bg-surface/30 border border-border/40 rounded-xl p-4 space-y-4">
-              <h3 className="font-heading text-xs font-bold text-heading flex items-center gap-2">
-                <svg className="size-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 21l8.982-11.861H13.62l.812-5.043L5.457 15.904h4.356z" />
-                </svg>
-                Actions recommandées
-              </h3>
-
-              <div className="space-y-2">
-                {/* 1. Générer un pitch */}
-                <button
-                  onClick={() => selectedArticle && handleGeneratePitch(selectedArticle, matchedCompany)}
-                  disabled={!selectedArticle}
-                  className="w-full flex items-center justify-between rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-fg hover:bg-primary-deep shadow transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                    </svg>
-                    Générer un pitch
-                  </span>
-                  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                {/* 2. Créer une note compte */}
-                <button
-                  onClick={() => {
-                    if (matchedCompany) {
-                      setIsNoteOpen(true)
-                    } else {
-                      showToast("Veuillez d'abord associer un compte à ce signal (qualification).")
-                    }
-                  }}
-                  disabled={!selectedArticle}
-                  className="w-full flex items-center justify-between rounded-lg border border-border/40 bg-surface/30 px-3 py-2 text-xs font-semibold text-heading hover:bg-surface-hover/30 hover:text-heading transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg className="size-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Créer une note compte
-                  </span>
-                  <svg className="size-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                {/* 3. Qualifier le signal */}
-                <button
-                  onClick={() => setIsQualifyOpen(true)}
-                  disabled={!selectedArticle}
-                  className="w-full flex items-center justify-between rounded-lg border border-border/40 bg-surface/30 px-3 py-2 text-xs font-semibold text-heading hover:bg-surface-hover/30 hover:text-heading transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg className="size-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Qualifier le signal
-                  </span>
-                  <svg className="size-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                {/* 4. Transformer en opportunité */}
-                <button
-                  onClick={() => {
-                    if (matchedCompany) {
-                      setIsOpportunityOpen(true)
-                    } else {
-                      showToast("Veuillez d'abord associer un compte à ce signal (qualification).")
-                    }
-                  }}
-                  disabled={!selectedArticle}
-                  className="w-full flex items-center justify-between rounded-lg border border-border/40 bg-surface/30 px-3 py-2 text-xs font-semibold text-heading hover:bg-surface-hover/30 hover:text-heading transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg className="size-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Transformer en opportunité
-                  </span>
-                  <svg className="size-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                {/* 5. Ajouter au digest */}
-                <button
-                  onClick={() => showToast("Le signal a été ajouté au digest hebdomadaire.")}
-                  disabled={!selectedArticle}
-                  className="w-full flex items-center justify-between rounded-lg border border-border/40 bg-surface/30 px-3 py-2 text-xs font-semibold text-heading hover:bg-surface-hover/30 hover:text-heading transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  <span className="flex items-center gap-2">
-                    <svg className="size-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Ajouter au digest
-                  </span>
-                  <svg className="size-3 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Contexte mobilisable */}
-            <div className="bg-surface/30 border border-border/40 rounded-xl p-4 space-y-4">
-              <h3 className="font-heading text-xs font-bold text-heading">Contexte mobilisable</h3>
-
-              <div className="space-y-2.5 text-xxs">
-                <div className="flex items-center justify-between border-b border-border/10 pb-1.5">
-                  <span className="text-muted">Fiche compte</span>
-                  {matchedCompany ? (
-                    <span className="rounded bg-success/15 px-1.5 py-0.5 text-success font-bold">Disponible</span>
-                  ) : (
-                    <span className="rounded bg-danger/15 px-1.5 py-0.5 text-danger font-bold">Non détecté</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between border-b border-border/10 pb-1.5">
-                  <span className="text-muted">Interactions</span>
-                  <span className="font-bold text-heading">
-                    {matchedCompany?.interactionsCount ?? "—"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between border-b border-border/10 pb-1.5">
-                  <span className="text-muted">Contacts clés</span>
-                  <span className="font-bold text-heading">
-                    {matchedCompany?.contactsCount ?? "—"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pb-1.5">
-                  <span className="text-muted">Analyses liées</span>
-                  <span className="font-bold text-heading">
-                    {matchedCompany?.docsCount ?? "—"}
-                  </span>
-                </div>
-
-                {matchedCompany && (
-                  <a
-                    href={`/prospection/accounts?drawer=${matchedCompany.id}`}
-                    className="block text-center rounded bg-surface-hover/20 border border-border/30 py-1.5 text-primary hover:underline font-bold transition-all cursor-pointer"
-                  >
-                    Voir tout le contexte →
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Statut de veille */}
-            <div className="bg-surface/30 border border-border/40 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-heading text-xs font-bold text-heading">Statut de veille</h3>
-                <span className="rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[9px] font-bold text-success uppercase">
-                  À jour
-                </span>
-              </div>
-              <p className="text-xxs text-body leading-relaxed">
-                Votre veille est opérationnelle. Aucune action requise.
-              </p>
-              <div className="border-t border-border/10 pt-2 flex items-center justify-between">
-                {pastDigests.length > 1 && (
-                  <a href="#historique" className="text-[10px] text-primary hover:underline cursor-pointer">
-                    Voir l&apos;historique →
-                  </a>
-                )}
-              </div>
-            </div>
-          </section>
-        </div>
-      ) : (
-        /* Empty State with Fallbacks */
-        <div className="space-y-6">
-          <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-12 text-center max-w-xl mx-auto space-y-4 shadow-sm">
-            <div className="size-12 rounded-full bg-primary/5 flex items-center justify-center mx-auto text-primary">
-              <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 4a2 2 0 00-2-2v3m2-3V9m0 0a2 2 0 012 2v3m-2-3h2m-2 3h2m0 0v5a2 2 0 01-2 2h-3" />
-              </svg>
-            </div>
-            <h3 className="font-heading text-sm font-bold text-heading">Aucun briefing disponible</h3>
-            <p className="text-xs text-body leading-relaxed">
-              {"Le premier digest hebdomadaire de veille automatisée n'a pas encore été généré. Dès qu'un run de veille aura eu lieu, vous retrouverez ici l'analyse structurée de vos signaux marché."}
-            </p>
-          </div>
-
-          {/* Sector news and events fallback */}
-          {(sectorNews.length > 0 || sectorEvents.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 max-w-5xl mx-auto">
-              {sectorNews.length > 0 && (
-                <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-5 space-y-4 shadow-sm">
-                  <h3 className="font-heading text-xs font-bold text-heading uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-success" />
-                    Actualités sectorielles récentes
-                  </h3>
-                  <div className="space-y-3.5 divide-y divide-border/40">
-                    {sectorNews.map((news) => (
-                      <div key={news.id} className="pt-3.5 first:pt-0">
-                        <span className="text-[10px] text-muted">{formatDateFr(news.published_at)}</span>
-                        <h4 className="font-heading text-xs font-bold text-heading mt-0.5">{news.title}</h4>
-                        {news.summary && <p className="text-xxs text-body leading-relaxed mt-1">{news.summary}</p>}
-                        {news.url && (
-                          <a href={news.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline mt-2">
-                            {"Lire l'article"}
-                            <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {sectorEvents.length > 0 && (
-                <div className="rounded-[var(--radius-medium)] border border-border bg-surface p-5 space-y-4 shadow-sm">
-                  <h3 className="font-heading text-xs font-bold text-heading uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-brand-brass" />
-                    Événements déclencheurs commerciaux
-                  </h3>
-                  <div className="space-y-3.5 divide-y divide-border/40">
-                    {sectorEvents.map((evt) => (
-                      <div key={evt.id} className="pt-3.5 first:pt-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-muted">{formatDateFr(evt.event_date)}</span>
-                          <span className="rounded bg-brand-brass/10 px-1.5 py-0.5 text-[9px] font-bold text-brand-brass uppercase tracking-wider">
-                            {evt.event_type}
-                          </span>
-                        </div>
-                        <h4 className="font-heading text-xs font-bold text-heading mt-0.5">{evt.title}</h4>
-                        {evt.description && <p className="text-xxs text-body leading-relaxed mt-1">{evt.description}</p>}
-                        {evt.commercial_opportunity && (
-                          <div className="rounded bg-canvas/40 border border-border/50 p-2 text-xxs mt-2">
-                            <span className="font-bold text-heading block">Opportunité commerciale :</span>
-                            <span className="text-body leading-normal">{evt.commercial_opportunity}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )) : (
-        watchedView
-      )}
-
-      {/* Dialog modals */}
-      {selectedArticle && (
+      {message ? <div role="status" className="fixed bottom-5 right-5 z-50 max-w-sm border border-border bg-heading px-4 py-3 text-xs font-semibold text-primary-fg"><button type="button" onClick={() => setMessage(null)} className="mr-3 underline" aria-label="Fermer">Fermer</button>{message}</div> : null}
+      {selectedArticle ? (
         <>
-          <QualifySignalDialog
-            open={isQualifyOpen}
-            onOpenChange={setIsQualifyOpen}
-            article={selectedArticle}
-            onSuccess={handleArticleQualifySuccess}
-          />
-          {matchedCompany && (
+          <QualifySignalDialog open={qualifyOpen} onOpenChange={setQualifyOpen} article={selectedArticle} onSuccess={(updated) => { setArticles((current) => current.map((article) => article.id === updated.id ? updated : article)); setSelectedArticle(updated); setMessage("Signal qualifié et mis à jour.") }} />
+          {matchedCompany ? (
             <>
-              <CreateAccountNoteDialog
-                open={isNoteOpen}
-                onOpenChange={setIsNoteOpen}
-                companyId={matchedCompany.id}
-                companyName={matchedCompany.name}
-                signalTitle={selectedArticle.titre_fr}
-                onSuccess={() => showToast(`Note ajoutée pour le compte ${matchedCompany.name}.`)}
-              />
-              <CreateOpportunityDialog
-                open={isOpportunityOpen}
-                onOpenChange={setIsOpportunityOpen}
-                companyId={matchedCompany.id}
-                companyName={matchedCompany.name}
-                signalTitle={selectedArticle.titre_fr}
-                onSuccess={() => showToast(`Opportunité créée pour ${matchedCompany.name}.`)}
-              />
+              <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />
+              <CreateOpportunityDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Opportunité créée pour ${matchedCompany.name}.`)} />
             </>
-          )}
+          ) : null}
         </>
-      )}
+      ) : null}
     </div>
   )
 }

@@ -6,14 +6,14 @@ import { AutomationsMobileDashboard } from "./AutomationsMobileDashboard"
 // Server Component : détecte l'appareil et charge les données en parallèle (ADR-0006).
 // Remplace l'ancien SectionDashboardTemplate + mockAutomationsDashboardData
 // (Monitoring IA Lot 1) — plus aucune donnée fictive affichée sur cette page.
-export async function AutomationsSection() {
+export async function AutomationsSection({ initialRunId }: { initialRunId?: string }) {
   const [device, data] = await Promise.all([
     getDashboardDevice(),
     getAutomationsDashboardData(),
   ])
 
   return device === "desktop" ? (
-    <AutomationsDesktopDashboard data={data} />
+    <AutomationsDesktopDashboard data={data} initialRunId={initialRunId} />
   ) : (
     <AutomationsMobileDashboard data={data} />
   )
