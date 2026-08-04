@@ -1,0 +1,487 @@
+{
+  "name": "AGENT IA Business Analyst — Phase 1 — FOLIO APP MAJ",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ba-phase1-analyze",
+        "options": {}
+      },
+      "id": "73cf6d72-a782-43aa-9c4a-b5f563147fd7",
+      "name": "Webhook BA Analyze",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        16
+      ],
+      "webhookId": "7cd8be2d-87fa-4ffd-84e4-bb028182c0e4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.clients (nom, secteur, localisation, site_web, source_prospect_id)\nVALUES (\n  '{{ $json.company_name }}',\n  '{{ $json.sector }}',\n  '{{ $json.location }}',\n  '{{ $json.site_web }}',\n  '{{ $json.prospect_id }}'::uuid\n)\nON CONFLICT (source_prospect_id) DO UPDATE\n  SET nom = EXCLUDED.nom,\n      secteur = EXCLUDED.secteur,\n      localisation = EXCLUDED.localisation,\n      site_web = EXCLUDED.site_web,\n      updated_at = now()\nRETURNING id, nom, secteur, localisation, site_web;",
+        "options": {}
+      },
+      "id": "95d8a663-cdac-4e81-bc48-43f014087bac",
+      "name": "Upsert BA Client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        304
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $('Webhook BA Analyze').first().json;\nconst body = webhookData.body || webhookData;\nconst client = $('Upsert BA Client').first().json;\n\nreturn [{\n  json: {\n    client_id: client.id,\n    prospect_id: body.prospect_id,\n    company_name: body.company_name,\n    sector: body.sector || '',\n    location: body.location || '',\n    site_web: body.site_web || '',\n    nom_mission: `Analyse Phase 1 — ${body.company_name}`,\n    callback_url: body.callback_url,\n  }\n}];\n"
+      },
+      "id": "caa03c36-1f16-4073-9157-0bb6b7cace40",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.missions (client_id, nom_mission, statut_phase_1, phase_courante)\nVALUES (\n  '{{ $json.client_id }}'::uuid,\n  '{{ $json.nom_mission }}',\n  'running',\n  1\n)\nRETURNING id, statut_phase_1;",
+        "options": {}
+      },
+      "id": "d7aa1a78-7479-4036-b759-d03a403cc961",
+      "name": "Create BA Mission",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        656
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Prepare Context').first().json;\nconst mission = $('Create BA Mission').first().json;\n\nreturn [{\n  json: {\n    mission_id: mission.id,\n    client_id: ctx.client_id,\n    client_nom: ctx.company_name,\n    nom_mission: ctx.nom_mission,\n    site_web: ctx.site_web,\n    secteur: ctx.sector,\n    localisation: ctx.location,\n    prospect_id: ctx.prospect_id,\n    callback_url: ctx.callback_url,\n  }\n}];"
+      },
+      "id": "c6b6c2f1-6ca2-4979-9189-5d16399c846f",
+      "name": "Merge Final Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const mission = $('Merge Final Context').first().json;\nconst SERPER_KEY = $env.SERPER_API_KEY;\n\nlet siteContent = 'Site non accessible';\nif (mission.site_web) {\n  try {\n    const siteResp = await this.helpers.httpRequest({\n      method: 'GET',\n      url: mission.site_web,\n      timeout: 10000,\n      returnFullResponse: false,\n    });\n    const html = typeof siteResp === 'string' ? siteResp : JSON.stringify(siteResp);\n    siteContent = html\n      .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, '')\n      .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, '')\n      .replace(/<[^>]+>/g, ' ')\n      .replace(/\\s+/g, ' ')\n      .trim()\n      .substring(0, 8000);\n  } catch (e) {\n    siteContent = 'Site non accessible';\n  }\n}\n\nasync function serperSearch(context, query) {\n  try {\n    const data = await context.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://google.serper.dev/search',\n      headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },\n      body: JSON.stringify({ q: query, gl: 'fr', hl: 'fr', num: 5 }),\n    });\n    const results = data.organic || [];\n    return results.slice(0, 5).map(function(r) { return '- ' + r.title + ': ' + r.snippet; }).join('\\n');\n  } catch (e) {\n    return 'Recherche echouee';\n  }\n}\n\nconst clientNom = mission.client_nom || '';\nconst secteur = mission.secteur || '';\n\nconst searchInfos = await serperSearch(this, clientNom + ' entreprise informations chiffres cles site officiel');\nconst searchActus = await serperSearch(this, clientNom + ' actualites 2025 2026');\nconst searchSecteur = await serperSearch(this, clientNom + ' ' + secteur + ' marche concurrents');\n\nconst prompt = 'Tu es un analyste business senior specialise dans le conseil aux entreprises. A partir des informations ci-dessous, produis une fiche identite client enrichie au format JSON strict. Reponds UNIQUEMENT avec le JSON, sans backticks, sans texte avant ou apres.\\n\\n'\n  + '## DONNEES CLIENT\\n'\n  + 'Nom: ' + clientNom + '\\n'\n  + 'Secteur: ' + secteur + '\\n'\n  + 'Site web: ' + (mission.site_web || 'Non renseigne') + '\\n'\n  + 'Localisation: ' + (mission.localisation || 'Non renseigne') + '\\n\\n'\n  + '## CONTENU DU SITE WEB\\n' + siteContent + '\\n\\n'\n  + '## RECHERCHE - Infos entreprise\\n' + searchInfos + '\\n\\n'\n  + '## RECHERCHE - Actualites recentes\\n' + searchActus + '\\n\\n'\n  + '## RECHERCHE - Secteur et concurrents\\n' + searchSecteur + '\\n\\n'\n  + '## FORMAT JSON ATTENDU\\n'\n  + '{\"identite\":{\"nom_complet\":\"\",\"forme_juridique\":\"\",\"date_creation\":\"\",\"siege_social\":\"\",\"dirigeants\":[\"\"],\"effectif_estime\":\"\",\"ca_estime\":\"\",\"code_naf\":\"\"},\"positionnement\":{\"activite_principale\":\"\",\"clients_types\":\"\",\"proposition_valeur\":\"\",\"zone_geographique\":\"\"},\"signaux\":{\"actualites_recentes\":[\"\"],\"tendance_croissance\":\"\",\"recrutements_recents\":\"\",\"indices_maturite_digitale\":\"\"},\"contexte_sectoriel\":{\"secteur\":\"\",\"concurrents_identifies\":[\"\"],\"tendances_sectorielles\":\"\"},\"synthese_consultant\":\"\"}\\n\\n'\n  + 'Si une information n est pas trouvee, ecris Non trouve.';\n\nconst body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 4096,\n  temperature: 0.2,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn [{\n  json: {\n    api_body: JSON.stringify(body),\n    mission_id: mission.mission_id,\n    client_id: mission.client_id,\n    client_nom: clientNom,\n    nom_mission: mission.nom_mission,\n    prospect_id: mission.prospect_id,\n    callback_url: mission.callback_url,\n  }\n}];"
+      },
+      "id": "5cc60e01-369b-4c86-9a28-469e9395415e",
+      "name": "Scrape + Search + Préparer LLM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.api_body }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ee059f9c-abcd-408c-902f-aee955b783da",
+      "name": "LLM enrichissement client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        1248
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "Kdm59ewFVMq5hBtF",
+          "name": "Anthropic real API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst raw = response.content?.[0]?.text || '';\nconst prev = $('Scrape + Search + Préparer LLM').first().json;\nconst usage = response.usage || {};\n\n// Remove markdown code blocks\nlet cleaned = raw.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n// Extract JSON object even if there's surrounding text\nconst start = cleaned.indexOf('{');\nconst end = cleaned.lastIndexOf('}');\nif (start !== -1 && end !== -1 && end > start) {\n  cleaned = cleaned.slice(start, end + 1);\n}\n\ntry {\n  const enriched = JSON.parse(cleaned);\n  const jsonString = JSON.stringify(enriched).replace(/'/g, \"''\");\n  return [{ json: {\n    enriched_data: enriched,\n    enriched_json_string: jsonString,\n    parse_success: true,\n    mission_id: prev.mission_id, client_id: prev.client_id,\n    client_nom: prev.client_nom, nom_mission: prev.nom_mission,\n    prospect_id: prev.prospect_id, callback_url: prev.callback_url,\n    tokens_input: usage.input_tokens || 0, tokens_output: usage.output_tokens || 0\n  }}];\n} catch (e) {\n  return [{ json: {\n    enriched_data: null, enriched_json_string: null,\n    raw_response: raw, parse_success: false, parse_error: e.message,\n    mission_id: prev.mission_id, client_id: prev.client_id,\n    client_nom: prev.client_nom, nom_mission: prev.nom_mission,\n    prospect_id: prev.prospect_id, callback_url: prev.callback_url,\n    tokens_input: usage.input_tokens || 0, tokens_output: usage.output_tokens || 0\n  }}];\n}\n"
+      },
+      "id": "0580b287-5f2f-46f4-a9da-d82517c443c8",
+      "name": "Parse JSON enrichi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.clients \nSET data = '{{ $json.enriched_json_string }}'::jsonb, updated_at = now()\nWHERE id = '{{ $json.client_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "c81b0c4f-041a-4b05-b654-33bca565705e",
+      "name": "Save fiche enrichie",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        1600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.logs (\n  mission_id, phase, sous_tache, action, modele,\n  tokens_input, tokens_output, statut, output_summary\n) VALUES (\n  '{{ $('Parse JSON enrichi').item.json.mission_id }}'::uuid,\n  1, '1.1', 'llm_call', 'claude-sonnet-4-20250514',\n  {{ $('Parse JSON enrichi').item.json.tokens_input }},\n  {{ $('Parse JSON enrichi').item.json.tokens_output }},\n  '{{ $('Parse JSON enrichi').item.json.parse_success ? \"success\" : \"parse_error\" }}',\n  'Enrichissement client {{ $('Parse JSON enrichi').item.json.client_nom }}'\n);",
+        "options": {}
+      },
+      "id": "8b8b5199-7dd9-4fe5-a2a4-303901c54091",
+      "name": "Log exécution",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        1776
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.missions \nSET statut_phase_1 = 'review', updated_at = now()\nWHERE id = '{{ $('Parse JSON enrichi').item.json.mission_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "48c58102-a842-4e15-b1f6-5ec47e76648f",
+      "name": "Set statut → review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        1968
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Extract body').first().json.callback_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-secret",
+              "value": "={{ $env.N8N_CALLBACK_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "review"
+            },
+            {
+              "name": "analysis_data",
+              "value": "={{ $('Parse JSON enrichi').first().json.enriched_data }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "0c91de2f-c167-4958-8a0d-e1b449cd6b88",
+      "name": "POST Résultat FOLIO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -288,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json.body }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        160
+      ],
+      "id": "81485db4-3be7-4ae8-bb21-0b41b390d512",
+      "name": "Extract body"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.resultats_phases (\n  id, mission_id, phase, titre, statut\n) VALUES (\n  gen_random_uuid(),\n  '{{ $json.mission_id }}'::uuid,\n  1,\n  'Analyse client',\n  'running'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -288,
+        1008
+      ],
+      "id": "739518db-ce28-40e4-b495-ae0427d162a2",
+      "name": "Créer résultats P1",
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.resultats_phases \nSET \n  statut = 'completed',\n  contenu_json = '{{ $('Parse JSON enrichi').item.json.enriched_json_string }}'::jsonb,\n  tokens_input = {{ $('Parse JSON enrichi').item.json.tokens_input }},\n  tokens_output = {{ $('Parse JSON enrichi').item.json.tokens_output }},\n  completed_at = now()\nWHERE mission_id = '{{ $('Parse JSON enrichi').item.json.mission_id }}'::uuid\n  AND phase = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -160,
+        2096
+      ],
+      "id": "f71c1d66-dcc8-4b92-a66c-4cda9902a251",
+      "name": "Finaliser résultats P1",
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook BA Analyze": {
+      "main": [
+        [
+          {
+            "node": "Extract body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert BA Client": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "Create BA Mission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create BA Mission": {
+      "main": [
+        [
+          {
+            "node": "Merge Final Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Final Context": {
+      "main": [
+        [
+          {
+            "node": "Créer résultats P1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape + Search + Préparer LLM": {
+      "main": [
+        [
+          {
+            "node": "LLM enrichissement client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM enrichissement client": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON enrichi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON enrichi": {
+      "main": [
+        [
+          {
+            "node": "Save fiche enrichie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save fiche enrichie": {
+      "main": [
+        [
+          {
+            "node": "Log exécution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log exécution": {
+      "main": [
+        [
+          {
+            "node": "Set statut → review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set statut → review": {
+      "main": [
+        [
+          {
+            "node": "Finaliser résultats P1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract body": {
+      "main": [
+        [
+          {
+            "node": "Upsert BA Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer résultats P1": {
+      "main": [
+        [
+          {
+            "node": "Scrape + Search + Préparer LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finaliser résultats P1": {
+      "main": [
+        [
+          {
+            "node": "POST Résultat FOLIO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "921a3653-4b01-45d7-a5ad-dd7d27f614fc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ce6e7166169422c3fe3dfc024c254247bedc17e40edf9fbbc0bd4f53b5765e7"
+  },
+  "id": "balJaxB3ie0a4vQE",
+  "tags": []
+}

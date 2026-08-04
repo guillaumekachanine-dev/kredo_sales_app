@@ -1,0 +1,456 @@
+{
+  "name": "AGENT IA Business Analyst — Phase 2 — FOLIO APP",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ba-phase2-sectorielle",
+        "options": {}
+      },
+      "id": "2240cd2f-f446-466d-ba78-792d3db0a1ce",
+      "name": "Webhook Phase 2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        192,
+        80
+      ],
+      "webhookId": "ba-phase2-sectorielle"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json.body }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        256
+      ],
+      "id": "f3d540a8-8a47-4a14-b5da-935833bee13b",
+      "name": "Extract body"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  m.id as mission_id,\n  m.nom_mission,\n  m.client_id,\n  c.nom as client_nom,\n  c.site_web,\n  c.secteur,\n  c.localisation,\n  c.data as client_data\nFROM agent_business_analyst.missions m\nJOIN agent_business_analyst.clients c ON c.id = m.client_id\nWHERE m.id = '{{ $('Extract body').item.json.mission_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "1da4a665-d000-4a15-8dcc-9ccab07a0bd6",
+      "name": "Fetch mission Phase 2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        432
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('Extract body').first().json;\nconst mission = $('Fetch mission Phase 2').first().json;\n\nreturn [{\n  json: {\n    mission_id: mission.mission_id,\n    client_id: mission.client_id,\n    client_nom: mission.client_nom,\n    nom_mission: mission.nom_mission,\n    site_web: mission.site_web || '',\n    secteur: mission.secteur || '',\n    localisation: mission.localisation || '',\n    client_data: mission.client_data || {},\n    callback_url: body.callback_url || '',\n    prospect_id: body.prospect_id || '',\n  }\n}];"
+      },
+      "id": "42477bfc-f5da-4716-8a2f-58a6620bde70",
+      "name": "Prepare Context P2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.missions \nSET statut_phase_2 = 'running', phase_courante = 2, updated_at = now()\nWHERE id = '{{ $json.mission_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "e9d6e7d7-5997-445d-a6d7-65c6e9162577",
+      "name": "Set statut P2 → running",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        784
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Prepare Context P2').first().json;\nconst SERPER_KEY = $env.SERPER_API_KEY;\n\nvar clientData = {};\ntry {\n  clientData = typeof ctx.client_data === 'string' \n    ? JSON.parse(ctx.client_data) \n    : (ctx.client_data || {});\n} catch(e) {\n  clientData = {};\n}\n\nconst clientNom = ctx.client_nom || '';\nconst secteur = ctx.secteur || '';\nconst localisation = ctx.localisation || '';\n\nasync function search(context, query) {\n  try {\n    var data = await context.helpers.httpRequest({\n      method: 'POST',\n      url: 'https://google.serper.dev/search',\n      headers: { 'X-API-KEY': SERPER_KEY, 'Content-Type': 'application/json' },\n      body: JSON.stringify({ q: query, gl: 'fr', hl: 'fr', num: 5 }),\n    });\n    var results = data.organic || [];\n    return results.slice(0, 5).map(function(r) { \n      return '- ' + r.title + ': ' + r.snippet; \n    }).join('\\n');\n  } catch (e) {\n    return 'Aucun resultat';\n  }\n}\n\nvar r1a = await search(this, secteur + ' taille marche France 2025 2026 chiffres');\nvar r1b = await search(this, secteur + ' croissance marche tendances previsions');\nvar r2a = await search(this, secteur + ' principaux acteurs leaders France');\nvar r2b = await search(this, secteur + ' startups emergentes nouveaux entrants');\nvar r3a = await search(this, secteur + ' chaine de valeur fournisseurs distributeurs');\nvar r3b = await search(this, secteur + ' ecosysteme partenaires dependances');\nvar r4a = await search(this, secteur + ' reglementation lois normes France 2025 2026');\nvar r4b = await search(this, secteur + ' RGPD conformite certification obligations');\nvar r5a = await search(this, clientNom + ' concurrents directs comparatif');\nvar r5b = await search(this, clientNom + ' parts de marche positionnement prix');\nvar r6a = await search(this, secteur + ' profil clients segmentation marche B2B B2C');\nvar r6b = await search(this, secteur + ' comportement achat tendances consommation');\n\nvar prompt = 'Tu es un analyste sectoriel senior dans un cabinet de conseil strategy. '\n  + 'Tu produis une etude sectorielle complete et structuree au format JSON strict. '\n  + 'Reponds UNIQUEMENT avec le JSON, sans backticks, sans texte avant ou apres.\\n\\n';\n\nprompt += '## CLIENT\\n'\n  + 'Nom: ' + clientNom + '\\n'\n  + 'Secteur: ' + secteur + '\\n'\n  + 'Localisation: ' + localisation + '\\n\\n';\n\nif (clientData.synthese_consultant) {\n  prompt += '## SYNTHESE PHASE 1 (contexte)\\n' + clientData.synthese_consultant + '\\n\\n';\n}\nif (clientData.positionnement) {\n  prompt += '## POSITIONNEMENT CLIENT (Phase 1)\\n'\n    + 'Activite: ' + (clientData.positionnement.activite_principale || '') + '\\n'\n    + 'Clients types: ' + (clientData.positionnement.clients_types || '') + '\\n'\n    + 'Zone: ' + (clientData.positionnement.zone_geographique || '') + '\\n\\n';\n}\n\nprompt += '## 2.1 VOLUME ET DYNAMIQUES DU MARCHE\\n' + r1a + '\\n' + r1b + '\\n\\n';\nprompt += '## 2.2 CARTOGRAPHIE DES ACTEURS\\n' + r2a + '\\n' + r2b + '\\n\\n';\nprompt += '## 2.3 CHAINE DE VALEUR ET INTERACTIONS\\n' + r3a + '\\n' + r3b + '\\n\\n';\nprompt += '## 2.4 ENVIRONNEMENT NORMATIF\\n' + r4a + '\\n' + r4b + '\\n\\n';\nprompt += '## 2.5 ANALYSE CONCURRENTIELLE\\n' + r5a + '\\n' + r5b + '\\n\\n';\nprompt += '## 2.6 SEGMENT DE MARCHE ET CLIENTELE\\n' + r6a + '\\n' + r6b + '\\n\\n';\n\nprompt += '## FORMAT JSON ATTENDU\\n'\n  + '{\\n'\n  + '  \"volume_marche\": {\\n'\n  + '    \"taille_marche_france\": \"\",\\n'\n  + '    \"taille_marche_europe\": \"\",\\n'\n  + '    \"taux_croissance_annuel\": \"\",\\n'\n  + '    \"tendances_macro\": [\"\"],\\n'\n  + '    \"facteurs_croissance\": [\"\"],\\n'\n  + '    \"freins_identifies\": [\"\"]\\n'\n  + '  },\\n'\n  + '  \"acteurs_cles\": {\\n'\n  + '    \"leaders\": [{\"nom\": \"\", \"description\": \"\", \"part_marche_estimee\": \"\"}],\\n'\n  + '    \"challengers\": [{\"nom\": \"\", \"description\": \"\"}],\\n'\n  + '    \"emergents\": [{\"nom\": \"\", \"description\": \"\"}]\\n'\n  + '  },\\n'\n  + '  \"chaine_valeur\": {\\n'\n  + '    \"description_chaine\": \"\",\\n'\n  + '    \"maillons_cles\": [\"\"],\\n'\n  + '    \"dependances_critiques\": [\"\"],\\n'\n  + '    \"points_vulnerabilite\": [\"\"]\\n'\n  + '  },\\n'\n  + '  \"environnement_normatif\": {\\n'\n  + '    \"reglementations_en_vigueur\": [{\"nom\": \"\", \"impact\": \"\"}],\\n'\n  + '    \"reglementations_a_venir\": [{\"nom\": \"\", \"echeance\": \"\", \"impact\": \"\"}],\\n'\n  + '    \"certifications_requises\": [\"\"],\\n'\n  + '    \"risques_conformite\": [\"\"]\\n'\n  + '  },\\n'\n  + '  \"analyse_concurrentielle\": {\\n'\n  + '    \"concurrents_directs\": [{\"nom\": \"\", \"forces\": \"\", \"faiblesses\": \"\"}],\\n'\n  + '    \"positionnement_client\": \"\",\\n'\n  + '    \"avantages_concurrentiels_client\": [\"\"],\\n'\n  + '    \"menaces\": [\"\"],\\n'\n  + '    \"opportunites_differenciation\": [\"\"]\\n'\n  + '  },\\n'\n  + '  \"segment_clientele\": {\\n'\n  + '    \"profil_client_type\": \"\",\\n'\n  + '    \"segmentation\": [{\"segment\": \"\", \"description\": \"\", \"poids_estime\": \"\"}],\\n'\n  + '    \"tendances_comportementales\": [\"\"],\\n'\n  + '    \"besoins_non_couverts\": [\"\"]\\n'\n  + '  },\\n'\n  + '  \"synthese_sectorielle\": \"\"\\n'\n  + '}\\n\\n'\n  + 'Remplis chaque champ avec les donnees trouvees. Si une information n est pas disponible, ecris Non trouve.';\n\nvar body = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 16000,\n  temperature: 0.2,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn [{\n  json: {\n    api_body: JSON.stringify(body),\n    mission_id: ctx.mission_id,\n    client_id: ctx.client_id,\n    client_nom: clientNom,\n    nom_mission: ctx.nom_mission,\n    callback_url: ctx.callback_url,\n    prospect_id: ctx.prospect_id,\n  }\n}];"
+      },
+      "id": "49c26bad-ec18-479a-a87f-abe0d3130c6a",
+      "name": "Recherches sectorielles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        992
+      ],
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.api_body }}",
+        "options": {
+          "timeout": 380000
+        }
+      },
+      "id": "f628b51a-95ea-4c66-8e54-0f08dcbba9ce",
+      "name": "LLM Analyse sectorielle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst raw = response.content?.[0]?.text || '';\nconst usage = response.usage || {};\nconst prev = $('Recherches sectorielles').first().json;\n\nvar cleaned = raw.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\nvar start = cleaned.indexOf('{');\nvar end = cleaned.lastIndexOf('}');\nif (start !== -1 && end !== -1 && end > start) {\n  cleaned = cleaned.slice(start, end + 1);\n}\n\nvar result = {\n  mission_id: prev.mission_id,\n  client_id: prev.client_id,\n  client_nom: prev.client_nom,\n  nom_mission: prev.nom_mission,\n  callback_url: prev.callback_url,\n  prospect_id: prev.prospect_id,\n  tokens_input: usage.input_tokens || 0,\n  tokens_output: usage.output_tokens || 0,\n  parse_success: false,\n  analyse_data: null,\n  analyse_json_string: null,\n  raw_response: raw\n};\n\ntry {\n  var analyse = JSON.parse(cleaned);\n  var jsonString = JSON.stringify(analyse).replace(/'/g, \"''\");\n  result.parse_success = true;\n  result.analyse_data = analyse;\n  result.analyse_json_string = jsonString;\n} catch (e) {\n  result.parse_error = e.message;\n}\n\nreturn [{ json: result }];"
+      },
+      "id": "9d0d6b60-626b-483e-9e88-bd035b734c63",
+      "name": "Parse analyse sectorielle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        1392
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.analyses (\n  id, mission_id, phase, sous_tache, nom, \n  contenu, statut, modele_utilise, tokens_input, tokens_output\n) VALUES (\n  gen_random_uuid(),\n  '{{ $json.mission_id }}'::uuid,\n  2,\n  '2.0',\n  'Etude sectorielle complete',\n  '{{ $json.analyse_json_string }}'::jsonb,\n  '{{ $json.parse_success ? \"generated\" : \"error\" }}',\n  'claude-sonnet-4-6',\n  {{ $json.tokens_input }},\n  {{ $json.tokens_output }}\n);",
+        "options": {}
+      },
+      "id": "861000c6-734d-42b1-aec4-50bc92fc808b",
+      "name": "Save analyse sectorielle",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        1584
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.logs (\n  id, mission_id, phase, sous_tache, action, modele,\n  tokens_input, tokens_output, statut, output_summary\n) VALUES (\n  gen_random_uuid(),\n  '{{ $('Parse analyse sectorielle').item.json.mission_id }}'::uuid,\n  2, '2.0', 'llm_call', 'claude-sonnet-4-6',\n  {{ $('Parse analyse sectorielle').item.json.tokens_input }},\n  {{ $('Parse analyse sectorielle').item.json.tokens_output }},\n  '{{ $('Parse analyse sectorielle').item.json.parse_success ? \"success\" : \"parse_error\" }}',\n  'Etude sectorielle {{ $('Parse analyse sectorielle').item.json.client_nom }}'\n);",
+        "options": {}
+      },
+      "id": "c252be3f-ced8-425d-8f96-6db1fb595cd5",
+      "name": "Log exécution P2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        1792
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.missions \nSET statut_phase_2 = 'review', updated_at = now()\nWHERE id = '{{ $('Parse analyse sectorielle').item.json.mission_id }}'::uuid;",
+        "options": {}
+      },
+      "id": "5947f21f-2316-420d-950d-a536c5b56525",
+      "name": "Set statut P2 → review",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        192,
+        1984
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "SePATj44dGEhults",
+          "name": "AGENT TEAMS - Postgres for FOLIO App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Extract body').first().json.callback_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-n8n-secret",
+              "value": "={{ $env.N8N_CALLBACK_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"mission_id\": \"{{ $('Parse analyse sectorielle').first().json.mission_id }}\",\n  \"status\": \"review\",\n  \"phase\": 2,\n  \"contenu_json\": {{ JSON.stringify($('Parse analyse sectorielle').first().json.analyse_data) }},\n  \"tokens_input\": {{ $('Parse analyse sectorielle').first().json.tokens_input }},\n  \"tokens_output\": {{ $('Parse analyse sectorielle').first().json.tokens_output }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "e1d1aa1c-b2e5-41e4-8454-919e5e050c76",
+      "name": "POST Résultat FOLIO P2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        2192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO agent_business_analyst.resultats_phases (\n  id, mission_id, phase, titre, statut\n) VALUES (\n  gen_random_uuid(),\n  '{{ $('Prepare Context P2').item.json.mission_id }}'::uuid,\n  2,\n  'Etude sectorielle',\n  'running'\n)\nON CONFLICT (mission_id, phase) DO UPDATE SET\n  statut = 'running',\n  updated_at = now();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        16,
+        880
+      ],
+      "id": "69f87031-c6e0-4e33-aaca-5af3e6c2469c",
+      "name": "Créer résultat P2",
+      "credentials": {
+        "postgres": {
+          "id": "E6jnZDodpoPh40Yx",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE agent_business_analyst.resultats_phases \nSET \n  statut = 'completed',\n  contenu_json = '{{ $('Parse analyse sectorielle').item.json.analyse_json_string }}'::jsonb,\n  tokens_input = {{ $('Parse analyse sectorielle').item.json.tokens_input }},\n  tokens_output = {{ $('Parse analyse sectorielle').item.json.tokens_output }},\n  completed_at = now()\nWHERE mission_id = '{{ $('Parse analyse sectorielle').item.json.mission_id }}'::uuid\n  AND phase = 2;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        48,
+        2096
+      ],
+      "id": "e5759a95-998d-4677-acbf-fa6cb2fa34f8",
+      "name": "Finaliser résultat P2",
+      "credentials": {
+        "postgres": {
+          "id": "E6jnZDodpoPh40Yx",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Phase 2": {
+      "main": [
+        [
+          {
+            "node": "Extract body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract body": {
+      "main": [
+        [
+          {
+            "node": "Fetch mission Phase 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch mission Phase 2": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context P2": {
+      "main": [
+        [
+          {
+            "node": "Set statut P2 → running",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set statut P2 → running": {
+      "main": [
+        [
+          {
+            "node": "Créer résultat P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recherches sectorielles": {
+      "main": [
+        [
+          {
+            "node": "LLM Analyse sectorielle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Analyse sectorielle": {
+      "main": [
+        [
+          {
+            "node": "Parse analyse sectorielle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse analyse sectorielle": {
+      "main": [
+        [
+          {
+            "node": "Save analyse sectorielle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save analyse sectorielle": {
+      "main": [
+        [
+          {
+            "node": "Log exécution P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log exécution P2": {
+      "main": [
+        [
+          {
+            "node": "Set statut P2 → review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set statut P2 → review": {
+      "main": [
+        [
+          {
+            "node": "Finaliser résultat P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Créer résultat P2": {
+      "main": [
+        [
+          {
+            "node": "Recherches sectorielles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finaliser résultat P2": {
+      "main": [
+        [
+          {
+            "node": "POST Résultat FOLIO P2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 300,
+    "availableInMCP": false
+  },
+  "versionId": "07567d1b-3f68-497c-b36b-e770e13ef6de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ce6e7166169422c3fe3dfc024c254247bedc17e40edf9fbbc0bd4f53b5765e7"
+  },
+  "id": "VXMLnNMHVkOCQmoK",
+  "tags": []
+}
