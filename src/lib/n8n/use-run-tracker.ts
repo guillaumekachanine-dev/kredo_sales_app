@@ -296,24 +296,3 @@ export function useRunTracker<TContent = unknown, TQaFlags = unknown>(
     isTracking: state.phase === "tracking",
   }
 }
-
-/**
- * Garde anti-double-déclenchement, partagée par tous les écrans qui lancent un
- * run. `isBusy` est mis à jour de façon SYNCHRONE : deux clics rapprochés
- * liraient tous les deux un état React encore à « libre ».
- */
-export function useSingleFlight() {
-  const inFlightRef = useRef(false)
-
-  const run = useCallback(async (task: () => Promise<void>) => {
-    if (inFlightRef.current) return
-    inFlightRef.current = true
-    try {
-      await task()
-    } finally {
-      inFlightRef.current = false
-    }
-  }, [])
-
-  return run
-}
