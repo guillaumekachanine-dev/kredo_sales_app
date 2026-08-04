@@ -22,6 +22,16 @@ import {
   AccountKnowledgeGeneratedContent,
   AccountKnowledgeOpenQuestionsV2,
 } from "./AccountKnowledgeBlocks"
+import {
+  buildSourceIndex,
+  hasMarketPositioningContent,
+  hasOrganisationContent,
+  hasValueChainContent,
+  IdentityV2Content,
+  MarketPositioningV2Content,
+  OrganisationV2Content,
+  ValueChainV2Content,
+} from "./AccountKnowledgeV2Blocks"
 import { AccountKnowledgeUpdateControlsMobile } from "./AccountKnowledgeUpdateControls"
 import { useAccountKnowledgeRun } from "./use-account-knowledge-run"
 import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
@@ -69,6 +79,10 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
   // rafraîchi par `router.refresh()` au succès du run. Aucun miroir local : la
   // copie précédente se désynchronisait de la fiche après une curation.
   const knowledge = data.accountKnowledge
+  const knowledgeSourceIndex = useMemo(
+    () => buildSourceIndex(data.accountKnowledgeSources),
+    [data.accountKnowledgeSources],
+  )
   const {
     status: knowledgeRunStatus,
     errorMessage: knowledgeErrorMsg,
@@ -310,10 +324,34 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
               )}
 
               {knowledge?.version === 2 && (
-                <div className="mb-3">
+                <div className="mb-3 space-y-4">
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
-                    Synthèse générée (moteur IA)
+                    Connaissance entreprise (moteur IA, sourcée)
                   </p>
+                  <IdentityV2Content
+                    identity={knowledge.data.identity}
+                    summary={knowledge.data.account_summary}
+                    sources={knowledgeSourceIndex}
+                  />
+                  {hasMarketPositioningContent(knowledge.data) && (
+                    <MarketPositioningV2Content
+                      positioning={knowledge.data.market_positioning}
+                      sources={knowledgeSourceIndex}
+                    />
+                  )}
+                  {hasValueChainContent(knowledge.data) && (
+                    <ValueChainV2Content
+                      valueChain={knowledge.data.company_value_chain}
+                      sources={knowledgeSourceIndex}
+                    />
+                  )}
+                  {hasOrganisationContent(knowledge.data) && (
+                    <OrganisationV2Content
+                      organisation={knowledge.data.organisation}
+                      contacts={data.contacts}
+                      sources={knowledgeSourceIndex}
+                    />
+                  )}
                   <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
                 </div>
               )}

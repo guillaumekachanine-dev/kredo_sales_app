@@ -19,6 +19,7 @@ import {
   resolveAccountKnowledgeState,
   type AccountKnowledgeState,
 } from "@/lib/intelligence/account-knowledge-state"
+import { collectAccountKnowledgeV2SourceIds } from "@/lib/intelligence/account-knowledge-ingest"
 export type { AccountKnowledgeState } from "@/lib/intelligence/account-knowledge-state"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import {
@@ -219,6 +220,23 @@ export type ClientIntelligenceSignal = {
   } | null
 }
 
+export type AccountKnowledgeCitedSource = {
+  id: string
+  name: string
+  type: string
+  url: string | null
+  publishedAt: string | null
+}
+
+type AccountKnowledgeSourceRow = {
+  id: string
+  source_name: string
+  source_type: string
+  canonical_url: string | null
+  source_url: string | null
+  published_at: string | null
+}
+
 export type AccountRecentDocument = {
   id: string
   title: string
@@ -306,6 +324,9 @@ export type ClientIntelligenceData = {
   // (état vide). Aucune conversion silencieuse V1 → V2 : la version est portée
   // explicitement et les consommateurs se branchent dessus.
   accountKnowledge: AccountKnowledgeState | null
+  // Sources citées par l'artefact V2, résolues pour l'affichage : un Claim n'est
+  // vérifiable à l'écran que si sa source est nommée et cliquable.
+  accountKnowledgeSources: AccountKnowledgeCitedSource[]
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
   // depuis sector_intelligence + tables sector_* mutualisées. null tant que le
   // compte n'a pas de sector_id (majorité du parc — cf. ADR §backfill honnête,
@@ -999,7 +1020,16 @@ export async function getClientIntelligence(
   const pdfStoragePath = str(phase3MetaForPdf.pdf_storage_path)
   const pdfBucket = str(phase3MetaForPdf.pdf_bucket) || "ai_intelligence_process_diagnostics"
 
-  const [sectorSnapshot, signedUrlOutcome] = await Promise.all([
+  // Résolu ici plutôt que plus bas : les sources citées par un artefact V2 se
+  // chargent dans le même aller-retour que le snapshot sectoriel et l'URL signée.
+  const accountKnowledge = resolveAccountKnowledgeState(
+    results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE),
+  )
+  const citedSourceIds = accountKnowledge?.version === 2
+    ? collectAccountKnowledgeV2SourceIds(accountKnowledge.data)
+    : []
+
+  const [sectorSnapshot, signedUrlOutcome, citedSourcesResult] = await Promise.all([
     company.sector_id
       ? getSectorSnapshot(company.sector_id, {
           currentCompanyId: company.id,
@@ -1009,7 +1039,24 @@ export async function getClientIntelligence(
     pdfStoragePath
       ? supabaseReal.storage.from(pdfBucket).createSignedUrl(pdfStoragePath, 3600)
       : Promise.resolve(null),
+    // Lecture en session utilisateur : `intelligence_sources` est SELECT-only
+    // côté client et scopée workspace par la RLS — inutile de repasser par une
+    // fonction SECURITY DEFINER pour lire ses propres sources.
+    citedSourceIds.length > 0
+      ? supabase
+          .from("intelligence_sources")
+          .select<AccountKnowledgeSourceRow>("id,source_name,source_type,canonical_url,source_url,published_at")
+          .in("id", citedSourceIds)
+      : Promise.resolve({ data: [], error: null }),
   ])
+
+  const accountKnowledgeSources: AccountKnowledgeCitedSource[] = (citedSourcesResult?.data ?? []).map((row) => ({
+    id: row.id,
+    name: row.source_name,
+    type: row.source_type,
+    url: row.canonical_url ?? row.source_url,
+    publishedAt: row.published_at,
+  }))
 
   let diagnosticPdfUrl: string | null = null
   if (signedUrlOutcome) {
@@ -1048,10 +1095,6 @@ export async function getClientIntelligence(
   if (commercialStrategyContent && commercialStrategyResultRow) {
     commercialStrategy = { data: commercialStrategyContent, resultId: commercialStrategyResultRow.id }
   }
-
-  const accountKnowledge = resolveAccountKnowledgeState(
-    results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE),
-  )
 
   // Note Lot 3 : engineSectorSnapshot suivra le contrat SectorSnapshotContent
   // (sector_id/top_pain_points/...), pas la forme FOLIO — parseAnalyseSector
@@ -1350,6 +1393,7 @@ export async function getClientIntelligence(
       },
       client,
       accountKnowledge,
+      accountKnowledgeSources,
       sectorSnapshot,
       sector,
       diagnostic,
