@@ -1,4 +1,5 @@
 import type { Database } from "@/types/database"
+import type { Claim, QualitySummary } from "./intelligence-common-contracts"
 
 // ─── ADR-0012 — Contrats de la chaîne de décision commerciale ───────────────
 // Lot 1 : types des artefacts générés par les 5 étapes + enum de provenance
@@ -55,6 +56,91 @@ export interface AccountKnowledgeContent {
   open_questions: AccountKnowledgeFact[]
   generated_at: string
 }
+
+// ─── account_knowledge V2 ───────────────────────────────────────────────────
+// Même `result_type` ("account_knowledge"), `schema_version: 2`. Les deux
+// versions coexistent en base : V1 a été réellement générée, on ne réécrit pas
+// l'historique (cf. parseAccountKnowledgeArtifact, qui discrimine sur la version).
+//
+// Écart assumé avec V1 : V1 range des `AccountKnowledgeFact` porteurs d'une
+// `provenance` (relational / folio_legacy / inferred) mais sans obligation de
+// source. V2 passe au `Claim`, qui EXIGE des `source_refs` vers
+// `intelligence_sources`. C'est le cœur du Lot 0 : une affirmation factuelle
+// non sourcée n'est plus recevable. Les deux modèles ne sont donc pas
+// convertibles l'un dans l'autre — d'où deux types distincts plutôt qu'une
+// union laxiste, et aucune fonction de migration V1→V2 (elle fabriquerait des
+// sources qui n'existent pas).
+
+/**
+ * Question ouverte : ce n'est PAS un Claim (on n'affirme rien, on demande).
+ * Lui imposer des `source_refs` n'aurait pas de sens.
+ */
+export type AccountKnowledgeOpenQuestion = {
+  question: string
+  /** Pourquoi la réponse change quelque chose commercialement. */
+  why_it_matters?: string
+  /** D-4 — curation humaine, même logique que V1 : on masque, on ne supprime pas. */
+  dismissed?: boolean
+}
+
+export type AccountKnowledgeKeyContactV2 = {
+  /** UUID d'un `contacts.id` réel du compte — jamais un nom libre. */
+  contact_id: string
+  role_summary: Claim
+}
+
+export type AccountKnowledgeIdentityV2 = {
+  primary_activity: Claim | null
+  headquarters: Claim | null
+  revenue: Claim | null
+  employee_count: Claim | null
+  /** Dynamique observée (croissance, restructuration, atonie). */
+  dynamic: Claim | null
+}
+
+export type AccountKnowledgeMarketPositioningV2 = {
+  positioning: Claim | null
+  direct_competitors: Claim[]
+  customer_segments: Claim[]
+  differentiators: Claim[]
+  /** Périmètres de marché non couverts par le compte. */
+  uncovered_scope: Claim[]
+  /** Identité revendiquée par le compte lui-même (discours officiel). */
+  claimed_identity: Claim | null
+  threats: Claim[]
+  opportunities: Claim[]
+}
+
+export type AccountKnowledgeValueChainV2 = {
+  description: Claim | null
+  value_proposition: Claim | null
+  key_links: Claim[]
+  dependencies: Claim[]
+  vulnerabilities: Claim[]
+  customer_base: Claim[]
+}
+
+export type AccountKnowledgeOrganisationV2 = {
+  departments: Claim[]
+  strategic_weight: Claim | null
+  key_contacts: AccountKnowledgeKeyContactV2[]
+  process_observations: Claim[]
+}
+
+export interface AccountKnowledgeContentV2 {
+  schema_version: 2
+  identity: AccountKnowledgeIdentityV2
+  account_summary: Claim | null
+  market_positioning: AccountKnowledgeMarketPositioningV2
+  company_value_chain: AccountKnowledgeValueChainV2
+  organisation: AccountKnowledgeOrganisationV2
+  open_questions: AccountKnowledgeOpenQuestion[]
+  source_coverage: QualitySummary
+  generated_at: string
+}
+
+/** Union de lecture — toujours discriminée par `schema_version`. */
+export type AccountKnowledgeArtifact = AccountKnowledgeContent | AccountKnowledgeContentV2
 
 // ─── Étape 2 — Intelligence sectorielle ─────────────────────────────────────
 // result_type = "sector_snapshot". Déterministe (D-6, 0 token) : calculé en
