@@ -454,6 +454,48 @@ async function main() {
     /schema_version doit valoir 2/,
   )
 
+  // ── 6 bis. Robustesse du parsing de la réponse LLM ────────────────────────
+  const fenced = (artifact, fence = "```json\n", close = "\n```") => ({
+    content: [{ type: "text", text: `${fence}${JSON.stringify(artifact)}${close}` }],
+    usage: { input_tokens: 10, output_tokens: 10 },
+    model: "claude-sonnet-5",
+  })
+
+  await runCodeNode("Parse & Validate Output", promptStore, fenced(validArtifact()))
+  check("Un bloc Markdown ```json est correctement dépouillé",
+    promptStore["Parse & Validate Output"].accountKnowledge.schema_version === 2)
+
+  await runCodeNode("Parse & Validate Output", promptStore, fenced(validArtifact(), "```json\r\n", "\r\n```"))
+  check("Un bloc Markdown en CRLF est correctement dépouillé",
+    promptStore["Parse & Validate Output"].accountKnowledge.schema_version === 2)
+
+  await runCodeNode("Parse & Validate Output", promptStore, fenced(validArtifact(), "Voici l'artefact demandé :\n\n```\n", "\n```\n"))
+  check("Un texte d'introduction avant le JSON n'empêche pas l'extraction",
+    promptStore["Parse & Validate Output"].accountKnowledge.schema_version === 2)
+
+  await expectThrows(
+    "Une réponse tronquée est diagnostiquée comme telle, pas comme « non-JSON »",
+    () => runCodeNode("Parse & Validate Output", promptStore, {
+      content: [{ type: "text", text: "```json\n{\"schema_version\": 2, \"identity\": {" }],
+      stop_reason: "max_tokens",
+      usage: { input_tokens: 10, output_tokens: 16000 },
+    }),
+    /tronquée \(plafond de tokens atteint\)/,
+  )
+
+  await expectThrows(
+    "Un JSON réellement invalide reste signalé avec son début ET sa fin",
+    () => runCodeNode("Parse & Validate Output", promptStore, {
+      content: [{ type: "text", text: "{ \"schema_version\": 2, oops }" }],
+      usage: { input_tokens: 10, output_tokens: 10 },
+    }),
+    /non-JSON .* fin:/s,
+  )
+
+  // Rétablit le résultat canonique : les variantes ci-dessus portent des `usage`
+  // factices, que les tests de callback (§10) ne doivent pas lire.
+  await runCodeNode("Parse & Validate Output", promptStore, llmResponse(validArtifact()))
+
   // ── 7. Compte sans FOLIO ──────────────────────────────────────────────────
   const noFolioStore = await buildUpToPrompt({ contextOverrides: { folioAnalysisData: null, folioSectorAnalysis: null } })
   check("Compte sans FOLIO : le contexte reste exploitable", noFolioStore["Prepare Deterministic Context"].hasFolio === false)
@@ -528,10 +570,11 @@ async function main() {
   check("Le callback d'échec porte le runId — le run ne reste pas en running", failBody.runId === RUN && failBody.status === "failed")
   check("Le message d'erreur est transmis", failBody.errorMessage.includes("contenu vide"))
 
-  const orphanStore = {}
-  await runCodeNode("Prepare Failure Callback", orphanStore, { message: "boom" })
-  check("Un échec avant Validate Entity ne fait pas planter le chemin d'échec",
-    JSON.parse(orphanStore["Prepare Failure Callback"].rawBody).status === "failed")
+  await expectThrows(
+    "Un échec non notifiable (runId/callbackUrl introuvables) échoue bruyamment plutôt que d'appeler une URL nulle",
+    () => runCodeNode("Prepare Failure Callback", {}, { message: "boom" }),
+    /non notifiable/,
+  )
 
   // ── 11. Trois profils de comptes RÉELS ────────────────────────────────────
   // Objets `company` extraits en direct de get_account_knowledge_context sur la

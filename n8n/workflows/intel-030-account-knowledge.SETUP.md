@@ -76,9 +76,10 @@ Ces règles sont vérifiées par le harnais de test (§6), pas seulement par le 
 node n8n/workflows/__tests__/intel-030-account-knowledge.test.js
 ```
 
-69 assertions exécutant réellement les nœuds Code extraits de ce JSON (mocks n8n dans un `vm`) :
+74 assertions exécutant réellement les nœuds Code extraits de ce JSON (mocks n8n dans un `vm`) :
 validation d'entrée, isolation FOLIO, ciblage de la recherche, collecte de preuves, déduplication
-des sources, rejets de sortie (fait/analyse non sourcés, source hors catalogue, placeholder,
+des sources, robustesse du parsing (bloc Markdown, CRLF, texte d'introduction, réponse tronquée),
+rejets de sortie (fait/analyse non sourcés, source hors catalogue, placeholder,
 confiance hors bornes, `identity.dynamic` produit par le modèle, contact halluciné), idempotence
 des propositions, callbacks succès/échec, et trois profils de comptes réels
 (riche / sans FOLIO / peu documenté).
