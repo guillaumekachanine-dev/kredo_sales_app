@@ -108,10 +108,10 @@ function CommunicationPurposeSwitcher({
               type="button"
               onClick={() => onOutputKindChange(option.value)}
               className={cn(
-                "min-w-0 rounded-md px-2 text-left transition-colors",
+                "min-w-0 rounded-md px-2 text-center transition-colors",
                 isMobile
-                  ? "min-h-[44px] py-2"
-                  : "min-h-[32px] py-1",
+                  ? "flex min-h-[44px] items-center justify-center"
+                  : "min-h-[32px] py-1 text-left",
                 active
                   ? "bg-primary/15 text-primary ring-1 ring-primary/25"
                   : "text-primary/70 hover:bg-surface-hover/50 hover:text-primary",
@@ -121,14 +121,12 @@ function CommunicationPurposeSwitcher({
               <span
                 className={cn(
                   "block truncate font-bold",
-                  isMobile ? "text-[11px] leading-4" : "text-[10px] uppercase tracking-[0.08em]",
+                  isMobile ? "text-[11px] uppercase tracking-[0.08em]" : "text-[10px] uppercase tracking-[0.08em]",
                 )}
               >
-                {isMobile ? option.label : option.shortLabel}
+                {option.shortLabel}
               </span>
-              <span className={cn("block truncate font-medium text-current/70", isMobile ? "text-[10px]" : "sr-only")}>
-                {option.subtitle}
-              </span>
+              <span className="sr-only">{option.subtitle}</span>
             </button>
           )
         })}
