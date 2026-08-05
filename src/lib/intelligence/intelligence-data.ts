@@ -16,11 +16,16 @@ import {
   type CommercialStrategyContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import {
-  resolveAccountKnowledgeState,
-  type AccountKnowledgeState,
+  resolveAccountKnowledge,
+  type AccountKnowledgeRenderableState,
+  type AccountKnowledgeV3State,
 } from "@/lib/intelligence/account-knowledge-state"
 import { collectAccountKnowledgeV2SourceIds } from "@/lib/intelligence/account-knowledge-ingest"
-export type { AccountKnowledgeState } from "@/lib/intelligence/account-knowledge-state"
+export type {
+  AccountKnowledgeState,
+  AccountKnowledgeRenderableState,
+  AccountKnowledgeV3State,
+} from "@/lib/intelligence/account-knowledge-state"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
 import {
   DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS,
@@ -323,7 +328,16 @@ export type ClientIntelligenceData = {
   // Lot 1 : le dernier V2 réussi prime, sinon le dernier V1 réussi, sinon null
   // (état vide). Aucune conversion silencieuse V1 → V2 : la version est portée
   // explicitement et les consommateurs se branchent dessus.
-  accountKnowledge: AccountKnowledgeState | null
+  //
+  // Lot 4 : volontairement restreint à l'état RESTITUABLE (V1/V2). Un artefact
+  // V3 n'atterrit jamais ici — il sortirait sur des lecteurs qui ne connaissent
+  // ni ses sept sections ni ses verdicts de vérification. Il est exposé à part
+  // dans `accountKnowledgeV3`, sans lecteur avant le Lot 5.
+  accountKnowledge: AccountKnowledgeRenderableState | null
+  // Dernier artefact V3 lu et typé. Aucun composant ne le consomme au Lot 4 :
+  // sa présence ne modifie donc rien à l'écran, elle rend seulement possible la
+  // restitution du Lot 5 sans nouvelle requête.
+  accountKnowledgeV3: AccountKnowledgeV3State | null
   // Sources citées par l'artefact V2, résolues pour l'affichage : un Claim n'est
   // vérifiable à l'écran que si sa source est nommée et cliquable.
   accountKnowledgeSources: AccountKnowledgeCitedSource[]
@@ -1022,9 +1036,27 @@ export async function getClientIntelligence(
 
   // Résolu ici plutôt que plus bas : les sources citées par un artefact V2 se
   // chargent dans le même aller-retour que le snapshot sectoriel et l'URL signée.
-  const accountKnowledge = resolveAccountKnowledgeState(
+  const knowledgeResolution = resolveAccountKnowledge(
     results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE),
   )
+  const knowledgeState = knowledgeResolution.state
+  // Séparation stricte : la couche de restitution actuelle ne connaît que V1/V2.
+  const accountKnowledge = knowledgeState && knowledgeState.version !== 3 ? knowledgeState : null
+  const accountKnowledgeV3 = knowledgeState?.version === 3 ? knowledgeState : null
+
+  // Un artefact produit mais illisible est une panne de génération : la taire
+  // reviendrait à l'afficher comme « pas encore de mise à jour ». Pas d'échec
+  // de la page pour autant — la fiche reste consultable sur l'artefact valide
+  // précédent, et la trace serveur permet de rattacher la ligne fautive.
+  if (knowledgeResolution.unreadable.length > 0) {
+    console.error(
+      `[intelligence-data] account_knowledge illisible (compte ${company.id}) :`,
+      knowledgeResolution.unreadable
+        .map((row) => `${row.resultId} — ${row.issues.map((i) => `${i.path}: ${i.message}`).join(" | ")}`)
+        .join(" ;; "),
+    )
+  }
+
   const citedSourceIds = accountKnowledge?.version === 2
     ? collectAccountKnowledgeV2SourceIds(accountKnowledge.data)
     : []
@@ -1393,6 +1425,7 @@ export async function getClientIntelligence(
       },
       client,
       accountKnowledge,
+      accountKnowledgeV3,
       accountKnowledgeSources,
       sectorSnapshot,
       sector,

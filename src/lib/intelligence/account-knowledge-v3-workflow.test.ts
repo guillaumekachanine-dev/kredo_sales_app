@@ -144,6 +144,19 @@ describe("intel-030 V3 — structure du workflow", () => {
     expect(routes[1][0].node).toBe("Prepare Deterministic Context") // FALSE = V2
   })
 
+  it("lit le discriminateur là où CORE-001 le dépose réellement (body.input)", () => {
+    // `triggerN8nRun` sérialise les paramètres métier sous `input` : lire la
+    // seule racine du body rendait la branche V3 inatteignable depuis l'app.
+    const validate = nodesByName.get("Validate Entity")
+    expect(validate).toBeDefined()
+    const code = (validate!.parameters as { jsCode: string }).jsCode
+    expect(code).toContain("body.input?.accountKnowledgeSchemaVersion")
+    // Compatibilité temporaire avec la valeur posée à la racine.
+    expect(code).toContain("body.accountKnowledgeSchemaVersion")
+    // Une version explicite inconnue est rejetée, jamais ramenée à V2.
+    expect(code).toContain("Version AccountKnowledge non supportée")
+  })
+
   it("n'écrit jamais directement dans la table companies", () => {
     const writers = workflow.nodes.filter(
       (n) =>

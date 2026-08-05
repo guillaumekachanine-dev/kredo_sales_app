@@ -269,6 +269,53 @@ function buildVerifyResponse(registry, verdictFor) {
 }
 
 async function main() {
+  // ── 0. Discriminateur de version (Lot 4) ──────────────────────────────────
+  // CORE-001 transporte les paramètres métier sous `body.input` : la lecture
+  // racine seule rendait la branche V3 inatteignable depuis l'application.
+  {
+    const webhookItem = (bodyOverrides = {}) => ({
+      computedSignature: "sig",
+      headers: { "x-kredo-signature": "sha256=sig" },
+      body: {
+        runId: RUN,
+        workflowId: "intel-030-account-knowledge",
+        entityType: "company",
+        entityId: COMPANY,
+        workspaceId: WORKSPACE,
+        userId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        callbackUrl: "https://kredo.example/api/n8n/callback",
+        ...bodyOverrides,
+      },
+    })
+
+    const versionOf = async (bodyOverrides) => {
+      const store = {}
+      await runCodeNode("Validate Entity", store, webhookItem(bodyOverrides))
+      return store["Validate Entity"].accountKnowledgeSchemaVersion
+    }
+
+    check("Version absente → V2 historique", (await versionOf({ input: {} })) === 2)
+    check("Aucun champ input du tout → V2 historique", (await versionOf({})) === 2)
+    check("input.accountKnowledgeSchemaVersion = 3 → V3",
+      (await versionOf({ input: { accountKnowledgeSchemaVersion: 3 } })) === 3)
+    check("input.accountKnowledgeSchemaVersion = 2 → V2",
+      (await versionOf({ input: { accountKnowledgeSchemaVersion: 2 } })) === 2)
+    check("Compatibilité temporaire : valeur à la racine encore acceptée",
+      (await versionOf({ accountKnowledgeSchemaVersion: 3 })) === 3)
+    check("input prime sur la racine en cas de divergence",
+      (await versionOf({ accountKnowledgeSchemaVersion: 2, input: { accountKnowledgeSchemaVersion: 3 } })) === 3)
+    await expectThrows(
+      "Version explicite inconnue → rejet (jamais un repli silencieux sur V2)",
+      () => versionOf({ input: { accountKnowledgeSchemaVersion: 4 } }),
+      /Version AccountKnowledge non supportée/,
+    )
+    await expectThrows(
+      "Version non numérique → rejet",
+      () => versionOf({ input: { accountKnowledgeSchemaVersion: "latest" } }),
+      /Version AccountKnowledge non supportée/,
+    )
+  }
+
   // ── 1. Chaîne complète, chemin nominal ────────────────────────────────────
   {
     const registry = {}

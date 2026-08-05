@@ -17,6 +17,16 @@
 //      n'est jamais retenue.
 //   6. `source_coverage` est recalculé depuis le contenu réellement stocké,
 //      plutôt que recopié depuis n8n.
+//
+// Lot 4 — V3 rejoint ce portail avec deux contrôles supplémentaires que sa
+// structure rend nécessaires :
+//   7. les UUID cités par les `verification_results` (sources de confirmation
+//      ET de contradiction) sont vérifiés au même titre que ceux des claims —
+//      une vérification « indépendante » adossée à une source fantôme ne prouve
+//      rien ;
+//   8. chaque `significant_signal_ids` doit désigner un `account_signals`
+//      existant, du workspace du run ET rattaché au compte du run. Un signal
+//      d'un autre compte afficherait l'actualité du voisin sur la fiche.
 
 import type { SupabaseClient } from "@supabase/supabase-js"
 
@@ -25,9 +35,11 @@ import {
   buildQualitySummary,
   type Claim,
 } from "./intelligence-common-contracts"
-import type {
-  AccountKnowledgeContent,
-  AccountKnowledgeContentV2,
+import {
+  collectAccountKnowledgeV3Claims,
+  type AccountKnowledgeContent,
+  type AccountKnowledgeContentV2,
+  type AccountKnowledgeContentV3,
 } from "./account-intelligence-contracts"
 import {
   parseAccountKnowledgeArtifact,
@@ -40,6 +52,7 @@ import { computeAccountDynamic, type AccountDynamicSignalInput } from "./account
 export type AccountKnowledgeIngestResult =
   | { ok: true; version: 1; content: AccountKnowledgeContent }
   | { ok: true; version: 2; content: AccountKnowledgeContentV2 }
+  | { ok: true; version: 3; content: AccountKnowledgeContentV3 }
   | { ok: false; error: string; issues: ValidationIssue[] }
 
 /**
@@ -110,6 +123,36 @@ export function collectAccountKnowledgeV2SourceIds(content: AccountKnowledgeCont
 }
 
 /**
+ * UUID distincts à contrôler pour un artefact V3.
+ *
+ * Trois gisements, et pas seulement celui des claims : le vérificateur cite ses
+ * propres sources de confirmation et de contradiction, et l'indicateur
+ * déterministe injecté cite les siennes. Les omettre laisserait passer des
+ * références non vérifiées dans un artefact par ailleurs conforme.
+ *
+ * L'appelant passe le contenu APRÈS injection de `identity.dynamic` : c'est la
+ * valeur réellement persistée qui doit être contrôlée, pas celle reçue de n8n.
+ */
+export function collectAccountKnowledgeV3SourceIds(
+  content: AccountKnowledgeContentV3,
+): string[] {
+  const ids = new Set<string>()
+
+  for (const { claim } of collectAccountKnowledgeV3Claims(content)) {
+    for (const ref of claim.source_refs) ids.add(ref)
+  }
+
+  for (const result of content.verification_results) {
+    for (const ref of result.supporting_source_refs) ids.add(ref)
+    for (const ref of result.contradicting_source_refs) ids.add(ref)
+  }
+
+  for (const ref of content.identity.dynamic?.source_refs ?? []) ids.add(ref)
+
+  return [...ids]
+}
+
+/**
  * Vérifie qu'un lot d'UUID correspond à des lignes `intelligence_sources`
  * existantes ET appartenant au workspace. Retourne les UUID fautifs — sans
  * distinguer « inexistant » de « autre workspace » dans le message renvoyé à
@@ -132,6 +175,36 @@ async function findUnknownSourceIds(
 
   const known = new Set((data ?? []).map((row) => row.id))
   return { unknown: sourceIds.filter((id) => !known.has(id)) }
+}
+
+/**
+ * Vérifie qu'un lot d'UUID de signaux correspond à des lignes `account_signals`
+ * existantes, du workspace du run ET rattachées au compte du run.
+ *
+ * Le triple filtre est volontaire : `workspace_id` seul laisserait un artefact
+ * afficher, en tête de la section « Tendances et actualité », l'actualité d'un
+ * autre compte du même workspace. Comme pour les sources, le message renvoyé ne
+ * distingue pas inexistant / hors workspace / autre compte.
+ */
+async function findUnknownSignalIds(
+  supabase: SupabaseClient<Database>,
+  workspaceId: string,
+  companyId: string,
+  signalIds: readonly string[],
+): Promise<{ unknown: string[] } | { error: string }> {
+  if (signalIds.length === 0) return { unknown: [] }
+
+  const { data, error } = await supabase
+    .from("account_signals")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("company_id", companyId)
+    .in("id", [...signalIds])
+
+  if (error) return { error: error.message }
+
+  const known = new Set((data ?? []).map((row) => row.id))
+  return { unknown: signalIds.filter((id) => !known.has(id)) }
 }
 
 /**
@@ -205,20 +278,11 @@ export async function ingestAccountKnowledgeArtifact(
     return { ok: true, version: 1, content: parsed.content }
   }
 
-  // V3 : contrat technique livré au Lot 2, ingestion réservée au Lot 4.
-  // Refuser explicitement plutôt que de tomber dans le chemin V2, qui
-  // fabriquerait des sections V2 absentes du contrat V3.
+  // V3 (Lot 4) : chemin dédié, jamais celui de V2 — les deux contrats n'ont
+  // aucune section en commun, tomber dans le chemin V2 fabriquerait des
+  // sections absentes du contrat.
   if (parsed.version === 3) {
-    return {
-      ok: false,
-      error: "Ingestion V3 non branchée dans ce lot (réservée au Lot 4).",
-      issues: [
-        {
-          path: "$.schema_version",
-          message: "schema_version=3 accepté par le contrat mais pas encore ingéré.",
-        },
-      ],
-    }
+    return ingestV3(supabase, { workspaceId, companyId, content: parsed.content })
   }
 
   const content = parsed.content
@@ -265,4 +329,94 @@ export async function ingestAccountKnowledgeArtifact(
   }
 
   return { ok: true, version: 2, content: normalized }
+}
+
+/**
+ * Ingestion d'un artefact V3 déjà validé structurellement par
+ * `parseAccountKnowledgeArtifact` (sept sections, correspondance exacte
+ * claim ↔ verification_result, verdict confirmé, ≤ 3 signaux…).
+ *
+ * Ce qui reste à faire ici, et que la validation structurelle ne peut pas faire
+ * seule — elle ne connaît que le JSON, jamais la base :
+ *   - normaliser ce qui est déterministe (`identity.dynamic`, `source_coverage`) ;
+ *   - confronter chaque UUID cité à la réalité de la base, dans le workspace
+ *     du run pour les sources, dans le workspace ET le compte du run pour les
+ *     signaux.
+ *
+ * L'ordre importe : la dynamique est injectée AVANT la collecte des UUID, pour
+ * que les sources de l'indicateur réellement persisté soient contrôlées elles
+ * aussi. Aucun contrôle n'est « réparé » : un artefact fautif est refusé en
+ * bloc, il n'est jamais publié amputé de ses références douteuses.
+ */
+async function ingestV3(
+  supabase: SupabaseClient<Database>,
+  params: { workspaceId: string; companyId: string; content: AccountKnowledgeContentV3 },
+): Promise<AccountKnowledgeIngestResult> {
+  const { workspaceId, companyId, content } = params
+
+  const dynamic = await computeDynamicForCompany(supabase, workspaceId, companyId)
+  if ("error" in dynamic) {
+    return {
+      ok: false,
+      error: `Calcul de la dynamique impossible : ${dynamic.error}`,
+      issues: [],
+    }
+  }
+
+  // Le contenu candidat : dynamique déterministe injectée (la valeur reçue du
+  // workflow, quelle qu'elle soit, est écrasée) et couverture recalculée depuis
+  // les claims réellement publiés — jamais le résumé annoncé par n8n.
+  const candidate: AccountKnowledgeContentV3 = {
+    ...content,
+    identity: { ...content.identity, dynamic: dynamic.indicator },
+    source_coverage: buildQualitySummary({
+      claims: collectAccountKnowledgeV3Claims(content),
+      // Mêmes deux exceptions qu'en V2 : seul le moteur observe la fraîcheur
+      // des sources et les contradictions relevées pendant la vérification.
+      stalePaths: content.source_coverage?.stale_source_paths ?? [],
+      contradictionPaths: content.source_coverage?.contradiction_paths ?? [],
+    }),
+  }
+
+  const sourceIds = collectAccountKnowledgeV3SourceIds(candidate)
+  const sourceCheck = await findUnknownSourceIds(supabase, workspaceId, sourceIds)
+  if ("error" in sourceCheck) {
+    return {
+      ok: false,
+      error: `Vérification des sources impossible : ${sourceCheck.error}`,
+      issues: [],
+    }
+  }
+  if (sourceCheck.unknown.length > 0) {
+    return {
+      ok: false,
+      error: "Sources citées inconnues du workspace",
+      issues: sourceCheck.unknown.map((id) => ({
+        path: "$.source_refs",
+        message: `Source ${id} inexistante ou hors workspace.`,
+      })),
+    }
+  }
+
+  const signalIds = candidate.trends_and_news.significant_signal_ids
+  const signalCheck = await findUnknownSignalIds(supabase, workspaceId, companyId, signalIds)
+  if ("error" in signalCheck) {
+    return {
+      ok: false,
+      error: `Vérification des signaux impossible : ${signalCheck.error}`,
+      issues: [],
+    }
+  }
+  if (signalCheck.unknown.length > 0) {
+    return {
+      ok: false,
+      error: "Signaux cités inconnus du compte",
+      issues: signalCheck.unknown.map((id) => ({
+        path: "$.trends_and_news.significant_signal_ids",
+        message: `Signal ${id} inexistant, hors workspace ou rattaché à un autre compte.`,
+      })),
+    }
+  }
+
+  return { ok: true, version: 3, content: candidate }
 }

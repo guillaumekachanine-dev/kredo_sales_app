@@ -6,7 +6,10 @@
 // puis masqué en CSS.
 
 import { KREDO_TIME_ZONE } from "@/lib/formatting/date-fr"
-import type { AccountKnowledgeState } from "@/lib/intelligence/intelligence-data"
+// Lot 4 — restreint volontairement à l'état restituable : un artefact V3 passé
+// ici serait lu avec les règles V2 (couverture affichée comme si le sourcing
+// avait les mêmes exigences). L'annotation le rend impossible à la compilation.
+import type { AccountKnowledgeRenderableState } from "@/lib/intelligence/intelligence-data"
 import type { AccountKnowledgeRunStatus } from "./use-account-knowledge-run"
 
 // Fuseau explicite : cf. lib/formatting/date-fr.ts.
@@ -19,7 +22,7 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   timeZone: KREDO_TIME_ZONE,
 }
 
-function formatUpdatedAt(state: AccountKnowledgeState | null): string {
+function formatUpdatedAt(state: AccountKnowledgeRenderableState | null): string {
   if (!state) return "Jamais mise à jour"
   return `Mise à jour le ${new Date(state.createdAt).toLocaleString("fr-FR", DATE_FORMAT)}`
 }
@@ -29,7 +32,7 @@ function formatUpdatedAt(state: AccountKnowledgeState | null): string {
  * qui exige un sourcing. Pour un artefact V1, on l'annonce explicitement plutôt
  * que d'afficher un taux fabriqué.
  */
-function formatCoverage(state: AccountKnowledgeState | null): string | null {
+function formatCoverage(state: AccountKnowledgeRenderableState | null): string | null {
   if (!state) return null
   if (state.version === 1) return "Version précédente — affirmations non sourcées"
 
@@ -45,7 +48,7 @@ function statusLabel(status: AccountKnowledgeRunStatus): string | null {
 }
 
 type ControlsProps = {
-  state: AccountKnowledgeState | null
+  state: AccountKnowledgeRenderableState | null
   status: AccountKnowledgeRunStatus
   errorMessage: string | null
   onUpdate: () => void

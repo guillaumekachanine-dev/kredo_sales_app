@@ -131,10 +131,36 @@ architecture dans `docs/intelligence/LOT-3-HANDOFF.md`.
 
 ### 9.1 Activation — discriminateur explicite
 
-La branche V3 ne s'emprunte **que** si le body du webhook porte
-`accountKnowledgeSchemaVersion: 3`. Sinon, **comportement historique V2 inchangé**. Le trigger
-Next.js **n'envoie pas encore** cette valeur (activation Lot 4 / mise en service) : tant que rien
-n'est modifié côté application, `intel-030` continue de produire exclusivement du V2.
+La branche V3 ne s'emprunte **que** si l'appelant demande explicitement la version 3.
+
+**Corrigé au Lot 4** — `Validate Entity` lit désormais, dans cet ordre :
+
+1. `body.input.accountKnowledgeSchemaVersion` — c'est **là** que CORE-001
+   (`triggerN8nRun`) dépose les paramètres métier ; la version précédente ne
+   lisait que la racine du body, ce qui rendait la branche V3 **inatteignable**
+   depuis l'application ;
+2. `body.accountKnowledgeSchemaVersion` — compatibilité temporaire (appels
+   manuels, rejeu de payloads existants).
+
+Résolution : valeur absente → **2** (comportement historique) · `2` → V2 · `3` → V3 ·
+toute autre valeur explicite → **rejet** (`Version AccountKnowledge non supportée`),
+jamais un repli silencieux sur V2.
+
+Déclenchement V3 explicite depuis l'application (typé par
+`AccountKnowledgeTriggerInput`, `src/lib/n8n/types.ts`) :
+
+```json
+{
+  "workflowId": "intel-030-account-knowledge",
+  "entityType": "company",
+  "entityId": "<companyId>",
+  "companyId": "<companyId>",
+  "input": { "accountKnowledgeSchemaVersion": 3 }
+}
+```
+
+Les boutons Desktop/Mobile envoient toujours `input: {}` : **V3 reste dormante par
+défaut** tant que la restitution n'existe pas (Lot 5).
 
 ### 9.2 Nœuds V3 (résumé)
 
