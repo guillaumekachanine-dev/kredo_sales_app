@@ -58,7 +58,7 @@ export function useAccountKnowledgeRun(companyId: string) {
           entityType: "company",
           entityId: companyId,
           companyId,
-          input: {},
+          input: { accountKnowledgeSchemaVersion: 3 },
         }),
       })
 

@@ -14,3 +14,18 @@ export const KREDO_TIME_ZONE = "Europe/Paris"
 export const KREDO_DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZone: KREDO_TIME_ZONE,
 }
+
+export function formatDayMonthYear(isoDate: string): string {
+  try {
+    const d = new Date(isoDate)
+    if (isNaN(d.getTime())) return isoDate
+    return new Intl.DateTimeFormat("fr-FR", {
+      ...KREDO_DATE_TIME_OPTIONS,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(d)
+  } catch {
+    return isoDate
+  }
+}

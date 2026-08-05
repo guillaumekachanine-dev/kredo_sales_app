@@ -25,6 +25,7 @@ import { CompanyCommercialContent } from "./CompanyCommercialContent"
 import { CompanyEditorialSection } from "./CompanyEditorialSection"
 import { CompanyIdentityPositioningContent } from "./CompanyIdentityPositioningContent"
 import { CompanyOperationsContent } from "./CompanyOperationsContent"
+import { AccountKnowledgeV3Desktop } from "./folio-v3/AccountKnowledgeV3Desktop"
 
 type CompanySection = {
   id: string
@@ -41,7 +42,10 @@ export function ClientIntelligenceCompanyTab({
   data: ClientIntelligenceData
   onOpenAudit: () => void
 }) {
-  const knowledge = data.accountKnowledge
+  const v3State = data.accountKnowledgeV3
+  const v3 = v3State?.data
+  const knowledge = v3State || data.accountKnowledge
+
   const { status, errorMessage, trigger } = useAccountKnowledgeRun(data.company.id)
 
   const sourceIndex = useMemo(
@@ -49,17 +53,76 @@ export function ClientIntelligenceCompanyTab({
     [data.accountKnowledgeSources],
   )
 
-  const hasQuestions = knowledge
-    ? knowledge.version === 1
-      ? hasVisibleOpenQuestions(knowledge.data.open_questions)
-      : knowledge.data.open_questions.some((question) => !question.dismissed)
+  const hasQuestions = data.accountKnowledge
+    ? data.accountKnowledge.version === 1
+      ? hasVisibleOpenQuestions(data.accountKnowledge.data.open_questions)
+      : data.accountKnowledge.version === 2
+        ? data.accountKnowledge.data.open_questions.some((question: any) => !question.dismissed)
+        : false
     : false
 
-  // Les sections sont construites puis numérotées : un artefact V2 en ajoute
-  // deux (chaîne de valeur, organisation) que FOLIO ne sait pas alimenter, et
-  // l'index affiché doit rester cohérent avec la navigation.
-  const v2 = knowledge?.version === 2 ? knowledge.data : null
+  if (v3) {
+    return (
+      <div className="space-y-6 pt-6">
+        <AccountKnowledgeUpdateControlsDesktop
+          state={knowledge}
+          lastUpdatedAt={data.accountKnowledgeLastUpdatedAt}
+          status={status}
+          errorMessage={errorMessage}
+          onUpdate={() => void trigger()}
+        />
+        
+        <AccountKnowledgeV3Desktop
+          content={v3}
+          sources={sourceIndex}
+          signals={data.accountSignals}
+        />
+        
+        <div className="mt-12 space-y-6 border-t border-border pt-8">
+          <h3 className="font-heading text-lg font-bold text-heading px-1">Espace relationnel & opérations</h3>
+          <CompanyEditorialSection
+            id="company-operations"
+            index="01"
+            title="Activités opérationnelles"
+            description="Dernier diagnostic process réussi, normalisé depuis les données structurées de l’audit sans relire le PDF."
+          >
+            <CompanyOperationsContent
+              data={data.operationalSnapshot}
+              auditAvailable={Boolean(data.diagnosticPdfUrl)}
+              onOpenAudit={onOpenAudit}
+            />
+          </CompanyEditorialSection>
+          
+          <CompanyEditorialSection
+            id="company-commercial"
+            index="02"
+            title="Relation commerciale"
+            description="Historique des échanges, opportunités, engagements et carte des contacts prioritaires."
+          >
+            <CompanyCommercialContent
+              timeline={data.commercialTimeline}
+              opportunities={data.opportunities}
+              missions={data.missions}
+              projects={data.projects}
+              contacts={data.contacts}
+            />
+          </CompanyEditorialSection>
+        </div>
+        
+        {hasQuestions && data.accountKnowledge ? (
+          <div id="company-questions" className="scroll-mt-6 border-t border-border pt-8">
+            {data.accountKnowledge.version === 1 ? (
+              <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
+            ) : (
+              <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
+            )}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
+  const v2 = data.accountKnowledge?.version === 2 ? data.accountKnowledge.data as any : null
   const sections: CompanySection[] = []
 
   sections.push({
@@ -197,13 +260,13 @@ export function ClientIntelligenceCompanyTab({
         </CompanyEditorialSection>
       ))}
 
-      {hasQuestions && knowledge ? (
+      {hasQuestions && data.accountKnowledge ? (
         <div id="company-questions" className="scroll-mt-6">
-          {knowledge.version === 1 ? (
-            <AccountKnowledgeOpenQuestions data={knowledge.data} resultId={knowledge.resultId} />
-          ) : (
-            <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
-          )}
+          {data.accountKnowledge.version === 1 ? (
+            <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
+          ) : data.accountKnowledge.version === 2 ? (
+            <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -37,7 +37,7 @@ export type AccountKnowledgeState =
  */
 export type AccountKnowledgeRenderableState = Extract<
   AccountKnowledgeState,
-  { version: 1 } | { version: 2 }
+  { version: 1 } | { version: 2 } | { version: 3 }
 >
 
 /** État V3 isolé — chargé et typé au Lot 4, restitué au Lot 5. */

@@ -20,7 +20,10 @@ import {
   type AccountKnowledgeRenderableState,
   type AccountKnowledgeV3State,
 } from "@/lib/intelligence/account-knowledge-state"
-import { collectAccountKnowledgeV2SourceIds } from "@/lib/intelligence/account-knowledge-ingest"
+import {
+  collectAccountKnowledgeV2SourceIds,
+  collectAccountKnowledgeV3SourceIds,
+} from "@/lib/intelligence/account-knowledge-ingest"
 export type {
   AccountKnowledgeState,
   AccountKnowledgeRenderableState,
@@ -347,6 +350,7 @@ export type ClientIntelligenceData = {
   // Sources citées par l'artefact V2, résolues pour l'affichage : un Claim n'est
   // vérifiable à l'écran que si sa source est nommée et cliquable.
   accountKnowledgeSources: AccountKnowledgeCitedSource[]
+  accountKnowledgeV3Sources: AccountKnowledgeCitedSource[]
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
   // depuis sector_intelligence + tables sector_* mutualisées. null tant que le
   // compte n'a pas de sector_id (majorité du parc — cf. ADR §backfill honnête,
@@ -1069,9 +1073,15 @@ export async function getClientIntelligence(
     )
   }
 
-  const citedSourceIds = accountKnowledge?.version === 2
+  const citedSourceIdsV2 = accountKnowledge?.version === 2
     ? collectAccountKnowledgeV2SourceIds(accountKnowledge.data)
     : []
+
+  const citedSourceIdsV3 = accountKnowledgeV3
+    ? collectAccountKnowledgeV3SourceIds(accountKnowledgeV3.data)
+    : []
+
+  const allCitedSourceIds = Array.from(new Set([...citedSourceIdsV2, ...citedSourceIdsV3]))
 
   const [sectorSnapshot, signedUrlOutcome, citedSourcesResult] = await Promise.all([
     company.sector_id
@@ -1086,21 +1096,35 @@ export async function getClientIntelligence(
     // Lecture en session utilisateur : `intelligence_sources` est SELECT-only
     // côté client et scopée workspace par la RLS — inutile de repasser par une
     // fonction SECURITY DEFINER pour lire ses propres sources.
-    citedSourceIds.length > 0
+    allCitedSourceIds.length > 0
       ? supabase
           .from("intelligence_sources")
           .select<AccountKnowledgeSourceRow>("id,source_name,source_type,canonical_url,source_url,published_at")
-          .in("id", citedSourceIds)
+          .in("id", allCitedSourceIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
-  const accountKnowledgeSources: AccountKnowledgeCitedSource[] = (citedSourcesResult?.data ?? []).map((row) => ({
-    id: row.id,
-    name: row.source_name,
-    type: row.source_type,
-    url: row.canonical_url ?? row.source_url,
-    publishedAt: row.published_at,
-  }))
+  const allCitedSources = citedSourcesResult?.data ?? []
+
+  const accountKnowledgeSources: AccountKnowledgeCitedSource[] = allCitedSources
+    .filter((row) => citedSourceIdsV2.includes(row.id))
+    .map((row) => ({
+      id: row.id,
+      name: row.source_name,
+      type: row.source_type,
+      url: row.canonical_url ?? row.source_url,
+      publishedAt: row.published_at,
+    }))
+
+  const accountKnowledgeV3Sources: AccountKnowledgeCitedSource[] = allCitedSources
+    .filter((row) => citedSourceIdsV3.includes(row.id))
+    .map((row) => ({
+      id: row.id,
+      name: row.source_name,
+      type: row.source_type,
+      url: row.canonical_url ?? row.source_url,
+      publishedAt: row.published_at,
+    }))
 
   let diagnosticPdfUrl: string | null = null
   if (signedUrlOutcome) {
@@ -1440,6 +1464,7 @@ export async function getClientIntelligence(
       accountKnowledgeV3,
       accountKnowledgeLastUpdatedAt,
       accountKnowledgeSources,
+      accountKnowledgeV3Sources,
       sectorSnapshot,
       sector,
       diagnostic,

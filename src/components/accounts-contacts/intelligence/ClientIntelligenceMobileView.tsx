@@ -20,6 +20,7 @@ import {
   CommercialRelationCard,
   AccountSignalsCard,
   AccountKnowledgeGeneratedContent,
+  AccountKnowledgeOpenQuestions,
   AccountKnowledgeOpenQuestionsV2,
 } from "./AccountKnowledgeBlocks"
 import {
@@ -64,6 +65,7 @@ import {
 } from "./ClientIntelligenceDesktopView"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { PitchDocumentDialog } from "./PitchDocumentDialog"
+import { AccountKnowledgeV3Mobile } from "./folio-v3/AccountKnowledgeV3Mobile"
 
 type ConnaissanceRunStatus = "idle" | "loading" | "done" | "error"
 
@@ -84,7 +86,9 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
   // Lot 1 — le contenu affiché vient directement de `data` (Server Component),
   // rafraîchi par `router.refresh()` au succès du run. Aucun miroir local : la
   // copie précédente se désynchronisait de la fiche après une curation.
-  const knowledge = data.accountKnowledge
+  const v3State = data.accountKnowledgeV3
+  const v3 = v3State?.data
+  const knowledge = v3State || data.accountKnowledge
   const knowledgeSourceIndex = useMemo(
     () => buildSourceIndex(data.accountKnowledgeSources),
     [data.accountKnowledgeSources],
@@ -311,46 +315,63 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
                 onUpdate={() => void triggerKnowledgeRun()}
               />
 
-              {knowledge?.version === 1 && (
-                <div className="mb-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
-                    Synthèse générée (moteur IA)
-                  </p>
-                  <AccountKnowledgeGeneratedContent data={knowledge.data} resultId={knowledge.resultId} />
+              {v3 ? (
+                <div className="mb-3 space-y-4 border-t border-border/30 pt-4 mt-2">
+                  <AccountKnowledgeV3Mobile content={v3} sources={knowledgeSourceIndex} signals={data.accountSignals} />
+                  {data.accountKnowledge && (
+                    <div className="mt-4 border-t border-border/30 pt-4">
+                      {data.accountKnowledge.version === 1 ? (
+                        <AccountKnowledgeOpenQuestions data={data.accountKnowledge.data} resultId={data.accountKnowledge.resultId} />
+                      ) : (
+                        <AccountKnowledgeOpenQuestionsV2 data={data.accountKnowledge.data as any} />
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
+              ) : (
+                <>
+                  {knowledge?.version === 1 && (
+                    <div className="mb-3">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+                        Synthèse générée (moteur IA)
+                      </p>
+                      <AccountKnowledgeGeneratedContent data={knowledge.data} resultId={knowledge.resultId} />
+                    </div>
+                  )}
 
-              {knowledge?.version === 2 && (
-                <div className="mb-3 space-y-4">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
-                    Connaissance entreprise (moteur IA, sourcée)
-                  </p>
-                  <IdentityV2Content
-                    identity={knowledge.data.identity}
-                    summary={knowledge.data.account_summary}
-                    sources={knowledgeSourceIndex}
-                  />
-                  {hasMarketPositioningContent(knowledge.data) && (
-                    <MarketPositioningV2Content
-                      positioning={knowledge.data.market_positioning}
-                      sources={knowledgeSourceIndex}
-                    />
+                  {knowledge?.version === 2 && (
+                    <div className="mb-3 space-y-4">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted">
+                        Connaissance entreprise (moteur IA, sourcée)
+                      </p>
+                      <IdentityV2Content
+                        identity={knowledge.data.identity}
+                        summary={knowledge.data.account_summary}
+                        sources={knowledgeSourceIndex}
+                      />
+                      {hasMarketPositioningContent(knowledge.data) && (
+                        <MarketPositioningV2Content
+                          positioning={knowledge.data.market_positioning}
+                          sources={knowledgeSourceIndex}
+                        />
+                      )}
+                      {hasValueChainContent(knowledge.data) && (
+                        <ValueChainV2Content
+                          valueChain={knowledge.data.company_value_chain}
+                          sources={knowledgeSourceIndex}
+                        />
+                      )}
+                      {hasOrganisationContent(knowledge.data) && (
+                        <OrganisationV2Content
+                          organisation={knowledge.data.organisation}
+                          contacts={data.contacts}
+                          sources={knowledgeSourceIndex}
+                        />
+                      )}
+                      <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
+                    </div>
                   )}
-                  {hasValueChainContent(knowledge.data) && (
-                    <ValueChainV2Content
-                      valueChain={knowledge.data.company_value_chain}
-                      sources={knowledgeSourceIndex}
-                    />
-                  )}
-                  {hasOrganisationContent(knowledge.data) && (
-                    <OrganisationV2Content
-                      organisation={knowledge.data.organisation}
-                      contacts={data.contacts}
-                      sources={knowledgeSourceIndex}
-                    />
-                  )}
-                  <AccountKnowledgeOpenQuestionsV2 data={knowledge.data} />
-                </div>
+                </>
               )}
 
               {/* 2 analyses sous forme d'icônes sur une seule ligne */}
