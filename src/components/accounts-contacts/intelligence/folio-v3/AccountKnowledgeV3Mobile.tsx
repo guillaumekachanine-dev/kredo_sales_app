@@ -237,7 +237,7 @@ export function AccountKnowledgeV3Mobile({
       <FolioStudySection title="Tendances et actualité" isMobile>
         {tn.analysis && <FolioNarrativeBlock isMobile><p>{renderClaim(tn.analysis)}</p></FolioNarrativeBlock>}
         <div className="mt-4">
-          <AccountSignalsMobileCards signals={displaySignals} onOpenAll={() => setSignalsModalOpen(true)} />
+          <AccountSignalsMobileCards signals={displaySignals} totalSignalsCount={signals.length} onOpenAll={() => setSignalsModalOpen(true)} />
         </div>
         <FolioSourceDisclosure isMobile sources={buildDisclosure(tnSources)} />
       </FolioStudySection>

@@ -27,9 +27,11 @@ function SignalSourceLink({ url }: { url: string | null }) {
 
 export function AccountSignalsCompactList({
   signals,
+  totalSignalsCount = signals.length,
   onOpenAll,
 }: {
   signals: ClientIntelligenceSignal[]
+  totalSignalsCount?: number
   onOpenAll: () => void
 }) {
   if (signals.length === 0) {
@@ -37,7 +39,7 @@ export function AccountSignalsCompactList({
   }
 
   const displaySignals = signals.slice(0, 3)
-  const remainingCount = signals.length - 3
+  const remainingCount = totalSignalsCount - displaySignals.length
 
   return (
     <div className="space-y-3">
@@ -64,9 +66,9 @@ export function AccountSignalsCompactList({
         <button
           type="button"
           onClick={onOpenAll}
-          className="w-full text-center py-2 text-[11px] font-bold uppercase tracking-wider text-[#1E3150] hover:text-[#D89B16] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+          className="w-full text-center py-2 text-[11px] font-bold uppercase tracking-wider text-[#1E3150] hover:text-[#D89B16] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded cursor-pointer"
         >
-          Voir tous les signaux ({signals.length})
+          Voir tous les signaux ({totalSignalsCount})
         </button>
       )}
     </div>
@@ -75,9 +77,11 @@ export function AccountSignalsCompactList({
 
 export function AccountSignalsMobileCards({
   signals,
+  totalSignalsCount = signals.length,
   onOpenAll,
 }: {
   signals: ClientIntelligenceSignal[]
+  totalSignalsCount?: number
   onOpenAll: () => void
 }) {
   if (signals.length === 0) {
@@ -85,6 +89,7 @@ export function AccountSignalsMobileCards({
   }
 
   const displaySignals = signals.slice(0, 3)
+  const remainingCount = totalSignalsCount - displaySignals.length
 
   return (
     <div className="space-y-3">
@@ -104,13 +109,13 @@ export function AccountSignalsMobileCards({
           {signal.primarySourceId && <SignalSourceLink url={signal.primarySourceId} />}
         </div>
       ))}
-      {signals.length > 3 && (
+      {remainingCount > 0 && (
         <button
           type="button"
           onClick={onOpenAll}
-          className="w-full flex items-center justify-center min-h-[44px] text-[10px] font-bold uppercase tracking-wide text-[#1E3150] bg-surface border border-[#CBD5E1]/50 rounded-lg cursor-pointer active:scale-98 transition-all"
+          className="w-full text-center py-2 text-[10px] font-bold uppercase tracking-wider text-[#1E3150] hover:text-[#D89B16] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded cursor-pointer"
         >
-          Voir tous les signaux ({signals.length})
+          Voir tous les signaux ({totalSignalsCount})
         </button>
       )}
     </div>

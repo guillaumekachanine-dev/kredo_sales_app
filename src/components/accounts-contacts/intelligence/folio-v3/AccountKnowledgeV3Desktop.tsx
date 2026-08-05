@@ -263,7 +263,7 @@ export function AccountKnowledgeV3Desktop({
       <FolioStudySection title="Tendances et actualité">
         {tn.analysis && <FolioNarrativeBlock><p>{renderClaim(tn.analysis)}</p></FolioNarrativeBlock>}
         <div className="mt-4">
-          <AccountSignalsCompactList signals={displaySignals} onOpenAll={() => setSignalsModalOpen(true)} />
+          <AccountSignalsCompactList signals={displaySignals} totalSignalsCount={signals.length} onOpenAll={() => setSignalsModalOpen(true)} />
         </div>
         <FolioSourceDisclosure sources={buildDisclosure(tnSources)} />
       </FolioStudySection>
