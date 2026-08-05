@@ -9,15 +9,15 @@ vi.mock("react", async (importOriginal) => {
   const original = await importOriginal<typeof import("react")>()
   return {
     ...original,
-    useState: (init: any) => {
+    useState: (init: unknown) => {
       let val = init
-      const setVal = vi.fn((newVal: any) => {
+      const setVal = vi.fn((newVal: unknown) => {
         val = newVal
       })
       return [val, setVal]
     },
-    useRef: (init: any) => ({ current: init }),
-    useCallback: (fn: any) => fn,
+    useRef: (init: unknown) => ({ current: init }),
+    useCallback: <T>(fn: T): T => fn,
   }
 })
 
@@ -30,7 +30,7 @@ vi.mock("@/lib/n8n/use-run-tracker", () => ({
 }))
 
 vi.mock("@/lib/intelligence/intelligence-validators", () => ({
-  parseAccountKnowledgeArtifact: vi.fn((content: any) => ({ ok: true, version: content.schema_version, content }))
+  parseAccountKnowledgeArtifact: vi.fn((content: { schema_version: number }) => ({ ok: true, version: content.schema_version, content }))
 }))
 
 function accountKnowledgeV3Minimal(): AccountKnowledgeContentV3 {
