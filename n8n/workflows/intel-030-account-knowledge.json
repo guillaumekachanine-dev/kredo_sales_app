@@ -2152,7 +2152,13 @@
     },
     "V3 Resolve Source Ids": {
       "main": [
-        [],
+        [
+          {
+            "node": "V3 Assemble Draft Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Prepare Failure Callback",
