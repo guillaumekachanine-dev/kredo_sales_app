@@ -428,6 +428,57 @@ export function collectAccountKnowledgeV3Claims(
   return out
 }
 
+/**
+ * Index `claim_path → AccountKnowledgeVerificationResultV3`, destiné au Lot 5
+ * (revue Lot 4, Contrôle 4) : le rendu d'un claim devra afficher son verdict
+ * de vérification à côté, et le seul mécanisme de correspondance du contrat
+ * est `claim_path` — jamais une position dans un tableau. Centraliser cet
+ * appariement ici évite qu'un composant UI ré-implémente sa propre boucle de
+ * recherche par chemin, avec le risque de diverger de la logique déjà
+ * appliquée par `validateAccountKnowledgeV3` (`intelligence-validators.ts`).
+ *
+ * Ne revalide PAS la structure entière de l'artefact (c'est le rôle du
+ * validateur, appelé une fois à l'ingestion) : ce helper suppose un contenu
+ * déjà accepté par `parseAccountKnowledgeArtifact`. Il refuse néanmoins tout
+ * appariement structurellement impossible plutôt que de construire un index
+ * trompeur :
+ *   - un `claim_path` dupliqué dans `verification_results` lève une erreur —
+ *     deux verdicts pour la même affirmation n'a pas de sens à afficher ;
+ *   - un `claim_path` sans claim correspondant (résultat orphelin) lève une
+ *     erreur — l'indexer silencieusement produirait une entrée qu'aucun
+ *     rendu ne pourrait jamais retrouver via `collectAccountKnowledgeV3Claims`.
+ *
+ * En revanche, un CLAIM sans résultat n'est PAS une erreur ici : c'est une
+ * absence détectable par l'appelant (`index.get(claimPath) === undefined`),
+ * pas une malformation de l'index lui-même — c'est exactement ce que
+ * `validateAccountKnowledgeV3` interdit déjà à la source (un artefact publié
+ * ne peut pas avoir de claim sans résultat), donc ce cas ne devrait jamais se
+ * présenter sur un contenu réellement persisté ; le helper reste défensif
+ * pour un contenu construit à la main (tests, futurs appelants hors callback).
+ */
+export function buildAccountKnowledgeV3VerificationIndex(
+  content: AccountKnowledgeContentV3,
+): ReadonlyMap<string, AccountKnowledgeVerificationResultV3> {
+  const claimPaths = new Set(collectAccountKnowledgeV3Claims(content).map((entry) => entry.path))
+  const index = new Map<string, AccountKnowledgeVerificationResultV3>()
+
+  for (const result of content.verification_results) {
+    if (index.has(result.claim_path)) {
+      throw new Error(
+        `Résultat de vérification en double pour ${result.claim_path} — appariement impossible.`,
+      )
+    }
+    if (!claimPaths.has(result.claim_path)) {
+      throw new Error(
+        `Résultat de vérification orphelin : aucun claim publié à ${result.claim_path}.`,
+      )
+    }
+    index.set(result.claim_path, result)
+  }
+
+  return index
+}
+
 // ─── Étape 2 — Intelligence sectorielle ─────────────────────────────────────
 // result_type = "sector_snapshot". Déterministe (D-6, 0 token) : calculé en
 // TypeScript depuis les tables sector_*, PAS par un LLM. Persisté seulement si

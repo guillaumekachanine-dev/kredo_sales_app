@@ -305,6 +305,7 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
               {/* Lot 1 — action réelle de l'onglet Entreprise */}
               <AccountKnowledgeUpdateControlsMobile
                 state={knowledge}
+                lastUpdatedAt={data.accountKnowledgeLastUpdatedAt}
                 status={knowledgeRunStatus}
                 errorMessage={knowledgeErrorMsg}
                 onUpdate={() => void triggerKnowledgeRun()}

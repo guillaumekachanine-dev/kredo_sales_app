@@ -903,3 +903,62 @@ describe("collectAccountKnowledgeV2Claims", () => {
     expect(collectAccountKnowledgeV2SourceIds(withDynamic).sort()).toEqual([SOURCE_A, SOURCE_B].sort())
   })
 })
+
+// ─── Séparation V2/V3 (revue Lot 4, Contrôle 3) ─────────────────────────────
+// Ces trois tests ne prouvent RIEN d'exécutable : la garantie est que le
+// fichier ne compile PAS sans les `@ts-expect-error` ci-dessous. La fonction
+// gardée n'est jamais réellement invoquée (un artefact V3 n'a pas la forme
+// attendue par un collecteur V2 — l'appeler ferait planter le test au runtime
+// pour une tout autre raison que celle qu'on veut prouver ici). Seule
+// l'assertion `typeof … === "function"` s'exécute, pour que le test ne soit
+// pas un bloc vide aux yeux de vitest.
+
+describe("séparation V2/V3 — aucune mutualisation de contrat (Contrôle 3)", () => {
+  it("refuse à la compilation de transmettre un artefact V3 au collecteur de claims V2", () => {
+    const v3 = artifactV3() as unknown as AccountKnowledgeContentV3
+
+    const guarded = () => {
+      // @ts-expect-error — collectAccountKnowledgeV2Claims attend un
+      // AccountKnowledgeContentV2 ; un AccountKnowledgeContentV3 n'a ni
+      // company_value_chain ni organisation, ses formes ne se recouvrent pas.
+      return collectAccountKnowledgeV2Claims(v3)
+    }
+
+    expect(typeof guarded).toBe("function")
+  })
+
+  it("refuse à la compilation de transmettre un artefact V3 au collecteur de sources V2", () => {
+    const v3 = artifactV3() as unknown as AccountKnowledgeContentV3
+
+    const guarded = () => {
+      // @ts-expect-error — collectAccountKnowledgeV2SourceIds attend un
+      // AccountKnowledgeContentV2, jamais un V3.
+      return collectAccountKnowledgeV2SourceIds(v3)
+    }
+
+    expect(typeof guarded).toBe("function")
+  })
+
+  it("refuse à la compilation de transmettre un artefact V2 au collecteur de sources V3", () => {
+    const v2 = artifactV2() as unknown as AccountKnowledgeContentV2
+
+    const guarded = () => {
+      // @ts-expect-error — collectAccountKnowledgeV3SourceIds attend un
+      // AccountKnowledgeContentV3 (sept sections, verification_results),
+      // jamais un V2.
+      return collectAccountKnowledgeV3SourceIds(v2)
+    }
+
+    expect(typeof guarded).toBe("function")
+  })
+
+  it("collecte bien les sources V3 par le chemin dédié, sans jamais passer par le V2", () => {
+    // Contrepartie positive du garde ci-dessus : le chemin V3 fonctionne, et
+    // n'est ni un alias ni un wrapper du chemin V2.
+    const v3 = artifactV3() as unknown as AccountKnowledgeContentV3
+    const ids = collectAccountKnowledgeV3SourceIds(v3)
+
+    expect(ids.length).toBeGreaterThan(0)
+    expect(collectAccountKnowledgeV3SourceIds).not.toBe(collectAccountKnowledgeV2SourceIds)
+  })
+})

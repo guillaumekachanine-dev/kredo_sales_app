@@ -117,3 +117,42 @@ export function resolveAccountKnowledge(
 
   return { state: firstV1, unreadable }
 }
+
+/**
+ * Champs exacts exposés par `ClientIntelligenceData` pour la connaissance
+ * compte — dérivés en un seul endroit, testables sans base de données.
+ *
+ * Revue Lot 4 — extrait d'une logique auparavant recopiée en ligne dans
+ * `intelligence-data.ts`, qui avait un défaut réel : `accountKnowledge` étant
+ * restreint à V1/V2, un composant qui lisait `accountKnowledge?.createdAt`
+ * pour dater la dernière mise à jour affichait « Jamais mise à jour » dès que
+ * l'artefact courant était un V3 — alors qu'une génération venait de réussir.
+ * `accountKnowledgeLastUpdatedAt` porte donc la date de l'artefact courant
+ * quelle que soit sa version, indépendamment de ce que la couche de
+ * restitution actuelle sait afficher.
+ */
+export type AccountKnowledgeDerivedFields = {
+  accountKnowledge: AccountKnowledgeRenderableState | null
+  accountKnowledgeV3: AccountKnowledgeV3State | null
+  /**
+   * Date de création de l'artefact COURANT (V1, V2 ou V3 — peu importe),
+   * `null` seulement si aucun artefact n'existe. Ne jamais la dériver de
+   * `accountKnowledge` seul : ce champ est `null` dès que V3 est courant,
+   * et une lecture aveugle produirait une régression silencieuse identique.
+   */
+  accountKnowledgeLastUpdatedAt: string | null
+  unreadable: AccountKnowledgeUnreadableResult[]
+}
+
+export function deriveAccountKnowledgeFields(
+  rows: readonly AccountKnowledgeResultRow[],
+): AccountKnowledgeDerivedFields {
+  const { state, unreadable } = resolveAccountKnowledge(rows)
+
+  return {
+    accountKnowledge: state && state.version !== 3 ? state : null,
+    accountKnowledgeV3: state?.version === 3 ? state : null,
+    accountKnowledgeLastUpdatedAt: state?.createdAt ?? null,
+    unreadable,
+  }
+}

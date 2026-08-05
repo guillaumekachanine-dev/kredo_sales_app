@@ -16,7 +16,7 @@ import {
   type CommercialStrategyContent,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import {
-  resolveAccountKnowledge,
+  deriveAccountKnowledgeFields,
   type AccountKnowledgeRenderableState,
   type AccountKnowledgeV3State,
 } from "@/lib/intelligence/account-knowledge-state"
@@ -338,6 +338,12 @@ export type ClientIntelligenceData = {
   // sa présence ne modifie donc rien à l'écran, elle rend seulement possible la
   // restitution du Lot 5 sans nouvelle requête.
   accountKnowledgeV3: AccountKnowledgeV3State | null
+  // Date de l'artefact account_knowledge COURANT, quelle que soit sa version
+  // (V1, V2 ou V3). Distinct de `accountKnowledge?.createdAt` : ce dernier est
+  // `null` dès que V3 est l'artefact courant, ce qui ferait conclure à tort
+  // « jamais mis à jour » à un composant qui daterait la fiche sur ce seul
+  // champ (revue Lot 4). Le bandeau de mise à jour lit ce champ-ci.
+  accountKnowledgeLastUpdatedAt: string | null
   // Sources citées par l'artefact V2, résolues pour l'affichage : un Claim n'est
   // vérifiable à l'écran que si sa source est nommée et cliquable.
   accountKnowledgeSources: AccountKnowledgeCitedSource[]
@@ -1036,22 +1042,28 @@ export async function getClientIntelligence(
 
   // Résolu ici plutôt que plus bas : les sources citées par un artefact V2 se
   // chargent dans le même aller-retour que le snapshot sectoriel et l'URL signée.
-  const knowledgeResolution = resolveAccountKnowledge(
-    results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE),
-  )
-  const knowledgeState = knowledgeResolution.state
-  // Séparation stricte : la couche de restitution actuelle ne connaît que V1/V2.
-  const accountKnowledge = knowledgeState && knowledgeState.version !== 3 ? knowledgeState : null
-  const accountKnowledgeV3 = knowledgeState?.version === 3 ? knowledgeState : null
+  //
+  // Dérivation extraite dans un helper pur et testé (`deriveAccountKnowledgeFields`) :
+  // le mapping état → champs exposés doit rester unique, sans quoi une future
+  // requête utilisateur de la date de dernière mise à jour risque de relire
+  // `accountKnowledge.createdAt` seul (restreint V1/V2) et de retomber sur le
+  // même bug (revue Lot 4) — « Jamais mise à jour » alors qu'un V3 vient de
+  // réussir.
+  const {
+    accountKnowledge,
+    accountKnowledgeV3,
+    accountKnowledgeLastUpdatedAt,
+    unreadable: unreadableAccountKnowledge,
+  } = deriveAccountKnowledgeFields(results.filter((r) => r.result_type === ACCOUNT_KNOWLEDGE_RESULT_TYPE))
 
   // Un artefact produit mais illisible est une panne de génération : la taire
   // reviendrait à l'afficher comme « pas encore de mise à jour ». Pas d'échec
   // de la page pour autant — la fiche reste consultable sur l'artefact valide
   // précédent, et la trace serveur permet de rattacher la ligne fautive.
-  if (knowledgeResolution.unreadable.length > 0) {
+  if (unreadableAccountKnowledge.length > 0) {
     console.error(
       `[intelligence-data] account_knowledge illisible (compte ${company.id}) :`,
-      knowledgeResolution.unreadable
+      unreadableAccountKnowledge
         .map((row) => `${row.resultId} — ${row.issues.map((i) => `${i.path}: ${i.message}`).join(" | ")}`)
         .join(" ;; "),
     )
@@ -1105,9 +1117,9 @@ export async function getClientIntelligence(
   // `phase === 1` seul faisait passer le rapport le plus récent d'un compte
   // pour son "analyse client moteur" (bug live corrigé ici, cf. ADR-0012 Lot 1).
   //
-  // account_knowledge est résolu plus bas par resolveAccountKnowledgeState
-  // (dernier V2, à défaut dernier V1) — il n'est volontairement PAS lu ici :
-  // `client` reste le contrat FOLIO legacy, les deux ne se mélangent pas.
+  // account_knowledge est résolu plus bas par deriveAccountKnowledgeFields
+  // (dernier V2 ou V3, à défaut dernier V1) — il n'est volontairement PAS lu
+  // ici : `client` reste le contrat FOLIO legacy, les deux ne se mélangent pas.
   const engineSectorSnapshot = results.find((r) => r.result_type === SECTOR_SNAPSHOT_RESULT_TYPE)?.content_json
   const engineProcessDiagnostic = results.find((r) => r.result_type === "process_diagnostic")?.content_json
 
@@ -1426,6 +1438,7 @@ export async function getClientIntelligence(
       client,
       accountKnowledge,
       accountKnowledgeV3,
+      accountKnowledgeLastUpdatedAt,
       accountKnowledgeSources,
       sectorSnapshot,
       sector,

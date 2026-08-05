@@ -61,7 +61,14 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
     case "connaissance": {
       // ADR-0012 Lot 2 : `client` (FOLIO) et `accountKnowledge` (moteur) sont
       // deux champs distincts depuis Lot 2 — plus jamais client.source==="engine".
-      const hasEngine = data.accountKnowledge !== null
+      //
+      // Revue Lot 4 : `data.accountKnowledge` est restreint à V1/V2 (aucun
+      // lecteur V3 avant le Lot 5). Le tester seul ferait conclure à tort
+      // « À compléter » dès qu'un V3 — le contrat le plus riche — est
+      // l'artefact courant. `accountKnowledgeV3` doit compter comme
+      // « connaissance disponible » au même titre, même si son contenu n'est
+      // pas encore rendu.
+      const hasEngine = data.accountKnowledge !== null || data.accountKnowledgeV3 !== null
       const hasFolio = data.client?.source === "folio"
       if (hasEngine) {
         return { label: "Disponible", tone: "success" }

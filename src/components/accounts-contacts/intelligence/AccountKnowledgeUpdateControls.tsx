@@ -22,9 +22,16 @@ const DATE_FORMAT: Intl.DateTimeFormatOptions = {
   timeZone: KREDO_TIME_ZONE,
 }
 
-function formatUpdatedAt(state: AccountKnowledgeRenderableState | null): string {
-  if (!state) return "Jamais mise à jour"
-  return `Mise à jour le ${new Date(state.createdAt).toLocaleString("fr-FR", DATE_FORMAT)}`
+/**
+ * Revue Lot 4 — prend directement la date de l'artefact courant plutôt que de
+ * la dériver de `state` (restreint V1/V2) : sinon la mention affichait
+ * « Jamais mise à jour » dès qu'un V3 devenait l'artefact courant, alors
+ * qu'une génération venait de réussir. `lastUpdatedAt` porte la date réelle
+ * quelle que soit la version, y compris quand `state` vaut `null`.
+ */
+function formatUpdatedAt(lastUpdatedAt: string | null): string {
+  if (!lastUpdatedAt) return "Jamais mise à jour"
+  return `Mise à jour le ${new Date(lastUpdatedAt).toLocaleString("fr-FR", DATE_FORMAT)}`
 }
 
 /**
@@ -49,6 +56,8 @@ function statusLabel(status: AccountKnowledgeRunStatus): string | null {
 
 type ControlsProps = {
   state: AccountKnowledgeRenderableState | null
+  /** Date de l'artefact courant, quelle que soit sa version — cf. formatUpdatedAt. */
+  lastUpdatedAt: string | null
   status: AccountKnowledgeRunStatus
   errorMessage: string | null
   onUpdate: () => void
@@ -56,6 +65,7 @@ type ControlsProps = {
 
 export function AccountKnowledgeUpdateControlsDesktop({
   state,
+  lastUpdatedAt,
   status,
   errorMessage,
   onUpdate,
@@ -66,7 +76,7 @@ export function AccountKnowledgeUpdateControlsDesktop({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3">
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-heading">{formatUpdatedAt(state)}</p>
+        <p className="text-xs font-semibold text-heading">{formatUpdatedAt(lastUpdatedAt)}</p>
         {coverage ? <p className="mt-0.5 text-[11px] text-muted">{coverage}</p> : null}
         {progress ? <p className="mt-0.5 text-[11px] font-medium text-primary">{progress}</p> : null}
         {errorMessage ? (
@@ -91,6 +101,7 @@ export function AccountKnowledgeUpdateControlsDesktop({
 
 export function AccountKnowledgeUpdateControlsMobile({
   state,
+  lastUpdatedAt,
   status,
   errorMessage,
   onUpdate,
@@ -110,7 +121,7 @@ export function AccountKnowledgeUpdateControlsMobile({
         {status === "running" ? "Mise à jour en cours…" : "Mettre à jour l’entreprise"}
       </button>
 
-      <p className="text-[11px] text-muted">{formatUpdatedAt(state)}</p>
+      <p className="text-[11px] text-muted">{formatUpdatedAt(lastUpdatedAt)}</p>
       {coverage ? <p className="text-[11px] text-muted">{coverage}</p> : null}
       {progress ? <p className="text-[11px] font-medium text-primary">{progress}</p> : null}
       {errorMessage ? (

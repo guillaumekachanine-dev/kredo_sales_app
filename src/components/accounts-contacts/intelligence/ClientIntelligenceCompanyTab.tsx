@@ -165,6 +165,7 @@ export function ClientIntelligenceCompanyTab({
     <div className="space-y-6 pt-6">
       <AccountKnowledgeUpdateControlsDesktop
         state={knowledge}
+        lastUpdatedAt={data.accountKnowledgeLastUpdatedAt}
         status={status}
         errorMessage={errorMessage}
         onUpdate={() => void trigger()}

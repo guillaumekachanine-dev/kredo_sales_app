@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { resolveAccountKnowledge } from "./account-knowledge-state"
+import { deriveAccountKnowledgeFields, resolveAccountKnowledge } from "./account-knowledge-state"
 
 const CONTACT = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
 const SOURCE_A = "11111111-1111-4111-8111-111111111111"
@@ -307,5 +307,93 @@ describe("resolveAccountKnowledge", () => {
     // @ts-expect-error — `organisation` est une section V2 : le contrat V3 ne
     // l'a pas, et rien ne doit permettre de la lire « au cas où ».
     expect(state.data.organisation).toBeUndefined()
+  })
+})
+
+// ─── deriveAccountKnowledgeFields — flux Supabase → ClientIntelligenceData ──
+// Revue Lot 4, Contrôle 2. Reconstitue exactement les champs exposés par
+// `intelligence-data.ts` (`accountKnowledge`, `accountKnowledgeV3`,
+// `accountKnowledgeLastUpdatedAt`) depuis des lignes brutes, pour prouver
+// qu'aucun composant en aval ne peut conclure à tort « aucune connaissance
+// disponible » ou « jamais mise à jour » quand un V3 est l'artefact courant.
+
+describe("deriveAccountKnowledgeFields — flux vers ClientIntelligenceData", () => {
+  it("1. V3 seul : accountKnowledgeV3 le porte, accountKnowledge reste null, la date est réelle", () => {
+    const fields = deriveAccountKnowledgeFields([v3("r1", "2026-08-05T10:00:00Z")])
+
+    expect(fields.accountKnowledgeV3?.resultId).toBe("r1")
+    // Séparation stricte : la couche de restitution actuelle ne connaît que V1/V2.
+    expect(fields.accountKnowledge).toBeNull()
+    // Le bug corrigé ici : sans ce champ, un composant qui daterait la fiche
+    // sur `accountKnowledge?.createdAt` conclurait « Jamais mise à jour ».
+    expect(fields.accountKnowledgeLastUpdatedAt).toBe("2026-08-05T10:00:00Z")
+    expect(fields.unreadable).toEqual([])
+  })
+
+  it("2. V2 ancien + V3 récent : le V3 devient courant, sans effacer le V2 historique", () => {
+    const rows = [
+      v3("r-new", "2026-08-10T10:00:00Z"),
+      v2("r-old", "2026-08-01T10:00:00Z"),
+    ]
+    const fields = deriveAccountKnowledgeFields(rows)
+
+    expect(fields.accountKnowledgeV3?.resultId).toBe("r-new")
+    expect(fields.accountKnowledge).toBeNull()
+    expect(fields.accountKnowledgeLastUpdatedAt).toBe("2026-08-10T10:00:00Z")
+
+    // Le V2 n'est ni supprimé ni converti : il reste résolvable si on l'isole
+    // (ex. relance d'un run V2 plus tard, cf. scénario 3).
+    const v2Only = resolveAccountKnowledge([rows[1]!])
+    expect(v2Only.state?.version).toBe(2)
+    expect(v2Only.state?.resultId).toBe("r-old")
+  })
+
+  it("3. V3 ancien + V2 récent : le V2 redevient courant (fraîcheur, pas de rang de version)", () => {
+    const fields = deriveAccountKnowledgeFields([
+      v2("r-new", "2026-08-10T10:00:00Z"),
+      v3("r-old", "2026-08-01T10:00:00Z"),
+    ])
+
+    expect(fields.accountKnowledge?.version).toBe(2)
+    expect(fields.accountKnowledge?.resultId).toBe("r-new")
+    expect(fields.accountKnowledgeV3).toBeNull()
+    expect(fields.accountKnowledgeLastUpdatedAt).toBe("2026-08-10T10:00:00Z")
+  })
+
+  it("4. V1 + V3 : le V3 (moderne) prime sur le V1 (non sourcé), jamais l'inverse", () => {
+    const fields = deriveAccountKnowledgeFields([
+      v3("r-v3", "2026-08-05T10:00:00Z"),
+      v1("r-v1", "2026-08-04T10:00:00Z"),
+    ])
+
+    expect(fields.accountKnowledgeV3?.resultId).toBe("r-v3")
+    expect(fields.accountKnowledge).toBeNull()
+    expect(fields.accountKnowledgeLastUpdatedAt).toBe("2026-08-05T10:00:00Z")
+  })
+
+  it("5. V3 illisible + V2 valide : retombe sur le V2, l'artefact illisible est signalé, pas tu", () => {
+    const corrupted = { id: "bad", created_at: "2026-08-10T10:00:00Z", content_json: { schema_version: 3 } }
+    const fields = deriveAccountKnowledgeFields([corrupted, v2("r-v2", "2026-08-01T10:00:00Z")])
+
+    expect(fields.accountKnowledge?.version).toBe(2)
+    expect(fields.accountKnowledge?.resultId).toBe("r-v2")
+    expect(fields.accountKnowledgeV3).toBeNull()
+    // La date affichée est celle du V2 réellement retenu, jamais celle de la
+    // ligne rejetée : pas de date fantôme pour un artefact qui n'existe pas.
+    expect(fields.accountKnowledgeLastUpdatedAt).toBe("2026-08-01T10:00:00Z")
+    expect(fields.unreadable).toHaveLength(1)
+    expect(fields.unreadable[0]?.resultId).toBe("bad")
+  })
+
+  it("6. contrôles de mise à jour avec V3 courant : jamais « Jamais mise à jour »", () => {
+    // Reproduit exactement ce que `AccountKnowledgeUpdateControls.tsx` reçoit
+    // désormais : `state` (restreint V1/V2) ET `lastUpdatedAt` (toute version).
+    const fields = deriveAccountKnowledgeFields([v3("r1", "2026-08-05T10:00:00Z")])
+
+    // `state` seul, comme avant le correctif, ferait dire « Jamais mise à jour ».
+    expect(fields.accountKnowledge).toBeNull()
+    // `lastUpdatedAt` porte la vérité que le bandeau doit afficher.
+    expect(fields.accountKnowledgeLastUpdatedAt).not.toBeNull()
+    expect(new Date(fields.accountKnowledgeLastUpdatedAt!).toISOString()).toBe("2026-08-05T10:00:00.000Z")
   })
 })
