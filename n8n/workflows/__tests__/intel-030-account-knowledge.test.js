@@ -564,7 +564,10 @@ async function main() {
   check("Le callback expose l'union des sources citées", Array.isArray(callbackBody.sourceRefs) && callbackBody.sourceRefs.length >= 2)
   check("Le callback expose les contrôles qualité", Array.isArray(callbackBody.qaFlags) && callbackBody.qaFlags.length > 0)
 
-  const failStore = { "Validate Entity": validatedEntity() }
+  const failStore = {
+    "Webhook — Account Knowledge": { body: { runId: RUN, callbackUrl: "https://kredo.example/api/n8n/callback" } },
+    "Validate Entity": validatedEntity()
+  }
   await runCodeNode("Prepare Failure Callback", failStore, { error: { message: "Le LLM a renvoyé un contenu vide" } })
   const failBody = JSON.parse(failStore["Prepare Failure Callback"].rawBody)
   check("Le callback d'échec porte le runId — le run ne reste pas en running", failBody.runId === RUN && failBody.status === "failed")

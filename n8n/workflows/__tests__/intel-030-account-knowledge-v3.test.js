@@ -504,11 +504,93 @@ async function main() {
 
   // ── 8. Chemin d'échec partagé : phase/run propagés ────────────────────────
   {
-    const registry = { "Validate Entity": validatedEntity(3) }
+    const registry = {
+      "Webhook — Account Knowledge": { body: { runId: RUN, callbackUrl: "https://kredo.example/api/n8n/callback" } },
+      "Validate Entity": validatedEntity(3)
+    }
     await runCodeNode("Prepare Failure Callback", registry, { error: "Contexte compte introuvable" })
     const body = JSON.parse(registry["Prepare Failure Callback"].rawBody)
     check("Failure callback V3 : status failed / phase 1 / resultType account_knowledge",
       body.status === "failed" && body.phase === 1 && body.resultType === "account_knowledge" && body.runId === RUN)
+  }
+
+  // ── 8b. Troncature et reprise V3 ─────────────────────────────────────────
+  {
+    const registry = {}
+    await runCodeNode("Prepare Truncated Error", registry, {})
+    const errObj = registry["Prepare Truncated Error"].error
+    check("Prepare Truncated Error émet la structure V3_DRAFT_TRUNCATED",
+      errObj && errObj.code === "V3_DRAFT_TRUNCATED" && errObj.stopReason === "max_tokens" && errObj.phase === "v3_draft_generation")
+  }
+
+  // ── 8c. Tests Génération Segmentée & Fusion ──────────────────────────────
+  {
+    const registry = {
+      "V3 Call LLM (Draft)": { content: [{ text: JSON.stringify({ schema_version: 3, account_summary: v3c("Summary text", [CRM_SOURCE_ID]), identity: { company_name: v3c("Name", [CRM_SOURCE_ID]) }, market_positioning: {} }) }], usage: { input_tokens: 1000, output_tokens: 500 } },
+      "V3 Call LLM (Draft B)": { content: [{ text: JSON.stringify({ schema_version: 3, offers_and_customers: {}, value_chain: {} }) }], usage: { input_tokens: 1100, output_tokens: 600 } },
+      "V3 Call LLM (Draft C)": { content: [{ text: JSON.stringify({ schema_version: 3, regulatory_environment: {}, trends_and_news: {} }) }], usage: { input_tokens: 1200, output_tokens: 700 } }
+    }
+
+    // 1. Succès des trois fragments & fusion dans l'ordre exact des 7 sections
+    await runCodeNode("V3 Merge Segments", registry, {})
+    const merged = JSON.parse(registry["V3 Merge Segments"].content[0].text)
+    check("Merge succède avec les trois fragments", merged !== null && merged.schema_version === 3)
+    
+    const keys = Object.keys(merged)
+    const expectedKeys = [
+      "schema_version",
+      "account_summary",
+      "identity",
+      "market_positioning",
+      "offers_and_customers",
+      "value_chain",
+      "regulatory_environment",
+      "trends_and_news"
+    ]
+    const orderOk = expectedKeys.every((k, idx) => keys[idx] === k)
+    check("Fusion dans l'ordre exact des 7 sections", orderOk, JSON.stringify(keys))
+
+    check("Merge cumule l'usage des tokens",
+      registry["V3 Merge Segments"].usage.input_tokens === 3300 &&
+      registry["V3 Merge Segments"].usage.output_tokens === 1800)
+
+    // 2. Absence d'un fragment
+    const registryMissing = {
+      "V3 Call LLM (Draft)": null,
+      "V3 Call LLM (Draft B)": { content: [{ text: "{}" }] },
+      "V3 Call LLM (Draft C)": { content: [{ text: "{}" }] }
+    }
+    await expectThrows(
+      "Absence d'un fragment de génération lève une erreur",
+      () => runCodeNode("V3 Merge Segments", registryMissing, {}),
+      /Failed to parse|Cannot read properties/
+    )
+
+    // 3. Doublons de claim_path
+    const registryDup = {
+      "V3 Call LLM (Draft)": { content: [{ text: JSON.stringify({ schema_version: 3, account_summary: null, identity: { company_name: v3c("Name A", [CRM_SOURCE_ID]) }, market_positioning: {} }) }] },
+      "V3 Call LLM (Draft B)": { content: [{ text: JSON.stringify({ schema_version: 3, offers_and_customers: { core_business: v3c("Core", [CRM_SOURCE_ID]) }, value_chain: {} }) }] },
+      "V3 Call LLM (Draft C)": { content: [{ text: JSON.stringify({ schema_version: 3, regulatory_environment: { current_regulations: [ v3c("Reg", [CRM_SOURCE_ID]) ] }, trends_and_news: { analysis: v3c("Analysis from C", [CRM_SOURCE_ID]) } }) }] }
+    }
+    registryDup["V3 Call LLM (Draft B)"].content[0].text = JSON.stringify({
+      schema_version: 3,
+      identity: { company_name: v3c("Name B", [CRM_SOURCE_ID]) },
+      offers_and_customers: {},
+      value_chain: {}
+    })
+    await expectThrows(
+      "Doublons de claim_path détectés lève une erreur",
+      () => runCodeNode("V3 Merge Segments", registryDup, {}),
+      /Doublons de claim_path/
+    )
+
+    // 4. Troncature et connectivité
+    const connA = (workflow.connections["V3 A Truncated?"] || {}).main || []
+    const connB = (workflow.connections["V3 B Truncated?"] || {}).main || []
+    const connC = (workflow.connections["V3 C Truncated?"] || {}).main || []
+    check("V3 A Truncated? TRUE -> Prepare Truncated Error", connA[0]?.[0]?.node === "Prepare Truncated Error")
+    check("V3 B Truncated? TRUE -> Prepare Truncated Error", connB[0]?.[0]?.node === "Prepare Truncated Error")
+    check("V3 C Truncated? TRUE -> Prepare Truncated Error", connC[0]?.[0]?.node === "Prepare Truncated Error")
   }
 
   // ── 9. Structure statique de la branche V3 ────────────────────────────────
