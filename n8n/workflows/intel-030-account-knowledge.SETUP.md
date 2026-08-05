@@ -121,3 +121,52 @@ persisté à moitié, et le run ne reste pas en `running`.
 3. Compte peu documenté (ex. **Griesser**) : recherche externe déclenchée sur raison sociale /
    siège / effectif / activité, propositions d'enrichissement créées, `companies` inchangée.
 4. Relancer le même compte : aucune proposition dupliquée, aucune source dupliquée.
+
+## 9. Branche V3 (Lot 3 — AccountKnowledge V3)
+
+Le **même** workflow porte désormais une branche V3 (56 nœuds au total). Elle produit un artefact
+`account_knowledge` en **`schema_version: 3`** : étude riche à sept sections, entièrement sourcée,
+dont **chaque affirmation est vérifiée indépendamment** avant publication. Détail complet et
+architecture dans `docs/intelligence/LOT-3-HANDOFF.md`.
+
+### 9.1 Activation — discriminateur explicite
+
+La branche V3 ne s'emprunte **que** si le body du webhook porte
+`accountKnowledgeSchemaVersion: 3`. Sinon, **comportement historique V2 inchangé**. Le trigger
+Next.js **n'envoie pas encore** cette valeur (activation Lot 4 / mise en service) : tant que rien
+n'est modifié côté application, `intel-030` continue de produire exclusivement du V2.
+
+### 9.2 Nœuds V3 (résumé)
+
+| Étape | Nœuds | Rôle |
+|---|---|---|
+| Routage | Route Account Knowledge Version | IF sur `accountKnowledgeSchemaVersion === 3` (TRUE→V3, FALSE→V2) |
+| Recherche | V3 Prepare Context & Research Plan → V3 Fetch Official Site / Public Registry / Company News → V3 Consult & Normalize Sources | plan par section, garde SSRF, 3 canaux publics **réellement consultés**, snippets bannis |
+| Sources | V3 Build Source Catalogue → V3 Upsert Sources → V3 Resolve Source Ids | conservation exhaustive + dédup + résolution des UUID réels |
+| Génération | V3 Assemble Draft Prompt → V3 Call LLM (Draft) → V3 Parse Draft | **1ʳᵉ** invocation LLM — brouillon strict (7 sections, attribution, claims sourcés) |
+| Vérification | V3 Assemble Verification Prompt → V3 Call LLM (Verify) → V3 Parse Verification | **2ᵉ** invocation LLM **indépendante** — un verdict par affirmation |
+| Assemblage | V3 Assemble Artifact → V3 Validate Artifact | filtrage déterministe (seuls les `confirmed` publiés) + miroir JS de `validateAccountKnowledgeV3` |
+| Enrichissement | V3 Load Active Proposals → V3 Build Enrichment Proposals → Delete/Has New?/Insert/Skip | propositions idempotentes, **jamais** d'écriture `companies` |
+| Callback | V3 Prepare Callback → V3 Sign Callback → V3 Callback | `resultType=account_knowledge`, `contextSnapshot.schemaVersion=3` |
+| Échec | *(partagé)* Prepare Failure Callback | toute erreur V3 y mène — run jamais laissé en `running` |
+
+### 9.3 Configuration additionnelle
+
+- **4ᵉ nœud Crypto** : `V3 Sign Callback` porte le même placeholder
+  `REMPLACE_PAR_TON_N8N_WEBHOOK_SECRET` — à remplacer par `N8N_WEBHOOK_SECRET`, comme les 3 autres.
+- **Credentials** : `V3 Upsert Sources`, `V3 Resolve Source Ids`, `V3 Load Active Proposals`,
+  `V3 Delete Stale Proposals`, `V3 Insert Fresh Proposals` → `Supabase_Service_Role_KREDO`.
+  `V3 Call LLM (Draft)` et `V3 Call LLM (Verify)` → `anthropicApi`. `V3 Fetch …` et `V3 Callback` →
+  aucune (`authentication: none`). Aucune nouvelle variable d'environnement, aucune nouvelle table,
+  aucun fournisseur payant.
+- **Coût** : deux appels LLM par génération (génération + vérification) — coût doublé vs V2, assumé.
+
+### 9.4 Tests
+
+```bash
+node n8n/workflows/__tests__/intel-030-account-knowledge-v3.test.js   # 41 assertions (nœuds Code V3 réellement exécutés)
+npx vitest run src/lib/intelligence/account-knowledge-v3-workflow.test.ts  # structure + validateur canonique
+```
+
+Le harnais Node V2 (`intel-030-account-knowledge.test.js`, 76 assertions) doit **rester vert** :
+la branche V2 n'est pas modifiée.

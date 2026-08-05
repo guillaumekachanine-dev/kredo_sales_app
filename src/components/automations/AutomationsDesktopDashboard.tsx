@@ -25,9 +25,9 @@ import {
   formatRelativeTime,
 } from "./automations-status"
 import { RunDrillDownDialog } from "./RunDrillDownDialog"
-import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
+import { AutomationsLocalNavigation, type AutomationsTabKey } from "./AutomationsLocalNavigation"
 import { CostTimelineChart } from "./CostTimelineChart"
-import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
+import { VeilleSimulatorModal } from "./VeilleSimulatorModal"
 import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
 import { JournalLiveStatus } from "./JournalLiveStatus"
 import { useRunJournalRealtime } from "./use-run-journal-realtime"
@@ -54,7 +54,7 @@ function TechKpiCard({ label, value, subtext, statusDot = "none", statusDotPulse
   }[statusDot]
 
   return (
-    <SurfaceCard padding="compact" className="border-border/50 bg-surface flex flex-col justify-between h-full">
+    <SurfaceCard padding="compact" className="border-border/50 bg-surface flex flex-col justify-between h-full shadow-2xs">
       <div>
         <div className="flex items-center justify-between gap-2 border-b border-border/20 pb-2 mb-2">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{label}</span>
@@ -88,7 +88,7 @@ function WorkflowHealthCard({ workflow }: { workflow: WorkflowHealthRow }) {
     <SurfaceCard
       accent={severity === "critical" ? "danger" : severity === "attention" ? "warning" : "none"}
       padding="compact"
-      className="border-border/60"
+      className="border-border/60 shadow-2xs"
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/30 pb-2.5">
         <div className="min-w-0 flex-1">
@@ -185,57 +185,84 @@ function WorkflowCostBar({ workflow, maxCost }: { workflow: WorkflowHealthRow; m
 
 export function AutomationsDesktopDashboard({ data, initialRunId }: { data: AutomationsDashboardData; initialRunId?: string }) {
   const initialRun = initialRunId ? data.journal.find((run) => run.id === initialRunId) ?? null : null
-  const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
+  const [activeTab, setActiveTab] = useState<AutomationsTabKey>("journal")
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialRun?.id ?? null)
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialRun))
   const [metricsOpen, setMetricsOpen] = useState(false)
+  const [simulatorModalOpen, setSimulatorModalOpen] = useState(false)
   const [sort, setSort] = useState<DataTableSort | null>({ columnId: "createdAt", direction: "desc" })
 
-  // Journal en direct : nouveaux runs (INSERT) ET transitions de statut
-  // (UPDATE), rehydratés côté serveur pour porter durée, coût, compte et
-  // propriétaire — que le payload Realtime ne transporte pas.
+  // Filtres d'affichage du Journal d'exécution
+  const [periodFilter, setPeriodFilter] = useState<"24h" | "7d" | "30d" | "1y" | "all">("all")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [companyFilter, setCompanyFilter] = useState<string>("all")
+  const [showAllJournalRows, setShowAllJournalRows] = useState(false)
+
+  // Filtres de période pour la section Coûts
+  const [costPeriod, setCostPeriod] = useState<"7d" | "14d" | "30d" | "60d" | "all">("60d")
+  const [showAllCostWorkflows, setShowAllCostWorkflows] = useState(false)
+
+  // Realtime Journal
   const { journal, lastUpdatedAt, isRefreshing, refreshError, refresh } = useRunJournalRealtime(
     data.journal,
     data.fetchedAt,
   )
 
-  // Le run affiché dans le drill-down est dérivé du journal, pas copié : quand
-  // Realtime fait passer un run à « succeeded », la modale ouverte sur ce run
-  // affiche immédiatement sa durée et son coût.
   const selectedRun = useMemo(
     () => (selectedRunId ? journal.find((run) => run.id === selectedRunId) ?? null : null),
     [journal, selectedRunId],
   )
 
-  const alerts = useMemo(
-    () =>
-      data.workflows.filter((w) => workflowSeverity(w) !== "healthy").slice(0, 6),
-    [data.workflows]
-  )
+  // Liste des comptes uniques présents dans le journal
+  const uniqueCompanies = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of journal) {
+      if (r.companyName) set.add(r.companyName)
+    }
+    return Array.from(set).sort()
+  }, [journal])
 
-  const costRankedWorkflows = useMemo(
-    () =>
-      [...data.workflows]
-        .filter((w) => !w.hasTokensGap)
-        .sort((a, b) => (b.totalCost30d ?? 0) - (a.totalCost30d ?? 0)),
-    [data.workflows]
-  )
-  const maxTotalCost30d = useMemo(
-    () => Math.max(...costRankedWorkflows.map((w) => w.totalCost30d ?? 0), 0.01),
-    [costRankedWorkflows]
-  )
+  // Journal filtré par Période, Statut et Compte
+  const filteredJournal = useMemo(() => {
+    const now = new Date()
+    return journal.filter((row) => {
+      // 1. Filtre par période
+      if (periodFilter !== "all") {
+        const createdDate = new Date(row.createdAt)
+        const diffHours = (now.getTime() - createdDate.getTime()) / (1000 * 3600)
+        if (periodFilter === "24h" && diffHours > 24) return false
+        if (periodFilter === "7d" && diffHours > 24 * 7) return false
+        if (periodFilter === "30d" && diffHours > 24 * 30) return false
+        if (periodFilter === "1y" && diffHours > 24 * 365) return false
+      }
+      // 2. Filtre par statut
+      if (statusFilter !== "all") {
+        if (statusFilter === "stuck") {
+          if (row.status !== "running" && row.status !== "queued") return false
+        } else if (row.status !== statusFilter) {
+          return false
+        }
+      }
+      // 3. Filtre par compte
+      if (companyFilter !== "all") {
+        if (row.companyName !== companyFilter) return false
+      }
+      return true
+    })
+  }, [journal, periodFilter, statusFilter, companyFilter])
 
+  // Column definitions with enhanced styling
   const columns: DataTableColumn<RunJournalRow>[] = useMemo(() => [
     {
       id: "workflow",
-      header: "Workflow",
-      cell: (row) => <span className="font-semibold text-heading text-xs">{row.runTypeLabel}</span>,
+      header: "WORKFLOW",
+      cell: (row) => <span className="font-bold text-heading text-xs">{row.runTypeLabel}</span>,
       sortable: true,
       accessor: (row) => row.runTypeLabel,
     },
     {
       id: "status",
-      header: "Statut",
+      header: "STATUT",
       cell: (row) => {
         const status = row.status
         const variant = runStatusVariant(status)
@@ -251,7 +278,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
         }
         
         return (
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-canvas border border-border/50 text-[9px] font-bold uppercase tracking-wider text-heading">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-canvas/80 border border-border/50 text-[10px] font-bold uppercase tracking-wider text-heading shadow-2xs">
             <span className={cn("size-1.5 rounded-full shrink-0", dotColorMap[variant] ?? "bg-muted")} />
             {label}
           </div>
@@ -262,7 +289,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
     },
     {
       id: "createdAt",
-      header: "Déclenché",
+      header: "DÉCLENCHÉ LE",
       cell: (row) => (
         <span className="font-mono text-xs text-body">
           {formatDateTime(row.createdAt)}
@@ -273,7 +300,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
     },
     {
       id: "duration",
-      header: "Durée",
+      header: "DURÉE",
       cell: (row) => (
         <span className="font-mono text-xs text-body font-medium">
           {formatDurationMs(row.durationMs)}
@@ -285,7 +312,7 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
     },
     {
       id: "cost",
-      header: "Coût",
+      header: "COÛT ESTIMÉ",
       cell: (row) => (
         <span className="font-mono text-xs text-heading font-bold">
           {row.hasTokensGap ? (
@@ -301,16 +328,71 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
     },
     {
       id: "entity",
-      header: "Compte",
+      header: "COMPTE CIBLÉ",
       cell: (row) => (
-        <span className="text-xs font-medium text-body truncate max-w-[12rem] block">
+        <span className="text-xs font-semibold text-body truncate max-w-[12rem] block">
           {row.companyName ?? "—"}
         </span>
       ),
     },
   ], [])
 
-  const sortedJournal = useMemo(() => sortDataTableRows(journal, columns, sort), [journal, columns, sort])
+  const sortedJournal = useMemo(
+    () => sortDataTableRows(filteredJournal, columns, sort),
+    [filteredJournal, columns, sort],
+  )
+
+  // 15 premières exécutions par défaut ou la totalité si affichage étendu
+  const displayedJournalRows = useMemo(
+    () => (showAllJournalRows ? sortedJournal : sortedJournal.slice(0, 15)),
+    [sortedJournal, showAllJournalRows],
+  )
+
+  // System alerts (Critical + Warning workflows)
+  const alerts = useMemo(
+    () => data.workflows.filter((w) => workflowSeverity(w) !== "healthy"),
+    [data.workflows]
+  )
+
+  // Workflows sains vs sous vigilance
+  const healthyWorkflowsCount = useMemo(
+    () => data.workflows.filter((w) => workflowSeverity(w) === "healthy").length,
+    [data.workflows]
+  )
+
+  const attentionWorkflowsCount = useMemo(
+    () => data.workflows.filter((w) => workflowSeverity(w) !== "healthy").length,
+    [data.workflows]
+  )
+
+  // Timeline filtrée par période de coût
+  const filteredTimeline = useMemo(() => {
+    const { timeline } = data.costs
+    if (costPeriod === "all") return timeline
+
+    const now = new Date()
+    const daysLimit = costPeriod === "7d" ? 7 : costPeriod === "14d" ? 14 : costPeriod === "30d" ? 30 : 60
+    const limitDateIso = new Date(now.getTime() - daysLimit * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    return timeline.filter((point) => point.day >= limitDateIso)
+  }, [data.costs, costPeriod])
+
+  const costRankedWorkflows = useMemo(
+    () =>
+      [...data.workflows]
+        .filter((w) => !w.hasTokensGap)
+        .sort((a, b) => (b.totalCost30d ?? 0) - (a.totalCost30d ?? 0)),
+    [data.workflows]
+  )
+
+  const displayedCostWorkflows = useMemo(
+    () => (showAllCostWorkflows ? costRankedWorkflows : costRankedWorkflows.slice(0, 10)),
+    [costRankedWorkflows, showAllCostWorkflows]
+  )
+
+  const maxTotalCost30d = useMemo(
+    () => Math.max(...costRankedWorkflows.map((w) => w.totalCost30d ?? 0), 0.01),
+    [costRankedWorkflows]
+  )
 
   const { costs } = data
 
@@ -319,221 +401,448 @@ export function AutomationsDesktopDashboard({ data, initialRunId }: { data: Auto
       <span>Monitoring automatisations</span>
       <span className="flex items-center gap-1.5 text-xs text-muted font-normal ml-3">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
         </span>
         Live Telemetry
       </span>
     </div>
   )
 
-  return (
-    <DesktopAnalyticalPage
-      title={headerTitle}
-      eyebrow=""
-      actions={
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setMetricsOpen(true)}
-          className="kredo-intelligence-toggle shadow-none cursor-pointer flex items-center gap-2"
-        >
-          <Image
-            src="/icons_set/agenda_metriques_activite.png"
-            alt=""
-            width={16}
-            height={16}
-            className="w-4 h-4"
-            style={{ filter: "brightness(0) invert(1)" }}
+  // KPI Renderers par onglet
+  const renderKpis = () => {
+    if (activeTab === "journal") {
+      const succeededCount = journal.filter((r) => r.status === "succeeded").length
+      const failedOrStuckCount = journal.filter(
+        (r) => r.status === "failed" || r.status === "running" || r.status === "queued"
+      ).length
+
+      return (
+        <div className="grid grid-cols-4 gap-4">
+          <TechKpiCard
+            label="Exécutions (30j)"
+            value={data.kpis.runs30d}
+            subtext="Volume total d'appels n8n + LLM"
           />
-          Analyse des métriques
-        </Button>
-      }
-      kpis={
-        activeTab === "sante" ? (
-          <div className="grid grid-cols-4 gap-4">
-            <TechKpiCard 
-              label="Exécutions (30j)" 
-              value={data.kpis.runs30d} 
-              subtext="Volume total d'appels n8n + LLM"
-            />
-            <TechKpiCard
-              label="Taux de succès (30j)"
-              value={data.kpis.successRatePct30d !== null ? `${data.kpis.successRatePct30d}%` : "—"}
-              statusDot={data.kpis.successRatePct30d !== null && data.kpis.successRatePct30d >= 90 ? "success" : "warning"}
-              subtext="Moyenne glissante de complétion"
-            />
-            <TechKpiCard
-              label="Runs bloqués"
-              value={data.kpis.stuckNow}
-              statusDot={data.kpis.stuckNow > 0 ? "warning" : "success"}
-              statusDotPulse={data.kpis.stuckNow > 0}
-              subtext={data.kpis.stuckNow > 0 ? "Reprise sous 10 min (ops-004)" : "Aucun blocage actif"}
-            />
-            <TechKpiCard
-              label="Runs repris (7j)"
-              value={data.kpis.reapedLast7d}
-              subtext="Runs interrompus relancés avec succès"
-            />
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-4">
-            <TechKpiCard 
-              label="Aujourd'hui" 
-              value={formatCostEstimate(costs.kpis.costToday)} 
-              subtext="Facturation estimée du jour"
-            />
-            <TechKpiCard 
-              label="7 derniers jours" 
-              value={formatCostEstimate(costs.kpis.cost7d)} 
-              subtext="Consommation cumulée sur la semaine"
-            />
-            <TechKpiCard
-              label="30 derniers jours"
-              value={formatCostEstimate(costs.kpis.cost30d)}
-              subtext={costs.kpis.cost30dDeltaPct === null 
-                ? "Historique insuffisant pour un delta" 
-                : `${costs.kpis.cost30dDeltaPct > 0 ? "Hausse" : "Baisse"} de ${Math.abs(costs.kpis.cost30dDeltaPct)}% vs 30j précédents`
-              }
-              statusDot={costs.kpis.cost30dDeltaPct !== null && costs.kpis.cost30dDeltaPct > 0 ? "warning" : "none"}
-            />
-            <TechKpiCard
-              label="Cumul total"
-              value={formatCostEstimate(costs.kpis.costAllTime)}
-              subtext={costs.kpis.dataSince ? `Mesuré depuis le ${new Date(costs.kpis.dataSince).toLocaleDateString("fr-FR")}` : undefined}
-            />
-          </div>
-        )
-      }
-      rail={
-        activeTab === "sante" ? (
-          <div className="flex flex-col gap-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-heading border-b border-border/40 pb-2 mb-1">Alertes Système</h2>
-            {alerts.length === 0 ? (
-              <div className="flex items-center gap-2 rounded-[var(--radius-medium)] border border-success/20 bg-success/[0.03] p-3 text-success">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">Workflows sains</span>
-              </div>
-            ) : (
-              alerts.map((workflow) => {
-                const severity = workflowSeverity(workflow)
-                const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
-                const isCritical = severity === "critical"
-                return (
-                  <div 
-                    key={workflow.runType}
-                    className={cn(
-                      "flex flex-col gap-1 p-3 rounded-[var(--radius-medium)] border-l-4 border bg-surface",
-                      isCritical 
-                        ? "border-danger/30 border-l-danger" 
-                        : "border-warning/30 border-l-warning"
-                    )}
+          <TechKpiCard
+            label="Taux de succès"
+            value={data.kpis.successRatePct30d !== null ? `${data.kpis.successRatePct30d}%` : "—"}
+            statusDot={data.kpis.successRatePct30d !== null && data.kpis.successRatePct30d >= 90 ? "success" : "warning"}
+            subtext="Moyenne glissante de complétion"
+          />
+          <TechKpiCard
+            label="Exécutions réussies"
+            value={succeededCount}
+            statusDot="success"
+            subtext="Runs récents terminés avec succès"
+          />
+          <TechKpiCard
+            label="Échecs & Bloqués"
+            value={failedOrStuckCount}
+            statusDot={failedOrStuckCount > 0 ? "warning" : "success"}
+            statusDotPulse={failedOrStuckCount > 0}
+            subtext={failedOrStuckCount > 0 ? `${data.kpis.stuckNow} run(s) actuellement bloqué(s)` : "Aucune anomalie bloquante"}
+          />
+        </div>
+      )
+    }
+
+    if (activeTab === "sante") {
+      return (
+        <div className="grid grid-cols-4 gap-4">
+          <TechKpiCard
+            label="Workflows surveillés"
+            value={data.workflows.length}
+            subtext={`${healthyWorkflowsCount} sains · ${attentionWorkflowsCount} sous vigilance`}
+          />
+          <TechKpiCard
+            label="Santé globale (30j)"
+            value={data.kpis.successRatePct30d !== null ? `${data.kpis.successRatePct30d}%` : "—"}
+            statusDot={data.kpis.successRatePct30d !== null && data.kpis.successRatePct30d >= 90 ? "success" : "warning"}
+            subtext="Taux moyen de complétion"
+          />
+          <TechKpiCard
+            label="Workflows sous vigilance"
+            value={attentionWorkflowsCount}
+            statusDot={attentionWorkflowsCount > 0 ? "warning" : "success"}
+            statusDotPulse={attentionWorkflowsCount > 0}
+            subtext={attentionWorkflowsCount > 0 ? "Alertes système ou taux d'échec élevé" : "Tous les workflows sont fonctionnels"}
+          />
+          <TechKpiCard
+            label="Runs bloqués actuels"
+            value={data.kpis.stuckNow}
+            statusDot={data.kpis.stuckNow > 0 ? "danger" : "success"}
+            statusDotPulse={data.kpis.stuckNow > 0}
+            subtext={data.kpis.stuckNow > 0 ? "Reprise auto sous 10 min (ops-004)" : "Aucune file d'attente bloquée"}
+          />
+        </div>
+      )
+    }
+
+    // Onglet Coûts
+    return (
+      <div className="grid grid-cols-4 gap-4">
+        <TechKpiCard
+          label="Aujourd'hui"
+          value={formatCostEstimate(costs.kpis.costToday)}
+          subtext="Facturation estimée du jour"
+        />
+        <TechKpiCard
+          label="7 derniers jours"
+          value={formatCostEstimate(costs.kpis.cost7d)}
+          subtext="Consommation cumulée sur la semaine"
+        />
+        <TechKpiCard
+          label="30 derniers jours"
+          value={formatCostEstimate(costs.kpis.cost30d)}
+          subtext={
+            costs.kpis.cost30dDeltaPct === null
+              ? "Historique insuffisant pour un delta"
+              : `${costs.kpis.cost30dDeltaPct > 0 ? "Hausse" : "Baisse"} de ${Math.abs(costs.kpis.cost30dDeltaPct)}% vs 30j précédents`
+          }
+          statusDot={costs.kpis.cost30dDeltaPct !== null && costs.kpis.cost30dDeltaPct > 0 ? "warning" : "none"}
+        />
+        <TechKpiCard
+          label="Cumul total"
+          value={formatCostEstimate(costs.kpis.costAllTime)}
+          subtext={costs.kpis.dataSince ? `Mesuré depuis le ${new Date(costs.kpis.dataSince).toLocaleDateString("fr-FR")}` : undefined}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div data-theme="edito-bright-cockpit" className="edito-bright-page flex h-full min-h-0 min-w-0 overflow-hidden bg-canvas w-full">
+      {/* ── Navigation latérale secondaire (Style Cockpit Intelligence / EDITO Bright) ── */}
+      <AutomationsLocalNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {/* ── Contenu principal scrollable ── */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-canvas">
+          <DesktopAnalyticalPage
+            title={headerTitle}
+            eyebrow=""
+            maxWidth="wide"
+            actions={
+              <div className="flex items-center gap-3">
+                {activeTab === "couts" && (
+                  <button
+                    type="button"
+                    onClick={() => setSimulatorModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-edito-brass text-edito-ink text-xs font-bold shadow-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-heading truncate">{workflow.label}</span>
-                      <span className={cn(
-                        "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                        isCritical ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning"
-                      )}>
-                        {isCritical ? "Critique" : "Alerte"}
+                    <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Simuler la cadence n8n</span>
+                  </button>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setMetricsOpen(true)}
+                  className="kredo-intelligence-toggle shadow-none cursor-pointer flex items-center gap-2 bg-edito-navy hover:bg-edito-navy/90 text-white"
+                >
+                  <Image
+                    src="/icons_set/agenda_metriques_activite.png"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                    style={{ filter: "brightness(0) invert(1)" }}
+                  />
+                  Analytics
+                </Button>
+              </div>
+            }
+            kpis={renderKpis()}
+          >
+            <AutomationsDataErrorBanner errors={data.dataErrors} />
+
+            {/* ── ONGLET 1 : JOURNAL D'EXÉCUTION ── */}
+            {activeTab === "journal" && (
+              <div className="flex flex-col gap-4">
+                <SurfaceCard padding="default" className="border-border/60 shadow-2xs">
+                  {/* Option Bar / Filters */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/40 pb-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Filtre par Période */}
+                      <label className="flex items-center gap-1.5 text-xs text-muted font-medium">
+                        <span>Période :</span>
+                        <select
+                          value={periodFilter}
+                          onChange={(e) => setPeriodFilter(e.target.value as typeof periodFilter)}
+                          className="rounded-md border border-border/60 bg-canvas/60 px-2.5 py-1 text-xs text-heading font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                        >
+                          <option value="all">Toutes les périodes</option>
+                          <option value="24h">Dernières 24 heures</option>
+                          <option value="7d">7 derniers jours</option>
+                          <option value="30d">30 derniers jours</option>
+                          <option value="1y">1 an</option>
+                        </select>
+                      </label>
+
+                      {/* Filtre par Statut */}
+                      <label className="flex items-center gap-1.5 text-xs text-muted font-medium">
+                        <span>Statut :</span>
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="rounded-md border border-border/60 bg-canvas/60 px-2.5 py-1 text-xs text-heading font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                        >
+                          <option value="all">Tous les statuts</option>
+                          <option value="succeeded">Réussi</option>
+                          <option value="failed">Échec</option>
+                          <option value="stuck">Bloqué / En cours</option>
+                        </select>
+                      </label>
+
+                      {/* Filtre par Compte */}
+                      <label className="flex items-center gap-1.5 text-xs text-muted font-medium">
+                        <span>Compte :</span>
+                        <select
+                          value={companyFilter}
+                          onChange={(e) => setCompanyFilter(e.target.value)}
+                          className="rounded-md border border-border/60 bg-canvas/60 px-2.5 py-1 text-xs text-heading font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer max-w-[14rem] truncate"
+                        >
+                          <option value="all">Tous les comptes</option>
+                          {uniqueCompanies.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <JournalLiveStatus
+                      lastUpdatedAt={lastUpdatedAt}
+                      isRefreshing={isRefreshing}
+                      refreshError={refreshError}
+                      onRefresh={refresh}
+                    />
+                  </div>
+
+                  {/* Data Table */}
+                  <div className="overflow-hidden rounded-lg border border-border/50 bg-surface">
+                    <DataTable
+                      rows={displayedJournalRows}
+                      columns={columns}
+                      getRowId={(row) => row.id}
+                      sort={sort}
+                      onSortChange={setSort}
+                      ariaLabel="Journal d'exécution des workflows IA"
+                      onRowClick={(row) => {
+                        setSelectedRunId(row.id)
+                        setDialogOpen(true)
+                      }}
+                      emptyState={
+                        <p className="p-8 text-center text-xs text-muted">
+                          Aucune exécution trouvée correspondant aux filtres sélectionnés.
+                        </p>
+                      }
+                    />
+                  </div>
+
+                  {/* Section dépliante pour afficher toutes les exécutions */}
+                  {sortedJournal.length > 15 && (
+                    <div className="mt-4 flex flex-col items-center justify-center border-t border-border/30 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowAllJournalRows(!showAllJournalRows)}
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas/80 px-4 py-1.5 text-xs font-bold text-heading hover:bg-surface hover:border-border transition-all cursor-pointer shadow-2xs"
+                      >
+                        <span>
+                          {showAllJournalRows
+                            ? "Réduire l'affichage (15 premières exécutions)"
+                            : `Afficher toutes les exécutions (${sortedJournal.length} au total)`}
+                        </span>
+                        <svg
+                          className={`size-3.5 transition-transform ${showAllJournalRows ? "rotate-180" : ""}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </SurfaceCard>
+              </div>
+            )}
+
+            {/* ── ONGLET 2 : SANTÉ DES WORKFLOWS ── */}
+            {activeTab === "sante" && (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+                {/* Section gauche : Grille des workflows */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+                    <span className="inline-flex size-2 bg-primary rounded-full" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-heading">
+                      Santé des workflows ({data.workflows.length})
+                    </h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {data.workflows.map((workflow) => (
+                      <WorkflowHealthCard key={workflow.runType} workflow={workflow} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Section droite : Alertes système */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-2 border-b border-border/40 pb-2">
+                    <span className="inline-flex size-2 bg-danger rounded-full animate-pulse" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-heading">
+                      Alertes système ({alerts.length})
+                    </h2>
+                  </div>
+
+                  {alerts.length === 0 ? (
+                    <div className="flex items-center gap-3 rounded-lg border border-success/20 bg-success/[0.04] p-4 text-success shadow-2xs">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
+                      </span>
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Tous les workflows sont sains
                       </span>
                     </div>
-                    <p className="text-[10px] text-muted leading-normal">
-                      {stuckTotal > 0
-                        ? `${stuckTotal} run(s) bloqué(s) (reprise auto)`
-                        : `Taux succès 30j : ${workflow.successRatePct30d ?? "—"}%`}
-                    </p>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        ) : (
-          <div className="sticky top-6 flex flex-col gap-3">
-            <VeilleSimulatorCard baseline={costs.veilleSimulator} />
-          </div>
-        )
-      }
-      lowerContent={
-        activeTab === "sante" ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-2 mb-1">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex size-2 bg-primary rounded-full" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Journal d&apos;exécution</h2>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {alerts.map((workflow) => {
+                        const severity = workflowSeverity(workflow)
+                        const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
+                        const isCritical = severity === "critical"
+                        return (
+                          <div
+                            key={workflow.runType}
+                            className={cn(
+                              "flex flex-col gap-1.5 p-3.5 rounded-lg border-l-4 border bg-surface shadow-2xs",
+                              isCritical
+                                ? "border-danger/30 border-l-danger"
+                                : "border-warning/30 border-l-warning",
+                            )}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-heading truncate">{workflow.label}</span>
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                                  isCritical ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning",
+                                )}
+                              >
+                                {isCritical ? "Critique" : "Alerte"}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-muted leading-normal">
+                              {stuckTotal > 0
+                                ? `${stuckTotal} run(s) bloqué(s) (reprise auto)`
+                                : `Taux succès 30j : ${workflow.successRatePct30d ?? "—"}%`}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-              <JournalLiveStatus
-                lastUpdatedAt={lastUpdatedAt}
-                isRefreshing={isRefreshing}
-                refreshError={refreshError}
-                onRefresh={refresh}
-              />
-            </div>
-            <div className="overflow-hidden rounded-xl border border-border/50 bg-surface shadow-sm">
-              <DataTable
-                rows={sortedJournal}
-                columns={columns}
-                getRowId={(row) => row.id}
-                sort={sort}
-                onSortChange={setSort}
-                ariaLabel="Journal d'exécution des workflows IA"
-                onRowClick={(row) => {
-                  setSelectedRunId(row.id)
-                  setDialogOpen(true)
-                }}
-                emptyState={<p className="p-6 text-center text-sm text-muted">Aucune exécution récente.</p>}
-              />
-            </div>
-          </div>
-        ) : null
-      }
-    >
-      <AutomationsDataErrorBanner errors={data.dataErrors} />
+            )}
 
-      <div className="mb-5 flex justify-start">
-        <AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />
+            {/* ── ONGLET 3 : COÛTS ── */}
+            {activeTab === "couts" && (
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                {/* Section Gauche : Graphique Coûts par jour */}
+                <SurfaceCard padding="default" className="border-border/60 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex size-2 bg-primary rounded-full" />
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coûts par jour</h2>
+                    </div>
+
+                    {/* Sélecteur de période */}
+                    <div className="flex items-center gap-1.5 text-xs text-muted font-medium">
+                      <span>Période :</span>
+                      <select
+                        value={costPeriod}
+                        onChange={(e) => setCostPeriod(e.target.value as typeof costPeriod)}
+                        className="rounded-md border border-border/60 bg-canvas/60 px-2 py-0.5 text-xs text-heading font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                      >
+                        <option value="7d">7 jours</option>
+                        <option value="14d">14 jours</option>
+                        <option value="30d">30 jours</option>
+                        <option value="60d">60 jours</option>
+                        <option value="all">Historique complet</option>
+                      </select>
+                    </div>
+                  </div>
+                  <CostTimelineChart points={filteredTimeline} />
+                </SurfaceCard>
+
+                {/* Section Droite : Coûts par workflow */}
+                <SurfaceCard padding="default" className="border-border/60 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5 mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex size-2 bg-primary rounded-full" />
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coûts par workflow</h2>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    {displayedCostWorkflows.map((workflow) => (
+                      <WorkflowCostBar key={workflow.runType} workflow={workflow} maxCost={maxTotalCost30d} />
+                    ))}
+                  </div>
+
+                  {/* Section déroulante pour afficher tous les workflows de coût */}
+                  {costRankedWorkflows.length > 10 && (
+                    <div className="mt-4 flex flex-col items-center justify-center border-t border-border/30 pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowAllCostWorkflows(!showAllCostWorkflows)}
+                        className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-canvas/80 px-4 py-1.5 text-xs font-bold text-heading hover:bg-surface hover:border-border transition-all cursor-pointer shadow-2xs"
+                      >
+                        <span>
+                          {showAllCostWorkflows
+                            ? "Réduire l'affichage (10 premiers workflows)"
+                            : `Afficher tous les workflows (${costRankedWorkflows.length} au total)`}
+                        </span>
+                        <svg
+                          className={`size-3.5 transition-transform ${showAllCostWorkflows ? "rotate-180" : ""}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </SurfaceCard>
+              </div>
+            )}
+          </DesktopAnalyticalPage>
+        </main>
       </div>
 
-      {activeTab === "sante" ? (
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-          {data.workflows.map((workflow) => (
-            <WorkflowHealthCard key={workflow.runType} workflow={workflow} />
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          <SurfaceCard padding="default" className="border-border/60">
-            <div className="flex items-center gap-2 border-b border-border/40 pb-2.5 mb-4">
-              <span className="inline-flex size-2 bg-primary rounded-full" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coût par jour (60 derniers jours)</h2>
-            </div>
-            <CostTimelineChart points={costs.timeline} />
-          </SurfaceCard>
-
-          <SurfaceCard padding="default" className="border-border/60">
-            <div className="flex items-center gap-2 border-b border-border/40 pb-2.5 mb-4">
-              <span className="inline-flex size-2 bg-primary rounded-full" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-heading">Coût par workflow (30 derniers jours)</h2>
-            </div>
-            <div className="flex flex-col gap-1">
-              {costRankedWorkflows.map((workflow) => (
-                <WorkflowCostBar key={workflow.runType} workflow={workflow} maxCost={maxTotalCost30d} />
-              ))}
-            </div>
-          </SurfaceCard>
-        </div>
-      )}
-
+      {/* ── Dialogues & Modales ── */}
       <RunDrillDownDialog
         run={selectedRun}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onRetried={() => setDialogOpen(false)}
       />
-      {metricsOpen ? <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} displayMode="desktop" /> : null}
-    </DesktopAnalyticalPage>
+      {metricsOpen ? (
+        <AutomationMetricsModal open={metricsOpen} onClose={() => setMetricsOpen(false)} displayMode="desktop" />
+      ) : null}
+      <VeilleSimulatorModal
+        open={simulatorModalOpen}
+        onClose={() => setSimulatorModalOpen(false)}
+        baseline={costs.veilleSimulator}
+      />
+    </div>
   )
 }
