@@ -301,6 +301,7 @@ export function VeilleActualitesMobile({
             open={isQualifyOpen}
             onOpenChange={setIsQualifyOpen}
             article={openArticle}
+            companies={companies}
             onSuccess={(updated) => {
               setArticleOverrides((previous) => ({ ...previous, [updated.id]: updated }))
               showFeedback("Signal qualifié et mis à jour.")

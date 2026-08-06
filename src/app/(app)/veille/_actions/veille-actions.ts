@@ -18,6 +18,7 @@ export interface UpdateVeilleArticleInput {
   secteur_principal?: string
   action_commerciale?: string
   analyse_kredo?: string
+  company_id?: string | null
 }
 
 export async function updateVeilleArticleAction(
@@ -45,6 +46,7 @@ export async function updateVeilleArticleAction(
     if (input.secteur_principal !== undefined) updateData.secteur_principal = input.secteur_principal.trim()
     if (input.action_commerciale !== undefined) updateData.action_commerciale = input.action_commerciale.trim()
     if (input.analyse_kredo !== undefined) updateData.analyse_kredo = input.analyse_kredo.trim()
+    if (input.company_id !== undefined) updateData.company_id = input.company_id
 
     const { error } = await supabase
       .from("veille_articles")

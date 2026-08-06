@@ -6008,6 +6008,7 @@ export type Database = {
           action_commerciale: string
           analyse_kredo: string
           categorie: string
+          company_id: string | null
           created_at: string
           digest_id: string
           id: string
@@ -6028,6 +6029,7 @@ export type Database = {
           action_commerciale: string
           analyse_kredo: string
           categorie: string
+          company_id?: string | null
           created_at?: string
           digest_id: string
           id?: string
@@ -6048,6 +6050,7 @@ export type Database = {
           action_commerciale?: string
           analyse_kredo?: string
           categorie?: string
+          company_id?: string | null
           created_at?: string
           digest_id?: string
           id?: string

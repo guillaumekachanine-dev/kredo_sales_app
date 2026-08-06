@@ -48,7 +48,7 @@ type DocumentItem = {
   } | null
 }
 
-type CategoryKey = "mails" | "rapports" | "pitchs" | "devis" | "relances" | "fiches"
+type CategoryKey = "mails" | "rapports" | "pitchs" | "devis" | "relances" | "fiches" | "articles"
 type DisclosureKey = "sources" | "parameters" | "versions"
 type CompanyContactPreview = {
   id: string
@@ -89,6 +89,11 @@ const CATEGORIES: { key: CategoryKey; label: string; icon: string }[] = [
     key: "fiches",
     label: "Fiches compte",
     icon: "/icons_set/cockpit_intelligence/recommandations_ai.png",
+  },
+  {
+    key: "articles",
+    label: "Articles",
+    icon: "/icons_set/intel_actualite_client.png",
   },
 ]
 
@@ -210,6 +215,70 @@ function isCommunicationDocument(document: DocumentDetail) {
 }
 
 function DocumentContent({ document }: { document: DocumentDetail }) {
+  if (
+    document.documentType === ("article" as any) ||
+    (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).type === "article")
+  ) {
+    const data = document.currentContentJson as {
+      source_name?: string
+      url?: string
+      resume?: string
+      analyse_kredo?: string
+      action_commerciale?: string
+      published_at?: string | null
+      secteur_principal?: string
+    }
+    return (
+      <div className="space-y-4 text-body">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+          <div>
+            {data.source_name ? (
+              <span className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                {data.source_name}
+              </span>
+            ) : null}
+            {data.published_at ? (
+              <span className="ml-2 text-xs text-muted">
+                Publié le {new Date(data.published_at).toLocaleDateString("fr-FR")}
+              </span>
+            ) : null}
+          </div>
+          {data.url ? (
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            >
+              Consulter l&apos;article original ↗
+            </a>
+          ) : null}
+        </div>
+
+        {data.resume ? (
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Résumé</h4>
+            <p className="text-sm leading-relaxed text-body">{data.resume}</p>
+          </div>
+        ) : null}
+
+        {data.analyse_kredo ? (
+          <div className="space-y-1 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-primary">Pourquoi c&apos;est important (Analyse Kredo)</h4>
+            <p className="text-sm leading-relaxed text-heading">{data.analyse_kredo}</p>
+          </div>
+        ) : null}
+
+        {data.action_commerciale ? (
+          <div className="space-y-1 rounded-xl border border-border bg-surface p-3.5">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted">Action commerciale préconisée</h4>
+            <p className="text-sm leading-relaxed text-body">{data.action_commerciale}</p>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
   if (document.documentType === "client_summary") {
     return (
       <ClientSummaryDocumentContent
@@ -390,6 +459,43 @@ export function CompanyDocumentsModal({
         })
         setCompanyContacts(companyContactsData)
 
+        // Also fetch articles linked to this company from veille_articles
+        const { data: veilleArticles } = await supabase
+          .from("veille_articles")
+          .select("id, titre_fr, source_name, resume, analyse_kredo, action_commerciale, published_at, created_at, updated_at, url, secteur_principal")
+          .eq("company_id", companyId)
+          .order("created_at", { ascending: false })
+
+        const articleDocItems: DocumentItem[] = ((veilleArticles ?? []) as Array<Record<string, unknown>>).map((article) => ({
+          id: `article-${article.id}`,
+          title: String(article.titre_fr ?? "Article de veille"),
+          document_type: "article" as any,
+          status: "ready",
+          current_content_text: [
+            article.source_name ? `Source : ${article.source_name}` : null,
+            article.resume ? `\nRésumé :\n${article.resume}` : null,
+            article.analyse_kredo ? `\nPourquoi c'est important :\n${article.analyse_kredo}` : null,
+            article.action_commerciale ? `\nAction préconisée :\n${article.action_commerciale}` : null,
+            article.url ? `\nLien article : ${article.url}` : null,
+          ].filter(Boolean).join("\n\n"),
+          current_content_json: {
+            type: "article",
+            source_name: article.source_name,
+            url: article.url,
+            resume: article.resume,
+            analyse_kredo: article.analyse_kredo,
+            action_commerciale: article.action_commerciale,
+            published_at: article.published_at,
+            secteur_principal: article.secteur_principal,
+          },
+          created_at: String(article.created_at ?? new Date().toISOString()),
+          updated_at: String(article.updated_at ?? new Date().toISOString()),
+          list_summary: {
+            heading: String(article.titre_fr ?? "Article de veille"),
+            objectiveLabel: article.source_name ? `Source : ${article.source_name}` : "Article de veille",
+          },
+        }))
+
         const { data: links, error: linksError } = await supabase
           .from("intelligence_document_links")
           .select("document_id")
@@ -398,7 +504,7 @@ export function CompanyDocumentsModal({
 
         if (linksError) throw linksError
         if (!links || links.length === 0) {
-          setDocuments([])
+          setDocuments(articleDocItems)
           return
         }
 
@@ -465,22 +571,22 @@ export function CompanyDocumentsModal({
         const inputSnapshotByRunId = new Map((runs ?? []).map((run) => [run.id, run.input_snapshot] as const))
         const runIdByResultId = new Map((results ?? []).map((result) => [result.id, result.run_id] as const))
 
-        setDocuments(
-          ((docs ?? []) as DocumentItem[]).map((document) => ({
-            ...document,
-            list_summary: getDocumentListSummary(
-              document,
-              (() => {
-                const latestVersion = latestVersionByDocumentId.get(document.id)
-                const runId = latestVersion?.source_result_id
-                  ? runIdByResultId.get(latestVersion.source_result_id)
-                  : null
-                return (runId ? inputSnapshotByRunId.get(runId) : null) ?? latestVersion?.brief_json ?? null
-              })(),
-              companyContactsData
-            ),
-          }))
-        )
+        const mappedDocs = ((docs ?? []) as DocumentItem[]).map((document) => ({
+          ...document,
+          list_summary: getDocumentListSummary(
+            document,
+            (() => {
+              const latestVersion = latestVersionByDocumentId.get(document.id)
+              const runId = latestVersion?.source_result_id
+                ? runIdByResultId.get(latestVersion.source_result_id)
+                : null
+              return (runId ? inputSnapshotByRunId.get(runId) : null) ?? latestVersion?.brief_json ?? null
+            })(),
+            companyContactsData
+          ),
+        }))
+
+        setDocuments([...mappedDocs, ...articleDocItems])
       } catch (err) {
         console.error("Failed to load company documents:", err)
       } finally {
@@ -493,6 +599,30 @@ export function CompanyDocumentsModal({
 
   useEffect(() => {
     if (!open || !selectedDoc) return
+
+    if (selectedDoc.id.startsWith("article-")) {
+      setSelectedDetail({
+        id: selectedDoc.id,
+        title: selectedDoc.title,
+        documentType: "article" as any,
+        status: selectedDoc.status,
+        versionNumber: 1,
+        isFavorite: false,
+        tags: ["veille", "article"],
+        primaryEntity: { type: "company", id: companyId, label: companyName },
+        qualityOk: true,
+        scenarioLabel: null,
+        currentContentText: selectedDoc.current_content_text,
+        currentContentJson: selectedDoc.current_content_json,
+        createdAt: selectedDoc.created_at,
+        updatedAt: selectedDoc.updated_at,
+        versions: [],
+        links: [],
+        ownerName: "Veille & Actualité",
+      })
+      setDetailLoading(false)
+      return
+    }
 
     let cancelled = false
 
@@ -554,6 +684,8 @@ export function CompanyDocumentsModal({
           return type === "campaign" || title.includes("relance") || title.includes("follow")
         case "fiches":
           return type === "client_summary" || title.includes("fiche") || title.includes("synthèse") || title.includes("synthese")
+        case "articles":
+          return type === ("article" as any) || title.includes("article") || doc.id.startsWith("article-")
         default:
           return true
       }

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Textarea } from "@/components/ui/Textarea"
 import { Select } from "@/components/ui/Select"
+import { createClient } from "@/lib/supabase/client"
 import { updateVeilleArticleAction } from "@/app/(app)/veille/_actions/veille-actions"
 import { createCompanyInteraction } from "@/app/(app)/prospection/_actions/company-interaction"
 import { createOpportunity, type SalesStage, type SalesPriority } from "@/app/(app)/missions/_actions/create-opportunity"
@@ -18,6 +19,7 @@ interface QualifySignalDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   article: VeilleArticle
+  companies?: Array<{ id: string; name: string }>
   onSuccess: (updatedArticle: VeilleArticle) => void
 }
 
@@ -25,17 +27,47 @@ export function QualifySignalDialog({
   open,
   onOpenChange,
   article,
+  companies,
   onSuccess,
 }: QualifySignalDialogProps) {
   const [isPending, startTransition] = useTransition()
   const [titre, setTitre] = useState(article.titre_fr)
   const [categorie, setCategorie] = useState(article.categorie || "Nominations")
   const [secteur, setSecteur] = useState(article.secteur_principal || "transverse")
+  const [companyId, setCompanyId] = useState<string | null>(article.company_id ?? null)
+  const [companyList, setCompanyList] = useState<Array<{ id: string; name: string }>>(companies ?? [])
   const [resume, setResume] = useState(article.resume || "")
   const [analyseKredo, setAnalyseKredo] = useState(article.analyse_kredo || "")
   const [actionCommerciale, setActionCommerciale] = useState(article.action_commerciale || "")
   const [tagsInput, setTagsInput] = useState((article.tags || []).join(", "))
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setTitre(article.titre_fr)
+    setCategorie(article.categorie || "Nominations")
+    setSecteur(article.secteur_principal || "transverse")
+    setCompanyId(article.company_id ?? null)
+    setResume(article.resume || "")
+    setAnalyseKredo(article.analyse_kredo || "")
+    setActionCommerciale(article.action_commerciale || "")
+    setTagsInput((article.tags || []).join(", "))
+  }, [article])
+
+  useEffect(() => {
+    if (companies && companies.length > 0) {
+      setCompanyList(companies)
+      return
+    }
+    if (!open) return
+    const supabase = createClient()
+    void supabase
+      .from("companies")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => {
+        if (data) setCompanyList(data)
+      })
+  }, [open, companies])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +83,7 @@ export function QualifySignalDialog({
         titre_fr: titre,
         categorie: categorie,
         secteur_principal: secteur,
+        company_id: companyId,
         resume: resume,
         analyse_kredo: analyseKredo,
         action_commerciale: actionCommerciale,
@@ -60,11 +93,29 @@ export function QualifySignalDialog({
       if (result.error) {
         setError(result.error)
       } else {
+        if (companyId && companyId !== article.company_id) {
+          const summary = [
+            `Signal de veille : ${titre}`,
+            article.source_name ? `Source : ${article.source_name}` : null,
+            resume ? `\n${resume}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n")
+
+          await createCompanyInteraction({
+            company_id: companyId,
+            type: "note",
+            summary,
+            occurred_at: new Date().toISOString(),
+          })
+        }
+
         onSuccess({
           ...article,
           titre_fr: titre,
           categorie: categorie,
           secteur_principal: secteur,
+          company_id: companyId,
           resume: resume,
           analyse_kredo: analyseKredo,
           action_commerciale: actionCommerciale,
@@ -100,20 +151,22 @@ export function QualifySignalDialog({
           />
         </div>
 
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Catégorie</label>
+          <Select
+            value={categorie}
+            onChange={(e) => setCategorie(e.target.value)}
+            fullWidth
+          >
+            <option value="Nominations">Nominations</option>
+            <option value="Réglementaire">Réglementaire</option>
+            <option value="Marché">Marché</option>
+            <option value="Comptes">Comptes</option>
+            <option value="Investissement">Investissement</option>
+          </Select>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Catégorie</label>
-            <Select
-              value={categorie}
-              onChange={(e) => setCategorie(e.target.value)}
-            >
-              <option value="Nominations">Nominations</option>
-              <option value="Réglementaire">Réglementaire</option>
-              <option value="Marché">Marché</option>
-              <option value="Comptes">Comptes</option>
-              <option value="Investissement">Investissement</option>
-            </Select>
-          </div>
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Secteur</label>
             <Input
@@ -122,6 +175,21 @@ export function QualifySignalDialog({
               required
               fullWidth
             />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Lier au compte</label>
+            <Select
+              value={companyId ?? ""}
+              onChange={(e) => setCompanyId(e.target.value || null)}
+              fullWidth
+            >
+              <option value="">Aucun compte lié</option>
+              {companyList.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
 
