@@ -5,12 +5,9 @@ import { cn } from "@/lib/utils"
 import type { StrategicWatchAnalysis } from "../veille-desktop-contracts"
 import {
   IconBulb,
-  IconCalendar,
-  IconCheckCircle,
   IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
-  IconDocument,
   IconTarget,
   IconWarningTriangle,
 } from "./icons"
@@ -42,9 +39,9 @@ export function VeilleAnalysesTab({
 
   const [summaryExpanded, setSummaryExpanded] = useState(false)
   const [openSections, setOpenSections] = useState<Record<AnalysisSectionKey, boolean>>({
-    trends: true,
-    opportunities: true,
-    risks: true,
+    trends: false,
+    opportunities: false,
+    risks: false,
   })
   // La sélection porte l'identifiant de l'analyse dont elle provient : changer
   // de période referme donc le détail par simple dérivation, sans effet qui
@@ -116,36 +113,20 @@ export function VeilleAnalysesTab({
 
   return (
     <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
-      <header className="flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-border px-4 py-4">
-        <div className="flex items-center gap-2.5">
-          <span className="shrink-0 text-primary">
-            <IconCalendar className="size-6" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[15px] font-bold leading-5 text-heading">{index.periodLabel}</span>
-            {index.periodRange ? (
-              <span className="block text-xs text-muted">{index.periodRange}</span>
-            ) : null}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <span className="shrink-0 text-primary">
-            <IconCheckCircle className="size-6" />
-          </span>
-          <span className="text-[15px] font-semibold text-heading">{index.statusLabel}</span>
+      <header className="flex items-center justify-between border-b border-border px-4 py-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[17px] font-bold leading-6 text-heading">
+            {index.analysisTitle}
+          </h1>
+          {index.producedAtLabel ? (
+            <p className="mt-0.5 text-xs text-muted">{index.producedAtLabel}</p>
+          ) : null}
         </div>
 
         {index.coverageLabel ? (
-          <div className="flex items-center gap-2.5">
-            <span className="shrink-0 text-primary">
-              <IconDocument className="size-6" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[15px] font-semibold leading-5 text-heading">
-                {index.coverageLabel}
-              </span>
-              <span className="block text-xs text-muted">Couverture</span>
+          <div className="ml-4 shrink-0 text-right">
+            <span className="text-xs font-medium text-muted">
+              {index.coverageLabel}
             </span>
           </div>
         ) : null}
@@ -176,9 +157,7 @@ export function VeilleAnalysesTab({
 
       {index.executiveSummary ? (
         <div className="border-b border-border px-4 py-5">
-          {/* Le résumé réel dépasse largement les deux lignes de la maquette :
-              on le replie pour que l'index décisionnel reste au-dessus de la
-              ligne de flottaison, sans jamais tronquer la donnée. */}
+          <h2 className="mb-2.5 text-[18px] font-bold text-heading">Synthèse</h2>
           <p
             className={cn(
               "border-l-[3px] border-brand-brass pl-4 text-[16px] leading-[1.5] text-heading",
@@ -246,24 +225,12 @@ export function VeilleAnalysesTab({
                             itemIndex,
                           })
                         }
-                        className="flex w-full items-start gap-3 px-4 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
                       >
-                        <span className="mt-0.5 shrink-0 text-heading">
-                          <SectionIcon className="size-6" />
+                        <span className="min-w-0 flex-1 text-[15px] font-bold leading-6 text-heading">
+                          {item.title}
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[15px] font-bold leading-6 text-heading">
-                            {item.title}
-                          </span>
-                          {/* Ligne compacte : le texte intégral vit dans le
-                              lecteur de détail, pas dans l'index.
-                              Pas de `block` ici — il écraserait le
-                              `display:-webkit-box` dont `line-clamp` dépend. */}
-                          <span className="mt-1 line-clamp-2 text-sm leading-5 text-muted">
-                            {item.body}
-                          </span>
-                        </span>
-                        <span className="mt-1 shrink-0 text-heading">
+                        <span className="shrink-0 text-heading">
                           <IconChevronRight className="size-5" />
                         </span>
                       </button>
@@ -275,13 +242,6 @@ export function VeilleAnalysesTab({
           </section>
         )
       })}
-
-      {index.digestsCount !== null ? (
-        <p className="px-4 py-5 text-xs text-muted">
-          Analyse construite à partir de {index.digestsCount} briefing
-          {index.digestsCount > 1 ? "s" : ""} de la période.
-        </p>
-      ) : null}
     </div>
   )
 }

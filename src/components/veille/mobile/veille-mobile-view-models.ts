@@ -366,11 +366,13 @@ export type AnalysisIndexVM = {
   id: string
   title: string
   periodLabel: string
+  analysisTitle: string
   periodRange: string | null
   statusLabel: string
   executiveSummary: string
   coverageLabel: string | null
   digestsCount: number | null
+  producedAtLabel: string | null
   sections: AnalysisSectionVM[]
 }
 
@@ -379,6 +381,15 @@ const ANALYSIS_STATUS_LABELS: Record<StrategicWatchAnalysis["status"], string> =
   ready: "Prête",
   used: "Utilisée",
   archived: "Archivée",
+}
+
+export function formatProducedDate(value: string | null | undefined): string | null {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  const day = String(date.getUTCDate()).padStart(2, "0")
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0")
+  return `${day}/${month}`
 }
 
 function formatPeriodRange(start: string | null, end: string | null): string | null {
@@ -394,6 +405,14 @@ function formatPeriodRange(start: string | null, end: string | null): string | n
 export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIndexVM {
   const content = analysis.content
   const coverage = content?.coverage ?? null
+
+  const rawPeriodLabel = content?.period?.label ?? analysis.title
+  const analysisTitle = rawPeriodLabel.startsWith("Analyse")
+    ? rawPeriodLabel
+    : `Analyse ${rawPeriodLabel}`
+
+  const producedDate = formatProducedDate(analysis.createdAt)
+  const producedAtLabel = producedDate ? `produite le ${producedDate}` : null
 
   const sections: AnalysisSectionVM[] = [
     {
@@ -425,12 +444,14 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
   return {
     id: analysis.id,
     title: analysis.title,
-    periodLabel: content?.period?.label ?? analysis.title,
+    periodLabel: rawPeriodLabel,
+    analysisTitle,
     periodRange: formatPeriodRange(analysis.periodStart, analysis.periodEnd),
     statusLabel: ANALYSIS_STATUS_LABELS[analysis.status],
     executiveSummary: content?.executiveSummary ?? "",
     coverageLabel: coverage ? `${coverage.articlesCount} articles · ${coverage.sourcesCount} sources` : null,
     digestsCount: coverage?.digestsCount ?? null,
+    producedAtLabel,
     sections,
   }
 }
