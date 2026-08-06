@@ -264,9 +264,11 @@ export function VeilleActualitesMobile({
         {activeTab === "veille" ? (
           <VeilleSignalsView
             signals={localSignals}
+            companies={companies}
             onDismissSignal={(signalId) =>
               setLocalSignals((previous) => previous.filter((signal) => signal.id !== signalId))
             }
+            onFeedback={showFeedback}
           />
         ) : null}
 
