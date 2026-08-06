@@ -6,7 +6,7 @@ import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { cn } from "@/lib/utils"
-import { CreateOpportunityDialog, QualifySignalDialog } from "./SignalDialogs"
+import { AddToListExplanationDialog, CreateCommercialWindowDialog, QualifySignalDialog } from "./SignalDialogs"
 import { extractMatchedCompany } from "./veille-utils"
 import { LinkSignalDialog } from "./mobile/LinkSignalDialog"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
@@ -76,7 +76,7 @@ export function VeilleActualitesMobile({
 
   const [isOpportunityOpen, setIsOpportunityOpen] = useState(false)
   const [isQualifyOpen, setIsQualifyOpen] = useState(false)
-  const [isLinkOpen, setIsLinkOpen] = useState(false)
+  const [isAddToListOpen, setIsAddToListOpen] = useState(false)
 
   const resolvedArticles = useMemo(
     () => allArticles.map((article) => articleOverrides[article.id] ?? article),
@@ -181,17 +181,14 @@ export function VeilleActualitesMobile({
           setIsQualifyOpen(true)
           return
         case "link":
-          setIsLinkOpen(true)
+          setIsAddToListOpen(true)
           return
         case "opportunity":
-          if (!matchedCompany) {
-            showFeedback("Liez d'abord le signal à un compte.")
-            return
-          }
           setIsOpportunityOpen(true)
+          return
       }
     },
-    [openArticle, matchedCompany, handleGeneratePitch, showFeedback],
+    [openArticle, matchedCompany, handleGeneratePitch],
   )
 
   const handleOpenArchiveEntry = useCallback(
@@ -308,28 +305,20 @@ export function VeilleActualitesMobile({
             }}
           />
 
-          <LinkSignalDialog
-            open={isLinkOpen}
-            onOpenChange={setIsLinkOpen}
-            article={openArticle}
-            companies={companies}
-            suggestedCompany={matchedCompany}
-            onSuccess={(updated, message) => {
-              setArticleOverrides((previous) => ({ ...previous, [updated.id]: updated }))
-              showFeedback(message)
-            }}
+          <AddToListExplanationDialog
+            open={isAddToListOpen}
+            onOpenChange={setIsAddToListOpen}
           />
 
-          {matchedCompany ? (
-            <CreateOpportunityDialog
-              open={isOpportunityOpen}
-              onOpenChange={setIsOpportunityOpen}
-              companyId={matchedCompany.id}
-              companyName={matchedCompany.name}
-              signalTitle={openArticle.titre_fr}
-              onSuccess={() => showFeedback(`Opportunité créée pour ${matchedCompany.name}.`)}
-            />
-          ) : null}
+          <CreateCommercialWindowDialog
+            open={isOpportunityOpen}
+            onOpenChange={setIsOpportunityOpen}
+            article={openArticle}
+            companyId={matchedCompany?.id}
+            companyName={matchedCompany?.name}
+            signalTitle={openArticle.titre_fr}
+            onSuccess={() => showFeedback("Fenêtre commerciale créée avec succès.")}
+          />
         </>
       ) : null}
     </div>

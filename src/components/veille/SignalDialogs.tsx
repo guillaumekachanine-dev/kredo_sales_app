@@ -131,7 +131,6 @@ export function QualifySignalDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Qualifier le signal"
-      description="Modifiez les informations stratégiques du signal pour l'adapter à vos besoins."
       className="sm:max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,10 +158,12 @@ export function QualifySignalDialog({
             fullWidth
           >
             <option value="Nominations">Nominations</option>
-            <option value="Réglementaire">Réglementaire</option>
-            <option value="Marché">Marché</option>
-            <option value="Comptes">Comptes</option>
-            <option value="Investissement">Investissement</option>
+            <option value="Projets & Transfo">Projets & Transfo</option>
+            <option value="Finances & Levées">Finances & Levées</option>
+            <option value="Stratégie & M&A">Stratégie & M&A</option>
+            <option value="Réglementation">Réglementation</option>
+            <option value="Partenariats">Partenariats</option>
+            <option value="Technologie & IA">Technologie & IA</option>
           </Select>
         </div>
 
@@ -172,35 +173,26 @@ export function QualifySignalDialog({
             <Input
               value={secteur}
               onChange={(e) => setSecteur(e.target.value)}
-              required
+              placeholder="e.g. Banque, Retail..."
               fullWidth
             />
           </div>
+
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Lier au compte</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Lier à un compte</label>
             <Select
-              value={companyId ?? ""}
+              value={companyId || ""}
               onChange={(e) => setCompanyId(e.target.value || null)}
               fullWidth
             >
-              <option value="">Aucun compte lié</option>
-              {companyList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              <option value="">-- Aucun compte rattaché --</option>
+              {companyList.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
                 </option>
               ))}
             </Select>
           </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Tags (séparés par des virgules)</label>
-          <Input
-            value={tagsInput}
-            onChange={(e) => setTagsInput(e.target.value)}
-            placeholder="DSI, Cloud, Cybersécurité"
-            fullWidth
-          />
         </div>
 
         <div className="space-y-1">
@@ -209,29 +201,36 @@ export function QualifySignalDialog({
             value={resume}
             onChange={(e) => setResume(e.target.value)}
             rows={3}
-            required
             fullWidth
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Pourquoi c&apos;est important (Analyse Kredo)</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Pourquoi c&apos;est important (Analyse KREDO)</label>
           <Textarea
             value={analyseKredo}
             onChange={(e) => setAnalyseKredo(e.target.value)}
             rows={3}
-            required
             fullWidth
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Lecture commerciale (Action préconisée)</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Action commerciale proposée</label>
           <Textarea
             value={actionCommerciale}
             onChange={(e) => setActionCommerciale(e.target.value)}
             rows={3}
-            required
+            fullWidth
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Tags (séparés par des virgules)</label>
+          <Input
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder="IA, Cloud, Digitalisation..."
             fullWidth
           />
         </div>
@@ -270,7 +269,7 @@ export function CreateAccountNoteDialog({
   onSuccess,
 }: CreateAccountNoteDialogProps) {
   const [isPending, startTransition] = useTransition()
-  const [note, setNote] = useState(`Note suite au signal : "${signalTitle}"\n\n`)
+  const [note, setNote] = useState(`Note issue du signal : ${signalTitle}\n\n`)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -298,8 +297,9 @@ export function CreateAccountNoteDialog({
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={`Ajouter une note pour ${companyName}`}
-      description="Cette note sera ajoutée à l'historique des interactions de ce compte."
+      title="Créer une note compte"
+      description={`Ajouter une note stratégique dans le fil d'activité de ${companyName}.`}
+      className="sm:max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -316,7 +316,6 @@ export function CreateAccountNoteDialog({
             rows={5}
             required
             fullWidth
-            autoFocus
           />
         </div>
 
@@ -334,61 +333,86 @@ export function CreateAccountNoteDialog({
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 3. CREATE OPPORTUNITY DIALOG
+// 3. CREATE COMMERCIAL WINDOW DIALOG ("Créer une fenêtre commerciale")
 // ──────────────────────────────────────────────────────────────────────────────
-interface CreateOpportunityDialogProps {
+interface CreateCommercialWindowDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  companyId: string
-  companyName: string
-  signalTitle: string
+  companyId?: string
+  companyName?: string
+  signalTitle?: string
+  article?: VeilleArticle | null
   onSuccess: () => void
 }
 
-export function CreateOpportunityDialog({
+export function CreateCommercialWindowDialog({
   open,
   onOpenChange,
   companyId,
   companyName,
   signalTitle,
+  article,
   onSuccess,
-}: CreateOpportunityDialogProps) {
+}: CreateCommercialWindowDialogProps) {
   const [isPending, startTransition] = useTransition()
-  const [title, setTitle] = useState(`Opportunité - ${companyName} (${signalTitle.substring(0, 30)}...)`)
-  const [stage, setStage] = useState<SalesStage>("qualification")
-  const [priority, setPriority] = useState<SalesPriority>("normale")
-  const [conviction, setConviction] = useState(30)
-  const [estimatedGain, setEstimatedGain] = useState<number | null>(null)
-  const [targetDailyRate, setTargetDailyRate] = useState<number | null>(null)
-  const [targetCloseDate, setTargetCloseDate] = useState("")
-  const [startDate, setStartDate] = useState("")
+  const initialTitle = article ? article.titre_fr : signalTitle ? `Fenêtre - ${signalTitle.substring(0, 40)}` : ""
+  const [title, setTitle] = useState(initialTitle)
+  const [account, setAccount] = useState(companyName || "")
+  const [secteur, setSecteur] = useState(article?.secteur_principal || article?.categorie || "")
+  const [horizon, setHorizon] = useState("immediat")
+  const initialAngle = article
+    ? [article.action_commerciale ? `Action : ${article.action_commerciale}` : null, article.resume ? `Résumé : ${article.resume}` : null]
+        .filter(Boolean)
+        .join("\n\n")
+    : ""
+  const [angleCommercial, setAngleCommercial] = useState(initialAngle)
+  const [conviction, setConviction] = useState(60)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (article) {
+      setTitle(article.titre_fr)
+      setSecteur(article.secteur_principal || article.categorie || "")
+      setAngleCommercial(
+        [
+          article.action_commerciale ? `Action : ${article.action_commerciale}` : null,
+          article.resume ? `Résumé : ${article.resume}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      )
+    } else if (signalTitle) {
+      setTitle(`Fenêtre - ${signalTitle}`)
+    }
+    if (companyName) setAccount(companyName)
+  }, [article, companyName, signalTitle])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     startTransition(async () => {
-      const result = await createOpportunity({
-        title,
-        account_id: companyId,
-        account_name_new: "",
-        stage,
-        priority,
-        conviction,
-        target_close_date: targetCloseDate,
-        start_date: startDate,
-        duration: null,
-        estimated_gain: estimatedGain,
-        target_daily_rate: targetDailyRate,
-      })
-
-      if (result.error) {
-        setError(result.error)
-      } else {
-        onSuccess()
-        onOpenChange(false)
+      if (companyId) {
+        const result = await createOpportunity({
+          title,
+          account_id: companyId,
+          account_name_new: "",
+          stage: "qualification",
+          priority: "normale",
+          conviction,
+          target_close_date: "",
+          start_date: "",
+          duration: null,
+          estimated_gain: null,
+          target_daily_rate: null,
+        })
+        if (result.error) {
+          setError(result.error)
+          return
+        }
       }
+      onSuccess()
+      onOpenChange(false)
     })
   }
 
@@ -396,8 +420,7 @@ export function CreateOpportunityDialog({
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Créer une opportunité"
-      description={`Transformer ce signal stratégique en opportunité dans le pipeline commercial pour ${companyName}.`}
+      title="Créer une fenêtre commerciale"
       className="sm:max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -407,8 +430,16 @@ export function CreateOpportunityDialog({
           </div>
         )}
 
+        {/* Banner V2 Callout */}
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed text-heading">
+          <p className="font-bold text-primary">💡 V2 à venir</p>
+          <p className="mt-1 text-muted">
+            Dans la prochaine version, cette modale proposera automatiquement les éléments de discours du playbook sectoriel, le lien avec les enjeux réglementaires et la liste des contacts pertinents du compte.
+          </p>
+        </div>
+
         <div className="space-y-1">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Titre de l&apos;opportunité</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Intitulé de la fenêtre commerciale</label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -419,33 +450,37 @@ export function CreateOpportunityDialog({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Étape commerciale</label>
-            <Select
-              value={stage}
-              onChange={(e) => setStage(e.target.value as SalesStage)}
-            >
-              <option value="qualification">Qualification</option>
-              <option value="recherche_profil">Recherche profil</option>
-              <option value="cv_envoyes">CV envoyés</option>
-              <option value="entretien_client">Entretien client</option>
-              <option value="contractualisation">Contractualisation</option>
-            </Select>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Compte concerné</label>
+            <Input
+              value={account}
+              onChange={(e) => setAccount(e.target.value)}
+              placeholder="Nom du compte..."
+              fullWidth
+            />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Priorité</label>
-            <Select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as SalesPriority)}
-            >
-              <option value="basse">Basse</option>
-              <option value="normale">Normale</option>
-              <option value="haute">Haute</option>
-            </Select>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Secteur / Thématique</label>
+            <Input
+              value={secteur}
+              onChange={(e) => setSecteur(e.target.value)}
+              placeholder="e.g. Banque, Cloud..."
+              fullWidth
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Horizon / Échéance</label>
+            <Select value={horizon} onChange={(e) => setHorizon(e.target.value)} fullWidth>
+              <option value="immediat">Immédiat (signal à chaud)</option>
+              <option value="30jours">30 jours (Court terme)</option>
+              <option value="trimestre">Trimestre en cours</option>
+              <option value="reglementaire">Échéance réglementaire</option>
+            </Select>
+          </div>
+
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Conviction (%)</label>
             <Input
@@ -458,50 +493,17 @@ export function CreateOpportunityDialog({
               fullWidth
             />
           </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">TJM (€/j)</label>
-            <Input
-              type="number"
-              placeholder="e.g. 600"
-              value={targetDailyRate || ""}
-              onChange={(e) => setTargetDailyRate(e.target.value ? Number(e.target.value) : null)}
-              fullWidth
-            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Marge est. (€)</label>
-            <Input
-              type="number"
-              placeholder="e.g. 15000"
-              value={estimatedGain || ""}
-              onChange={(e) => setEstimatedGain(e.target.value ? Number(e.target.value) : null)}
-              fullWidth
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Date de démarrage</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              fullWidth
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Date de signature ciblée</label>
-            <Input
-              type="date"
-              value={targetCloseDate}
-              onChange={(e) => setTargetCloseDate(e.target.value)}
-              fullWidth
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Angle commercial & Justification</label>
+          <Textarea
+            value={angleCommercial}
+            onChange={(e) => setAngleCommercial(e.target.value)}
+            rows={4}
+            placeholder="Arguments et contexte d'attaque..."
+            fullWidth
+          />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
@@ -509,10 +511,55 @@ export function CreateOpportunityDialog({
             Annuler
           </Button>
           <Button type="submit" loading={isPending}>
-            Créer l&apos;opportunité
+            Créer la fenêtre commerciale
           </Button>
         </div>
       </form>
+    </AppDialog>
+  )
+}
+
+export const CreateOpportunityDialog = CreateCommercialWindowDialog
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 4. ADD TO LIST EXPLANATION DIALOG ("Ajouter à la liste")
+// ──────────────────────────────────────────────────────────────────────────────
+interface AddToListExplanationDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function AddToListExplanationDialog({
+  open,
+  onOpenChange,
+}: AddToListExplanationDialogProps) {
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Ajouter à la liste"
+      description="Gestion de corpus et listes de contenus"
+      className="sm:max-w-md"
+    >
+      <div className="space-y-4 text-sm text-body">
+        <div className="rounded-xl border border-border bg-surface/50 p-4 space-y-2">
+          <h4 className="font-bold text-heading text-sm">Corpus & Listes personnalisées</h4>
+          <p className="text-xs leading-relaxed text-muted">
+            Cette fonctionnalité vous permettra prochainement de créer des listes de contenus et de tout élément regroupé par l’utilisateur dans un corpus customisé.
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-body list-disc pl-4">
+            <li>Regrouper et catégoriser vos signaux stratégiques</li>
+            <li>Exporter et partager des corpus avec vos équipes</li>
+            <li>Alimenter vos générations de pitchs et campagnes AI</li>
+          </ul>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <Button variant="brass" onClick={() => onOpenChange(false)}>
+            Compris
+          </Button>
+        </div>
+      </div>
     </AppDialog>
   )
 }

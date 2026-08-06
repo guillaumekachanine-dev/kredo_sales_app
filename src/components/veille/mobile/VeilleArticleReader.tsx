@@ -42,8 +42,8 @@ const ACCENT_CLASSES: Record<CategoryAccentSlot, { chip: string; dot: string }> 
 const ACTIONS: Array<{ id: ArticleAction; label: string }> = [
   { id: "pitch", label: "Générer un pitch / mail" },
   { id: "qualify", label: "Qualifier le signal" },
-  { id: "link", label: "Lier à un compte / secteur" },
-  { id: "opportunity", label: "Créer une opportunité" },
+  { id: "link", label: "Ajouter à la liste" },
+  { id: "opportunity", label: "Créer une fenêtre commerciale" },
 ]
 
 export function VeilleArticleReader({

@@ -22,8 +22,9 @@ import type {
   WatchedAccountSignal,
 } from "@/app/(app)/veille/_data/veille-data"
 import {
+  AddToListExplanationDialog,
   CreateAccountNoteDialog,
-  CreateOpportunityDialog,
+  CreateCommercialWindowDialog,
   QualifySignalDialog,
 } from "./SignalDialogs"
 import { VeilleHeaderActions } from "./VeilleHeaderActions"
@@ -186,6 +187,7 @@ function ArticleRail({
   onPitch,
   onNote,
   onQualify,
+  onAddToList,
   onOpportunity,
 }: {
   company: CompanyContextStats | null
@@ -193,12 +195,14 @@ function ArticleRail({
   onPitch: () => void
   onNote: () => void
   onQualify: () => void
+  onAddToList: () => void
   onOpportunity: () => void
 }) {
   const actions = [
-    { label: "Créer une note compte", icon: "write_email" as const, onClick: onNote },
     { label: "Qualifier le signal", icon: "prioritize" as const, onClick: onQualify },
-    { label: "Transformer en opportunité", icon: "detect_risks" as const, onClick: onOpportunity },
+    { label: "Ajouter à la liste", icon: "report" as const, onClick: onAddToList },
+    { label: "Créer une fenêtre commerciale", icon: "detect_risks" as const, onClick: onOpportunity },
+    { label: "Créer une note compte", icon: "write_email" as const, onClick: onNote },
   ]
   return (
     <aside className="border border-border bg-edito-canvas/55">
@@ -206,7 +210,7 @@ function ArticleRail({
         <SectionHeading>Actions recommandées</SectionHeading>
         <div className="mt-3 space-y-2">
           <Button variant="brass" size="sm" fullWidth onClick={onPitch} leftIcon={<IntelligenceIcon name="generate_pitch" preferVector />} className="justify-between">
-            Générer un pitch
+            Générer un pitch / mail
           </Button>
           {actions.map((action) => (
             <Button key={action.label} variant="secondary" size="sm" fullWidth onClick={action.onClick} leftIcon={<IntelligenceIcon name={action.icon} preferVector />} className="justify-start">
@@ -477,6 +481,7 @@ export function VeilleActualitesDesktop({
   const [noteOpen, setNoteOpen] = useState(false)
   const [qualifyOpen, setQualifyOpen] = useState(false)
   const [opportunityOpen, setOpportunityOpen] = useState(false)
+  const [addToListOpen, setAddToListOpen] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
@@ -551,7 +556,8 @@ export function VeilleActualitesDesktop({
                     onPitch={pitch}
                     onNote={() => requireCompany(() => setNoteOpen(true))}
                     onQualify={() => setQualifyOpen(true)}
-                    onOpportunity={() => requireCompany(() => setOpportunityOpen(true))}
+                    onAddToList={() => setAddToListOpen(true)}
+                    onOpportunity={() => setOpportunityOpen(true)}
                   />
                 </div>
                 <OtherArticles articles={filteredArticles} selectedId={selectedArticle.id} onSelect={selectArticle} />
@@ -576,11 +582,10 @@ export function VeilleActualitesDesktop({
       {selectedArticle ? (
         <>
           <QualifySignalDialog open={qualifyOpen} onOpenChange={setQualifyOpen} article={selectedArticle} onSuccess={(updated) => { setArticles((current) => current.map((article) => article.id === updated.id ? updated : article)); setSelectedArticle(updated); setMessage("Signal qualifié et mis à jour.") }} />
+          <AddToListExplanationDialog open={addToListOpen} onOpenChange={setAddToListOpen} />
+          <CreateCommercialWindowDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} article={selectedArticle} companyId={matchedCompany?.id} companyName={matchedCompany?.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage("Fenêtre commerciale créée avec succès.")} />
           {matchedCompany ? (
-            <>
-              <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />
-              <CreateOpportunityDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Opportunité créée pour ${matchedCompany.name}.`)} />
-            </>
+            <CreateAccountNoteDialog open={noteOpen} onOpenChange={setNoteOpen} companyId={matchedCompany.id} companyName={matchedCompany.name} signalTitle={selectedArticle.titre_fr} onSuccess={() => setMessage(`Note ajoutée pour ${matchedCompany.name}.`)} />
           ) : null}
         </>
       ) : null}
