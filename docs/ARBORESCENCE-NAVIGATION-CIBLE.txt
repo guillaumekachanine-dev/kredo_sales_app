@@ -1,0 +1,332 @@
+KREDO — ARBORESCENCE DE NAVIGATION CIBLE (DESKTOP)
+Référence : ADR-0018 · État au 2026-08-06 · Statut : proposé, aucun développement engagé
+
+LÉGENDE
+  [=]    existe déjà — à déplacer dans le rail
+  [>]    existe ailleurs — déplacement d'un autre module
+  [+]    à créer
+  [n8n]  nécessite un nouveau workflow
+  [data] nécessite une RPC d'agrégation
+  (—)    hors périmètre de la refonte
+
+STRUCTURE
+  Étage 1 = menu principal (bleu navy, replié par défaut)
+  Étage 2 = rail de section : bouton d'accueil > Chapitres > Modules
+  Étage 3 = barre de fiches ouvertes (inchangée)
+
+
+===============================================================================
+GÉNÉRAL
+===============================================================================
+
+Cockpit                                                                     (—)
+└── page unique, pas de rail
+
+Agenda
+├── [accueil] Mon agenda                                                    [=]
+│              calques : événements + jalons opportunités + jalons prestations
+├── Chapitres
+│   └── Production & congés                                                 [+]
+└── Modules
+    ├── Brief hebdomadaire                                                  [=]
+    ├── Priorisation des actions                                            [+]
+    └── Métriques de l'activité                                             [=]
+
+
+===============================================================================
+CRM
+===============================================================================
+
+Comptes & contacts                                    (rail contextuel, 2 états)
+                                          passe fonctionnelle du 2026-08-07 (D-16)
+│
+├── ÉTAT « LISTE »
+│   └── [accueil] Liste des comptes                                         [=]
+│                 pas de chapitres, pas de synthèse
+│
+└── ÉTAT « COMPTE OUVERT »
+    │
+    ├── [bouton navy] Liste des comptes                                     [=]
+    │                 sortie du compte — inchangé, existe déjà
+    │
+    ├── (ligne autonome, hors section)
+    │   └── Accueil du compte                                               [=]
+    │       DESTINATION D'OUVERTURE PAR DÉFAUT d'un compte (D-16).
+    │       C'est l'actuel ClientIntelligenceHomeTab : CONSERVÉ et PROMU.
+    │
+    ├── Account Intelligence
+    │   ├── 1. Entreprise                                                   [=]
+    │   │      absorbe le contenu de l'ex-chapitre « Contacts »
+    │   ├── 2. Secteur                                                      [=]
+    │   ├── 3. Enjeux                                                       [=]
+    │   └── 4. Actualités                                                   [+]
+    │
+    ├── Stratégie                                        ex-« Adressage »
+    │   ├── 1. Relation commerciale                                         [+]
+    │   ├── 2. Fenêtres d'opportunités                                      [+]
+    │   │      VUE sur account_issues (urgence calculée >= 4 ET kredo_fit >= 3),
+    │   │      pas une table ni une RPC d'unification — cf. D-18
+    │   ├── 3. Approches commerciales                                       [=]
+    │   │      ex-chapitre « Stratégie », renommé pour lever la collision
+    │   │      avec le nom de la section
+    │   └── 4. Roadmap                                                      [=]
+    │
+    └── Modules
+        ├── Bibliothèque de documents                                       [=]
+        │      ex-« Consulter les documents »
+        └── Playbook du compte                                              [+]
+
+    RETIRÉ du rail compte : module « Études » (les études sectorielles restent
+    accessibles depuis Prospection > Ressources et depuis l'onglet Secteur).
+
+    NOTE : « Fenêtres d'opportunités » existe aussi comme chapitre de Business
+    Intelligence. Même donnée, deux portées : ici filtrée sur le compte ouvert,
+    là agrégée sur le portefeuille. Un seul calcul, deux scopes (N-7).
+
+    Le contenu et les contours de chaque onglet sont établis progressivement.
+    Enjeux + Playbook : cf. docs/intelligence/CADRAGE-ENJEUX-PLAYBOOK-COMPTE.md
+
+Besoins & staffing
+├── [accueil] Liste opportunités                                            [=]
+├── Chapitres
+│   ├── Planning des opportunités                                           [=]
+│   └── Sourcing & recrutement                                              [>]
+│       absorbe l'ancien module « Recrutement »
+│       deux funnels séparés : recrutement interne / positionnement sur besoin
+└── Modules
+    ├── Priorisation du pipeline                                            [+]
+    ├── Matching CV                                                         [=]
+    ├── Modélisation financière                                             [=]
+    └── Rapport d'activité                                                  [=]
+
+Engagements
+├── [accueil] Vue d'ensemble                                                [=]
+│              ex-« Synthèse »
+├── Chapitres
+│   ├── Missions                                                            [=]
+│   ├── Projets                                                             [=]
+│   ├── Planning des prestations                                            [=]
+│   └── Activité & congés                                                   [>]
+│       depuis Équipe
+└── Modules
+    └── à définir
+
+Profils & expertises
+│   ex-« Équipe »
+├── [accueil] Synthèse                                                      [+]
+├── Chapitres
+│   ├── Collaborateurs                                                      [=]
+│   └── Pool de compétences                                                 [=]
+└── Modules
+    └── à définir
+
+
+===============================================================================
+INTELLIGENCE
+===============================================================================
+
+Business Intelligence
+├── [accueil] Analyse                                                 [+][n8n]
+├── Chapitres
+│   ├── Secteurs                                                            [=]
+│   ├── Fenêtres d'opportunités                                      [>][data]
+│   │   agrège : réglementaire + pain points + événements + actualités
+│   │            + enjeux comptes + signaux
+│   └── Potentiel                                                           [+]
+└── Modules
+    └── — (études et playbooks migrent vers Prospection > Ressources)
+
+Prospection                                                    (module nouveau)
+├── [accueil] Brief                                                   [+][n8n]
+├── Chapitres
+│   ├── Plan d'actions                                                      [+]
+│   │   digest + liens profonds vers les comptes — jamais un 2e cockpit
+│   └── Suivi & résultats                                                   [+]
+└── Modules
+    ├── Analytics                                                           [+]
+    └── Ressources                                                          [+]
+        études + playbooks + cockpits comptes, dans une seule modale
+
+Rapports & rédaction
+├── [accueil] Bibliothèque                                                  [=]
+├── Chapitres
+│   ├── Génération                                                          [+]
+│   └── Cas d'usage                                                         [+]
+└── Modules
+    ├── Analytics                                                           [+]
+    └── Library Launcher                                                    [+]
+
+    SUPPRIMÉ : onglet « Historique » (nav + code)
+
+Veille & actualité
+├── [accueil] Actualités                                                    [=]
+│              dernier digest de la semaine en cours
+├── Chapitres
+│   ├── Veille                                                              [=]
+│   │   ex-« Comptes surveillés »
+│   └── Analyse                                                       [>][n8n]
+│       actualités (existe) + analyse sectorielle (à créer)
+└── Modules
+    ├── Analytics                                                           [+]
+    ├── Sources                                                             [+]
+    └── CRM Launcher                                                        [=]
+
+
+===============================================================================
+FINANCE
+===============================================================================
+
+Finance
+├── [accueil] Dashboard                                                     [+]
+├── Chapitres
+│   ├── Pilotage                                                            [+]
+│   ├── Rentabilité                                                         [>]
+│   └── Prévisions                                                          [=]
+└── Modules
+    ├── Modélisation financière                                             [=]
+    └── Business Review                                                     [+]
+
+    À CLARIFIER : Dashboard et Pilotage doivent se distinguer, sinon fusionner.
+
+
+===============================================================================
+OUTILS
+===============================================================================
+
+Knowledge Hub                                                               (—)
+└── conserve sa navigation actuelle, traité ultérieurement
+
+Automatisations
+├── [accueil] Exécutions                                                    [=]
+│              ex-« Journal d'exécution »
+├── Chapitres
+│   ├── Santé des workflows                                                 [=]
+│   ├── Coûts                                                               [=]
+│   └── Nomenclature & accès                                                [+]
+│       lecture directe du ModuleRegistry
+└── Modules
+    ├── Analytics                                                           [=]
+    └── Simulation de cadence                                               [=]
+
+
+===============================================================================
+PARAMÈTRES
+===============================================================================
+
+Paramètres
+└── destination unique, pas de rail
+
+
+===============================================================================
+ÉTAGE 3 — BARRE DE FICHES OUVERTES (INCHANGÉE)
+===============================================================================
+
+Conservée intacte sur :
+  · Comptes & contacts
+  · Besoins & staffing
+  · Missions
+  · Projets
+
+Interface multi-documents (comparer deux comptes, garder trois besoins ouverts),
+pas de la navigation. Aucune modification de SectionTabBar / CrmSectionTabBar /
+StaffingSectionTabBar ni de leurs stores.
+
+
+===============================================================================
+CE QUE LE CHANTIER SUPPRIME
+===============================================================================
+
+Navigation                Shell                     Vues
+  SectionNavBar             use-sidebar-collapse      EntityKanbanView
+  SectionNavBarSlot         Breadcrumb + store        OpportunitiesKanbanView
+  FinanceTabs               bande d'en-tête           RecruitmentKanbanView
+  AutomationsTabs           MobileSectionRail         StaffingKanbanView
+  5 rails clonés                                      Rapports > Historique
+  main-menu.config: tabs
+
+Menu principal
+  groupe « Ressources »
+  groupe « Commerce »
+  module « Recrutement »
+
+NOTE : HIRING_KANBAN_STAGES est CONSERVÉ (consommé par ActivityRecruitmentReportView
+       et recruitment-margin-rules). L'avancement d'étape passe du drag à un
+       contrôle inline, livré dans le même lot que la suppression du Kanban.
+
+NOTE : les 22 routes orphelines ne sont PAS supprimées. Elles restent accessibles
+       par URL directe, hors navigation, jusqu'à arbitrage.
+
+
+===============================================================================
+COMPORTEMENT DU MENU PRINCIPAL
+===============================================================================
+
+Défaut : REPLIÉ (4rem)
+
+Trois déclencheurs de dépliage :
+  1. bouton toggle       → mode push, persisté en cookie
+  2. survol 500 ms       → mode overlay, le contenu ne bouge pas
+  3. focus clavier       → mode overlay, immédiat
+
+Fermeture : 300 ms après la fin du survol, au changement de route, sur Échap.
+
+Garde-fous : @media (hover: hover) and (pointer: fine) · prefers-reduced-motion
+             · timers en variables locales à l'effet
+
+Le repli forcé par les pages (use-sidebar-collapse) est SUPPRIMÉ : il devient
+sans objet et désactivait le bouton toggle sur cinq pages.
+
+
+===============================================================================
+CHIFFRES
+===============================================================================
+
+                                    Aujourd'hui      Cible      Dont à créer
+  Modules (étage 1)                          13         12                 1
+  Destinations (accueils + chapitres)       ~20         43               ~16
+  Modules-outils déclarés                    ~8         21               ~10
+
+  Plus : 2 workflows n8n · au moins 1 RPC d'agrégation
+
+  Primitives à construire une fois : SectionRail · EntityLauncher · ModuleRegistry
+
+
+===============================================================================
+DÉCISIONS
+===============================================================================
+
+  D-1   Le rail de section remplace les 5 mécanismes de navigation      TRANCHÉ
+  D-2   Un chapitre est toujours une route, jamais du useState          TRANCHÉ
+  D-3   La barre de fiches ouvertes est conservée intacte               TRANCHÉ
+  D-4   Groupe unique « CRM » ; Ressources et Commerce supprimés        TRANCHÉ
+  D-5   Agenda = 2 destinations, les plannings sont des calques         TRANCHÉ
+  D-6   « Activité & congés » vit une seule fois, dans Engagements      TRANCHÉ
+  D-7   Fil d'Ariane et bande d'en-tête supprimés                       TRANCHÉ
+  D-8   Rail contextuel à l'entité sur Comptes & contacts               TRANCHÉ
+  D-9   Aucune « Synthèse » sur Comptes & contacts                      TRANCHÉ
+  D-10  Fenêtres d'opportunités = chantier data autonome            À CONFIRMER
+  D-11  Autorité unique de priorisation, horizons distincts         À CONFIRMER
+  D-12  Recrutement interne et positionnement restent séparés           TRANCHÉ
+  D-13  Kanban supprimé partout, contrôle d'étape inline                TRANCHÉ
+  D-14  Mobile refondu séparément, ses données supprimables             TRANCHÉ
+  D-15  Les 22 routes orphelines ne sont pas supprimées                 TRANCHÉ
+  D-16  Un compte ouvert atterrit sur son Accueil de cockpit            TRANCHÉ
+        (amende D-9 : ce n'était PAS « Entreprise »).
+        ClientIntelligenceHomeTab est conservé et promu — la question
+        ouverte sur son sort est CLOSE.
+  D-17  Onglets compte : 4 + 4 + 2, section « Adressage » renommée      TRANCHÉ
+        « Stratégie ». Contacts fusionné dans Entreprise.
+  D-18  « Fenêtres d'opportunités » = vue dérivée d'account_issues,     TRANCHÉ
+        pas une RPC d'unification de 5 sources (allège D-10).
+
+
+===============================================================================
+MÉTHODE
+===============================================================================
+
+Le chantier procède PAGE PAR PAGE, en clarifiant d'abord les éléments
+fonctionnels et métier. Il est admis que certains modules manqueront et que
+certaines sections ne seront pas encore à leur emplacement final : l'objectif
+de la première phase est de BÂTIR LES FONDATIONS, pas de livrer la cible.
+
+Aucun développement n'est engagé sans demande expresse du décideur.
