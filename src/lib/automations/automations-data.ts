@@ -278,7 +278,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
   // Requêtes indépendantes en parallèle (pas de cascade) : santé par workflow,
   // stats de coût par workflow, journal des runs récents, compteur de runs
   // repris par le reaper, timeline de coût complète, réglages de veille actifs.
-  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes] = await Promise.all([
+  const [healthRes, costStatsRes, journalRunsRes, reapedRes, timelineRes, watchSettingsRes, watchRefreshStuckRes] = await Promise.all([
     supabase.from("v_workflow_health").select("*"),
     supabase.from("v_workflow_cost_stats").select("run_type, avg_cost_30d, total_cost_30d, has_pricing_gap, has_tokens_gap, avg_cost_all_time"),
     supabase
@@ -302,6 +302,12 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       .from("account_watch_settings")
       .select("cadence")
       .eq("is_enabled", true),
+    supabase
+      .from("ai_intelligence_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("run_type", "account_watch_refresh")
+      .eq("status", "running")
+      .lt("started_at", new Date(Date.now() - 5 * 60 * 1000).toISOString()),
   ])
 
   collectError("Santé des workflows", healthRes.error)
@@ -310,6 +316,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
   collectError("Runs repris (7j)", reapedRes.error)
   collectError("Timeline de coût", timelineRes.error)
   collectError("Réglages de veille", watchSettingsRes.error)
+  collectError("Stuck runs veille", watchRefreshStuckRes.error)
 
   const runRows = (journalRunsRes.data ?? []) as unknown as JournalRunRow[]
   const runIds = runRows.map((r) => r.id)
@@ -333,7 +340,7 @@ export async function getAutomationsDashboardData(): Promise<AutomationsDashboar
       succeeded30d: h.succeeded_30d ?? 0,
       failed30d: h.failed_30d ?? 0,
       successRatePct30d: h.success_rate_pct_30d,
-      stuckRunningNow: h.stuck_running_now ?? 0,
+      stuckRunningNow: h.run_type === "account_watch_refresh" ? (watchRefreshStuckRes.count ?? 0) : (h.stuck_running_now ?? 0),
       stuckQueuedNow: h.stuck_queued_now ?? 0,
       lastRunAt: h.last_run_at,
       lastFailureAt: h.last_failure_at,

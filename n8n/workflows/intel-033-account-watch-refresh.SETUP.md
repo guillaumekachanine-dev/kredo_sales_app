@@ -238,3 +238,15 @@ signaux qu'après un rechargement manuel : la veille écrit des lignes
 Realtime auquel les drawers sont abonnés. L'appel est encapsulé dans un `try/catch`
 non bloquant : à ce stade le callback a déjà tout persisté, un échec d'invalidation
 ne doit pas renvoyer 500 à n8n, qui rejouerait le callback.
+
+## 12. Correctif 2026-08-07 — gardes explicites et versioning
+
+**Incident de référence** : Compte Ciffreo Bona (`b7c8dd96-358d-4fec-a0bf-4b9bbc213f6c`), exécution n8n `83111` arrêtée à `Collect: Tenders`. KREDO n'a reçu aucun callback, le run `c14f77fa-3530-4c79-84a7-537ae4547d12` est resté en `running` puis reclassé `failed` par ops-004.
+
+**Cause** : Même avec `alwaysOutputData: true`, un collecteur optionnel (ex. Public Records) désactivé dans les réglages KREDO retournait 0 item, ce qui stoppait silencieusement la chaîne avant d'atteindre le collecteur suivant (ex. Tenders).
+
+**Corrections apportées :**
+1. **Gardes explicites (IF)** : Ajout de nœuds `IF — Include Public Records?` et `IF — Include Tenders?`. Un collecteur désactivé est purement ignoré et son contexte passe directement au nœud suivant sans aucun appel réseau.
+2. **Comportement attendu 0 signal** : Si un run aboutit à 0 item qualifié, le `Finalize Run Summary` converge correctement. Il produit un callback de succès contenant `signalsCreated: 0`, et met à jour `account_watch_settings` avec `last_status = succeeded`. Le run ne meurt plus silencieusement.
+3. **Convergence centralisée** : `Finalize Run Summary` est l'unique source de vérité lue par les deux nœuds aval (`Update Watch Settings -> Succeeded` et `Prepare Callback`). 
+4. **Traçabilité de version** : La version du workflow (`2026-08-07.1`) est émise dans le callback et stockée dans `ai_intelligence_runs.config`.
