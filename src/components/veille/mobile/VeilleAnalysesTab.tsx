@@ -75,13 +75,13 @@ export function VeilleAnalysesTab({
     const SectionIcon = SECTION_ICONS[section.key]
     return (
       <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
-        <div className="border-b border-border px-4 py-4">
+        <div className="border-b border-border px-4 py-2">
           <button
             type="button"
             onClick={() => setDetailSelection(null)}
-            className="-ml-1 inline-flex min-h-11 items-center gap-1 pr-2 text-sm font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-heading"
+            className="-ml-1 inline-flex min-h-9 items-center gap-1 pr-2 text-xs font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-heading"
           >
-            <IconChevronLeft className="size-5" />
+            <IconChevronLeft className="size-4" />
             Retour à l&apos;index
           </button>
         </div>
@@ -113,22 +113,14 @@ export function VeilleAnalysesTab({
 
   return (
     <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
-      <header className="flex items-center justify-between border-b border-border px-4 py-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[17px] font-bold leading-6 text-heading">
-            {index.analysisTitle}
-          </h1>
-          {index.producedAtLabel ? (
-            <p className="mt-0.5 text-xs text-muted">{index.producedAtLabel}</p>
-          ) : null}
-        </div>
-
-        {index.coverageLabel ? (
-          <div className="ml-4 shrink-0 text-right">
-            <span className="text-xs font-medium text-muted">
-              {index.coverageLabel}
-            </span>
-          </div>
+      <header className="border-b border-border px-4 py-4">
+        <h1 className="text-[17px] font-bold leading-6 text-heading">
+          {index.analysisTitle}
+        </h1>
+        {index.metaSubtitle ? (
+          <p className="mt-1 text-xs text-muted">{index.metaSubtitle}</p>
+        ) : index.producedAtLabel ? (
+          <p className="mt-1 text-xs text-muted">{index.producedAtLabel}</p>
         ) : null}
       </header>
 
@@ -189,7 +181,10 @@ export function VeilleAnalysesTab({
                   setOpenSections((previous) => ({ ...previous, [section.key]: !previous[section.key] }))
                 }
                 aria-expanded={isOpen}
-                className="flex min-h-16 w-full items-center gap-3 px-4 py-4 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
+                className={cn(
+                  "flex min-h-16 w-full items-center gap-3 px-4 py-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                  isOpen ? "bg-surface-hover/50" : "hover:bg-surface-hover/60",
+                )}
               >
                 <span className="shrink-0 text-primary">
                   <SectionIcon className="size-6" />
@@ -211,11 +206,11 @@ export function VeilleAnalysesTab({
 
             {isOpen ? (
               section.items.length === 0 ? (
-                <p className="px-4 pb-4 text-sm text-muted">Aucun élément pour cette période.</p>
+                <p className="bg-canvas/50 px-4 py-4 text-sm text-muted">Aucun élément pour cette période.</p>
               ) : (
-                <ul className="border-t border-border">
+                <ul className="divide-y divide-border/60 border-t border-border bg-canvas/40">
                   {section.items.map((item, itemIndex) => (
-                    <li key={`${section.key}-${itemIndex}`} className="border-b border-border last:border-b-0">
+                    <li key={`${section.key}-${itemIndex}`}>
                       <button
                         type="button"
                         onClick={() =>
@@ -225,12 +220,18 @@ export function VeilleAnalysesTab({
                             itemIndex,
                           })
                         }
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left outline-none hover:bg-surface-hover/60 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left outline-none transition-colors hover:bg-surface-hover/80 focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset"
                       >
-                        <span className="min-w-0 flex-1 text-[15px] font-bold leading-6 text-heading">
-                          {item.title}
-                        </span>
-                        <span className="shrink-0 text-heading">
+                        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                          <span
+                            className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary/70"
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-0 flex-1 text-[15px] font-medium leading-6 text-heading">
+                            {item.title}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-muted">
                           <IconChevronRight className="size-5" />
                         </span>
                       </button>

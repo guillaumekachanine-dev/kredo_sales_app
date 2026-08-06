@@ -310,6 +310,7 @@ describe("buildAnalysisIndex", () => {
     expect(vm.periodLabel).toBe("Juillet 2026")
     expect(vm.analysisTitle).toBe("Analyse Juillet 2026")
     expect(vm.producedAtLabel).toBe("produite le 01/08")
+    expect(vm.metaSubtitle).toBe("20 articles - 5 sources - Produite le 01/08")
     expect(vm.periodRange).toBe("1–31 juillet")
     expect(vm.statusLabel).toBe("Prête")
     expect(vm.coverageLabel).toBe("20 articles · 5 sources")

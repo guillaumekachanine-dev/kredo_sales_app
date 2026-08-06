@@ -373,6 +373,7 @@ export type AnalysisIndexVM = {
   coverageLabel: string | null
   digestsCount: number | null
   producedAtLabel: string | null
+  metaSubtitle: string | null
   sections: AnalysisSectionVM[]
 }
 
@@ -414,6 +415,15 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
   const producedDate = formatProducedDate(analysis.createdAt)
   const producedAtLabel = producedDate ? `produite le ${producedDate}` : null
 
+  const metaParts: string[] = []
+  if (coverage) {
+    metaParts.push(`${coverage.articlesCount} articles`, `${coverage.sourcesCount} sources`)
+  }
+  if (producedDate) {
+    metaParts.push(`Produite le ${producedDate}`)
+  }
+  const metaSubtitle = metaParts.length > 0 ? metaParts.join(" - ") : null
+
   const sections: AnalysisSectionVM[] = [
     {
       key: "trends",
@@ -452,6 +462,7 @@ export function buildAnalysisIndex(analysis: StrategicWatchAnalysis): AnalysisIn
     coverageLabel: coverage ? `${coverage.articlesCount} articles · ${coverage.sourcesCount} sources` : null,
     digestsCount: coverage?.digestsCount ?? null,
     producedAtLabel,
+    metaSubtitle,
     sections,
   }
 }
