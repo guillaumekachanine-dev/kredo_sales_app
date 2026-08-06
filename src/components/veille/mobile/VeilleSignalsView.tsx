@@ -6,7 +6,7 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { AccountSignalDetailDrawer } from "@/components/accounts-contacts/intelligence/AccountSignalDetailDrawer"
 import { cn } from "@/lib/utils"
 import type { WatchedAccountSignal } from "@/app/(app)/veille/_data/veille-data"
-import { IconChevronLeft, IconChevronRight } from "./icons"
+import { IconChevronRight } from "./icons"
 import {
   SIGNAL_MARKER_LABELS,
   buildSignalGroups,
@@ -18,11 +18,10 @@ import {
 
 type VeilleSignalsViewProps = {
   signals: WatchedAccountSignal[]
-  onBack: () => void
   onDismissSignal: (signalId: string) => void
 }
 
-export function VeilleSignalsView({ signals, onBack, onDismissSignal }: VeilleSignalsViewProps) {
+export function VeilleSignalsView({ signals, onDismissSignal }: VeilleSignalsViewProps) {
   const groups = useMemo(() => buildSignalGroups(signals), [signals])
 
   const [openGroupId, setOpenGroupId] = useState<string | null>(null)
@@ -58,16 +57,7 @@ export function VeilleSignalsView({ signals, onBack, onDismissSignal }: VeilleSi
   return (
     <div className="veille-scrollbar h-full overflow-y-auto overscroll-contain bg-surface">
       <div className="border-b border-border px-4 py-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="-ml-1 inline-flex min-h-11 items-center gap-1 pr-2 text-sm font-semibold text-primary outline-none focus-visible:ring-2 focus-visible:ring-heading"
-        >
-          <IconChevronLeft className="size-5" />
-          Retour à la lecture
-        </button>
-
-        <h2 className="mt-2 font-heading text-[22px] font-bold leading-7 text-heading">
+        <h2 className="font-heading text-[22px] font-bold leading-7 text-heading">
           Signaux des comptes surveillés
         </h2>
         <p className="mt-1.5 text-sm text-muted">Priorité aux changements qui appellent une action.</p>

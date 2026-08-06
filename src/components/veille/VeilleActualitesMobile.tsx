@@ -6,21 +6,18 @@ import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { openCommunicationComposer } from "@/lib/communication/communication-composer"
 import { buildCommunicationEntryPreset } from "@/lib/communication/communication-entry-intents"
 import { cn } from "@/lib/utils"
-import {
-  CreateAccountNoteDialog,
-  CreateOpportunityDialog,
-  QualifySignalDialog,
-} from "./SignalDialogs"
+import { CreateOpportunityDialog, QualifySignalDialog } from "./SignalDialogs"
 import { extractMatchedCompany } from "./veille-utils"
+import { LinkSignalDialog } from "./mobile/LinkSignalDialog"
 import { VeilleAnalysesTab } from "./mobile/VeilleAnalysesTab"
 import { VeilleArchivesTab } from "./mobile/VeilleArchivesTab"
+import { VeilleArticleReader, type ArticleAction } from "./mobile/VeilleArticleReader"
 import { VeilleNewsTab } from "./mobile/VeilleNewsTab"
-import { VeilleReaderTab } from "./mobile/VeilleReaderTab"
 import { VeilleSignalsView } from "./mobile/VeilleSignalsView"
 import {
   buildArchiveEntries,
+  buildDigestPeriods,
   buildNewsRows,
-  buildSignalGroups,
   type ArchiveEntryVM,
 } from "./mobile/veille-mobile-view-models"
 import type { StrategicWatchAnalysis } from "./veille-desktop-contracts"
@@ -43,8 +40,9 @@ const TABS: Array<{ id: VeilleTab; label: string }> = [
 interface VeilleActualitesMobileProps {
   /** Articles du digest sélectionné (contrat historique, conservé). */
   articles: VeilleArticle[]
-  /** Flux complet des briefings chargés — alimente Actualités et Archives. */
+  /** Articles de tous les briefings chargés — sert la navigation hebdomadaire. */
   feedArticles: VeilleArticle[]
+  selectedDigestId: string | null
   pastDigests: VeilleDigest[]
   companies: CompanyContextStats[]
   watchedSignals: WatchedAccountSignal[]
@@ -54,6 +52,7 @@ interface VeilleActualitesMobileProps {
 export function VeilleActualitesMobile({
   articles,
   feedArticles,
+  selectedDigestId,
   pastDigests,
   companies,
   watchedSignals,
@@ -64,45 +63,58 @@ export function VeilleActualitesMobile({
   const allArticles = feedArticles.length > 0 ? feedArticles : articles
 
   const [activeTab, setActiveTab] = useState<VeilleTab>("actualites")
-  const [veillePane, setVeillePane] = useState<"reader" | "signals">("reader")
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null)
+  /** On mémorise l'ID du briefing, pas son rang : l'index se dérive ensuite,
+      ce qui reste correct si la liste des briefings change. */
+  const [activeDigestId, setActiveDigestId] = useState<string | null>(selectedDigestId)
+  /** Article ouvert DANS l'onglet Actualités — la lecture ne quitte plus l'onglet. */
+  const [openArticleId, setOpenArticleId] = useState<string | null>(null)
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null)
 
   const [localSignals, setLocalSignals] = useState<WatchedAccountSignal[]>(watchedSignals)
   const [articleOverrides, setArticleOverrides] = useState<Record<string, VeilleArticle>>({})
   const [feedback, setFeedback] = useState<string | null>(null)
 
-  const [isNoteOpen, setIsNoteOpen] = useState(false)
   const [isOpportunityOpen, setIsOpportunityOpen] = useState(false)
   const [isQualifyOpen, setIsQualifyOpen] = useState(false)
+  const [isLinkOpen, setIsLinkOpen] = useState(false)
 
   const resolvedArticles = useMemo(
     () => allArticles.map((article) => articleOverrides[article.id] ?? article),
     [allArticles, articleOverrides],
   )
 
-  const newsRows = useMemo(() => buildNewsRows(resolvedArticles), [resolvedArticles])
+  const periods = useMemo(
+    () => buildDigestPeriods(pastDigests, resolvedArticles),
+    [pastDigests, resolvedArticles],
+  )
 
-  /** À défaut de sélection explicite, on ouvre l'article disponible le plus récent. */
-  const selectedArticle = useMemo(() => {
-    if (resolvedArticles.length === 0) return null
-    if (selectedArticleId) {
-      const match = resolvedArticles.find((article) => article.id === selectedArticleId)
-      if (match) return match
-    }
-    const mostRecentId = newsRows[0]?.id
-    return resolvedArticles.find((article) => article.id === mostRecentId) ?? resolvedArticles[0]
-  }, [resolvedArticles, selectedArticleId, newsRows])
+  const activePeriodIndex = useMemo(() => {
+    const index = periods.findIndex((period) => period.digestId === activeDigestId)
+    return index >= 0 ? index : 0
+  }, [periods, activeDigestId])
+
+  const activePeriod = periods[activePeriodIndex] ?? null
+
+  /** L'onglet Actualités ne montre QUE les articles du briefing de la semaine active. */
+  const periodRows = useMemo(() => {
+    if (!activePeriod) return []
+    return buildNewsRows(
+      resolvedArticles.filter((article) => article.digest_id === activePeriod.digestId),
+    )
+  }, [resolvedArticles, activePeriod])
+
+  const openArticle = useMemo(() => {
+    if (!openArticleId) return null
+    return resolvedArticles.find((article) => article.id === openArticleId) ?? null
+  }, [resolvedArticles, openArticleId])
 
   const matchedCompany = useMemo(
     () =>
-      selectedArticle
-        ? extractMatchedCompany(selectedArticle.titre_fr, selectedArticle.resume, companies)
+      openArticle
+        ? extractMatchedCompany(openArticle.titre_fr, openArticle.resume, companies)
         : null,
-    [selectedArticle, companies],
+    [openArticle, companies],
   )
-
-  const signalGroupsCount = useMemo(() => buildSignalGroups(localSignals).length, [localSignals])
 
   const archiveEntries = useMemo(() => {
     const articleCountByDigest = new Map<string, number>()
@@ -117,32 +129,17 @@ export function VeilleActualitesMobile({
     window.setTimeout(() => setFeedback(null), 4000)
   }, [])
 
-  const openArticle = useCallback((articleId: string) => {
-    setSelectedArticleId(articleId)
-    setVeillePane("reader")
-    setActiveTab("veille")
-  }, [])
-
-  const handleOpenArchiveEntry = useCallback(
-    (entry: ArchiveEntryVM) => {
-      if (entry.kind === "analysis") {
-        setSelectedAnalysisId(entry.id)
-        setActiveTab("analyses")
-        return
-      }
-
-      // Briefing : on conserve le contrat d'URL `digestId` déjà en place et on
-      // ouvre le lecteur sur l'article le plus récent de ce briefing.
-      const firstOfDigest = newsRows.find((row) => row.digestId === entry.id)
-      router.push(`?digestId=${entry.id}`, { scroll: false })
-      if (firstOfDigest) {
-        openArticle(firstOfDigest.id)
-      } else {
-        setVeillePane("reader")
-        setActiveTab("veille")
-      }
+  const handleChangePeriod = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= periods.length) return
+      setActiveDigestId(periods[index].digestId)
+      // Changer de semaine referme la lecture : l'article ouvert appartenait au
+      // briefing précédent.
+      setOpenArticleId(null)
+      // Le contrat d'URL `digestId` reste la source de vérité côté serveur.
+      router.push(`?digestId=${periods[index].digestId}`, { scroll: false })
     },
-    [newsRows, openArticle, router],
+    [periods, router],
   )
 
   const handleGeneratePitch = useCallback(
@@ -173,25 +170,42 @@ export function VeilleActualitesMobile({
     [],
   )
 
-  const handleReaderAction = useCallback(
-    (action: "pitch" | "note" | "opportunity" | "qualify") => {
-      if (!selectedArticle) return
-      if (action === "pitch") {
-        handleGeneratePitch(selectedArticle, matchedCompany)
-        return
+  const handleArticleAction = useCallback(
+    (action: ArticleAction) => {
+      if (!openArticle) return
+      switch (action) {
+        case "pitch":
+          handleGeneratePitch(openArticle, matchedCompany)
+          return
+        case "qualify":
+          setIsQualifyOpen(true)
+          return
+        case "link":
+          setIsLinkOpen(true)
+          return
+        case "opportunity":
+          if (!matchedCompany) {
+            showFeedback("Liez d'abord le signal à un compte.")
+            return
+          }
+          setIsOpportunityOpen(true)
       }
-      if (action === "qualify") {
-        setIsQualifyOpen(true)
-        return
-      }
-      if (!matchedCompany) {
-        showFeedback("Qualifiez d'abord le signal pour le rattacher à un compte.")
-        return
-      }
-      if (action === "note") setIsNoteOpen(true)
-      else setIsOpportunityOpen(true)
     },
-    [selectedArticle, matchedCompany, handleGeneratePitch, showFeedback],
+    [openArticle, matchedCompany, handleGeneratePitch, showFeedback],
+  )
+
+  const handleOpenArchiveEntry = useCallback(
+    (entry: ArchiveEntryVM) => {
+      if (entry.kind === "analysis") {
+        setSelectedAnalysisId(entry.id)
+        setActiveTab("analyses")
+        return
+      }
+      const index = periods.findIndex((period) => period.digestId === entry.id)
+      if (index >= 0) handleChangePeriod(index)
+      setActiveTab("actualites")
+    },
+    [periods, handleChangePeriod],
   )
 
   return (
@@ -232,27 +246,31 @@ export function VeilleActualitesMobile({
           on n'ajoute ici que la safe-area, sans quoi un bandeau mort apparaît. */}
       <main className="min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)]">
         {activeTab === "actualites" ? (
-          <VeilleNewsTab rows={newsRows} onOpenArticle={openArticle} />
+          openArticle ? (
+            <VeilleArticleReader
+              article={openArticle}
+              matchedCompany={matchedCompany}
+              onBack={() => setOpenArticleId(null)}
+              onAction={handleArticleAction}
+            />
+          ) : (
+            <VeilleNewsTab
+              periods={periods}
+              activePeriodIndex={activePeriodIndex}
+              onChangePeriod={handleChangePeriod}
+              rows={periodRows}
+              onOpenArticle={setOpenArticleId}
+            />
+          )
         ) : null}
 
         {activeTab === "veille" ? (
-          veillePane === "signals" ? (
-            <VeilleSignalsView
-              signals={localSignals}
-              onBack={() => setVeillePane("reader")}
-              onDismissSignal={(signalId) =>
-                setLocalSignals((previous) => previous.filter((signal) => signal.id !== signalId))
-              }
-            />
-          ) : (
-            <VeilleReaderTab
-              article={selectedArticle}
-              matchedCompany={matchedCompany}
-              watchedGroupsCount={signalGroupsCount}
-              onOpenSignals={() => setVeillePane("signals")}
-              onAction={handleReaderAction}
-            />
-          )
+          <VeilleSignalsView
+            signals={localSignals}
+            onDismissSignal={(signalId) =>
+              setLocalSignals((previous) => previous.filter((signal) => signal.id !== signalId))
+            }
+          />
         ) : null}
 
         {activeTab === "analyses" ? (
@@ -277,38 +295,39 @@ export function VeilleActualitesMobile({
         </p>
       ) : null}
 
-      {selectedArticle ? (
+      {openArticle ? (
         <>
           <QualifySignalDialog
             open={isQualifyOpen}
             onOpenChange={setIsQualifyOpen}
-            article={selectedArticle}
+            article={openArticle}
             onSuccess={(updated) => {
               setArticleOverrides((previous) => ({ ...previous, [updated.id]: updated }))
-              setSelectedArticleId(updated.id)
               showFeedback("Signal qualifié et mis à jour.")
             }}
           />
 
+          <LinkSignalDialog
+            open={isLinkOpen}
+            onOpenChange={setIsLinkOpen}
+            article={openArticle}
+            companies={companies}
+            suggestedCompany={matchedCompany}
+            onSuccess={(updated, message) => {
+              setArticleOverrides((previous) => ({ ...previous, [updated.id]: updated }))
+              showFeedback(message)
+            }}
+          />
+
           {matchedCompany ? (
-            <>
-              <CreateAccountNoteDialog
-                open={isNoteOpen}
-                onOpenChange={setIsNoteOpen}
-                companyId={matchedCompany.id}
-                companyName={matchedCompany.name}
-                signalTitle={selectedArticle.titre_fr}
-                onSuccess={() => showFeedback(`Note ajoutée pour ${matchedCompany.name}.`)}
-              />
-              <CreateOpportunityDialog
-                open={isOpportunityOpen}
-                onOpenChange={setIsOpportunityOpen}
-                companyId={matchedCompany.id}
-                companyName={matchedCompany.name}
-                signalTitle={selectedArticle.titre_fr}
-                onSuccess={() => showFeedback(`Opportunité créée pour ${matchedCompany.name}.`)}
-              />
-            </>
+            <CreateOpportunityDialog
+              open={isOpportunityOpen}
+              onOpenChange={setIsOpportunityOpen}
+              companyId={matchedCompany.id}
+              companyName={matchedCompany.name}
+              signalTitle={openArticle.titre_fr}
+              onSuccess={() => showFeedback(`Opportunité créée pour ${matchedCompany.name}.`)}
+            />
           ) : null}
         </>
       ) : null}

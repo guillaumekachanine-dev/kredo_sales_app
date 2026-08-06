@@ -33,18 +33,6 @@ export type NewsRowVM = {
 }
 
 /**
- * Le schéma `veille_articles` ne porte AUCUN champ `format` : seule la valeur
- * "article / actualité" est réellement exploitable. On n'invente donc pas de
- * communiqués, études ou appels d'offres.
- */
-export type NewsFormatFilter = "all" | "article"
-
-export const NEWS_FORMAT_OPTIONS: Array<{ value: NewsFormatFilter; label: string }> = [
-  { value: "all", label: "Tous les contenus" },
-  { value: "article", label: "Article / actualité" },
-]
-
-/**
  * Familles de catégories. Les données réelles mélangent des variantes
  * (`Réglementaire`, `Réglementation`, `Réglementation / Gouvernance IA`, …) :
  * on les replie sur une famille canonique POUR L'AFFICHAGE uniquement.
@@ -120,20 +108,143 @@ export function collectCategoryOptions(rows: NewsRowVM[]): Array<{ key: string; 
     .sort((a, b) => a.label.localeCompare(b.label, "fr"))
 }
 
+/** Filtre le flux. `categoryKeys` vide = aucune restriction de catégorie. */
 export function filterNewsRows(
   rows: NewsRowVM[],
-  filters: { search: string; categoryKey: string | null; format: NewsFormatFilter },
+  filters: { search: string; categoryKeys: string[] },
 ): NewsRowVM[] {
   const needle = foldAccents(filters.search.trim())
+  const selected = new Set(filters.categoryKeys)
   return rows.filter((row) => {
-    if (filters.categoryKey && row.categoryKey !== filters.categoryKey) return false
-    // `format === "article"` ne restreint rien aujourd'hui : toutes les lignes
-    // de `veille_articles` SONT des articles. Le filtre existe pour rester
-    // honnête sur ce que le schéma sait distinguer.
+    if (selected.size > 0 && (!row.categoryKey || !selected.has(row.categoryKey))) return false
     if (!needle) return true
     const haystack = foldAccents(`${row.title} ${row.sourceName ?? ""} ${row.categoryLabel ?? ""}`)
     return haystack.includes(needle)
   })
+}
+
+/* ────────────────────────────────────────────────────────────
+   Accent de catégorie
+   ──────────────────────────────────────────────────────────── */
+
+/**
+ * Slot de la palette `dataviz` (catégorielle, sans sémantique de statut —
+ * contrairement à `danger`/`warning` qui signifieraient autre chose).
+ *
+ * La couleur est portée par une PASTILLE et une teinte de fond, jamais par le
+ * texte : sur blanc, `dataviz-2` (#D89B16) et `dataviz-6` (#D4B26A) plafonnent
+ * autour de 2:1 de contraste et seraient illisibles en encre.
+ */
+export type CategoryAccentSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7
+
+const CATEGORY_ACCENTS: Record<string, CategoryAccentSlot> = {
+  reglementation: 1,
+  "cas-usage": 3,
+  infrastructure: 7,
+  investissement: 4,
+  produit: 5,
+  tendance: 2,
+  gouvernance: 6,
+}
+
+export function categoryAccentSlot(categoryKey: string | null | undefined): CategoryAccentSlot {
+  if (!categoryKey) return 1
+  const known = CATEGORY_ACCENTS[categoryKey]
+  if (known) return known
+  // Catégorie hors référentiel : slot stable dérivé du libellé, pour qu'une
+  // même catégorie garde toujours la même couleur d'une session à l'autre.
+  let hash = 0
+  for (let index = 0; index < categoryKey.length; index += 1) {
+    hash = (hash * 31 + categoryKey.charCodeAt(index)) % 7
+  }
+  return ((hash + 1) as CategoryAccentSlot)
+}
+
+/* ────────────────────────────────────────────────────────────
+   Périodes de digest (navigation hebdomadaire)
+   ──────────────────────────────────────────────────────────── */
+
+export type DigestPeriodVM = {
+  digestId: string
+  title: string
+  weekNumber: number
+  /** « Semaine 31 » */
+  weekLabel: string
+  /** « 27 au 30 juillet » ou « 27 juillet au 2 août » */
+  rangeLabel: string
+  /** Libellé complet affiché dans le navigateur. */
+  label: string
+  articleCount: number
+}
+
+/** Numéro de semaine ISO-8601 (lundi = premier jour, semaine 1 = celle du 4 janvier). */
+export function isoWeekNumber(date: Date): number {
+  const shifted = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const dayNumber = shifted.getUTCDay() || 7
+  shifted.setUTCDate(shifted.getUTCDate() + 4 - dayNumber)
+  const yearStart = Date.UTC(shifted.getUTCFullYear(), 0, 1)
+  return Math.ceil(((shifted.getTime() - yearStart) / 86_400_000 + 1) / 7)
+}
+
+function formatCoverageRange(start: Date, end: Date): string {
+  const day = new Intl.DateTimeFormat("fr-FR", { day: "numeric", timeZone: "UTC" })
+  const dayMonth = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" })
+  if (start.getTime() === end.getTime()) return dayMonth.format(start)
+  const sameMonth =
+    start.getUTCFullYear() === end.getUTCFullYear() && start.getUTCMonth() === end.getUTCMonth()
+  return sameMonth ? `${day.format(start)} au ${dayMonth.format(end)}` : `${dayMonth.format(start)} au ${dayMonth.format(end)}`
+}
+
+/**
+ * Construit les périodes navigables, de la plus récente à la plus ancienne.
+ *
+ * La période affichée est la COUVERTURE RÉELLE des articles du digest, pas la
+ * semaine calendaire de `digest_date` : un digest publié le 3 août analyse en
+ * pratique des articles du 27 au 30 juillet. Afficher « semaine du 3 août »
+ * mentirait sur le contenu.
+ */
+export function buildDigestPeriods(
+  digests: VeilleDigest[],
+  articles: VeilleArticle[],
+): DigestPeriodVM[] {
+  const byDigest = new Map<string, VeilleArticle[]>()
+  for (const article of articles) {
+    const bucket = byDigest.get(article.digest_id)
+    if (bucket) bucket.push(article)
+    else byDigest.set(article.digest_id, [article])
+  }
+
+  return [...digests]
+    .sort((a, b) => b.digest_date.localeCompare(a.digest_date))
+    .map((digest) => {
+      const own = byDigest.get(digest.id) ?? []
+      const stamps = own
+        .map((article) => article.published_at)
+        .filter((value): value is string => Boolean(value))
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime())
+
+      const fallback = new Date(`${digest.digest_date.slice(0, 10)}T00:00:00Z`)
+      const start = stamps[0] ?? fallback
+      const end = stamps[stamps.length - 1] ?? fallback
+      const startUtc = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+      const endUtc = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()))
+
+      const weekNumber = isoWeekNumber(startUtc)
+      const weekLabel = `Semaine ${weekNumber}`
+      const rangeLabel = formatCoverageRange(startUtc, endUtc)
+
+      return {
+        digestId: digest.id,
+        title: digest.titre_digest,
+        weekNumber,
+        weekLabel,
+        rangeLabel,
+        label: `${weekLabel} · ${rangeLabel}`,
+        articleCount: own.length,
+      }
+    })
 }
 
 /* ────────────────────────────────────────────────────────────

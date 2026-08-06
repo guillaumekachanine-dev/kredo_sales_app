@@ -8,13 +8,16 @@ import type { StrategicWatchAnalysis } from "../veille-desktop-contracts"
 import {
   buildAnalysisIndex,
   buildArchiveEntries,
+  buildDigestPeriods,
   buildNewsRows,
   buildSignalGroups,
+  categoryAccentSlot,
   collectCategoryOptions,
   filterArchiveEntries,
   filterNewsRows,
   formatSignalAge,
   groupArchiveEntriesByMonth,
+  isoWeekNumber,
   normalizeCategory,
   resolveSignalMarker,
 } from "./veille-mobile-view-models"
@@ -103,19 +106,91 @@ describe("buildNewsRows / filterNewsRows", () => {
   })
 
   it("filtre par catégorie normalisée", () => {
-    const filtered = filterNewsRows(rows, { search: "", categoryKey: "reglementation", format: "all" })
+    const filtered = filterNewsRows(rows, { search: "", categoryKeys: ["reglementation"] })
     expect(filtered.map((row) => row.id)).toEqual(["b"])
+  })
+
+  it("accepte plusieurs catégories simultanément", () => {
+    const filtered = filterNewsRows(rows, {
+      search: "",
+      categoryKeys: ["reglementation", "investissement"],
+    })
+    expect(filtered.map((row) => row.id)).toEqual(["b", "a"])
+  })
+
+  it("ne restreint rien quand aucune catégorie n'est sélectionnée", () => {
+    expect(filterNewsRows(rows, { search: "", categoryKeys: [] })).toHaveLength(2)
   })
 
   it("recherche sans tenir compte des accents ni de la casse", () => {
-    const filtered = filterNewsRows(rows, { search: "RECENT", categoryKey: null, format: "all" })
+    const filtered = filterNewsRows(rows, { search: "RECENT", categoryKeys: [] })
     expect(filtered.map((row) => row.id)).toEqual(["b"])
   })
+})
 
-  it("ne masque aucune ligne avec le format « article » (seul format exploitable)", () => {
-    const all = filterNewsRows(rows, { search: "", categoryKey: null, format: "all" })
-    const article = filterNewsRows(rows, { search: "", categoryKey: null, format: "article" })
-    expect(article).toEqual(all)
+describe("categoryAccentSlot", () => {
+  it("donne un slot stable aux familles connues", () => {
+    expect(categoryAccentSlot("reglementation")).toBe(1)
+    expect(categoryAccentSlot("tendance")).toBe(2)
+  })
+
+  it("dérive un slot déterministe et valide pour une catégorie inconnue", () => {
+    const first = categoryAccentSlot("autre:quantique")
+    expect(first).toBe(categoryAccentSlot("autre:quantique"))
+    expect(first).toBeGreaterThanOrEqual(1)
+    expect(first).toBeLessThanOrEqual(7)
+  })
+})
+
+describe("buildDigestPeriods", () => {
+  it("calcule le numéro de semaine ISO", () => {
+    expect(isoWeekNumber(new Date("2026-07-27T00:00:00Z"))).toBe(31)
+    expect(isoWeekNumber(new Date("2026-01-01T00:00:00Z"))).toBe(1)
+  })
+
+  it("décrit la couverture réelle des articles, pas la semaine du digest", () => {
+    // Digest publié le 3 août mais qui analyse des articles du 27 au 30 juillet.
+    const periods = buildDigestPeriods(
+      [{ id: "d1", digest_date: "2026-08-03", titre_digest: "Briefing", nb_sources_actives: 14 }] as VeilleDigest[],
+      [
+        makeArticle({ id: "a", digest_id: "d1", published_at: "2026-07-27T08:00:00Z" }),
+        makeArticle({ id: "b", digest_id: "d1", published_at: "2026-07-30T08:00:00Z" }),
+      ],
+    )
+    expect(periods[0].weekLabel).toBe("Semaine 31")
+    expect(periods[0].rangeLabel).toBe("27 au 30 juillet")
+    expect(periods[0].articleCount).toBe(2)
+  })
+
+  it("écrit les deux mois quand la couverture est à cheval", () => {
+    const periods = buildDigestPeriods(
+      [{ id: "d1", digest_date: "2026-08-05", titre_digest: "Briefing", nb_sources_actives: 1 }] as VeilleDigest[],
+      [
+        makeArticle({ id: "a", digest_id: "d1", published_at: "2026-07-27T08:00:00Z" }),
+        makeArticle({ id: "b", digest_id: "d1", published_at: "2026-08-02T08:00:00Z" }),
+      ],
+    )
+    expect(periods[0].rangeLabel).toBe("27 juillet au 2 août")
+  })
+
+  it("retombe sur la date du digest quand aucun article n'est daté", () => {
+    const periods = buildDigestPeriods(
+      [{ id: "d1", digest_date: "2026-08-03", titre_digest: "Briefing", nb_sources_actives: 0 }] as VeilleDigest[],
+      [],
+    )
+    expect(periods[0].rangeLabel).toBe("3 août")
+    expect(periods[0].articleCount).toBe(0)
+  })
+
+  it("trie du briefing le plus récent au plus ancien", () => {
+    const periods = buildDigestPeriods(
+      [
+        { id: "old", digest_date: "2026-07-07", titre_digest: "A", nb_sources_actives: 1 },
+        { id: "new", digest_date: "2026-08-03", titre_digest: "B", nb_sources_actives: 1 },
+      ] as VeilleDigest[],
+      [],
+    )
+    expect(periods.map((period) => period.digestId)).toEqual(["new", "old"])
   })
 })
 

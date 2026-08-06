@@ -22,6 +22,8 @@ interface VeilleActualitesPageProps {
   articles: VeilleArticle[]
   /** Flux transverse aux briefings — consommé par la seule vue mobile. */
   feedArticles: VeilleArticle[]
+  /** Digest retenu côté serveur (contrat `?digestId=`) — vue mobile seule. */
+  selectedDigestId: string | null
   pastDigests: VeilleDigest[]
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
@@ -40,6 +42,7 @@ export function VeilleActualitesPage({
   digest,
   articles,
   feedArticles,
+  selectedDigestId,
   pastDigests,
   sectorNews,
   sectorEvents,
@@ -57,6 +60,7 @@ export function VeilleActualitesPage({
       <VeilleActualitesMobile
         articles={articles}
         feedArticles={feedArticles}
+        selectedDigestId={selectedDigestId}
         pastDigests={pastDigests}
         companies={companies}
         watchedSignals={watchedSignals}

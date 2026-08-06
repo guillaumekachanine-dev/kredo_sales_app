@@ -117,6 +117,7 @@ export default async function VeillePage({
         digest={selectedDigest}
         articles={articles}
         feedArticles={feedArticles}
+        selectedDigestId={selectedDigest?.id ?? null}
         pastDigests={pastDigests}
         sectorNews={sectorNews}
         sectorEvents={sectorEvents}
