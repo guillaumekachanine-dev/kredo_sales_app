@@ -4,6 +4,7 @@ import { getDashboardDevice } from "@/lib/dashboard/dashboard-device"
 import { createClient } from "@/lib/supabase/server"
 import {
   getVeilleArticles,
+  getVeilleArticlesForDigests,
   getPastVeilleDigests,
   getSectorNews,
   getSectorEvents,
@@ -75,12 +76,24 @@ export default async function VeillePage({
 
   // 3. Fetch dependencies depending on whether we have a digest or empty state fallbacks
   let articles: VeilleArticle[] = []
+  let feedArticles: VeilleArticle[] = []
   let sectorNews: SectorNews[] = []
   let sectorEvents: SectorEvent[] = []
 
   if (selectedDigest) {
-    const { data: articlesData } = await getVeilleArticles(selectedDigest.id)
-    articles = articlesData || []
+    if (device === "mobile") {
+      // Le flux « Actualités » mobile est transverse aux briefings : un seul
+      // appel couvre à la fois le flux et les articles du digest courant.
+      // `selectedDigest` peut venir d'un `digestId` plus ancien que les 10
+      // derniers briefings : on l'ajoute explicitement au lot.
+      const feedDigestIds = Array.from(new Set([...pastDigests.map((d) => d.id), selectedDigest.id]))
+      const { data: allArticles } = await getVeilleArticlesForDigests(feedDigestIds)
+      feedArticles = allArticles || []
+      articles = feedArticles.filter((article) => article.digest_id === selectedDigest.id)
+    } else {
+      const { data: articlesData } = await getVeilleArticles(selectedDigest.id)
+      articles = articlesData || []
+    }
   } else {
     // Empty state fallback - load recent sector news and events
     const [newsResult, eventsResult] = await Promise.all([
@@ -96,13 +109,14 @@ export default async function VeillePage({
 
   return (
     <div
-      data-theme={device === "mobile" ? "intelligence-reports" : "edito-bright-veille"}
+      data-theme="edito-bright-veille"
       className={device === "mobile" ? "min-h-screen bg-canvas text-body" : "h-full min-h-0 bg-canvas text-body"}
     >
       <VeilleActualitesPage
         device={device}
         digest={selectedDigest}
         articles={articles}
+        feedArticles={feedArticles}
         pastDigests={pastDigests}
         sectorNews={sectorNews}
         sectorEvents={sectorEvents}

@@ -20,6 +20,8 @@ interface VeilleActualitesPageProps {
   device: DashboardDevice
   digest: VeilleDigest | null
   articles: VeilleArticle[]
+  /** Flux transverse aux briefings — consommé par la seule vue mobile. */
+  feedArticles: VeilleArticle[]
   pastDigests: VeilleDigest[]
   sectorNews: SectorNews[]
   sectorEvents: SectorEvent[]
@@ -37,6 +39,7 @@ export function VeilleActualitesPage({
   device,
   digest,
   articles,
+  feedArticles,
   pastDigests,
   sectorNews,
   sectorEvents,
@@ -52,13 +55,12 @@ export function VeilleActualitesPage({
   if (device === "mobile") {
     return (
       <VeilleActualitesMobile
-        digest={digest}
         articles={articles}
+        feedArticles={feedArticles}
         pastDigests={pastDigests}
-        sectorNews={sectorNews}
-        sectorEvents={sectorEvents}
         companies={companies}
         watchedSignals={watchedSignals}
+        analyses={analysisHistory}
       />
     )
   }
