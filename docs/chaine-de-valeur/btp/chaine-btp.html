@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaîne de valeur sectorielle — générateur</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --muted:#6b6b66; --line:#e0e0da;
+    --grid:#e8e8e2; --box:#fbfbf9;
+    --prospect:#1f5f8b; --client:#1e7f5c; --pair:#8a6d3b; --externe:#8b8b85;
+    --prescripteur:#a4503f; --financeur:#6a5a8c; --technologie:#2e7d8b;
+    --capture:#b8860b; --flux:#5a5a54; --err:#a8321f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+      --grid:#2a2a31; --box:#23232a;
+      --prospect:#5ba3d0; --client:#5fc2a0; --pair:#d9ad4a; --externe:#8d8d95;
+      --prescripteur:#e08a76; --financeur:#a493c9; --technologie:#6fc0cf;
+      --capture:#d9ad4a; --flux:#9a9a95; --err:#f08a72;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+    --grid:#2a2a31; --box:#23232a;
+    --prospect:#5ba3d0; --client:#5fc2a0; --pair:#d9ad4a; --externe:#8d8d95;
+    --prescripteur:#e08a76; --financeur:#a493c9; --technologie:#6fc0cf;
+    --capture:#d9ad4a; --flux:#9a9a95; --err:#f08a72;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:24px 24px 8px;max-width:1500px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:13.5px}
+  main{max-width:1500px;margin:0 auto;padding:16px 24px 48px;display:grid;gap:20px;
+       grid-template-columns:minmax(0,1fr) 340px}
+  @media (max-width:1100px){main{grid-template-columns:minmax(0,1fr)}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;
+       border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--muted)}
+  textarea{width:100%;height:420px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+       background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+       color:var(--muted);margin-bottom:6px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .status{font-size:12.5px;margin-top:8px;min-height:18px;color:var(--muted)}
+  .status.err{color:var(--err)}
+  .chartwrap{overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .meta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .warn{font-size:12.5px;color:var(--muted);border-left:2px solid var(--capture);padding:4px 0 4px 10px;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:16px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+     font-weight:500;margin:24px 0 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Chaîne de valeur sectorielle — générateur</h1>
+  <p>Le schéma est produit depuis les données, jamais dessiné. Collez l'export JSON d'un secteur et regénérez. Fichier autonome : aucune donnée ne sort de votre machine.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <button id="render">Générer</button>
+      <button id="dl">Télécharger le SVG</button>
+      <button id="theme">Inverser le thème</button>
+    </div>
+    <div class="meta" id="meta"></div>
+    <p class="warn" id="warn" hidden></p>
+    <div class="chartwrap"><svg id="chart" role="img" aria-label="Chaîne de valeur sectorielle"></svg></div>
+    <div class="legend" id="legend"></div>
+    <div id="tablewrap"></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <aside class="panel">
+    <label for="json">Export JSON du secteur</label>
+    <textarea id="json" spellcheck="false"></textarea>
+  </aside>
+</main>
+
+<script>
+/* Données embarquées à la construction. Laisser à null pour un générateur vierge. */
+const DATA = /*__EMBED__*/{"meta": {"secteur": "BTP, Construction & Négoce de matériaux", "slug": "btp-construction-immobilier", "niveau": "macro", "date_snapshot": "09/08/2026", "version": "1.0", "source_principale": "etudes/2026-08-btp-travaux-publics/ + base Kredo (jvzgmhvwirsbdkjpmvla)", "avertissement": "WebFetch bloqué par la politique réseau : aucune source primaire n'a été ouverte. Aucune donnée ne dépasse le tier T2 rapporté. Reconfirmer chaque chiffre avant usage externe."}, "noeuds": [{"id": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "couche": "chaine", "maillon": 1, "rang": 1, "label": "Extraction & production de matériaux", "description": "Granulats, béton, ciment, valorisation des déchets en granulats. Métier de matière, capital-intensif, cyclique.", "capture_valeur": 2, "capture_justification": "Métier de matière, capital-intensif et cyclique. Deux entrants sur rupture produit — Hoffmann Green (ciment 0 % clinker, 16,8 M€ en 2025, +27 %) et Néolithe (minéralisation des déchets ultimes) — montrent que la valeur s'y déplace vers la preuve carbone. Niveau posé par raisonnement : aucune marge sectorielle publiée n'a été trouvée dans cet environnement.", "confiance": "moyenne", "acteurs": [{"nom": "Audemard", "role": "Béton prêt à l'emploi et granulats. CLIENT Kredo — la référence qui ouvre les maillons voisins", "poids": "240 M€ · 200 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "client", "tier": "eti", "segment": "7.2 Matériaux — production & négoce"}, {"nom": "Pizzorno Environnement", "role": "Collecte et valorisation des déchets, dont déchets de chantier : la boucle de l'économie circulaire vers les granulats recyclés", "poids": "115 M€", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "9.3 Déchets & économie circulaire"}, {"nom": "Hoffmann Green Cement", "role": "Ciment 0 % clinker. Coté, en approche d'équilibre — se vend sur la preuve carbone", "poids": "16,8 M€ (2025, +27 %)", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, JDE, communiqués) — T2/T3 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Néolithe", "role": "Minéralisation des déchets ultimes en granulats", "poids": "CA non publié · cible 3 Mt valorisées en 2030", "source": "Étude BTP Kredo 08/2026 (Maddyness) — T3, CA non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}]}, {"id": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "couche": "chaine", "maillon": 1, "rang": 2, "label": "Négoce & distribution de matériaux", "description": "Vend la matière au chantier. En amont de la réalisation, pas en aval : le négoce fournit le constructeur.", "capture_valeur": 2, "capture_justification": "Le brief postule que la marge du BTP est chez le négoce. Aucune marge publiée du négoce n'a pu être vérifiée ici (WebFetch bloqué). Ce qui est établi : la concentration et la capacité de bilan — Saint-Gobain Distribution Bâtiment France, n°1, ~2 000 points de vente ; Chausson Matériaux, 1er indépendant, 1,22 Md€ et 800 agences en 2024, 75 M€ levés et acquisition de Frans Bonhomme en 2025. Un secteur qui consolide est un secteur qui dégage du cash. Niveau posé à 2 et non à 3, faute de chiffre de marge : c'est la première donnée à sourcer.", "confiance": "faible", "acteurs": [{"nom": "Ciffreo Bona", "role": "Négoce multi-agences de matériaux, ancrage PACA", "poids": "609M€ · 1300 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.2 Matériaux — production & négoce"}, {"nom": "Richardson", "role": "Négoce de sanitaire, chauffage, plomberie et climatisation", "poids": "652M€ · 2080 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "7.2 Matériaux — production & négoce"}, {"nom": "Chausson Matériaux", "role": "1er négociant indépendant. Lève 75 M€ et acquiert Frans Bonhomme en 2025", "poids": "1,22 Md€ (2024) · 800 agences · ~4 980 sal.", "source": "WebSearch 09/08/2026 (Pappers, societe.com, Zepros) — T3 rapporté", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Saint-Gobain Distribution Bâtiment France", "role": "N°1 du négoce en France (Point.P, Cedeo, PUM, Dispano…)", "poids": "~2 000 points de vente", "source": "WebSearch 09/08/2026 (Le Moniteur, Wikipédia) — T3 rapporté, source primaire non ouverte (WebFetch bloqué)", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}]}, {"id": "a41c6704-678e-407d-aa46-b276252ca24b", "couche": "chaine", "maillon": 1, "rang": 3, "label": "Mise à disposition de main-d'œuvre", "description": "Intérim et recrutement. Ressource critique du maillon ③ : la pénurie de main-d'œuvre est l'un des cinq enjeux communs du secteur.", "capture_valeur": 1, "capture_justification": "Métier de volume à marge courte. Sa valeur pour la filière n'est pas la marge mais la rareté : l'étude BTP identifie la pénurie de main-d'œuvre parmi les cinq enjeux communs à tout le panel, et comme le moteur explicite des programmes d'automatisation (partenariat robotique Bouygues Construction / Innodura, 28/11/2025).", "confiance": "moyenne", "acteurs": [{"nom": "Adecco", "role": "Intérim et recrutement, généraliste — le BTP est l'un de ses marchés, pas son seul marché", "poids": "5,8Mds € · 9000 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "11.1 Travail temporaire & recrutement"}, {"nom": "Interima", "role": "Intérim indépendant azuréen, fondé en 1978 — le pendant régional d'Adecco", "poids": "10,7M€ · 25 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "11.1 Travail temporaire & recrutement"}]}, {"id": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "couche": "chaine", "maillon": 2, "rang": 1, "label": "Composants & équipements du bâtiment", "description": "Menuiserie, protection solaire, quincaillerie, équipement électrique. Fabrique ce qui est intégré à l'ouvrage.", "capture_valeur": 2, "capture_justification": "Marge produit et différenciation technique supérieures à la marge de pose, mais exposition directe au cycle du logement. Ordre de grandeur observé dans la base Kredo : Sepalumic, 38 M€ pour 47 salariés. Niveau posé par raisonnement, non adossé à une marge publiée.", "confiance": "moyenne", "acteurs": [{"nom": "Griesser", "role": "Protection solaire et fermetures. Ni effectif ni CA exploitables en base", "poids": null, "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": null, "segment": "7.3 Composants & équipements du bâtiment"}, {"nom": "Schneider", "role": "Équipements électriques et automatismes du bâtiment. Entité locale du groupe Schneider Electric (Carros) — périmètre à confirmer", "poids": null, "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "8.1 Électronique & équipements électriques"}, {"nom": "Sepalumic", "role": "Profilés et systèmes de menuiserie aluminium", "poids": "38M€ · 47 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.3 Composants & équipements du bâtiment"}, {"nom": "Torbel Industrie", "role": "Ferrures et quincaillerie pour l'habitat. Segment BTP 7.3, mais sector_id encore sur Industrie Manufacturière", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "7.3 Composants & équipements du bâtiment"}]}, {"id": "a449e758-25dd-4dfe-817b-aae7475c34fa", "couche": "chaine", "maillon": 3, "rang": 1, "label": "Constructeurs, promoteurs & ingénierie", "description": "Réalise ou fait réaliser l'ouvrage. Le maillon le plus peuplé de la carte, et le moins rentable.", "capture_valeur": 1, "capture_justification": "C'est le seul maillon dont la faible captation est chiffrée et sourcée. Marge opérationnelle « Travaux » d'Eiffage : 4,6 % en 2025, contre 4,3 % en 2024 — et c'est la meilleure du panel, en progression, sur un carnet record. GCC : EBITDA de 47,2 M€ pour 1 203 M€ de CA, soit 3,9 %. Le volume est ici ; la marge, non. Source : étude BTP 08/2026, §4 et §6 (T2/T3 rapporté, WebFetch bloqué).", "confiance": "haute", "acteurs": [{"nom": "Groupe IDEC", "role": "Constructeur-promoteur, conception-réalisation", "poids": "500M€ · 620 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.1 Constructeurs, promoteurs & ingénierie"}, {"nom": "Groupe Trecobat", "role": "Constructeur de maisons individuelles", "poids": "203M€ · 600 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.1 Constructeurs, promoteurs & ingénierie"}, {"nom": "Renaudi", "role": "Ingénierie et maîtrise d'œuvre — micro-structure, interlocuteur = dirigeant", "poids": "1,4M€ · 3 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.1 Constructeurs, promoteurs & ingénierie"}, {"nom": "Eiffage", "role": "LEADER · compte étalon de l'étude. Continuum travaux → concessions. Prescripteur numérique du secteur", "poids": "25,3 Md€ groupe (2025) · ~87 000 sal.", "source": "Étude BTP Kredo 08/2026 (communiqué résultats 2025, presse pro) — T2 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "VINCI Construction", "role": "LEADER · équipe Data & IA internalisée d'une vingtaine de personnes", "poids": "32,1 Md€ branche monde (2025)", "source": "Étude BTP Kredo 08/2026 (communiqué VINCI FY2025) — T2 rapporté ; équipe data en T4, à reconfirmer", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Bouygues Construction", "role": "LEADER · partenariat robotique Innodura (28/11/2025), CDO parti chez Forvia", "poids": "10,6 Md€ (2025, +3 %)", "source": "Étude BTP Kredo 08/2026 (communiqué Bouygues, CIO Online) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Colas", "role": "LEADER · directrice de la transformation digitale nommée au 01/05/2026, au comité de direction générale", "poids": "16,0 Md€ (2025) · Route France 5,6 Md€ · >10 000 sal. FR", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, rapport de gestion Colas) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "NGE", "role": "CHALLENGER · 4e groupe français. CA et effectifs doublés depuis 2019", "poids": "5,024 Md€ (2025, +8,3 %) · 25 254 sal.", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, JDE, rapport annuel NGE) — T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Spie Batignolles", "role": "CHALLENGER · >200 experts BIM, intégration de la branche ETPO acquise en 2024", "poids": "2,582 Md€ (2025) · 9 046 sal.", "source": "Étude BTP Kredo 08/2026 (rapport extra-financier 2025, Pappers) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Fayat — Razel-Bec", "role": "CHALLENGER · organisation fédérale, filiales autonomes : entrée possible sans référencement groupe", "poids": "746 M€ (2025) · 6 000 sal.", "source": "Étude BTP Kredo 08/2026 (rapport annuel Razel-Bec) — T2/T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Demathieu Bard", "role": "MID-MARKET · carnet de 4,7 Md€, soit 27 mois. Intégration de Steiner Construction (2024)", "poids": "2,08 Md€ (2024) · 4 211 sal.", "source": "Étude BTP Kredo 08/2026 (JDE, presse) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "GCC", "role": "MID-MARKET · béton très bas carbone avec Hoffmann Green et Néolithe", "poids": "1,203 Md€ (2024) · EBITDA 47,2 M€", "source": "Étude BTP Kredo 08/2026 (presse professionnelle) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Léon Grosse", "role": "MID-MARKET · cap annoncé de 1,3 Md€ en 2030 (+43 %)", "poids": "907 M€ (2024)", "source": "Étude BTP Kredo 08/2026 (ConstructionBTP) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Charier", "role": "NICHE · ETI familiale du Grand Ouest, trajectoire stable assumée", "poids": "349 M€ (2025) · ~1 800 sal.", "source": "Étude BTP Kredo 08/2026 (site Charier, Infonet) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Baudin Châteauneuf", "role": "NICHE · ouvrages d'art et construction métallique", "poids": "171 M€ (2024) · ~750 sal.", "source": "Étude BTP Kredo 08/2026 (Xerfi, Societe.com) — T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Bessac", "role": "NICHE SOUS RÉSERVE · dernier fabricant français de tunneliers. Rattachement capitalistique à vérifier AVANT toute action", "poids": "~150 M€ (2023)", "source": "Étude BTP Kredo 08/2026, §7 acteurs écartés (L'Usine Nouvelle, Le Moniteur) — T3, actionnariat non vérifié", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}]}, {"id": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "couche": "chaine", "maillon": 4, "rang": 1, "label": "Promotion, commercialisation & transaction", "description": "Met l'ouvrage sur le marché : promotion, investissement locatif, transaction. Métier de marge et de commission, pas de volume.", "capture_valeur": 2, "capture_justification": "Métier de commission et de marge de promotion, structurellement au-dessus de la marge de travaux — mais aucun chiffre public n'a été trouvé pour l'étayer. Seul indice disponible, et il s'agit d'un calcul de l'analyste sur les données du CRM Kredo, pas d'une donnée publiée : Iselection déclare 400 M€ pour 150 salariés, soit 2,7 M€ par tête, contre 0,34 M€ chez Groupe Trecobat et 0,81 M€ chez Groupe IDEC. Un tel écart d'intensité signale un métier de marge, il ne la mesure pas.", "confiance": "faible", "acteurs": [{"nom": "Iselection", "role": "Distribution de programmes neufs en investissement locatif", "poids": "400M€ · 150 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.4 Immobilier — investissement & transaction"}, {"nom": "Keller Williams France", "role": "Réseau de transaction immobilière en franchise", "poids": "5M€/centre · 36 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.4 Immobilier — investissement & transaction"}, {"nom": "Pilatus Groupe", "role": "Immobilier — activité mal établie, classification en confiance faible au référentiel", "poids": "3 sal.", "source": null, "confiance": "faible", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.4 Immobilier — investissement & transaction"}]}, {"id": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "couche": "chaine", "maillon": 5, "rang": 1, "label": "Maîtrise d'ouvrage & exploitation", "description": "Commande, paie et exploite l'ouvrage dans la durée. Collectivités, État, universités, concessionnaires.", "capture_valeur": 3, "capture_justification": "La concession est le seul maillon où la valeur se perçoit dans la durée sur un actif construit une fois. L'étude BTP identifie ce continuum travaux → concession comme ce qui distingue Eiffage et VINCI de tout le reste du panel (§4). Kredo y a trois exploitants d'actifs : ESCOTA (471 km concédés, VINCI Autoroutes), Aéroport Nice Côte d'Azur (311 M€, 15 millions de passagers en 2025), CASA. Niveau posé sur la structure du modèle économique — modele_eco = concession au référentiel — et non sur une marge publiée : aucune n'a été trouvée.", "confiance": "moyenne", "acteurs": [{"nom": "CASA", "role": "Communauté d'agglomération, 24 communes — maître d'ouvrage public sous code de la commande publique", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "4.1 Collectivités & administrations d'État"}, {"nom": "Préfecture 06", "role": "Administration d'État — maîtrise d'ouvrage et contrôle de légalité des marchés", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "4.1 Collectivités & administrations d'État"}, {"nom": "Université Côte d'Azur", "role": "Patrimoine universitaire — maîtrise d'ouvrage de réhabilitation", "poids": "1300 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "4.2 Enseignement supérieur & recherche"}, {"nom": "Aéroport Nice Côte d'Azur", "role": "Concessionnaire aéroportuaire, 311 M€ et 15 millions de passagers en 2025 — maître d'ouvrage de ses propres infrastructures", "poids": "311M€ · 700 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "14.3 Infrastructures & concessions de flux"}, {"nom": "ESCOTA (VINCI Autoroutes)", "role": "Concessionnaire de 471 km d'autoroutes — donneur d'ordre récurrent de travaux routiers. CA non affiché : la valeur en base est un chiffre de périmètre groupe VINCI Autoroutes, non transposable à l'entité", "poids": "471 km concédés", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "14.3 Infrastructures & concessions de flux"}]}, {"id": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "couche": "prescripteur", "maillon": null, "rang": 1, "label": "Prescripteurs & normalisateurs", "description": "Qui édicte la règle. Le régime de contrainte rendu visible — et le seul axe daté, donc le seul qui produise un motif d'appel.", "capture_valeur": null, "capture_justification": null, "confiance": "haute", "acteurs": [{"nom": "DGFiP — facturation électronique", "role": "Réception obligatoire au 01/09/2026 pour tous, émission obligatoire pour GE et ETI à la même date. Sanctions : 500 € puis 1 000 €/trimestre, 15 €/facture non conforme", "poids": "Échéance : 01/09/2026", "source": "economie.gouv.fr, cité par l'étude BTP Kredo 08/2026 — T1 rapporté, page non ouverte (WebFetch bloqué)", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "RE2020", "role": "Paliers 2025 / 2028 / 2031 côté bâtiment. La preuve carbone devient un critère d'attribution", "poids": "Paliers 2025 / 2028 / 2031", "source": "Étude BTP Kredo 08/2026, §4 bloc 1 — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Conventions collectives TP", "role": "IDCC 1702 / 2614 / 3212, brochure 3005. Particularité : pas de seuil de 10 salariés dans les TP, contrairement au bâtiment", "poids": "3 IDCC", "source": "Code du travail numérique, convention.fr, cités par l'étude BTP — T1 rapporté, IDCC par entité non vérifié", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "NIS2", "role": "Extension du périmètre de la cybersécurité réglementée. Touche tout le panel, quel que soit le segment", "poids": "Montée en charge", "source": "Étude BTP Kredo 08/2026, §8 enjeux communs — T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}]}, {"id": "65e81b1a-10f4-46f3-b09f-f162b0920651", "couche": "financeur", "maillon": null, "rang": 1, "label": "Donneurs d'ordre & financeurs", "description": "Qui paie réellement. Détermine le rythme du marché bien avant les constructeurs.", "capture_valeur": null, "capture_justification": null, "confiance": "moyenne", "acteurs": [{"nom": "Banque Populaire Méditerranée", "role": "Financement des ETI régionales et de la promotion. CLIENT Kredo", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "client", "tier": "grand_compte", "segment": "6.1 Banque & financement"}, {"nom": "Bloc communal — commande publique locale", "role": "Le financeur historique du segment, et celui qui se retire : marchés conclus −12,8 % en février 2026, bloc collectivités attendu à −6 % sur 2026", "poids": "−6 % attendu en 2026", "source": "FNTP et INSEE, cités par l'étude BTP Kredo 08/2026 — T1 rapporté, notes non ouvertes", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "SEDIF / Veolia", "role": "Maître d'ouvrage de trois usines de traitement d'eau, réalisées en groupement Eiffage + VINCI Construction", "poids": ">400 M€", "source": "Étude BTP Kredo 08/2026 (communiqué Eiffage) — T2 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "EDF — programme EPR2", "role": "Donneur d'ordre du plus gros programme de génie civil de la décennie. Sa composition de groupement EST la carte du segment", "poids": "~10 Md€ de génie civil", "source": "Étude BTP Kredo 08/2026 (Batirama, PGE) — T3 NON CORROBORÉ PAR UN ACTE. Fait le plus structurant de l'étude et le plus fragile", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}]}, {"id": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "couche": "technologie", "maillon": null, "rang": 1, "label": "Fournisseurs de technologie", "description": "Où une ESN se situe, et qui est déjà en place chez le compte.", "capture_valeur": null, "capture_justification": null, "confiance": "moyenne", "acteurs": [{"nom": "Experis France", "role": "ESN — PAIR-PARTENAIRE, ni prospect ni client : co-traitance et réponse conjointe", "poids": "238M€ · 3800 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "pair_partenaire", "tier": "grand_compte", "segment": "12.1 ESN & services numériques"}, {"nom": "Appolonia", "role": "Éditeur, vertical_client = immobilier au référentiel. Activité mal établie, classification en confiance faible", "poids": "6,8M€ · 30 sal.", "source": null, "confiance": "faible", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "12.2 Éditeurs de logiciels métier verticaux"}, {"nom": "Google Cloud", "role": "Socle de l'IA générative privée d'Eiffage : Gemini, Vertex AI, BigQuery, Apigee. Partenariat du 27/06/2024", "poids": "Partenariat stratégique", "source": "Étude BTP Kredo 08/2026 (communiqué Eiffage 27/06/2024, Silicon, blog Google Cloud) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}, {"nom": "Innodura", "role": "Partenaire robotique de Bouygues Construction depuis le 28/11/2025 : vision 3D, navigation embarquée, maintenance prédictive", "poids": "Partenariat pluriannuel", "source": "Étude BTP Kredo 08/2026 (communiqué Bouygues 28/11/2025, L'Usine Digitale) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}]}], "liens": [{"amont": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "fournit", "intensite": 3, "libelle": "La production alimente le négoce"}, {"amont": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 2, "libelle": "Vente directe aux majors et à leurs centrales d'achat"}, {"amont": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Le négoce fournit le chantier — il est en amont, pas en aval"}, {"amont": "a41c6704-678e-407d-aa46-b276252ca24b", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Main-d'œuvre intérimaire : le goulot du secteur"}, {"amont": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Composants intégrés à l'ouvrage"}, {"amont": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "fournit", "intensite": 2, "libelle": "Une partie des composants transite par le négoce"}, {"amont": "a449e758-25dd-4dfe-817b-aae7475c34fa", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "fournit", "intensite": 2, "libelle": "L'ouvrage réalisé passe en commercialisation"}, {"amont": "a449e758-25dd-4dfe-817b-aae7475c34fa", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "fournit", "intensite": 3, "libelle": "Commande publique : le constructeur livre le maître d'ouvrage sans intermédiaire"}, {"amont": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "fournit", "intensite": 2, "libelle": "Transaction et investissement locatif vers l'occupant"}, {"amont": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "aval": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "nature": "fournit", "intensite": 1, "libelle": "Boucle circulaire : déchets de déconstruction → granulats recyclés"}, {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "prescrit", "intensite": 3, "libelle": "Facture électronique, NIS2, RE2020, IDCC — la contrainte se concentre ici"}, {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "prescrit", "intensite": 2, "libelle": "Facture électronique : sous-traitance en cascade et situations mensuelles"}, {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "prescrit", "intensite": 2, "libelle": "Code de la commande publique, critères carbone à l'attribution"}, {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "nature": "prescrit", "intensite": 2, "libelle": "RE2020 : la performance du composant devient opposable"}, {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "finance", "intensite": 3, "libelle": "Le financeur détermine ce que le maître d'ouvrage peut commander"}, {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "finance", "intensite": 2, "libelle": "Carnets de commandes et accès au crédit des ETI"}, {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "finance", "intensite": 2, "libelle": "Crédit à la promotion et à l'investissement locatif"}, {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "outille", "intensite": 3, "libelle": "BIM, données de chantier, robotique, cybersécurité industrielle"}, {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "outille", "intensite": 2, "libelle": "Outils de transaction et de gestion locative"}, {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "outille", "intensite": 2, "libelle": "Dématérialisation et flux de facturation du négoce"}]}/*__EMBED_END__*/;
+
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (t,a={}) => { const n=document.createElementNS(NS,t);
+  for (const k in a) if (a[k]!=null) n.setAttribute(k,a[k]); return n; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s??"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+const COUCHES = {
+  prescripteur:{label:"Prescripteurs & normalisateurs", token:"--prescripteur", verbe:"prescrit"},
+  financeur:   {label:"Donneurs d'ordre & financeurs",  token:"--financeur",    verbe:"finance"},
+  technologie: {label:"Fournisseurs de technologie",    token:"--technologie",  verbe:"outille"}
+};
+const ORDRE_COUCHES = ["prescripteur","financeur","technologie"];
+const MAILLONS = {1:"① Amont / ressources", 2:"② Transformation", 3:"③ Intégration & réalisation",
+                  4:"④ Distribution & mise sur le marché", 5:"⑤ Usage / client final"};
+
+/* ---------- géométrie ---------- */
+const PAD=22, GAP=26, COLS=5, ROW=15.5, BOXPAD=9, NODEGAP=14;
+const TITLEH=46, COLHEADH=22, BANDH=64, BANDGAP=9;
+
+/* Mesure réelle via getComputedTextLength : un texte qui déborde de sa boîte
+   est une erreur de rendu, pas un détail — le schéma se lit en rendez-vous. */
+let RULER = null;
+function larg(s, size, weight){
+  RULER.setAttribute("font-size", size);
+  RULER.setAttribute("font-weight", weight||400);
+  RULER.textContent = s;
+  return RULER.getComputedTextLength();
+}
+function tronque(s, max, size, weight){
+  if (larg(s, size, weight) <= max) return s;
+  let t = s;
+  while (t.length > 1 && larg(t + "…", size, weight) > max) t = t.slice(0, -1);
+  return t + "…";
+}
+function decoupe(s, max, size, weight, maxLignes){
+  const mots = String(s).split(" "), lignes = [];
+  let cur = "";
+  for (const m of mots){
+    const essai = cur ? cur + " " + m : m;
+    if (larg(essai, size, weight) <= max || !cur) cur = essai;
+    else { lignes.push(cur); cur = m; if (lignes.length === maxLignes-1) break; }
+  }
+  lignes.push(cur);
+  if (lignes.length === maxLignes){
+    const reste = mots.slice(lignes.join(" ").split(" ").length).join(" ");
+    const der = lignes[maxLignes-1] + (reste ? " " + reste : "");
+    lignes[maxLignes-1] = tronque(der, max, size, weight);
+  }
+  return lignes.slice(0, maxLignes);
+}
+
+function acteurLabel(a){
+  let s = a.nom;
+  if (a.relation === "pair_partenaire") s = "⇄ " + s;
+  if (a.confiance === "faible") s += " ?";
+  return s;
+}
+function poidsCourt(p){
+  return String(p).split(/\s+[·(]/)[0].trim();
+}
+function acteurStyle(a){
+  if (!a.kredo)                            return {token:"--externe",  fill:false, dash:null};
+  if (a.relation === "client")             return {token:"--client",   fill:true,  dash:null};
+  if (a.relation === "pair_partenaire")    return {token:"--pair",     fill:false, dash:"3 2"};
+  return {token:"--prospect", fill:true, dash:null};
+}
+
+function render(){
+  let data;
+  try { data = JSON.parse($("json").value); }
+  catch(e){ return fail("JSON invalide : " + e.message); }
+  const noeuds = (data.noeuds||[]).filter(n => n && n.label);
+  if (!noeuds.length) return fail("Aucun nœud trouvé dans le JSON (clé « noeuds »).");
+
+  const chaine = noeuds.filter(n => n.couche === "chaine")
+                       .sort((a,b)=> (a.maillon-b.maillon) || (a.rang-b.rang));
+  const transverses = ORDRE_COUCHES.map(c => noeuds.find(n => n.couche === c)).filter(Boolean);
+  const byId = Object.fromEntries(noeuds.map(n => [n.id, n]));
+  const liens = (data.liens||[]).filter(l => byId[l.amont] && byId[l.aval]);
+
+  const svg = $("chart");
+  const W = 1180;
+  const colW = (W - 2*PAD - (COLS-1)*GAP) / COLS;
+  const colX = m => PAD + (m-1)*(colW+GAP);
+
+  svg.innerHTML = "";
+  RULER = el("text",{x:-9999, y:-9999, visibility:"hidden"});
+  svg.appendChild(RULER);
+
+  /* hauteur des boîtes et position verticale, colonne par colonne */
+  const titres = {};
+  chaine.forEach(n => { titres[n.id] = decoupe(n.label, colW-20, 11.5, 600, 2); });
+  const headH = n => 14 + titres[n.id].length*13 + 17;
+  const boxH  = n => headH(n) + n.acteurs.length*ROW + BOXPAD;
+  const pos = {};
+  let chaineBas = 0;
+  for (let m=1; m<=COLS; m++){
+    let y = TITLEH + COLHEADH;
+    chaine.filter(n => n.maillon === m).forEach(n => {
+      pos[n.id] = {x:colX(m), y, w:colW, h:boxH(n), m, head:headH(n)};
+      y += boxH(n) + NODEGAP;
+    });
+    chaineBas = Math.max(chaineBas, y - NODEGAP);
+  }
+
+  /* couloir de routage pour les liens qui sautent une colonne */
+  const routes = liens.filter(l => byId[l.amont].couche==="chaine" && byId[l.aval].couche==="chaine"
+                                && Math.abs(byId[l.amont].maillon - byId[l.aval].maillon) > 1);
+  const LANE = routes.length ? 16 + routes.length*13 : 0;
+  const laneTop = chaineBas + 12;
+  const bandesTop = laneTop + LANE + 18;
+  const H = bandesTop + transverses.length*(BANDH+BANDGAP) + 10;
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const fond = el("rect",{x:0,y:0,width:W,height:H,fill:css("--panel")});
+  svg.insertBefore(fond, RULER);
+
+  const defs = el("defs");
+  ["--flux","--prescripteur","--financeur","--technologie"].forEach(tok=>{
+    const m = el("marker",{id:"arw"+tok.slice(2), viewBox:"0 0 8 8", refX:7, refY:4,
+      markerWidth:6, markerHeight:6, orient:"auto-start-reverse"});
+    m.appendChild(el("path",{d:"M0,0 L8,4 L0,8 z", fill:css(tok)}));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  const txt = (x,y,s,o={}) => { const t = el("text",{x,y,
+      "text-anchor":o.anchor||"start","font-size":o.size||11,"font-weight":o.weight||400,
+      fill:o.fill||css("--ink"), opacity:o.opacity, "font-style":o.italic?"italic":null});
+    t.textContent = s; return t; };
+
+  /* ---------- titre ---------- */
+  const meta = data.meta||{};
+  svg.appendChild(txt(PAD, 24, meta.secteur || "Chaîne de valeur", {size:16, weight:600}));
+  svg.appendChild(txt(PAD, 39, [meta.date_snapshot && "snapshot "+meta.date_snapshot,
+      meta.version && "v"+meta.version, "forme pleine = compte Kredo · contour = acteur hors portefeuille"]
+      .filter(Boolean).join(" · "), {size:10.5, fill:css("--muted")}));
+
+  /* ---------- en-têtes de colonnes ---------- */
+  for (let m=1; m<=COLS; m++){
+    svg.appendChild(txt(colX(m), TITLEH+13, MAILLONS[m], {size:11, weight:600, fill:css("--muted")}));
+  }
+
+  /* ---------- liens ---------- */
+  const lienTitle = l => `${byId[l.amont].label} → ${byId[l.aval].label}\n${l.nature} · intensité ${l.intensite}/3${l.libelle ? "\n"+l.libelle : ""}`;
+  const wid = i => ({1:1, 2:2, 3:3.4})[i] || 1.5;
+
+  liens.filter(l => byId[l.amont].couche==="chaine" && byId[l.aval].couche==="chaine").forEach(l=>{
+    const a = pos[l.amont], b = pos[l.aval];
+    if (!a || !b) return;
+    const g = el("g"); const tt = el("title"); tt.textContent = lienTitle(l); g.appendChild(tt);
+    const col = css("--flux"), w = wid(l.intensite);
+    const dash = l.intensite === 1 ? "5 4" : null;
+
+    if (a.m === b.m){                                   // même colonne : vertical
+      const x = a.x + a.w/2;
+      g.appendChild(el("line",{x1:x, y1:a.y+a.h, x2:x, y2:b.y-2, stroke:col, "stroke-width":w,
+        "stroke-dasharray":dash, "marker-end":"url(#arwflux)"}));
+    } else if (Math.abs(a.m-b.m) === 1){                // colonnes voisines : dans la gouttière
+      const fwd = b.m > a.m;
+      const x1 = fwd ? a.x+a.w : a.x, x2 = fwd ? b.x-3 : b.x+b.w+3;
+      const dy = fwd ? 0 : 10;                          // décale le retour pour ne pas superposer
+      g.appendChild(el("line",{x1, y1:a.y+a.h/2+dy, x2, y2:b.y+b.h/2+dy, stroke:col, "stroke-width":w,
+        "stroke-dasharray":dash, "marker-end":"url(#arwflux)"}));
+    } else {                                            // saut de colonne : couloir de routage
+      const k = routes.indexOf(l);
+      const ly = laneTop + 10 + k*13;
+      /* on décale les arrivées : trois flèches au même point ne se distinguent plus */
+      const x1 = a.x + a.w/2, x2 = b.x + b.w/2 + (k-(routes.length-1)/2)*13;
+      g.appendChild(el("path",{d:`M${x1},${a.y+a.h} L${x1},${ly} L${x2},${ly} L${x2},${b.y+b.h+3}`,
+        fill:"none", stroke:col, "stroke-width":w, "stroke-dasharray":dash,
+        "marker-end":"url(#arwflux)", opacity:.85}));
+      if (l.intensite === 1 && l.libelle)
+        g.appendChild(txt((x1+x2)/2, ly-3, l.libelle, {size:9.5, anchor:"middle", fill:css("--muted"), italic:true}));
+    }
+    svg.appendChild(g);
+  });
+
+  /* ---------- boîtes de la chaîne ---------- */
+  chaine.forEach(n=>{
+    const p = pos[n.id], g = el("g");
+    const cap = n.capture_valeur || 0;
+    g.appendChild(el("rect",{x:p.x, y:p.y, width:p.w, height:p.h, rx:7,
+      fill:css("--box"), stroke:css("--line"), "stroke-width":1}));
+    if (cap === 3)                                       // zone de captation forte : liseré marqué
+      g.appendChild(el("rect",{x:p.x, y:p.y, width:p.w, height:p.h, rx:7, fill:"none",
+        stroke:css("--capture"), "stroke-width":2}));
+
+    const nk = n.acteurs.filter(a=>a.kredo).length;
+    titres[n.id].forEach((ligne,i)=>
+      g.appendChild(txt(p.x+10, p.y+15+i*13, ligne, {size:11.5, weight:600})));
+
+    /* marqueur de captation : 3 cases, remplies jusqu'au niveau */
+    const yInfo = p.y + p.head - 10;
+    for (let i=0;i<3;i++)
+      g.appendChild(el("rect",{x:p.x+10+i*9, y:yInfo-6.5, width:7, height:7, rx:1.5,
+        fill: i<cap ? css("--capture") : "none", stroke:css("--capture"),
+        "stroke-width":.9, opacity: i<cap ? .95 : .35}));
+    const droite = `${nk}/${n.acteurs.length} Kredo · ${n.confiance}`;
+    g.appendChild(txt(p.x+p.w-10, yInfo, droite, {size:9, anchor:"end", fill:css("--muted")}));
+    /* si la place manque, on retire le mot « captation » — les cases le disent déjà —
+       plutôt que de couper le niveau, qui est l'information */
+    const niveau = ["","faible","moyenne","forte"][cap] || "n.d.";
+    const placeGauche = p.w - 59 - larg(droite, 9, 400);
+    const gauche = larg("captation " + niveau, 9, 400) <= placeGauche ? "captation " + niveau
+                 : (larg(niveau, 9, 400) <= placeGauche ? niveau : "");
+    if (gauche) g.appendChild(txt(p.x+39, yInfo, gauche, {size:9, fill:css("--muted")}));
+
+    const tt = el("title");
+    tt.textContent = `${n.label}\n${n.description||""}` +
+      (n.capture_justification ? `\n\nCaptation de valeur (${cap}/3) : ${n.capture_justification}` : "") +
+      `\n\nConfiance du maillon : ${n.confiance}`;
+    g.appendChild(tt);
+
+    n.acteurs.forEach((a,i)=>{
+      const st = acteurStyle(a), c = css(st.token);
+      const y = p.y + p.head + i*ROW;
+      const ag = el("g");
+      ag.appendChild(el("rect",{x:p.x+9, y:y-1, width:p.w-18, height:ROW-2.5, rx:3,
+        fill: st.fill ? c : "none", "fill-opacity": st.fill ? .16 : 0,
+        stroke:c, "stroke-width": st.fill ? 1 : .9, "stroke-dasharray":st.dash,
+        "stroke-opacity": st.fill ? .55 : .8}));
+      /* Le nom prime sur le poids. Et un poids se raccourcit en coupant à la
+         qualification (« 25,3 Md€ groupe (2025) · 87 000 sal. » → « 25,3 Md€ groupe »),
+         jamais au caractère : un nombre tronqué est un faux chiffre. */
+      const dispo = p.w - 28, gras = a.relation==="client" ? 600 : 400;
+      const poids = a.poids ? tronque(poidsCourt(a.poids), dispo*0.45, 8.5, 400) : null;
+      const wPoids = poids ? larg(poids, 8.5, 400) + 8 : 0;
+      ag.appendChild(txt(p.x+14, y+9.5, tronque(acteurLabel(a), dispo-wPoids, 10, gras),
+        {size:10, weight:gras, fill:css("--ink")}));
+      if (poids)
+        ag.appendChild(txt(p.x+p.w-14, y+9.5, poids, {size:8.5, anchor:"end", fill:css("--muted")}));
+      const at = el("title");
+      at.textContent = `${a.nom}${a.kredo ? " — compte Kredo ("+(a.relation||"")+(a.tier?", "+a.tier:"")+")" : " — hors portefeuille"}` +
+        (a.segment ? `\nSegment : ${a.segment}` : "") +
+        (a.role ? `\n${a.role}` : "") + (a.poids ? `\nPoids : ${a.poids}` : "") +
+        (a.source ? `\nSource : ${a.source}` : "") + (a.confiance ? `\nConfiance : ${a.confiance}` : "");
+      ag.appendChild(at);
+      g.appendChild(ag);
+    });
+    svg.appendChild(g);
+  });
+
+  /* ---------- bandes transverses ---------- */
+  transverses.forEach((n,bi)=>{
+    const y = bandesTop + bi*(BANDH+BANDGAP);
+    const tok = COUCHES[n.couche].token, c = css(tok);
+    const g = el("g");
+    g.appendChild(el("rect",{x:PAD, y, width:W-2*PAD, height:BANDH, rx:7,
+      fill:c, "fill-opacity":.07, stroke:c, "stroke-width":1, "stroke-opacity":.5}));
+
+    /* ticks : quels maillons cette couche touche, et avec quelle intensité */
+    liens.filter(l => l.amont === n.id && byId[l.aval].couche === "chaine").forEach(l=>{
+      const t = pos[l.aval]; if (!t) return;
+      const x = t.x + t.w/2;
+      const tg = el("g"); const tt = el("title"); tt.textContent = lienTitle(l); tg.appendChild(tt);
+      tg.appendChild(el("line",{x1:x, y1:y, x2:x, y2:y-11, stroke:c, "stroke-width":wid(l.intensite),
+        "marker-end":"url(#arw"+tok.slice(2)+")"}));
+      g.appendChild(tg);
+    });
+
+    const dispoBande = W - 2*PAD - 180;
+    g.appendChild(txt(PAD+12, y+18, n.label, {size:11.5, weight:600, fill:c}));
+    g.appendChild(txt(PAD+12, y+32, tronque(n.description||"", dispoBande, 9.5, 400),
+      {size:9.5, fill:css("--muted")}));
+    g.appendChild(txt(W-PAD-12, y+18, `${n.acteurs.filter(a=>a.kredo).length}/${n.acteurs.length} Kredo · conf. ${n.confiance}`,
+      {size:9.5, anchor:"end", fill:css("--muted")}));
+
+    /* acteurs en ligne */
+    let x = PAD+12;
+    n.acteurs.forEach(a=>{
+      const st = acteurStyle(a), ac = css(st.token);
+      const label = acteurLabel(a);
+      const w = larg(label, 10, a.relation==="client" ? 600 : 400) + 10;
+      if (x + w > W-PAD-12){ return; }
+      const ag = el("g");
+      ag.appendChild(el("rect",{x, y:y+40, width:w, height:16, rx:3,
+        fill: st.fill ? ac : "none", "fill-opacity": st.fill ? .16 : 0,
+        stroke: st.fill ? ac : c, "stroke-width": st.fill ? 1 : .9,
+        "stroke-dasharray":st.dash, "stroke-opacity":.7}));
+      ag.appendChild(txt(x+5, y+51, label, {size:10, weight: a.relation==="client" ? 600 : 400}));
+      const at = el("title");
+      at.textContent = `${a.nom}${a.kredo ? " — compte Kredo ("+(a.relation||"")+")" : " — hors portefeuille"}` +
+        (a.role ? `\n${a.role}` : "") + (a.poids ? `\nPoids : ${a.poids}` : "") +
+        (a.source ? `\nSource : ${a.source}` : "") + (a.confiance ? `\nConfiance : ${a.confiance}` : "");
+      ag.appendChild(at);
+      g.appendChild(ag);
+      x += w + 7;
+    });
+    svg.appendChild(g);
+  });
+
+  /* ---------- légende, méta, tableau ---------- */
+  $("legend").innerHTML =
+    `<span><i style="background:${css('--prospect')};opacity:.5;border:1px solid ${css('--prospect')}"></i>Compte Kredo — prospect</span>` +
+    `<span><i style="background:${css('--client')};opacity:.5;border:1px solid ${css('--client')}"></i><b>Client</b></span>` +
+    `<span><i style="border:1px dashed ${css('--pair')}"></i>⇄ Pair-partenaire — hors prospection</span>` +
+    `<span><i style="border:1px solid ${css('--externe')}"></i>Acteur hors portefeuille (source en base)</span>` +
+    `<span><i style="background:${css('--capture')}"></i>Captation de valeur, 3 niveaux</span>` +
+    `<span>épaisseur du trait = intensité · « ? » = confiance faible sur l'acteur</span>`;
+
+  $("meta").textContent = [meta.secteur, meta.slug && "macro « "+meta.slug+" »",
+    meta.date_snapshot && "snapshot "+meta.date_snapshot, meta.source_principale].filter(Boolean).join(" · ");
+  if (meta.avertissement){ $("warn").hidden = false; $("warn").textContent = meta.avertissement; }
+  else $("warn").hidden = true;
+
+  const lignes = [...chaine, ...transverses].map(n=>{
+    const k = n.acteurs.filter(a=>a.kredo).length;
+    return {n, k, tot:n.acteurs.length, couv: n.acteurs.length ? k/n.acteurs.length : 0};
+  }).sort((a,b)=> a.couv - b.couv || b.tot - a.tot);
+
+  $("tablewrap").innerHTML =
+    `<h2>Couverture Kredo par maillon — la liste de prospection déduite</h2>` +
+    `<table><thead><tr><th>Maillon</th><th>Captation</th><th>Confiance</th>
+       <th class="num">Kredo</th><th class="num">Total</th><th>Ce qui manque</th></tr></thead><tbody>` +
+    lignes.map(({n,k,tot,couv})=>{
+      const manque = n.acteurs.filter(a=>!a.kredo).map(a=>a.nom);
+      return `<tr><td>${n.couche==="chaine" ? "⑤④③②①".slice(-(n.maillon))[0]+"·"+n.rang+" " : ""}${esc(n.label)}</td>
+        <td>${n.capture_valeur ? ["","faible","moyenne","forte"][n.capture_valeur] : "—"}</td>
+        <td>${esc(n.confiance)}</td>
+        <td class="num">${k}</td><td class="num">${tot}</td>
+        <td>${manque.length ? esc(manque.join(", ")) : "—"}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+
+  const st = $("status"); st.className = "status";
+  const nk = noeuds.reduce((s,n)=>s+n.acteurs.filter(a=>a.kredo).length,0);
+  const ne = noeuds.reduce((s,n)=>s+n.acteurs.filter(a=>!a.kredo).length,0);
+  const sansSource = noeuds.flatMap(n=>n.acteurs).filter(a=>!a.kredo && !a.source);
+  st.textContent = `${chaine.length} maillons · ${transverses.length} couches transverses · ` +
+    `${nk} comptes Kredo · ${ne} acteurs hors portefeuille · ${liens.length} liens` +
+    (sansSource.length ? ` · ⚠ ${sansSource.length} acteur(s) hors Kredo sans source : ${sansSource.map(a=>a.nom).join(", ")}` : "");
+  if (sansSource.length) st.className = "status err";
+}
+
+function fail(msg){ const st=$("status"); st.className="status err"; st.textContent=msg; }
+
+$("render").addEventListener("click", render);
+$("dl").addEventListener("click", ()=>{
+  const src = new XMLSerializer().serializeToString($("chart"));
+  const url = URL.createObjectURL(new Blob([src],{type:"image/svg+xml"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = "chaine-de-valeur.svg"; a.click();
+  URL.revokeObjectURL(url);
+});
+$("theme").addEventListener("click", ()=>{
+  const cur = document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  render();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+if (DATA){ $("json").value = JSON.stringify(DATA, null, 2); render(); }
+else fail("Collez l'export JSON d'un secteur, puis cliquez sur « Générer ».");
+</script>
+</body>
+</html>

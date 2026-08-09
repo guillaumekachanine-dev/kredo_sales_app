@@ -76,6 +76,8 @@ export async function getSectors(): Promise<SectorListItem[]> {
         id
       )
     `)
+    .eq("level", "macro")
+    .neq("status", "development")
     .order("attractiveness_score", { ascending: false, nullsFirst: false })
 
   if (error) {

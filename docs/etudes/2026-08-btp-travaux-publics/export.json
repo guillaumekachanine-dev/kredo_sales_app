@@ -1,0 +1,303 @@
+{
+  "meta": {
+    "secteur": "Construction (BTP)",
+    "segment": "Travaux publics et construction d'envergure — grandes infrastructures, projets immobiliers d'envergure, ouvrages stratégiques",
+    "geographie": "France entière",
+    "date_snapshot": "08/08/2026",
+    "compte_etalon": "Eiffage",
+    "auteur": "Kit cartographie concurrentielle v1.0",
+    "version": "1.0",
+    "confiance_globale": "moyenne",
+    "avertissement": "Accès aux sources primaires bloqué par la politique réseau de l'environnement : aucune donnée n'atteint le tier T1. Reconfirmer chaque chiffre avant usage externe."
+  },
+  "comptes": [
+    {
+      "nom": "Eiffage",
+      "groupe": "Eiffage SA (coté)",
+      "branche_retenue": "Infrastructures + Construction",
+      "categorie": "leader",
+      "justification_categorie": "Membre du cœur du groupement EPR2 ; couverture de bout en bout travaux + concessions",
+      "ca_meur": 25300, "exercice": 2025, "perimetre_ca": "groupe monde",
+      "ca_branche_meur": 13300, "ca_branche_note": "Infrastructures 9 200 + Construction 4 100 (monde)",
+      "effectif_france": null, "effectif_monde": 87000,
+      "rayon": "international",
+      "convention_collective": "TP — IDCC 1702 / 2614 / 3212 (non vérifié par entité)",
+      "empreinte_metier": 5, "maturite_numerique": 5, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 5, "intensite_it": 5, "moment": 3, "accessibilite": 2, "fit_offre": 4, "total": 19},
+      "trigger_events": [
+        {"date": "2026-T1", "fait": "Carnet de commandes record à 31,1 Md€ (+5 %)", "source": "communiqué T1 2026 via presse"},
+        {"date": "2026-02", "fait": "Ciblage annoncé : datacenters hyperscale, défense, nucléaire", "source": "résultats annuels 2025"},
+        {"date": "2025", "fait": "Acquisition de 74,9 % de Hand & Werk (datacenters, Allemagne)", "source": "résultats annuels 2025"}
+      ],
+      "angle_entree": "Passage à l'échelle de l'IA : ingénierie de données et MLOps, pas de nouveaux cas d'usage",
+      "a_ne_pas_dire": "Discours d'évangélisation sur l'IA ; proposition de POC",
+      "confiance": "moyenne",
+      "trous": ["effectif France", "modèle d'achat et panel", "intégrateurs en place", "IDCC par entité"]
+    },
+    {
+      "nom": "VINCI Construction",
+      "groupe": "VINCI SA (coté)",
+      "branche_retenue": "VINCI Construction",
+      "categorie": "leader",
+      "justification_categorie": "Membre du cœur du groupement EPR2 ; première branche construction du marché",
+      "ca_meur": 32100, "exercice": 2025, "perimetre_ca": "branche monde",
+      "ca_france_note": "non publié ; 41,3 % du CA groupe est réalisé en France, part non transposable à la branche",
+      "effectif_france": null, "effectif_monde": 284256,
+      "rayon": "international",
+      "empreinte_metier": 5, "maturite_numerique": 4.5, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 5, "intensite_it": 5, "moment": 2, "accessibilite": 2, "fit_offre": 4, "total": 18},
+      "trigger_events": [
+        {"date": "2026", "fait": "Équipe Data & IA (~20 personnes) en recrutement : chef de projet IA, analystes", "source": "LinkedIn / JobTeaser — T4, à reconfirmer"}
+      ],
+      "angle_entree": "Renfort d'expertise et industrialisation sur une équipe data déjà constituée",
+      "a_ne_pas_dire": "Proposer de structurer leur démarche data — elle l'est",
+      "confiance": "moyenne",
+      "trous": ["CA France de la branche", "modèle d'achat", "DSI confirmé par source fiable"]
+    },
+    {
+      "nom": "Colas",
+      "groupe": "Bouygues (coté)",
+      "branche_retenue": "Colas",
+      "categorie": "leader",
+      "justification_categorie": "Pôle routes et ferroviaire du groupe Bouygues ; capacité à porter les programmes majeurs",
+      "ca_meur": 16000, "exercice": 2025, "perimetre_ca": "monde",
+      "ca_france_meur": 5600, "ca_france_note": "Route France métropolitaine ; 6 300 avec DOM et océan Indien",
+      "effectif_france": 10000, "rayon": "international",
+      "empreinte_metier": 4.5, "maturite_numerique": 4, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 5, "intensite_it": 4, "moment": 5, "accessibilite": 3, "fit_offre": 4, "total": 21},
+      "trigger_events": [
+        {"date": "2026-05-01", "fait": "Vanessa Ranaivoharison nommée directrice de la transformation digitale du groupe, entrée au comité de direction générale, rattachée au DG", "source": "Le Moniteur"},
+        {"date": "2025", "fait": "Ferroviaire en croissance de 11 %", "source": "résultats 2025"}
+      ],
+      "angle_entree": "Nouvelle gouvernance digitale : mise à l'échelle des données de production industrielle",
+      "a_ne_pas_dire": "Traiter le sujet comme un chantier IT alors qu'il vient d'être porté au comité de direction générale",
+      "confiance": "moyenne",
+      "trous": ["organisation SI cible", "panel fournisseurs"]
+    },
+    {
+      "nom": "Bouygues Construction",
+      "groupe": "Bouygues (coté)",
+      "branche_retenue": "Bouygues Construction",
+      "categorie": "leader",
+      "justification_categorie": "Membre du cœur du groupement EPR2",
+      "ca_meur": 10600, "exercice": 2025, "perimetre_ca": "monde",
+      "effectif_france": null, "rayon": "international",
+      "empreinte_metier": 4, "maturite_numerique": 4.5, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 5, "intensite_it": 4, "moment": 4, "accessibilite": 2, "fit_offre": 4, "total": 19},
+      "trigger_events": [
+        {"date": "2025-11-28", "fait": "Partenariat pluriannuel avec Innodura : robotique, vision 3D, IA embarquée, maintenance prédictive", "source": "communiqué Bouygues"},
+        {"date": "2026-ete", "fait": "Ouverture définitive du site Scale One (Chilly-Mazarin)", "source": "presse professionnelle"},
+        {"date": "2025", "fait": "Départ du Chief Digital Officer vers Forvia — périmètre en recomposition", "source": "CIO Online"}
+      ],
+      "angle_entree": "Le programme robotique produit des données et ouvre une surface cyber industrielle non couverte par le partenaire robotique",
+      "a_ne_pas_dire": "Se positionner sur la robotique elle-même",
+      "confiance": "moyenne",
+      "trous": ["organisation SI actuelle", "panel"]
+    },
+    {
+      "nom": "NGE",
+      "groupe": "NGE (indépendant)",
+      "branche_retenue": "ensemble du groupe",
+      "categorie": "challenger",
+      "justification_categorie": "4e groupe français, complète le groupement EPR2, croissance +8,3 %",
+      "ca_meur": 5024, "exercice": 2025, "perimetre_ca": "groupe monde",
+      "effectif_france": null, "effectif_monde": 25254,
+      "rayon": "international",
+      "empreinte_metier": 4, "maturite_numerique": 3, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 4, "intensite_it": 3, "moment": 5, "accessibilite": 4, "fit_offre": 4, "total": 20},
+      "trigger_events": [
+        {"date": "2026-04", "fait": "Franchit 5 Md€ de CA (+8,3 %) ; plus de 4 000 recrutements en 2025 ; CA et effectifs doublés depuis 2019", "source": "Le Moniteur, JDE"}
+      ],
+      "angle_entree": "Écart entre une croissance de +100 % en six ans et un SI dimensionné pour un groupe deux fois plus petit",
+      "a_ne_pas_dire": "Les traiter en outsider — ils sont le 4e français et le revendiquent",
+      "confiance": "moyenne",
+      "trous": ["organisation SI", "modèle d'achat"]
+    },
+    {
+      "nom": "Fayat — Razel-Bec",
+      "groupe": "Groupe Fayat (indépendant)",
+      "branche_retenue": "Razel-Bec (pôle travaux publics)",
+      "categorie": "challenger",
+      "justification_categorie": "5e acteur du secteur, complète le groupement EPR2",
+      "ca_meur": 746, "exercice": 2025, "perimetre_ca": "filiale Razel-Bec",
+      "ca_groupe_note": "Groupe Fayat 5 900 M€ tous métiers dont matériel routier — NON utilisé pour la segmentation",
+      "effectif_france": null, "effectif_filiale": 6000,
+      "rayon": "international",
+      "empreinte_metier": 3.5, "maturite_numerique": 2, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 4, "intensite_it": 2, "moment": 3, "accessibilite": 4, "fit_offre": 4, "total": 17},
+      "trigger_events": [],
+      "angle_entree": "Organisation fédérale et filiales autonomes : entrée possible par une filiale, sans référencement groupe",
+      "a_ne_pas_dire": "Aborder le groupe par le haut avec une offre standardisée",
+      "confiance": "faible",
+      "trous": ["données récentes sur le pôle TP", "gouvernance SI"]
+    },
+    {
+      "nom": "Spie Batignolles",
+      "groupe": "Groupe Spie Batignolles (80 % managers et salariés)",
+      "branche_retenue": "ensemble du groupe",
+      "categorie": "challenger",
+      "justification_categorie": "2,58 Md€, périmètre plus étroit que NGE et Fayat mais même terrain de jeu",
+      "ca_meur": 2582, "exercice": 2025, "perimetre_ca": "groupe",
+      "effectif_france": 9046, "rayon": "national",
+      "empreinte_metier": 3.5, "maturite_numerique": 4, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 4, "intensite_it": 4, "moment": 3, "accessibilite": 3, "fit_offre": 4, "total": 18},
+      "trigger_events": [
+        {"date": "2024-02-26", "fait": "Acquisition du groupe CIFE / ETPO (222 M€, 650 salariés), constitué en branche autonome", "source": "communiqués Spie Batignolles et ETPO"}
+      ],
+      "angle_entree": "Passage du BIM-projet à la donnée d'entreprise ; intégration SI de la branche ETPO",
+      "a_ne_pas_dire": "Vendre du BIM — ils ont plus de 200 experts internes",
+      "confiance": "moyenne",
+      "trous": ["organisation SI", "panel"]
+    },
+    {
+      "nom": "Demathieu Bard",
+      "groupe": "Demathieu Bard (indépendant, familial)",
+      "categorie": "mid-market",
+      "justification_categorie": "2,08 Md€, positionnement solide, périmètre partiel",
+      "ca_meur": 2080, "exercice": 2024, "perimetre_ca": "groupe",
+      "effectif_france": null, "effectif_groupe": 4211,
+      "rayon": "international",
+      "empreinte_metier": 3, "maturite_numerique": 2.5, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 4, "intensite_it": 2, "moment": 3, "accessibilite": 4, "fit_offre": 3, "total": 16},
+      "trigger_events": [
+        {"date": "2024", "fait": "Acquisition de Steiner Construction (Suisse)", "source": "presse"},
+        {"date": "2025", "fait": "Carnet de commandes de 4,7 Md€, soit 27 mois d'activité", "source": "JDE"}
+      ],
+      "angle_entree": "Intégration post-acquisition et pilotage d'un carnet à 27 mois",
+      "a_ne_pas_dire": "Présenter le carnet long comme un confort",
+      "confiance": "faible",
+      "trous": ["CA 2025", "organisation SI"]
+    },
+    {
+      "nom": "GCC",
+      "groupe": "GCC (indépendant)",
+      "categorie": "mid-market",
+      "justification_categorie": "1,2 Md€, croissance régulière, positionnement national",
+      "ca_meur": 1203, "exercice": 2024, "perimetre_ca": "groupe",
+      "effectif_france": null, "rayon": "national",
+      "empreinte_metier": 3.5, "maturite_numerique": 3, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 3, "intensite_it": 3, "moment": 3, "accessibilite": 4, "fit_offre": 4, "total": 17},
+      "trigger_events": [
+        {"date": "2025", "fait": "Partenariat béton très bas carbone avec Hoffmann Green et Néolithe", "source": "presse professionnelle"}
+      ],
+      "angle_entree": "Chaîne de données du fournisseur au chantier pour prouver l'empreinte carbone d'un ouvrage",
+      "a_ne_pas_dire": "Traiter le carbone comme un sujet de communication",
+      "confiance": "faible",
+      "trous": ["CA 2025", "effectif", "organisation SI"]
+    },
+    {
+      "nom": "Léon Grosse",
+      "groupe": "Léon Grosse (indépendant, familial)",
+      "categorie": "mid-market",
+      "justification_categorie": "907 M€, forte croissance, ambition affichée",
+      "ca_meur": 907, "exercice": 2024, "perimetre_ca": "groupe",
+      "effectif_france": null, "rayon": "national",
+      "empreinte_metier": 3, "maturite_numerique": 2, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 3, "intensite_it": 2, "moment": 4, "accessibilite": 4, "fit_offre": 3, "total": 16},
+      "trigger_events": [
+        {"date": "2025-10", "fait": "Cap annoncé de 1,3 Md€ de CA en 2030 (+43 %)", "source": "ConstructionBTP"}
+      ],
+      "angle_entree": "Outiller un objectif de croissance annoncé publiquement",
+      "a_ne_pas_dire": "Sous-estimer la culture familiale et la décision centralisée",
+      "confiance": "faible",
+      "trous": ["CA 2025", "effectif", "organisation SI"]
+    },
+    {
+      "nom": "Hoffmann Green Cement",
+      "groupe": "Hoffmann Green Cement Technologies (coté)",
+      "categorie": "outsider_emergent",
+      "justification_categorie": "CA très inférieur au seuil mais croissance +27 %, levée de fonds, offre de rupture (ciment 0 % clinker)",
+      "ca_meur": 16.8, "exercice": 2025, "perimetre_ca": "société",
+      "effectif_france": null, "rayon": "national",
+      "empreinte_metier": 1.5, "maturite_numerique": 3, "reputation": "forte",
+      "appetence": {"capacite_a_payer": 2, "intensite_it": 3, "moment": 3, "accessibilite": 4, "fit_offre": 3, "total": 12},
+      "trigger_events": [
+        {"date": "2026", "fait": "CA 2025 à 16,8 M€ (+27 %), plus de 50 000 t vendues, levée de 13 M€, approche de l'équilibre", "source": "Le Moniteur, JDE"}
+      ],
+      "angle_entree": "Industrialiser le SI d'une scale-up cotée dont le produit se vend sur la preuve carbone",
+      "a_ne_pas_dire": "Dispositif et formalisme grands comptes",
+      "confiance": "moyenne",
+      "trous": ["effectif", "SI existant"]
+    },
+    {
+      "nom": "Néolithe",
+      "groupe": "Néolithe (indépendant, financé)",
+      "categorie": "outsider_emergent",
+      "justification_categorie": "Offre de rupture (minéralisation des déchets ultimes en granulats), trajectoire ascendante",
+      "ca_meur": null, "exercice": null, "perimetre_ca": "non trouvé",
+      "effectif_france": null, "rayon": "national",
+      "empreinte_metier": 1, "maturite_numerique": 2.5, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 1, "intensite_it": 3, "moment": 3, "accessibilite": 4, "fit_offre": 3, "total": 11},
+      "trigger_events": [
+        {"date": "2025", "fait": "Objectif de 3 Mt de déchets valorisés d'ici 2030", "source": "Maddyness"}
+      ],
+      "angle_entree": "Traçabilité et preuve carbone industrielle",
+      "a_ne_pas_dire": "Parler transformation ; leur temps est celui de l'industrialisation",
+      "confiance": "faible",
+      "trous": ["CA", "effectif", "SI"]
+    },
+    {
+      "nom": "Charier",
+      "groupe": "Charier (indépendant, familial)",
+      "categorie": "outsider_niche",
+      "justification_categorie": "349 M€, ETI régionale du Grand Ouest, trajectoire stable assumée",
+      "ca_meur": 349, "exercice": 2025, "perimetre_ca": "groupe",
+      "effectif_france": 1800, "rayon": "regional",
+      "empreinte_metier": 2, "maturite_numerique": 1.5, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 3, "intensite_it": 2, "moment": 4, "accessibilite": 5, "fit_offre": 2, "total": 14},
+      "trigger_events": [
+        {"date": "2026-09-01", "fait": "Échéance de réception obligatoire de la facture électronique", "source": "economie.gouv.fr"}
+      ],
+      "angle_entree": "Sujet borné, daté, à retour rapide : conformité 2026 et productivité",
+      "a_ne_pas_dire": "Transformation numérique",
+      "confiance": "moyenne",
+      "trous": ["organisation SI", "outillage existant"]
+    },
+    {
+      "nom": "Baudin Châteauneuf",
+      "groupe": "Baudin Châteauneuf (indépendant)",
+      "categorie": "outsider_niche",
+      "justification_categorie": "171 M€, spécialiste ouvrages d'art et construction métallique",
+      "ca_meur": 171, "exercice": 2024, "perimetre_ca": "société",
+      "effectif_france": 750, "rayon": "national",
+      "empreinte_metier": 1.5, "maturite_numerique": 2, "reputation": "correcte",
+      "appetence": {"capacite_a_payer": 2, "intensite_it": 2, "moment": 4, "accessibilite": 5, "fit_offre": 2, "total": 13},
+      "trigger_events": [
+        {"date": "2026-09-01", "fait": "Échéance de réception obligatoire de la facture électronique", "source": "economie.gouv.fr"}
+      ],
+      "angle_entree": "Numérisation de l'atelier et des ouvrages métalliques",
+      "a_ne_pas_dire": "Vouloir les faire grandir hors de leur niche",
+      "confiance": "faible",
+      "trous": ["CA 2025", "organisation SI"]
+    }
+  ],
+  "ecartes": [
+    {"nom": "ETPO / groupe CIFE", "motif": "Doublon — filiale de Spie Batignolles depuis 2024"},
+    {"nom": "Eurovia", "motif": "Doublon — marque intégrée à VINCI Construction"},
+    {"nom": "Bessac", "motif": "Retenu sous réserve — rattachement capitalistique à vérifier avant toute action"},
+    {"nom": "Webuild, Acciona, Strabag, Implenia", "motif": "Autonomie de décision d'achat en France non établie — à réexaminer"},
+    {"nom": "Ramery", "motif": "Périmètre d'entité mal établi, donnée 2023"}
+  ],
+  "transverse": {
+    "enjeux_communs": [
+      "Facturation électronique : réception obligatoire au 01/09/2026, émission obligatoire pour GE et ETI à la même date",
+      "Cybersécurité et NIS2",
+      "Donnée de chantier : BIM mature côté projet, peu exploité au niveau entreprise",
+      "Pénurie de main-d'œuvre, moteur des programmes d'automatisation",
+      "Preuve carbone imposée par la réglementation et les critères d'attribution"
+    ],
+    "enjeux_par_segment": {
+      "leaders": "Passage à l'échelle, gouvernance de la donnée, intégration d'acquisitions européennes",
+      "challengers": "Croissance non absorbée par le SI, hétérogénéité des filiales",
+      "mid-market": "Petite équipe SI, conformité subie, besoin d'un sujet borné",
+      "outsider_emergent": "Passage à l'échelle industriel, preuve carbone, cycle de décision court",
+      "outsider_niche": "Repli de la commande publique locale, conformité 2026, productivité"
+    },
+    "prescripteur_numerique": "Eiffage",
+    "porteur_innovation": "Bouygues Construction (métier, robotique) ; Eiffage et VINCI Construction (technologique, données et IA) ; Hoffmann Green et Néolithe (matériaux)",
+    "lecture_ia": "Écart annonce/déploiement faible chez Eiffage et VINCI Construction ; IA encapsulée dans la robotique chez Bouygues Construction ; aucune communication IA structurée trouvée chez les challengers et les mid-market",
+    "comptes_prioritaires": ["Colas", "NGE", "Bouygues Construction"],
+    "comptes_ecartes_pour_l_instant": ["Eiffage", "VINCI Construction", "Néolithe"],
+    "message_sectoriel": "Vos volumes se déplacent du local vers le nucléaire, le ferroviaire, l'eau et les datacenters. Ces marchés n'ont ni les mêmes exigences documentaires, ni les mêmes contraintes de traçabilité, ni le même niveau de sécurité informatique. Nous outillons ce déplacement."
+  }
+}

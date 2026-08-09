@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "secteur": "BTP, Construction & Négoce de matériaux",
+    "slug": "btp-construction-immobilier",
+    "niveau": "macro",
+    "date_snapshot": "09/08/2026",
+    "version": "1.0",
+    "source_principale": "etudes/2026-08-btp-travaux-publics/ + base Kredo (jvzgmhvwirsbdkjpmvla)",
+    "avertissement": "WebFetch bloqué par la politique réseau : aucune source primaire n'a été ouverte. Aucune donnée ne dépasse le tier T2 rapporté. Reconfirmer chaque chiffre avant usage externe."
+  },
+  "noeuds": [
+    {
+      "id": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66",
+      "couche": "chaine", "maillon": 1, "rang": 1,
+      "label": "Extraction & production de matériaux",
+      "description": "Granulats, béton, ciment, valorisation des déchets en granulats. Métier de matière, capital-intensif, cyclique.",
+      "capture_valeur": 2,
+      "capture_justification": "Métier de matière, capital-intensif et cyclique. Deux entrants sur rupture produit — Hoffmann Green (ciment 0 % clinker, 16,8 M€ en 2025, +27 %) et Néolithe (minéralisation des déchets ultimes) — montrent que la valeur s'y déplace vers la preuve carbone. Niveau posé par raisonnement : aucune marge sectorielle publiée n'a été trouvée dans cet environnement.",
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "Audemard", "role": "Béton prêt à l'emploi et granulats. CLIENT Kredo — la référence qui ouvre les maillons voisins", "poids": "240 M€ · 200 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "client", "tier": "eti", "segment": "7.2 Matériaux — production & négoce"},
+        {"nom": "Pizzorno Environnement", "role": "Collecte et valorisation des déchets, dont déchets de chantier : la boucle de l'économie circulaire vers les granulats recyclés", "poids": "115 M€", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "9.3 Déchets & économie circulaire"},
+        {"nom": "Hoffmann Green Cement", "role": "Ciment 0 % clinker. Coté, en approche d'équilibre — se vend sur la preuve carbone", "poids": "16,8 M€ (2025, +27 %)", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, JDE, communiqués) — T2/T3 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Néolithe", "role": "Minéralisation des déchets ultimes en granulats", "poids": "CA non publié · cible 3 Mt valorisées en 2030", "source": "Étude BTP Kredo 08/2026 (Maddyness) — T3, CA non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    },
+    {
+      "id": "8cd5e72e-4a60-44e2-82ca-c21daca31472",
+      "couche": "chaine", "maillon": 1, "rang": 2,
+      "label": "Négoce & distribution de matériaux",
+      "description": "Vend la matière au chantier. En amont de la réalisation, pas en aval : le négoce fournit le constructeur.",
+      "capture_valeur": 2,
+      "capture_justification": "Le brief postule que la marge du BTP est chez le négoce. Aucune marge publiée du négoce n'a pu être vérifiée ici (WebFetch bloqué). Ce qui est établi : la concentration et la capacité de bilan — Saint-Gobain Distribution Bâtiment France, n°1, ~2 000 points de vente ; Chausson Matériaux, 1er indépendant, 1,22 Md€ et 800 agences en 2024, 75 M€ levés et acquisition de Frans Bonhomme en 2025. Un secteur qui consolide est un secteur qui dégage du cash. Niveau posé à 2 et non à 3, faute de chiffre de marge : c'est la première donnée à sourcer.",
+      "confiance": "faible",
+      "acteurs": [
+        {"nom": "Ciffreo Bona", "role": "Négoce multi-agences de matériaux, ancrage PACA", "poids": "609M€ · 1300 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.2 Matériaux — production & négoce"},
+        {"nom": "Richardson", "role": "Négoce de sanitaire, chauffage, plomberie et climatisation", "poids": "652M€ · 2080 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "7.2 Matériaux — production & négoce"},
+        {"nom": "Chausson Matériaux", "role": "1er négociant indépendant. Lève 75 M€ et acquiert Frans Bonhomme en 2025", "poids": "1,22 Md€ (2024) · 800 agences · ~4 980 sal.", "source": "WebSearch 09/08/2026 (Pappers, societe.com, Zepros) — T3 rapporté", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Saint-Gobain Distribution Bâtiment France", "role": "N°1 du négoce en France (Point.P, Cedeo, PUM, Dispano…)", "poids": "~2 000 points de vente", "source": "WebSearch 09/08/2026 (Le Moniteur, Wikipédia) — T3 rapporté, source primaire non ouverte (WebFetch bloqué)", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    },
+    {
+      "id": "a41c6704-678e-407d-aa46-b276252ca24b",
+      "couche": "chaine", "maillon": 1, "rang": 3,
+      "label": "Mise à disposition de main-d'œuvre",
+      "description": "Intérim et recrutement. Ressource critique du maillon ③ : la pénurie de main-d'œuvre est l'un des cinq enjeux communs du secteur.",
+      "capture_valeur": 1,
+      "capture_justification": "Métier de volume à marge courte. Sa valeur pour la filière n'est pas la marge mais la rareté : l'étude BTP identifie la pénurie de main-d'œuvre parmi les cinq enjeux communs à tout le panel, et comme le moteur explicite des programmes d'automatisation (partenariat robotique Bouygues Construction / Innodura, 28/11/2025).",
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "Adecco", "role": "Intérim et recrutement, généraliste — le BTP est l'un de ses marchés, pas son seul marché", "poids": "5,8Mds € · 9000 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "11.1 Travail temporaire & recrutement"},
+        {"nom": "Interima", "role": "Intérim indépendant azuréen, fondé en 1978 — le pendant régional d'Adecco", "poids": "10,7M€ · 25 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "11.1 Travail temporaire & recrutement"}
+      ]
+    },
+    {
+      "id": "b7a3af21-5abe-44ff-aece-92e850fc8ada",
+      "couche": "chaine", "maillon": 2, "rang": 1,
+      "label": "Composants & équipements du bâtiment",
+      "description": "Menuiserie, protection solaire, quincaillerie, équipement électrique. Fabrique ce qui est intégré à l'ouvrage.",
+      "capture_valeur": 2,
+      "capture_justification": "Marge produit et différenciation technique supérieures à la marge de pose, mais exposition directe au cycle du logement. Ordre de grandeur observé dans la base Kredo : Sepalumic, 38 M€ pour 47 salariés. Niveau posé par raisonnement, non adossé à une marge publiée.",
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "Griesser", "role": "Protection solaire et fermetures. Ni effectif ni CA exploitables en base", "poids": null, "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": null, "segment": "7.3 Composants & équipements du bâtiment"},
+        {"nom": "Schneider", "role": "Équipements électriques et automatismes du bâtiment. Entité locale du groupe Schneider Electric (Carros) — périmètre à confirmer", "poids": null, "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "8.1 Électronique & équipements électriques"},
+        {"nom": "Sepalumic", "role": "Profilés et systèmes de menuiserie aluminium", "poids": "38M€ · 47 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.3 Composants & équipements du bâtiment"},
+        {"nom": "Torbel Industrie", "role": "Ferrures et quincaillerie pour l'habitat. Segment BTP 7.3, mais sector_id encore sur Industrie Manufacturière", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "7.3 Composants & équipements du bâtiment"}
+      ]
+    },
+    {
+      "id": "a449e758-25dd-4dfe-817b-aae7475c34fa",
+      "couche": "chaine", "maillon": 3, "rang": 1,
+      "label": "Constructeurs, promoteurs & ingénierie",
+      "description": "Réalise ou fait réaliser l'ouvrage. Le maillon le plus peuplé de la carte, et le moins rentable.",
+      "capture_valeur": 1,
+      "capture_justification": "C'est le seul maillon dont la faible captation est chiffrée et sourcée. Marge opérationnelle « Travaux » d'Eiffage : 4,6 % en 2025, contre 4,3 % en 2024 — et c'est la meilleure du panel, en progression, sur un carnet record. GCC : EBITDA de 47,2 M€ pour 1 203 M€ de CA, soit 3,9 %. Le volume est ici ; la marge, non. Source : étude BTP 08/2026, §4 et §6 (T2/T3 rapporté, WebFetch bloqué).",
+      "confiance": "haute",
+      "acteurs": [
+        {"nom": "Groupe IDEC", "role": "Constructeur-promoteur, conception-réalisation", "poids": "500M€ · 620 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.1 Constructeurs, promoteurs & ingénierie"},
+        {"nom": "Groupe Trecobat", "role": "Constructeur de maisons individuelles", "poids": "203M€ · 600 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.1 Constructeurs, promoteurs & ingénierie"},
+        {"nom": "Renaudi", "role": "Ingénierie et maîtrise d'œuvre — micro-structure, interlocuteur = dirigeant", "poids": "1,4M€ · 3 sal.", "source": null, "confiance": "moyenne", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.1 Constructeurs, promoteurs & ingénierie"},
+        {"nom": "Eiffage", "role": "LEADER · compte étalon de l'étude. Continuum travaux → concessions. Prescripteur numérique du secteur", "poids": "25,3 Md€ groupe (2025) · ~87 000 sal.", "source": "Étude BTP Kredo 08/2026 (communiqué résultats 2025, presse pro) — T2 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "VINCI Construction", "role": "LEADER · équipe Data & IA internalisée d'une vingtaine de personnes", "poids": "32,1 Md€ branche monde (2025)", "source": "Étude BTP Kredo 08/2026 (communiqué VINCI FY2025) — T2 rapporté ; équipe data en T4, à reconfirmer", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Bouygues Construction", "role": "LEADER · partenariat robotique Innodura (28/11/2025), CDO parti chez Forvia", "poids": "10,6 Md€ (2025, +3 %)", "source": "Étude BTP Kredo 08/2026 (communiqué Bouygues, CIO Online) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Colas", "role": "LEADER · directrice de la transformation digitale nommée au 01/05/2026, au comité de direction générale", "poids": "16,0 Md€ (2025) · Route France 5,6 Md€ · >10 000 sal. FR", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, rapport de gestion Colas) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "NGE", "role": "CHALLENGER · 4e groupe français. CA et effectifs doublés depuis 2019", "poids": "5,024 Md€ (2025, +8,3 %) · 25 254 sal.", "source": "Étude BTP Kredo 08/2026 (Le Moniteur, JDE, rapport annuel NGE) — T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Spie Batignolles", "role": "CHALLENGER · >200 experts BIM, intégration de la branche ETPO acquise en 2024", "poids": "2,582 Md€ (2025) · 9 046 sal.", "source": "Étude BTP Kredo 08/2026 (rapport extra-financier 2025, Pappers) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Fayat — Razel-Bec", "role": "CHALLENGER · organisation fédérale, filiales autonomes : entrée possible sans référencement groupe", "poids": "746 M€ (2025) · 6 000 sal.", "source": "Étude BTP Kredo 08/2026 (rapport annuel Razel-Bec) — T2/T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Demathieu Bard", "role": "MID-MARKET · carnet de 4,7 Md€, soit 27 mois. Intégration de Steiner Construction (2024)", "poids": "2,08 Md€ (2024) · 4 211 sal.", "source": "Étude BTP Kredo 08/2026 (JDE, presse) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "GCC", "role": "MID-MARKET · béton très bas carbone avec Hoffmann Green et Néolithe", "poids": "1,203 Md€ (2024) · EBITDA 47,2 M€", "source": "Étude BTP Kredo 08/2026 (presse professionnelle) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Léon Grosse", "role": "MID-MARKET · cap annoncé de 1,3 Md€ en 2030 (+43 %)", "poids": "907 M€ (2024)", "source": "Étude BTP Kredo 08/2026 (ConstructionBTP) — T3, CA 2025 non trouvé", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Charier", "role": "NICHE · ETI familiale du Grand Ouest, trajectoire stable assumée", "poids": "349 M€ (2025) · ~1 800 sal.", "source": "Étude BTP Kredo 08/2026 (site Charier, Infonet) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Baudin Châteauneuf", "role": "NICHE · ouvrages d'art et construction métallique", "poids": "171 M€ (2024) · ~750 sal.", "source": "Étude BTP Kredo 08/2026 (Xerfi, Societe.com) — T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Bessac", "role": "NICHE SOUS RÉSERVE · dernier fabricant français de tunneliers. Rattachement capitalistique à vérifier AVANT toute action", "poids": "~150 M€ (2023)", "source": "Étude BTP Kredo 08/2026, §7 acteurs écartés (L'Usine Nouvelle, Le Moniteur) — T3, actionnariat non vérifié", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    },
+    {
+      "id": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf",
+      "couche": "chaine", "maillon": 4, "rang": 1,
+      "label": "Promotion, commercialisation & transaction",
+      "description": "Met l'ouvrage sur le marché : promotion, investissement locatif, transaction. Métier de marge et de commission, pas de volume.",
+      "capture_valeur": 2,
+      "capture_justification": "Métier de commission et de marge de promotion, structurellement au-dessus de la marge de travaux — mais aucun chiffre public n'a été trouvé pour l'étayer. Seul indice disponible, et il s'agit d'un calcul de l'analyste sur les données du CRM Kredo, pas d'une donnée publiée : Iselection déclare 400 M€ pour 150 salariés, soit 2,7 M€ par tête, contre 0,34 M€ chez Groupe Trecobat et 0,81 M€ chez Groupe IDEC. Un tel écart d'intensité signale un métier de marge, il ne la mesure pas.",
+      "confiance": "faible",
+      "acteurs": [
+        {"nom": "Iselection", "role": "Distribution de programmes neufs en investissement locatif", "poids": "400M€ · 150 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "7.4 Immobilier — investissement & transaction"},
+        {"nom": "Keller Williams France", "role": "Réseau de transaction immobilière en franchise", "poids": "5M€/centre · 36 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.4 Immobilier — investissement & transaction"},
+        {"nom": "Pilatus Groupe", "role": "Immobilier — activité mal établie, classification en confiance faible au référentiel", "poids": "3 sal.", "source": null, "confiance": "faible", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "7.4 Immobilier — investissement & transaction"}
+      ]
+    },
+    {
+      "id": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa",
+      "couche": "chaine", "maillon": 5, "rang": 1,
+      "label": "Maîtrise d'ouvrage & exploitation",
+      "description": "Commande, paie et exploite l'ouvrage dans la durée. Collectivités, État, universités, concessionnaires.",
+      "capture_valeur": 3,
+      "capture_justification": "La concession est le seul maillon où la valeur se perçoit dans la durée sur un actif construit une fois. L'étude BTP identifie ce continuum travaux → concession comme ce qui distingue Eiffage et VINCI de tout le reste du panel (§4). Kredo y a trois exploitants d'actifs : ESCOTA (471 km concédés, VINCI Autoroutes), Aéroport Nice Côte d'Azur (311 M€, 15 millions de passagers en 2025), CASA. Niveau posé sur la structure du modèle économique — modele_eco = concession au référentiel — et non sur une marge publiée : aucune n'a été trouvée.",
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "CASA", "role": "Communauté d'agglomération, 24 communes — maître d'ouvrage public sous code de la commande publique", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "4.1 Collectivités & administrations d'État"},
+        {"nom": "Préfecture 06", "role": "Administration d'État — maîtrise d'ouvrage et contrôle de légalité des marchés", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": null, "segment": "4.1 Collectivités & administrations d'État"},
+        {"nom": "Université Côte d'Azur", "role": "Patrimoine universitaire — maîtrise d'ouvrage de réhabilitation", "poids": "1300 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "4.2 Enseignement supérieur & recherche"},
+        {"nom": "Aéroport Nice Côte d'Azur", "role": "Concessionnaire aéroportuaire, 311 M€ et 15 millions de passagers en 2025 — maître d'ouvrage de ses propres infrastructures", "poids": "311M€ · 700 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "eti", "segment": "14.3 Infrastructures & concessions de flux"},
+        {"nom": "ESCOTA (VINCI Autoroutes)", "role": "Concessionnaire de 471 km d'autoroutes — donneur d'ordre récurrent de travaux routiers. CA non affiché : la valeur en base est un chiffre de périmètre groupe VINCI Autoroutes, non transposable à l'entité", "poids": "471 km concédés", "source": null, "confiance": "haute", "kredo": true, "relation": "prospect", "tier": "grand_compte", "segment": "14.3 Infrastructures & concessions de flux"}
+      ]
+    },
+    {
+      "id": "70e8cbc0-67f7-4b50-810f-d36a44ee761e",
+      "couche": "prescripteur", "maillon": null, "rang": 1,
+      "label": "Prescripteurs & normalisateurs",
+      "description": "Qui édicte la règle. Le régime de contrainte rendu visible — et le seul axe daté, donc le seul qui produise un motif d'appel.",
+      "capture_valeur": null, "capture_justification": null,
+      "confiance": "haute",
+      "acteurs": [
+        {"nom": "DGFiP — facturation électronique", "role": "Réception obligatoire au 01/09/2026 pour tous, émission obligatoire pour GE et ETI à la même date. Sanctions : 500 € puis 1 000 €/trimestre, 15 €/facture non conforme", "poids": "Échéance : 01/09/2026", "source": "economie.gouv.fr, cité par l'étude BTP Kredo 08/2026 — T1 rapporté, page non ouverte (WebFetch bloqué)", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "RE2020", "role": "Paliers 2025 / 2028 / 2031 côté bâtiment. La preuve carbone devient un critère d'attribution", "poids": "Paliers 2025 / 2028 / 2031", "source": "Étude BTP Kredo 08/2026, §4 bloc 1 — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Conventions collectives TP", "role": "IDCC 1702 / 2614 / 3212, brochure 3005. Particularité : pas de seuil de 10 salariés dans les TP, contrairement au bâtiment", "poids": "3 IDCC", "source": "Code du travail numérique, convention.fr, cités par l'étude BTP — T1 rapporté, IDCC par entité non vérifié", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "NIS2", "role": "Extension du périmètre de la cybersécurité réglementée. Touche tout le panel, quel que soit le segment", "poids": "Montée en charge", "source": "Étude BTP Kredo 08/2026, §8 enjeux communs — T3", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    },
+    {
+      "id": "65e81b1a-10f4-46f3-b09f-f162b0920651",
+      "couche": "financeur", "maillon": null, "rang": 1,
+      "label": "Donneurs d'ordre & financeurs",
+      "description": "Qui paie réellement. Détermine le rythme du marché bien avant les constructeurs.",
+      "capture_valeur": null, "capture_justification": null,
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "Banque Populaire Méditerranée", "role": "Financement des ETI régionales et de la promotion. CLIENT Kredo", "poids": null, "source": null, "confiance": "haute", "kredo": true, "relation": "client", "tier": "grand_compte", "segment": "6.1 Banque & financement"},
+        {"nom": "Bloc communal — commande publique locale", "role": "Le financeur historique du segment, et celui qui se retire : marchés conclus −12,8 % en février 2026, bloc collectivités attendu à −6 % sur 2026", "poids": "−6 % attendu en 2026", "source": "FNTP et INSEE, cités par l'étude BTP Kredo 08/2026 — T1 rapporté, notes non ouvertes", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "SEDIF / Veolia", "role": "Maître d'ouvrage de trois usines de traitement d'eau, réalisées en groupement Eiffage + VINCI Construction", "poids": ">400 M€", "source": "Étude BTP Kredo 08/2026 (communiqué Eiffage) — T2 rapporté", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "EDF — programme EPR2", "role": "Donneur d'ordre du plus gros programme de génie civil de la décennie. Sa composition de groupement EST la carte du segment", "poids": "~10 Md€ de génie civil", "source": "Étude BTP Kredo 08/2026 (Batirama, PGE) — T3 NON CORROBORÉ PAR UN ACTE. Fait le plus structurant de l'étude et le plus fragile", "confiance": "faible", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    },
+    {
+      "id": "4bc3e166-300b-4e2d-aa9d-60465df59f01",
+      "couche": "technologie", "maillon": null, "rang": 1,
+      "label": "Fournisseurs de technologie",
+      "description": "Où une ESN se situe, et qui est déjà en place chez le compte.",
+      "capture_valeur": null, "capture_justification": null,
+      "confiance": "moyenne",
+      "acteurs": [
+        {"nom": "Experis France", "role": "ESN — PAIR-PARTENAIRE, ni prospect ni client : co-traitance et réponse conjointe", "poids": "238M€ · 3800 sal.", "source": null, "confiance": "haute", "kredo": true, "relation": "pair_partenaire", "tier": "grand_compte", "segment": "12.1 ESN & services numériques"},
+        {"nom": "Appolonia", "role": "Éditeur, vertical_client = immobilier au référentiel. Activité mal établie, classification en confiance faible", "poids": "6,8M€ · 30 sal.", "source": null, "confiance": "faible", "kredo": true, "relation": "prospect", "tier": "pme", "segment": "12.2 Éditeurs de logiciels métier verticaux"},
+        {"nom": "Google Cloud", "role": "Socle de l'IA générative privée d'Eiffage : Gemini, Vertex AI, BigQuery, Apigee. Partenariat du 27/06/2024", "poids": "Partenariat stratégique", "source": "Étude BTP Kredo 08/2026 (communiqué Eiffage 27/06/2024, Silicon, blog Google Cloud) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null},
+        {"nom": "Innodura", "role": "Partenaire robotique de Bouygues Construction depuis le 28/11/2025 : vision 3D, navigation embarquée, maintenance prédictive", "poids": "Partenariat pluriannuel", "source": "Étude BTP Kredo 08/2026 (communiqué Bouygues 28/11/2025, L'Usine Digitale) — T2/T3", "confiance": "moyenne", "kredo": false, "relation": null, "tier": null, "segment": null}
+      ]
+    }
+  ],
+  "liens": [
+    {"amont": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "fournit", "intensite": 3, "libelle": "La production alimente le négoce"},
+    {"amont": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 2, "libelle": "Vente directe aux majors et à leurs centrales d'achat"},
+    {"amont": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Le négoce fournit le chantier — il est en amont, pas en aval"},
+    {"amont": "a41c6704-678e-407d-aa46-b276252ca24b", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Main-d'œuvre intérimaire : le goulot du secteur"},
+    {"amont": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "fournit", "intensite": 3, "libelle": "Composants intégrés à l'ouvrage"},
+    {"amont": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "fournit", "intensite": 2, "libelle": "Une partie des composants transite par le négoce"},
+    {"amont": "a449e758-25dd-4dfe-817b-aae7475c34fa", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "fournit", "intensite": 2, "libelle": "L'ouvrage réalisé passe en commercialisation"},
+    {"amont": "a449e758-25dd-4dfe-817b-aae7475c34fa", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "fournit", "intensite": 3, "libelle": "Commande publique : le constructeur livre le maître d'ouvrage sans intermédiaire"},
+    {"amont": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "fournit", "intensite": 2, "libelle": "Transaction et investissement locatif vers l'occupant"},
+    {"amont": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "aval": "d0632bcd-b869-4dfb-9a55-fb3001a5ee66", "nature": "fournit", "intensite": 1, "libelle": "Boucle circulaire : déchets de déconstruction → granulats recyclés"},
+    {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "prescrit", "intensite": 3, "libelle": "Facture électronique, NIS2, RE2020, IDCC — la contrainte se concentre ici"},
+    {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "prescrit", "intensite": 2, "libelle": "Facture électronique : sous-traitance en cascade et situations mensuelles"},
+    {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "prescrit", "intensite": 2, "libelle": "Code de la commande publique, critères carbone à l'attribution"},
+    {"amont": "70e8cbc0-67f7-4b50-810f-d36a44ee761e", "aval": "b7a3af21-5abe-44ff-aece-92e850fc8ada", "nature": "prescrit", "intensite": 2, "libelle": "RE2020 : la performance du composant devient opposable"},
+    {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "1c4b9f03-5897-4454-abdc-02b8cb26aaaa", "nature": "finance", "intensite": 3, "libelle": "Le financeur détermine ce que le maître d'ouvrage peut commander"},
+    {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "finance", "intensite": 2, "libelle": "Carnets de commandes et accès au crédit des ETI"},
+    {"amont": "65e81b1a-10f4-46f3-b09f-f162b0920651", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "finance", "intensite": 2, "libelle": "Crédit à la promotion et à l'investissement locatif"},
+    {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "a449e758-25dd-4dfe-817b-aae7475c34fa", "nature": "outille", "intensite": 3, "libelle": "BIM, données de chantier, robotique, cybersécurité industrielle"},
+    {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "eb7ea49e-2b30-4a0f-bd16-21c9aa141fbf", "nature": "outille", "intensite": 2, "libelle": "Outils de transaction et de gestion locative"},
+    {"amont": "4bc3e166-300b-4e2d-aa9d-60465df59f01", "aval": "8cd5e72e-4a60-44e2-82ca-c21daca31472", "nature": "outille", "intensite": 2, "libelle": "Dématérialisation et flux de facturation du négoce"}
+  ]
+}

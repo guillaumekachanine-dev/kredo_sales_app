@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaîne de valeur sectorielle — générateur</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --muted:#6b6b66; --line:#e0e0da;
+    --grid:#e8e8e2; --box:#fbfbf9;
+    --prospect:#1f5f8b; --client:#1e7f5c; --pair:#8a6d3b; --externe:#8b8b85;
+    --prescripteur:#a4503f; --financeur:#6a5a8c; --technologie:#2e7d8b;
+    --capture:#b8860b; --flux:#5a5a54; --err:#a8321f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+      --grid:#2a2a31; --box:#23232a;
+      --prospect:#5ba3d0; --client:#5fc2a0; --pair:#d9ad4a; --externe:#8d8d95;
+      --prescripteur:#e08a76; --financeur:#a493c9; --technologie:#6fc0cf;
+      --capture:#d9ad4a; --flux:#9a9a95; --err:#f08a72;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+    --grid:#2a2a31; --box:#23232a;
+    --prospect:#5ba3d0; --client:#5fc2a0; --pair:#d9ad4a; --externe:#8d8d95;
+    --prescripteur:#e08a76; --financeur:#a493c9; --technologie:#6fc0cf;
+    --capture:#d9ad4a; --flux:#9a9a95; --err:#f08a72;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:24px 24px 8px;max-width:1500px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:13.5px}
+  main{max-width:1500px;margin:0 auto;padding:16px 24px 48px;display:grid;gap:20px;
+       grid-template-columns:minmax(0,1fr) 340px}
+  @media (max-width:1100px){main{grid-template-columns:minmax(0,1fr)}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;
+       border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--muted)}
+  textarea{width:100%;height:420px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+       background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+       color:var(--muted);margin-bottom:6px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .status{font-size:12.5px;margin-top:8px;min-height:18px;color:var(--muted)}
+  .status.err{color:var(--err)}
+  .chartwrap{overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .meta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .warn{font-size:12.5px;color:var(--muted);border-left:2px solid var(--capture);padding:4px 0 4px 10px;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:16px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);
+     font-weight:500;margin:24px 0 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Chaîne de valeur sectorielle — générateur</h1>
+  <p>Le schéma est produit depuis les données, jamais dessiné. Collez l'export JSON d'un secteur et regénérez. Fichier autonome : aucune donnée ne sort de votre machine.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <button id="render">Générer</button>
+      <button id="dl">Télécharger le SVG</button>
+      <button id="theme">Inverser le thème</button>
+    </div>
+    <div class="meta" id="meta"></div>
+    <p class="warn" id="warn" hidden></p>
+    <div class="chartwrap"><svg id="chart" role="img" aria-label="Chaîne de valeur sectorielle"></svg></div>
+    <div class="legend" id="legend"></div>
+    <div id="tablewrap"></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <aside class="panel">
+    <label for="json">Export JSON du secteur</label>
+    <textarea id="json" spellcheck="false"></textarea>
+  </aside>
+</main>
+
+<script>
+/* Données embarquées à la construction. Laisser à null pour un générateur vierge. */
+const DATA = /*__EMBED__*/ null /*__EMBED_END__*/;
+
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (t,a={}) => { const n=document.createElementNS(NS,t);
+  for (const k in a) if (a[k]!=null) n.setAttribute(k,a[k]); return n; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s??"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+const COUCHES = {
+  prescripteur:{label:"Prescripteurs & normalisateurs", token:"--prescripteur", verbe:"prescrit"},
+  financeur:   {label:"Donneurs d'ordre & financeurs",  token:"--financeur",    verbe:"finance"},
+  technologie: {label:"Fournisseurs de technologie",    token:"--technologie",  verbe:"outille"}
+};
+const ORDRE_COUCHES = ["prescripteur","financeur","technologie"];
+const MAILLONS = {1:"① Amont / ressources", 2:"② Transformation", 3:"③ Intégration & réalisation",
+                  4:"④ Distribution & mise sur le marché", 5:"⑤ Usage / client final"};
+
+/* ---------- géométrie ---------- */
+const PAD=22, GAP=26, COLS=5, ROW=15.5, BOXPAD=9, NODEGAP=14;
+const TITLEH=46, COLHEADH=22, BANDH=64, BANDGAP=9;
+
+/* Mesure réelle via getComputedTextLength : un texte qui déborde de sa boîte
+   est une erreur de rendu, pas un détail — le schéma se lit en rendez-vous. */
+let RULER = null;
+function larg(s, size, weight){
+  RULER.setAttribute("font-size", size);
+  RULER.setAttribute("font-weight", weight||400);
+  RULER.textContent = s;
+  return RULER.getComputedTextLength();
+}
+function tronque(s, max, size, weight){
+  if (larg(s, size, weight) <= max) return s;
+  let t = s;
+  while (t.length > 1 && larg(t + "…", size, weight) > max) t = t.slice(0, -1);
+  return t + "…";
+}
+function decoupe(s, max, size, weight, maxLignes){
+  const mots = String(s).split(" "), lignes = [];
+  let cur = "";
+  for (const m of mots){
+    const essai = cur ? cur + " " + m : m;
+    if (larg(essai, size, weight) <= max || !cur) cur = essai;
+    else { lignes.push(cur); cur = m; if (lignes.length === maxLignes-1) break; }
+  }
+  lignes.push(cur);
+  if (lignes.length === maxLignes){
+    const reste = mots.slice(lignes.join(" ").split(" ").length).join(" ");
+    const der = lignes[maxLignes-1] + (reste ? " " + reste : "");
+    lignes[maxLignes-1] = tronque(der, max, size, weight);
+  }
+  return lignes.slice(0, maxLignes);
+}
+
+function acteurLabel(a){
+  let s = a.nom;
+  if (a.relation === "pair_partenaire") s = "⇄ " + s;
+  if (a.confiance === "faible") s += " ?";
+  return s;
+}
+function poidsCourt(p){
+  return String(p).split(/\s+[·(]/)[0].trim();
+}
+function acteurStyle(a){
+  if (!a.kredo)                            return {token:"--externe",  fill:false, dash:null};
+  if (a.relation === "client")             return {token:"--client",   fill:true,  dash:null};
+  if (a.relation === "pair_partenaire")    return {token:"--pair",     fill:false, dash:"3 2"};
+  return {token:"--prospect", fill:true, dash:null};
+}
+
+function render(){
+  let data;
+  try { data = JSON.parse($("json").value); }
+  catch(e){ return fail("JSON invalide : " + e.message); }
+  const noeuds = (data.noeuds||[]).filter(n => n && n.label);
+  if (!noeuds.length) return fail("Aucun nœud trouvé dans le JSON (clé « noeuds »).");
+
+  const chaine = noeuds.filter(n => n.couche === "chaine")
+                       .sort((a,b)=> (a.maillon-b.maillon) || (a.rang-b.rang));
+  const transverses = ORDRE_COUCHES.map(c => noeuds.find(n => n.couche === c)).filter(Boolean);
+  const byId = Object.fromEntries(noeuds.map(n => [n.id, n]));
+  const liens = (data.liens||[]).filter(l => byId[l.amont] && byId[l.aval]);
+
+  const svg = $("chart");
+  const W = 1180;
+  const colW = (W - 2*PAD - (COLS-1)*GAP) / COLS;
+  const colX = m => PAD + (m-1)*(colW+GAP);
+
+  svg.innerHTML = "";
+  RULER = el("text",{x:-9999, y:-9999, visibility:"hidden"});
+  svg.appendChild(RULER);
+
+  /* hauteur des boîtes et position verticale, colonne par colonne */
+  const titres = {};
+  chaine.forEach(n => { titres[n.id] = decoupe(n.label, colW-20, 11.5, 600, 2); });
+  const headH = n => 14 + titres[n.id].length*13 + 17;
+  const boxH  = n => headH(n) + n.acteurs.length*ROW + BOXPAD;
+  const pos = {};
+  let chaineBas = 0;
+  for (let m=1; m<=COLS; m++){
+    let y = TITLEH + COLHEADH;
+    chaine.filter(n => n.maillon === m).forEach(n => {
+      pos[n.id] = {x:colX(m), y, w:colW, h:boxH(n), m, head:headH(n)};
+      y += boxH(n) + NODEGAP;
+    });
+    chaineBas = Math.max(chaineBas, y - NODEGAP);
+  }
+
+  /* couloir de routage pour les liens qui sautent une colonne */
+  const routes = liens.filter(l => byId[l.amont].couche==="chaine" && byId[l.aval].couche==="chaine"
+                                && Math.abs(byId[l.amont].maillon - byId[l.aval].maillon) > 1);
+  const LANE = routes.length ? 16 + routes.length*13 : 0;
+  const laneTop = chaineBas + 12;
+  const bandesTop = laneTop + LANE + 18;
+  const H = bandesTop + transverses.length*(BANDH+BANDGAP) + 10;
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const fond = el("rect",{x:0,y:0,width:W,height:H,fill:css("--panel")});
+  svg.insertBefore(fond, RULER);
+
+  const defs = el("defs");
+  ["--flux","--prescripteur","--financeur","--technologie"].forEach(tok=>{
+    const m = el("marker",{id:"arw"+tok.slice(2), viewBox:"0 0 8 8", refX:7, refY:4,
+      markerWidth:6, markerHeight:6, orient:"auto-start-reverse"});
+    m.appendChild(el("path",{d:"M0,0 L8,4 L0,8 z", fill:css(tok)}));
+    defs.appendChild(m);
+  });
+  svg.appendChild(defs);
+
+  const txt = (x,y,s,o={}) => { const t = el("text",{x,y,
+      "text-anchor":o.anchor||"start","font-size":o.size||11,"font-weight":o.weight||400,
+      fill:o.fill||css("--ink"), opacity:o.opacity, "font-style":o.italic?"italic":null});
+    t.textContent = s; return t; };
+
+  /* ---------- titre ---------- */
+  const meta = data.meta||{};
+  svg.appendChild(txt(PAD, 24, meta.secteur || "Chaîne de valeur", {size:16, weight:600}));
+  svg.appendChild(txt(PAD, 39, [meta.date_snapshot && "snapshot "+meta.date_snapshot,
+      meta.version && "v"+meta.version, "forme pleine = compte Kredo · contour = acteur hors portefeuille"]
+      .filter(Boolean).join(" · "), {size:10.5, fill:css("--muted")}));
+
+  /* ---------- en-têtes de colonnes ---------- */
+  for (let m=1; m<=COLS; m++){
+    svg.appendChild(txt(colX(m), TITLEH+13, MAILLONS[m], {size:11, weight:600, fill:css("--muted")}));
+  }
+
+  /* ---------- liens ---------- */
+  const lienTitle = l => `${byId[l.amont].label} → ${byId[l.aval].label}\n${l.nature} · intensité ${l.intensite}/3${l.libelle ? "\n"+l.libelle : ""}`;
+  const wid = i => ({1:1, 2:2, 3:3.4})[i] || 1.5;
+
+  liens.filter(l => byId[l.amont].couche==="chaine" && byId[l.aval].couche==="chaine").forEach(l=>{
+    const a = pos[l.amont], b = pos[l.aval];
+    if (!a || !b) return;
+    const g = el("g"); const tt = el("title"); tt.textContent = lienTitle(l); g.appendChild(tt);
+    const col = css("--flux"), w = wid(l.intensite);
+    const dash = l.intensite === 1 ? "5 4" : null;
+
+    if (a.m === b.m){                                   // même colonne : vertical
+      const x = a.x + a.w/2;
+      g.appendChild(el("line",{x1:x, y1:a.y+a.h, x2:x, y2:b.y-2, stroke:col, "stroke-width":w,
+        "stroke-dasharray":dash, "marker-end":"url(#arwflux)"}));
+    } else if (Math.abs(a.m-b.m) === 1){                // colonnes voisines : dans la gouttière
+      const fwd = b.m > a.m;
+      const x1 = fwd ? a.x+a.w : a.x, x2 = fwd ? b.x-3 : b.x+b.w+3;
+      const dy = fwd ? 0 : 10;                          // décale le retour pour ne pas superposer
+      g.appendChild(el("line",{x1, y1:a.y+a.h/2+dy, x2, y2:b.y+b.h/2+dy, stroke:col, "stroke-width":w,
+        "stroke-dasharray":dash, "marker-end":"url(#arwflux)"}));
+    } else {                                            // saut de colonne : couloir de routage
+      const k = routes.indexOf(l);
+      const ly = laneTop + 10 + k*13;
+      /* on décale les arrivées : trois flèches au même point ne se distinguent plus */
+      const x1 = a.x + a.w/2, x2 = b.x + b.w/2 + (k-(routes.length-1)/2)*13;
+      g.appendChild(el("path",{d:`M${x1},${a.y+a.h} L${x1},${ly} L${x2},${ly} L${x2},${b.y+b.h+3}`,
+        fill:"none", stroke:col, "stroke-width":w, "stroke-dasharray":dash,
+        "marker-end":"url(#arwflux)", opacity:.85}));
+      if (l.intensite === 1 && l.libelle)
+        g.appendChild(txt((x1+x2)/2, ly-3, l.libelle, {size:9.5, anchor:"middle", fill:css("--muted"), italic:true}));
+    }
+    svg.appendChild(g);
+  });
+
+  /* ---------- boîtes de la chaîne ---------- */
+  chaine.forEach(n=>{
+    const p = pos[n.id], g = el("g");
+    const cap = n.capture_valeur || 0;
+    g.appendChild(el("rect",{x:p.x, y:p.y, width:p.w, height:p.h, rx:7,
+      fill:css("--box"), stroke:css("--line"), "stroke-width":1}));
+    if (cap === 3)                                       // zone de captation forte : liseré marqué
+      g.appendChild(el("rect",{x:p.x, y:p.y, width:p.w, height:p.h, rx:7, fill:"none",
+        stroke:css("--capture"), "stroke-width":2}));
+
+    const nk = n.acteurs.filter(a=>a.kredo).length;
+    titres[n.id].forEach((ligne,i)=>
+      g.appendChild(txt(p.x+10, p.y+15+i*13, ligne, {size:11.5, weight:600})));
+
+    /* marqueur de captation : 3 cases, remplies jusqu'au niveau */
+    const yInfo = p.y + p.head - 10;
+    for (let i=0;i<3;i++)
+      g.appendChild(el("rect",{x:p.x+10+i*9, y:yInfo-6.5, width:7, height:7, rx:1.5,
+        fill: i<cap ? css("--capture") : "none", stroke:css("--capture"),
+        "stroke-width":.9, opacity: i<cap ? .95 : .35}));
+    const droite = `${nk}/${n.acteurs.length} Kredo · ${n.confiance}`;
+    g.appendChild(txt(p.x+p.w-10, yInfo, droite, {size:9, anchor:"end", fill:css("--muted")}));
+    /* si la place manque, on retire le mot « captation » — les cases le disent déjà —
+       plutôt que de couper le niveau, qui est l'information */
+    const niveau = ["","faible","moyenne","forte"][cap] || "n.d.";
+    const placeGauche = p.w - 59 - larg(droite, 9, 400);
+    const gauche = larg("captation " + niveau, 9, 400) <= placeGauche ? "captation " + niveau
+                 : (larg(niveau, 9, 400) <= placeGauche ? niveau : "");
+    if (gauche) g.appendChild(txt(p.x+39, yInfo, gauche, {size:9, fill:css("--muted")}));
+
+    const tt = el("title");
+    tt.textContent = `${n.label}\n${n.description||""}` +
+      (n.capture_justification ? `\n\nCaptation de valeur (${cap}/3) : ${n.capture_justification}` : "") +
+      `\n\nConfiance du maillon : ${n.confiance}`;
+    g.appendChild(tt);
+
+    n.acteurs.forEach((a,i)=>{
+      const st = acteurStyle(a), c = css(st.token);
+      const y = p.y + p.head + i*ROW;
+      const ag = el("g");
+      ag.appendChild(el("rect",{x:p.x+9, y:y-1, width:p.w-18, height:ROW-2.5, rx:3,
+        fill: st.fill ? c : "none", "fill-opacity": st.fill ? .16 : 0,
+        stroke:c, "stroke-width": st.fill ? 1 : .9, "stroke-dasharray":st.dash,
+        "stroke-opacity": st.fill ? .55 : .8}));
+      /* Le nom prime sur le poids. Et un poids se raccourcit en coupant à la
+         qualification (« 25,3 Md€ groupe (2025) · 87 000 sal. » → « 25,3 Md€ groupe »),
+         jamais au caractère : un nombre tronqué est un faux chiffre. */
+      const dispo = p.w - 28, gras = a.relation==="client" ? 600 : 400;
+      const poids = a.poids ? tronque(poidsCourt(a.poids), dispo*0.45, 8.5, 400) : null;
+      const wPoids = poids ? larg(poids, 8.5, 400) + 8 : 0;
+      ag.appendChild(txt(p.x+14, y+9.5, tronque(acteurLabel(a), dispo-wPoids, 10, gras),
+        {size:10, weight:gras, fill:css("--ink")}));
+      if (poids)
+        ag.appendChild(txt(p.x+p.w-14, y+9.5, poids, {size:8.5, anchor:"end", fill:css("--muted")}));
+      const at = el("title");
+      at.textContent = `${a.nom}${a.kredo ? " — compte Kredo ("+(a.relation||"")+(a.tier?", "+a.tier:"")+")" : " — hors portefeuille"}` +
+        (a.segment ? `\nSegment : ${a.segment}` : "") +
+        (a.role ? `\n${a.role}` : "") + (a.poids ? `\nPoids : ${a.poids}` : "") +
+        (a.source ? `\nSource : ${a.source}` : "") + (a.confiance ? `\nConfiance : ${a.confiance}` : "");
+      ag.appendChild(at);
+      g.appendChild(ag);
+    });
+    svg.appendChild(g);
+  });
+
+  /* ---------- bandes transverses ---------- */
+  transverses.forEach((n,bi)=>{
+    const y = bandesTop + bi*(BANDH+BANDGAP);
+    const tok = COUCHES[n.couche].token, c = css(tok);
+    const g = el("g");
+    g.appendChild(el("rect",{x:PAD, y, width:W-2*PAD, height:BANDH, rx:7,
+      fill:c, "fill-opacity":.07, stroke:c, "stroke-width":1, "stroke-opacity":.5}));
+
+    /* ticks : quels maillons cette couche touche, et avec quelle intensité */
+    liens.filter(l => l.amont === n.id && byId[l.aval].couche === "chaine").forEach(l=>{
+      const t = pos[l.aval]; if (!t) return;
+      const x = t.x + t.w/2;
+      const tg = el("g"); const tt = el("title"); tt.textContent = lienTitle(l); tg.appendChild(tt);
+      tg.appendChild(el("line",{x1:x, y1:y, x2:x, y2:y-11, stroke:c, "stroke-width":wid(l.intensite),
+        "marker-end":"url(#arw"+tok.slice(2)+")"}));
+      g.appendChild(tg);
+    });
+
+    const dispoBande = W - 2*PAD - 180;
+    g.appendChild(txt(PAD+12, y+18, n.label, {size:11.5, weight:600, fill:c}));
+    g.appendChild(txt(PAD+12, y+32, tronque(n.description||"", dispoBande, 9.5, 400),
+      {size:9.5, fill:css("--muted")}));
+    g.appendChild(txt(W-PAD-12, y+18, `${n.acteurs.filter(a=>a.kredo).length}/${n.acteurs.length} Kredo · conf. ${n.confiance}`,
+      {size:9.5, anchor:"end", fill:css("--muted")}));
+
+    /* acteurs en ligne */
+    let x = PAD+12;
+    n.acteurs.forEach(a=>{
+      const st = acteurStyle(a), ac = css(st.token);
+      const label = acteurLabel(a);
+      const w = larg(label, 10, a.relation==="client" ? 600 : 400) + 10;
+      if (x + w > W-PAD-12){ return; }
+      const ag = el("g");
+      ag.appendChild(el("rect",{x, y:y+40, width:w, height:16, rx:3,
+        fill: st.fill ? ac : "none", "fill-opacity": st.fill ? .16 : 0,
+        stroke: st.fill ? ac : c, "stroke-width": st.fill ? 1 : .9,
+        "stroke-dasharray":st.dash, "stroke-opacity":.7}));
+      ag.appendChild(txt(x+5, y+51, label, {size:10, weight: a.relation==="client" ? 600 : 400}));
+      const at = el("title");
+      at.textContent = `${a.nom}${a.kredo ? " — compte Kredo ("+(a.relation||"")+")" : " — hors portefeuille"}` +
+        (a.role ? `\n${a.role}` : "") + (a.poids ? `\nPoids : ${a.poids}` : "") +
+        (a.source ? `\nSource : ${a.source}` : "") + (a.confiance ? `\nConfiance : ${a.confiance}` : "");
+      ag.appendChild(at);
+      g.appendChild(ag);
+      x += w + 7;
+    });
+    svg.appendChild(g);
+  });
+
+  /* ---------- légende, méta, tableau ---------- */
+  $("legend").innerHTML =
+    `<span><i style="background:${css('--prospect')};opacity:.5;border:1px solid ${css('--prospect')}"></i>Compte Kredo — prospect</span>` +
+    `<span><i style="background:${css('--client')};opacity:.5;border:1px solid ${css('--client')}"></i><b>Client</b></span>` +
+    `<span><i style="border:1px dashed ${css('--pair')}"></i>⇄ Pair-partenaire — hors prospection</span>` +
+    `<span><i style="border:1px solid ${css('--externe')}"></i>Acteur hors portefeuille (source en base)</span>` +
+    `<span><i style="background:${css('--capture')}"></i>Captation de valeur, 3 niveaux</span>` +
+    `<span>épaisseur du trait = intensité · « ? » = confiance faible sur l'acteur</span>`;
+
+  $("meta").textContent = [meta.secteur, meta.slug && "macro « "+meta.slug+" »",
+    meta.date_snapshot && "snapshot "+meta.date_snapshot, meta.source_principale].filter(Boolean).join(" · ");
+  if (meta.avertissement){ $("warn").hidden = false; $("warn").textContent = meta.avertissement; }
+  else $("warn").hidden = true;
+
+  const lignes = [...chaine, ...transverses].map(n=>{
+    const k = n.acteurs.filter(a=>a.kredo).length;
+    return {n, k, tot:n.acteurs.length, couv: n.acteurs.length ? k/n.acteurs.length : 0};
+  }).sort((a,b)=> a.couv - b.couv || b.tot - a.tot);
+
+  $("tablewrap").innerHTML =
+    `<h2>Couverture Kredo par maillon — la liste de prospection déduite</h2>` +
+    `<table><thead><tr><th>Maillon</th><th>Captation</th><th>Confiance</th>
+       <th class="num">Kredo</th><th class="num">Total</th><th>Ce qui manque</th></tr></thead><tbody>` +
+    lignes.map(({n,k,tot,couv})=>{
+      const manque = n.acteurs.filter(a=>!a.kredo).map(a=>a.nom);
+      return `<tr><td>${n.couche==="chaine" ? "⑤④③②①".slice(-(n.maillon))[0]+"·"+n.rang+" " : ""}${esc(n.label)}</td>
+        <td>${n.capture_valeur ? ["","faible","moyenne","forte"][n.capture_valeur] : "—"}</td>
+        <td>${esc(n.confiance)}</td>
+        <td class="num">${k}</td><td class="num">${tot}</td>
+        <td>${manque.length ? esc(manque.join(", ")) : "—"}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+
+  const st = $("status"); st.className = "status";
+  const nk = noeuds.reduce((s,n)=>s+n.acteurs.filter(a=>a.kredo).length,0);
+  const ne = noeuds.reduce((s,n)=>s+n.acteurs.filter(a=>!a.kredo).length,0);
+  const sansSource = noeuds.flatMap(n=>n.acteurs).filter(a=>!a.kredo && !a.source);
+  st.textContent = `${chaine.length} maillons · ${transverses.length} couches transverses · ` +
+    `${nk} comptes Kredo · ${ne} acteurs hors portefeuille · ${liens.length} liens` +
+    (sansSource.length ? ` · ⚠ ${sansSource.length} acteur(s) hors Kredo sans source : ${sansSource.map(a=>a.nom).join(", ")}` : "");
+  if (sansSource.length) st.className = "status err";
+}
+
+function fail(msg){ const st=$("status"); st.className="status err"; st.textContent=msg; }
+
+$("render").addEventListener("click", render);
+$("dl").addEventListener("click", ()=>{
+  const src = new XMLSerializer().serializeToString($("chart"));
+  const url = URL.createObjectURL(new Blob([src],{type:"image/svg+xml"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = "chaine-de-valeur.svg"; a.click();
+  URL.revokeObjectURL(url);
+});
+$("theme").addEventListener("click", ()=>{
+  const cur = document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  render();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+if (DATA){ $("json").value = JSON.stringify(DATA, null, 2); render(); }
+else fail("Collez l'export JSON d'un secteur, puis cliquez sur « Générer ».");
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+compte;macro_secteur;segment;vertical_client;regime_achat;tier;relation;confiance;note
+Robertet;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;grand_compte;client;haute;Compte de référence du corpus parfumerie
+Argeville;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;eti;prospect;haute;
+Aromatech Group;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;pme;prospect;haute;
+Expressions Parfumees;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;pme;prospect;haute;
+Jean Niel;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;pme;prospect;haute;
+PARFEX;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;pme;prospect;haute;
+Payan Bertrand;Parfumerie, Arômes & Cosmétique;1.1 Compositions & ingrédients B2B;;prive;pme;prospect;haute;
+L Occitane;Parfumerie, Arômes & Cosmétique;1.2 Marques & produits finis;;regule;grand_compte;prospect;haute;Règlement cosmétique + retail international
+Fragonard;Parfumerie, Arômes & Cosmétique;1.2 Marques & produits finis;;regule;eti;prospect;moyenne;À cheval amont/aval - attribut amont_integre
+Groupe Arthes;Parfumerie, Arômes & Cosmétique;1.2 Marques & produits finis;;regule;pme;prospect;haute;
+CHU de Nice;Santé & Sciences du vivant;2.1 Offre de soins & diagnostic;;commande_publique;grand_compte;prospect;haute;Ségur numérique
+Centre LACASSAGNE;Santé & Sciences du vivant;2.1 Offre de soins & diagnostic;;commande_publique;eti;prospect;haute;CLCC
+Lbm Bioesterel;Santé & Sciences du vivant;2.1 Offre de soins & diagnostic;;regule;eti;prospect;moyenne;Groupe Biogroup - couloir biologie du Ségur
+Medipath;Santé & Sciences du vivant;2.1 Offre de soins & diagnostic;;regule;nd;prospect;moyenne;Anatomopathologie
+Horus Pharma;Santé & Sciences du vivant;2.2 Industrie de santé - pharma & MedTech;;regule;pme;prospect;haute;
+Median Technologies;Santé & Sciences du vivant;2.2 Industrie de santé - pharma & MedTech;sante;regule;pme;prospect;haute;Éditeur logiciel imagerie - role=editeur
+SOS Oxygene;Santé & Sciences du vivant;2.3 Services de santé & réseaux de soins;;regule;grand_compte;prospect;haute;PSAD multi-sites
+Univet;Santé & Sciences du vivant;2.3 Services de santé & réseaux de soins;;regule;eti;prospect;moyenne;Réseau de cliniques vétérinaires - sans sector_id en base
+Arkopharma;Santé & Sciences du vivant;2.4 Nutraceutique & santé naturelle;;regule;eti;prospect;haute;Fiche Kredo existante
+Laboratoires INELDEA;Santé & Sciences du vivant;2.4 Nutraceutique & santé naturelle;;regule;eti;prospect;haute;Fiche Kredo existante
+Domusvi;Grand âge, handicap & médico-social;3.1 Établissements médico-sociaux & résidences;;regule;grand_compte;prospect;haute;Financement ARS
+Emera;Grand âge, handicap & médico-social;3.1 Établissements médico-sociaux & résidences;;regule;grand_compte;prospect;haute;
+UNAPEI PACA;Grand âge, handicap & médico-social;3.1 Établissements médico-sociaux & résidences;;regule;nd;prospect;moyenne;Handicap - rejoint le segment au lieu d un segment isolé
+CASA (Communauté d agglomérations);Sphère publique, enseignement & recherche;4.1 Collectivités & administrations d État;;commande_publique;nd;prospect;haute;
+Préfecture 06;Sphère publique, enseignement & recherche;4.1 Collectivités & administrations d État;;commande_publique;nd;prospect;haute;
+Rectorat de Nice;Sphère publique, enseignement & recherche;4.1 Collectivités & administrations d État;;commande_publique;nd;prospect;haute;
+Université Nice Cote d Azur;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;commande_publique;eti;prospect;haute;
+Polytech Nice Sophia;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;commande_publique;nd;prospect;haute;Composante UCA
+CNRS Geoazur;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;commande_publique;eti;prospect;haute;
+CNRS Institut de la mer de Villefranche;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;commande_publique;pme;prospect;haute;
+CNRS Observatoire Cote d Azur;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;commande_publique;pme;prospect;haute;
+Skema Business School;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;prive;pme;prospect;haute;Droit privé - cycle d achat distinct
+Eurecom;Sphère publique, enseignement & recherche;4.2 Enseignement supérieur & recherche;;prive;pme;prospect;haute;GIE - droit privé
+Thalès Alénia Space;Aéronautique, Spatial & Défense;5.1 Spatial, défense & systèmes critiques;;commande_publique;grand_compte;prospect;haute;
+ACRI-ST;Aéronautique, Spatial & Défense;5.1 Spatial, défense & systèmes critiques;;commande_publique;pme;prospect;haute;Ingénierie donnée spatiale - écart de tier avec TAS
+Exail Robotics;Aéronautique, Spatial & Défense;5.1 Spatial, défense & systèmes critiques;;commande_publique;grand_compte;client;haute;Défense - habilitations
+Banque Populaire Mediterranée;Services financiers & Assurance;6.1 Banque & financement;;regule;grand_compte;client;haute;DORA
+Les Mutuelles du Soleil;Services financiers & Assurance;6.2 Assurance, mutuelles & courtage;;regule;nd;prospect;haute;
+Solimut;Services financiers & Assurance;6.2 Assurance, mutuelles & courtage;;regule;eti;prospect;haute;NAF 6512Z renseigné
+CEGEMA;Services financiers & Assurance;6.2 Assurance, mutuelles & courtage;;regule;pme;prospect;haute;
+Ascoma;Services financiers & Assurance;6.2 Assurance, mutuelles & courtage;;monaco;eti;client;haute;Hors UE - RGPD/DORA non applicables au sens strict
+Groupe IDEC;Construction & Cadre bâti;7.1 Constructeurs, promoteurs & ingénierie;;prive;eti;prospect;haute;NAF 8299Z erroné en base
+Groupe Trecobat;Construction & Cadre bâti;7.1 Constructeurs, promoteurs & ingénierie;;prive;eti;prospect;haute;
+Renaudi;Construction & Cadre bâti;7.1 Constructeurs, promoteurs & ingénierie;;prive;pme;prospect;moyenne;3 salariés - micro-compte
+Audemard;Construction & Cadre bâti;7.2 Matériaux - production & négoce;;prive;eti;client;haute;Béton, granulats
+Ciffreo Bona;Construction & Cadre bâti;7.2 Matériaux - production & négoce;;prive;eti;prospect;haute;
+Richardson;Construction & Cadre bâti;7.2 Matériaux - production & négoce;;prive;grand_compte;prospect;haute;
+Griesser;Construction & Cadre bâti;7.3 Composants & équipements du bâtiment;;prive;nd;prospect;moyenne;Aucune donnée de taille
+Sepalumic;Construction & Cadre bâti;7.3 Composants & équipements du bâtiment;;prive;pme;prospect;haute;
+Torbel Industrie;Construction & Cadre bâti;7.3 Composants & équipements du bâtiment;;prive;nd;prospect;haute;Déplacé depuis Industrie - appel confirmé
+Iselection;Construction & Cadre bâti;7.4 Immobilier - investissement & transaction;;prive;eti;prospect;haute;Sans sector_id en base
+Keller Williams France;Construction & Cadre bâti;7.4 Immobilier - investissement & transaction;;prive;pme;prospect;haute;Sans sector_id en base
+Pilatus Groupe;Construction & Cadre bâti;7.4 Immobilier - investissement & transaction;;prive;pme;prospect;faible;3 salariés - à qualifier
+STMicroelectronics;Industrie & Équipements;8.1 Électronique & équipements électriques;;prive;grand_compte;prospect;haute;
+Schneider;Industrie & Équipements;8.1 Électronique & équipements électriques;;prive;grand_compte;prospect;moyenne;Périmètre de l entité à préciser
+Tournaire;Industrie & Équipements;8.2 Équipements & emballages industriels;parfumerie|pharma;prive;nd;prospect;haute;Hérite du corpus grassois par le vertical - CA/effectif incohérent en base
+Aqualung;Industrie & Équipements;8.2 Équipements & emballages industriels;sport|defense;prive;pme;prospect;haute;
+Petroineos;Énergie & Environnement;9.1 Raffinage & pétrochimie;;regule;eti;prospect;haute;Seveso
+Naphtachimie;Énergie & Environnement;9.1 Raffinage & pétrochimie;;regule;eti;prospect;haute;Segment Pharmaceutique erroné en base
+Geostock;Énergie & Environnement;9.2 Infrastructures & services énergétiques;;regule;nd;prospect;moyenne;Stockage souterrain
+Bourbon Offshore;Énergie & Environnement;9.2 Infrastructures & services énergétiques;;prive;grand_compte;prospect;haute;Services maritimes offshore
+Pizzorno Environnement;Énergie & Environnement;9.3 Déchets & économie circulaire;secteur_public;commande_publique;eti;prospect;haute;Segment à 1 compte - hérite du macro. Clients = collectivités
+Ubaldi;Commerce & Distribution;10.1 Distribution spécialisée omnicanale;;prive;eti;prospect;haute;
+Retif;Commerce & Distribution;10.1 Distribution spécialisée omnicanale;;prive;eti;prospect;haute;
+Groupe Ippolito;Commerce & Distribution;10.2 Distribution & services automobiles;;prive;eti;prospect;moyenne;Groupe diversifié - activité dominante retenue
+MP SA (AVATACAR);Commerce & Distribution;10.2 Distribution & services automobiles;;prive;nd;prospect;haute;
+Malongo;Commerce & Distribution;10.3 Agroalimentaire & boissons;;regule;eti;prospect;haute;
+Giraudi;Commerce & Distribution;10.3 Agroalimentaire & boissons;;monaco;eti;prospect;moyenne;Groupe diversifié - Monaco
+Adecco;Services aux entreprises & aux personnes;11.1 Travail temporaire & recrutement;;prive;grand_compte;prospect;haute;Droit sectoriel propre au travail temporaire
+Interima;Services aux entreprises & aux personnes;11.1 Travail temporaire & recrutement;;prive;pme;prospect;haute;
+Depil Tech;Services aux entreprises & aux personnes;11.2 Réseaux de services de proximité;;prive;eti;prospect;moyenne;Réseau franchisé B2C
+Maman Bulle;Services aux entreprises & aux personnes;11.2 Réseaux de services de proximité;;prive;pme;prospect;faible;4 salariés - rattaché au lieu d un segment dédié
+Euro Protection Surveillance;Services aux entreprises & aux personnes;11.3 Sécurité & télésurveillance;;regule;eti;prospect;haute;Segment à 1 compte - hérite du macro
+Nice Matin;Services aux entreprises & aux personnes;11.4 Médias & édition;;monaco;eti;prospect;haute;Segment à 1 compte - Monaco
+CCI Cote d Azur;Services aux entreprises & aux personnes;11.5 Organisations professionnelles & sociétés savantes;;commande_publique;nd;prospect;moyenne;Établissement public - arbitrage à revoir si le terrain le contredit
+European Society Of Cardiology;Services aux entreprises & aux personnes;11.5 Organisations professionnelles & sociétés savantes;sante;prive;nd;prospect;moyenne;Société savante internationale - congrès et édition
+Experis France;Numérique & Éditeurs de logiciels;12.1 ESN & services numériques;;prive;grand_compte;pair_partenaire;haute;PAIR - motion co-traitance, à sortir des listes de prospection
+CODIX;Numérique & Éditeurs de logiciels;12.2 Éditeurs de logiciels métier verticaux;finance;prive;pme;prospect;haute;
+Harvest;Numérique & Éditeurs de logiciels;12.2 Éditeurs de logiciels métier verticaux;finance;prive;eti;prospect;haute;Gestion de patrimoine
+Seqoia soft;Numérique & Éditeurs de logiciels;12.2 Éditeurs de logiciels métier verticaux;hospitality;prive;eti;prospect;haute;Hérite du corpus tourisme par le vertical
+Appolonia;Numérique & Éditeurs de logiciels;12.2 Éditeurs de logiciels métier verticaux;immobilier;prive;pme;prospect;faible;Vertical à confirmer
+Vulog;Numérique & Éditeurs de logiciels;12.2 Éditeurs de logiciels métier verticaux;mobilite;prive;nd;prospect;haute;SaaS pour opérateurs de mobilité partagée
+Ansys;Numérique & Éditeurs de logiciels;12.3 Éditeurs technologiques, deeptech & entités captives;industrie;prive;grand_compte;prospect;moyenne;Écart de tier assumé dans le segment
+Bioceanor;Numérique & Éditeurs de logiciels;12.3 Éditeurs technologiques, deeptech & entités captives;environnement;prive;pme;prospect;moyenne;IoT/IA qualité de l eau - séparé d Ansys contrairement à la V0.1
+Ampère Software Factory;Numérique & Éditeurs de logiciels;12.3 Éditeurs technologiques, deeptech & entités captives;automobile;prive;pme;prospect;moyenne;Entité captive d un constructeur - économie distincte d un éditeur
+Odalys Group;Tourisme & Voyage;13.1 Hébergement & résidences de tourisme;;prive;eti;prospect;haute;
+MMV;Tourisme & Voyage;13.1 Hébergement & résidences de tourisme;;prive;nd;prospect;moyenne;Aucune donnée en base
+Voyage Privé;Tourisme & Voyage;13.2 Distribution du voyage & croisière;;prive;eti;client;haute;
+Ponant;Tourisme & Voyage;13.2 Distribution du voyage & croisière;;regule;grand_compte;prospect;haute;Croisière - réglementation maritime
+KEOLIS Alpes-Maritimes;Transport, Logistique & Concessions de flux;14.1 Transport public de voyageurs;;commande_publique;pme;prospect;haute;DSP
+Régie ligne d azur;Transport, Logistique & Concessions de flux;14.1 Transport public de voyageurs;;commande_publique;eti;prospect;haute;Régie
+Cogepart;Transport, Logistique & Concessions de flux;14.2 Logistique & livraison;;prive;grand_compte;prospect;haute;Dernier kilomètre
+Groupe Transcan;Transport, Logistique & Concessions de flux;14.2 Logistique & livraison;;prive;nd;prospect;moyenne;
+Aéroport Nice Cote d Azur;Transport, Logistique & Concessions de flux;14.3 Infrastructures & concessions de flux;;commande_publique;eti;prospect;haute;Concession
+ESCOTA (VINCI);Transport, Logistique & Concessions de flux;14.3 Infrastructures & concessions de flux;;commande_publique;grand_compte;prospect;haute;Concession autoroutière
+Autogrill;Transport, Logistique & Concessions de flux;14.3 Infrastructures & concessions de flux;;commande_publique;nd;prospect;moyenne;Déplacé depuis Tourisme - concession sur infrastructure de transport

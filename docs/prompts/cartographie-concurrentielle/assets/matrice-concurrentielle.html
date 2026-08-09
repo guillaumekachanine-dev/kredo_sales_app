@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matrice concurrentielle — générateur</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#ffffff; --ink:#1c1c1a; --muted:#6b6b66; --line:#e0e0da;
+    --leader:#1f5f8b; --challenger:#2e8b6f; --mid:#b8860b; --emergent:#a4503f; --niche:#6a5a8c;
+    --grid:#e8e8e2; --accent:#1c1c1a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+      --leader:#5ba3d0; --challenger:#5fc2a0; --mid:#d9ad4a; --emergent:#e08a76; --niche:#a493c9;
+      --grid:#2a2a31;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16161a; --panel:#1e1e23; --ink:#ececeb; --muted:#9a9a95; --line:#33333a;
+    --leader:#5ba3d0; --challenger:#5fc2a0; --mid:#d9ad4a; --emergent:#e08a76; --niche:#a493c9;
+    --grid:#2a2a31;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:24px 24px 8px;max-width:1180px;margin:0 auto}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
+  header p{margin:0;color:var(--muted);font-size:13.5px}
+  main{max-width:1180px;margin:0 auto;padding:16px 24px 48px;display:grid;gap:20px;
+       grid-template-columns:minmax(0,1fr) 360px}
+  @media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  button,select{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;
+       border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--muted)}
+  textarea{width:100%;height:340px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+       background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+       color:var(--muted);margin-bottom:6px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .status{font-size:12.5px;margin-top:8px;min-height:18px;color:var(--muted)}
+  .status.err{color:#c0392b}
+  .chartwrap{overflow-x:auto}
+  svg{display:block;max-width:100%;height:auto}
+  .meta{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14px}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<header>
+  <h1>Matrice concurrentielle — générateur</h1>
+  <p>Collez le JSON produit par l'étude (annexe C du livrable). Fichier autonome : aucune donnée ne sort de votre machine.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <select id="mode">
+        <option value="position">Carte 1 — Positionnement (empreinte × maturité)</option>
+        <option value="priorite">Carte 2 — Priorisation (appétence × accessibilité)</option>
+      </select>
+      <button id="render">Générer</button>
+      <button id="dl">Télécharger le SVG</button>
+      <button id="sample">Charger l'exemple</button>
+    </div>
+    <div class="meta" id="meta"></div>
+    <div class="chartwrap"><svg id="chart" viewBox="0 0 880 620" role="img" aria-label="Matrice concurrentielle"></svg></div>
+    <div class="legend" id="legend"></div>
+    <div id="tablewrap"></div>
+  </section>
+
+  <aside class="panel">
+    <label for="json">JSON de l'étude</label>
+    <textarea id="json" spellcheck="false"></textarea>
+    <div class="status" id="status"></div>
+  </aside>
+</main>
+
+<script>
+const CATS = {
+  leader:            {label:"Leader",            css:"--leader"},
+  challenger:        {label:"Challenger",        css:"--challenger"},
+  "mid-market":      {label:"Mid-market",        css:"--mid"},
+  outsider_emergent: {label:"Outsider émergent", css:"--emergent"},
+  outsider_niche:    {label:"Outsider niche",    css:"--niche"}
+};
+
+const SAMPLE = {
+  meta:{secteur:"<Secteur>",segment:"<Segment>",geographie:"France",
+        date_snapshot:"JJ/MM/AAAA",compte_etalon:"Acteur A",auteur:"",version:"1.0"},
+  comptes:[
+    {nom:"Acteur A",categorie:"leader",ca_meur:4200,exercice:2025,effectif_france:12000,
+     empreinte_metier:5,maturite_numerique:4,appetence:{capacite_a_payer:5,intensite_it:4,moment:3,accessibilite:2,fit_offre:4,total:18}},
+    {nom:"Acteur B",categorie:"leader",ca_meur:3100,exercice:2025,effectif_france:9000,
+     empreinte_metier:4,maturite_numerique:5,appetence:{capacite_a_payer:5,intensite_it:5,moment:4,accessibilite:2,fit_offre:4,total:20}},
+    {nom:"Acteur C",categorie:"challenger",ca_meur:1400,exercice:2025,effectif_france:4200,
+     empreinte_metier:4,maturite_numerique:3,appetence:{capacite_a_payer:4,intensite_it:3,moment:5,accessibilite:4,fit_offre:4,total:20}},
+    {nom:"Acteur D",categorie:"challenger",ca_meur:980,exercice:2024,effectif_france:2600,
+     empreinte_metier:3,maturite_numerique:3,appetence:{capacite_a_payer:3,intensite_it:3,moment:3,accessibilite:4,fit_offre:3,total:16}},
+    {nom:"Acteur E",categorie:"mid-market",ca_meur:320,exercice:2025,effectif_france:900,
+     empreinte_metier:2,maturite_numerique:2,appetence:{capacite_a_payer:3,intensite_it:2,moment:3,accessibilite:5,fit_offre:3,total:16}},
+    {nom:"Acteur F",categorie:"mid-market",ca_meur:210,exercice:2024,effectif_france:640,
+     empreinte_metier:3,maturite_numerique:2,appetence:{capacite_a_payer:2,intensite_it:2,moment:2,accessibilite:5,fit_offre:3,total:14}},
+    {nom:"Acteur G",categorie:"outsider_emergent",ca_meur:45,exercice:2025,effectif_france:130,
+     empreinte_metier:2,maturite_numerique:5,appetence:{capacite_a_payer:2,intensite_it:5,moment:5,accessibilite:5,fit_offre:4,total:21}},
+    {nom:"Acteur H",categorie:"outsider_niche",ca_meur:28,exercice:2024,effectif_france:75,
+     empreinte_metier:1,maturite_numerique:3,appetence:{capacite_a_payer:1,intensite_it:2,moment:2,accessibilite:4,fit_offre:2,total:11}}
+  ]
+};
+
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const el = (t,a={}) => { const n=document.createElementNS(NS,t);
+  for (const k in a) n.setAttribute(k,a[k]); return n; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+const AXES = {
+  position: {x:c=>c.empreinte_metier, y:c=>c.maturite_numerique,
+             xl:"Empreinte métier — part de la chaîne de valeur couverte",
+             yl:"Maturité numérique et d'innovation", xmax:5, ymax:5,
+             quad:["Spécialistes techniques","Comptes exigeants, gros potentiel","Faible priorité","Zone la plus rentable pour une ESN"]},
+  priorite: {x:c=>(c.appetence&&c.appetence.total)||0, y:c=>(c.appetence&&c.appetence.accessibilite)||0,
+             xl:"Indice d'appétence ESN (/25)", yl:"Accessibilité commerciale (/5)", xmax:25, ymax:5,
+             quad:["Comptes d'apprentissage","Comptes prioritaires","À écarter","À travailler dans la durée"]}
+};
+
+function render(){
+  let data;
+  try { data = JSON.parse($("json").value); }
+  catch(e){ return fail("JSON invalide : " + e.message); }
+  const comptes = (data.comptes||[]).filter(c => c && c.nom);
+  if (!comptes.length) return fail("Aucun compte trouvé dans le JSON (clé « comptes »).");
+
+  const mode = $("mode").value, A = AXES[mode];
+  const missing = comptes.filter(c => A.x(c)==null || A.y(c)==null || isNaN(A.x(c)) || isNaN(A.y(c)));
+  const pts = comptes.filter(c => !missing.includes(c));
+
+  const W=880, H=620, M={t:44,r:32,b:78,l:78};
+  const iw = W-M.l-M.r, ih = H-M.t-M.b;
+  const sx = v => M.l + (v/A.xmax)*iw;
+  const sy = v => M.t + ih - (v/A.ymax)*ih;
+  const maxCa = Math.max(...pts.map(c => +c.ca_meur||0), 1);
+  const r = c => 7 + 30*Math.sqrt((+c.ca_meur||0)/maxCa);
+
+  const svg = $("chart"); svg.innerHTML="";
+  svg.appendChild(el("rect",{x:0,y:0,width:W,height:H,fill:css("--panel")}));
+
+  // quadrants
+  const mx = sx(A.xmax/2), my = sy(A.ymax/2);
+  svg.appendChild(el("line",{x1:mx,y1:M.t,x2:mx,y2:M.t+ih,stroke:css("--grid"),"stroke-width":1,"stroke-dasharray":"4 4"}));
+  svg.appendChild(el("line",{x1:M.l,y1:my,x2:M.l+iw,y2:my,stroke:css("--grid"),"stroke-width":1,"stroke-dasharray":"4 4"}));
+  const qpos = [[M.l+10,M.t+18,"start"],[M.l+iw-10,M.t+18,"end"],[M.l+10,M.t+ih-10,"start"],[M.l+iw-10,M.t+ih-10,"end"]];
+  A.quad.forEach((label,i)=>{
+    const t = el("text",{x:qpos[i][0],y:qpos[i][1],"text-anchor":qpos[i][2],
+      fill:css("--muted"),"font-size":11,"font-style":"italic",opacity:.75});
+    t.textContent = label; svg.appendChild(t);
+  });
+
+  // axes
+  svg.appendChild(el("line",{x1:M.l,y1:M.t+ih,x2:M.l+iw,y2:M.t+ih,stroke:css("--line"),"stroke-width":1.5}));
+  svg.appendChild(el("line",{x1:M.l,y1:M.t,x2:M.l,y2:M.t+ih,stroke:css("--line"),"stroke-width":1.5}));
+  const step = A.xmax>10 ? 5 : 1;
+  for(let v=0; v<=A.xmax; v+=step){
+    const t=el("text",{x:sx(v),y:M.t+ih+18,"text-anchor":"middle",fill:css("--muted"),"font-size":11});
+    t.textContent=v; svg.appendChild(t);
+  }
+  for(let v=0; v<=A.ymax; v++){
+    const t=el("text",{x:M.l-10,y:sy(v)+4,"text-anchor":"end",fill:css("--muted"),"font-size":11});
+    t.textContent=v; svg.appendChild(t);
+  }
+  const xl=el("text",{x:M.l+iw/2,y:H-24,"text-anchor":"middle",fill:css("--ink"),"font-size":12.5});
+  xl.textContent=A.xl; svg.appendChild(xl);
+  const yl=el("text",{x:-(M.t+ih/2),y:20,"text-anchor":"middle",fill:css("--ink"),"font-size":12.5,transform:"rotate(-90)"});
+  yl.textContent=A.yl; svg.appendChild(yl);
+
+  // bulles, les plus grosses d'abord pour que les petites restent cliquables/visibles
+  const etalon = (data.meta && data.meta.compte_etalon) || "";
+  [...pts].sort((a,b)=>(+b.ca_meur||0)-(+a.ca_meur||0)).forEach(c=>{
+    const color = css(CATS[c.categorie] ? CATS[c.categorie].css : "--muted") || css("--muted");
+    const isEtalon = etalon && c.nom.toLowerCase() === String(etalon).toLowerCase();
+    const g = el("g");
+    g.appendChild(el("circle",{cx:sx(A.x(c)),cy:sy(A.y(c)),r:r(c),fill:color,
+      "fill-opacity":.28,stroke:color,"stroke-width":isEtalon?3:1.5}));
+    const label = el("text",{x:sx(A.x(c)),y:sy(A.y(c))+r(c)+13,"text-anchor":"middle",
+      fill:css("--ink"),"font-size":11.5,"font-weight":isEtalon?600:400});
+    label.textContent = c.nom + (isEtalon ? " ★" : "");
+    g.appendChild(label);
+    const title = el("title");
+    title.textContent = `${c.nom} — ${CATS[c.categorie]?CATS[c.categorie].label:c.categorie}
+CA : ${c.ca_meur||"n.d."} M€ (${c.exercice||"n.d."}) · effectif FR : ${c.effectif_france||"n.d."}
+appétence : ${(c.appetence&&c.appetence.total)||"n.d."}/25`;
+    g.appendChild(title);
+    svg.appendChild(g);
+  });
+
+  // légende + méta + table
+  $("legend").innerHTML = Object.entries(CATS)
+    .map(([k,v])=>`<span><i style="background:${css(v.css)}"></i>${v.label}</span>`).join("")
+    + `<span>★ compte étalon · taille de bulle = CA</span>`;
+  const m = data.meta||{};
+  $("meta").textContent = [m.secteur, m.segment, m.geographie, m.date_snapshot ? "snapshot "+m.date_snapshot : "",
+    m.version ? "v"+m.version : ""].filter(Boolean).join(" · ");
+
+  $("tablewrap").innerHTML = `<table><thead><tr>
+      <th>Compte</th><th>Catégorie</th><th>CA M€ (ex.)</th><th>Effectif FR</th>
+      <th>Empreinte</th><th>Maturité</th><th>Appétence</th></tr></thead><tbody>` +
+    comptes.map(c=>`<tr><td>${esc(c.nom)}</td><td>${CATS[c.categorie]?CATS[c.categorie].label:esc(c.categorie||"—")}</td>
+      <td>${c.ca_meur??"—"} (${c.exercice??"—"})</td><td>${c.effectif_france??"—"}</td>
+      <td>${c.empreinte_metier??"—"}</td><td>${c.maturite_numerique??"—"}</td>
+      <td>${(c.appetence&&c.appetence.total)??"—"}</td></tr>`).join("") + `</tbody></table>`;
+
+  const st = $("status"); st.className="status";
+  st.textContent = `${pts.length} compte(s) tracé(s)` +
+    (missing.length ? ` · ${missing.length} ignoré(s) faute de coordonnées : ${missing.map(c=>c.nom).join(", ")}` : "");
+}
+
+function esc(s){ return String(s??"").replace(/[&<>]/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[ch])); }
+function fail(msg){ const st=$("status"); st.className="status err"; st.textContent=msg; }
+
+$("render").addEventListener("click", render);
+$("mode").addEventListener("change", render);
+$("sample").addEventListener("click", ()=>{ $("json").value = JSON.stringify(SAMPLE,null,2); render(); });
+$("dl").addEventListener("click", ()=>{
+  const src = new XMLSerializer().serializeToString($("chart"));
+  const url = URL.createObjectURL(new Blob([src],{type:"image/svg+xml"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = "matrice-concurrentielle.svg"; a.click();
+  URL.revokeObjectURL(url);
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+
+$("json").value = JSON.stringify(SAMPLE,null,2);
+render();
+</script>
+</body>
+</html>
