@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not expose a saveable PNG file path in this environment, so I could not write `image.png`.
+
+I wrote the required failed worker result JSON at:
+
+[ result.json ](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/editorial-cobalt-lockup/attempt-1/result.json)

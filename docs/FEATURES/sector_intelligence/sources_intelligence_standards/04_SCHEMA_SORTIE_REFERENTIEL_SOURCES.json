@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kredo.local/schemas/sector-source-registry-v1.json",
+  "title": "KREDO Sector Source Registry V1",
+  "type": "object",
+  "required": ["meta", "information_needs", "sources", "minimum_pack", "extended_pack", "gaps", "quality"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["sector", "segment", "market_definition", "geography", "snapshot_date", "version", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "sector": {"type": "string"},
+        "segment": {"type": "string"},
+        "market_definition": {"type": "string"},
+        "geography": {"type": "string"},
+        "snapshot_date": {"type": "string"},
+        "version": {"const": "1.0"},
+        "status": {"enum": ["production_ready", "usable_with_caveats", "draft"]}
+      }
+    },
+    "information_needs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["family", "need", "commercial_use", "coverage"],
+        "additionalProperties": false,
+        "properties": {
+          "family": {"type": "string"},
+          "need": {"type": "string"},
+          "commercial_use": {"type": "string"},
+          "coverage": {"enum": ["strong", "medium", "weak", "gap", "non_applicable"]}
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id", "name", "publisher", "url", "domain", "family", "tier",
+          "primary_role", "attests", "commercial_use", "segment_scope", "geography",
+          "update_frequency", "last_verified_at", "access", "automation_fit",
+          "utility_score", "utility_score_detail", "risks", "typical_queries", "origin_chain"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"type": "string", "pattern": "^SRC-[0-9]{3,}$"},
+          "name": {"type": "string"},
+          "publisher": {"type": "string"},
+          "url": {"type": "string"},
+          "domain": {"type": "string"},
+          "family": {"type": "string"},
+          "tier": {"type": "integer", "minimum": 1, "maximum": 4},
+          "primary_role": {"enum": ["proof", "corroboration", "discovery", "watch"]},
+          "attests": {"type": "array", "items": {"type": "string"}},
+          "commercial_use": {"type": "array", "items": {"type": "string"}},
+          "segment_scope": {"type": "string"},
+          "geography": {"type": "string"},
+          "update_frequency": {"type": "string"},
+          "last_verified_at": {"type": "string"},
+          "access": {"enum": ["open", "registration", "paywall", "mixed"]},
+          "automation_fit": {"enum": ["high", "medium", "low", "manual_only"]},
+          "utility_score": {"type": "integer", "minimum": 0, "maximum": 100},
+          "utility_score_detail": {
+            "type": "object",
+            "required": ["sector_relevance", "information_coverage", "commercial_value", "freshness", "authority", "automation_access"],
+            "additionalProperties": false,
+            "properties": {
+              "sector_relevance": {"type": "integer", "minimum": 0, "maximum": 20},
+              "information_coverage": {"type": "integer", "minimum": 0, "maximum": 20},
+              "commercial_value": {"type": "integer", "minimum": 0, "maximum": 15},
+              "freshness": {"type": "integer", "minimum": 0, "maximum": 15},
+              "authority": {"type": "integer", "minimum": 0, "maximum": 20},
+              "automation_access": {"type": "integer", "minimum": 0, "maximum": 10}
+            }
+          },
+          "risks": {"type": "array", "items": {"type": "string"}},
+          "typical_queries": {"type": "array", "items": {"type": "string"}},
+          "origin_chain": {"type": "string"}
+        }
+      }
+    },
+    "minimum_pack": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^SRC-[0-9]{3,}$"},
+      "uniqueItems": true
+    },
+    "extended_pack": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^SRC-[0-9]{3,}$"},
+      "uniqueItems": true
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["information_family", "description", "searches_attempted"],
+        "additionalProperties": false,
+        "properties": {
+          "information_family": {"type": "string"},
+          "description": {"type": "string"},
+          "searches_attempted": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": ["critical_failures", "major_failures", "red_team_points", "verdict"],
+      "additionalProperties": false,
+      "properties": {
+        "critical_failures": {"type": "array", "items": {"type": "string"}},
+        "major_failures": {"type": "array", "items": {"type": "string"}},
+        "red_team_points": {"type": "array", "items": {"type": "string"}},
+        "verdict": {"enum": ["production_ready", "usable_with_caveats", "draft"]}
+      }
+    }
+  }
+}

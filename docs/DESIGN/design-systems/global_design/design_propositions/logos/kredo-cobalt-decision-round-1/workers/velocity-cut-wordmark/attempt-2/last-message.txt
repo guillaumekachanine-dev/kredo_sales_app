@@ -1,0 +1,4 @@
+Generated exactly one image with `image_gen.imagegen`, but the native tool did not expose a reachable image file path, so I could not save the required PNG.
+
+Wrote the required failure JSON here:
+[ result.json ](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/velocity-cut-wordmark/attempt-2/result.json)

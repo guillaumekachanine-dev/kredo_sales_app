@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not expose a savable PNG path or binary output, so I could not write `image.png`.
+
+Wrote the required failure result JSON at:
+
+[outputs/logos/kredo-cobalt-decision-round-1/workers/ledger-serif-authority/attempt-2/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/ledger-serif-authority/attempt-2/result.json)

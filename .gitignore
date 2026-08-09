@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+# prototypes et bacs à sable versionnés sous docs/ : jamais leurs dépendances ni leurs builds
+**/node_modules/
+**/.npm-cache/
+docs/**/cockpit-mobile-prototype/dist/
 /.pnp
 .pnp.*
 .yarn/*

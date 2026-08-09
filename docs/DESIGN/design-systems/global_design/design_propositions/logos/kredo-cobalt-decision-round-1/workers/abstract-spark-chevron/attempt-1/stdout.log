@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not provide a savable file path or binary output, so I could not write the PNG to the requested location.
+
+I wrote the required failure JSON at:
+
+`outputs/logos/kredo-cobalt-decision-round-1/workers/abstract-spark-chevron/attempt-1/result.json`

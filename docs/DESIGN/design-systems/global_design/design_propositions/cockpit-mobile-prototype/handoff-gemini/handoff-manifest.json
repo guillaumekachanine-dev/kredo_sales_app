@@ -1,0 +1,163 @@
+{
+  "targetDevice": {
+    "name": "iPhone 14",
+    "orientation": "portrait",
+    "viewportCss": {
+      "width": 390,
+      "height": 844
+    },
+    "devicePixelRatio": 3,
+    "physicalCapture": {
+      "width": 1170,
+      "height": 2532
+    },
+    "safeAreasRequired": true,
+    "validationTargets": [
+      "Safari iOS",
+      "PWA standalone"
+    ]
+  },
+  "targetRoute": "/cockpit",
+  "prototypeRoot": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype",
+  "prototypeStates": [
+    "collapsed",
+    "expanded",
+    "quick-actions",
+    "staffing-sheet",
+    "meeting-sheet",
+    "company-drawer",
+    "contact-drawer"
+  ],
+  "prototypeSources": [
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/src/App.jsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/src/styles.css",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/design-qa.md"
+  ],
+  "referenceCaptures": [
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/handoff-gemini/reference-assets/final-capture-main-collapsed.png",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/handoff-gemini/reference-assets/final-capture-agenda-expanded.png",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/handoff-gemini/reference-assets/final-capture-quick-actions.png",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/handoff-gemini/reference-assets/final-capture-staffing-sheet.png",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/cockpit-mobile-prototype/handoff-gemini/reference-assets/final-capture-meeting-sheet.png"
+  ],
+  "logo": {
+    "sourceFile": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos_vdef/logo_sans_fond.png",
+    "recommendedPublicFile": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/public/branding/kredo/logo_sans_fond.png",
+    "recommendedRuntimePath": "/branding/kredo/logo_sans_fond.png"
+  },
+  "productionFiles": [
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/app/(app)/cockpit/page.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/cockpit/index.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/cockpit/CockpitMobileDashboard.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/cockpit/CockpitDesktopDashboard.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/lib/cockpit/cockpit-data.ts"
+  ],
+  "designSystemFiles": [
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/app/globals.css",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/app/layout.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/templates/MobileActionPage.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/Button.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/SurfaceCard.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/StatusPill.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/AppDrawer.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/AppDialog.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/layout/AppShell.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/layout/MobileNav.tsx",
+    "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/layout/MobileBottomNav.tsx"
+  ],
+  "reusableComponents": [
+    {
+      "name": "AppDrawer",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/AppDrawer.tsx",
+      "use": "Bottom sheets and identity drawers"
+    },
+    {
+      "name": "SurfaceCard",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/SurfaceCard.tsx",
+      "use": "Module and item containers"
+    },
+    {
+      "name": "Button",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/ui/Button.tsx",
+      "use": "Primary and secondary card actions"
+    },
+    {
+      "name": "CompanyIdentityDrawer",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/accounts-contacts/CompanyIdentityDrawer.tsx",
+      "use": "Meeting and prospection company access"
+    },
+    {
+      "name": "ContactIdentityDrawer",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/accounts-contacts/ContactIdentityDrawer.tsx",
+      "use": "Meeting contact access"
+    },
+    {
+      "name": "NewOpportunityDrawer",
+      "path": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/src/components/missions/NewOpportunityDrawer.tsx",
+      "use": "Create or update staffing need"
+    }
+  ],
+  "availableData": [
+    "staffing.openNeeds",
+    "staffing.weeklyDeadlines",
+    "staffing.priorities",
+    "synthese.accountsToActivate",
+    "synthese.pipeline.totalWeighted",
+    "CompanyIdentityDrawer route and query param opening",
+    "Client intelligence route for pitch and summary"
+  ],
+  "missingData": [
+    "unified agenda feed",
+    "real meetings list for cockpit mobile",
+    "meeting preparation level",
+    "task deep-link entry point",
+    "voice note entry point",
+    "financial simulator entry point",
+    "contact drawer URL deep-link",
+    "real alert count"
+  ],
+  "deepLinks": {
+    "confirmed": [
+      "/cockpit",
+      "/missions",
+      "/missions/opps",
+      "/missions/opps/[id]/edit",
+      "/missions/planning",
+      "/prospection",
+      "/prospection/accounts",
+      "/prospection/accounts?drawer=<companyId>",
+      "/prospection/accounts/[companyId]",
+      "/prospection/suivi",
+      "/prospection/signals",
+      "/prospection/sequences",
+      "/prospection/ai-workshop",
+      "/finance",
+      "/recruitment/import"
+    ],
+    "unresolved": [
+      "contact drawer URL deep-link",
+      "voice note",
+      "task creation/edit deep-link",
+      "financial simulator",
+      "staffing stage direct deep-link",
+      "CV consultation deep-link"
+    ]
+  },
+  "validationCommands": [
+    "run the repository typecheck command",
+    "run the repository build command",
+    "verify mobile viewport 390x844 visually",
+    "verify no horizontal scroll",
+    "verify focus, close behavior, and reduced motion",
+    "verify desktop cockpit unchanged"
+  ],
+  "blockingCriteria": [
+    "Desktop cockpit visually changed",
+    "mobile cockpit deviates from reference captures",
+    "hardcoded colors added",
+    "new dependency added",
+    "mock data silently shipped for missing production fields",
+    "horizontal overflow at 390px",
+    "bottom navigation overlap"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "review-renderer-materialized",
+  "action": "write_moodboard_widget_payload",
+  "label": "Materialized Creative Production image review",
+  "createdAt": "2026-06-16T23:19:28.897192Z",
+  "timestamp": "2026-06-16T23:19:28.897192Z",
+  "title": "Creative Production Review",
+  "summary": "Review, select, and hand off generated Creative Production images.",
+  "itemCount": 8,
+  "runDirectory": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/boards",
+  "streamPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/boards/data/stream.json",
+  "runStatePath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/boards/run-state.json",
+  "latestActionPath": "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/boards/latest-action.json"
+}

@@ -1,0 +1,186 @@
+{
+  "meta": {
+    "title": "Logo exploration for KREDO — Cobalt Decision Round 1",
+    "stage": "Logo exploration",
+    "brand_name": "KREDO",
+    "anchor": "Cockpit B2B de decision et de pilotage commercial pour ESN",
+    "summary": "Huit directions de logo pour KREDO, entre cockpit de decision, rigueur editoriale, lisibilite SaaS et memorabilite produit.",
+    "base_asset": "/Users/dosta/Desktop/Capture d’écran 2026-06-17 à 00.38.19.png",
+    "reference_images": [
+      "/Users/dosta/Desktop/Capture d’écran 2026-06-17 à 01.02.48.png",
+      "/Users/dosta/Desktop/Capture d’écran 2026-06-17 à 00.38.19.png",
+      "/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/doctrine-cobalt-logo-board.png"
+    ],
+    "base_asset_url": "/data/base_asset.png"
+  },
+  "constraints": {
+    "preserve": [
+      "exact brand name spelling: KREDO",
+      "B2B SaaS category for ESN sales and profit-center management",
+      "Doctrine Cobalt palette logic: cobalt, deep ink, restrained brass accent",
+      "small-size readability for app icon, favicon, browser tab, and product sidebar",
+      "a feeling of decision support, branching clarity, and operational authority"
+    ],
+    "avoid": [
+      "handshake icons, rockets, trophies, dollar signs, megaphones, or generic growth arrows",
+      "fake certification badges, startup gradients, crypto aesthetics, gaming cues, or glossy chrome",
+      "busy stationeries, textured paper scenes, or 3D logo mockups as the main idea",
+      "dense detail that breaks at 16px",
+      "any extra readable copy beyond the KREDO name"
+    ]
+  },
+  "routes": [
+    {
+      "id": "abstract-spark-chevron",
+      "label": "Abstract Spark Chevron",
+      "family": "symbol",
+      "usage_contexts": [
+        "app icon",
+        "top navigation",
+        "launch deck cover"
+      ],
+      "prompt": "Create a premium identity presentation board for KREDO on a pure white inspection background. Show one logo direction only, inspired by an abstract spark made of three disciplined chevrons or branching blades. Export it as a compact brand mockup board: primary lockup, standalone app icon, dark-mode header preview, and one tiny product-usage strip. Keep all supporting text absent except the exact brand name KREDO if the wordmark appears. Visual tone: B2B SaaS, precise, directional, editorial, calm authority. Palette: cobalt blue, deep navy ink, restrained brass accent, warm off-white. The symbol must feel like guided branching and decision momentum, not an arrow. No paper stationery scene, no 3D extrusion, no slogan, no extra readable text.",
+      "rationale": "Poursuit la piste la plus singuliere de tes refs en lui donnant davantage de tension proprietaire et de tenue produit.",
+      "best_for": "Une signature produit immediate, surtout si l'icone doit exister seule.",
+      "decision_advice": "Choisir cette piste si tu veux un signe rapide a reconnaitre, plus distinctif qu'un K classique.",
+      "watch_out": "Le symbole doit rester lisible et ne pas basculer vers un simple flechetage abstrait.",
+      "next_step": "Redessiner le chevron externe pour fixer une geometrie vraiment proprietaire et tester une version monochrome.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "brass-pivot-k",
+      "label": "Brass Pivot K",
+      "family": "monogram",
+      "usage_contexts": [
+        "website header",
+        "browser tab",
+        "commercial documents"
+      ],
+      "prompt": "Create a refined logo mockup board for KREDO on a clean white presentation sheet. Build the direction around a constructed K monogram with a strong vertical stem and a single brass pivot wedge cutting into cobalt or deep ink geometry. Include four views on the board: horizontal logo, standalone icon, reverse dark strip, and tiny compact mark preview. The result should feel disciplined, premium, and software-native for a B2B decision cockpit. Use cobalt blue, deep navy, subtle brass, soft mineral white. No heritage crest, no gradient overload, no extra copy, no textured mockup scene, no readable labels other than KREDO.",
+      "rationale": "C'est l'evolution la plus naturelle du lockup K + KREDO que tu as deja commence a aimer.",
+      "best_for": "La coherence entre app, favicon, login, deck et assets plus institutionnels.",
+      "decision_advice": "Piste solide si tu veux assumer un K proprietaire sans perdre la clarte d'un wordmark classique.",
+      "watch_out": "Le brass doit rester un accent de decision, pas un effet decoratif.",
+      "next_step": "Tester trois proportions de wedge et un wordmark plus editorial pour hausser le niveau.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "ledger-serif-authority",
+      "label": "Ledger Serif Authority",
+      "family": "premium",
+      "usage_contexts": [
+        "proposal cover",
+        "executive deck",
+        "brand page hero"
+      ],
+      "prompt": "Create a premium logo presentation board for KREDO on a white identity board. Focus on an elegant but restrained uppercase wordmark with editorial serif influence, paired with a small constructed K monogram derived from the Doctrine Cobalt logic. Show the direction as a board with primary logo, app icon, inverse dark panel, and one minimalist legibility row. Tone: authoritative, rational, high-trust, B2B, not luxury fashion. Palette: deep ink, cobalt highlight, subtle brass, mineral background. No calligraphy, no old-world crest, no busy stationery, no slogan, no extra readable text beyond KREDO.",
+      "rationale": "Cherche une voie plus statutaire et doctrinale, au plus proche de l'idee de conviction et d'endurance.",
+      "best_for": "Les moments ou KREDO doit paraitre plus haut de gamme et decisif qu'une simple app.",
+      "decision_advice": "A retenir si tu veux une marque plus editoriale, plus mature, presque institutionnelle.",
+      "watch_out": "Cette voie peut perdre en energie produit si la micro-geometrie du K n'apporte pas assez de nerf.",
+      "next_step": "Comparer une version small caps et une version capitals pour verifier l'equilibre entre prestige et fonctionnalite.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "velocity-cut-wordmark",
+      "label": "Velocity Cut Wordmark",
+      "family": "wordmark",
+      "usage_contexts": [
+        "landing hero",
+        "sales enablement",
+        "event banner"
+      ],
+      "prompt": "Create a modern logo concept board for KREDO on a pure white background, centered and minimal. The hero should be a custom KREDO wordmark with sharp velocity cuts and purposeful asymmetry, supported by a very small icon or leading accent only if needed. Export the direction as a mini brand board with horizontal wordmark, dark-background version, compact app icon, and one slim UI header preview. Make it feel fast, product-led, enterprise, and credible, not sporty or gaming. Use deep navy, cobalt, and a discreet brass or pale mint accent. No italic racing aesthetic, no giant arrow, no extra readable text, no poster layout.",
+      "rationale": "Pousse plus loin la promesse d'efficacite commerciale et de cadence sans tomber dans le gimmick de performance.",
+      "best_for": "Une posture produit plus offensive, utile si tu veux un ton SaaS plus vif.",
+      "decision_advice": "Choisir cette piste si la marque doit projeter plus d'elan et moins de gravite institutionnelle.",
+      "watch_out": "Le dessin doit rester assez calme pour garder la credibilite enterprise.",
+      "next_step": "Retoucher surtout le K, le R et le E pour rendre la coupe memorisable et pas seulement dynamique.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "split-vector-monogram",
+      "label": "Split Vector Monogram",
+      "family": "monogram",
+      "usage_contexts": [
+        "favicon",
+        "mobile splash",
+        "sidebar app icon"
+      ],
+      "prompt": "Create a crisp identity mockup board for KREDO on a white inspection surface. Show one monogram route only: a K built from a stable vertical bar and two split vector arms that imply branching decision paths. Present the direction as a compact board with hero monogram, wordmark lockup, app icon square, and one reverse version on deep navy. The mark should feel mathematically clean, confident, compact, and very legible at tiny sizes. Palette: cobalt, navy ink, restrained brass or chalk white. No obvious arrows, no generic data nodes, no mockup stationery, no extra readable copy other than KREDO.",
+      "rationale": "Fait le lien entre la colonne doctrinale et la promesse d'arbitrage ramifiee de KREDO.",
+      "best_for": "La lisibilite petite taille et l'integration native dans l'interface produit.",
+      "decision_advice": "Bonne piste si tu veux un K moins decoratif et plus systemique, presque signe de navigation.",
+      "watch_out": "Le monogramme peut vite devenir un K logiciel deja-vu si les angles sont trop standards.",
+      "next_step": "Tester un allongement plus nerveux des bras puis une simplification extreme pour verifier la memorisation.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "signal-rail-system",
+      "label": "Signal Rail System",
+      "family": "utility",
+      "usage_contexts": [
+        "module badges",
+        "feature icons",
+        "product system"
+      ],
+      "prompt": "Create a system-first logo exploration board for KREDO on a white background. Build the concept around a disciplined signal rail or sequential mark that suggests progress through qualified stages, but keep it iconic and brand-like rather than dashboard-like. The board should show the symbol with KREDO, a compact app icon, a reverse dark strip, and one tiny modular extension preview. The overall look should be exact, quiet, and operationally smart for a dense B2B SaaS. Use cobalt, ink, brass, and warm white. No funnel pictogram, no chart bars, no literal workflow diagram, no extra readable text, no paper or physical mockup.",
+      "rationale": "Cree un territoire plus systeme que monogramme, utile si la marque doit irriguer des modules et signaux produit.",
+      "best_for": "Une extension en langage graphique transverse dans le produit.",
+      "decision_advice": "Interesse surtout si tu veux que le logo serve aussi de matrice visuelle pour l'UI et les etats.",
+      "watch_out": "Le concept ne doit pas ressembler a un schema n8n ou a une simple frise analytique.",
+      "next_step": "Monter ou baisser d'un cran l'abstraction pour trouver le bon equilibre entre marque et mecanique.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "north-axis-node",
+      "label": "North Axis Node",
+      "family": "symbol",
+      "usage_contexts": [
+        "conference signage",
+        "category page",
+        "brand animation base"
+      ],
+      "prompt": "Create a high-clarity brand board for KREDO on a pure white field. Show one symbol-led direction that evokes guidance, axis, orientation, and decision confidence without using a literal star or compass. The symbol should feel architectural and could hide a K in the negative space. Present the direction as a polished board with primary lockup, app icon, dark-header version, and one small-scale preview row. Enterprise SaaS mood, controlled premium, directional but calm. Palette: deep navy, cobalt, restrained brass, clean white. No celestial cliche, no startup glow, no extra readable text, no emblematic clutter.",
+      "rationale": "Donne a KREDO un signe autonome plus metaphorique, moins lie a la lettre brute.",
+      "best_for": "Une prise de parole de marque plus large, au-dela du seul produit.",
+      "decision_advice": "A garder si tu veux une icone capable de raconter la notion de cap sans tomber dans le banal.",
+      "watch_out": "Le symbole doit rester sobre pour ne pas sembler aspirationnel ou 'consulting'.",
+      "next_step": "Fusionner au besoin une contreforme en K pour regagner de la proprietarite.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    },
+    {
+      "id": "editorial-cobalt-lockup",
+      "label": "Editorial Cobalt Lockup",
+      "family": "adaptive",
+      "usage_contexts": [
+        "product shell",
+        "login screen",
+        "sales deck system"
+      ],
+      "prompt": "Create a polished identity system board for KREDO on a white premium presentation background. Show a balanced adaptive lockup: a proprietary K-based symbol at left, a refined uppercase KREDO wordmark at right, a standalone app icon, a dark reverse strip, and one tiny product-shell preview. The feel should be editorial, precise, product-ready, and highly deployable across UI and business materials. Use the Doctrine Cobalt family: cobalt blue, deep ink, controlled brass accent, mineral white. Avoid loud gradients, avoid paper mockups, avoid decorative flourishes, avoid any readable text beyond KREDO.",
+      "rationale": "C'est la piste d'equilibre general: suffisamment iconique pour le produit, suffisamment stable pour la marque.",
+      "best_for": "Un systeme identitaire complet et durable, sans choisir entre icone et wordmark.",
+      "decision_advice": "Probable favorite si tu veux converger vite vers une identite exploitable partout.",
+      "watch_out": "Le risque principal est la prudence: il faut un contraste net entre symbole et typographie.",
+      "next_step": "Faire un round de micro-ajustements sur l'espacement, les contreformes et la version app icon seule.",
+      "final_owner": "external-production-identity",
+      "next_prompt_hints": []
+    }
+  ],
+  "handoff": {
+    "default_owner": "external-production-identity",
+    "next_prompt_hints": [
+      "keep the mark legible at 16px",
+      "treat brass as a precision accent, not a decoration",
+      "preserve the Doctrine Cobalt feeling of command, clarity, and calm decision support"
+    ]
+  }
+}

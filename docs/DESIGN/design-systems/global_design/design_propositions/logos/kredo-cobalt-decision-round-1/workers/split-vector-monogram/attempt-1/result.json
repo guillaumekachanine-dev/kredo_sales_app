@@ -1,0 +1,7 @@
+{
+  "id": "split-vector-monogram",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation completed but did not expose a savable local PNG artifact.",
+  "caveats": ""
+}

@@ -1,0 +1,4 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not expose a local PNG artifact I could save to the requested `image.png` path.
+
+Wrote the required failure result JSON at:
+[outputs/logos/kredo-cobalt-decision-round-1/workers/split-vector-monogram/attempt-1/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/split-vector-monogram/attempt-1/result.json)

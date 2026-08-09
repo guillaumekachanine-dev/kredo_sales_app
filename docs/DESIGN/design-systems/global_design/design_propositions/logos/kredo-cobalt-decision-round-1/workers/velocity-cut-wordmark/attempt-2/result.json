@@ -1,0 +1,7 @@
+{
+  "id": "velocity-cut-wordmark",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation completed, but no generated image file was exposed in accessible output locations to save as the required PNG.",
+  "caveats": ""
+}

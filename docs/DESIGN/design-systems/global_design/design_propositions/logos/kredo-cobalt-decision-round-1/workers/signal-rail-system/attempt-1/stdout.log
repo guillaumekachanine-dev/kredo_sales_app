@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not expose image bytes or a filesystem path, so I could not save the PNG to the requested location.
+
+I wrote the required failure JSON here:
+
+[outputs/logos/kredo-cobalt-decision-round-1/workers/signal-rail-system/attempt-1/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/signal-rail-system/attempt-1/result.json)

@@ -1,0 +1,7 @@
+{
+  "id": "ledger-serif-authority",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation returned an image but did not expose a filesystem path or binary output to save.",
+  "caveats": ""
+}

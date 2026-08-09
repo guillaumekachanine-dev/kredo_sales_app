@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not provide a savable PNG artifact or filesystem handle in this environment.
+
+I wrote the required failed worker JSON at:
+
+`outputs/logos/kredo-cobalt-decision-round-1/workers/brass-pivot-k/attempt-1/result.json`

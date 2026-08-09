@@ -1,0 +1,7 @@
+{
+  "id": "brass-pivot-k",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation returned an image in chat but no local file handle was available to save the PNG.",
+  "caveats": ""
+}

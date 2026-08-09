@@ -1,0 +1,59 @@
+{
+  "status": "partial",
+  "total": 8,
+  "complete": 0,
+  "failed": 6,
+  "pending": 2,
+  "results": [
+    {
+      "id": "abstract-spark-chevron",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation returned an image but did not expose a savable PNG artifact in this runtime.",
+      "caveats": ""
+    },
+    {
+      "id": "brass-pivot-k",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation returned an image in chat but no local file handle was available to save the PNG.",
+      "caveats": ""
+    },
+    {
+      "id": "ledger-serif-authority",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation completed but did not expose a savable PNG file path or binary output.",
+      "caveats": ""
+    },
+    {
+      "id": "velocity-cut-wordmark",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation completed, but no generated image file was exposed in accessible output locations to save as the required PNG.",
+      "caveats": ""
+    },
+    {
+      "id": "split-vector-monogram",
+      "status": "pending"
+    },
+    {
+      "id": "signal-rail-system",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation returned an image but did not expose a local file path, so the PNG could not be saved to the required destination.",
+      "caveats": ""
+    },
+    {
+      "id": "north-axis-node",
+      "status": "failed",
+      "image_path": null,
+      "error": "Native image generation completed but did not provide a savable PNG or filesystem path in this environment.",
+      "caveats": ""
+    },
+    {
+      "id": "editorial-cobalt-lockup",
+      "status": "pending"
+    }
+  ]
+}

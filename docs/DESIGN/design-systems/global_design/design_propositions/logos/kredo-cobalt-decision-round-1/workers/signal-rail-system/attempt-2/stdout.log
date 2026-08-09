@@ -1,0 +1,5 @@
+Generated exactly one native image, but the tool did not expose a local PNG file path I could save into the workspace.
+
+I wrote the required failure result JSON here:
+
+[outputs/logos/kredo-cobalt-decision-round-1/workers/signal-rail-system/attempt-2/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/signal-rail-system/attempt-2/result.json)

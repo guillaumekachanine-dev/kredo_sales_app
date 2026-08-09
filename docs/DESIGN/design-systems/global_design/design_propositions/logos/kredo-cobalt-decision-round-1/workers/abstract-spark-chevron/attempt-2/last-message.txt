@@ -1,0 +1,5 @@
+Failed to save the generated PNG because the native image tool returned an image but did not expose a local savable PNG artifact in this runtime.
+
+I wrote the required failure JSON here:
+
+[outputs/logos/kredo-cobalt-decision-round-1/workers/abstract-spark-chevron/attempt-2/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/abstract-spark-chevron/attempt-2/result.json)

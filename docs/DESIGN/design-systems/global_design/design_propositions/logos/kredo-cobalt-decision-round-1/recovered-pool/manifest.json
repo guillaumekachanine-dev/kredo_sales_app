@@ -1,0 +1,128 @@
+[
+  {
+    "id": "cand-1",
+    "index": 1,
+    "title": "ig_050bef8ae894ffe6016a307550ffd081919a62e9806e6a8a1d.png",
+    "output": "01-ig_050bef8ae894ffe6016a307550ffd081919a62e9806e6a8a1d.png",
+    "label": "Candidate 1"
+  },
+  {
+    "id": "cand-2",
+    "index": 2,
+    "title": "ig_050bef8ae894ffe6016a3075b29c848191bb1ee1a6be04ea85.png",
+    "output": "02-ig_050bef8ae894ffe6016a3075b29c848191bb1ee1a6be04ea85.png",
+    "label": "Candidate 2"
+  },
+  {
+    "id": "cand-3",
+    "index": 3,
+    "title": "ig_050bef8ae894ffe6016a3075e6ef948191af4ffb9211756224.png",
+    "output": "03-ig_050bef8ae894ffe6016a3075e6ef948191af4ffb9211756224.png",
+    "label": "Candidate 3"
+  },
+  {
+    "id": "cand-4",
+    "index": 4,
+    "title": "ig_050bef8ae894ffe6016a30763e6cfc81918e9cfa9272619724.png",
+    "output": "04-ig_050bef8ae894ffe6016a30763e6cfc81918e9cfa9272619724.png",
+    "label": "Candidate 4"
+  },
+  {
+    "id": "cand-5",
+    "index": 5,
+    "title": "ig_050bef8ae894ffe6016a307983d8f481919c4fad85c0097fe6.png",
+    "output": "05-ig_050bef8ae894ffe6016a307983d8f481919c4fad85c0097fe6.png",
+    "label": "Candidate 5"
+  },
+  {
+    "id": "cand-6",
+    "index": 6,
+    "title": "ig_050bef8ae894ffe6016a3079c6705c8191ab0c1f5223ed7a96.png",
+    "output": "06-ig_050bef8ae894ffe6016a3079c6705c8191ab0c1f5223ed7a96.png",
+    "label": "Candidate 6"
+  },
+  {
+    "id": "cand-7",
+    "index": 7,
+    "title": "ig_050bef8ae894ffe6016a307a1044d881918f1763fa7c6d87f7.png",
+    "output": "07-ig_050bef8ae894ffe6016a307a1044d881918f1763fa7c6d87f7.png",
+    "label": "Candidate 7"
+  },
+  {
+    "id": "cand-8",
+    "index": 8,
+    "title": "ig_050bef8ae894ffe6016a307dd30f64819180420c8e89a2d126.png",
+    "output": "08-ig_050bef8ae894ffe6016a307dd30f64819180420c8e89a2d126.png",
+    "label": "Candidate 8"
+  },
+  {
+    "id": "cand-9",
+    "index": 9,
+    "title": "ig_050bef8ae894ffe6016a307e5cd31081918dc24371a825641e.png",
+    "output": "09-ig_050bef8ae894ffe6016a307e5cd31081918dc24371a825641e.png",
+    "label": "Candidate 9"
+  },
+  {
+    "id": "cand-10",
+    "index": 10,
+    "title": "ig_050bef8ae894ffe6016a307ea5a48c8191953fb604f3fcb969.png",
+    "output": "10-ig_050bef8ae894ffe6016a307ea5a48c8191953fb604f3fcb969.png",
+    "label": "Candidate 10"
+  },
+  {
+    "id": "cand-11",
+    "index": 11,
+    "title": "ig_050bef8ae894ffe6016a3081c4c14c8191840eb52b3a012d94.png",
+    "output": "11-ig_050bef8ae894ffe6016a3081c4c14c8191840eb52b3a012d94.png",
+    "label": "Candidate 11"
+  },
+  {
+    "id": "cand-12",
+    "index": 12,
+    "title": "ig_050bef8ae894ffe6016a30820c93bc8191ba6f1b20ff128e1f.png",
+    "output": "12-ig_050bef8ae894ffe6016a30820c93bc8191ba6f1b20ff128e1f.png",
+    "label": "Candidate 12"
+  },
+  {
+    "id": "cand-13",
+    "index": 13,
+    "title": "ig_050bef8ae894ffe6016a30823a435881918da4e44da547a5af.png",
+    "output": "13-ig_050bef8ae894ffe6016a30823a435881918da4e44da547a5af.png",
+    "label": "Candidate 13"
+  },
+  {
+    "id": "cand-14",
+    "index": 14,
+    "title": "ig_050bef8ae894ffe6016a3083ebc41081919678b95398f6ab3c.png",
+    "output": "14-ig_050bef8ae894ffe6016a3083ebc41081919678b95398f6ab3c.png",
+    "label": "Candidate 14"
+  },
+  {
+    "id": "cand-15",
+    "index": 15,
+    "title": "ig_050bef8ae894ffe6016a30841c88088191908506573e81ed32.png",
+    "output": "15-ig_050bef8ae894ffe6016a30841c88088191908506573e81ed32.png",
+    "label": "Candidate 15"
+  },
+  {
+    "id": "cand-16",
+    "index": 16,
+    "title": "ig_050bef8ae894ffe6016a30844dc3a08191a477cb0bbde29c69.png",
+    "output": "16-ig_050bef8ae894ffe6016a30844dc3a08191a477cb0bbde29c69.png",
+    "label": "Candidate 16"
+  },
+  {
+    "id": "cand-17",
+    "index": 17,
+    "title": "ig_050bef8ae894ffe6016a3085c2799c8191b7c398caea3ca33e.png",
+    "output": "17-ig_050bef8ae894ffe6016a3085c2799c8191b7c398caea3ca33e.png",
+    "label": "Candidate 17"
+  },
+  {
+    "id": "cand-18",
+    "index": 18,
+    "title": "ig_050bef8ae894ffe6016a3085f719bc8191804953f8a024522a.png",
+    "output": "18-ig_050bef8ae894ffe6016a3085f719bc8191804953f8a024522a.png",
+    "label": "Candidate 18"
+  }
+]

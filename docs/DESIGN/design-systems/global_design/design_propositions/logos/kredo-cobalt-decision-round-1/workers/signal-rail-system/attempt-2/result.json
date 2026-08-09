@@ -1,0 +1,7 @@
+{
+  "id": "signal-rail-system",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation returned an image but did not expose a local file path, so the PNG could not be saved to the required destination.",
+  "caveats": ""
+}

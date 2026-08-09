@@ -1,0 +1,7 @@
+{
+  "id": "north-axis-node",
+  "status": "failed",
+  "image_path": null,
+  "error": "Native image generation returned an image but did not expose a filesystem path or binary handle, so the PNG could not be saved.",
+  "caveats": ""
+}

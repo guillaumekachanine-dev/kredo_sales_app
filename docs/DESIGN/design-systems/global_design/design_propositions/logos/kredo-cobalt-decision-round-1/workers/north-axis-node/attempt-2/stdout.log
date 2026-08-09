@@ -1,0 +1,5 @@
+Generated exactly one image via `image_gen.imagegen`, but the tool did not expose a savable PNG or filesystem path, so I could not write `image.png`.
+
+I wrote the required failure result JSON here:
+
+`outputs/logos/kredo-cobalt-decision-round-1/workers/north-axis-node/attempt-2/result.json`

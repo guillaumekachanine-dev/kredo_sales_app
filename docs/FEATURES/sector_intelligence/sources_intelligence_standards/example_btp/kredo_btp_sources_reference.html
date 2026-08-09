@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KREDO — Référentiel sources BTP / Infrastructures</title>
+<style>
+:root{
+  --bg:#f5f7fb; --surface:#ffffff; --surface-2:#f0f3f8; --ink:#15233b; --muted:#68758a;
+  --line:#d9e0ea; --navy:#0e1c35; --cobalt:#2554B8; --cobalt-2:#173d8d; --brass:#C08A20;
+  --green:#1f7a55; --orange:#b26b1c; --red:#a84444; --radius:14px;
+  --shadow:0 18px 45px rgba(17,31,56,.08);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.5}
+button,input{font:inherit}
+.app{min-height:100vh;display:grid;grid-template-columns:270px 1fr}
+.sidebar{position:sticky;top:0;height:100vh;background:var(--navy);color:#fff;padding:24px 18px;border-right:1px solid rgba(255,255,255,.07);overflow:auto}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;padding:0 8px}
+.mark{width:34px;height:34px;border:1px solid rgba(255,255,255,.35);display:grid;place-items:center;font-weight:800;letter-spacing:.03em}
+.brand strong{font-size:15px;letter-spacing:.12em}
+.brand span{display:block;color:#9fb0ca;font-size:11px;letter-spacing:.04em;margin-top:2px}
+.nav-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:#7085a7;margin:24px 10px 8px}
+.nav a{display:flex;align-items:center;gap:10px;text-decoration:none;color:#c8d3e6;padding:10px 11px;border-radius:9px;margin:2px 0;font-size:13px}
+.nav a:hover,.nav a.active{background:rgba(255,255,255,.07);color:#fff}
+.nav .dot{width:6px;height:6px;border-radius:50%;background:#5f78a3}.nav a.active .dot{background:var(--brass)}
+.sidebar-foot{margin-top:28px;border-top:1px solid rgba(255,255,255,.09);padding:18px 8px 0;color:#91a2bd;font-size:11px}
+.main{min-width:0}
+.hero{background:linear-gradient(115deg,#10213e 0%,#142d56 60%,#1b4588 100%);color:#fff;padding:38px 46px 34px;border-bottom:4px solid var(--brass)}
+.hero-top{display:flex;justify-content:space-between;gap:24px;align-items:flex-start}
+.hero h1{margin:0;font-size:34px;line-height:1.15;letter-spacing:-.03em;max-width:860px}
+.hero p{margin:12px 0 0;max-width:920px;color:#c6d3e6;font-size:15px}
+.snapshot{border:1px solid rgba(255,255,255,.2);padding:10px 12px;border-radius:10px;font-size:11px;color:#c6d3e6;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:28px;max-width:900px}
+.metric{border-top:1px solid rgba(255,255,255,.22);padding-top:12px}.metric strong{display:block;font-size:24px}.metric span{font-size:11px;color:#9fb1cc;text-transform:uppercase;letter-spacing:.08em}
+.content{padding:30px 46px 64px}
+.section{scroll-margin-top:24px;margin-bottom:34px}
+.section-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:16px}
+.section h2{font-size:21px;margin:0;letter-spacing:-.01em}.section .desc{color:var(--muted);font-size:13px;max-width:760px;margin-top:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.intent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.intent{padding:20px;border-right:1px solid var(--line)}.intent:last-child{border-right:0}.intent b{font-size:13px}.intent p{font-size:12px;color:var(--muted);margin:7px 0 0}.intent .num{font-size:11px;font-weight:800;color:var(--brass);letter-spacing:.08em;margin-bottom:8px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--line)}
+.search{flex:1;min-width:240px;position:relative}.search input{width:100%;height:40px;border:1px solid var(--line);border-radius:9px;padding:0 12px 0 36px;background:#fff;color:var(--ink);outline:none}.search input:focus{border-color:var(--cobalt)}.search:before{content:'⌕';position:absolute;left:12px;top:7px;font-size:18px;color:#8190a6}
+.filters{display:flex;gap:6px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;font-size:12px;color:#526176;cursor:pointer}.chip:hover,.chip.active{background:var(--navy);border-color:var(--navy);color:#fff}
+.source-list{display:grid}.source-row{display:grid;grid-template-columns:80px 1.15fr 1fr 110px 34px;gap:14px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line);cursor:pointer;transition:.15s}.source-row:last-child{border-bottom:0}.source-row:hover{background:#f8fafe}.tier{width:50px;text-align:center;font-weight:800;font-size:11px;padding:5px 8px;border-radius:7px;border:1px solid}.tier.t1{color:#155d42;border-color:#b9dfcf;background:#eff9f5}.tier.t2{color:#2857a4;border-color:#c5d5f3;background:#f2f6fd}.tier.t3{color:#865d11;border-color:#e6d3ad;background:#fff8e9}.tier.t4{color:#8a4c2a;border-color:#ebcdbb;background:#fff3ed}
+.source-name{font-weight:750;font-size:13px}.source-meta{font-size:11px;color:var(--muted);margin-top:3px}.source-use{font-size:12px;color:#435269}.freq{font-size:11px;color:#65748a;text-align:right}.arrow{font-size:18px;color:#94a0b1;text-align:center}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line);background:#fafbfd;border-radius:0 0 var(--radius) var(--radius);font-size:11px;color:var(--muted)}
+.legend b{color:var(--ink)}
+.strategy{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}.strategy-card{padding:18px 18px 16px;border-top:3px solid var(--cobalt)}.strategy-card:nth-child(2){border-top-color:var(--brass)}.strategy-card:nth-child(3){border-top-color:#687b9a}.strategy-card h3{font-size:14px;margin:0 0 8px}.strategy-card p{font-size:12px;color:var(--muted);margin:0}.strategy-card ul{font-size:12px;color:#46546a;padding-left:17px;margin:12px 0 0}.strategy-card li{margin:6px 0}
+.query-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.query-card{padding:16px}.query-card h3{font-size:13px;margin:0 0 10px}.query{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:10px 11px;margin:7px 0;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#33415a}.copy{border:0;background:none;color:var(--cobalt);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.qa{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.qa-item{padding:14px 16px;display:flex;gap:12px;align-items:flex-start}.check{width:22px;height:22px;border:1px solid #b8c4d5;border-radius:6px;display:grid;place-items:center;color:var(--green);font-weight:800;flex:0 0 auto}.qa-item b{font-size:12px}.qa-item span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.footer-note{margin-top:24px;padding:16px 18px;background:#eef3fb;border-left:3px solid var(--cobalt);font-size:12px;color:#475870}
+.empty{display:none;padding:28px;text-align:center;color:var(--muted);font-size:13px}
+.drawer-backdrop{position:fixed;inset:0;background:rgba(8,16,31,.28);opacity:0;pointer-events:none;transition:.2s;z-index:20}.drawer{position:fixed;top:0;right:0;width:min(520px,92vw);height:100vh;background:#fff;box-shadow:-24px 0 60px rgba(10,24,46,.18);transform:translateX(100%);transition:.24s;z-index:21;display:flex;flex-direction:column}.drawer.open{transform:translateX(0)}.drawer-backdrop.open{opacity:1;pointer-events:auto}.drawer-head{padding:22px 22px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:16px}.drawer-head h3{margin:0;font-size:18px}.close{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer}.drawer-body{padding:20px 22px;overflow:auto}.drawer-body .tier{margin-bottom:14px}.detail-block{margin:18px 0}.detail-block h4{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#7c899b;margin:0 0 7px}.detail-block p{font-size:13px;margin:0;color:#35445c}.detail-url{display:block;color:var(--cobalt);word-break:break-all;font-size:12px;margin-top:6px;text-decoration:none}.detail-url:hover{text-decoration:underline}
+@media(max-width:1050px){.app{grid-template-columns:1fr}.sidebar{display:none}.hero,.content{padding-left:24px;padding-right:24px}.metrics{grid-template-columns:repeat(2,1fr)}.intent-grid,.strategy{grid-template-columns:1fr 1fr}.intent:nth-child(2){border-right:0}.intent:nth-child(-n+2){border-bottom:1px solid var(--line)}.source-row{grid-template-columns:70px 1fr 1fr 90px 28px}}
+@media(max-width:720px){.hero{padding:26px 18px 22px}.hero-top{display:block}.hero h1{font-size:27px}.snapshot{display:inline-block;margin-top:18px}.content{padding:22px 14px 48px}.metrics{grid-template-columns:1fr 1fr}.intent-grid,.strategy,.query-grid,.qa{grid-template-columns:1fr}.intent{border-right:0;border-bottom:1px solid var(--line)}.intent:last-child{border-bottom:0}.source-row{grid-template-columns:64px 1fr 28px}.source-use,.freq{display:none}.section-head{align-items:flex-start}.toolbar{padding:10px}.filters{width:100%}.chip{flex:1 1 auto}.section h2{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="mark">K</div><div><strong>KREDO</strong><span>Sector Intelligence</span></div></div>
+    <div class="nav">
+      <div class="nav-title">Référentiel</div>
+      <a href="#overview" class="active"><span class="dot"></span>Vue d’ensemble</a>
+      <a href="#sources"><span class="dot"></span>Sources par catégorie</a>
+      <a href="#strategy"><span class="dot"></span>Pack d’automatisation</a>
+      <a href="#queries"><span class="dot"></span>Requêtes types</a>
+      <a href="#quality"><span class="dot"></span>Contrôle qualité</a>
+      <div class="nav-title">Périmètre</div>
+      <a href="#sources" data-cat="official"><span class="dot"></span>Officiel / T1</a>
+      <a href="#sources" data-cat="procurement"><span class="dot"></span>Marchés publics</a>
+      <a href="#sources" data-cat="trade"><span class="dot"></span>Fédérations</a>
+      <a href="#sources" data-cat="press"><span class="dot"></span>Presse pro</a>
+      <a href="#sources" data-cat="digital"><span class="dot"></span>Numérique / ESN</a>
+    </div>
+    <div class="sidebar-foot">Secteur : BTP · Grands travaux · Infrastructures publiques<br>Géographie : France</div>
+  </aside>
+
+  <main class="main">
+    <header class="hero" id="overview">
+      <div class="hero-top">
+        <div><h1>Référentiel de sources — BTP, grands travaux & infrastructures publiques</h1><p>Une base de recherche conçue non pour “décrire le marché”, mais pour donner à une ESN les preuves nécessaires pour prioriser les comptes, identifier les portes d’entrée, construire un discours crédible et détecter le bon moment commercial.</p></div>
+        <div class="snapshot">Snapshot · 09/08/2026<br>Version 1.0</div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><strong>30</strong><span>sources recommandées</span></div>
+        <div class="metric"><strong>10</strong><span>sources T1 structurantes</span></div>
+        <div class="metric"><strong>4</strong><span>familles de preuve</span></div>
+        <div class="metric"><strong>3</strong><span>pivots d’automatisation</span></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="section">
+        <div class="section-head"><div><h2>Ce que le référentiel doit permettre</h2><div class="desc">La cartographie sectorielle est un intrant. Le produit réel est la légitimité commerciale face à un DSI, un directeur métier ou un acheteur.</div></div></div>
+        <div class="panel intent-grid">
+          <div class="intent"><div class="num">01</div><b>Quels comptes attaquer ?</b><p>Taille, dynamique, trajectoire, carnet de commandes, intensité technologique et capacité d’achat.</p></div>
+          <div class="intent"><div class="num">02</div><b>Par quelle porte entrer ?</b><p>DSI, achats, appels d’offres, panels fournisseurs, organisation SI, offres d’emploi et implantation.</p></div>
+          <div class="intent"><div class="num">03</div><b>Que dire en 3 minutes ?</b><p>Contrats, enjeux terrain, BIM, sécurité, décarbonation, maintenance et transformation numérique.</p></div>
+          <div class="intent"><div class="num">04</div><b>Pourquoi maintenant ?</b><p>Attribution de marché, programme d’investissement, incident, nomination, nouvelle réglementation ou contrainte budgétaire.</p></div>
+        </div>
+      </section>
+
+      <section class="section" id="sources">
+        <div class="section-head"><div><h2>Sources recommandées</h2><div class="desc">Cliquez sur une ligne pour ouvrir la fiche source. Utilisez la recherche et les filtres pour construire un sous-ensemble adapté au run n8n.</div></div></div>
+        <div class="panel">
+          <div class="toolbar">
+            <div class="search"><input id="searchInput" type="search" placeholder="Rechercher : Eiffage, BIM, commande publique, FNTP…"></div>
+            <div class="filters" id="filters">
+              <button class="chip active" data-filter="all">Toutes</button>
+              <button class="chip" data-filter="t1">T1</button>
+              <button class="chip" data-filter="official">Officiel</button>
+              <button class="chip" data-filter="procurement">Marchés</button>
+              <button class="chip" data-filter="trade">Fédérations</button>
+              <button class="chip" data-filter="press">Presse</button>
+              <button class="chip" data-filter="digital">Numérique</button>
+            </div>
+          </div>
+          <div class="source-list" id="sourceList"></div>
+          <div class="empty" id="empty">Aucune source ne correspond à ces critères.</div>
+          <div class="legend"><span><b>T1</b> fait officiel</span><span><b>T2</b> fait déclaré</span><span><b>T3</b> fait probable / expertise sectorielle</span><span><b>T4</b> indice à corroborer</span></div>
+        </div>
+      </section>
+
+      <section class="section" id="strategy">
+        <div class="section-head"><div><h2>Pack minimal pour l’automatisation</h2><div class="desc">Trois pivots suffisent pour couvrir l’essentiel du besoin sans surcharger chaque étude.</div></div></div>
+        <div class="strategy">
+          <article class="panel strategy-card"><h3>1. Marchés publics & grands donneurs d’ordre</h3><p>Documenter les contrats, montants, consortiums, acheteurs et programmes d’investissement.</p><ul><li>BOAMP · TED · DECP · PLACE</li><li>Société des grands projets</li><li>SNCF Réseau · RTE · collectivités</li></ul></article>
+          <article class="panel strategy-card"><h3>2. Acteurs & trajectoires</h3><p>Verrouiller identité juridique, périmètre financier, segmentation, risques et ambitions.</p><ul><li>INSEE / Sirene · INPI / RNE</li><li>AMF · DEU / rapports annuels</li><li>Communiqués investisseurs</li></ul></article>
+          <article class="panel strategy-card"><h3>3. Crédibilité métier ESN</h3><p>Transformer l’étude en discours commercial spécifique au BTP et aux infrastructures.</p><ul><li>FNTP · Le Moniteur · Batiactu</li><li>Cerema · OPPBTP · CSTB</li><li>Offres d’emploi & références éditeurs</li></ul></article>
+        </div>
+        <div class="footer-note"><b>Différenciateur clé :</b> croiser <b>avis d’attribution + offres d’emploi + rapports annuels</b>. Ce triptyque révèle simultanément les projets en cours, la feuille de route technologique réelle, la capacité d’achat et les angles d’approche crédibles.</div>
+      </section>
+
+      <section class="section" id="queries">
+        <div class="section-head"><div><h2>Requêtes types</h2><div class="desc">Blocs prêts à adapter dans le workflow de recherche.</div></div></div>
+        <div class="query-grid">
+          <article class="panel query-card"><h3>Longlist acteurs</h3><div class="query"><span>site:fntp.fr "annuaire" "travaux publics" "[région]"</span><button class="copy">Copier</button></div><div class="query"><span>site:lemoniteur.fr "classement" "travaux publics"</span><button class="copy">Copier</button></div><div class="query"><span>"top entreprises travaux publics France" "FNTP"</span><button class="copy">Copier</button></div></article>
+          <article class="panel query-card"><h3>Marchés publics & contrats</h3><div class="query"><span>site:boamp.fr "avis d'attribution" "travaux" "Eiffage"</span><button class="copy">Copier</button></div><div class="query"><span>site:ted.europa.eu "Eiffage" "45200000"</span><button class="copy">Copier</button></div><div class="query"><span>"Société des grands projets" "attribué" "Eiffage"</span><button class="copy">Copier</button></div></article>
+          <article class="panel query-card"><h3>Technologies / SI</h3><div class="query"><span>site:eiffage.com/recrutement BIM data digital cybersécurité</span><button class="copy">Copier</button></div><div class="query"><span>site:vinci.com careers BIM data cloud SAP cybersecurity</span><button class="copy">Copier</button></div><div class="query"><span>"Eiffage" "BIM manager" "data" "offre d'emploi"</span><button class="copy">Copier</button></div></article>
+          <article class="panel query-card"><h3>Réglementaire / métier</h3><div class="query"><span>site:legifrance.gouv.fr "commande publique" "travaux"</span><button class="copy">Copier</button></div><div class="query"><span>site:cerema.fr "infrastructures" "adaptation" "ouvrages d'art"</span><button class="copy">Copier</button></div><div class="query"><span>site:cstb.fr "BIM" "jumeau numérique" "construction"</span><button class="copy">Copier</button></div></article>
+        </div>
+      </section>
+
+      <section class="section" id="quality">
+        <div class="section-head"><div><h2>Contrôle qualité avant diffusion</h2><div class="desc">Le mode d’échec dangereux est l’erreur plausible. Les contrôles ci-dessous doivent rester visibles dans le workflow et le journal de recherche.</div></div></div>
+        <div class="qa">
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Périmètre explicite</b><span>Chaque chiffre porte entité juridique × géographie × exercice.</span></div></div>
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Aucune branche confondue avec le groupe</b><span>Si la donnée de branche n’existe pas : “non publié”.</span></div></div>
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Échéance réglementaire officielle</b><span>Aucune date précise sans Légifrance, EUR-Lex ou autorité sectorielle.</span></div></div>
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Donnée décisive corroborée</b><span>Deux sources indépendantes ou mention “source unique”.</span></div></div>
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Fraîcheur</b><span>Trigger > 12 mois = contexte, plus motif d’appel.</span></div></div>
+          <div class="panel qa-item"><div class="check">✓</div><div><b>Trous assumés</b><span>“Non trouvé” est préférable à une hypothèse présentée comme un fait.</span></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="drawer-backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head"><div><h3 id="drawerTitle">Source</h3><div class="source-meta" id="drawerCategory"></div></div><button class="close" id="closeDrawer" aria-label="Fermer">×</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+const sources = [
+ {name:'INSEE — Base Sirene / API Sirene',tier:'t1',cat:'official',label:'Identité & registres',use:'SIREN/SIRET, code APE/NAF, établissements, implantation',freq:'Chaque acteur',url:'https://api.gouv.fr/guides/quelle-api-sirene',atteste:'Existence juridique, activité déclarée et implantation.',caveat:'Ne suffit pas à qualifier finement l’activité réelle ni l’organisation d’achat.'},
+ {name:'INPI / RNE — Registre national des entreprises',tier:'t1',cat:'official',label:'Identité & registres',use:'Immatriculation, documents légaux, identité exacte',freq:'Chaque acteur',url:'https://entreprise.api.gouv.fr/catalogue/inpi/rne/attestation_immatriculation',atteste:'Données d’immatriculation et éléments légaux de l’entité.',caveat:'Toujours travailler à partir de l’entité exacte et non du seul nom commercial.'},
+ {name:'AMF — Documents d’enregistrement universel',tier:'t1',cat:'official',label:'Finance & gouvernance',use:'Segmentation, risques, gouvernance, trajectoire des groupes cotés',freq:'Chaque groupe coté',url:'https://www.amf-france.org/fr/reglementation/doctrine/doc-2021-02',atteste:'Cadre des DEU et documents réglementés déposés par les émetteurs.',caveat:'Les ambitions stratégiques restent du discours corporate à corroborer.'},
+ {name:'Légifrance — Code de la commande publique',tier:'t1',cat:'official',label:'Réglementaire',use:'Cadre juridique des marchés publics et contrats de travaux',freq:'Selon besoin',url:'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000037701019/LEGISCTA000037703254/',atteste:'Texte officiel français en vigueur.',caveat:'Pour les échéances européennes, croiser avec EUR-Lex.'},
+ {name:'Légifrance — Conventions collectives TP',tier:'t1',cat:'official',label:'RH & conventions',use:'IDCC, statut RH, vocabulaire social sectoriel',freq:'Par entité',url:'https://www.legifrance.gouv.fr',atteste:'Convention collective et textes associés.',caveat:'Rattacher la convention à l’activité effective de l’entité, pas au groupe consolidé.'},
+ {name:'BOAMP',tier:'t1',cat:'procurement',label:'Marchés publics',use:'Avis de marché, attribution, objet, acheteur, attributaire, montant publié',freq:'Hebdo / requêtes comptes',url:'https://www.boamp.fr',atteste:'Avis officiels français de marchés publics.',caveat:'Filtrage nécessaire par CPV, acheteur, période et entité.'},
+ {name:'TED — Tenders Electronic Daily / JOUE',tier:'t1',cat:'procurement',label:'Marchés publics UE',use:'Grands contrats européens, attribution, consortiums',freq:'Hebdo',url:'https://ted.europa.eu',atteste:'Avis officiels du supplément au Journal officiel de l’Union européenne.',caveat:'Très volumineux : utiliser CPV et noms d’entités.'},
+ {name:'PLACE — Plateforme des achats de l’État',tier:'t1',cat:'procurement',label:'Achats de l’État',use:'Consultations actives, opportunités et procédures de l’État',freq:'Hebdo',url:'https://www.marches-publics.gouv.fr',atteste:'Consultations et procédures d’achat de l’État.',caveat:'Complément de BOAMP/TED plutôt que source historique unique.'},
+ {name:'data.gouv.fr — DECP',tier:'t1',cat:'procurement',label:'Données marchés attribués',use:'Extraction massive des marchés, titulaires, acheteurs, montants',freq:'Mensuel / scoring',url:'https://www.data.gouv.fr/fr/datasets/donnees-essentielles-de-la-commande-publique-fichiers-consolides/',atteste:'Données essentielles de la commande publique.',caveat:'Nécessite normalisation, dédoublonnage et contrôle de qualité.'},
+ {name:'CPV — Common Procurement Vocabulary',tier:'t1',cat:'procurement',label:'Classification marchés',use:'Filtrer construction, génie civil, routes, ferroviaire, réseaux',freq:'À chaque extraction',url:'https://ted.europa.eu/en/simap/cpv',atteste:'Classification normalisée des objets de marchés publics.',caveat:'Le CPV structure la recherche mais ne remplace pas la lecture de l’objet du marché.'},
+ {name:'Société des grands projets / Grand Paris Express',tier:'t2',cat:'procurement',label:'Grand donneur d’ordre',use:'Lots, consortiums, calendrier, espace fournisseurs, systèmes',freq:'Hebdo',url:'https://www.societedesgrandsprojets.fr/espace-fournisseurs',atteste:'Programmes, marchés et informations fournisseurs publiés par la SGP.',caveat:'Croiser les annonces avec BOAMP/TED pour l’attribution formelle.'},
+ {name:'SNCF Réseau',tier:'t2',cat:'procurement',label:'Grand donneur d’ordre',use:'Maintenance, modernisation, ouvrages d’art, signalisation, ferroviaire',freq:'Hebdo',url:'https://www.sncf-reseau.com',atteste:'Programmes, consultations et actualités de l’infrastructure ferroviaire.',caveat:'Pour un contrat précis, remonter à l’avis officiel correspondant.'},
+ {name:'RTE / Enedis / EDF',tier:'t2',cat:'procurement',label:'Infrastructures énergie',use:'Réseaux électriques, grands programmes d’investissement, maintenance',freq:'Hebdo',url:'https://www.rte-france.com',atteste:'Programmes et communications des opérateurs de réseaux/énergie.',caveat:'Séparer clairement les entités et leurs périmètres d’achat.'},
+ {name:'VNF — Voies navigables de France',tier:'t2',cat:'procurement',label:'Infrastructures fluviales',use:'Canaux, écluses, ouvrages, maintenance et patrimoine',freq:'Mensuel',url:'https://www.vnf.fr',atteste:'Programmes et marchés liés aux voies navigables.',caveat:'Pertinence variable selon le segment cible.'},
+ {name:'TELT — Lyon-Turin',tier:'t2',cat:'procurement',label:'Grand projet ferroviaire',use:'Tunnel, marchés internationaux, sécurité, environnement, consortiums',freq:'Mensuel',url:'https://www.telt.eu',atteste:'Informations officielles du promoteur du projet transfrontalier.',caveat:'Croiser les lots contractuels avec TED.'},
+ {name:'FNTP — Fédération Nationale des Travaux Publics',tier:'t3',cat:'trade',label:'Fédération',use:'Conjoncture, chiffres clés, segmentation, statistiques TP',freq:'Mensuel',url:'https://www.fntp.fr/themes/economie-statistiques/',atteste:'Données et analyses sectorielles de la profession.',caveat:'Très utile pour le contexte de marché, moins pour attester un fait propre à une entreprise.'},
+ {name:'Annuaire FNTP / RIP',tier:'t3',cat:'trade',label:'Longlist acteurs',use:'Acteurs mid-market, spécialités, implantations, qualifications',freq:'À chaque nouvelle étude',url:'https://rip.fntp.fr/rip/',atteste:'Présence et qualifications déclarées des entreprises répertoriées.',caveat:'À compléter par identité légale et données financières.'},
+ {name:'FFB — Fédération Française du Bâtiment',tier:'t3',cat:'trade',label:'Fédération',use:'Bâtiment, conjoncture, emploi, grands projets immobiliers',freq:'Mensuel',url:'https://www.ffbatiment.fr',atteste:'Analyses et données de la profession bâtiment.',caveat:'À utiliser si le périmètre inclut le bâtiment, pas uniquement les TP.'},
+ {name:'Routes de France',tier:'t3',cat:'trade',label:'Syndicat métier',use:'Routes, enrobés, entretien, matériaux, décarbonation',freq:'Mensuel',url:'https://www.routesdefrance.com',atteste:'Positionnements et données métier du secteur routier.',caveat:'Source professionnelle : corroborer les données décisives.'},
+ {name:'Les Canalisateurs',tier:'t3',cat:'trade',label:'Syndicat métier',use:'Eau, assainissement, réseaux enterrés, acteurs spécialisés',freq:'Mensuel',url:'https://www.canalisateurs.com',atteste:'Information métier et réseau professionnel des canalisateurs.',caveat:'Principalement pertinent pour le sous-segment réseaux/eau.'},
+ {name:'SERCE',tier:'t3',cat:'trade',label:'Syndicat métier',use:'Réseaux électriques, éclairage, énergie, infrastructures',freq:'Mensuel',url:'https://www.serce.fr',atteste:'Information professionnelle du secteur des travaux électriques et énergétiques.',caveat:'À combiner avec données des donneurs d’ordre énergie.'},
+ {name:'Constructys / Observatoire des métiers du BTP',tier:'t3',cat:'trade',label:'Emploi & compétences',use:'Emploi, compétences, tensions RH, formation',freq:'Trimestriel',url:'https://www.constructys.fr',atteste:'Données emploi-formation et analyses de compétences du BTP.',caveat:'Ne pas extrapoler une statistique nationale à une entreprise sans preuve.'},
+ {name:'OPPBTP',tier:'t3',cat:'digital',label:'Prévention & innovation',use:'Sécurité chantier, objets connectés, data, AR/VR, BIM prévention',freq:'Mensuel',url:'https://www.oppbtp.com/linnovation-en-prevention-dans-le-btp/',atteste:'Cas d’usage et référentiels de prévention dans le BTP.',caveat:'Bon pour l’angle métier, pas pour attribuer un déploiement à un acteur sans autre preuve.'},
+ {name:'Le Moniteur',tier:'t3',cat:'press',label:'Presse professionnelle',use:'Actualité BTP, contrats, réglementation, nominations, entreprises',freq:'Hebdomadaire',url:'https://www.lemoniteur.fr/btp/',atteste:'Actualité professionnelle établie du BTP.',caveat:'Les faits décisifs doivent être corroborés par la source primaire ou une seconde source.'},
+ {name:'Batiactu',tier:'t3',cat:'press',label:'Presse professionnelle',use:'Construction, BTP, immobilier, réglementation, entreprises',freq:'Hebdomadaire',url:'https://www.batiactu.com',atteste:'Actualité sectorielle spécialisée.',caveat:'Même règle de corroboration pour contrats, montants et nominations.'},
+ {name:'Construction Cayola',tier:'t3',cat:'press',label:'Presse professionnelle',use:'Chantiers, matériels, TP, infrastructures, signaux terrain',freq:'Hebdomadaire',url:'https://www.constructioncayola.com',atteste:'Actualité professionnelle des travaux publics et matériels.',caveat:'Complément particulièrement utile pour les sous-segments techniques.'},
+ {name:'Ville, Rail & Transports',tier:'t3',cat:'press',label:'Presse spécialisée',use:'Ferroviaire, transports urbains, gares, ponts, viaducs',freq:'Hebdomadaire',url:'https://www.ville-rail-transports.com/infrastructures/',atteste:'Actualité des infrastructures de transport.',caveat:'Centré mobilité/ferroviaire.'},
+ {name:'RGRA',tier:'t3',cat:'press',label:'Revue spécialisée',use:'Routes, matériaux, décarbonation, infrastructures routières',freq:'Mensuel',url:'https://www.editions-rgra.com',atteste:'Expertise professionnelle route et aménagement.',caveat:'Plutôt source d’expertise que source de trigger court terme.'},
+ {name:'Cerema',tier:'t3',cat:'digital',label:'Expertise publique',use:'Résilience, gestion patrimoniale, ouvrages d’art, adaptation climatique',freq:'Mensuel',url:'https://www.cerema.fr',atteste:'Expertise technique publique sur infrastructures et territoires.',caveat:'Idéal pour les enjeux communs et réglementaires, pas pour l’activité d’une entreprise spécifique.'},
+ {name:'CSTB',tier:'t3',cat:'digital',label:'Numérique construction',use:'BIM, jumeau numérique, performance bâtiment, transformation numérique',freq:'Mensuel',url:'https://www.cstb.fr',atteste:'Références techniques et travaux sur le numérique dans la construction.',caveat:'Plus pertinent bâtiment que TP pur selon le sujet.'},
+ {name:'buildingSMART France',tier:'t3',cat:'digital',label:'Standards BIM',use:'IFC, interopérabilité, openBIM, maturité BIM',freq:'Selon besoin',url:'https://www.buildingsmartfrance-mediaconstruct.fr',atteste:'Standards et pratiques openBIM.',caveat:'À utiliser pour qualifier les pratiques, pas pour attribuer un niveau de maturité à une entreprise.'},
+ {name:'Références éditeurs — Autodesk, Bentley, Trimble, Esri, Primavera…',tier:'t4',cat:'digital',label:'Indices technologiques',use:'Cas clients, stack, BIM/SIG/planning, pistes de déploiement',freq:'Selon acteur',url:'https://www.autodesk.com',atteste:'Indice de stack ou de cas client publié par un fournisseur.',caveat:'Jamais suffisant seul : corroborer par offre d’emploi, marché ou communication du client.'}
+];
+
+let activeFilter='all';
+const list=document.getElementById('sourceList');
+const empty=document.getElementById('empty');
+const search=document.getElementById('searchInput');
+function tierLabel(t){return t.toUpperCase()}
+function render(){
+  const q=search.value.trim().toLowerCase();
+  const rows=sources.filter(s=>{
+    const matchesFilter=activeFilter==='all'||s.tier===activeFilter||s.cat===activeFilter;
+    const hay=(s.name+' '+s.label+' '+s.use+' '+s.atteste).toLowerCase();
+    return matchesFilter && (!q||hay.includes(q));
+  });
+  list.innerHTML=rows.map((s,i)=>`<div class="source-row" data-name="${encodeURIComponent(s.name)}">
+    <div><span class="tier ${s.tier}">${tierLabel(s.tier)}</span></div>
+    <div><div class="source-name">${s.name}</div><div class="source-meta">${s.label}</div></div>
+    <div class="source-use">${s.use}</div><div class="freq">${s.freq}</div><div class="arrow">›</div></div>`).join('');
+  empty.style.display=rows.length?'none':'block';
+}
+function setFilter(value){
+  activeFilter=value;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.filter===value));
+  render();
+}
+document.getElementById('filters').addEventListener('click',e=>{if(e.target.matches('.chip')) setFilter(e.target.dataset.filter)});
+search.addEventListener('input',render);
+document.querySelectorAll('[data-cat]').forEach(a=>a.addEventListener('click',()=>setTimeout(()=>setFilter(a.dataset.cat),100)));
+
+const drawer=document.getElementById('drawer'), backdrop=document.getElementById('backdrop');
+function openDrawer(s){
+  document.getElementById('drawerTitle').textContent=s.name;
+  document.getElementById('drawerCategory').textContent=s.label+' · '+s.freq;
+  document.getElementById('drawerBody').innerHTML=`<span class="tier ${s.tier}">${tierLabel(s.tier)}</span>
+    <div class="detail-block"><h4>Usage dans l’étude</h4><p>${s.use}</p></div>
+    <div class="detail-block"><h4>Ce que la source atteste</h4><p>${s.atteste}</p></div>
+    <div class="detail-block"><h4>Caveat</h4><p>${s.caveat}</p></div>
+    <div class="detail-block"><h4>Accès</h4><a class="detail-url" href="${s.url}" target="_blank" rel="noreferrer">${s.url}</a></div>`;
+  drawer.classList.add('open');backdrop.classList.add('open');drawer.setAttribute('aria-hidden','false');
+}
+list.addEventListener('click',e=>{const row=e.target.closest('.source-row');if(!row)return;const name=decodeURIComponent(row.dataset.name);const s=sources.find(x=>x.name===name);if(s)openDrawer(s)});
+function closeDrawer(){drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true')}
+document.getElementById('closeDrawer').addEventListener('click',closeDrawer);backdrop.addEventListener('click',closeDrawer);document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
+
+document.querySelectorAll('.copy').forEach(btn=>btn.addEventListener('click',async()=>{const text=btn.parentElement.querySelector('span').textContent;await navigator.clipboard.writeText(text);const old=btn.textContent;btn.textContent='Copié';setTimeout(()=>btn.textContent=old,1000)}));
+
+const navLinks=[...document.querySelectorAll('.nav a[href^="#"]')];
+const observer=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){navLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id));}})},{rootMargin:'-35% 0px -55% 0px'});
+['overview','sources','strategy','queries','quality'].forEach(id=>{const el=document.getElementById(id);if(el)observer.observe(el)});
+render();
+</script>
+</body>
+</html>

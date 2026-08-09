@@ -1,0 +1,5 @@
+Generated exactly one image with `image_gen.imagegen`, but the tool did not expose a local file handle I could save to the requested PNG path.
+
+I wrote the required failure JSON here:
+
+`outputs/logos/kredo-cobalt-decision-round-1/workers/brass-pivot-k/attempt-2/result.json`

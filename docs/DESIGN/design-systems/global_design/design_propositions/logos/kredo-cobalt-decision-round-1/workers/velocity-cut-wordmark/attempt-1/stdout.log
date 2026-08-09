@@ -1,0 +1,5 @@
+Native image generation ran exactly once, but the tool did not expose a local PNG artifact that I could save to the requested `image.png` path.
+
+I wrote the required failure JSON here:
+
+[outputs/logos/kredo-cobalt-decision-round-1/workers/velocity-cut-wordmark/attempt-1/result.json](/Users/dosta/Desktop/Projets-Dev/KREDO/kredo/outputs/logos/kredo-cobalt-decision-round-1/workers/velocity-cut-wordmark/attempt-1/result.json)
