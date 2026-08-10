@@ -53,25 +53,101 @@ function normalizeCompanyLifecycleStatus(value: string | undefined) {
   }
 }
 
+/**
+ * `companies.tier` n'accepte que 3 valeurs (CHECK `companies_tier_check`).
+ * Le vocabulaire d'affichage est plus fin que le domaine stocké : CAC40 et
+ * établissement public se rangent en `grand_compte`, TPE en `pme`. Écrire
+ * directement le libellé de l'UI produisait une violation 23514 à chaque
+ * enregistrement d'un compte porteur d'une catégorie.
+ */
+function normalizeCompanyTier(value: string | null | undefined) {
+  if (!value) return null
+  switch (value.trim().toLowerCase()) {
+    case "grand_compte":
+    case "cac40":
+    case "etablissement_public":
+      return "grand_compte"
+    case "eti":
+      return "eti"
+    case "pme":
+    case "tpe":
+      return "pme"
+    default:
+      return null
+  }
+}
+
+/**
+ * Migration 066 : `segment_id` est NOT NULL et constitue l'unique point de
+ * saisie de la taxonomie — `sector_id` en est dérivé par
+ * `trg_companies_derive_sector_id`. Un compte créé sans segment choisi tombe
+ * dans le bac « 0.0 À qualifier » plutôt que d'échouer. Le slug est résolu à
+ * l'exécution : jamais d'UUID en dur.
+ *
+ * On renvoie aussi le macro-secteur parent, parce que `sector_id` est NOT NULL
+ * sans DEFAULT : l'insert doit le porter. Le trigger le recalcule de toute
+ * façon et fait autorité — cette valeur n'est qu'un laissez-passer de contrainte.
+ */
+const FALLBACK_SEGMENT_SLUG = "seg-a-qualifier"
+
+type ResolvedTaxonomy =
+  | { segmentId: string; sectorId: string; error: null }
+  | { segmentId: null; sectorId: null; error: string }
+
+async function resolveTaxonomy(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  segmentId: string | null | undefined
+): Promise<ResolvedTaxonomy> {
+  const query = supabase.from("sector_intelligence").select("id, parent_id")
+  const { data, error } = segmentId
+    ? await query.eq("id", segmentId).maybeSingle()
+    : await query.eq("slug", FALLBACK_SEGMENT_SLUG).maybeSingle()
+
+  if (error) return { segmentId: null, sectorId: null, error: error.message }
+  if (!data) {
+    return {
+      segmentId: null,
+      sectorId: null,
+      error: segmentId
+        ? "Segment sectoriel introuvable."
+        : `Segment « ${FALLBACK_SEGMENT_SLUG} » introuvable.`,
+    }
+  }
+  // Un macro utilisé comme segment (classement au grain macro, toléré §5.1)
+  // est son propre secteur.
+  return { segmentId: data.id, sectorId: data.parent_id ?? data.id, error: null }
+}
+
+// `sector`, `sector_id` et `lifecycle_status` sont volontairement ABSENTS des
+// payloads ci-dessous (migration 066) :
+//   sector           — témoin historique figé, interdit en écriture (§12.3)
+//   sector_id        — dérivé de segment_id par trg_companies_derive_sector_id
+//   lifecycle_status — projection de relation_type par trg_companies_project_…
+// `segment` (texte libre déprécié) n'est plus alimenté non plus : la taxonomie
+// passe exclusivement par segment_id.
+
 export async function createCompany(data: CompanyFormData) {
   const supabase = await createClient()
   const relType = data.relation_type || normalizeCompanyLifecycleStatus(data.lifecycle_status)
+
+  const { segmentId, sectorId, error: taxonomyError } = await resolveTaxonomy(supabase, data.segment_id)
+  if (!segmentId) return { error: taxonomyError }
+
   const { error } = await supabase.from("companies").insert({
     name: data.name.trim(),
-    sector: data.sector?.trim() || null,
-    sector_id: data.sector_id || null,
-    segment: data.segment?.trim() || null,
-    segment_id: data.segment_id || null,
-    tier: data.tier || null,
+    segment_id: segmentId,
+    sector_id: sectorId,
+    tier: normalizeCompanyTier(data.tier),
     regime_achat: data.regime_achat || null,
     relation_type: relType,
     hq_location: data.hq_location?.trim() || null,
     revenue: data.revenue?.trim() || null,
     employee_count: parseOptionalInteger(data.employee_count),
     priority: data.priority || "normale",
-    lifecycle_status: relType,
     website: data.website?.trim() || null,
     description: data.description?.trim() || null,
+    depth_level: "noted",
+    origin: "manual",
   })
   if (error) return { error: error.message }
   revalidatePath(REVALIDATE)
@@ -81,22 +157,22 @@ export async function createCompany(data: CompanyFormData) {
 export async function updateCompany(id: string, data: CompanyFormData) {
   const supabase = await createClient()
   const relType = data.relation_type || normalizeCompanyLifecycleStatus(data.lifecycle_status)
+
+  const { segmentId, error: taxonomyError } = await resolveTaxonomy(supabase, data.segment_id)
+  if (!segmentId) return { error: taxonomyError }
+
   const { error } = await supabase
     .from("companies")
     .update({
       name: data.name.trim(),
-      sector: data.sector?.trim() || null,
-      sector_id: data.sector_id || null,
-      segment: data.segment?.trim() || null,
-      segment_id: data.segment_id || null,
-      tier: data.tier || null,
+      segment_id: segmentId,
+      tier: normalizeCompanyTier(data.tier),
       regime_achat: data.regime_achat || null,
       relation_type: relType,
       hq_location: data.hq_location?.trim() || null,
       revenue: data.revenue?.trim() || null,
       employee_count: parseOptionalInteger(data.employee_count),
       priority: data.priority || "normale",
-      lifecycle_status: relType,
       website: data.website?.trim() || null,
       description: data.description?.trim() || null,
     })

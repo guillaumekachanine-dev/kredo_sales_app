@@ -294,21 +294,29 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
 }
 
 function StrategicAnalysisSection({
-  analysis,
+  analysis: initialAnalysis,
+  analysisHistory,
   generation,
 }: {
   analysis: StrategicWatchAnalysis | null
+  analysisHistory: StrategicWatchAnalysis[]
   generation: MonthlyWatchGenerationContext
 }) {
   const router = useRouter()
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(
+    initialAnalysis?.id ?? analysisHistory[0]?.id ?? null
+  )
   const [run, setRun] = useState(generation.latestRun)
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
 
-  // Suivi unifié (src/lib/n8n/use-run-tracker) : Realtime en accélérateur,
-  // relance périodique en garantie. L'abonnement précédent dépendait de `run`
-  // tout en le mettant à jour — il se détruisait et se recréait à chaque
-  // événement reçu, avec une fenêtre d'événements perdus entre les deux.
+  const activeAnalysis = useMemo(() => {
+    if (analysisHistory.length === 0) return initialAnalysis
+    return analysisHistory.find((item) => item.id === selectedAnalysisId) ?? initialAnalysis ?? analysisHistory[0] ?? null
+  }, [analysisHistory, selectedAnalysisId, initialAnalysis])
+
+  const content = activeAnalysis?.content ?? null
+
   const trackedRunId = run && (run.status === "queued" || run.status === "running") ? run.id : null
 
   useRunTracker({
@@ -381,26 +389,287 @@ function StrategicAnalysisSection({
         </div>
       ) : null}
 
-      {analysis ? (
-        <article className="grid grid-cols-[minmax(0,1fr)_15rem] border border-border bg-surface">
-          <div className="paper-sheet px-8 py-9 lg:px-12">
-            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-brass">Dernier rapport disponible</p>
-            <h3 className="mt-2 font-heading text-2xl font-bold text-heading">{analysis.title}</h3>
-            <p className="mt-2 text-xs text-muted">{formatPeriod(analysis.periodStart, analysis.periodEnd)} · généré le {formatDateFr(analysis.updatedAt)}</p>
-            <p className="mt-7 max-w-[74ch] text-[15px] leading-7 text-body">
-              {analysis.content?.executiveSummary ?? "Le document est disponible dans la bibliothèque de rapports."}
-            </p>
-            <Button variant="secondary" className="mt-7" onClick={() => router.push(`/reports?doc=${analysis.id}`)}>Ouvrir le rapport complet</Button>
+      {activeAnalysis ? (
+        <article className="grid grid-cols-[minmax(0,1fr)_18rem] items-start border border-border bg-surface">
+          <div className="paper-sheet border-r border-border px-8 py-9 lg:px-12 space-y-8">
+            <div className="border-b border-border pb-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">
+                  Rapport d’analyse stratégique
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-bold text-heading">
+                    v{activeAnalysis.versionNumber}
+                  </span>
+                  <span className="border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
+                    {activeAnalysis.status}
+                  </span>
+                </div>
+              </div>
+              <h3 className="mt-3 font-heading text-2xl lg:text-3xl font-bold leading-tight text-heading">
+                {activeAnalysis.title}
+              </h3>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                <span>{formatPeriod(activeAnalysis.periodStart, activeAnalysis.periodEnd)}</span>
+                <span aria-hidden="true">·</span>
+                <span>Généré le {formatDateFr(activeAnalysis.updatedAt)}</span>
+                {content?.coverage ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="font-semibold text-heading">
+                      {content.coverage.articlesCount} articles · {content.coverage.sourcesCount} sources · {content.coverage.digestsCount} digests
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            {content?.executiveSummary ? (
+              <section className="space-y-3">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="recommendations" preferVector className="size-4 text-brand-brass" />
+                  Synthèse exécutive
+                </h4>
+                <div className="border-l-4 border-brand-brass bg-edito-canvas/60 p-5 text-[15px] leading-[1.75] font-medium text-heading">
+                  {content.executiveSummary}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.majorTrends && content.majorTrends.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="prioritize" preferVector className="size-4 text-primary" />
+                  Enseignements clés &amp; Tendances majeures ({content.majorTrends.length})
+                </h4>
+                <div className="grid grid-cols-1 gap-4">
+                  {content.majorTrends.map((trend, i) => (
+                    <div key={i} className="space-y-2.5 border border-border bg-edito-canvas/40 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h5 className="font-heading text-base font-bold text-heading">{trend.title}</h5>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {trend.confidence ? (
+                            <span className="border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted">
+                              Confiance {Math.round(trend.confidence * 100)}%
+                            </span>
+                          ) : null}
+                          {trend.sectors?.map((sec) => (
+                            <span key={sec} className="border border-border bg-edito-chip px-2 py-0.5 text-[9px] font-medium text-body">
+                              #{sec}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed text-body">{trend.synthesis}</p>
+                      {trend.articleIds?.length ? (
+                        <p className="text-[10px] text-muted">{trend.articleIds.length} article(s) associé(s)</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.commercialOpportunities && content.commercialOpportunities.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="generate_pitch" preferVector className="size-4 text-brand-brass" />
+                  Opportunités commerciales ({content.commercialOpportunities.length})
+                </h4>
+                <div className="grid grid-cols-1 gap-4">
+                  {content.commercialOpportunities.map((opp, i) => (
+                    <div key={i} className="space-y-3 border border-border bg-surface p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h5 className="font-heading text-base font-bold text-heading">{opp.title}</h5>
+                        <div className="flex flex-wrap gap-1.5">
+                          {opp.practices?.map((prac) => (
+                            <span key={prac} className="border border-primary/25 bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary">
+                              {prac}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed text-body">{opp.rationale}</p>
+                      {opp.recommendedAction ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 border border-brand-brass/35 bg-brand-brass/[0.04] p-3.5">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">Action recommandée</p>
+                            <p className="mt-1 text-xs font-semibold leading-relaxed text-heading">{opp.recommendedAction}</p>
+                          </div>
+                          <Button
+                            variant="brass"
+                            size="sm"
+                            onClick={() => {
+                              const mustInclude = [
+                                `Opportunité : ${opp.title}`,
+                                `Période : ${content.period?.label ?? ""}`,
+                                `Argumentaire : ${opp.rationale}`,
+                                `Action recommandée : ${opp.recommendedAction}`,
+                              ].join("\n")
+                              const preset = buildCommunicationEntryPreset("signal_outreach", {
+                                origin: "veille_signal",
+                                sectorName: opp.practices?.[0] ?? "Général",
+                                mustInclude,
+                              })
+                              if (preset.ok) openCommunicationComposer(preset.request)
+                            }}
+                            leftIcon={<IntelligenceIcon name="write_email" preferVector />}
+                            className="shrink-0 text-xs"
+                          >
+                            Préparer un pitch
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.priorityActions && content.priorityActions.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="detect_risks" preferVector className="size-4 text-primary" />
+                  Actions prioritaires ({content.priorityActions.length})
+                </h4>
+                <div className="divide-y divide-border border border-border bg-surface">
+                  {content.priorityActions.map((act, i) => {
+                    const horizonLabel = act.horizon === "immediate" ? "Immédiat" : act.horizon === "30_days" ? "30 jours" : "Trimestre"
+                    const horizonClass = act.horizon === "immediate" ? "border-danger/30 bg-danger/10 text-danger" : act.horizon === "30_days" ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-edito-chip text-muted"
+                    return (
+                      <div key={i} className="flex items-start gap-4 p-4">
+                        <span className={cn("shrink-0 border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", horizonClass)}>
+                          {horizonLabel}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-heading text-sm font-bold text-heading">{act.title}</h5>
+                          <p className="mt-1 text-xs leading-relaxed text-body">{act.action}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.risksAndWatchpoints && content.risksAndWatchpoints.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading text-warning">
+                  <IntelligenceIcon name="detect_risks" preferVector className="size-4 text-warning" />
+                  Risques &amp; Points de vigilance ({content.risksAndWatchpoints.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {content.risksAndWatchpoints.map((risk, i) => (
+                    <div key={i} className="space-y-2 border border-border bg-edito-canvas/40 p-4">
+                      <h5 className="font-heading text-sm font-bold text-heading">{risk.title}</h5>
+                      <p className="text-xs leading-relaxed text-body">{risk.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.regulatoryDevelopments && content.regulatoryDevelopments.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="sector_analysis" preferVector className="size-4 text-primary" />
+                  Évolutions réglementaires ({content.regulatoryDevelopments.length})
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {content.regulatoryDevelopments.map((reg, i) => (
+                    <div key={i} className="space-y-2 border border-border bg-surface p-4">
+                      <h5 className="font-heading text-sm font-bold text-heading">{reg.title}</h5>
+                      <p className="text-xs leading-relaxed text-body">{reg.impact}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {content?.weakSignals && content.weakSignals.length > 0 ? (
+              <section className="space-y-4 border-t border-border pt-7">
+                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+                  <IntelligenceIcon name="search_news" preferVector className="size-4 text-muted" />
+                  Signaux faibles ({content.weakSignals.length})
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {content.weakSignals.map((sig, i) => (
+                    <div key={i} className="space-y-1 border border-border bg-edito-canvas/30 p-3.5">
+                      <h5 className="font-heading text-xs font-bold text-heading">{sig.title}</h5>
+                      <p className="text-xs leading-relaxed text-body">{sig.synthesis}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
-          <aside className="border-l border-border bg-edito-canvas/55 p-5">
-            <SectionHeading>Fiche du rapport</SectionHeading>
-            <dl className="mt-3 divide-y divide-border text-[11px]">
-              <div className="flex justify-between py-2.5"><dt className="text-muted">État</dt><dd className="font-bold text-success">{analysis.status}</dd></div>
-              <div className="flex justify-between py-2.5"><dt className="text-muted">Version</dt><dd className="font-bold text-heading">v{analysis.versionNumber}</dd></div>
-              <div className="flex justify-between py-2.5"><dt className="text-muted">Digests</dt><dd className="font-bold text-heading">{analysis.content?.coverage.digestsCount ?? "—"}</dd></div>
-              <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{analysis.content?.coverage.articlesCount ?? "—"}</dd></div>
-              <div className="flex justify-between py-2.5"><dt className="text-muted">Sources</dt><dd className="font-bold text-heading">{analysis.content?.coverage.sourcesCount ?? "—"}</dd></div>
-            </dl>
+
+          <aside className="sticky top-4 space-y-6 bg-edito-canvas/55 p-5">
+            {analysisHistory.length > 1 ? (
+              <div>
+                <SectionHeading>Période d’analyse</SectionHeading>
+                <div className="mt-3">
+                  <label htmlFor="select-analysis-period" className="sr-only">
+                    Sélectionner l’analyse stratégique
+                  </label>
+                  <select
+                    id="select-analysis-period"
+                    value={activeAnalysis.id}
+                    onChange={(e) => setSelectedAnalysisId(e.target.value)}
+                    className="h-10 w-full border border-border bg-surface px-3 text-xs font-semibold text-heading outline-none focus-visible:ring-2 focus-visible:ring-heading"
+                  >
+                    {analysisHistory.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.content?.period?.label ?? item.title} ({formatDateFr(item.updatedAt)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <SectionHeading>Fiche du rapport</SectionHeading>
+              <dl className="mt-3 divide-y divide-border text-[11px]">
+                <div className="flex justify-between py-2.5"><dt className="text-muted">État</dt><dd className="font-bold uppercase text-success">{activeAnalysis.status}</dd></div>
+                <div className="flex justify-between py-2.5"><dt className="text-muted">Version</dt><dd className="font-bold text-heading">v{activeAnalysis.versionNumber}</dd></div>
+                <div className="flex justify-between py-2.5"><dt className="text-muted">Digests</dt><dd className="font-bold text-heading">{content?.coverage?.digestsCount ?? "—"}</dd></div>
+                <div className="flex justify-between py-2.5"><dt className="text-muted">Articles</dt><dd className="font-bold text-heading">{content?.coverage?.articlesCount ?? "—"}</dd></div>
+                <div className="flex justify-between py-2.5"><dt className="text-muted">Sources</dt><dd className="font-bold text-heading">{content?.coverage?.sourcesCount ?? "—"}</dd></div>
+              </dl>
+            </div>
+
+            <div className="space-y-2 border-t border-border pt-4">
+              <SectionHeading>Actions documentaires</SectionHeading>
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onClick={() => router.push(`/reports?doc=${activeAnalysis.id}`)}
+                leftIcon={<IntelligenceIcon name="report" preferVector />}
+                className="justify-start text-xs"
+              >
+                Voir dans la bibliothèque
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onClick={() => {
+                  if (!content) return
+                  const mustInclude = `Synthèse globale de l’analyse stratégique (${content.period?.label ?? ""}) :\n${content.executiveSummary}`
+                  const preset = buildCommunicationEntryPreset("signal_outreach", {
+                    origin: "veille_signal",
+                    mustInclude,
+                  })
+                  if (preset.ok) openCommunicationComposer(preset.request)
+                }}
+                leftIcon={<IntelligenceIcon name="write_email" preferVector />}
+                className="justify-start text-xs"
+              >
+                Composer une note
+              </Button>
+            </div>
           </aside>
         </article>
       ) : (
@@ -541,7 +810,7 @@ export function VeilleActualitesDesktop({
   const content = section === "watched-accounts"
     ? <WatchedAccountsSection signals={watchedSignals} />
     : section === "strategic-analysis"
-      ? <StrategicAnalysisSection analysis={latestAnalysis} generation={monthlyGeneration} />
+      ? <StrategicAnalysisSection analysis={latestAnalysis} analysisHistory={analysisHistory} generation={monthlyGeneration} />
       : section === "history"
         ? <HistorySection digests={pastDigests} analyses={analysisHistory} />
         : selectedArticle

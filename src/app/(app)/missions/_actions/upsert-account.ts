@@ -53,7 +53,7 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
     // 2. Créer le compte s'il n'existe pas
     const { data: newAccount, error: insertError } = await supabase
       .from("companies")
-      .insert({ name: trimmedName })
+      .insert({ name: trimmedName } as any)
       .select("id, name")
       .single()
 

@@ -74,12 +74,13 @@ const SIZE_OPTIONS = [
   { value: "+5k", label: "+5k" },
 ]
 
+// Domaine réel de `companies.tier` (CHECK companies_tier_check). Le select doit
+// exposer exactement ces trois valeurs, sinon il n'effectue pas d'aller-retour :
+// la valeur choisie serait normalisée côté serveur puis réaffichée différemment.
 const COMPANY_CATEGORY_OPTIONS = [
-  { value: "CAC40", label: "CAC40" },
-  { value: "ETI", label: "ETI" },
-  { value: "PME", label: "PME" },
-  { value: "TPE", label: "TPE" },
-  { value: "etablissement_public", label: "Établissement public" },
+  { value: "grand_compte", label: "Grand compte" },
+  { value: "eti", label: "ETI" },
+  { value: "pme", label: "PME" },
 ]
 
 const DEFAULT_SECTOR_OPTIONS = [
@@ -99,11 +100,13 @@ const DEFAULT_SECTOR_OPTIONS = [
   "Transport & Mobilité régionale",
 ]
 
+// Domaine réel de `companies.relation_type` (migration 066 §5.8), dont
+// `lifecycle_status` n'est plus qu'une projection.
 const LIFECYCLE_OPTIONS = [
   { value: "prospect", label: "Prospect" },
   { value: "client", label: "Client" },
   { value: "ancien_client", label: "Ancien client" },
-  { value: "partenaire", label: "Partenaire" },
+  { value: "pair_partenaire", label: "Partenaire" },
 ]
 
 const COMPANY_MODAL_ACCENT = "#348A98"
@@ -117,8 +120,11 @@ function normalizeLifecycleStatus(value: string | undefined) {
       return "client"
     case "ancien_client":
       return "ancien_client"
+    // Sans le cas `pair_partenaire`, rouvrir la modale sur un compte partenaire
+    // le réaffichait en « Prospect » et l'enregistrement le déclassait.
     case "partenaire":
-      return "partenaire"
+    case "pair_partenaire":
+      return "pair_partenaire"
     case "prospect":
     default:
       return "prospect"

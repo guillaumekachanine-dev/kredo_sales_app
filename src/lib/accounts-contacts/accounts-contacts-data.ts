@@ -36,6 +36,10 @@ export type AccountRow = {
   logoPath: string | null
   taskCount: number
   employeeCount: number | null
+  /** ADR-0019 — profondeur de traitement : mapped | noted | qualified | active */
+  depthLevel: string
+  /** ADR-0019 — ce qui a fait naître la fiche (competitive_map, scan, manual…) */
+  origin: string
   /** Pré-calculé serveur-side depuis la vue — évite studies.some() côté client */
   hasStudy: boolean
 }
@@ -151,21 +155,14 @@ type AccountViewRow = {
   has_legacy_sector: boolean | null
   has_account_issues: boolean | null
   has_commercial_strategy: boolean | null
+  depth_level: string | null
+  origin: string | null
 }
 
 type TaskQueryRow = {
   id: string
   entity_id: string | null
   entity_type: string | null
-}
-
-type CompanyQueryRow = {
-  id: string
-  sector_id: string | null
-  segment_id: string | null
-  tier: string | null
-  regime_achat: string | null
-  relation_type: string | null
 }
 
 type TaxonomyQueryRow = {
@@ -278,6 +275,8 @@ function buildAccount(row: AccountViewRow, contactCount: number, taskCount: numb
     logoPath: row.logo_path,
     taskCount,
     employeeCount: row.employee_count,
+    depthLevel: row.depth_level ?? "noted",
+    origin: row.origin ?? "manual",
     hasStudy: row.has_study === true,
   }
 }
@@ -340,22 +339,22 @@ function buildSectorRows(accounts: AccountRow[]) {
 export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   const supabase = (await createClient()) as unknown as LooseSupabaseClient
 
+  // Migration 067 : sector_id / segment_id / sector_name / segment_name / tier
+  // / regime_achat / relation_type / depth_level / origin viennent désormais de
+  // la vue. La seconde requête `companies` jointe en JavaScript qui les
+  // récupérait défaisait l'audit de performance Lot 5, et ses deux `limit`
+  // divergeaient (300 sur la vue, 1000 sur companies).
   const [
     accountsResult,
-    companiesResult,
     contactsResult,
     tasksResult,
     taxonomyResult,
   ] = await Promise.all([
     supabase
       .from<AccountViewRow>("v_crm_account_list")
-      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study,sector_attachment_name,has_dedicated_watch,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_account_issues,has_commercial_strategy")
+      .select("id,name,sector,segment,revenue,employee_count,size_band,hq_location,priority,lifecycle_status,legacy_folio_score,website,description,logo_path,nb_contacts,nb_with_email,has_study,sector_attachment_name,has_dedicated_watch,has_client_analysis,has_sector_analysis,has_process_diagnostic,has_roadmap,has_legacy_analysis,has_legacy_sector,has_account_issues,has_commercial_strategy,sector_id,segment_id,sector_name,segment_name,tier,regime_achat,relation_type,depth_level,origin")
       .order("legacy_folio_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
-      .limit(300),
-    supabase
-      .from<CompanyQueryRow>("companies")
-      .select("id,sector_id,segment_id,tier,regime_achat,relation_type")
       .limit(1000),
     supabase
       .from<ContactQueryRow>("contacts")
@@ -373,33 +372,14 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   ])
 
   if (accountsResult.error) throw new Error(accountsResult.error.message)
-  if (companiesResult.error) throw new Error(companiesResult.error.message)
   if (contactsResult.error) throw new Error(contactsResult.error.message)
   logOptionalEnrichmentError("tasks", tasksResult.error)
   logOptionalEnrichmentError("sector_intelligence", taxonomyResult.error)
 
-  const rawAccountsBase = accountsResult.data ?? []
-  const rawCompanies = companiesResult.data ?? []
+  const rawAccounts = accountsResult.data ?? []
   const rawContacts = contactsResult.data ?? []
   const rawTasks    = tasksResult.error ? [] : (tasksResult.data ?? [])
   const rawTaxonomy = taxonomyResult.error ? [] : (taxonomyResult.data ?? [])
-
-  const taxonomyMap = new Map(rawTaxonomy.map((t) => [t.id, t.name]))
-  const companyMap = new Map(rawCompanies.map((c) => [c.id, c]))
-
-  const rawAccounts = rawAccountsBase.map((acc) => {
-    const c = companyMap.get(acc.id)
-    return {
-      ...acc,
-      sector_id: c?.sector_id ?? null,
-      segment_id: c?.segment_id ?? null,
-      sector_name: c?.sector_id ? (taxonomyMap.get(c.sector_id) ?? null) : null,
-      segment_name: c?.segment_id ? (taxonomyMap.get(c.segment_id) ?? null) : null,
-      tier: c?.tier ?? null,
-      regime_achat: c?.regime_achat ?? null,
-      relation_type: c?.relation_type ?? null,
-    } as AccountViewRow
-  })
 
   // Comptage contacts par entreprise (depuis les contacts chargés)
   const contactCounts = new Map<string, number>()
