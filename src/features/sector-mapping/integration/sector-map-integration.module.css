@@ -1,0 +1,151 @@
+.integrationRoot {
+  --color-primary: var(--color-edito-navy);
+
+  color: var(--color-edito-body);
+  background: var(--color-edito-canvas);
+}
+
+.contextBar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(280px, 1.25fr) minmax(250px, 1fr);
+  align-items: end;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-edito-border);
+  border-radius: 8px;
+  background: var(--color-edito-surface);
+}
+
+.contextHeading span,
+.contextSelect > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color-edito-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.contextHeading h1,
+.emptyState h1 {
+  margin: 0;
+  color: var(--color-edito-navy);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.6rem;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.modeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(74px, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-edito-border);
+  border-radius: 7px;
+}
+
+.modeSwitch button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  color: var(--color-edito-heading);
+  background: transparent;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modeSwitch button[aria-checked="true"] {
+  color: var(--color-edito-surface);
+  background: var(--color-edito-navy);
+}
+
+.modeSwitch button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.contextSelect select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 34px 0 11px;
+  border: 1px solid var(--color-edito-border);
+  border-radius: 7px;
+  color: var(--color-edito-heading);
+  background: var(--color-edito-surface);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.contextSummary {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-edito-accent);
+}
+
+.contextSummary strong {
+  overflow: hidden;
+  color: var(--color-edito-heading);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextSummary span {
+  color: var(--color-edito-muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.emptyState {
+  padding: 30px;
+  border: 1px solid var(--color-edito-border);
+  border-radius: 8px;
+  color: var(--color-edito-body);
+  background: var(--color-edito-surface);
+}
+
+.emptyState p {
+  margin: 10px 0 0;
+  color: var(--color-edito-muted);
+}
+
+@media (max-width: 1180px) {
+  .contextBar {
+    grid-template-columns: minmax(200px, 1fr) auto minmax(260px, 1.2fr);
+  }
+
+  .contextSummary {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .contextBar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .contextHeading h1 {
+    font-size: 1.45rem;
+  }
+
+  .modeSwitch button,
+  .contextSelect select {
+    min-height: 44px;
+  }
+
+  .contextSummary {
+    display: grid;
+  }
+}

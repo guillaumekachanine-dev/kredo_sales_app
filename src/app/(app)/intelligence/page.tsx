@@ -4,27 +4,29 @@ import { buildBusinessIntelligenceDesktopModel } from "@/features/business-intel
 import { buildBusinessIntelligenceMobileModel } from "@/features/business-intelligence/presenters/build-business-intelligence-mobile-model"
 import { BusinessIntelligenceDesktop } from "@/features/business-intelligence/desktop/BusinessIntelligenceDesktop"
 import { BusinessIntelligenceMobile } from "@/features/business-intelligence/mobile/BusinessIntelligenceMobile"
+import { getSectorMapCatalog } from "@/features/sector-mapping/data/get-sector-map-catalog"
 
 export default async function BusinessIntelligencePage() {
-  const device = await getDashboardDevice()
+  const [device, snapshot, sectorMapCatalog] = await Promise.all([
+    getDashboardDevice(),
+    getBusinessIntelligenceSnapshot(),
+    getSectorMapCatalog(),
+  ])
   
   if (device === "mobile") {
-    const snapshot = await getBusinessIntelligenceSnapshot()
     const viewModel = buildBusinessIntelligenceMobileModel(snapshot)
     return (
       <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
-        <BusinessIntelligenceMobile viewModel={viewModel} snapshot={snapshot} />
+        <BusinessIntelligenceMobile viewModel={viewModel} snapshot={snapshot} sectorMapCatalog={sectorMapCatalog} />
       </div>
     )
   }
 
-  // Load snapshot & build presenter model entirely on server
-  const snapshot = await getBusinessIntelligenceSnapshot()
   const viewModel = buildBusinessIntelligenceDesktopModel(snapshot)
 
   return (
     <div data-theme="intelligence-reports" className="min-h-screen bg-canvas text-body">
-      <BusinessIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} />
+      <BusinessIntelligenceDesktop viewModel={viewModel} snapshot={snapshot} sectorMapCatalog={sectorMapCatalog} />
     </div>
   )
 

@@ -8,6 +8,12 @@
   font-family: var(--font-sans), sans-serif;
 }
 
+.pageEmbedded {
+  min-height: 0;
+  padding: 18px 0 0;
+  background: transparent;
+}
+
 .pageHeader {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -15,6 +21,12 @@
   gap: 24px;
   margin: 0 auto 20px;
   max-width: 1540px;
+}
+
+.pageHeaderEmbedded {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
 .pageHeader > div:first-child {
@@ -360,6 +372,12 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.entityFocused {
+  outline: 2px solid var(--color-edito-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-edito-accent) 12%, transparent);
 }
 
 .entityKredo {
@@ -828,6 +846,20 @@
   background: var(--color-primary);
   font-size: 0.7rem;
   font-weight: 700;
+}
+
+.inspectorEntityFocused {
+  border-color: var(--color-edito-accent);
+  box-shadow: inset 3px 0 0 var(--color-edito-accent);
+}
+
+.inspectorEntityFocused small {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-edito-muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .inspectorEntityOutlined {

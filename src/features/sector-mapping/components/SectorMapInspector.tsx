@@ -12,6 +12,7 @@ interface SectorMapInspectorProps {
   evidence: SectorMapEvidence[]
   onClose?: () => void
   embedded?: boolean
+  focusedCompanyId?: string
 }
 
 const CONFIDENCE_LABELS = {
@@ -21,10 +22,11 @@ const CONFIDENCE_LABELS = {
   unknown: "non documentée",
 } as const
 
-function InspectorEntity({ entity, outlined = false }: { entity: SectorMapEntity; outlined?: boolean }) {
+function InspectorEntity({ entity, outlined = false, focused = false }: { entity: SectorMapEntity; outlined?: boolean; focused?: boolean }) {
   return (
-    <li className={outlined ? styles.inspectorEntityOutlined : styles.inspectorEntity}>
+    <li className={`${outlined ? styles.inspectorEntityOutlined : styles.inspectorEntity} ${focused ? styles.inspectorEntityFocused : ""}`}>
       <span>{entity.name}</span>
+      {focused ? <small>Compte sélectionné</small> : null}
     </li>
   )
 }
@@ -35,6 +37,7 @@ export function SectorMapInspector({
   evidence,
   onClose,
   embedded = false,
+  focusedCompanyId,
 }: SectorMapInspectorProps) {
   const entitiesById = new Map(activity.entities.map((entity) => [entity.id, entity]))
   const placedEntities = activity.placements
@@ -88,14 +91,14 @@ export function SectorMapInspector({
       <section className={styles.inspectorSection}>
         <h3>Acteurs Kredo <span>({kredoActors.length})</span></h3>
         {kredoActors.length > 0 ? (
-          <ul>{kredoActors.map((entity) => <InspectorEntity key={entity.id} entity={entity} />)}</ul>
+          <ul>{kredoActors.map((entity) => <InspectorEntity key={entity.id} entity={entity} focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)}</ul>
         ) : <p className={styles.emptyText}>Aucun acteur Kredo documenté.</p>}
       </section>
 
       <section className={styles.inspectorSection}>
         <h3>Opportunités prioritaires <span>({priorityActors.length})</span></h3>
         {priorityActors.length > 0 ? (
-          <ul>{priorityActors.map((entity) => <InspectorEntity key={entity.id} entity={entity} outlined />)}</ul>
+          <ul>{priorityActors.map((entity) => <InspectorEntity key={entity.id} entity={entity} outlined focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)}</ul>
         ) : <p className={styles.emptyText}>Aucune opportunité explicitement priorisée.</p>}
       </section>
 

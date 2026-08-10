@@ -62,6 +62,7 @@ describe("SectorMapMobile", () => {
       expect(markup).toContain("Maillon focal")
       expect(markup).toContain(escaped(focal?.label ?? ""))
       expect(markup).toContain("Résumé textuel du graphe")
+      expect(markup).not.toContain("focusedAccountBadge")
     },
   )
 

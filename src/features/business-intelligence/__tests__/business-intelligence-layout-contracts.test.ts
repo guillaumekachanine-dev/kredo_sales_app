@@ -62,4 +62,17 @@ describe("Business Intelligence atelier analytique", () => {
     expect(matrix).toContain("Valeurs détaillées de la matrice")
     expect(matrix).toContain("motion-reduce:transition-none")
   })
+
+  it("intègre la cartographie réelle dans l'onglet Chaîne de valeur sur Desktop et mobile", () => {
+    const desktop = read("src/features/business-intelligence/desktop/BusinessIntelligenceDesktop.tsx")
+    const mobile = read("src/features/business-intelligence/mobile/BusinessIntelligenceMobile.tsx")
+    const page = read("src/app/(app)/intelligence/page.tsx")
+
+    expect(desktop).toContain("<BusinessIntelligenceSectorMapDesktop")
+    expect(desktop).not.toContain("Cette page accueillera la page /sector-mapping-value")
+    expect(mobile).toContain("<BusinessIntelligenceSectorMapMobile")
+    expect(mobile).toContain("['value_chain', 'Chaîne']")
+    expect(page).toContain("getSectorMapCatalog()")
+    expect(page).toContain("Promise.all")
+  })
 })

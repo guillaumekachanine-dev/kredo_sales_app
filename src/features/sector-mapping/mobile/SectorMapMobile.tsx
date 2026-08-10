@@ -20,6 +20,9 @@ interface SectorMapMobileProps {
   sectorMap: SectorMap
   initialView?: "value" | "ecosystem"
   initialEcosystemMode?: EcosystemGraphMode
+  initialActivityId?: string
+  focusedCompanyId?: string
+  embedded?: boolean
 }
 
 const CONFIDENCE_LABELS = {
@@ -74,10 +77,11 @@ function MobileCoverageBar({ activity }: { activity: SectorMapActivityProjection
   )
 }
 
-function EntityPill({ entity, opportunity = false }: { entity: SectorMapEntity; opportunity?: boolean }) {
+function EntityPill({ entity, opportunity = false, focused = false }: { entity: SectorMapEntity; opportunity?: boolean; focused?: boolean }) {
   return (
-    <li className={opportunity ? styles.entityOpportunity : styles.entityPill}>
+    <li className={`${opportunity ? styles.entityOpportunity : styles.entityPill} ${focused ? styles.entityFocused : ""}`}>
       <span>{entity.name}</span>
+      {focused ? <small>sélectionné</small> : null}
       {entity.status === "client" ? <small>client</small> : null}
     </li>
   )
@@ -87,10 +91,12 @@ function ValueProjection({
   model,
   context,
   onOpenInspector,
+  focusedCompanyId,
 }: {
   model: ReturnType<typeof buildSectorValueDesktopModel>
   context: ReturnType<typeof getSelectedActivityContext>
   onOpenInspector: () => void
+  focusedCompanyId?: string
 }) {
   const actors = placedEntities(context.activity)
   const kredoActors = actors.filter((entity) => Boolean(entity.companyId))
@@ -147,7 +153,7 @@ function ValueProjection({
             <span>{kredoActors.length}</span>
           </header>
           {kredoActors.length > 0 ? (
-            <ul>{kredoActors.map((entity) => <EntityPill key={entity.id} entity={entity} />)}</ul>
+            <ul>{kredoActors.map((entity) => <EntityPill key={entity.id} entity={entity} focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)}</ul>
           ) : <p>Aucun acteur Kredo documenté.</p>}
         </section>
 
@@ -157,7 +163,7 @@ function ValueProjection({
             <span>{opportunities.length}</span>
           </header>
           {opportunities.length > 0 ? (
-            <ul>{opportunities.map((entity) => <EntityPill key={entity.id} entity={entity} opportunity />)}</ul>
+            <ul>{opportunities.map((entity) => <EntityPill key={entity.id} entity={entity} opportunity focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)}</ul>
           ) : <p>Aucune opportunité explicitement priorisée.</p>}
         </section>
       </div>
@@ -247,6 +253,7 @@ function EcosystemProjection({
   onModeChange,
   onSelectActivity,
   onOpenInspector,
+  focusedCompanyId,
 }: {
   sectorMap: SectorMap
   selectedActivityId: string
@@ -254,6 +261,7 @@ function EcosystemProjection({
   onModeChange: (mode: EcosystemGraphMode) => void
   onSelectActivity: (activityId: string) => void
   onOpenInspector: () => void
+  focusedCompanyId?: string
 }) {
   const layout = useMemo(
     () => buildMobileEcosystemLayout(sectorMap, selectedActivityId, mode),
@@ -262,6 +270,14 @@ function EcosystemProjection({
   const hiddenCount = layout.hiddenIncoming + layout.hiddenOutgoing
   const stage = sectorMap.stages.find((item) => item.id === (
     sectorMap.activities.find((activity) => activity.id === selectedActivityId)?.stageId
+  ))
+  const focusedEntity = focusedCompanyId
+    ? sectorMap.entities.find((entity) => entity.companyId === focusedCompanyId)
+    : undefined
+  const focusedOnActivity = focusedEntity && sectorMap.placements.some((placement) => (
+    placement.entityId === focusedEntity.id
+    && placement.target.kind === "activity"
+    && placement.target.id === selectedActivityId
   ))
 
   return (
@@ -320,6 +336,7 @@ function EcosystemProjection({
         <article className={styles.mobileFocalNode}>
           <span>Maillon focal · {stage?.label ?? "Étape non documentée"}</span>
           <h2>{layout.focal.label}</h2>
+          {focusedOnActivity ? <strong className={styles.focusedAccountBadge}>{focusedEntity.name}</strong> : null}
           <button type="button" onClick={onOpenInspector}>Ouvrir l’inspector</button>
         </article>
 
@@ -364,9 +381,15 @@ export function SectorMapMobile({
   sectorMap,
   initialView = "value",
   initialEcosystemMode = "main",
+  initialActivityId,
+  focusedCompanyId,
+  embedded = false,
 }: SectorMapMobileProps) {
   const model = useMemo(() => buildSectorValueDesktopModel(sectorMap), [sectorMap])
-  const [selectedActivityId, setSelectedActivityId] = useState(model.sector.defaultActivityId)
+  const initialSelection = initialActivityId && model.source.activities.some((activity) => activity.id === initialActivityId)
+    ? initialActivityId
+    : model.sector.defaultActivityId
+  const [selectedActivityId, setSelectedActivityId] = useState(initialSelection)
   const [view, setView] = useState<"value" | "ecosystem">(initialView)
   const [ecosystemMode, setEcosystemMode] = useState<EcosystemGraphMode>(initialEcosystemMode)
   const [inspectorOpen, setInspectorOpen] = useState(false)
@@ -388,16 +411,18 @@ export function SectorMapMobile({
     if (activity) setSelectedActivityId(activity.id)
   }
 
+  const PageRoot = embedded ? "section" : "main"
+
   return (
-    <main
-      className={styles.page}
+    <PageRoot
+      className={`${styles.page} ${embedded ? styles.pageEmbedded : ""}`}
       data-sector-map-mobile="true"
       data-sector-map-view={view}
       data-selected-activity={selectedActivityId}
     >
-      <header className={styles.pageHeader}>
-        <span>Cartographie sectorielle · {formatDate(model.sector.asOf)}</span>
-        <h1>{model.sector.name}</h1>
+      <header className={`${styles.pageHeader} ${embedded ? styles.pageHeaderEmbedded : ""}`}>
+        {!embedded ? <><span>Cartographie sectorielle · {formatDate(model.sector.asOf)}</span>
+        <h1>{model.sector.name}</h1></> : null}
         <div className={styles.viewTabs} role="tablist" aria-label="Projection sectorielle">
           <button type="button" role="tab" aria-selected={view === "value"} onClick={() => setView("value")}>
             Valeur
@@ -456,7 +481,7 @@ export function SectorMapMobile({
       </nav>
 
       {view === "value" ? (
-        <ValueProjection model={model} context={context} onOpenInspector={() => setInspectorOpen(true)} />
+        <ValueProjection model={model} context={context} focusedCompanyId={focusedCompanyId} onOpenInspector={() => setInspectorOpen(true)} />
       ) : (
         <EcosystemProjection
           sectorMap={model.source}
@@ -465,6 +490,7 @@ export function SectorMapMobile({
           onModeChange={setEcosystemMode}
           onSelectActivity={setSelectedActivityId}
           onOpenInspector={() => setInspectorOpen(true)}
+          focusedCompanyId={focusedCompanyId}
         />
       )}
 
@@ -483,8 +509,9 @@ export function SectorMapMobile({
           summary={context.summary}
           evidence={context.evidence}
           embedded
+          focusedCompanyId={focusedCompanyId}
         />
       </AppDrawer>
-    </main>
+    </PageRoot>
   )
 }

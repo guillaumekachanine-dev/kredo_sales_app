@@ -97,7 +97,9 @@ describe("Business Intelligence Mobile presenter", () => {
 
   it("ne monte jamais le Desktop dans la branche Mobile de la route", () => {
     const source = readFileSync("src/app/(app)/intelligence/page.tsx", "utf8")
-    const mobileBranch = source.split('if (device === "mobile")')[1]?.split("// Load snapshot")[0] ?? ""
+    const mobileBranch = source
+      .split('if (device === "mobile")')[1]
+      ?.split("const viewModel = buildBusinessIntelligenceDesktopModel")[0] ?? ""
     expect(mobileBranch).toContain("BusinessIntelligenceMobile")
     expect(mobileBranch).not.toContain("BusinessIntelligenceDesktop")
   })

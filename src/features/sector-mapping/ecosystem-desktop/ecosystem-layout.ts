@@ -13,6 +13,7 @@ export type EcosystemGraphSide = "incoming" | "focal" | "outgoing"
 
 export interface EcosystemGraphActor {
   id: string
+  companyId?: string
   name: string
   status: SectorMapPortfolioStatus
   isKredo: boolean
@@ -65,10 +66,10 @@ interface AggregatedRelationship {
   relationships: SectorMapRelationship[]
 }
 
-const CANVAS_WIDTH = 1_100
+const CANVAS_WIDTH = 920
 const FOCAL_WIDTH = 320
 const FOCAL_HEIGHT = 190
-const NEIGHBOR_WIDTH = 240
+const NEIGHBOR_WIDTH = 210
 const NEIGHBOR_HEIGHT = 142
 const SIDE_LIMIT = 4
 const SIDE_GAP = 26
@@ -209,6 +210,7 @@ function actorsForRef(model: SectorMap, ref: SectorMapRef, visibleLimit: number)
     .filter((entity): entity is SectorMapEntity => Boolean(entity))
     .map((entity) => ({
       id: entity.id,
+      companyId: entity.companyId,
       name: entity.name,
       status: entity.status,
       isKredo: Boolean(entity.companyId),
@@ -235,7 +237,7 @@ function nodeForRef(
     side,
     ...details,
     ...actorData,
-    x: side === "incoming" ? 40 : 820,
+    x: side === "incoming" ? 30 : 680,
     y,
     width: NEIGHBOR_WIDTH,
     height: NEIGHBOR_HEIGHT,
@@ -289,7 +291,7 @@ export function layoutEcosystemGraph(
     side: "focal",
     ...focalDetails,
     ...actorsForRef(model, focalRef, 4),
-    x: 390,
+    x: 300,
     y: (height - FOCAL_HEIGHT) / 2,
     width: FOCAL_WIDTH,
     height: FOCAL_HEIGHT,

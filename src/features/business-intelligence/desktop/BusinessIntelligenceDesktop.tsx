@@ -16,6 +16,7 @@ import { SectorActivationWindow } from "@/lib/prospection/sector-activation-type
 import { Button } from "@/components/ui/Button"
 import { BusinessIntelligenceLocalNavigation, BiTabKey } from "./BusinessIntelligenceLocalNavigation"
 import dynamic from "next/dynamic"
+import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map-catalog"
 
 const SectorPlaybooksModal = dynamic(
   () => import("../playbooks/SectorPlaybooksModal").then(mod => mod.SectorPlaybooksModal),
@@ -27,10 +28,16 @@ const SectorStudiesModal = dynamic(
   { ssr: false },
 )
 
+const BusinessIntelligenceSectorMapDesktop = dynamic(
+  () => import("@/features/sector-mapping/integration/BusinessIntelligenceSectorMapDesktop").then((mod) => mod.BusinessIntelligenceSectorMapDesktop),
+  { loading: () => <div className="min-h-64 animate-pulse rounded-xl bg-surface/30" aria-label="Chargement de la cartographie" /> },
+)
+
 
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
   snapshot: BusinessIntelligenceSnapshot
+  sectorMapCatalog: SectorMapCatalog
 }
 
 export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopProps) {
@@ -48,7 +55,7 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
   return <BusinessIntelligenceDesktopReady {...props} />
 }
 
-function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntelligenceDesktopProps) {
+function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalog }: BusinessIntelligenceDesktopProps) {
   // Filters
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")
@@ -129,8 +136,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
         <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
 
         <div className="flex-1 overflow-y-auto">
-          {/* Filter Bar */}
-          <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
+          {activeTab !== "value_chain" ? <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
             <select 
               className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               value={period}
@@ -159,10 +165,10 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </div>
+          </div> : null}
 
-          <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8">
-            {viewModel.hasDemoData && (
+          <main className={`mx-auto w-full max-w-[1600px] space-y-6 ${activeTab === "value_chain" ? "px-4 py-4 lg:px-6 lg:py-5" : "px-4 py-6 lg:px-8 lg:py-8"}`}>
+            {viewModel.hasDemoData && activeTab !== "value_chain" && (
               <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
                 <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
                 Certaines activités de démonstration sont incluses dans les indicateurs.
@@ -190,7 +196,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
                   <h3 className="text-lg font-bold text-heading">Études sectorielles</h3>
                   <p className="mt-2 text-sm text-body leading-relaxed">
-                    Accédez aux études sectorielles actives et en veille pour KREDO. Les études détaillent la réglementation, la chaîne de valeur, et les stratégies de prospection adaptées à chaque industrie.
+                    Accédez aux études sectorielles actives et en veille pour KREDO. Les études détaillent la réglementation, la chaîne de valeur et les stratégies de prospection adaptées à chaque industrie.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-4">
                     <Button variant="secondary" onClick={() => setIsStudiesOpen(true)}>
@@ -205,19 +211,14 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
             )}
 
             {activeTab === "value_chain" && (
-              <div className="max-w-4xl space-y-6">
-                <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Chaîne de valeur</h3>
-                  <p className="mt-2 text-sm text-muted">Cette page accueillera la page /sector-mapping-value après validation.</p>
-                </div>
-              </div>
+              <BusinessIntelligenceSectorMapDesktop catalog={sectorMapCatalog} />
             )}
 
             {activeTab === "competitive_env" && (
               <div className="max-w-4xl space-y-6">
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
                   <h3 className="text-lg font-bold text-heading">Environnement concurrentiel</h3>
-                  <p className="mt-2 text-sm text-muted">Cette page accueillera la matrice concurrentielle et l'étude associée.</p>
+                  <p className="mt-2 text-sm text-muted">Cette page accueillera la matrice concurrentielle et l&apos;étude associée.</p>
                 </div>
               </div>
             )}

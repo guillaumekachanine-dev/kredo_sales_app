@@ -18,6 +18,7 @@ interface SectorEcosystemDesktopProps {
   mode: EcosystemGraphMode
   onModeChange: (mode: EcosystemGraphMode) => void
   onSelectActivity: (activityId: string) => void
+  focusedCompanyId?: string
 }
 
 function nodeStyle(node: EcosystemGraphNode) {
@@ -36,7 +37,7 @@ function actorTone(status: SectorMapPortfolioStatus, isKredo: boolean) {
   return styles.actorExternal
 }
 
-function NodeBody({ node }: { node: EcosystemGraphNode }) {
+function NodeBody({ node, focusedCompanyId }: { node: EcosystemGraphNode; focusedCompanyId?: string }) {
   return (
     <>
       <span className={styles.nodeEyebrow}>{node.eyebrow}</span>
@@ -44,7 +45,7 @@ function NodeBody({ node }: { node: EcosystemGraphNode }) {
       {node.actors.length > 0 ? (
         <span className={styles.nodeActors}>
           {node.actors.map((actor) => (
-            <span key={actor.id} className={actorTone(actor.status, actor.isKredo)}>
+            <span key={actor.id} className={`${actorTone(actor.status, actor.isKredo)} ${focusedCompanyId && actor.companyId === focusedCompanyId ? styles.actorFocused : ""}`}>
               {actor.name}
             </span>
           ))}
@@ -58,9 +59,11 @@ function NodeBody({ node }: { node: EcosystemGraphNode }) {
 function GraphNode({
   node,
   onSelectActivity,
+  focusedCompanyId,
 }: {
   node: EcosystemGraphNode
   onSelectActivity: (activityId: string) => void
+  focusedCompanyId?: string
 }) {
   const className = [
     styles.graphNode,
@@ -79,14 +82,14 @@ function GraphNode({
         aria-label={`Sélectionner ${node.label}`}
         {...dataAttributes}
       >
-        <NodeBody node={node} />
+        <NodeBody node={node} focusedCompanyId={focusedCompanyId} />
       </button>
     )
   }
 
   return (
     <article className={className} style={nodeStyle(node)} {...dataAttributes}>
-      <NodeBody node={node} />
+      <NodeBody node={node} focusedCompanyId={focusedCompanyId} />
       {node.side === "focal" ? <span className={styles.focalBadge}>Maillon focal</span> : null}
     </article>
   )
@@ -98,6 +101,7 @@ export function SectorEcosystemDesktop({
   mode,
   onModeChange,
   onSelectActivity,
+  focusedCompanyId,
 }: SectorEcosystemDesktopProps) {
   const projection = useMemo(
     () => buildEcosystemProjection(sectorMap, selectedActivityId, mode),
@@ -188,7 +192,7 @@ export function SectorEcosystemDesktop({
           </svg>
 
           {layout.nodes.map((node) => (
-            <GraphNode key={node.id} node={node} onSelectActivity={onSelectActivity} />
+            <GraphNode key={node.id} node={node} onSelectActivity={onSelectActivity} focusedCompanyId={focusedCompanyId} />
           ))}
         </div>
       </div>

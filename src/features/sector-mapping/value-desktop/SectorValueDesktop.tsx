@@ -23,6 +23,9 @@ interface SectorValueDesktopProps {
   sectorMap: SectorMap
   initialView?: "value" | "ecosystem"
   initialEcosystemMode?: EcosystemGraphMode
+  initialActivityId?: string
+  focusedCompanyId?: string
+  embedded?: boolean
 }
 
 const MAX_VISIBLE_ACTORS = 6
@@ -44,10 +47,11 @@ function entityTone(entity: SectorMapEntity) {
   return styles.entityExternal
 }
 
-function EntityChip({ entity }: { entity: SectorMapEntity }) {
+function EntityChip({ entity, focused = false }: { entity: SectorMapEntity; focused?: boolean }) {
   return (
-    <span className={`${styles.entityChip} ${entityTone(entity)}`}>
+    <span className={`${styles.entityChip} ${entityTone(entity)} ${focused ? styles.entityFocused : ""}`}>
       <span>{entity.name}</span>
+      {focused ? <small>compte sélectionné</small> : null}
       {entity.status === "client" ? <small>client</small> : null}
       {entity.status === "peer_partner" ? <small>pair-partenaire</small> : null}
     </span>
@@ -83,9 +87,11 @@ function MatrixRowLabel({ title, detail }: { title: string; detail?: string }) {
 function ActivityActorsCell({
   column,
   selected,
+  focusedCompanyId,
 }: {
   column: SectorValueColumn
   selected: boolean
+  focusedCompanyId?: string
 }) {
   if (column.kind === "empty") {
     return (
@@ -106,7 +112,7 @@ function ActivityActorsCell({
     <div className={`${styles.actorsCell} ${selected ? styles.selectedColumn : ""}`}>
       {visibleEntities.length > 0 ? (
         <div className={styles.entityList}>
-          {visibleEntities.map((entity) => <EntityChip key={entity.id} entity={entity} />)}
+          {visibleEntities.map((entity) => <EntityChip key={entity.id} entity={entity} focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)}
         </div>
       ) : <span className={styles.emptyText}>Aucun acteur documenté</span>}
       {hiddenCount > 0 ? <span className={styles.moreActors}>+ {hiddenCount} autres acteurs documentés</span> : null}
@@ -175,9 +181,15 @@ export function SectorValueDesktop({
   sectorMap,
   initialView = "value",
   initialEcosystemMode = "main",
+  initialActivityId,
+  focusedCompanyId,
+  embedded = false,
 }: SectorValueDesktopProps) {
   const model = useMemo(() => buildSectorValueDesktopModel(sectorMap), [sectorMap])
-  const [selectedActivityId, setSelectedActivityId] = useState(model.sector.defaultActivityId)
+  const initialSelection = initialActivityId && model.source.activities.some((activity) => activity.id === initialActivityId)
+    ? initialActivityId
+    : model.sector.defaultActivityId
+  const [selectedActivityId, setSelectedActivityId] = useState(initialSelection)
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [view, setView] = useState<"value" | "ecosystem">(initialView)
   const [ecosystemMode, setEcosystemMode] = useState<EcosystemGraphMode>(initialEcosystemMode)
@@ -186,10 +198,10 @@ export function SectorValueDesktop({
     [model, selectedActivityId],
   )
   const columnGridStyle = {
-    gridTemplateColumns: `repeat(${model.columns.length}, minmax(8rem, 1fr))`,
+    gridTemplateColumns: `repeat(${model.columns.length}, minmax(7rem, 1fr))`,
   } satisfies CSSProperties
   const matrixStyle = {
-    minWidth: `${112 + model.columns.length * 128}px`,
+    minWidth: `${112 + model.columns.length * 112}px`,
   } satisfies CSSProperties
 
   function selectActivity(activityId: string) {
@@ -197,18 +209,20 @@ export function SectorValueDesktop({
     setInspectorOpen(true)
   }
 
+  const PageRoot = embedded ? "section" : "main"
+
   return (
-    <main
-      className={styles.page}
+    <PageRoot
+      className={`${styles.page} ${embedded ? styles.pageEmbedded : ""}`}
       data-sector-map-value
       data-sector-map-view={view}
       data-column-count={model.columns.length}
     >
-      <header className={styles.pageHeader}>
-        <div>
+      <header className={`${styles.pageHeader} ${embedded ? styles.pageHeaderEmbedded : ""}`}>
+        {!embedded ? <div>
           <h1>{model.sector.name}</h1>
           <p>Cartographie sectorielle <span aria-hidden="true">·</span> {formatDate(model.sector.asOf)}</p>
-        </div>
+        </div> : null}
         <div className={styles.viewTabs} role="tablist" aria-label="Projection sectorielle">
           <button
             type="button"
@@ -273,6 +287,7 @@ export function SectorValueDesktop({
                     key={column.id}
                     column={column}
                     selected={column.kind === "activity" && column.activity.activity.id === selectedActivityId}
+                    focusedCompanyId={focusedCompanyId}
                   />
                 ))}
               </div>
@@ -324,7 +339,7 @@ export function SectorValueDesktop({
                       </div>
                       <div className={styles.layerEntities}>
                         {entities.length > 0
-                          ? entities.map((entity) => <EntityChip key={entity.id} entity={entity} />)
+                          ? entities.map((entity) => <EntityChip key={entity.id} entity={entity} focused={Boolean(focusedCompanyId && entity.companyId === focusedCompanyId)} />)
                           : <span className={styles.emptyText}>Aucun acteur documenté</span>}
                       </div>
                       <div className={styles.layerIntensity}>
@@ -357,6 +372,7 @@ export function SectorValueDesktop({
             mode={ecosystemMode}
             onModeChange={setEcosystemMode}
             onSelectActivity={selectActivity}
+            focusedCompanyId={focusedCompanyId}
           />
         )}
 
@@ -366,9 +382,10 @@ export function SectorValueDesktop({
             summary={context.summary}
             evidence={context.evidence}
             onClose={() => setInspectorOpen(false)}
+            focusedCompanyId={focusedCompanyId}
           />
         ) : null}
       </div>
-    </main>
+    </PageRoot>
   )
 }

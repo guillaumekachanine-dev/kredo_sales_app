@@ -1,6 +1,6 @@
 # KREDO — Journal des sessions
 
-> Historique détaillé des sessions de développement (Sessions 6 → 30, juin → août 2026).
+> Historique détaillé des sessions de développement (Sessions 6 → 34, juin → août 2026).
 > **Extrait de `CLAUDE.md` le 2026-08-10** : ce journal pesait 164 Ko sur les 197 Ko du fichier,
 > soit ~83 % du contexte chargé à chaque session pour de l'historique rarement consulté.
 > Contenu conservé à l'identique, aucune ligne supprimée.
@@ -14,6 +14,16 @@
 > Vérifier à la source avant de s'appuyer dessus — cf. `CLAUDE.md` § Supabase pour l'état courant.
 
 ---
+
+### Session 34 — Cartographie sectorielle RUN 5 : intégration Business Intelligence (2026-08-10)
+
+- **Destination finale branchée** : la feature VALEUR / ÉCOSYSTÈME remplace le placeholder de l’onglet « Chaîne de valeur » de `/intelligence`, sur Desktop et mobile. Le Design Lab reste une référence indépendante. Le chargement du snapshot BI, du device et du catalogue sectoriel est parallélisé côté serveur ; le bundle de cartographie reste différé tant que l’onglet n’est pas ouvert.
+- **Adaptateur Supabase sans migration** : nouveau catalogue serveur construit à partir des tables existantes `sector_intelligence`, `value_chain_nodes`, `value_chain_actors` et `value_chain_links`. Transformation pure vers le `SectorMap` canonique : stages, activités, couches transverses, placements multi-positionnés dédupliqués, statuts portefeuille, métriques, preuves et relations `main | influence`. Les libellés longs restent dans les preuves au lieu d’encombrer les arêtes. Audit live : une cartographie réelle disponible à ce jour (BTP, 10 nœuds, 50 placements acteurs, 20 relations) ; aucune évolution de schéma nécessaire.
+- **Sélecteur exclusif Secteur / Compte** : un seul mode actif. Secteur affiche la cartographie complète ; Compte résout le secteur depuis les placements `value_chain_actors`, initialise le maillon concerné et applique uniquement un focus visuel au même modèle. VALEUR, ÉCOSYSTÈME et `SectorMapInspector` partagent toujours la même sélection.
+- **Intégration adaptative** : racine `section` en contexte embarqué pour éviter les `<main>` imbriqués, contrôles tactiles 44 px, sélecteur compact, inspector Desktop/bottom sheet mobile, acteur sélectionné identifiable dans matrice, graphe et inspector. Le graphe Desktop déterministe a été resserré à 920 px et son header passe sur deux rangées aux largeurs intermédiaires ; aucun moteur ou paquet ajouté.
+- **Tests et QA** : nouveau test de transformation Supabase (déduplication, captation inconnue, couverture, preuves, modes, résolution compte) et contrats d’intégration BI. QA Playwright sur BTP dense, Banque (stage vide, inconnue, multi-positionnement), Tourisme (flux direct), 1440 px, 1024 px et 390×844 ; aucun overlap ni erreur console. Captures conservées dans `output/playwright/run-5/`. Le plugin Browser n’était pas disponible : Playwright local utilisé en repli.
+- **Validation** : `typecheck` → EXIT 0 · `test` → 108 fichiers / **1057 tests** · `check:server-boundary` → EXIT 0 · `lint` → EXIT 0 · `build` → EXIT 0. Le build conserve des logs préexistants de bail-out dynamique sur plusieurs routes utilisant `cookies`/`headers`, sans échec ; le nouveau loader appelle `unstable_rethrow` pour ne pas masquer les erreurs internes Next.js.
+- **Dépendances / DB** : aucune dépendance ajoutée, aucune migration ni écriture Supabase, aucun commit/push/déploiement. Limite connue : seule la cartographie BTP est aujourd’hui alimentée dans les tables réelles ; Banque et Tourisme restent des fixtures de validation jusqu’à leur ingestion future.
 
 ### Session 33 — ADR-0019 Lot 3 : étape 0 « Socle » + action recommandée unique (2026-08-10)
 Lots 0-2 de l'ADR-0019 étaient déjà livrés en base et en Server Action (migrations 066/067, `promoteAccountDepth`, bouton « Créer et qualifier » du drawer) mais **rien n'était branché côté cockpit** — `depth_level`/`origin`/`siren`/`naf_code` n'étaient même pas lus par `getClientIntelligence()`. Ce lot ferme la boucle : le cockpit expose désormais le socle et une seule action recommandée (D-6).

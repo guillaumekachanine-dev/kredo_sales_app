@@ -8,6 +8,16 @@
   font-family: var(--font-sans), sans-serif;
 }
 
+.pageEmbedded {
+  min-height: 0;
+  padding-top: 14px;
+  background: transparent;
+}
+
+.pageHeaderEmbedded {
+  margin: 0;
+}
+
 .page button,
 .page select,
 .page summary {
@@ -436,6 +446,11 @@
   text-transform: uppercase;
 }
 
+.entityFocused {
+  outline: 2px solid var(--color-edito-accent);
+  outline-offset: 2px;
+}
+
 .dataSection > p,
 .transverseMobile > p {
   margin: 11px 0 0;
@@ -699,6 +714,19 @@ button.relationNode {
   border-color: color-mix(in srgb, var(--color-edito-surface) 72%, transparent);
   color: var(--color-edito-surface);
   background: color-mix(in srgb, var(--color-edito-surface) 7%, transparent);
+}
+
+.focusedAccountBadge {
+  display: inline-flex;
+  align-self: center;
+  margin-top: 7px;
+  padding: 4px 7px;
+  border: 1px solid var(--color-edito-accent);
+  border-radius: 999px;
+  color: var(--color-edito-navy);
+  background: color-mix(in srgb, var(--color-edito-accent) 14%, var(--color-edito-surface));
+  font-size: 0.64rem;
+  line-height: 1.2;
 }
 
 .noRelation {

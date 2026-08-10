@@ -106,4 +106,17 @@ describe("SectorValueDesktop", () => {
     expect(BANK_SECTOR_MAP.entities.filter((entity) => entity.id === "bpm-bank")).toHaveLength(1)
     expect(occurrences).toBeGreaterThan(1)
   })
+
+  it("ne met en évidence un acteur que lorsque le mode Compte fournit un companyId", () => {
+    const sectorMarkup = renderSector(BTP_SECTOR_MAP)
+    const accountMarkup = renderToStaticMarkup(createElement(SectorValueDesktop, {
+      sectorMap: BTP_SECTOR_MAP,
+      initialActivityId: "btp-construction",
+      focusedCompanyId: "company-idec",
+      embedded: true,
+    }))
+
+    expect(sectorMarkup).not.toContain("compte sélectionné")
+    expect(accountMarkup).toContain("compte sélectionné")
+  })
 })
