@@ -15,6 +15,14 @@
 
 ---
 
+### Session 31 — Cartographie sectorielle RUN 3 : ÉCOSYSTÈME desktop (2026-08-10)
+- **Projection relationnelle locale** : ajout de `SectorEcosystemDesktop`, branché dans le même composant client que VALEUR. Les onglets conservent `selectedActivityId`, le mode (`main | influences`) et le `SectorMapInspector` partagé ; une activité voisine devient le nouveau foyer sans perdre le contexte au changement de vue.
+- **Layout déterministe maison** : `layoutEcosystemGraph()` pur, sans DOM ni hasard, place jusqu’à 4 relations entrantes et 4 sortantes autour d’un foyer dominant. Nœuds HTML à dimensions explicites, arêtes SVG courbes avec ports latéraux, intensité, libellés utiles et agrégation des relations parallèles. Aucun ELK/React Flow/D3 complet ni nouvelle dépendance.
+- **Modes V1** : `Flux principal` sépare amont et aval ; `Influences` distingue prescription, financement et outillage depuis les `ecosystemLayers`. Aucun mode Tout, Comparer ou comportement mobile ajouté.
+- **Tests** : nouveau fichier `sector-ecosystem-desktop.test.ts` — stabilité, bornes, absence de collisions, dominance focale, voisinages BTP/Banque/Tourisme, influences typées, agrégation, plafonnement et rendu partagé. Suite complète : 106 fichiers / 1025 tests passés.
+- **QA desktop** : captures 1600×1000 de BTP, Banque et Tourisme dans `output/playwright/`, plus BTP Influences. Parcours navigateur validé : sélection ÉCOSYSTÈME → VALEUR → ÉCOSYSTÈME conserve le maillon et l’inspector.
+- **Validation** : `typecheck` → EXIT 0 · `test` → 1025/1025 · `check:server-boundary` → EXIT 0 · `lint` → EXIT 0 · `build` → EXIT 0. Premier build relancé après arrêt du serveur de captures qui verrouillait `.next/diagnostics` ; build final compilé avec succès.
+
 ### Session 6 — Migration Cockpit vers le Design System (2026-06-16)
 - **CockpitDesktopDashboard** : Migré vers `DesktopAnalyticalPage` — 4 `KpiCard`, zone principale 2-col (alertes staffing + goulots d'étranglement), rail `InsightCard` + `AlertBlock`, lowerContent table propositions avec `StatusPill`. `AppDialog` remplace le modal custom.
 - **CockpitMobileDashboard** : Migré vers `MobileActionPage` + `MobilePageHeader` + `MobileHeroInsight` (pipeline pondéré Supabase réel) + 3 `MobileActionCard` avec `StatusPill`. `AppDialog` remplace le drawer custom. Labels debug `> 44px` et éléments de shell supprimés.
