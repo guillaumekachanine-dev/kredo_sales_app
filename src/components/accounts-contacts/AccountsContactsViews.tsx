@@ -10,6 +10,7 @@ import {
   AccountRow,
   AccountsContactsData,
   ContactRow,
+  TaxonomySegmentOption,
 } from "@/lib/accounts-contacts/accounts-contacts-data"
 import {
   parseFilters,
@@ -159,6 +160,62 @@ function displayRevenue(revenue: string | null | undefined) {
   return revenue
 }
 
+function displayTier(tier: string | null | undefined) {
+  if (!tier) return "-"
+  switch (tier) {
+    case "grand_compte": return "Grand compte"
+    case "eti": return "ETI"
+    case "pme": return "PME"
+    case "tpe": return "TPE"
+    case "cac40": return "CAC40"
+    case "etablissement_public": return "Établissement public"
+    default: return tier
+  }
+}
+
+function displayRegimeAchat(regime: string | null | undefined) {
+  if (!regime) return "-"
+  switch (regime) {
+    case "commande_publique": return "Commande publique"
+    case "regule": return "Régulé"
+    case "monaco": return "Monaco"
+    case "prive": return "Privé"
+    default: return regime
+  }
+}
+
+function displayRelationType(relationType: string | null | undefined) {
+  if (!relationType) return "Prospect"
+  switch (relationType) {
+    case "prospect": return "Prospect"
+    case "client":
+    case "client_actif": return "Client"
+    case "client_dormant": return "Client dormant"
+    case "ancien_client": return "Ancien client"
+    case "pair_partenaire":
+    case "partenaire": return "Partenaire"
+    default: return relationType.replaceAll("_", " ")
+  }
+}
+
+function displaySizeBand(sizeBand: string | null | undefined, employeeCount: number | null | undefined) {
+  const displayStr = sizeBand?.trim() || employeeCount?.toString()
+  if (!displayStr) return "-"
+
+  if (displayStr.includes("1001-5000") || displayStr.includes("1000") || (employeeCount && employeeCount > 1000 && employeeCount <= 5000)) return "1-5k"
+  if (displayStr.includes("501-1000") || (employeeCount && employeeCount > 500 && employeeCount <= 1000)) return "501-1k"
+  if (displayStr.includes(">5000") || displayStr.includes("+5000") || (employeeCount && employeeCount > 5000)) return "+5k"
+
+  if (sizeBand && sizeBand.trim().length > 0) {
+    if (sizeBand === "501-1000") return "501-1k"
+    if (sizeBand === "1001-5000") return "1-5k"
+    if (sizeBand === ">5000" || sizeBand === "+5000") return "+5k"
+    return sizeBand.trim()
+  }
+  if (employeeCount !== null && employeeCount !== undefined) return employeeCount.toLocaleString("fr-FR")
+  return "-"
+}
+
 function PriorityBadge({ priority }: { priority: string }) {
   const label = priority === "haute" ? "Haute" : priority === "basse" ? "Basse" : "Normale"
   return (
@@ -273,6 +330,7 @@ function ContactCompanyCombobox({
 function CompanyFormModal({
   initial,
   sectorOptions,
+  taxonomySegments,
   createKind,
   onCreateKindChange,
   onClose,
@@ -280,6 +338,7 @@ function CompanyFormModal({
 }: {
   initial?: AccountRow
   sectorOptions: string[]
+  taxonomySegments?: TaxonomySegmentOption[]
   createKind?: CreateEntityKind
   onCreateKindChange?: (kind: CreateEntityKind) => void
   onClose: () => void
@@ -288,7 +347,12 @@ function CompanyFormModal({
   const [form, setForm] = useState<CompanyFormData>({
     name: initial?.name ?? "",
     sector: initial?.sector === "Non renseigné" ? "" : (initial?.sector ?? ""),
+    sector_id: initial?.sectorId ?? null,
     segment: initial?.segment === "Segment non renseigné" ? "" : (initial?.segment ?? ""),
+    segment_id: initial?.segmentId ?? null,
+    tier: initial?.tier ?? null,
+    regime_achat: initial?.regimeAchat ?? null,
+    relation_type: initial?.status ? normalizeLifecycleStatus(initial.status) : "prospect",
     hq_location: initial?.location === "Non renseigné" ? "" : (initial?.location ?? ""),
     revenue: initial?.revenue === "Non renseigné" ? "" : (initial?.revenue ?? ""),
     employee_count: initial?.employeeCount !== null && initial?.employeeCount !== undefined ? String(initial.employeeCount) : "",
@@ -302,6 +366,29 @@ function CompanyFormModal({
 
   const set = (key: keyof CompanyFormData, value: string) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const sectorsList = taxonomySegments?.filter((t) => !t.parentId) || []
+  const segmentsList = taxonomySegments?.filter((t) => t.parentId === form.sector_id) || []
+
+  const handleSectorChange = (selectedId: string) => {
+    const matched = sectorsList.find((s) => s.id === selectedId)
+    setForm((f) => ({
+      ...f,
+      sector_id: selectedId || null,
+      sector: matched ? matched.name : f.sector,
+      segment_id: null,
+      segment: "",
+    }))
+  }
+
+  const handleSegmentChange = (selectedId: string) => {
+    const matched = taxonomySegments?.find((seg) => seg.id === selectedId)
+    setForm((f) => ({
+      ...f,
+      segment_id: selectedId || null,
+      segment: matched ? matched.name : f.segment,
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -356,31 +443,63 @@ function CompanyFormModal({
               <input className={inputCls} inputMode="numeric" value={form.employee_count} onChange={(e) => set("employee_count", e.target.value)} placeholder="250" />
             </Field>
             <Field label="Catégorie">
-              <Select className={selectCls} value={form.segment} onChange={(e) => set("segment", e.target.value)}>
+              <Select className={selectCls} value={form.tier || ""} onChange={(e) => set("tier", e.target.value)}>
                 <option value="">Non renseigné</option>
                 {COMPANY_CATEGORY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </Field>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Secteur d'activité">
-              <Select className={selectCls} value={form.sector} onChange={(e) => set("sector", e.target.value)}>
+              {sectorsList.length > 0 ? (
+                <Select
+                  className={selectCls}
+                  value={form.sector_id || ""}
+                  onChange={(e) => handleSectorChange(e.target.value)}
+                >
+                  <option value="">Non renseigné</option>
+                  {sectorsList.map((sec) => (
+                    <option key={sec.id} value={sec.id}>
+                      {sec.name}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Select className={selectCls} value={form.sector} onChange={(e) => set("sector", e.target.value)}>
+                  <option value="">Non renseigné</option>
+                  {sectorOptions.map((sector) => <option key={sector} value={sector}>{sector}</option>)}
+                </Select>
+              )}
+            </Field>
+            <Field label="Segment métier">
+              <Select
+                className={selectCls}
+                value={form.segment_id || ""}
+                onChange={(e) => handleSegmentChange(e.target.value)}
+                disabled={!form.sector_id && sectorsList.length > 0}
+              >
                 <option value="">Non renseigné</option>
-                {sectorOptions.map((sector) => <option key={sector} value={sector}>{sector}</option>)}
+                {segmentsList.map((seg) => (
+                  <option key={seg.id} value={seg.id}>
+                    {seg.name}
+                  </option>
+                ))}
               </Select>
             </Field>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Priorité">
               <Select className={selectCls} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
                 {PRIORITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </Field>
             <Field label="Statut">
-              <Select className={selectCls} value={form.lifecycle_status} onChange={(e) => set("lifecycle_status", e.target.value)}>
+              <Select className={selectCls} value={form.relation_type || form.lifecycle_status} onChange={(e) => { set("relation_type", e.target.value); set("lifecycle_status", e.target.value); }}>
                 {LIFECYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </Field>
           </div>
-          <Field label="Métier">
+          <Field label="Description">
             <textarea className={cn(inputCls, "resize-none")} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Décrire le métier, les offres ou le contexte du compte…" />
           </Field>
           {error && <p className="text-xs text-red-500">{error}</p>}
@@ -760,22 +879,31 @@ function AccountsDesktop({
   onOpenIdentity,
   onOpenIntelligence,
   onOpenContactIdentity,
+  onEditCompany,
 }: {
   accounts: AccountRow[]
   contacts: ContactRow[]
   onOpenIdentity: (id: string) => void
   onOpenIntelligence: (account: AccountRow) => void
   onOpenContactIdentity: (id: string) => void
+  onEditCompany?: (account: AccountRow) => void
 }) {
   const [collapsedSectors, setCollapsedSectors] = useState<Record<string, boolean>>({})
   const [expandedAccounts, setExpandedAccounts] = useState<Record<string, boolean>>({})
+  const [actionsMenuOpenAccountId, setActionsMenuOpenAccountId] = useState<string | null>(null)
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false)
   const [eventInitialValues, setEventInitialValues] = useState<AgendaEventDrawerInitialValues | undefined>()
 
   const router = useRouter()
   const [editingContactId, setEditingContactId] = useState<string | null>(null)
   const [updatingContactId, setUpdatingContactId] = useState<string | null>(null)
-  const [isUpdating, startUpdateTransition] = useTransition()
+  const [, startUpdateTransition] = useTransition()
+
+  useEffect(() => {
+    const onClick = () => setActionsMenuOpenAccountId(null)
+    document.addEventListener("click", onClick)
+    return () => document.removeEventListener("click", onClick)
+  }, [])
 
   const handleLogActivity = (contact: ContactRow, account: AccountRow) => {
     setEventInitialValues({
@@ -803,22 +931,20 @@ function AccountsDesktop({
   }, [accounts])
 
   return (
-    <SurfaceCard className="overflow-hidden">
+    <SurfaceCard className="overflow-visible">
 
-      <div className="overflow-x-auto">
+      <div className="overflow-visible">
         <table className="w-full border-collapse text-left text-xs table-fixed">
           <thead>
             <tr className="border-b border-border bg-canvas/50 text-[10px] font-bold uppercase tracking-wider text-muted">
-              <th className="px-5 py-3 w-[18%]">Compte</th>
-              <th className="px-3 py-3 w-[21%]">Secteur</th>
-              <th className="px-3 py-3 w-[8%]">Statut</th>
-              <th className="px-3 py-3 text-center w-[7%]">CA</th>
-              <th className="px-3 py-3 text-center w-[7%]">Taille</th>
-              <th className="px-3 py-3 text-center w-[7%]">Contacts</th>
-              <th className="px-3 py-3 text-center w-[12%]">Activité</th>
-              <th className="px-3 py-3 text-center w-[6%]">Veille dédiée</th>
+              <th className="px-5 py-3 w-[24%]">Compte</th>
+              <th className="px-3 py-3 w-[20%]">Segment</th>
+              <th className="px-3 py-3 w-[14%]">Siège</th>
+              <th className="px-3 py-3 text-center w-[8%]">CA</th>
+              <th className="px-3 py-3 text-center w-[10%]">Catégorie</th>
+              <th className="px-3 py-3 text-center w-[10%]">Statut</th>
               <th className="px-3 py-3 text-center w-[8%]">Priorité</th>
-              <th className="px-5 py-3 text-center w-[6%]">Cockpit</th>
+              <th className="px-5 py-3 text-center w-[6%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/50">
@@ -829,7 +955,7 @@ function AccountsDesktop({
                 <Fragment key={sector}>
                   {/* Sector Header Row */}
                   <tr className="border-y border-border/80 kredo-sector-header-row" style={{ backgroundColor: "#607D8B" }}>
-                    <td colSpan={10} className="px-5 py-2.5 align-middle font-bold text-white text-[11px] uppercase tracking-wider select-none">
+                    <td colSpan={8} className="px-5 py-2.5 align-middle font-bold text-white text-[11px] uppercase tracking-wider select-none">
                       <button
                         type="button"
                         onClick={() => {
@@ -859,24 +985,27 @@ function AccountsDesktop({
 
                   {/* Sector Accounts Rows */}
                   {!isSectorCollapsed && sectorAccounts.map((account) => {
-                    const hasStudy = account.hasStudy
                     const isContactsExpanded = expandedAccounts[account.id] === true
                     const accountContacts = contacts.filter((c) => c.companyId === account.id)
 
                     return (
                       <Fragment key={account.id}>
-                        {/* Account Main Row */}
-                        <tr id={`account-row-${account.id}`} className="kredo-hover-reference border-b border-border/40">
-                          {/* Compte Name, Logo and Collapse toggle */}
+                        {/* Account Main Row - Clicking opens Cockpit Intelligence */}
+                        <tr
+                          id={`account-row-${account.id}`}
+                          onClick={() => onOpenIntelligence(account)}
+                          className="kredo-hover-reference border-b border-border/40 cursor-pointer hover:bg-canvas/30 transition-colors"
+                        >
+                          {/* 1. Compte (Name, Logo, Eye icon for Drawer, Collapse toggle) */}
                           <td className="px-5 py-3 truncate">
-                            <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setExpandedAccounts(prev => ({ ...prev, [account.id]: !prev[account.id] }))
                                 }}
-                                className="text-muted hover:text-heading p-0.5 transition-transform"
+                                className="text-muted hover:text-heading p-0.5 transition-transform shrink-0"
                                 title={isContactsExpanded ? "Cacher les contacts" : "Afficher les contacts"}
                               >
                                 <svg
@@ -892,91 +1021,121 @@ function AccountsDesktop({
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
                               </button>
-                              <div className="cursor-pointer hover:opacity-80 transition-opacity shrink-0" onClick={() => onOpenIdentity(account.id)}>
+                              <div
+                                className="shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onOpenIdentity(account.id)
+                                }}
+                              >
                                 <CompanyLogo name={account.name} logoPath={account.logoPath} website={account.website} size="md" denseList />
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <div 
-                                  onClick={() => onOpenIdentity(account.id)} 
-                                  className="font-bold text-[13px] text-heading truncate cursor-pointer hover:text-primary transition-colors"
-                                  title="Voir la fiche d'identité"
-                                >
+                              <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                                <span className="font-bold text-[13px] text-heading truncate" title={account.name}>
                                   {account.name}
-                                </div>
+                                </span>
+                                {/* Eye pictogram action button opening account drawer */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    onOpenIdentity(account.id)
+                                  }}
+                                  className="p-1 text-muted hover:text-primary transition-colors rounded hover:bg-canvas shrink-0"
+                                  title="Ouvrir la fiche d'identité (drawer)"
+                                  aria-label={`Ouvrir la fiche d'identité de ${account.name}`}
+                                >
+                                  <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
                               </div>
                             </div>
                           </td>
 
-                          {/* Secteur */}
-                          <td className="px-3 py-3 text-body truncate" title={account.sector}>{account.sector}</td>
+                          {/* 2. Segment */}
+                          <td className="px-3 py-3 text-body truncate" title={account.segment}>{account.segment.replace(/^[\d]+[.\s\-]+/, '')}</td>
 
-                          {/* Statut */}
-                          <td className="px-3 py-3 text-body truncate capitalize" title={account.status.replace("_", " ")}>{account.status.replace("_", " ")}</td>
+                          {/* 3. Siège */}
+                          <td className="px-3 py-3 text-body truncate" title={account.location || "-"}>{account.location || "-"}</td>
 
-                          {/* CA */}
+                          {/* 4. CA */}
                           <td className="px-3 py-3 text-center font-semibold text-heading">{displayRevenue(account.revenue)}</td>
 
-                          {/* Taille */}
-                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.employeeCount !== null ? account.employeeCount.toLocaleString('fr-FR') : "-"}</td>
+                          {/* 5. Catégorie */}
+                          <td className="px-3 py-3 text-center text-body truncate" title={displayTier(account.tier)}>{displayTier(account.tier)}</td>
 
-                          {/* Contacts Count */}
-                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.contactCount}</td>
+                          {/* 6. Statut */}
+                          <td className="px-3 py-3 text-center text-body truncate font-medium">{displayRelationType(account.status)}</td>
 
-                          {/* Activité Count */}
-                          <td className="px-3 py-3 text-center font-semibold text-heading">{account.taskCount}</td>
-
-                          {/* Veille dédiée */}
-                          <td className="px-3 py-3 text-center">
-                            <span className={cn(
-                              "text-[11px] font-bold uppercase tracking-[0.12em]",
-                              account.hasDedicatedWatch ? "text-primary" : "text-muted"
-                            )}>
-                              {account.hasDedicatedWatch ? "Oui" : "Non"}
-                            </span>
-                          </td>
-
-                          {/* Priorité */}
+                          {/* 10. Priorité */}
                           <td className="px-3 py-3 text-center"><PriorityBadge priority={account.priority} /></td>
 
-                          {/* Cockpit */}
+                          {/* 11. Actions (Round blue button with 3 vertical dots) */}
                           <td className="px-5 py-3 text-center">
-                            {hasStudy ? (
+                            <div className="relative inline-block text-left" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
-                                onClick={() => onOpenIntelligence(account)}
-                                className="inline-flex size-8 items-center justify-center rounded-full text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 cursor-pointer kredo-cockpit-button shadow-sm"
-                                aria-label={`Ouvrir le cockpit client de ${account.name}`}
-                                title="Cockpit client"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setActionsMenuOpenAccountId(actionsMenuOpenAccountId === account.id ? null : account.id)
+                                }}
+                                className="inline-flex size-8 items-center justify-center rounded-full bg-[#0047AB] text-white hover:bg-[#003C96] transition-colors focus:outline-none cursor-pointer shadow-sm"
+                                aria-label={`Actions pour ${account.name}`}
+                                title="Actions"
                               >
-                                <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24">
-                                  <defs>
-                                    <linearGradient id={`cockpit-grad-${account.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                      <stop offset="0%" stopColor="#5b57f5" />
-                                      <stop offset="25%" stopColor="#ff004d" />
-                                      <stop offset="50%" stopColor="#ff7a00" />
-                                      <stop offset="75%" stopColor="#33d17a" />
-                                      <stop offset="100%" stopColor="#00c2ff" />
-                                    </linearGradient>
-                                  </defs>
-                                  <path
-                                    stroke={`url(#cockpit-grad-${account.id})`}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={3}
-                                    d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
-                                  />
+                                <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                 </svg>
                               </button>
-                            ) : (
-                              <span className="text-muted text-[11px] italic">—</span>
-                            )}
+                              {actionsMenuOpenAccountId === account.id && (
+                                <div
+                                  className="absolute right-0 z-50 mt-1 w-48 rounded-md border border-border bg-surface shadow-lg py-1 text-xs text-heading animate-in fade-in zoom-in-95 duration-100"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionsMenuOpenAccountId(null)
+                                      onOpenIntelligence(account)
+                                    }}
+                                    className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors font-medium"
+                                  >
+                                    Cockpit Intelligence
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActionsMenuOpenAccountId(null)
+                                      onOpenIdentity(account.id)
+                                    }}
+                                    className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors"
+                                  >
+                                    Fiche d&apos;identité (Drawer)
+                                  </button>
+                                  {onEditCompany && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActionsMenuOpenAccountId(null)
+                                        onEditCompany(account)
+                                      }}
+                                      className="flex w-full items-center px-3 py-2 text-left hover:bg-canvas transition-colors"
+                                    >
+                                      Éditer le compte
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
 
                         {/* Collapsible Contacts Row */}
                         {isContactsExpanded && (
                           <tr className="bg-canvas/15 border-b border-border/30">
-                            <td colSpan={10} className="px-5 py-2.5">
+                            <td colSpan={8} className="px-5 py-2.5">
                               <div className="flex flex-col gap-1.5 pl-6 border-l-2 border-primary/25 py-1">
                                 {accountContacts.length === 0 ? (
                                   <span className="text-[11px] text-muted italic pl-3">Aucun contact enregistré pour ce compte.</span>
@@ -1201,7 +1360,7 @@ function AccountsMobile({
                 return a.fullName.localeCompare(b.fullName, "fr")
               })
               const isContactsExpanded = expandedAccounts[account.id] === true
-              const accountStatus = account.status ? account.status.replaceAll("_", " ") : "-"
+              const accountStatus = displayRelationType(account.status)
               const accountSegment = account.segment || "Segment non renseigné"
 
               return (
@@ -2044,6 +2203,7 @@ export function ProspectionAccountsView({
               openCrmTab({ entityType: "company-intelligence", entityId: account.id, title: account.name })
             }
             onOpenContactIdentity={openContactDrawer}
+            onEditCompany={(account) => setCompanyModal({ open: true, editing: account })}
           />
         )
       )}
@@ -2075,6 +2235,7 @@ export function ProspectionAccountsView({
         <CompanyFormModal
           initial={companyModal.editing}
           sectorOptions={companySectorOptions}
+          taxonomySegments={data.taxonomySegments}
           createKind={device === "mobile" && !companyModal.editing ? "company" : undefined}
           onCreateKindChange={device === "mobile" && !companyModal.editing ? handleCreateKindChange : undefined}
           onClose={() => {

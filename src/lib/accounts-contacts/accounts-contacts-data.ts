@@ -14,8 +14,12 @@ export type AccountRow = {
   id: string
   name: string
   sector: string
+  sectorId: string | null
   sectorAttachment: string | null
   segment: string
+  segmentId: string | null
+  tier: string | null
+  regimeAchat: string | null
   revenue: string
   location: string
   sizeBand: string | null
@@ -68,6 +72,14 @@ export type SectorStudyRow = {
   topCompanies: string[]
 }
 
+export type TaxonomySegmentOption = {
+  id: string
+  name: string
+  slug: string
+  level: string | null
+  parentId: string | null
+}
+
 export type AccountsContactsData = {
   stats: AccountsContactsStats
   accounts: AccountRow[]
@@ -78,6 +90,7 @@ export type AccountsContactsData = {
    */
   studyIds: string[]
   sectors: SectorStudyRow[]
+  taxonomySegments: TaxonomySegmentOption[]
 }
 
 // ─── Types internes Supabase ───────────────────────────────────────────────────
@@ -102,21 +115,19 @@ type LooseSupabaseClient = {
 
 /**
  * Ligne issue de la vue v_crm_account_list (projection légère sans metadata complet).
- * Les champs logo_path, nb_contacts, nb_with_email et has_study sont extraits
- * côté Postgres — seules les valeurs scalaires traversent le réseau.
- *
- * Le second bloc (sector_attachment_name → has_commercial_strategy) est lui aussi
- * calculé par la vue. Il remplaçait auparavant 5 requêtes parallèles distinctes
- * (`companies.sector_intelligence`, `account_watch_settings`,
- * `v_ai_intelligence_summary`, `account_issues`, `ai_intelligence_results`) dont
- * chacune re-dérivait, côté application, une colonne que la vue produisait déjà.
- * Cf. Audit de performance Lot 5.
  */
 type AccountViewRow = {
   id: string
   name: string
   sector: string | null
   segment: string | null
+  sector_id: string | null
+  segment_id: string | null
+  sector_name: string | null
+  segment_name: string | null
+  tier: string | null
+  regime_achat: string | null
+  relation_type: string | null
   revenue: string | null
   employee_count: number | null
   size_band: string | null
@@ -146,6 +157,23 @@ type TaskQueryRow = {
   id: string
   entity_id: string | null
   entity_type: string | null
+}
+
+type CompanyQueryRow = {
+  id: string
+  sector_id: string | null
+  segment_id: string | null
+  tier: string | null
+  regime_achat: string | null
+  relation_type: string | null
+}
+
+type TaxonomyQueryRow = {
+  id: string
+  name: string
+  slug: string
+  level: string | null
+  parent_id: string | null
 }
 
 type PersonRelation = {
@@ -218,21 +246,27 @@ function getLatestAnalysisStep(row: AccountViewRow, sectorAttachment: string | n
 function buildAccount(row: AccountViewRow, contactCount: number, taskCount: number): AccountRow {
   const importedContacts = Number(row.nb_contacts ?? 0) || 0
   const importedEmails  = Number(row.nb_with_email ?? 0) || 0
-  // Trimé une seule fois : un nom composé uniquement d'espaces ne doit compter
-  // ni comme rattachement affiché, ni comme étape « Intelligence sectorielle ».
   const sectorAttachment = row.sector_attachment_name?.trim() || null
+
+  const resolvedSector = row.sector_id ? cleanText(row.sector_name, "Non renseigné") : "Non renseigné"
+  const resolvedSegment = row.segment_id ? cleanText(row.segment_name, "Segment non renseigné") : "Segment non renseigné"
+  const resolvedStatus = row.relation_type || row.lifecycle_status || "prospect"
 
   return {
     id: row.id,
     name: row.name,
-    sector: cleanText(row.sector),
+    sector: resolvedSector,
+    sectorId: row.sector_id ?? null,
     sectorAttachment,
-    segment: cleanText(row.segment, "Segment non renseigné"),
+    segment: resolvedSegment,
+    segmentId: row.segment_id ?? null,
+    tier: row.tier ?? null,
+    regimeAchat: row.regime_achat ?? null,
     revenue: cleanText(row.revenue),
     location: cleanText(row.hq_location),
-    sizeBand: row.size_band,
+    sizeBand: row.size_band ?? null,
     priority: row.priority,
-    status: row.lifecycle_status,
+    status: resolvedStatus,
     analysisStep: getLatestAnalysisStep(row, sectorAttachment),
     hasDedicatedWatch: row.has_dedicated_watch === true,
     score: toNumber(row.legacy_folio_score),
@@ -308,8 +342,10 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
 
   const [
     accountsResult,
+    companiesResult,
     contactsResult,
     tasksResult,
+    taxonomyResult,
   ] = await Promise.all([
     supabase
       .from<AccountViewRow>("v_crm_account_list")
@@ -317,6 +353,10 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .order("legacy_folio_score", { ascending: false, nullsFirst: false })
       .order("name", { ascending: true })
       .limit(300),
+    supabase
+      .from<CompanyQueryRow>("companies")
+      .select("id,sector_id,segment_id,tier,regime_achat,relation_type")
+      .limit(1000),
     supabase
       .from<ContactQueryRow>("contacts")
       .select("id,person_id,company_id,job_title,relationship_role,relationship_level,status,department,persons(full_name,first_name,last_name,primary_email,phone,linkedin_url),is_priority,manager_contact_id,campaign_id,created_at")
@@ -326,15 +366,40 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
       .from<TaskQueryRow>("tasks")
       .select("id,entity_id,entity_type")
       .limit(2000),
+    supabase
+      .from<TaxonomyQueryRow>("sector_intelligence")
+      .select("id,name,slug,level,parent_id")
+      .order("name", { ascending: true }),
   ])
 
   if (accountsResult.error) throw new Error(accountsResult.error.message)
+  if (companiesResult.error) throw new Error(companiesResult.error.message)
   if (contactsResult.error) throw new Error(contactsResult.error.message)
   logOptionalEnrichmentError("tasks", tasksResult.error)
+  logOptionalEnrichmentError("sector_intelligence", taxonomyResult.error)
 
-  const rawAccounts = accountsResult.data ?? []
+  const rawAccountsBase = accountsResult.data ?? []
+  const rawCompanies = companiesResult.data ?? []
   const rawContacts = contactsResult.data ?? []
   const rawTasks    = tasksResult.error ? [] : (tasksResult.data ?? [])
+  const rawTaxonomy = taxonomyResult.error ? [] : (taxonomyResult.data ?? [])
+
+  const taxonomyMap = new Map(rawTaxonomy.map((t) => [t.id, t.name]))
+  const companyMap = new Map(rawCompanies.map((c) => [c.id, c]))
+
+  const rawAccounts = rawAccountsBase.map((acc) => {
+    const c = companyMap.get(acc.id)
+    return {
+      ...acc,
+      sector_id: c?.sector_id ?? null,
+      segment_id: c?.segment_id ?? null,
+      sector_name: c?.sector_id ? (taxonomyMap.get(c.sector_id) ?? null) : null,
+      segment_name: c?.segment_id ? (taxonomyMap.get(c.segment_id) ?? null) : null,
+      tier: c?.tier ?? null,
+      regime_achat: c?.regime_achat ?? null,
+      relation_type: c?.relation_type ?? null,
+    } as AccountViewRow
+  })
 
   // Comptage contacts par entreprise (depuis les contacts chargés)
   const contactCounts = new Map<string, number>()
@@ -357,7 +422,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   for (const row of rawAccounts) {
     companyById.set(row.id, {
       name: row.name,
-      sector: cleanText(row.sector),
+      sector: cleanText(row.sector_name || row.sector),
       website: row.website,
       logoPath: row.logo_path,
     })
@@ -382,13 +447,21 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     highPriority: accounts.filter((account) => account.priority === "haute").length,
   }
 
-  // Full datasets are returned unsliced. Filtering and device-aware display
-  // limits are applied client-side (small volumes: ~96 companies / ~643 contacts).
+  const taxonomySegments: TaxonomySegmentOption[] = rawTaxonomy.map((item) => ({
+    id: item.id,
+    name: item.name,
+    slug: item.slug,
+    level: item.level,
+    parentId: item.parent_id,
+  }))
+
   return {
     stats,
     accounts,
     contacts,
     studyIds,
     sectors: buildSectorRows(accounts),
+    taxonomySegments,
   }
 }
+

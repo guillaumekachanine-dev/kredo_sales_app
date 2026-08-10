@@ -13,7 +13,12 @@ const REVALIDATE = "/prospection/accounts"
 export type CompanyFormData = {
   name: string
   sector?: string
+  sector_id?: string | null
   segment?: string
+  segment_id?: string | null
+  tier?: string | null
+  regime_achat?: string | null
+  relation_type?: string | null
   hq_location?: string
   revenue?: string
   employee_count?: string | number
@@ -40,7 +45,8 @@ function normalizeCompanyLifecycleStatus(value: string | undefined) {
     case "ancien_client":
       return "ancien_client"
     case "partenaire":
-      return "partenaire"
+    case "pair_partenaire":
+      return "pair_partenaire"
     case "prospect":
     default:
       return "prospect"
@@ -49,15 +55,21 @@ function normalizeCompanyLifecycleStatus(value: string | undefined) {
 
 export async function createCompany(data: CompanyFormData) {
   const supabase = await createClient()
+  const relType = data.relation_type || normalizeCompanyLifecycleStatus(data.lifecycle_status)
   const { error } = await supabase.from("companies").insert({
     name: data.name.trim(),
     sector: data.sector?.trim() || null,
+    sector_id: data.sector_id || null,
     segment: data.segment?.trim() || null,
+    segment_id: data.segment_id || null,
+    tier: data.tier || null,
+    regime_achat: data.regime_achat || null,
+    relation_type: relType,
     hq_location: data.hq_location?.trim() || null,
     revenue: data.revenue?.trim() || null,
     employee_count: parseOptionalInteger(data.employee_count),
     priority: data.priority || "normale",
-    lifecycle_status: normalizeCompanyLifecycleStatus(data.lifecycle_status),
+    lifecycle_status: relType,
     website: data.website?.trim() || null,
     description: data.description?.trim() || null,
   })
@@ -68,17 +80,23 @@ export async function createCompany(data: CompanyFormData) {
 
 export async function updateCompany(id: string, data: CompanyFormData) {
   const supabase = await createClient()
+  const relType = data.relation_type || normalizeCompanyLifecycleStatus(data.lifecycle_status)
   const { error } = await supabase
     .from("companies")
     .update({
       name: data.name.trim(),
       sector: data.sector?.trim() || null,
+      sector_id: data.sector_id || null,
       segment: data.segment?.trim() || null,
+      segment_id: data.segment_id || null,
+      tier: data.tier || null,
+      regime_achat: data.regime_achat || null,
+      relation_type: relType,
       hq_location: data.hq_location?.trim() || null,
       revenue: data.revenue?.trim() || null,
       employee_count: parseOptionalInteger(data.employee_count),
       priority: data.priority || "normale",
-      lifecycle_status: normalizeCompanyLifecycleStatus(data.lifecycle_status),
+      lifecycle_status: relType,
       website: data.website?.trim() || null,
       description: data.description?.trim() || null,
     })
@@ -180,8 +198,8 @@ export async function updateContact(
     .eq("id", personId)
     .maybeSingle()
 
-  const currentMeta = (currentPerson?.metadata || {}) as Record<string, unknown>
-  const { manager_contact_id, ...cleanedMeta } = currentMeta
+  const cleanedMeta = { ...((currentPerson?.metadata || {}) as Record<string, unknown>) }
+  delete cleanedMeta.manager_contact_id
   const updatedMeta = {
     ...cleanedMeta,
     phone_2: data.phone_2?.trim() || null,
