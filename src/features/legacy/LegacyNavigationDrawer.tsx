@@ -182,6 +182,70 @@ export function LegacyNavigationDrawer({ device }: { device: "desktop" | "mobile
             </Link>
           </div>
         </section>
+        {/* Section 5: DESIGN LAB & PROTOTYPES */}
+        <section className="space-y-2">
+          <h3 className="text-[10px] font-bold text-muted uppercase tracking-wider px-3">
+            Design Lab & Prototypes
+          </h3>
+          <div className="space-y-1">
+            <Link
+              href="/lab"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Lab Principal</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/dashboard-test"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Dashboard Test</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/editor-test"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Editor Test</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/design-lab/kredo-identity"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Identity Lab</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/design-lab/knowledge-hub"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Knowledge Hub UI</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/design-lab/mobile-navigation"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Mobile Navigation</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+            <Link
+              href="/design-lab/tourisme-sejours"
+              onClick={handleLinkClick}
+              className="flex items-center justify-between py-2.5 px-3 text-xs text-body hover:text-heading hover:bg-[#edf0f7] rounded-md transition-colors font-medium min-h-[44px]"
+            >
+              <span>Tourisme Séjours</span>
+              <span className="text-[10px] text-muted font-normal">Ouvrir →</span>
+            </Link>
+          </div>
+        </section>
       </div>
     </AppDrawer>
   )
