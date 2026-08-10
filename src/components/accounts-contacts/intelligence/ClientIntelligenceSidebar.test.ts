@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest"
 import { CLIENT_INTELLIGENCE_NAV_ITEMS } from "./ClientIntelligenceSidebar"
 
 describe("ClientIntelligenceSidebar", () => {
-  it("préserve les clés métier derrière les six libellés Desktop", () => {
+  it("préserve les clés métier derrière les sept libellés Desktop", () => {
     expect(CLIENT_INTELLIGENCE_NAV_ITEMS.map(({ key, label }) => ({ key, label }))).toEqual([
       { key: "accueil", label: "Accueil" },
+      { key: "socle", label: "Socle" },
       { key: "connaissance", label: "Entreprise" },
       { key: "secteur", label: "Secteur" },
       { key: "enjeux", label: "Enjeux" },

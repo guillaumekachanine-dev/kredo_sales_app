@@ -42,6 +42,7 @@ import {
   COMMERCIAL_STRATEGY_RESULT_TYPE,
 } from "@/lib/intelligence/account-intelligence-contracts"
 import { ClientIntelligenceSectorMobileTab } from "./ClientIntelligenceSectorTab"
+import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { AccountIssuesTopList } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { AccountWatchSettingsCard } from "./AccountWatchSettingsCard"
@@ -243,6 +244,10 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
 
   if (activePanel !== "accueil") {
     const stepDetails = {
+      socle: {
+        title: "Socle du compte",
+        description: "SIREN, NAF, taille et rattachement à la taxonomie sectorielle.",
+      },
       connaissance: {
         title: "Connaissance compte",
         description: "Ce que l'on sait factuellement du compte : identité, organisation, interlocuteurs, relation et signaux.",
@@ -291,6 +296,10 @@ export function ClientIntelligenceMobileView({ data, financialReference = null }
         </div>
 
         <div className="flex flex-col gap-4 mt-1">
+          {activePanel === "socle" && (
+            <ClientIntelligenceSocleTab data={data} isMobile />
+          )}
+
           {activePanel === "connaissance" && (
             <>
               {/* ADR-0012 Lot 2 — blocs relationnels toujours disponibles (sans run n8n) */}

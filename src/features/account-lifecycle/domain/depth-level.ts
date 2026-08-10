@@ -18,6 +18,14 @@ export function isAccountDepthLevel(value: string): value is AccountDepthLevel {
   return (ACCOUNT_DEPTH_LEVELS as readonly string[]).includes(value)
 }
 
+/** Libellé cockpit (étape 0 « Socle ») — cf. ADR-0019 D-1, tableau des paliers. */
+export const ACCOUNT_DEPTH_LEVEL_LABELS: Record<AccountDepthLevel, string> = {
+  mapped: "Citation cartographie",
+  noted: "Pense-bête CRM",
+  qualified: "Socle vérifié",
+  active: "Chaîne de décision engagée",
+}
+
 /**
  * Une promotion n'est jamais une démotion : renvoie false si `target` est égal
  * ou inférieur à `current`. La transition est alors un no-op volontaire, pas

@@ -26,6 +26,7 @@ import { CompanyDocumentsModal } from "./CompanyDocumentsModal"
 import { SectionBlock } from "./intelligence-parts"
 import {
   getProcessStepStatus,
+  getRecommendedProcessStep,
   INTELLIGENCE_PROCESS_STEPS,
   type ProcessStepKey,
 } from "./intelligence-process"
@@ -36,6 +37,7 @@ interface ClientIntelligenceHomeTabProps {
 }
 
 const PROCESS_ICON_BY_STEP: Record<ProcessStepKey, string> = {
+  socle: "/icons_set/cockpit_intelligence/compte_contact.png",
   connaissance: "/icons_set/cockpit_intelligence/scan_rapide_infos.png",
   secteur: "/icons_set/cockpit_intelligence/analyse_sectorielle.png",
   enjeux: "/icons_set/cockpit_intelligence/definition_priorites.png",
@@ -114,10 +116,16 @@ function ProcessArrow() {
 }
 
 function ProcessRail({ data, onOpenTab }: ClientIntelligenceHomeTabProps) {
+  // ADR-0019 D-6 — une seule action recommandée, dérivée de l'état des
+  // étapes. Les autres restent cliquables (le séquencement est une
+  // suggestion forte, pas un menu bloquant) mais visuellement démotées.
+  const recommendedKey = getRecommendedProcessStep(data)
+
   return (
     <div className="flex flex-col gap-2 min-[1180px]:flex-row min-[1180px]:gap-0" aria-label="Processus Cockpit Intelligence">
       {INTELLIGENCE_PROCESS_STEPS.map((step, index) => {
         const status = getProcessStepStatus(step.key, data)
+        const isRecommended = step.key === recommendedKey
         const toneClass = {
           success: "border-success/30 bg-success/10 text-white",
           warning: "border-warning/45 bg-warning/15 text-white",
@@ -130,14 +138,22 @@ function ProcessRail({ data, onOpenTab }: ClientIntelligenceHomeTabProps) {
             <button
               type="button"
               onClick={() => onOpenTab(step.key)}
-              aria-label={`${step.label}. Statut : ${status.label}`}
+              aria-label={`${step.label}. Statut : ${status.label}${isRecommended ? ". Action recommandée" : ""}`}
               className={cn(
                 "group relative flex h-[120px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-primary-deep bg-primary px-3 py-3 text-left",
-                "transition-colors duration-200 ease-out hover:border-brand-brass/60 hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2 focus-visible:ring-offset-canvas motion-reduce:transition-none",
-                status.tone === "neutral" && "opacity-75 hover:opacity-90 focus-visible:opacity-90",
+                "transition-all duration-200 ease-out hover:border-brand-brass/60 hover:bg-primary-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass focus-visible:ring-offset-2 focus-visible:ring-offset-canvas motion-reduce:transition-none",
+                isRecommended
+                  ? "ring-1 ring-brand-brass/70"
+                  : "opacity-60 hover:opacity-95 focus-visible:opacity-95",
               )}
             >
-              <span className="absolute left-0 top-0 h-0.5 w-4 bg-brand-brass transition-[width] duration-200 ease-out group-hover:w-[60%] group-focus-visible:w-[60%] motion-reduce:transition-none" aria-hidden="true" />
+              <span
+                className={cn(
+                  "absolute left-0 top-0 h-0.5 bg-brand-brass transition-[width] duration-200 ease-out group-focus-visible:w-[60%] motion-reduce:transition-none",
+                  isRecommended ? "w-[60%]" : "w-4 group-hover:w-[60%]",
+                )}
+                aria-hidden="true"
+              />
               <div className="flex items-start justify-between gap-2">
                 <Image src={PROCESS_ICON_BY_STEP[step.key]} alt="" width={24} height={24} className="size-5 object-contain" />
                 <span className={cn("inline-flex rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", toneClass)}>
@@ -150,6 +166,11 @@ function ProcessRail({ data, onOpenTab }: ClientIntelligenceHomeTabProps) {
               <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-white/70">
                 {step.description}
               </p>
+              {isRecommended ? (
+                <span className="absolute bottom-2 right-2 rounded-full border border-brand-brass/60 bg-brand-brass/20 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-brand-brass">
+                  Recommandé
+                </span>
+              ) : null}
             </button>
           </div>
         )

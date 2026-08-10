@@ -1,12 +1,17 @@
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 
 // ADR-0012 — Chaîne de décision commerciale.
-// Le processus devient : Connaissance compte → Intelligence sectorielle →
+// Le processus devient : Socle → Connaissance compte → Intelligence sectorielle →
 // Cartographie des enjeux → Stratégie commerciale → Roadmap commerciale.
 // Le Scoring N'EST PLUS une étape : c'est une capacité transverse (badge header
 // + modale, ADR-0011). Cf. docs/adr/ADR-0012-cockpit-intelligence-chaine-decision.md
+//
+// ADR-0019 Lot 3 — « socle » est l'étape 0 : elle porte la profondeur du compte
+// (mapped/noted/qualified/active, cf. domain/depth-level.ts), pas une analyse
+// IA. Elle précède « connaissance » dans l'ordre du process.
 export type TabKey =
   | "accueil"
+  | "socle"
   | "connaissance"
   | "secteur"
   | "enjeux"
@@ -21,6 +26,12 @@ export const INTELLIGENCE_PROCESS_STEPS: {
   shortLabel: string
   description: string
 }[] = [
+  {
+    key: "socle",
+    label: "Socle du compte",
+    shortLabel: "Socle",
+    description: "Vérifier l'identité du compte : SIREN, NAF, taille et rattachement à la taxonomie sectorielle.",
+  },
   {
     key: "connaissance",
     label: "Connaissance compte",
@@ -58,6 +69,18 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
   tone: "success" | "warning" | "neutral"
 } {
   switch (stepKey) {
+    case "socle": {
+      // ADR-0019 D-1 : le socle est « vérifié » à partir de qualified — c'est
+      // sa définition même (SIREN/NAF/taille/taxonomie confirmés par un scan
+      // appliqué). `active` a nécessairement franchi ce palier (axe monotone).
+      if (data.company.depthLevel === "qualified" || data.company.depthLevel === "active") {
+        return { label: "Disponible", tone: "success" }
+      }
+      if (data.company.depthLevel === "mapped") {
+        return { label: "Citation", tone: "neutral" }
+      }
+      return { label: "À qualifier", tone: "neutral" }
+    }
     case "connaissance": {
       // ADR-0012 Lot 2 : `client` (FOLIO) et `accountKnowledge` (moteur) sont
       // deux champs distincts depuis Lot 2 — plus jamais client.source==="engine".
@@ -114,4 +137,24 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
       }
       return { label: "À venir", tone: "neutral" }
   }
+}
+
+/**
+ * ADR-0019 D-6 — l'action suivante unique. Sur un compte neuf, les six
+ * chapitres du cockpit afficheraient tous « À venir » : plutôt qu'un menu
+ * plat, une seule étape est mise en avant, dérivée de `getProcessStepStatus`.
+ * Les autres restent accessibles (le rail ne bloque jamais un onglet) mais
+ * démotées visuellement.
+ *
+ * Règle : la première étape de la séquence dont le statut est encore
+ * "neutral" (rien à afficher — ni moteur ni FOLIO/legacy). Une étape "warning"
+ * (FOLIO) compte comme franchie : elle a déjà de quoi travailler, même si un
+ * enrichissement moteur reste possible. Si tout est déjà au moins FOLIO/moteur,
+ * la roadmap — dernière étape — reste l'action de clôture recommandée.
+ */
+export function getRecommendedProcessStep(data: ClientIntelligenceData): ProcessStepKey {
+  const firstIncomplete = INTELLIGENCE_PROCESS_STEPS.find(
+    (step) => getProcessStepStatus(step.key, data).tone === "neutral",
+  )
+  return firstIncomplete?.key ?? INTELLIGENCE_PROCESS_STEPS[INTELLIGENCE_PROCESS_STEPS.length - 1].key
 }

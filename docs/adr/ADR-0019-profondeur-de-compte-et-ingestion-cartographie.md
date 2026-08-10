@@ -164,7 +164,7 @@ séquencement est une suggestion forte, pas un menu plat.
 | 0 | ADR + migrations 066/067 + vue + loader + normalisation des actions | **Fait** |
 | 1 | Groupement de la liste sur la taxonomie | Fait par le commit `07b49c88`, à revalider |
 | 2 | `promoteAccountDepth` + modale « Créer et qualifier » | À faire |
-| 3 | Étape 0 « Socle » dans le cockpit + action suivante unique | À faire |
+| 3 | Étape 0 « Socle » dans le cockpit + action suivante unique | **Fait** |
 | 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | À faire |
 | 5 | Contrat `CompetitiveMapOutput` + ingestion + bac d'arbitrage | À faire |
 | 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | À faire |

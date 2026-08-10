@@ -30,6 +30,7 @@ export type {
   AccountKnowledgeV3State,
 } from "@/lib/intelligence/account-knowledge-state"
 import { getSectorSnapshot, type SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
+import { isAccountDepthLevel, type AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
 import {
   DEFAULT_ACCOUNT_WATCH_WORKFLOW_SETTINGS,
   normalizeAccountWatchSettings,
@@ -303,6 +304,7 @@ export type ClientIntelligenceData = {
   company: {
     id: string
     name: string
+    legalName: string | null
     sector: string
     segment: string
     priority: string
@@ -311,6 +313,14 @@ export type ClientIntelligenceData = {
     website: string | null
     hqLocation: string
     logoPath: string | null
+    // ADR-0019 — socle d'identité (étape 0 du cockpit). `sectorId` distinct de
+    // `sectorSnapshot` (celui-ci est le snapshot déterministe hydraté, celui-là
+    // n'est que la FK brute, nécessaire à AccountScanDialog).
+    siren: string | null
+    nafCode: string | null
+    sectorId: string | null
+    depthLevel: AccountDepthLevel
+    origin: string
   }
   companyProfile: CompanyIdentityProfile
   companyPositioning: CompanyMarketPositioning
@@ -577,6 +587,10 @@ type CompanyRow = {
   hq_location: string | null
   description: string | null
   metadata: unknown
+  siren: string | null
+  naf_code: string | null
+  depth_level: string
+  origin: string
 }
 
 type SummaryRow = {
@@ -841,7 +855,7 @@ export async function getClientIntelligence(
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,legal_name,sector,sector_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata",
+        "id,name,legal_name,sector,sector_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -1432,6 +1446,7 @@ export async function getClientIntelligence(
       company: {
         id: company.id,
         name: company.name,
+        legalName: company.legal_name,
         sector: clean(company.sector),
         segment: clean(company.segment, "Segment non renseigné"),
         priority: company.priority,
@@ -1440,6 +1455,11 @@ export async function getClientIntelligence(
         website: company.website,
         hqLocation: clean(company.hq_location),
         logoPath: typeof metadata.logo_path === "string" ? metadata.logo_path : null,
+        siren: company.siren,
+        nafCode: company.naf_code,
+        sectorId: company.sector_id,
+        depthLevel: isAccountDepthLevel(company.depth_level) ? company.depth_level : "noted",
+        origin: company.origin,
       },
       companyProfile,
       companyPositioning,

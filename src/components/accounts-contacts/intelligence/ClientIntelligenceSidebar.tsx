@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import type { TabKey } from "./intelligence-process"
 
-type SidebarIconName = "home" | "company" | "sector" | "issues" | "strategy" | "roadmap"
+type SidebarIconName = "home" | "socle" | "company" | "sector" | "issues" | "strategy" | "roadmap"
 
 export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
   key: TabKey
@@ -11,6 +11,7 @@ export const CLIENT_INTELLIGENCE_NAV_ITEMS: ReadonlyArray<{
   icon: SidebarIconName
 }> = [
   { key: "accueil", label: "Accueil", icon: "home" },
+  { key: "socle", label: "Socle", icon: "socle" },
   { key: "connaissance", label: "Entreprise", icon: "company" },
   { key: "secteur", label: "Secteur", icon: "sector" },
   { key: "enjeux", label: "Enjeux", icon: "issues" },
@@ -38,6 +39,9 @@ function SidebarIcon({ name }: { name: SidebarIconName }) {
 
   if (name === "home") {
     return <svg {...commonProps}><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></svg>
+  }
+  if (name === "socle") {
+    return <svg {...commonProps}><rect x="3" y="16" width="18" height="5" rx="1" /><path d="m5 16 2.5-9h9L19 16" /><path d="M9 7V4h6v3" /></svg>
   }
   if (name === "company") {
     return <svg {...commonProps}><path d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16" /><path d="M17 9h3v12" /><path d="M8 7h5M8 11h5M8 15h5M3 21h18" /></svg>

@@ -22,6 +22,7 @@ import { ClientIntelligenceSectorTab } from "./ClientIntelligenceSectorTab"
 import { AccountIssuesTable } from "./AccountIssuesBlocks"
 import { CommercialStrategyGeneratedContent } from "./CommercialStrategyBlocks"
 import { ClientIntelligenceHomeTab } from "./ClientIntelligenceHomeTab"
+import { ClientIntelligenceSocleTab } from "./ClientIntelligenceSocleTab"
 import { ClientIntelligenceCompanyTab } from "./ClientIntelligenceCompanyTab"
 import { ClientIntelligenceSidebar } from "./ClientIntelligenceSidebar"
 import { useCrmTabStore } from "@/lib/tabs/crm-tab-store"
@@ -117,6 +118,9 @@ export function ClientIntelligenceDesktopView({ data }: { data: ClientIntelligen
                 data={data}
                 onOpenTab={setActiveTab}
               />
+            )}
+            {activeTab === "socle" && (
+              <ClientIntelligenceSocleTab data={data} isMobile={false} />
             )}
             {activeTab === "connaissance" && (
               <ClientIntelligenceCompanyTab
