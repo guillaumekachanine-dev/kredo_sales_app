@@ -72,7 +72,7 @@ export async function getSectors(): Promise<SectorListItem[]> {
       digital_maturity,
       practices_fit,
       image_url,
-      companies (
+      companies!companies_sector_id_fkey (
         id
       )
     `)
