@@ -55,3 +55,14 @@ playwright/.auth/
 .screenshots/
 supabase/.temp/
 
+# doublons de conflit iCloud Drive (le projet vit sous ~/Desktop, synchronisé
+# via "Dossiers Bureau et Documents" — cf. investigation du 2026-08-10).
+# iCloud interprète les réécritures rapprochées (builds Next.js notamment)
+# comme des conflits et crée "nom N.ext" / "dossier N". Motif vérifié sans
+# faux positif sur l'état actuel du dépôt (`git ls-files | grep -E ' [0-9]'`).
+# Ne dispense pas de vérifier le contenu avant de supprimer un fichier qui y
+# correspond : "styles 2.css" trouvé lors de cette même investigation n'était
+# PAS un doublon, mais une version antérieure réelle du fichier.
+* [0-9].*
+* [0-9]/
+
