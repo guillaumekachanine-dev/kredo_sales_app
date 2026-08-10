@@ -34,6 +34,18 @@ function ReportTypeIcon({ reportType }: { reportType: ReportGenerationKind }) {
     )
   }
 
+  if (reportType === "technical") {
+    return (
+      <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/cockpit_intelligence.png" alt="" />
+    )
+  }
+
+  if (reportType === "manager_summary") {
+    return (
+      <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/definition_priorites.png" alt="" />
+    )
+  }
+
   return (
     <img className="size-10 object-contain" src="/icons_set/cockpit_intelligence/brief_hebdo.png" alt="" />
   )

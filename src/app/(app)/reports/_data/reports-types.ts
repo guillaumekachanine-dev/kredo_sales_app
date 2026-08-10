@@ -688,3 +688,52 @@ export type FinancialReportDocumentContent = {
   generatedAt: string
   facts: FinancialReportFacts
 }
+
+export type TopAutomationItem = {
+  runType: string
+  label: string
+  executionCount: number
+  sharePct: number
+  avgDurationMs: number | null
+  totalCost: number | null
+}
+
+export type TechnicalAlertItem = {
+  id: string
+  runType: string
+  label: string
+  errorMessage: string
+  failedAt: string
+  runId: string | null
+}
+
+export type WorkflowCostItem = {
+  runType: string
+  label: string
+  costTotal: number
+  runsCount: number
+}
+
+export type TechnicalReportFacts = {
+  periodLabel: string
+  periodPreset: ReportPeriodPreset
+  periodStart: string
+  periodEnd: string
+  totalRuns: number
+  successCount: number
+  failureCount: number
+  successRatePct: number
+  healthStatus: "optimal" | "warning" | "critical"
+  topAutomations: TopAutomationItem[]
+  topAlerts: TechnicalAlertItem[]
+  totalCost: number
+  hasPricingGap: boolean
+  costBreakdown: WorkflowCostItem[]
+}
+
+export type TechnicalReportDocumentContent = {
+  reportType: "technical"
+  title: string
+  generatedAt: string
+  facts: TechnicalReportFacts
+}

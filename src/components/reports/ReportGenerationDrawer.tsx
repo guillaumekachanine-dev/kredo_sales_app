@@ -24,6 +24,7 @@ import { ActivityCommercialReportView } from "./ActivityCommercialReportView"
 import { ActivityRecruitmentReportView } from "./ActivityRecruitmentReportView"
 import { WeeklyManagerReportView } from "./WeeklyManagerReportView"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
+import { TechnicalReportContent } from "./TechnicalReportContent"
 
 type RunStatus = "idle" | "loading" | "done" | "error"
 type ActivityContent = ActivityCommercialContent | ActivityRecruitmentContent
@@ -133,7 +134,8 @@ export function ReportGenerationDrawer({
     reportType === "activity_commercial" ||
     reportType === "activity_recruitment" ||
     reportType === "weekly_manager" ||
-    reportType === "financial"
+    reportType === "financial" ||
+    reportType === "technical"
   const isWeeklyManager = reportType === "weekly_manager"
 
   const [periodPreset, setPeriodPreset] = useState<ReportPeriodPreset>("month")
@@ -207,6 +209,29 @@ export function ReportGenerationDrawer({
     setErrorMsg(null)
 
     try {
+      if (reportType === "technical") {
+        const res = await fetch("/api/reports/technical/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            periodPreset,
+            customStart: periodPreset === "custom" ? customStart : undefined,
+            customEnd: periodPreset === "custom" ? customEnd : undefined,
+          }),
+        })
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Erreur réseau" }))
+          throw new Error((err as { error?: string }).error ?? "Erreur réseau")
+        }
+
+        const data = (await res.json()) as { documentId: string; content: unknown }
+        setGeneratedDocumentId(data.documentId)
+        setContent(data.content)
+        setRunStatus("done")
+        return
+      }
+
       if (reportType === "financial") {
         const res = await fetch("/api/reports/financial/generate", {
           method: "POST",
@@ -299,10 +324,13 @@ export function ReportGenerationDrawer({
       Fermer
     </Button>
   ) : runStatus === "done" && content ? (
-    reportType === "financial" ? (
+    reportType === "financial" || reportType === "technical" ? (
       <>
         <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
           Fermer
+        </Button>
+        <Button variant="secondary" size="sm" onClick={resetExecutionState}>
+          Refaire
         </Button>
         {generatedDocumentId && (
           <Button
@@ -429,6 +457,10 @@ export function ReportGenerationDrawer({
         reportType === "financial" ? (
           <div className="max-h-[60vh] overflow-y-auto pr-2">
             <FinancialReportContent contentJson={content} contentText={null} />
+          </div>
+        ) : reportType === "technical" ? (
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+            <TechnicalReportContent contentJson={content} />
           </div>
         ) : isWeeklyManager ? (
           <WeeklyManagerReportView content={content as WeeklyManagerContent} />
@@ -560,6 +592,7 @@ export function ReportGenerationDrawer({
               onChange={(event) => setPeriodPreset(event.target.value as ReportPeriodPreset)}
               fullWidth
             >
+              <option value="day">Aujourd&apos;hui (Journée)</option>
               <option value="week">Cette semaine</option>
               <option value="month">Ce mois-ci</option>
               <option value="quarter">Ce trimestre</option>

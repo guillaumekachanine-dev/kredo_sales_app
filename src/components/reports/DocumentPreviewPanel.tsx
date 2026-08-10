@@ -12,6 +12,7 @@ import { DocumentCommunicationActions } from "@/components/reports/DocumentCommu
 import { ClientSummaryDocumentContent } from "@/components/reports/ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "@/components/reports/PitchDocumentContent"
 import { FinancialReportContent } from "@/components/reports/financial/FinancialReportContent"
+import { TechnicalReportContent } from "@/components/reports/TechnicalReportContent"
 import { DocumentEditor } from "@/components/reports/DocumentEditor"
 import { DocumentVersionHistory } from "@/components/reports/DocumentVersionHistory"
 import {
@@ -314,6 +315,10 @@ export function DocumentPreviewPanel({ document }: { document: DocumentDetail })
                 <FinancialReportContent
                   contentJson={document.currentContentJson}
                   contentText={document.currentContentText}
+                />
+              ) : (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "technical") ? (
+                <TechnicalReportContent
+                  contentJson={document.currentContentJson}
                 />
               ) : isPitch ? (
                 <PitchDocumentContent

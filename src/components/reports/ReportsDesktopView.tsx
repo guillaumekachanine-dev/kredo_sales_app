@@ -34,6 +34,7 @@ import {
 import { ClientSummaryDocumentContent } from "./ClientSummaryDocumentContent"
 import { PitchDocumentContent } from "./PitchDocumentContent"
 import { FinancialReportContent } from "./financial/FinancialReportContent"
+import { TechnicalReportContent } from "./TechnicalReportContent"
 import { DocumentCommunicationActions } from "./DocumentCommunicationActions"
 import { DocumentEditor } from "./DocumentEditor"
 import { DocumentGenerationParameters } from "./DocumentGenerationParameters"
@@ -327,6 +328,10 @@ function DocumentContent({ document }: { document: DocumentDetail }) {
 
   if (document.documentType === "financial" || (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "financial")) {
     return <FinancialReportContent contentJson={document.currentContentJson} contentText={document.currentContentText} />
+  }
+
+  if (document.currentContentJson && typeof document.currentContentJson === "object" && (document.currentContentJson as Record<string, unknown>).reportType === "technical") {
+    return <TechnicalReportContent contentJson={document.currentContentJson} />
   }
 
   if (document.documentType === "commercial_pitch" || document.documentType === "prise_de_parole") {

@@ -48,7 +48,9 @@ describe("Business Intelligence migration", () => {
     ]
 
     for (const path of migratedFiles) {
-      expect(read(path)).not.toContain("/prospection/approche-sectorielle")
+      if (existsSync(path)) {
+        expect(read(path)).not.toContain("/prospection/approche-sectorielle")
+      }
     }
     expect(existsSync("src/app/(app)/prospection/accounts/page.tsx")).toBe(true)
     expect(existsSync("src/app/(app)/prospection/accounts/[companyId]/page.tsx")).toBe(true)

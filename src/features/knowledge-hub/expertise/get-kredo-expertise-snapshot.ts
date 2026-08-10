@@ -1,3 +1,5 @@
+import "server-only"
+
 import { createClient } from "@/lib/supabase/server"
 import { getOfferPracticesCatalog } from "@/lib/reference-data/get-offer-practices-catalog"
 import { getSkillsCatalog } from "@/lib/reference-data/get-skills-catalog"

@@ -2,7 +2,9 @@ export type ReportGenerationKind =
   | "activity_commercial"
   | "activity_recruitment"
   | "financial"
+  | "technical"
   | "weekly_manager"
+  | "manager_summary"
 
 export type ReportGenerationAvailability = "ready" | "planned"
 
@@ -37,11 +39,25 @@ export const REPORT_GENERATION_OPTIONS: ReportGenerationOption[] = [
     availability: "ready",
   },
   {
+    reportType: "technical",
+    title: "Rapport technique",
+    description: "Synthèse du fonctionnement, de la santé, du volume et du coût des automatisations KREDO.",
+    badge: "Technique",
+    availability: "ready",
+  },
+  {
     reportType: "weekly_manager",
     title: "Brief hebdomadaire",
     description: "Priorités de la semaine, alertes à traiter et actions recommandées — calculées, pas devinées.",
     badge: "Hebdo",
     availability: "ready",
+  },
+  {
+    reportType: "manager_summary",
+    title: "Compte-rendu Manager",
+    description: "Synthèse périodique d'activité et de performance pour les managers d'équipe.",
+    badge: "Management",
+    availability: "planned",
   },
 ]
 
