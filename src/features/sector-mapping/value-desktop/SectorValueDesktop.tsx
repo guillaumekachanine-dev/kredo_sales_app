@@ -8,6 +8,8 @@ import type {
   SectorMapPlacement,
 } from "../model"
 import { SectorMapInspector } from "../components/SectorMapInspector"
+import { SectorEcosystemDesktop } from "../ecosystem-desktop/SectorEcosystemDesktop"
+import type { EcosystemGraphMode } from "../ecosystem-desktop/ecosystem-layout"
 import { CaptureProfile } from "./CaptureProfile"
 import {
   buildSectorValueDesktopModel,
@@ -19,6 +21,8 @@ import styles from "./sector-value-desktop.module.css"
 
 interface SectorValueDesktopProps {
   sectorMap: SectorMap
+  initialView?: "value" | "ecosystem"
+  initialEcosystemMode?: EcosystemGraphMode
 }
 
 const MAX_VISIBLE_ACTORS = 6
@@ -167,10 +171,16 @@ function placementsToEntities(
     .filter((entity): entity is SectorMapEntity => Boolean(entity))
 }
 
-export function SectorValueDesktop({ sectorMap }: SectorValueDesktopProps) {
+export function SectorValueDesktop({
+  sectorMap,
+  initialView = "value",
+  initialEcosystemMode = "main",
+}: SectorValueDesktopProps) {
   const model = useMemo(() => buildSectorValueDesktopModel(sectorMap), [sectorMap])
   const [selectedActivityId, setSelectedActivityId] = useState(model.sector.defaultActivityId)
   const [inspectorOpen, setInspectorOpen] = useState(true)
+  const [view, setView] = useState<"value" | "ecosystem">(initialView)
+  const [ecosystemMode, setEcosystemMode] = useState<EcosystemGraphMode>(initialEcosystemMode)
   const context = useMemo(
     () => getSelectedActivityContext(model, selectedActivityId),
     [model, selectedActivityId],
@@ -188,19 +198,39 @@ export function SectorValueDesktop({ sectorMap }: SectorValueDesktopProps) {
   }
 
   return (
-    <main className={styles.page} data-sector-map-value data-column-count={model.columns.length}>
+    <main
+      className={styles.page}
+      data-sector-map-value
+      data-sector-map-view={view}
+      data-column-count={model.columns.length}
+    >
       <header className={styles.pageHeader}>
         <div>
           <h1>{model.sector.name}</h1>
           <p>Cartographie sectorielle <span aria-hidden="true">·</span> {formatDate(model.sector.asOf)}</p>
         </div>
         <div className={styles.viewTabs} role="tablist" aria-label="Projection sectorielle">
-          <button type="button" role="tab" aria-selected="true">Valeur</button>
-          <button type="button" role="tab" aria-selected="false" disabled>Écosystème</button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "value"}
+            onClick={() => setView("value")}
+          >
+            Valeur
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === "ecosystem"}
+            onClick={() => setView("ecosystem")}
+          >
+            Écosystème
+          </button>
         </div>
       </header>
 
       <div className={`${styles.workspace} ${inspectorOpen ? "" : styles.workspaceWithoutInspector}`}>
+        {view === "value" ? (
         <section className={styles.matrixScroll} aria-label="Projection analytique de la valeur">
           <div className={styles.matrix} style={matrixStyle}>
             <div className={styles.stageRow}>
@@ -320,6 +350,15 @@ export function SectorValueDesktop({ sectorMap }: SectorValueDesktopProps) {
             </section>
           </div>
         </section>
+        ) : (
+          <SectorEcosystemDesktop
+            sectorMap={model.source}
+            selectedActivityId={selectedActivityId}
+            mode={ecosystemMode}
+            onModeChange={setEcosystemMode}
+            onSelectActivity={selectActivity}
+          />
+        )}
 
         {inspectorOpen ? (
           <SectorMapInspector

@@ -7,6 +7,7 @@ import Link from "next/link"
 import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity, toggleCompanyFavorite } from "@/app/(app)/prospection/accounts/actions"
+import { promoteAccountDepth } from "@/features/account-lifecycle/actions/promote-account-depth"
 import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
@@ -34,6 +35,8 @@ interface CompanyIdentityDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onOpenContactIdentity?: (contactId: string) => void
+  /** ADR-0019 — ouvre le scan dès que les données du compte sont chargées, une seule fois par session d'ouverture. */
+  autoOpenScan?: boolean
 }
 
 type IdentityData = {
@@ -343,6 +346,7 @@ export function CompanyIdentityDrawer({
   open,
   onOpenChange,
   onOpenContactIdentity,
+  autoOpenScan = false,
 }: CompanyIdentityDrawerProps) {
   const [data, setData] = useState<IdentityData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -355,6 +359,7 @@ export function CompanyIdentityDrawer({
   const [isMobileViewport, setIsMobileViewport] = useState(false)
   const [favoritePending, setFavoritePending] = useState(false)
   const prevCompanyIdRef = useRef<string | null>(null)
+  const autoOpenScanConsumedRef = useRef(false)
   const { openTab: openMissionTab } = useMissionsTabStore()
 
   const loading = transitionPending || (open && !!companyId && !data && !error)
@@ -385,6 +390,13 @@ export function CompanyIdentityDrawer({
     const response = await getCompanyIdentity(companyId)
     if (!response.error) {
       setData(response.data as unknown as IdentityData)
+    }
+    // ADR-0019 D-1 : l'application de propositions de scan EST la définition du
+    // palier "qualified" (socle vérifié). Best-effort — un échec de promotion ne
+    // doit pas interrompre le flux, les données CRM sont déjà à jour.
+    const { error: promoteError } = await promoteAccountDepth(companyId, "qualified")
+    if (promoteError) {
+      console.error("Promotion de profondeur (qualified) impossible :", promoteError)
     }
   }
 
@@ -431,8 +443,20 @@ export function CompanyIdentityDrawer({
       setContactFilter("all")
       setIsDocumentsModalOpen(false)
       setFavoritePending(false)
+      autoOpenScanConsumedRef.current = false
     }
   }, [companyId, open])
+
+  // ADR-0019 — « Créer et qualifier » ouvre le drawer puis lance le scan sans
+  // action supplémentaire de l'utilisateur. Ne se déclenche qu'une fois par
+  // session d'ouverture (ref, pas juste `data`) : `handleScanApplied` appelle
+  // aussi `setData`, ce qui ne doit pas rouvrir le dialogue après application.
+  useEffect(() => {
+    if (open && data && autoOpenScan && !autoOpenScanConsumedRef.current) {
+      autoOpenScanConsumedRef.current = true
+      setIsScanDialogOpen(true)
+    }
+  }, [open, data, autoOpenScan])
 
   const handleToggleFavorite = async () => {
     if (!data || favoritePending) return

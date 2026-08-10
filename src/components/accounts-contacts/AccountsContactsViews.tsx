@@ -348,7 +348,8 @@ function CompanyFormModal({
   createKind?: CreateEntityKind
   onCreateKindChange?: (kind: CreateEntityKind) => void
   onClose: () => void
-  onSuccess: () => void
+  /** En édition, appelé sans argument. En création, `qualify` reflète le bouton utilisé. */
+  onSuccess: (created?: { id: string; qualify: boolean }) => void
 }) {
   const [form, setForm] = useState<CompanyFormData>({
     name: initial?.name ?? "",
@@ -396,18 +397,29 @@ function CompanyFormModal({
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // `qualify` distingue les deux boutons de création : « Créer » (P1 simple)
+  // vs « Créer et qualifier » (P1 puis ouverture immédiate du scan côté appelant).
+  const submit = (qualify: boolean) => {
     if (!form.name.trim()) { setError("Le nom est requis."); return }
     setError(null)
     startTransition(async () => {
-      const result = initial
-        ? await updateCompany(initial.id, form)
-        : await createCompany(form)
-      if (result.error) { setError(result.error); return }
-      onSuccess()
+      if (initial) {
+        const result = await updateCompany(initial.id, form)
+        if (result.error) { setError(result.error); return }
+        onSuccess()
+        onClose()
+        return
+      }
+      const result = await createCompany(form)
+      if (result.error || !result.id) { setError(result.error ?? "La création du compte a échoué."); return }
+      onSuccess({ id: result.id, qualify })
       onClose()
     })
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    submit(false)
   }
 
   return (
@@ -513,14 +525,29 @@ function CompanyFormModal({
 
         <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-canvas/30 px-5 py-3">
           <button onClick={onClose} className="rounded border border-border px-4 py-2 text-xs font-semibold text-body hover:bg-canvas/60 transition-colors">Annuler</button>
-          <button
-            onClick={handleSubmit as unknown as React.MouseEventHandler}
-            disabled={pending}
-            className="rounded px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:opacity-50"
-            style={{ backgroundColor: COMPANY_MODAL_ACCENT }}
-          >
-            {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le compte"}
-          </button>
+          <div className="flex items-center gap-2">
+            {!initial && (
+              <button
+                type="button"
+                onClick={() => submit(true)}
+                disabled={pending}
+                className="rounded border px-4 py-2 text-xs font-semibold shadow-sm transition-colors hover:brightness-95 disabled:opacity-50"
+                style={{ borderColor: COMPANY_MODAL_ACCENT, color: COMPANY_MODAL_ACCENT }}
+                title="Créer le compte puis lancer immédiatement le scan d'informations"
+              >
+                {pending ? "Enregistrement…" : "Créer et qualifier"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => submit(false)}
+              disabled={pending}
+              className="rounded px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:brightness-95 disabled:opacity-50"
+              style={{ backgroundColor: COMPANY_MODAL_ACCENT }}
+            >
+              {pending ? "Enregistrement…" : initial ? "Mettre à jour" : "Créer le compte"}
+            </button>
+          </div>
         </div>
       </SurfaceCard>
     </div>
@@ -2251,11 +2278,18 @@ export function ProspectionAccountsView({
               setEditCompanyReturnToIdentityId(null)
             }
           }}
-          onSuccess={() => {
+          onSuccess={(created) => {
             refreshData()
             if (editCompanyReturnToIdentityId) {
               openCompanyDrawer(editCompanyReturnToIdentityId)
               setEditCompanyReturnToIdentityId(null)
+              return
+            }
+            // ADR-0019 — « Créer et qualifier » : le compte vient de naître à P1
+            // (noted), ouvrir directement son drawer avec le scan armé l'amène
+            // à P2 (qualified) sans détour supplémentaire.
+            if (created?.qualify) {
+              openCompanyDrawer(created.id, { autoOpenScan: true })
             }
           }}
         />

@@ -20,6 +20,7 @@ export function CrmIdentityDrawerHost() {
       <CompanyIdentityDrawer
         companyId={target?.kind === "company" ? target.id : null}
         open={target?.kind === "company"}
+        autoOpenScan={target?.kind === "company" && target.autoOpenScan === true}
         onOpenChange={(open) => {
           if (!open) close()
         }}
@@ -41,7 +42,7 @@ export function CrmIdentityDrawerHost() {
           const returnTo = target?.kind === "contact"
             ? { kind: "contact" as const, id: target.id }
             : undefined
-          openCompany(companyId, returnTo)
+          openCompany(companyId, { returnTo })
         }}
         onOpenContactIdentity={(contactId) => {
           openContact(contactId)

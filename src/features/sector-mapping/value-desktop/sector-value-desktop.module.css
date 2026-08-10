@@ -60,16 +60,12 @@
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
+  cursor: pointer;
 }
 
 .viewTabs button[aria-selected="true"] {
   color: var(--color-edito-surface);
   background: var(--color-primary);
-}
-
-.viewTabs button:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
 }
 
 .workspace {

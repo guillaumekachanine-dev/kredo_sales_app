@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import type { IntelligenceIconKey } from "@/lib/intelligence/intelligence-registry"
 import { Button } from "@/components/ui/Button"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
@@ -293,6 +294,54 @@ function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }
   )
 }
 
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  )
+}
+
+type StrategicSectionKey = "trends" | "opportunities" | "priorityActions" | "risks" | "regulatory" | "weakSignals"
+
+function CollapsibleSectionHeader({
+  title,
+  count,
+  iconName,
+  iconColorClass = "text-primary",
+  isOpen,
+  onToggle,
+}: {
+  title: string
+  count: number
+  iconName: IntelligenceIconKey
+  iconColorClass?: string
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      className="flex w-full items-center justify-between gap-3 border-t border-border pt-3.5 pb-1 text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-heading"
+    >
+      <div className="flex items-center gap-2">
+        <IntelligenceIcon name={iconName} preferVector className={cn("size-4 shrink-0", iconColorClass)} />
+        <h4 className="font-heading text-sm font-bold text-heading">
+          {title} ({count})
+        </h4>
+      </div>
+      <div className="flex items-center gap-1.5 text-muted">
+        <span className="text-[10px] font-semibold uppercase tracking-wider">{isOpen ? "Masquer" : "Déplier"}</span>
+        <ChevronDownIcon
+          className={cn("size-4 transition-transform duration-200", isOpen ? "rotate-180" : "rotate-0")}
+        />
+      </div>
+    </button>
+  )
+}
+
 function StrategicAnalysisSection({
   analysis: initialAnalysis,
   analysisHistory,
@@ -309,6 +358,19 @@ function StrategicAnalysisSection({
   const [run, setRun] = useState(generation.latestRun)
   const [pending, setPending] = useState(Boolean(generation.activeRun))
   const [error, setError] = useState<string | null>(generation.latestRun?.status === "failed" ? generation.latestRun.errorMessage : null)
+
+  const [openSections, setOpenSections] = useState<Record<StrategicSectionKey, boolean>>({
+    trends: false,
+    opportunities: false,
+    priorityActions: false,
+    risks: false,
+    regulatory: false,
+    weakSignals: false,
+  })
+
+  const toggleSection = (key: StrategicSectionKey) => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   const activeAnalysis = useMemo(() => {
     if (analysisHistory.length === 0) return initialAnalysis
@@ -364,12 +426,12 @@ function StrategicAnalysisSection({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">Mois civil précédent</p>
-          <h2 className="mt-1 font-heading text-xl font-bold text-heading">Analyse stratégique de {generation.input.periodStart.slice(0, 7)}</h2>
-          <p className="mt-1 text-xs text-muted">{generation.input.digestIds.length} digest(s) · {generation.input.articleIds.length} article(s) collectés</p>
+          <h2 className="mt-0.5 font-heading text-lg font-bold text-heading">Analyse stratégique de {generation.input.periodStart.slice(0, 7)}</h2>
+          <p className="mt-0.5 text-xs text-muted">{generation.input.digestIds.length} digest(s) · {generation.input.articleIds.length} article(s) collectés</p>
         </div>
         <Button variant="brass" onClick={generate} loading={pending} loadingLabel="Génération" disabled={generation.input.articleIds.length === 0}>
           {generation.isAlreadyCovered ? "Régénérer l’analyse" : "Générer l’analyse du mois écoulé"}
@@ -377,13 +439,13 @@ function StrategicAnalysisSection({
       </div>
 
       {pending ? (
-        <div aria-live="polite" className="border border-brand-brass/35 bg-brand-brass/[0.06] p-4 text-sm text-heading">
+        <div aria-live="polite" className="border border-brand-brass/35 bg-brand-brass/[0.06] p-3 text-sm text-heading">
           <span className="mr-2 inline-block size-3 animate-spin rounded-full border-2 border-brand-brass/30 border-t-brand-brass align-[-1px] motion-reduce:animate-none" aria-hidden="true" />
           Analyse en cours. Le rapport sera ajouté à la bibliothèque après le callback.
         </div>
       ) : null}
       {error ? (
-        <div role="alert" className="flex items-center justify-between gap-4 border border-danger/30 bg-danger/[0.04] p-4 text-sm text-danger">
+        <div role="alert" className="flex items-center justify-between gap-4 border border-danger/30 bg-danger/[0.04] p-3 text-sm text-danger">
           <span>{error}</span>
           <Link href={run ? `/automations?run=${run.id}` : "/automations"} className="font-bold underline">Voir le run</Link>
         </div>
@@ -391,8 +453,8 @@ function StrategicAnalysisSection({
 
       {activeAnalysis ? (
         <article className="grid grid-cols-[minmax(0,1fr)_18rem] items-start border border-border bg-surface">
-          <div className="paper-sheet border-r border-border px-8 py-9 lg:px-12 space-y-8">
-            <div className="border-b border-border pb-6">
+          <div className="paper-sheet border-r border-border px-6 py-7 lg:px-10 space-y-5">
+            <div className="border-b border-border pb-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-brand-brass">
                   Rapport d’analyse stratégique
@@ -406,10 +468,10 @@ function StrategicAnalysisSection({
                   </span>
                 </div>
               </div>
-              <h3 className="mt-3 font-heading text-2xl lg:text-3xl font-bold leading-tight text-heading">
+              <h3 className="mt-2 font-heading text-xl lg:text-2xl font-bold leading-snug text-heading">
                 {activeAnalysis.title}
               </h3>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                 <span>{formatPeriod(activeAnalysis.periodStart, activeAnalysis.periodEnd)}</span>
                 <span aria-hidden="true">·</span>
                 <span>Généré le {formatDateFr(activeAnalysis.updatedAt)}</span>
@@ -425,181 +487,235 @@ function StrategicAnalysisSection({
             </div>
 
             {content?.executiveSummary ? (
-              <section className="space-y-3">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
+              <section className="space-y-2">
+                <h4 className="flex items-center gap-2 font-heading text-sm font-bold text-heading">
                   <IntelligenceIcon name="recommendations" preferVector className="size-4 text-brand-brass" />
                   Synthèse exécutive
                 </h4>
-                <div className="border-l-4 border-brand-brass bg-edito-canvas/60 p-5 text-[15px] leading-[1.75] font-medium text-heading">
+                <div className="border-l-4 border-brand-brass bg-edito-canvas/60 p-4 text-sm leading-relaxed font-medium text-heading">
                   {content.executiveSummary}
                 </div>
               </section>
             ) : null}
 
             {content?.majorTrends && content.majorTrends.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
-                  <IntelligenceIcon name="prioritize" preferVector className="size-4 text-primary" />
-                  Enseignements clés &amp; Tendances majeures ({content.majorTrends.length})
-                </h4>
-                <div className="grid grid-cols-1 gap-4">
-                  {content.majorTrends.map((trend, i) => (
-                    <div key={i} className="space-y-2.5 border border-border bg-edito-canvas/40 p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h5 className="font-heading text-base font-bold text-heading">{trend.title}</h5>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {trend.confidence ? (
-                            <span className="border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted">
-                              Confiance {Math.round(trend.confidence * 100)}%
-                            </span>
-                          ) : null}
-                          {trend.sectors?.map((sec) => (
-                            <span key={sec} className="border border-border bg-edito-chip px-2 py-0.5 text-[9px] font-medium text-body">
-                              #{sec}
-                            </span>
-                          ))}
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Enseignements clés &amp; Tendances majeures"
+                  count={content.majorTrends.length}
+                  iconName="prioritize"
+                  iconColorClass="text-primary"
+                  isOpen={openSections.trends}
+                  onToggle={() => toggleSection("trends")}
+                />
+                {openSections.trends ? (
+                  <div className="divide-y divide-border/40 space-y-2.5 pt-1">
+                    {content.majorTrends.map((trend, i) => (
+                      <div key={i} className="pt-2 space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
+                            <h5 className="font-heading text-sm font-bold text-heading">{trend.title}</h5>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {trend.confidence ? (
+                              <span className="border border-border bg-surface px-2 py-0.5 text-[9px] font-bold text-muted">
+                                Confiance {Math.round(trend.confidence * 100)}%
+                              </span>
+                            ) : null}
+                            {trend.sectors?.map((sec) => (
+                              <span key={sec} className="border border-border bg-edito-chip px-1.5 py-0.5 text-[9px] font-medium text-body">
+                                #{sec}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+                        <p className="text-xs leading-relaxed text-body pl-3.5">{trend.synthesis}</p>
+                        {trend.articleIds?.length ? (
+                          <p className="text-[10px] text-muted pl-3.5">{trend.articleIds.length} article(s) associé(s)</p>
+                        ) : null}
                       </div>
-                      <p className="text-sm leading-relaxed text-body">{trend.synthesis}</p>
-                      {trend.articleIds?.length ? (
-                        <p className="text-[10px] text-muted">{trend.articleIds.length} article(s) associé(s)</p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {content?.commercialOpportunities && content.commercialOpportunities.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
-                  <IntelligenceIcon name="generate_pitch" preferVector className="size-4 text-brand-brass" />
-                  Opportunités commerciales ({content.commercialOpportunities.length})
-                </h4>
-                <div className="grid grid-cols-1 gap-4">
-                  {content.commercialOpportunities.map((opp, i) => (
-                    <div key={i} className="space-y-3 border border-border bg-surface p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h5 className="font-heading text-base font-bold text-heading">{opp.title}</h5>
-                        <div className="flex flex-wrap gap-1.5">
-                          {opp.practices?.map((prac) => (
-                            <span key={prac} className="border border-primary/25 bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary">
-                              {prac}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-sm leading-relaxed text-body">{opp.rationale}</p>
-                      {opp.recommendedAction ? (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border border-brand-brass/35 bg-brand-brass/[0.04] p-3.5">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">Action recommandée</p>
-                            <p className="mt-1 text-xs font-semibold leading-relaxed text-heading">{opp.recommendedAction}</p>
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Opportunités commerciales"
+                  count={content.commercialOpportunities.length}
+                  iconName="generate_pitch"
+                  iconColorClass="text-brand-brass"
+                  isOpen={openSections.opportunities}
+                  onToggle={() => toggleSection("opportunities")}
+                />
+                {openSections.opportunities ? (
+                  <div className="divide-y divide-border/40 space-y-2.5 pt-1">
+                    {content.commercialOpportunities.map((opp, i) => (
+                      <div key={i} className="pt-2 space-y-1.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand-brass" aria-hidden="true" />
+                            <h5 className="font-heading text-sm font-bold text-heading">{opp.title}</h5>
                           </div>
-                          <Button
-                            variant="brass"
-                            size="sm"
-                            onClick={() => {
-                              const mustInclude = [
-                                `Opportunité : ${opp.title}`,
-                                `Période : ${content.period?.label ?? ""}`,
-                                `Argumentaire : ${opp.rationale}`,
-                                `Action recommandée : ${opp.recommendedAction}`,
-                              ].join("\n")
-                              const preset = buildCommunicationEntryPreset("signal_outreach", {
-                                origin: "veille_signal",
-                                sectorName: opp.practices?.[0] ?? "Général",
-                                mustInclude,
-                              })
-                              if (preset.ok) openCommunicationComposer(preset.request)
-                            }}
-                            leftIcon={<IntelligenceIcon name="write_email" preferVector />}
-                            className="shrink-0 text-xs"
-                          >
-                            Préparer un pitch
-                          </Button>
+                          <div className="flex flex-wrap gap-1">
+                            {opp.practices?.map((prac) => (
+                              <span key={prac} className="border border-primary/25 bg-primary/5 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                                {prac}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
+                        <p className="text-xs leading-relaxed text-body pl-3.5">{opp.rationale}</p>
+                        {opp.recommendedAction ? (
+                          <div className="ml-3.5 flex flex-wrap items-center justify-between gap-2 border-l-2 border-brand-brass pl-3 py-1">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">Action recommandée</p>
+                              <p className="mt-0.5 text-xs font-semibold leading-relaxed text-heading">{opp.recommendedAction}</p>
+                            </div>
+                            <Button
+                              variant="brass"
+                              size="sm"
+                              onClick={() => {
+                                const mustInclude = [
+                                  `Opportunité : ${opp.title}`,
+                                  `Période : ${content.period?.label ?? ""}`,
+                                  `Argumentaire : ${opp.rationale}`,
+                                  `Action recommandée : ${opp.recommendedAction}`,
+                                ].join("\n")
+                                const preset = buildCommunicationEntryPreset("signal_outreach", {
+                                  origin: "veille_signal",
+                                  sectorName: opp.practices?.[0] ?? "Général",
+                                  mustInclude,
+                                })
+                                if (preset.ok) openCommunicationComposer(preset.request)
+                              }}
+                              leftIcon={<IntelligenceIcon name="write_email" preferVector />}
+                              className="shrink-0 text-xs"
+                            >
+                              Préparer un pitch
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {content?.priorityActions && content.priorityActions.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
-                  <IntelligenceIcon name="detect_risks" preferVector className="size-4 text-primary" />
-                  Actions prioritaires ({content.priorityActions.length})
-                </h4>
-                <div className="divide-y divide-border border border-border bg-surface">
-                  {content.priorityActions.map((act, i) => {
-                    const horizonLabel = act.horizon === "immediate" ? "Immédiat" : act.horizon === "30_days" ? "30 jours" : "Trimestre"
-                    const horizonClass = act.horizon === "immediate" ? "border-danger/30 bg-danger/10 text-danger" : act.horizon === "30_days" ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-edito-chip text-muted"
-                    return (
-                      <div key={i} className="flex items-start gap-4 p-4">
-                        <span className={cn("shrink-0 border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", horizonClass)}>
-                          {horizonLabel}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <h5 className="font-heading text-sm font-bold text-heading">{act.title}</h5>
-                          <p className="mt-1 text-xs leading-relaxed text-body">{act.action}</p>
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Actions prioritaires"
+                  count={content.priorityActions.length}
+                  iconName="detect_risks"
+                  iconColorClass="text-primary"
+                  isOpen={openSections.priorityActions}
+                  onToggle={() => toggleSection("priorityActions")}
+                />
+                {openSections.priorityActions ? (
+                  <div className="divide-y divide-border/40 space-y-2 pt-1">
+                    {content.priorityActions.map((act, i) => {
+                      const horizonLabel = act.horizon === "immediate" ? "Immédiat" : act.horizon === "30_days" ? "30 jours" : "Trimestre"
+                      const horizonClass = act.horizon === "immediate" ? "border-danger/30 bg-danger/10 text-danger" : act.horizon === "30_days" ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-edito-chip text-muted"
+                      return (
+                        <div key={i} className="pt-2 flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2 min-w-0 flex-1">
+                            <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
+                            <div>
+                              <h5 className="font-heading text-sm font-bold text-heading">{act.title}</h5>
+                              <p className="mt-0.5 text-xs leading-relaxed text-body">{act.action}</p>
+                            </div>
+                          </div>
+                          <span className={cn("shrink-0 border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider", horizonClass)}>
+                            {horizonLabel}
+                          </span>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {content?.risksAndWatchpoints && content.risksAndWatchpoints.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading text-warning">
-                  <IntelligenceIcon name="detect_risks" preferVector className="size-4 text-warning" />
-                  Risques &amp; Points de vigilance ({content.risksAndWatchpoints.length})
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {content.risksAndWatchpoints.map((risk, i) => (
-                    <div key={i} className="space-y-2 border border-border bg-edito-canvas/40 p-4">
-                      <h5 className="font-heading text-sm font-bold text-heading">{risk.title}</h5>
-                      <p className="text-xs leading-relaxed text-body">{risk.explanation}</p>
-                    </div>
-                  ))}
-                </div>
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Risques &amp; Points de vigilance"
+                  count={content.risksAndWatchpoints.length}
+                  iconName="detect_risks"
+                  iconColorClass="text-warning"
+                  isOpen={openSections.risks}
+                  onToggle={() => toggleSection("risks")}
+                />
+                {openSections.risks ? (
+                  <div className="divide-y divide-border/40 space-y-2 pt-1">
+                    {content.risksAndWatchpoints.map((risk, i) => (
+                      <div key={i} className="pt-2 space-y-0.5">
+                        <div className="flex items-start gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" aria-hidden="true" />
+                          <h5 className="font-heading text-sm font-bold text-heading">{risk.title}</h5>
+                        </div>
+                        <p className="text-xs leading-relaxed text-body pl-3.5">{risk.explanation}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {content?.regulatoryDevelopments && content.regulatoryDevelopments.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
-                  <IntelligenceIcon name="sector_analysis" preferVector className="size-4 text-primary" />
-                  Évolutions réglementaires ({content.regulatoryDevelopments.length})
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {content.regulatoryDevelopments.map((reg, i) => (
-                    <div key={i} className="space-y-2 border border-border bg-surface p-4">
-                      <h5 className="font-heading text-sm font-bold text-heading">{reg.title}</h5>
-                      <p className="text-xs leading-relaxed text-body">{reg.impact}</p>
-                    </div>
-                  ))}
-                </div>
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Évolutions réglementaires"
+                  count={content.regulatoryDevelopments.length}
+                  iconName="sector_analysis"
+                  iconColorClass="text-primary"
+                  isOpen={openSections.regulatory}
+                  onToggle={() => toggleSection("regulatory")}
+                />
+                {openSections.regulatory ? (
+                  <div className="divide-y divide-border/40 space-y-2 pt-1">
+                    {content.regulatoryDevelopments.map((reg, i) => (
+                      <div key={i} className="pt-2 space-y-0.5">
+                        <div className="flex items-start gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary/70" aria-hidden="true" />
+                          <h5 className="font-heading text-sm font-bold text-heading">{reg.title}</h5>
+                        </div>
+                        <p className="text-xs leading-relaxed text-body pl-3.5">{reg.impact}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
             {content?.weakSignals && content.weakSignals.length > 0 ? (
-              <section className="space-y-4 border-t border-border pt-7">
-                <h4 className="flex items-center gap-2 font-heading text-base font-bold text-heading">
-                  <IntelligenceIcon name="search_news" preferVector className="size-4 text-muted" />
-                  Signaux faibles ({content.weakSignals.length})
-                </h4>
-                <div className="grid grid-cols-1 gap-3">
-                  {content.weakSignals.map((sig, i) => (
-                    <div key={i} className="space-y-1 border border-border bg-edito-canvas/30 p-3.5">
-                      <h5 className="font-heading text-xs font-bold text-heading">{sig.title}</h5>
-                      <p className="text-xs leading-relaxed text-body">{sig.synthesis}</p>
-                    </div>
-                  ))}
-                </div>
+              <section className="space-y-2">
+                <CollapsibleSectionHeader
+                  title="Signaux faibles"
+                  count={content.weakSignals.length}
+                  iconName="search_news"
+                  iconColorClass="text-muted"
+                  isOpen={openSections.weakSignals}
+                  onToggle={() => toggleSection("weakSignals")}
+                />
+                {openSections.weakSignals ? (
+                  <div className="divide-y divide-border/40 space-y-2 pt-1">
+                    {content.weakSignals.map((sig, i) => (
+                      <div key={i} className="pt-2 space-y-0.5">
+                        <div className="flex items-start gap-2">
+                          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-muted" aria-hidden="true" />
+                          <h5 className="font-heading text-xs font-bold text-heading">{sig.title}</h5>
+                        </div>
+                        <p className="text-xs leading-relaxed text-body pl-3.5">{sig.synthesis}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </section>
             ) : null}
           </div>

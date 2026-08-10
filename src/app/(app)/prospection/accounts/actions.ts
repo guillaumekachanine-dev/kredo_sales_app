@@ -46,32 +46,36 @@ function parseOptionalInteger(value: string | number | undefined) {
 // passe exclusivement par segment_id. `sector_id` n'est porté qu'à l'INSERT,
 // où la contrainte NOT NULL l'exige ; le trigger de dérivation fait autorité.
 
-export async function createCompany(data: CompanyFormData) {
+export async function createCompany(data: CompanyFormData): Promise<{ error: string | null; id: string | null }> {
   const supabase = await createClient()
   const relType = data.relation_type || normalizeCompanyRelationType(data.lifecycle_status)
 
   const { segmentId, sectorId, error: taxonomyError } = await resolveCompanyTaxonomy(supabase, data.segment_id)
-  if (!segmentId) return { error: taxonomyError }
+  if (!segmentId) return { error: taxonomyError, id: null }
 
-  const { error } = await supabase.from("companies").insert({
-    name: data.name.trim(),
-    segment_id: segmentId,
-    sector_id: sectorId,
-    tier: normalizeCompanyTier(data.tier),
-    regime_achat: data.regime_achat || null,
-    relation_type: relType,
-    hq_location: data.hq_location?.trim() || null,
-    revenue: data.revenue?.trim() || null,
-    employee_count: parseOptionalInteger(data.employee_count),
-    priority: data.priority || "normale",
-    website: data.website?.trim() || null,
-    description: data.description?.trim() || null,
-    depth_level: "noted",
-    origin: "manual",
-  })
-  if (error) return { error: error.message }
+  const { data: created, error } = await supabase
+    .from("companies")
+    .insert({
+      name: data.name.trim(),
+      segment_id: segmentId,
+      sector_id: sectorId,
+      tier: normalizeCompanyTier(data.tier),
+      regime_achat: data.regime_achat || null,
+      relation_type: relType,
+      hq_location: data.hq_location?.trim() || null,
+      revenue: data.revenue?.trim() || null,
+      employee_count: parseOptionalInteger(data.employee_count),
+      priority: data.priority || "normale",
+      website: data.website?.trim() || null,
+      description: data.description?.trim() || null,
+      depth_level: "noted",
+      origin: "manual",
+    })
+    .select("id")
+    .single()
+  if (error) return { error: error.message, id: null }
   revalidatePath(REVALIDATE)
-  return { error: null }
+  return { error: null, id: created.id }
 }
 
 export async function updateCompany(id: string, data: CompanyFormData) {
