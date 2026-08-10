@@ -2,6 +2,7 @@
 
 import "server-only"
 
+import { resolveCompanyTaxonomy } from "@/lib/accounts-contacts/company-taxonomy"
 import { createClient } from "@/lib/supabase/server"
 
 export interface UpsertAccountResult {
@@ -50,10 +51,27 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
       return { data: existing }
     }
 
-    // 2. Créer le compte s'il n'existe pas
+    // 2. Créer le compte s'il n'existe pas.
+    // Depuis la migration 066, segment_id et sector_id sont NOT NULL : un insert
+    // portant le seul `name` échoue à l'exécution (23502). Le compte créé à la
+    // volée depuis une mission part donc dans le bac « à qualifier ».
+    const { segmentId, sectorId, error: taxonomyError } = await resolveCompanyTaxonomy(supabase, null)
+    if (!segmentId) {
+      console.error("Résolution taxonomique impossible :", taxonomyError)
+      return { error: `Création du client impossible : ${taxonomyError}` }
+    }
+
     const { data: newAccount, error: insertError } = await supabase
       .from("companies")
-      .insert({ name: trimmedName } as any)
+      .insert({
+        name: trimmedName,
+        segment_id: segmentId,
+        sector_id: sectorId,
+        // NOT NULL depuis 066 ; lifecycle_status en est la projection.
+        relation_type: "prospect",
+        depth_level: "noted",
+        origin: "manual",
+      })
       .select("id, name")
       .single()
 
