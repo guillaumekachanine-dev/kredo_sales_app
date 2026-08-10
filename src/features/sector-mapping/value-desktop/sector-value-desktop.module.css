@@ -702,6 +702,14 @@
   background: var(--color-edito-surface);
 }
 
+.inspectorEmbedded {
+  position: static;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .inspectorHeader {
   display: flex;
   align-items: flex-start;

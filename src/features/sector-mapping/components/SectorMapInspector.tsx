@@ -11,6 +11,7 @@ interface SectorMapInspectorProps {
   summary: SectorMapRelationshipSummary
   evidence: SectorMapEvidence[]
   onClose?: () => void
+  embedded?: boolean
 }
 
 const CONFIDENCE_LABELS = {
@@ -33,6 +34,7 @@ export function SectorMapInspector({
   summary,
   evidence,
   onClose,
+  embedded = false,
 }: SectorMapInspectorProps) {
   const entitiesById = new Map(activity.entities.map((entity) => [entity.id, entity]))
   const placedEntities = activity.placements
@@ -56,8 +58,8 @@ export function SectorMapInspector({
         : "La couverture documentée ne fait apparaître aucun white space prioritaire."
 
   return (
-    <aside className={styles.inspector} aria-label={`Inspector de ${activity.activity.label}`}>
-      <header className={styles.inspectorHeader}>
+    <aside className={`${styles.inspector} ${embedded ? styles.inspectorEmbedded : ""}`} aria-label={`Inspector de ${activity.activity.label}`}>
+      {!embedded ? <header className={styles.inspectorHeader}>
         <h2>{activity.activity.label}</h2>
         {onClose ? (
           <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Fermer l’inspector">
@@ -66,7 +68,7 @@ export function SectorMapInspector({
             </svg>
           </button>
         ) : null}
-      </header>
+      </header> : null}
 
       <dl className={styles.inspectorMetrics}>
         <div>
