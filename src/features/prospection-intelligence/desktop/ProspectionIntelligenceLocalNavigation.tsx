@@ -3,17 +3,16 @@
 import { cn } from "@/lib/utils"
 import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 
-export type BiTabKey = "priorities" | "windows" | "sectors" | "value_chain" | "competitive_env"
+export type PiTabKey = "strategy" | "chapter_1" | "chapter_2" | "chapter_3"
 
-const SECTIONS: Array<{ id: BiTabKey; label: string; icon: BiTabKey }> = [
-  { id: "priorities", label: "Brief stratégique", icon: "priorities" },
-  { id: "windows", label: "Fenêtres", icon: "windows" },
-  { id: "sectors", label: "Analyse sectorielle", icon: "sectors" },
-  { id: "value_chain", label: "Chaîne de valeur", icon: "value_chain" },
-  { id: "competitive_env", label: "Environnement concurrentiel", icon: "competitive_env" },
+const SECTIONS: Array<{ id: PiTabKey; label: string; icon: PiTabKey }> = [
+  { id: "strategy", label: "Stratégie", icon: "strategy" },
+  { id: "chapter_1", label: "Chapitre 1 : Fenêtres d'opportunités", icon: "chapter_1" },
+  { id: "chapter_2", label: "Chapitre 2 : Approches commerciales", icon: "chapter_2" },
+  { id: "chapter_3", label: "Chapitre 3 : Playbooks", icon: "chapter_3" },
 ]
 
-function BiSidebarIcon({ name }: { name: BiTabKey }) {
+function PiSidebarIcon({ name }: { name: PiTabKey }) {
   const commonProps = {
     className: "size-4 shrink-0",
     viewBox: "0 0 24 24",
@@ -25,40 +24,43 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
     "aria-hidden": true,
   }
 
-  if (name === "priorities") {
+  if (name === "strategy") {
     return (
       <svg {...commonProps}>
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+        <circle cx="12" cy="12" r="2" />
       </svg>
     )
   }
-  if (name === "windows") {
+  if (name === "chapter_1") {
     return (
       <svg {...commonProps}>
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4" />
+        <polyline points="14 2 14 8 20 8" />
+        <path d="M3 15h6" />
+        <path d="M3 18h6" />
       </svg>
     )
   }
-  if (name === "value_chain") {
+  if (name === "chapter_2") {
     return (
       <svg {...commonProps}>
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     )
   }
-  if (name === "competitive_env") {
+  if (name === "chapter_3") {
     return (
       <svg {...commonProps}>
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-        <line x1="12" y1="22.08" x2="12" y2="12" />
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
       </svg>
     )
   }
+  
   return (
     <svg {...commonProps}>
       <circle cx="12" cy="12" r="10" />
@@ -68,28 +70,27 @@ function BiSidebarIcon({ name }: { name: BiTabKey }) {
   )
 }
 
-interface BusinessIntelligenceLocalNavigationProps {
-  active: BiTabKey
-  onChange: (tab: BiTabKey) => void
+interface ProspectionIntelligenceLocalNavigationProps {
+  active: PiTabKey
+  onChange: (tab: PiTabKey) => void
 }
 
-export function BusinessIntelligenceLocalNavigation({
+export function ProspectionIntelligenceLocalNavigation({
   active,
   onChange,
-}: BusinessIntelligenceLocalNavigationProps) {
+}: ProspectionIntelligenceLocalNavigationProps) {
   return (
     <nav
-      aria-label="Navigation locale Business Intelligence"
-      className="flex h-full w-[11.5rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
+      aria-label="Navigation locale Prospection"
+      className="flex h-full w-[15rem] shrink-0 flex-col border-r border-edito-border bg-edito-canvas px-3 py-5"
     >
-      {/* Title box positioned exactly like 'Retour aux comptes' button */}
       <div className="flex min-h-10 w-full items-center gap-2 rounded-md border border-edito-border bg-edito-surface px-3 text-left text-xs font-bold text-edito-navy select-none">
-        <span>Business Intelligence</span>
+        <span>Prospection</span>
       </div>
 
       <div className="mt-5 border-t border-edito-border pt-4">
         <p className="px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-edito-muted">
-          Chapitres
+          Sections
         </p>
         <div className="mt-2 space-y-1">
           {SECTIONS.map((section) => {
@@ -107,9 +108,10 @@ export function BusinessIntelligenceLocalNavigation({
                     ? "border-l-edito-brass bg-edito-surface text-edito-navy"
                     : "border-l-transparent text-edito-muted hover:bg-edito-surface/70 hover:text-edito-body",
                 )}
+                title={section.label}
               >
                 <span className={cn("text-edito-navy", !isActive && "opacity-75")}>
-                  <BiSidebarIcon name={section.icon} />
+                  <PiSidebarIcon name={section.icon} />
                 </span>
                 <span className="truncate">{section.label}</span>
               </button>

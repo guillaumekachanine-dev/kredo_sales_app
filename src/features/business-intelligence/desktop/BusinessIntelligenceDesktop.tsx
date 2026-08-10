@@ -203,6 +203,24 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot }: BusinessIntel
                 </div>
               </div>
             )}
+
+            {activeTab === "value_chain" && (
+              <div className="max-w-4xl space-y-6">
+                <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
+                  <h3 className="text-lg font-bold text-heading">Chaîne de valeur</h3>
+                  <p className="mt-2 text-sm text-muted">Cette page accueillera la page /sector-mapping-value après validation.</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "competitive_env" && (
+              <div className="max-w-4xl space-y-6">
+                <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
+                  <h3 className="text-lg font-bold text-heading">Environnement concurrentiel</h3>
+                  <p className="mt-2 text-sm text-muted">Cette page accueillera la matrice concurrentielle et l'étude associée.</p>
+                </div>
+              </div>
+            )}
           </main>
         </div>
       </div>

@@ -177,6 +177,12 @@ export const mainMenuItems: MainMenuItem[] = [
         icon: "bi",
       },
       {
+        label: "Prospection",
+        shortLabel: "Prospection",
+        href: "/prospection-intelligence",
+        icon: "sales",
+      },
+      {
         label: "Rapports & Rédaction",
         shortLabel: "Rapports",
         href: "/reports",
