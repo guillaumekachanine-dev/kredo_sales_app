@@ -9,6 +9,12 @@ import { cn } from "@/lib/utils"
 import { AccountScanSetup, type AccountScanSetupCompany } from "./AccountScanSetup"
 import { AccountScanContactsSetup } from "./AccountScanContactsSetup"
 import { AccountScanResolutionPicker } from "./AccountScanResolutionPicker"
+import { AccountScanClassificationPanel } from "./AccountScanClassificationPanel"
+import { applyAccountClassification } from "@/features/account-lifecycle/actions/apply-account-classification"
+import type {
+  ClassificationAxis,
+  CurrentClassificationState,
+} from "@/features/account-lifecycle/domain/account-classification"
 import { AccountScanStatus } from "./AccountScanStatus"
 import { AccountScanDesktopResults } from "./AccountScanDesktopResults"
 import { AccountScanMobileResults } from "./AccountScanMobileResults"
@@ -175,6 +181,25 @@ export function AccountScanDialog({
   const [informationOutput, setInformationOutput] = useState<AccountScanOutput | null>(null)
   const [contactsOutput, setContactsOutput] = useState<AccountScanOutput | null>(null)
   const [contactsResultId, setContactsResultId] = useState<string | null>(null)
+  // ADR-0019 Lot 4 — la classification s'applique depuis l'id du RÉSULTAT (la
+  // RPC y relit le contenu), là où les propositions s'appliquent depuis le run.
+  const [informationResultId, setInformationResultId] = useState<string | null>(null)
+  const [classificationApplying, setClassificationApplying] = useState(false)
+  const [classificationApplied, setClassificationApplied] = useState<ClassificationAxis[]>([])
+  const [classificationSkipped, setClassificationSkipped] = useState<{ axis: string; reason: string }[]>([])
+  const [classificationError, setClassificationError] = useState<string | null>(null)
+  // §10 contrôle 3 — l'axe normatif doit être renseigné À L'ARRIVÉE. Sans cet
+  // état, l'UI traiterait un compte déjà classé comme un compte neuf et
+  // interdirait d'écarter un axe que la base accepterait. Chargé ici plutôt que
+  // remonté aux deux appelants : ni `IdentityData` ni `ClientIntelligenceData`
+  // ne portent ces colonnes, et les élargir pour un panneau optionnel coûterait
+  // plus que cette requête de 4 colonnes.
+  const [currentClassification, setCurrentClassification] = useState<CurrentClassificationState>({
+    segmentId: null,
+    regimeAchat: null,
+    modeleEco: null,
+    relationType: null,
+  })
   const [candidates, setCandidates] = useState<AccountScanResolutionCandidate[]>([])
   const [proposalRows, setProposalRows] = useState<AccountScanProposalRow[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -199,6 +224,33 @@ export function AccountScanDialog({
     phaseRef.current = phase
   }, [phase])
 
+  // Rechargé à chaque ouverture : une classification appliquée entre deux
+  // ouvertures rendrait l'état obsolète, et le panneau réclamerait un axe que
+  // la fiche porte déjà.
+  useEffect(() => {
+    if (!open || !company.id) return
+    let cancelled = false
+
+    void (async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("companies")
+        .select("segment_id, regime_achat, modele_eco, relation_type")
+        .eq("id", company.id)
+        .maybeSingle()
+
+      if (cancelled || !data) return
+      setCurrentClassification({
+        segmentId: data.segment_id ?? null,
+        regimeAchat: data.regime_achat ?? null,
+        modeleEco: data.modele_eco ?? null,
+        relationType: data.relation_type ?? null,
+      })
+    })()
+
+    return () => { cancelled = true }
+  }, [open, company.id])
+
   const knownCompany = {
     name: company.name,
     legalName: company.legalName,
@@ -207,6 +259,33 @@ export function AccountScanDialog({
     nafCode: company.nafCode,
     sectorId: company.sectorId,
   }
+
+  /**
+   * Les 38 segments du référentiel, transmis au workflow (ADR-0019 Lot 4).
+   * Sans cette liste le LLM inventerait un slug, ce que le §9 interdit — et la
+   * RPC le rejetterait de toute façon (`unknown_segment`). En cas d'échec de
+   * lecture, on renvoie `undefined` : le scan tourne alors sans classification
+   * plutôt que d'en produire une non vérifiable.
+   */
+  const loadClassificationReferential = useCallback(async () => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("sector_intelligence")
+      .select("slug, name, parent:parent_id(slug)")
+      .eq("level", "segment")
+
+    if (error || !data) return undefined
+
+    const segments = data.flatMap((row) => {
+      const parent = row.parent as { slug: string } | { slug: string }[] | null
+      const macroSlug = Array.isArray(parent) ? parent[0]?.slug : parent?.slug
+      // Un segment sans macro parent ne satisfait pas le contrôle 2 : l'exposer
+      // reviendrait à proposer une cible que la RPC refusera.
+      return macroSlug ? [{ slug: row.slug, name: row.name, macroSlug }] : []
+    })
+
+    return segments.length > 0 ? { segments } : undefined
+  }, [])
 
   const applyProposalIds = useCallback(async (targetRunId: string, ids: string[]) => {
     if (ids.length === 0) return
@@ -300,6 +379,7 @@ export function AccountScanDialog({
     }
 
     setInformationRunId(targetRunId)
+    setInformationResultId(resultId)
     setInformationOutput(output)
 
     if (output.resolution.status === "ambiguous") {
@@ -405,7 +485,7 @@ export function AccountScanDialog({
     setPhase("information_queued")
 
     try {
-      const input = buildAccountScanInput(setup, knownCompany)
+      const input = buildAccountScanInput(setup, knownCompany, await loadClassificationReferential())
       const res = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -493,6 +573,29 @@ export function AccountScanDialog({
     } else {
       setPhase("information_setup")
     }
+  }
+
+  async function handleApplyClassification(axes: ClassificationAxis[]) {
+    if (!informationResultId) return
+    setClassificationApplying(true)
+    setClassificationError(null)
+
+    const result = await applyAccountClassification({
+      resultId: informationResultId,
+      companyId: company.id,
+      acceptedAxes: axes,
+    })
+
+    setClassificationApplying(false)
+
+    if (result.error) {
+      setClassificationError(result.error)
+      return
+    }
+
+    setClassificationApplied(result.appliedAxes)
+    setClassificationSkipped(result.skippedAxes)
+    onApplied()
   }
 
   function handleApplySelected() {
@@ -643,6 +746,21 @@ export function AccountScanDialog({
     body = (
       <>
         {results}
+        {/* ADR-0019 Lot 4 — absent des résultats produits avant ce lot : le bloc
+            n'apparaît que si le workflow a été relancé avec requestClassification. */}
+        {informationOutput.classification && informationResultId ? (
+          <div className="mt-5 border-t border-border pt-5">
+            <AccountScanClassificationPanel
+              classification={informationOutput.classification}
+              current={currentClassification}
+              applying={classificationApplying}
+              appliedAxes={classificationApplied}
+              skippedAxes={classificationSkipped}
+              errorMessage={classificationError}
+              onApply={(axes) => void handleApplyClassification(axes)}
+            />
+          </div>
+        ) : null}
         <InformationActions
           isMobile={isMobile}
           onContacts={handleGoToContactsSetup}

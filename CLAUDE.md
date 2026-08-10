@@ -75,7 +75,7 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 **Projet ID :** `jvzgmhvwirsbdkjpmvla`
 **URL :** `https://jvzgmhvwirsbdkjpmvla.supabase.co`
 
-### Migrations (146 en prod / 145 en repo au 2026-08-10)
+### Migrations (149 en prod / 148 en repo au 2026-08-10)
 > ⚠️ **Liste canonique = `supabase/migrations/` + `supabase_migrations.schema_migrations` en prod.**
 > Au 2026-08-10 : **146 versions en prod, 145 fichiers en repo** — au moins une migration appliquée
 > live sans fichier versionné (dernière prod : `20260809213755`, dernier fichier :
@@ -129,6 +129,9 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260809150511 | classification_tracabilite_et_bac_a_qualifier |
 | 20260809165832 | value_chain_foundation (tables `value_chain_nodes` / `_actors` / `_links`) |
 | 20260809180000 | seed_taxonomie_segments_et_classification_comptes (36 segments, **96/96 comptes classifiés**) |
+| 20260810110011 | 066_companies_rationalisation_lot1 (`relation_type` = source de vérité, `lifecycle_status` devient sa **projection** par trigger) |
+| 20260810110343 | 067_account_depth_socle (ADR-0019 — `companies.depth_level`/`origin`/`name_normalized`, `competitive_map_entries`) |
+| 20260810204816 | 068_account_classification_apply (ADR-0019 Lot 4 — `apply_account_classification()`, application atomique des 7 axes) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -277,6 +280,15 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 | `account_watch_settings` | 3 | Cadrage minimal de veille par compte (cadence, état du dernier run) — ne stocke ni sources ni résultats bruts |
 
 ⚠️ **RLS `intelligence_sources`/`intelligence_source_links`/`enrichment_proposals`/`account_facts`/`account_signals`** : **1 seule policy (SELECT)**, écriture exclusivement via fonctions `SECURITY DEFINER` scopées workspace (`apply_enrichment_proposal`, `decide_enrichment_proposal`, `validate_and_apply_enrichment_proposal(s)`, `import_account_scan_contacts`) — vérifié et documenté Session 26 (audit sécurité, cf. journal de sessions).
+
+🔴 **La classification d'un compte ne passe JAMAIS par `enrichment_proposals`** (ADR-0019 Lot 4).
+`private.perform_proposal_apply` applique **une proposition par attribut**, indépendamment des
+autres ; or les contrôles du `REFERENTIEL-CLASSIFICATION.md` §10 sont **inter-champs** (le macro
+doit être le parent du segment, trois axes sont obligatoires ensemble, la note dépend de la
+confiance). Les 7 axes s'appliquent donc atomiquement via `public.apply_account_classification(
+p_result_id, p_accepted_axes, p_reason)`, qui relit le contenu depuis `ai_intelligence_results` —
+le client n'envoie jamais de valeur à écrire. Le macro n'est jamais proposé : il est déduit de
+`segment.parent_id`. Ajouter un axe = modifier cette fonction, pas la whitelist de propositions.
 
 #### Domaine Scoring de Priorité Commerciale (ADR-0011)
 | Table | Rows | Description |
@@ -590,7 +602,7 @@ de la base.
 | **Chaîne de valeur** (BTP en pilote) | Socle livré | tables `value_chain_nodes/actors/links` |
 | **Matching CV** (ADR non écrit) | Lots 0-1 livrés (moteur + UI) | `src/lib/staffing-matching/` — reste narratif LLM, ingestion CV, embeddings |
 | **Audit de performance** | Lots 0-1-5 livrés | `docs/audits/AUDIT-PERFORMANCE-KREDO.md` — reste Lot 4 (bundle client) et Lot 6 (mesure terrain) |
-| **Workflows n8n patchés non réimportés** | Bloquant côté VPS | 11 workflows portent `n8nExecutionId` depuis la Session 28 mais ne tournent pas encore : le lien « Ouvrir dans n8n » de `/automations` reste muet |
+| **Workflows n8n patchés non réimportés** | Bloquant côté VPS | 11 workflows portent `n8nExecutionId` depuis la Session 28 mais ne tournent pas encore : le lien « Ouvrir dans n8n » de `/automations` reste muet. **+ `intel-010-refresh`** (Session 34, ADR-0019 Lot 4) : sans réimport, le bloc de classification n'est jamais produit. ⚠️ `n8n:status` ne voit pas cette dérive — il compare les *compteurs de nœuds*, or seul du code interne a changé |
 
 ### Dettes connues, non traitées
 - `check:server-boundary` échoue sur `src/features/knowledge-hub/expertise/get-kredo-expertise-snapshot.ts` (`import "server-only"` manquant).

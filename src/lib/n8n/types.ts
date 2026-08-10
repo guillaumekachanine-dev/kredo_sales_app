@@ -1,3 +1,5 @@
+import type { AccountClassificationProposal } from "@/features/account-lifecycle/domain/account-classification"
+
 // ─── Catalogue des IDs de workflows n8n ──────────────────────────────────────
 // Correspond aux IDs stables de la cartographie KREDO_Cartographie_Workflows_n8n.html
 // Ces IDs = noms des webhooks dans n8n (chemin après /webhook/)
@@ -276,6 +278,17 @@ export type AccountScanTriggerInput = {
   websiteHint?: string | null
   locationHint?: string | null
   autoApplyOfficialMissing: boolean
+  // ADR-0019 Lot 4 — demande le bloc `classification` en sortie (7 axes du
+  // REFERENTIEL-CLASSIFICATION §5). Optionnel et par défaut absent : un workflow
+  // déployé avant ce lot ignore simplement le champ, et un scan lancé sans lui
+  // se comporte exactement comme avant.
+  requestClassification?: boolean
+  // Référentiel transmis au workflow — il ne doit JAMAIS inventer un segment
+  // (§9 : créer un segment obéit à 3 conditions cumulatives, jamais à une IA).
+  // Les slugs sont la seule clé stable (§12.4).
+  classificationReferential?: {
+    segments: { slug: string; name: string; macroSlug: string }[]
+  }
 }
 
 // ─── Résolution d'entité juridique (Lot 1) ──────────────────────────────────
@@ -366,6 +379,20 @@ export type AccountScanContactCandidate = {
   suggestedAction: "create" | "link" | "update" | "ignore"
 }
 
+// ─── Classification (ADR-0019 Lot 4) ────────────────────────────────────────
+// Les 7 axes du REFERENTIEL-CLASSIFICATION §5.2→5.8, produits en un bloc
+// atomique et NON sous forme de fieldProposals : le §10 pose quatre contrôles
+// bloquants inter-champs qu'une file de propositions unitaires ne peut pas
+// garantir (cf. features/account-lifecycle/domain/account-classification.ts).
+//
+// Le domaine, les libellés et les contrôles §10 vérifiables hors base vivent
+// dans ce module de domaine ; ce type n'est que le contrat de transport n8n.
+
+export type AccountScanClassification = AccountClassificationProposal & {
+  /** Clés des sources (`AccountScanSource.sourceKey`) étayant la classification. */
+  sourceKeys: string[]
+}
+
 export type AccountScanOutput = {
   schemaVersion: 1
   runId: string
@@ -377,6 +404,10 @@ export type AccountScanOutput = {
   fieldProposals: AccountScanFieldProposal[]
   factProposals: AccountScanFactProposal[]
   contactCandidates: AccountScanContactCandidate[]
+  // Absent tant que le workflow n'a pas été relancé avec `requestClassification`
+  // — les résultats de scan déjà en base n'en portent pas. Toujours tester la
+  // présence avant lecture, jamais supposer le bloc là.
+  classification?: AccountScanClassification | null
   warnings: string[]
   errorMessage?: string
 }

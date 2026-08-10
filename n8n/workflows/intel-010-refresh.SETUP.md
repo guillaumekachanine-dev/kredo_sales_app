@@ -254,3 +254,46 @@ fantôme précédent). `node --check` sur les 2 nœuds modifiés.
 
 **À réimporter sur le VPS n8n avec les autres correctifs en attente** — sans ce réimport,
 `v_workflow_cost_stats.has_tokens_gap` reste `true` pour ce workflow.
+
+## ADR-0019 Lot 4 (2026-08-10) — 7 axes de classification dans le contrat
+
+**Ce qui change** : le scan produit désormais, en plus des propositions de champs et de faits, un
+bloc `classification` **atomique** portant les 7 axes du
+`REFERENTIEL-CLASSIFICATION.md` (§5.2→5.8) : segment, régime d'achat, modèle économique,
+trajectoire, tier, verticale client, statut relationnel.
+
+**Pourquoi un bloc et non des `fieldProposals`** : le §10 du référentiel pose quatre contrôles
+**bloquants inter-champs** (`sector_id` = parent du segment ; `regime_achat`+`modele_eco`+
+`relation_type` renseignés ; note obligatoire si confiance ≠ haute). Une file de propositions
+unitaires permettrait d'appliquer `segment_id` sans son macro et violerait le contrôle 2 par
+construction. L'application passe donc par la RPC `apply_account_classification`
+(migration 068), jamais par `enrichment_proposals`.
+
+**5 nœuds modifiés** :
+- `Validate & Route` : propage `requestClassification` + `classificationSegments`. La
+  classification n'est demandée que si le référentiel accompagne la requête — sans la liste
+  fermée des segments, le LLM devrait inventer un slug, ce que le §9 interdit.
+- `Assemble Extraction Prompt` : règles de classification (§5.3→5.8 résumés en consignes
+  opérationnelles) + `segments_disponibles` injectés dans les PREUVES.
+- `Parse & Validate LLM Output` : valide le bloc et le **rejette avec un warning** plutôt que de
+  faire échouer un scan par ailleurs valide — segment hors référentiel (§9), `moment` sans fait
+  daté (§12.5), confiance « haute » avec un test en échec (§12.8), confiance non haute sans note
+  (§10.4).
+- `Reconcile & Prepare Writes` : ajout de `llmClassification` / `classificationWarnings` dans
+  l'objet retourné. **Même piège que le correctif `llmUsage` du 2026-07-13 ci-dessus** : ce nœud
+  reconstruit un objet explicite, pas un spread de `ctx` — tout champ non listé disparaît en
+  silence et `Prepare Callback` publierait `classification: null` sans jamais lever d'erreur.
+- `Prepare Callback` : expose `classification` dans le `contentJson` + qaFlag
+  `classification_segment_in_referential`.
+
+**Rétrocompatibilité** : un scan lancé sans `requestClassification` produit `classification: null`
+et se comporte exactement comme avant. Les résultats déjà en base n'ont pas le champ — le front
+teste sa présence avant lecture.
+
+**Validation** : `node --check` sur les 17 nœuds Code ; harnais Node d'exécution réelle couvrant
+la chaîne complète Validate → Assemble → Parse → Reconcile → Prepare Callback, les 4 cas de rejet
+du référentiel, la propagation par Reconcile et le cross-check du `contentJson` produit contre les
+16 clés du type `AccountScanClassification` (aucune clé manquante, aucune en trop).
+
+**À réimporter sur le VPS n8n** — sans ce réimport, le bloc de classification n'apparaît jamais
+dans l'UI de scan (le panneau ne s'affiche que si `classification` est présent).

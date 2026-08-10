@@ -88,6 +88,7 @@ export type AccountScanContactsSetupValues = {
 export function buildAccountScanInput(
   setup: AccountScanSetupValues,
   knownCompany: AccountScanKnownCompany,
+  classificationReferential?: AccountScanTriggerInput["classificationReferential"],
 ): AccountScanTriggerInput {
   return {
     schemaVersion: 1,
@@ -102,6 +103,11 @@ export function buildAccountScanInput(
     websiteHint: setup.websiteHint?.trim() || null,
     locationHint: setup.locationHint?.trim() || null,
     autoApplyOfficialMissing: setup.autoApplyOfficialMissing,
+    // ADR-0019 Lot 4 — la classification n'est demandée que si le référentiel a
+    // pu être chargé : sans la liste des segments, le workflow n'aurait d'autre
+    // choix que d'inventer un slug, ce que le §9 interdit.
+    requestClassification: Boolean(classificationReferential?.segments.length),
+    classificationReferential,
   }
 }
 

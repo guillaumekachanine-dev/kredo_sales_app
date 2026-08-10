@@ -25,6 +25,54 @@
 - **Validation** : `typecheck` → EXIT 0 · `test` → 108 fichiers / **1057 tests** · `check:server-boundary` → EXIT 0 · `lint` → EXIT 0 · `build` → EXIT 0. Le build conserve des logs préexistants de bail-out dynamique sur plusieurs routes utilisant `cookies`/`headers`, sans échec ; le nouveau loader appelle `unstable_rethrow` pour ne pas masquer les erreurs internes Next.js.
 - **Dépendances / DB** : aucune dépendance ajoutée, aucune migration ni écriture Supabase, aucun commit/push/déploiement. Limite connue : seule la cartographie BTP est aujourd’hui alimentée dans les tables réelles ; Banque et Tourisme restent des fixtures de validation jusqu’à leur ingestion future.
 
+### Session 34 — ADR-0019 Lot 4 : 7 axes de classification dans le contrat INTEL-010 (2026-08-10)
+Le scan produit désormais une **classification complète du compte** (les 7 axes du
+`REFERENTIEL-CLASSIFICATION.md` §5.2→5.8), applicable en une transaction contrôlée.
+- **Décision structurante — bloc atomique, PAS des `fieldProposals`.** Le §10 du référentiel pose
+  quatre contrôles **bloquants inter-champs** (`sector_id` = parent du segment ;
+  `regime_achat`+`modele_eco`+`relation_type` renseignés ; note obligatoire si confiance ≠ haute).
+  Vérifié à la source : `private.perform_proposal_apply` applique **une proposition par attribut**,
+  indépendamment des autres — il permettrait d'écrire `segment_id` sans son macro et violerait le
+  contrôle 2 par construction. D'où une RPC dédiée plutôt qu'un passage par `enrichment_proposals`.
+- **`sector_id` n'est jamais proposé** : déduit de `segment.parent_id` (§5.1 « on ne choisit jamais
+  un macro directement »). Le contrôle 2 devient vrai *par construction* au lieu d'être une
+  vérification qu'on peut oublier. Vérifié en base : 38/38 segments ont un parent, 15/15 macros n'en
+  ont pas.
+- **Migration `20260810204816_068_account_classification_apply`** : `apply_account_classification(
+  p_result_id, p_accepted_axes, p_reason)` SECURITY DEFINER + `private.classification_relation_conflict()`.
+  Le navigateur n'envoie **jamais** de valeur à écrire — seulement l'id du résultat et les axes
+  acceptés ; la RPC relit `ai_intelligence_results.content_json` (même doctrine que
+  `import_account_scan_contacts`). `companies.sector` (texte libre) et `lifecycle_status`
+  (projection par trigger) ne sont jamais écrits — §12.3 et contrôle 9.
+- **Garde-fou §12.9** : `relation_type` est le seul des 7 axes dont la source de vérité est
+  **interne** (missions, opportunités gagnées) et non documentaire. Une rétrogradation en
+  `prospect`/`pair_partenaire` contredite par une mission active est **ignorée et rapportée**, pas
+  bloquante — la fiche garde son statut réel, qui satisfait déjà le contrôle 3. Vérifié sur données
+  réelles : Ascoma (client, mission active) refuse `prospect` et conserve `client`.
+- **§10.3 porte sur l'état FINAL, pas sur la sélection** : écarter un axe déjà renseigné en base est
+  licite — les 96 comptes du parc sont classés, un rescan ne doit pas forcer à réécrire ce qui est
+  juste. Domaine TS et RPC alignés sur cette lecture.
+- **Dry-run avant application** : 5 scénarios joués en transaction `ROLLBACK` sur données réelles
+  (nominal + §12.9, segment inventé, `moment` sans preuve, confiance haute + test KO, confiance
+  moyenne sans note) — tous rejetés avec le bon code d'erreur avant d'appliquer la migration.
+- **Workflow n8n — 5 nœuds patchés** par script Python, dont `Reconcile & Prepare Writes` : ce nœud
+  reconstruit un objet **explicite** (pas de spread), donc `llmClassification` s'y perdait en
+  silence et `Prepare Callback` aurait publié `classification: null` sans jamais lever d'erreur.
+  **Exactement le même piège que le correctif `llmUsage` du 2026-07-13**, déjà documenté dans le
+  SETUP de ce workflow — à vérifier systématiquement sur ce nœud.
+- **Validation n8n** : `node --check` sur les 17 nœuds Code **plus** un harnais Node d'exécution
+  réelle (mocks `$input`/`$`/`$execution`) couvrant la chaîne Validate → Assemble → Parse →
+  Reconcile → Prepare Callback, les 4 rejets du référentiel, la propagation par Reconcile, la
+  rétrocompatibilité et le **cross-check du `contentJson` contre les 16 clés du type
+  `AccountScanClassification`** (aucune manquante, aucune en trop).
+- ⚠️ **`npm run n8n:status` ne détecte PAS cette dérive** : il compare les *compteurs de nœuds*
+  (40/40 ici) et le patch ne change que du code à l'intérieur de nœuds existants. Le réimport reste
+  nécessaire — le panneau de classification ne s'affiche que si le `contentJson` porte le bloc.
+- **Validation** : `typecheck` → EXIT 0 · `test` → 109 fichiers / 1073 tests · `check:server-boundary`
+  → EXIT 0 · `lint` (7 fichiers touchés) → 0 erreur, 0 warning · `build` → EXIT 0.
+- **Reste ADR-0019** : Lot 5 (ingestion `CompetitiveMapOutput` + bac d'arbitrage), Lot 6
+  (sous-section `mapped` + drawer minimal + « Convertir »), Lot 7 (modularisation INTEL-030, différé).
+
 ### Session 33 — ADR-0019 Lot 3 : étape 0 « Socle » + action recommandée unique (2026-08-10)
 Lots 0-2 de l'ADR-0019 étaient déjà livrés en base et en Server Action (migrations 066/067, `promoteAccountDepth`, bouton « Créer et qualifier » du drawer) mais **rien n'était branché côté cockpit** — `depth_level`/`origin`/`siren`/`naf_code` n'étaient même pas lus par `getClientIntelligence()`. Ce lot ferme la boucle : le cockpit expose désormais le socle et une seule action recommandée (D-6).
 - **`intelligence-data.ts`** : `CompanyRow` et `ClientIntelligenceData.company` étendus (`siren`, `nafCode`, `sectorId`, `depthLevel`, `origin`, `legalName`) — lus directement depuis `companies`, aucune nouvelle requête.

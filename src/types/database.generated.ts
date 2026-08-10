@@ -7328,6 +7328,14 @@ export type Database = {
         Args: { p_person_id: string; p_workspace_id: string }
         Returns: Json
       }
+      apply_account_classification: {
+        Args: {
+          p_accepted_axes: string[]
+          p_reason?: string
+          p_result_id: string
+        }
+        Returns: Json
+      }
       apply_enrichment_proposal: {
         Args: { p_proposal_id: string; p_reason?: string }
         Returns: Database["public"]["CompositeTypes"]["proposal_operation_result"]
