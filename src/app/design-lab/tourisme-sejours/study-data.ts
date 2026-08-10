@@ -1,7 +1,6 @@
 import "server-only";
 
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { RAW_STUDY_MARKDOWN } from "./study-markdown-content";
 
 export type StudySectionId =
   | "synthese"
@@ -84,14 +83,9 @@ type AnnexExport = {
   comptes: AnnexAccount[];
 };
 
-const SOURCE_PATH = join(
-  process.cwd(),
-  "docs/FEATURES/sector_intelligence/cartographie-concurrentielle/assets/Étude Marché Tourisme Et Séjours.md",
-);
-
 // The attached Markdown remains the canonical content. This module only derives a
 // typed, presentation-friendly representation from it; no report copy is rewritten.
-const SOURCE = readFileSync(SOURCE_PATH, "utf8").trim();
+const SOURCE = RAW_STUDY_MARKDOWN.trim();
 
 const SECTION_DEFINITIONS: Array<{
   id: StudySectionId;
