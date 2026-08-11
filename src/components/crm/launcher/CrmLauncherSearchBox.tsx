@@ -1,17 +1,21 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { cn } from "@/lib/utils"
 
 interface CrmLauncherSearchBoxProps {
   value: string
   onChange: (value: string) => void
   placeholder?: string
+  /** Aligne la hauteur sur le bouton "Liste complète" (38px) — mobile uniquement. */
+  compact?: boolean
 }
 
 export function CrmLauncherSearchBox({
   value,
   onChange,
   placeholder = "Rechercher un compte par nom, secteur...",
+  compact = false,
 }: CrmLauncherSearchBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -46,7 +50,10 @@ export function CrmLauncherSearchBox({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-[var(--radius-medium)] border border-border bg-canvas py-2.5 pl-9 pr-4 text-xs text-heading placeholder-muted outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+        className={cn(
+          "w-full rounded-[var(--radius-medium)] border border-border bg-canvas pl-9 pr-4 text-xs text-heading placeholder-muted outline-none transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/20",
+          compact ? "h-[38px] py-0" : "py-2.5"
+        )}
         placeholder={placeholder}
       />
       {value.length > 0 && (

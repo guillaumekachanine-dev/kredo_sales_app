@@ -14,16 +14,16 @@ type CrmLauncherAccount = {
   website: string | null
   logoPath: string | null
   contactCount: number
-  signalCountWeek?: number
   openOpportunitiesCount?: number
   weightedPipeline?: number
+  lastActivityAt?: string | null
 }
 
 type AccountViewRow = {
   id: string
   name: string
   sector: string | null
-  lifecycle_status: string
+  relation_type: string
   legacy_folio_score: number | string | null
   website: string | null
   logo_path: string | null
@@ -57,7 +57,7 @@ function mapAccountRow(row: AccountViewRow): CrmLauncherAccount {
     id: row.id,
     name: row.name,
     sector: row.sector,
-    status: row.lifecycle_status,
+    status: row.relation_type,
     score: toNumber(row.legacy_folio_score),
     website: row.website,
     logoPath: row.logo_path,
@@ -109,7 +109,7 @@ export async function GET(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, lifecycle_status, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
           .in("id", pinnedIds)
 
         if (dbError) throw dbError
@@ -135,7 +135,7 @@ export async function GET(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: dbAccounts, error: dbError } = await (supabase as any)
         .from("v_crm_account_list")
-        .select("id, name, sector, lifecycle_status, legacy_folio_score, website, logo_path, nb_contacts")
+        .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
         .or(`name.ilike.%${safeTerm}%,sector.ilike.%${safeTerm}%`)
         .limit(limit)
 
@@ -143,66 +143,70 @@ export async function GET(request: Request) {
       accounts = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
     } 
     
-    else if (mode === "news") {
-      // 7 derniers jours (option la plus simple)
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    else if (mode === "recent") {
+      // Compte "modifié" = fiche compte éditée, ou entité rattachée créée/éditée
+      // (contact, événement agenda, interaction — dont les mails générés depuis
+      // le cockpit via intel-020). Agrégation en mémoire sur des tables courtes
+      // (dizaines à centaines de lignes), même pattern que les modes ci-dessus —
+      // pas de vue SQL dédiée pour un besoin de cette taille.
+      const [companiesRes, contactsRes, eventsRes, interactionsRes] = await Promise.all([
+        supabase.from("companies").select("id, updated_at"),
+        supabase.from("contacts").select("company_id, updated_at"),
+        // calendar_events n'a pas le trigger set_updated_at (cf. CLAUDE.md) :
+        // on prend le max(created_at, updated_at) pour ne pas dépendre de lui.
+        supabase.from("calendar_events").select("company_id, created_at, updated_at"),
+        // created_at (horodatage serveur), pas occurred_at (antidatable par l'utilisateur).
+        supabase.from("interactions").select("company_id, created_at"),
+      ])
 
-      // Récupérer les signaux récents
-      const { data: signals, error: signalsError } = await supabase
-        .from("account_signals")
-        .select("company_id, global_score")
-        .gte("detected_at", sevenDaysAgo)
+      if (companiesRes.error) throw companiesRes.error
+      if (contactsRes.error) throw contactsRes.error
+      if (eventsRes.error) throw eventsRes.error
+      if (interactionsRes.error) throw interactionsRes.error
 
-      if (signalsError) throw signalsError
-
-      // Agréger en mémoire JS
-      const companyStats = new Map<string, { count: number; scoreSum: number }>()
-      for (const sig of signals || []) {
-        if (!sig.company_id) continue
-        const stats = companyStats.get(sig.company_id) || { count: 0, scoreSum: 0 }
-        stats.count += 1
-        stats.scoreSum += Number(sig.global_score || 0)
-        companyStats.set(sig.company_id, stats)
+      const lastActivityByCompany = new Map<string, string>()
+      const bump = (companyId: string | null | undefined, timestamp: string | null | undefined) => {
+        if (!companyId || !timestamp) return
+        const current = lastActivityByCompany.get(companyId)
+        if (!current || timestamp > current) lastActivityByCompany.set(companyId, timestamp)
       }
 
-      // Trier par nombre de signaux puis par score moyen
-      const sortedCompanies = [...companyStats.entries()]
-        .map(([companyId, stats]) => ({
-          companyId,
-          count: stats.count,
-          avgScore: stats.scoreSum / stats.count,
-        }))
-        .sort((a, b) => b.count - a.count || b.avgScore - a.avgScore)
+      for (const row of companiesRes.data || []) bump(row.id, row.updated_at)
+      for (const row of contactsRes.data || []) bump(row.company_id, row.updated_at)
+      for (const row of eventsRes.data || []) {
+        bump(row.company_id, row.created_at)
+        bump(row.company_id, row.updated_at)
+      }
+      for (const row of interactionsRes.data || []) bump(row.company_id, row.created_at)
+
+      const sortedCompanies = [...lastActivityByCompany.entries()]
+        .sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : 0))
         .slice(0, limit)
 
-      const targetIds = sortedCompanies.map((c) => c.companyId)
+      const targetIds = sortedCompanies.map(([companyId]) => companyId)
 
       if (targetIds.length > 0) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, lifecycle_status, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
           .in("id", targetIds)
 
         if (dbError) throw dbError
 
         const mapped = ((dbAccounts || []) as AccountViewRow[]).map(mapAccountRow)
-        const statsMap = new Map(sortedCompanies.map((c) => [c.companyId, c.count]))
-        
+        const activityMap = new Map(sortedCompanies)
+
         accounts = mapped
           .map((acc) => ({
             ...acc,
-            signalCountWeek: statsMap.get(acc.id) || 0,
+            lastActivityAt: activityMap.get(acc.id) ?? null,
           }))
-          // Conserver l'ordre trié
-          .sort((a, b) => {
-            const idxA = targetIds.indexOf(a.id)
-            const idxB = targetIds.indexOf(b.id)
-            return idxA - idxB
-          })
+          // Conserver l'ordre trié (le plus récemment édité en premier)
+          .sort((a, b) => targetIds.indexOf(a.id) - targetIds.indexOf(b.id))
       }
-    } 
-    
+    }
+
     else if (mode === "opportunities") {
       // Récupérer toutes les opportunités actives/ouvertes
       const { data: opportunities, error: oppsError } = await supabase
@@ -237,7 +241,7 @@ export async function GET(request: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: dbAccounts, error: dbError } = await (supabase as any)
           .from("v_crm_account_list")
-          .select("id, name, sector, lifecycle_status, legacy_folio_score, website, logo_path, nb_contacts")
+          .select("id, name, sector, relation_type, legacy_folio_score, website, logo_path, nb_contacts")
           .in("id", targetIds)
 
         if (dbError) throw dbError

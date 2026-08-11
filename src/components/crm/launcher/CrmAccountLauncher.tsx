@@ -12,13 +12,13 @@ export type CrmLauncherAccount = {
   website: string | null
   logoPath: string | null
   contactCount: number
-  signalCountWeek?: number
   openOpportunitiesCount?: number
   weightedPipeline?: number
+  lastActivityAt?: string | null
 }
 
 export type CrmLauncherDestination = "cockpit" | "contacts" | "opportunities"
-export type CrmLauncherMode = "personal" | "search" | "news" | "opportunities"
+export type CrmLauncherMode = "personal" | "search" | "recent" | "opportunities"
 
 interface CrmAccountLauncherProps {
   open: boolean

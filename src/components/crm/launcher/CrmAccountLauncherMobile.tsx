@@ -138,7 +138,7 @@ export function CrmAccountLauncherMobile({
         {/* Search & Liste complète */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex-1 min-w-0">
-            <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} />
+            <CrmLauncherSearchBox value={searchQuery} onChange={onSearchChange} compact />
           </div>
           <Link
             href="/prospection/accounts?tab=accounts"

@@ -9,12 +9,37 @@ interface CrmLauncherAccountCardProps {
   onSelect: () => void
 }
 
+// Libellés de `companies.relation_type` (migration 066 §5.8).
+const RELATION_TYPE_LABELS: Record<string, string> = {
+  prospect: "Prospect",
+  client: "Client",
+  ancien_client: "Ancien client",
+  pair_partenaire: "Partenaire",
+}
+
+function relationTypeLabel(value: string | null): string {
+  if (!value) return "Relation non renseignée"
+  return RELATION_TYPE_LABELS[value] ?? value
+}
+
 function formatEuro(value: number): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+function formatRelativeActivity(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime()
+  const diffMins = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMins < 60) return `il y a ${Math.max(1, diffMins)} min`
+  if (diffHours < 24) return `il y a ${diffHours} h`
+  if (diffDays < 7) return `il y a ${diffDays} j`
+  return `il y a ${Math.floor(diffDays / 7)} sem.`
 }
 
 export function CrmLauncherAccountCard({
@@ -52,17 +77,15 @@ export function CrmLauncherAccountCard({
         </div>
 
         <div className="flex items-center gap-1.5 text-[10px] text-muted truncate mt-0.5">
-          <span>{account.sector || "Secteur non renseigné"}</span>
-          <span>·</span>
-          <span>{account.status || "Statut non renseigné"}</span>
+          <span>{relationTypeLabel(account.status)}</span>
         </div>
       </div>
 
       {/* Colonne droite dépendante du mode ou du score */}
       <div className="flex flex-col items-end shrink-0">
-        {mode === "news" && account.signalCountWeek !== undefined && (
+        {mode === "recent" && account.lastActivityAt && (
           <span className="text-[10px] font-bold text-primary">
-            {account.signalCountWeek} {account.signalCountWeek > 1 ? "signaux" : "signal"}
+            {formatRelativeActivity(account.lastActivityAt)}
           </span>
         )}
 
@@ -77,7 +100,7 @@ export function CrmLauncherAccountCard({
           </div>
         )}
 
-        {mode !== "news" && mode !== "opportunities" && account.score !== null && (
+        {mode !== "opportunities" && mode !== "recent" && account.score !== null && (
           <div className="flex items-center gap-1 bg-surface-secondary/40 px-1.5 py-0.5 rounded border border-border/30">
             <svg
               className="w-3 h-3 text-warning fill-current"
