@@ -56,6 +56,8 @@ async function runCodeNode(name, { input, registry = {} }) {
     String,
     RegExp,
     Error,
+    $execution: { id: "execution-test" },
+    $workflow: { id: "workflow-test" },
   }
   const context = vm.createContext(sandbox)
   const script = new vm.Script(`(async () => {\n${node.parameters.jsCode}\n})()`, { filename: `${name}.js` })
@@ -176,6 +178,27 @@ async function main() {
       classification: null,
     }, true),
     /Attribut de fait non autorisé : "attribut_inconnu"/,
+  )
+
+  const failure = await runCodeNode("Prepare Failure Callback", {
+    input: { error: { message: "Réponse LLM non-JSON" } },
+    // Reproduit le chemin réel : Validate & Route n'est pas lisible depuis ce
+    // branchement d'erreur, mais Assemble Extraction Prompt l'est encore.
+    registry: {
+      "Assemble Extraction Prompt": {
+        ...upstream(true),
+        runId: "run-failure-test",
+        callbackUrl: "https://kredo.example/api/n8n/callback",
+      },
+    },
+  })
+  const failureBody = JSON.parse(failure.rawBody)
+  check(
+    "callback d'échec — récupère le contexte sans Validate & Route",
+    failure.callbackUrl === "https://kredo.example/api/n8n/callback" &&
+      failureBody.runId === "run-failure-test" &&
+      failureBody.status === "failed" &&
+      failureBody.errorMessage === "Réponse LLM non-JSON",
   )
 
   console.log(`\n${passed} vérification(s) réussie(s), ${failed} échec(s).`)
