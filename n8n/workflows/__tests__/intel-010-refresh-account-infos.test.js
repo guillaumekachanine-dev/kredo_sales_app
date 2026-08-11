@@ -63,6 +63,14 @@ async function runCodeNode(name, { input, registry = {} }) {
   return result[0].json
 }
 
+function evaluateN8nExpression(expression, json) {
+  if (!expression.startsWith("={{") || !expression.endsWith("}}")) {
+    throw new Error("Expression n8n JSON inattendue")
+  }
+  const source = expression.slice(3, -2).trim()
+  return new vm.Script(`(${source})`).runInNewContext({ $json: json })
+}
+
 function validClassification() {
   return {
     activite_dominante: "Entreprise de construction",
@@ -102,9 +110,23 @@ async function parse(artifact, requestClassification = false) {
 
 async function main() {
   const prompt = await runCodeNode("Assemble Extraction Prompt", { input: upstream(true) })
+  const callBody = evaluateN8nExpression(nodes["Call LLM"].parameters.jsonBody, prompt)
   check(
     "prompt — vertical_client réservé à classification",
     /vertical_client" appartient EXCLUSIVEMENT au bloc "classification"[\s\S]*Ne le duplique JAMAIS dans "facts"/.test(prompt.systemPrompt),
+  )
+  check(
+    "appel Anthropic — sortie JSON structurée activée",
+    callBody.output_config?.format?.type === "json_schema" && callBody.output_config.format.schema === prompt.outputSchema,
+  )
+  check(
+    "schéma structuré — facts exclut vertical_client",
+    prompt.outputSchema.properties.facts.items.properties.attribute.enum.includes("technology") &&
+      !prompt.outputSchema.properties.facts.items.properties.attribute.enum.includes("vertical_client"),
+  )
+  check(
+    "schéma structuré — vertical_client reste dans classification",
+    prompt.outputSchema.properties.classification.properties.vertical_client.type === "array",
   )
 
   const normal = await parse({
