@@ -35,23 +35,17 @@ function registrySource(overrides: Partial<AccountScanSource> = {}): AccountScan
 describe("buildAccountScanInput", () => {
   it("builds a find-mode payload with contactMode always none", () => {
     const input = buildAccountScanInput(
-      { informationMode: "find", autoApplyOfficialMissing: true, websiteHint: null, locationHint: null },
+      { informationMode: "find", requestedFields: [], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
       { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
     )
     expect(input.informationMode).toBe("find")
     expect(input.contactMode).toBe("none")
-    expect(input.autoApplyOfficialMissing).toBe(true)
     expect(input.selectedSiren).toBeNull()
   })
 
-  // Régression : le workflow n8n intel-010-refresh exige input.operation ===
-  // "account_scan" (nœud "Validate & Route") depuis le Lot 1, mais ce champ
-  // manquait du contrat AccountScanTriggerInput et de cette fonction — le
-  // payload envoyé partait donc avec operation=undefined et le run échouait
-  // systématiquement. Ces deux tests figent explicitement la présence du champ.
   it("always includes operation: \"account_scan\" (find mode)", () => {
     const input = buildAccountScanInput(
-      { informationMode: "find", autoApplyOfficialMissing: true, websiteHint: null, locationHint: null },
+      { informationMode: "find", requestedFields: [], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
       { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
     )
     expect(input.operation).toBe("account_scan")
@@ -65,7 +59,7 @@ describe("buildAccountScanInput", () => {
 
   it("always includes operation: \"account_scan\" (verify mode)", () => {
     const input = buildAccountScanInput(
-      { informationMode: "verify", autoApplyOfficialMissing: false, websiteHint: null, locationHint: null },
+      { informationMode: "verify", requestedFields: [], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
       { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
     )
     expect(input.operation).toBe("account_scan")
@@ -81,7 +75,10 @@ describe("buildAccountScanInput", () => {
     const input = buildAccountScanInput(
       {
         informationMode: "verify",
-        autoApplyOfficialMissing: false,
+        requestedFields: [],
+        requestedFacts: [],
+        requestClassification: false,
+        customSources: [],
         websiteHint: "https://acme.example",
         locationHint: "Paris",
         selectedSiren: "123456789",
@@ -89,7 +86,6 @@ describe("buildAccountScanInput", () => {
       { name: "Acme", legalName: "ACME SAS", website: null, siren: null, nafCode: null, sectorId: null },
     )
     expect(input.informationMode).toBe("verify")
-    expect(input.autoApplyOfficialMissing).toBe(false)
     expect(input.websiteHint).toBe("https://acme.example")
     expect(input.locationHint).toBe("Paris")
     expect(input.selectedSiren).toBe("123456789")
@@ -98,7 +94,7 @@ describe("buildAccountScanInput", () => {
 
   it("normalizes empty-string hints to null", () => {
     const input = buildAccountScanInput(
-      { informationMode: "find", autoApplyOfficialMissing: true, websiteHint: "  ", locationHint: "" },
+      { informationMode: "find", requestedFields: [], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: "  ", locationHint: "" },
       { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
     )
     expect(input.websiteHint).toBeNull()
@@ -111,7 +107,7 @@ describe("buildAccountScanContactsInput", () => {
 
   it("builds a contact identify payload and reuses the resolved SIREN", () => {
     const input = buildAccountScanContactsInput(
-      { contactMode: "identify", requestedRoles: ["DSI / Direction IT", "  Data / IA  "], maxContacts: 5 },
+      { contactMode: "identify", requestedRoles: ["DSI / Direction IT", "  Data / IA  "], maxContacts: 5, recentHireOnly: false, searchVectors: ["public_web"] },
       knownCompany,
       { selectedSiren: "987654321", websiteHint: "https://resolved.example", locationHint: "Paris" },
     )
@@ -123,12 +119,11 @@ describe("buildAccountScanContactsInput", () => {
     expect(input.websiteHint).toBe("https://resolved.example")
     expect(input.requestedRoles).toEqual(["DSI / Direction IT", "Data / IA"])
     expect(input.maxContacts).toBe(5)
-    expect(input.autoApplyOfficialMissing).toBe(false)
   })
 
   it("builds a contact confirm payload", () => {
     const input = buildAccountScanContactsInput(
-      { contactMode: "confirm", requestedRoles: ["Achats"], maxContacts: 3 },
+      { contactMode: "confirm", requestedRoles: ["Achats"], maxContacts: 3, recentHireOnly: false, searchVectors: ["public_web"] },
       knownCompany,
     )
 

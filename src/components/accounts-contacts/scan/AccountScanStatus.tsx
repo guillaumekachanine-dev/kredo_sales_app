@@ -9,6 +9,7 @@ interface AccountScanStatusProps {
   message?: string | null
   isMobile: boolean
   onRetry?: () => void
+  onCancel?: () => void
 }
 
 const STATUS_COPY: Record<AccountScanStatusKind, { title: string; body: string }> = {
@@ -30,9 +31,10 @@ const STATUS_COPY: Record<AccountScanStatusKind, { title: string; body: string }
   },
 }
 
-export function AccountScanStatus({ kind, message, isMobile, onRetry }: AccountScanStatusProps) {
+export function AccountScanStatus({ kind, message, isMobile, onRetry, onCancel }: AccountScanStatusProps) {
   const copy = STATUS_COPY[kind]
   const isBusy = kind === "queued" || kind === "running"
+  const isCancelled = kind === "error" && message === "Annulé par l'utilisateur"
 
   return (
     <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -51,11 +53,24 @@ export function AccountScanStatus({ kind, message, isMobile, onRetry }: AccountS
       )}
 
       <div>
-        <p className="text-sm font-bold text-heading">{copy.title}</p>
-        <p className="mt-1 max-w-xs text-[11px] text-muted leading-relaxed">{message || copy.body}</p>
+        <p className="text-sm font-bold text-heading">{isCancelled ? "Scan annulé" : copy.title}</p>
+        <p className="mt-1 max-w-xs text-[11px] text-muted leading-relaxed">{isCancelled ? "Le processus a été interrompu." : (message || copy.body)}</p>
       </div>
 
-      {!isBusy && onRetry && (
+      <div className="flex gap-3 mt-2">
+        {isBusy && onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className={cn(
+              "inline-flex items-center justify-center rounded border-2 border-[#EF4444] bg-[#FEF2F2] px-6 text-xs font-bold text-[#DC2626] transition-colors hover:bg-[#FEE2E2]",
+              isMobile ? "min-h-[44px]" : "min-h-[36px]"
+            )}
+          >
+            STOP
+          </button>
+        )}
+        {!isBusy && onRetry && (
         <button
           type="button"
           onClick={onRetry}
@@ -66,7 +81,8 @@ export function AccountScanStatus({ kind, message, isMobile, onRetry }: AccountS
         >
           Revenir au paramétrage
         </button>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -15,6 +15,75 @@
 
 ---
 
+### Session 36 — Correctif production intel-010-refresh : fences Markdown non nettoyées (2026-08-11)
+
+**Constat de Guillaume** : le workflow patché en Session 35 (ADR-0019 Lot 4) ne fonctionnait pas en
+production. Il l'a corrigé directement (VPS + réexport local), remplaçant
+`n8n/workflows/intel-010-refresh.json` par
+`n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json` (commit `abc5c635`). **C'est cette
+version-là qui fait foi**, pas le patch de la Session 35.
+
+**Diagnostic fait a posteriori** (diff `bd7d89c3` vs le fichier committé) : un seul nœud sur les 5
+patchés diverge, `Parse & Validate LLM Output`. Le code fautif était du code **préexistant, jamais
+touché par le patch Lot 4** :
+
+```js
+// Avant (Session 35, cassé en prod) :
+const clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+parsed = JSON.parse(clean);
+// catch : throw new Error('Réponse LLM non-JSON : ' + content.slice(0, 200))  — pas de e.message
+
+// Après (fix Guillaume, en prod) :
+let clean = String(content || '').trim();
+if (clean.startsWith('```json')) clean = clean.slice(7);
+else if (clean.startsWith('```')) clean = clean.slice(3);
+if (clean.endsWith('```')) clean = clean.slice(0, -3);
+clean = clean.trim();
+parsed = JSON.parse(clean);
+// catch : throw new Error(`Réponse LLM non-JSON : ${e.message} | extrait=...`)  — diagnosticable
+```
+
+Le prompt allongé par les instructions de classification (§10 du REFERENTIEL, bloc JSON `moment`/
+`tier`/`vertical_client`/etc. en plus) a apparemment fait sortir Claude d'un format que l'ancien
+remplacement regex global gérait mal. Le `schema_version !== 1` strict a aussi été retiré du fix —
+signe que ce champ n'était plus fiablement émis une fois le schéma de sortie alourdi. Sans le
+`e.message` dans le message d'erreur d'origine, Guillaume n'avait que les 200 premiers caractères
+bruts pour diagnostiquer — le fix ajoute la vraie raison du `JSON.parse` en échec.
+
+**Ce que la validation de la Session 35 n'a pas vu, et pourquoi.** Le harnais d'exécution réelle de
+cette session-là a bien exécuté la vraie chaîne de nœuds — mais son générateur de réponse LLM
+fictive produisait le contenu via `JSON.stringify({...})` **directement**, sans jamais l'envelopper
+de fences Markdown, de prose, ou d'espaces parasites :
+
+```js
+const llmReply = (classification) => ({
+  content: [{ type: "text", text: JSON.stringify({ schema_version: 1, ... }) }],
+  // JSON.stringify pur — ne peut structurellement pas exercer le chemin de nettoyage
+  // des fences, quel que soit le nombre de scénarios joués dessus.
+})
+```
+
+Le harnais testait donc uniquement la logique de VALIDATION du contenu (segments, contrôles §10),
+jamais la robustesse du NETTOYAGE en amont — la portion de code qui a réellement cassé. Un test qui
+ne peut structurellement pas emprunter le chemin de code fautif ne le valide pas, même vert à 100 %.
+
+**Leçon pour tout futur patch de nœud `Code` n8n qui parse une sortie LLM** : les fixtures de test
+doivent inclure au moins un cas avec fences Markdown, un avec prose parasite avant/après le JSON, et
+un avec un champ attendu manquant — pas seulement du JSON déjà propre généré par
+`JSON.stringify()`. Sinon le harnais valide la logique aval sans jamais avoir prouvé que l'entrée
+lui arrive dans la forme qu'il suppose.
+
+**État réel à retenir** : le fichier `n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json`
+(committé `abc5c635`) est la version qui fonctionne en production. Toute lecture de
+`docs/HANDOFF-ADR-0019.md` ou de la Session 35 ci-dessous doit être corrigée par cette entrée pour
+ce qui concerne le nœud `Parse & Validate LLM Output` — le reste (4 autres nœuds patchés, migration
+068, domaine TypeScript, UI de revue) reste exact et inchangé, aucune régression constatée ailleurs.
+Le handoff (`docs/HANDOFF-ADR-0019.md`) a été corrigé en conséquence le même jour.
+
+**Point encore ouvert, sans lien avec ce correctif** : le fichier committé compte un nœud de moins
+(`Resolve Source Ids` absent) que la version de la Session 35 — non expliqué, non bloquant, à
+confirmer avec Guillaume si l'occasion se présente.
+
 ### Session 34 — Cartographie sectorielle RUN 5 : intégration Business Intelligence (2026-08-10)
 
 - **Destination finale branchée** : la feature VALEUR / ÉCOSYSTÈME remplace le placeholder de l’onglet « Chaîne de valeur » de `/intelligence`, sur Desktop et mobile. Le Design Lab reste une référence indépendante. Le chargement du snapshot BI, du device et du catalogue sectoriel est parallélisé côté serveur ; le bundle de cartographie reste différé tant que l’onglet n’est pas ouvert.
@@ -25,7 +94,11 @@
 - **Validation** : `typecheck` → EXIT 0 · `test` → 108 fichiers / **1057 tests** · `check:server-boundary` → EXIT 0 · `lint` → EXIT 0 · `build` → EXIT 0. Le build conserve des logs préexistants de bail-out dynamique sur plusieurs routes utilisant `cookies`/`headers`, sans échec ; le nouveau loader appelle `unstable_rethrow` pour ne pas masquer les erreurs internes Next.js.
 - **Dépendances / DB** : aucune dépendance ajoutée, aucune migration ni écriture Supabase, aucun commit/push/déploiement. Limite connue : seule la cartographie BTP est aujourd’hui alimentée dans les tables réelles ; Banque et Tourisme restent des fixtures de validation jusqu’à leur ingestion future.
 
-### Session 34 — ADR-0019 Lot 4 : 7 axes de classification dans le contrat INTEL-010 (2026-08-10)
+### Session 35 — ADR-0019 Lot 4 : 7 axes de classification dans le contrat INTEL-010 (2026-08-10)
+> Renumérotée de « Session 34 » à « Session 35 » le 2026-08-11 : collision avec l'entrée
+> « Cartographie sectorielle RUN 5 » ajoutée en parallèle par une autre session sous le même
+> numéro. Aucun contenu modifié, seul le numéro change — voir la correction du 2026-08-11
+> ci-dessus (Session 36) pour ce qui a réellement dérivé de ce qui est affirmé ici.
 Le scan produit désormais une **classification complète du compte** (les 7 axes du
 `REFERENTIEL-CLASSIFICATION.md` §5.2→5.8), applicable en une transaction contrôlée.
 - **Décision structurante — bloc atomique, PAS des `fieldProposals`.** Le §10 du référentiel pose

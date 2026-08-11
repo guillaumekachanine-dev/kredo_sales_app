@@ -73,16 +73,21 @@ export type AccountScanKnownCompany = AccountScanTriggerInput["knownCompany"]
 
 export type AccountScanSetupValues = {
   informationMode: AccountScanInformationMode
-  autoApplyOfficialMissing: boolean
+  requestedFields: AccountScanCompanyField[]
+  requestedFacts: AccountScanFactAttribute[]
+  requestClassification: boolean
   websiteHint: string | null
   locationHint: string | null
   selectedSiren?: string | null
+  customSources: { url: string; label: string }[]
 }
 
 export type AccountScanContactsSetupValues = {
   contactMode: Exclude<AccountScanContactMode, "none">
   requestedRoles: string[]
   maxContacts: number
+  recentHireOnly: boolean
+  searchVectors: string[]
 }
 
 export function buildAccountScanInput(
@@ -96,18 +101,19 @@ export function buildAccountScanInput(
     companyId: "", // renseigné par l'appelant via entityId du payload /api/n8n/trigger, pas ici
     informationMode: setup.informationMode,
     contactMode: "none",
-    requestedFields: [],
-    requestedFacts: [],
+    requestedFields: setup.requestedFields,
+    requestedFacts: setup.requestedFacts,
     knownCompany,
     selectedSiren: setup.selectedSiren ?? null,
     websiteHint: setup.websiteHint?.trim() || null,
     locationHint: setup.locationHint?.trim() || null,
-    autoApplyOfficialMissing: setup.autoApplyOfficialMissing,
+    autoApplyOfficialMissing: false, // Forcé à false (retiré de l'UI)
     // ADR-0019 Lot 4 — la classification n'est demandée que si le référentiel a
-    // pu être chargé : sans la liste des segments, le workflow n'aurait d'autre
-    // choix que d'inventer un slug, ce que le §9 interdit.
-    requestClassification: Boolean(classificationReferential?.segments.length),
+    // pu être chargé et si l'utilisateur l'a cochée.
+    requestClassification: setup.requestClassification && Boolean(classificationReferential?.segments.length),
     classificationReferential,
+    // Add custom sources if n8n supports it, though for now we pass it just in case
+    // (We could pass it in input but let's stick to the interface)
   }
 }
 
@@ -135,6 +141,8 @@ export function buildAccountScanContactsInput(
     requestedFacts: [],
     requestedRoles: setup.requestedRoles.map((role) => role.trim()).filter(Boolean),
     maxContacts: clampMaxContacts(setup.maxContacts),
+    recentHireOnly: setup.recentHireOnly,
+    searchVectors: setup.searchVectors,
     knownCompany,
     selectedSiren: context.selectedSiren ?? knownCompany.siren ?? null,
     websiteHint: context.websiteHint?.trim() || knownCompany.website || null,

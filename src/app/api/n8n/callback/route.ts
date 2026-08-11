@@ -66,13 +66,19 @@ export async function POST(request: Request) {
   const supabase = getServiceClient()
   const { data: run, error: runError } = await supabase
     .from("ai_intelligence_runs")
-    .select("company_id, workspace_id, owner_id, trigger_source")
+    .select("company_id, workspace_id, owner_id, trigger_source, status")
     .eq("id", runId)
     .single()
 
   if (runError || !run) {
     console.error("[callback] Run introuvable:", runId, runError?.message)
     return NextResponse.json({ error: "Run introuvable" }, { status: 404 })
+  }
+
+  // ── 4a. Vérification du statut d'annulation ────────────────────────────────
+  if (run.status === "cancelled") {
+    console.warn(`[callback] Callback ignoré car le run ${runId} a été annulé par l'utilisateur.`)
+    return NextResponse.json({ ok: true, ignored: true, reason: "Run cancelled" })
   }
 
   // ── 4 bis. Portail account_knowledge (Lot 1) ──────────────────────────────

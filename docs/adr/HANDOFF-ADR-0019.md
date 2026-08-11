@@ -1,12 +1,23 @@
 # Handoff — Chantier ADR-0019 (profondeur de compte & cartographies concurrentielles)
 
 > **Rédigé le 2026-08-10, par Claude (Opus 5), pour reprise par Gemini.**
-> **Commit HEAD au moment de la rédaction : `bd7d89c3` sur `main`, poussé et déployé en production.**
+> **Corrigé le 2026-08-11** — le workflow n8n livré le 2026-08-10 (patch Lot 4) **ne fonctionnait
+> pas en production**. Guillaume l'a corrigé directement (VPS + réexport), et c'est **cette version
+> corrigée qui est commitée et qui fait foi** (`abc5c635`). Ce document a été réajusté en
+> conséquence — voir §5bis pour le détail du bug, du correctif, et surtout pour **pourquoi ma
+> propre validation ne l'avait pas vu**, cette dernière partie étant la plus utile pour éviter de
+> répéter l'erreur.
+> **Commit HEAD à la date de cette correction : `abc5c635` sur `main`, poussé et déployé en
+> production.** ⚠️ Le working tree local porte, au moment de cette correction, des modifications
+> **non commitées et sans rapport avec ce chantier** (travail en cours de Guillaume sur
+> `AccountScanDialog.tsx`, un nouveau `AccountScanIdentityConfirm.tsx`, `api/n8n/trigger/route.ts`,
+> `api/intelligence/account-identity/`) — n'y touche pas, ce n'est pas dans le périmètre d'ADR-0019.
 > Ce document est un instantané. Il **dérive** dès que quelqu'un touche au repo, à la base ou au VPS
 > n8n après sa rédaction. Avant d'agir sur une affirmation ci-dessous, **vérifie-la à la source** —
 > la section [Comment vérifier ce document](#comment-vérifier-ce-document) donne les commandes exactes.
 > C'est la doctrine du projet (`CLAUDE.md` § Méthode de travail attendue, point 2) : ce fichier n'y
-> échappe pas.
+> échappe pas. **Ce document lui-même en est la preuve** : sa première version affirmait une
+> validation complète qui s'est révélée insuffisante en production.
 
 ---
 
@@ -25,9 +36,12 @@
    (format de sortie attendu d'une IA), §9 (gouvernance des segments), §10 (contrôles obligatoires
    avant écriture), §12 (interdits absolus). **Toute décision touchant à la classification doit
    pouvoir se justifier par un numéro de section de ce document.**
-4. **`docs/JOURNAL-SESSIONS.md`** — Sessions 33 et 34 (en tête du fichier) racontent en détail ce qui
-   a été fait, les scénarios de test joués, et les pièges rencontrés. Ce handoff en est le résumé
-   actionnable ; le journal en est la trace complète.
+4. **`docs/JOURNAL-SESSIONS.md`** — **lis les entrées dans cet ordre** : Session 36 (le correctif du
+   2026-08-11, en tête de fichier — lis-la en premier, elle corrige ce qui suit), puis Session 35
+   (Lot 4, ADR-0019 — anciennement numérotée « 34 », renumérotée le 2026-08-11 suite à une collision
+   avec une session parallèle sans rapport), puis Session 33 (Lot 3). Ce handoff en est le résumé
+   actionnable ; le journal en est la trace complète — **et la Session 36 doit primer sur tout ce que
+   la Session 35 affirme concernant le nœud `Parse & Validate LLM Output`.**
 
 ---
 
@@ -62,7 +76,7 @@ directement).
 | 1 | Groupement de la liste comptes sur la taxonomie | Fait (commit `07b49c88`), à revalider | antérieur |
 | 2 | `promoteAccountDepth` + modale « Créer et qualifier » | **Fait** | antérieur |
 | 3 | Étape 0 « Socle » dans le cockpit + action recommandée unique (D-6) | **Fait** | `9e8109dd` |
-| 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | **Fait** (app déployée ; **workflow n8n non réimporté sur le VPS**, voir §6) | `bd7d89c3` |
+| 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | **Fait et validé en production** — le patch initial (`bd7d89c3`) avait un bug réel, corrigé par Guillaume directement sur le VPS puis réexporté (voir §5bis) | `bd7d89c3` puis correctif `abc5c635` |
 | 5 | Contrat `CompetitiveMapOutput` + ingestion + bac d'arbitrage | **À faire — prochaine étape recommandée** | — |
 | 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | À faire | — |
 | 7 | Modularisation INTEL-030 | Différé (contrat non stabilisé, hors scope) | — |
@@ -126,7 +140,11 @@ Aucune migration SQL dans ce lot (tout existait déjà côté base).
 
 ---
 
-## 5. Lot 4 — 7 axes de classification (commit `bd7d89c3`)
+## 5. Lot 4 — 7 axes de classification (commit `bd7d89c3`, corrigé en `abc5c635`)
+
+> ⚠️ **Lis §5bis avant de te fier à quoi que ce soit ci-dessous concernant le nœud
+> `Parse & Validate LLM Output`.** Tout le reste de cette section (domaine TypeScript, migration
+> SQL, UI, les 4 autres nœuds patchés) reste exact et n'a pas eu besoin de correction.
 
 ### Décision structurante — à ne jamais recréer sans relire ceci
 
@@ -147,7 +165,8 @@ sans son `sector_id` parent et violerait le contrôle 2 par construction. D'où 
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ n8n intel-010-refresh (workflow, patché — PAS réimporté sur VPS)     │
+│ n8n intel-010-refresh (workflow — corrigé et actif sur le VPS,       │
+│   fichier repo = INTEL-010 — intel-010-refresh-account-infos.json)   │
 │   Validate & Route → ... → Assemble Extraction Prompt (LLM prompt)   │
 │   → Parse & Validate LLM Output (valide, rejette avec warning)       │
 │   → Reconcile & Prepare Writes → Prepare Callback                    │
@@ -297,7 +316,9 @@ recette `CLAUDE.md` § Nouveau workflow n8n).
 3. **`Parse & Validate LLM Output`** — valide le bloc `classification` renvoyé par le LLM et le
    **rejette avec un warning** (pas une exception qui ferait échouer tout le scan) si : segment hors
    référentiel (§9), `moment` sans preuve datée (§12.5), confiance `haute` avec un test en échec
-   (§12.8), confiance non-haute sans note (§10.4).
+   (§12.8), confiance non-haute sans note (§10.4). **⚠️ C'est ce nœud qui cassait en production —
+   pas la partie classification elle-même, mais le nettoyage des fences Markdown en amont, du code
+   préexistant jamais touché par ce patch. Détail complet en §5bis.**
 4. **`Reconcile & Prepare Writes`** — ajoute `llmClassification`/`classificationWarnings` à l'objet
    retourné. **⚠️ Ce nœud reconstruit un objet EXPLICITE (pas de `...ctx`)** : tout champ non listé
    explicitement dans son `return` disparaît silencieusement. C'est le nœud qui avait déjà perdu
@@ -306,24 +327,26 @@ recette `CLAUDE.md` § Nouveau workflow n8n).
 5. **`Prepare Callback`** — expose `classification` dans le `contentJson` du callback + ajoute le
    qaFlag `classification_segment_in_referential`.
 
-**Validation faite** (pas seulement `node --check` — insuffisant, ça n'aurait pas vu le bug du
-point 4 ci-dessus) :
+**Validation faite au moment du patch initial** (pas seulement `node --check` — insuffisant, ça
+n'aurait pas vu le piège du point 4 ci-dessus, celui-là bien réel et bien évité) :
 - `node --check` sur les 17 nœuds `Code` du workflow → tous valides syntaxiquement.
 - **Harnais Node d'exécution réelle** (mocks `$input`/`$`/`$execution`/`$workflow`) exécutant la
   vraie chaîne `Validate & Route → Assemble Extraction Prompt → Parse & Validate LLM Output →
   Reconcile & Prepare Writes → Prepare Callback`, avec :
-  - Les 4 scénarios de rejet ci-dessus, vérifiés un par un.
-  - Vérification explicite que `Reconcile` propage bien `llmClassification` (c'est ce test qui a
-    révélé le piège du point 4 avant qu'il ne parte en prod).
-  - **Cross-check du `contentJson` produit contre les 16 clés exactes du type TypeScript
-    `AccountScanClassification`** (aucune manquante, aucune en trop).
-  - Rétrocompatibilité : un scan sans `requestClassification` produit `classification: null`,
-    comportement identique à avant ce lot.
-  - Ce harnais n'est pas versionné dans le repo (fichier scratchpad de session) — s'il faut le
-    rejouer, reconstruis-le sur le même principe : `new Function()` sur `node.parameters.jsCode`
-    avec des mocks de `$input`/`$`/`$execution`/`$workflow`.
+  - Les 4 scénarios de rejet du point 3 ci-dessus, vérifiés un par un.
+  - Vérification explicite que `Reconcile` propage bien `llmClassification` (ce test a réellement
+    révélé et évité le piège du point 4 avant qu'il ne parte en prod — celui-là tient).
+  - Cross-check du `contentJson` produit contre les 16 clés exactes du type TypeScript
+    `AccountScanClassification` (aucune manquante, aucune en trop).
+  - Rétrocompatibilité : un scan sans `requestClassification` produit `classification: null`.
 
-### Fichiers touchés (Lot 4)
+**⚠️ Cette validation n'a PAS vu le bug qui a cassé en production** (point 3, nœud
+`Parse & Validate LLM Output`) — et ce n'est pas un hasard, c'est un défaut structurel du harnais.
+Voir §5bis pour l'explication complète et la leçon à en tirer avant tout futur patch similaire. Le
+harnais tel que décrit ci-dessus n'est donc **pas suffisant** en l'état pour garantir qu'un patch de
+nœud n8n qui parse une sortie LLM fonctionnera réellement en production.
+
+### Fichiers touchés (Lot 4, état après correctif)
 ```
 src/features/account-lifecycle/domain/account-classification.ts        (nouveau)
 src/features/account-lifecycle/domain/account-classification.test.ts   (nouveau, 16 tests)
@@ -334,38 +357,104 @@ src/components/accounts-contacts/scan/account-scan-utils.ts            (modifié
 src/lib/n8n/types.ts                                                   (modifié)
 src/types/database.generated.ts                                        (régénéré — npm run db:types)
 supabase/migrations/20260810204816_068_account_classification_apply.sql (nouveau, appliqué en prod)
-n8n/workflows/intel-010-refresh.json                                   (patché, 5 nœuds — PAS réimporté VPS)
-n8n/workflows/intel-010-refresh.SETUP.md                                (documenté)
+n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json         (renommé depuis intel-010-refresh.json,
+                                                                          contenu corrigé par Guillaume sur le VPS)
+```
+`n8n/workflows/intel-010-refresh.SETUP.md` a été **supprimé** (par Guillaume, sans remplacement) —
+il n'y a plus de documentation `.SETUP.md` dédiée à ce workflow dans le repo. La Session 36 du
+journal en tient lieu pour le correctif ; personne n'a recréé de `.SETUP.md` général depuis.
+
+---
+
+## 5bis. ⚠️ Post-mortem — pourquoi le patch initial ne fonctionnait pas en production
+
+**Ne saute pas cette section.** Elle documente un vrai échec de validation de ma part (Claude, Lot 4
+initial) et la leçon à en tirer avant tout futur patch de nœud n8n qui parse une sortie LLM.
+
+### Le bug
+
+Diff exact entre mon commit (`bd7d89c3`) et le fichier aujourd'hui en repo (`abc5c635`, réexporté du
+VPS après correctif de Guillaume) — **un seul nœud sur les 5 patchés diverge**,
+`Parse & Validate LLM Output`, et le code fautif est **préexistant, jamais écrit ni modifié par moi**
+dans ce lot :
+
+```js
+// AVANT (cassait en prod) — code préexistant au Lot 4, non touché par mon patch :
+const clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+parsed = JSON.parse(clean);
+// catch : throw new Error('Réponse LLM non-JSON : ' + content.slice(0, 200))  — pas de e.message
+
+// APRÈS (fix de Guillaume, en prod aujourd'hui) :
+let clean = String(content || '').trim();
+if (clean.startsWith('```json')) clean = clean.slice(7);
+else if (clean.startsWith('```')) clean = clean.slice(3);
+if (clean.endsWith('```')) clean = clean.slice(0, -3);
+clean = clean.trim();
+parsed = JSON.parse(clean);
+// catch : throw new Error(`Réponse LLM non-JSON : ${e.message} | extrait=...`)  — diagnosticable
 ```
 
+Le prompt allongé par les instructions de classification (§10 du référentiel, bloc JSON `moment`/
+`tier`/`vertical_client`/etc. en plus dans le format de sortie demandé) a visiblement fait sortir
+Claude d'un format que l'ancien remplacement regex global gérait mal en pratique. Le fix retire
+aussi le contrôle strict `schema_version !== 1` (entièrement absent du code corrigé) — signe que ce
+champ n'était plus émis de façon fiable une fois le schéma de sortie alourdi. **Sans le `e.message`
+dans le message d'erreur d'origine**, il n'y avait que les 200 premiers caractères bruts pour
+diagnostiquer — le fix ajoute la vraie raison du `JSON.parse` en échec, ce qui a très probablement
+été la clé du diagnostic.
+
+### Pourquoi ma validation ne l'a pas vu — le vrai défaut, pas une excuse
+
+Le harnais Node d'exécution réelle (§5, « Validation faite ») exécutait bien la vraie chaîne de
+nœuds. Mais son générateur de réponse LLM fictive produisait le contenu via `JSON.stringify({...})`
+**directement**, sans jamais l'envelopper de fences Markdown, de prose parasite, ou d'espaces
+superflus :
+
+```js
+const llmReply = (classification) => ({
+  content: [{ type: "text", text: JSON.stringify({ schema_version: 1, ... }) }],
+})
+// JSON.stringify pur — ne peut STRUCTURELLEMENT PAS emprunter le chemin de nettoyage
+// des fences, quel que soit le nombre de scénarios joués dessus.
+```
+
+Le harnais testait donc exclusivement la logique de VALIDATION du contenu (segments, contrôles §10),
+jamais la robustesse du NETTOYAGE en amont — la portion de code qui a réellement cassé en
+production. **Un test qui ne peut structurellement pas emprunter le chemin de code fautif ne le
+valide pas, même vert à 100 %.** C'est le défaut méthodologique à retenir, pas « pas assez de
+tests » — le nombre de scénarios était correct, leur *forme* ne l'était pas.
+
+### Leçon pour tout futur patch de nœud `Code` n8n qui parse une sortie LLM
+
+Les fixtures de test doivent inclure au minimum :
+1. Un cas avec fences Markdown (```` ```json ... ``` ````) autour du JSON.
+2. Un cas avec de la prose avant/après le JSON (le LLM ignore parfois l'instruction « JSON
+   uniquement »).
+3. Un cas avec un champ attendu absent de la réponse.
+
+Ne jamais se contenter de `JSON.stringify(fixture)` comme seule source de contenu simulé — ça prouve
+que la logique aval fonctionne sur une entrée déjà propre, jamais que le nettoyage en amont
+transforme correctement une sortie réelle de LLM en cette entrée propre.
+
+### Ce qui reste exact malgré ce bug
+
+Tout le reste du Lot 4 n'a nécessité aucune correction : le domaine TypeScript
+(`account-classification.ts`, 16 tests), la migration SQL (`apply_account_classification`, dry-run
++ 5 scénarios réels avant application), l'UI de revue (`AccountScanClassificationPanel.tsx`), et les
+4 autres nœuds patchés (`Validate & Route`, `Assemble Extraction Prompt`,
+`Reconcile & Prepare Writes`, `Prepare Callback`) sont identiques entre mon commit et la version qui
+tourne en production — vérifié par diff, pas supposé.
+
+### Point encore ouvert, sans lien avec ce bug
+
+Le fichier committé par Guillaume compte **un nœud de moins** (`Resolve Source Ids`, un `httpRequest`
+préexistant, sans rapport avec la classification) que ma version. Non expliqué, non bloquant. À
+confirmer si l'occasion se présente — ne pas essayer de le « réparer » unilatéralement, ça a pu être
+une simplification volontaire faite directement sur le canvas n8n.
+
 ---
 
-## 6. ⚠️ ACTION BLOQUANTE — réimport manuel du workflow sur le VPS n8n
-
-**Le workflow `intel-010-refresh.json` du repo est en avance sur celui qui tourne réellement sur le
-VPS.** Tant que quelqu'un ne le réimporte pas manuellement :
-- Le scan continue de fonctionner exactement comme avant (rétrocompatible).
-- **Aucun bloc `classification` n'est jamais produit**, même si l'app (déployée, en prod) sait le
-  lire et l'afficher.
-- Le panneau `AccountScanClassificationPanel` ne s'affichera **jamais** dans l'UI de production tant
-  que ce réimport n'a pas eu lieu, puisqu'il ne se rend que si `informationOutput.classification`
-  est non-null.
-
-**Par convention du projet (`CLAUDE.md` § Nouveau workflow n8n), l'import et l'activation sur le VPS
-sont manuels, faits par Guillaume — le MCP n8n est bloqué en session agent.** Ne tente pas de
-contourner ça via `mcp__n8n-mcp__*` ou tout autre mécanisme automatisé ; signale simplement l'attente
-si on te demande l'état du chantier.
-
-**Piège d'outillage à connaître** : `npm run n8n:status` (le script de mesure de dérive repo↔VPS)
-**ne détecte PAS** ce genre de changement. Il compare des **compteurs de nœuds** (`nœuds repo/VPS =
-40/40` — inchangé, puisque ce lot n'a ajouté aucun nœud, seulement modifié du code à l'intérieur de
-nœuds `Code` existants). Si tu veux vérifier si le réimport a eu lieu, il faudra soit demander
-directement, soit comparer le contenu réel des nœuds (le MCP `n8n-mcp` bloqué en session agent le
-permettrait en session interactive `claude` classique — cf. mémoire `n8n-mcp-connector-setup`).
-
----
-
-## 7. Prochaine étape recommandée — Lot 5 : ingestion des cartographies concurrentielles
+## 6. Prochaine étape recommandée — Lot 5 : ingestion des cartographies concurrentielles
 
 ### Ce que dit l'ADR (D-5, D-3, D-4)
 
@@ -427,7 +516,7 @@ not_found          → création `mapped` + faits sourcés
 
 ---
 
-## 8. Après Lot 5 — Lot 6 (pour mémoire, pas la priorité immédiate)
+## 7. Après Lot 5 — Lot 6 (pour mémoire, pas la priorité immédiate)
 
 Sous-section `mapped` dans la liste comptes + drawer minimal + bouton « Convertir ». Le bouton
 « Convertir » doit appeler **la même Server Action** que les deux autres entrées déjà câblées (D-2 —
@@ -441,14 +530,15 @@ Ne construis **jamais** un parcours « convertir » distinct — l'ADR est expli
 
 ---
 
-## 9. Comment vérifier ce document
+## 8. Comment vérifier ce document
 
 Ce document affirme des faits datés. Avant d'agir dessus, reproduis ces vérifications :
 
 ```bash
-# État git réel — doit montrer bd7d89c3 (ou plus récent) en HEAD de main, working tree propre
+# État git réel — doit montrer abc5c635 (ou plus récent) dans les 5 derniers commits de main
 git log --oneline -5
-git status --short
+git status --short   # attends-toi à voir des fichiers non commités sans rapport avec ADR-0019
+                      # (travail concurrent en cours, cf. bandeau en tête de ce document)
 
 # Suite de validation complète — doit être verte
 npm run typecheck && npm test && npm run check:server-boundary
@@ -463,8 +553,17 @@ select proname from pg_proc where proname = 'apply_account_classification';
 ```
 
 ```bash
-# Dérive n8n — RAPPEL : ce script ne verra jamais le contenu des nœuds patchés,
-# seulement leur nombre. Ne t'y fie pas pour juger si le réimport a eu lieu.
+# Le fichier qui fait foi porte le nom d'export n8n, pas "intel-010-refresh.json" :
+ls "n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json"
+
+# Vérifie que le fix des fences Markdown (§5bis) est bien présent dans le fichier committé —
+# s'il manque "clean.startsWith('\`\`\`json')", quelqu'un a réintroduit l'ancien code cassé :
+grep -c "clean.startsWith" "n8n/workflows/INTEL-010 — intel-010-refresh-account-infos.json"
+```
+
+```bash
+# Dérive n8n — RAPPEL : ce script ne voit que des compteurs de nœuds, jamais leur contenu.
+# Il n'aurait pas non plus vu le bug documenté en §5bis. Ne t'y fie pas seul.
 npm run n8n:status
 ```
 
@@ -474,7 +573,7 @@ pas dans ce document. »
 
 ---
 
-## 10. Boucle de validation à respecter pour tout nouveau lot
+## 9. Boucle de validation à respecter pour tout nouveau lot
 
 Dans cet ordre, sans en sauter (`CLAUDE.md` § Commandes) :
 
@@ -499,14 +598,19 @@ du point 4 (§5.3) n'aurait été vu par aucun `node --check`.
 
 ---
 
-## 11. Environnement
+## 10. Environnement
 
 - **Supabase** : projet `jvzgmhvwirsbdkjpmvla`, `https://jvzgmhvwirsbdkjpmvla.supabase.co`. 149
   migrations en prod à la date de rédaction.
 - **Vercel** : projet `kredo` (org `guillaume-kasanins-projects`), alias production
-  `https://kredo-green.vercel.app`. Déploiement production nécessite confirmation explicite de
-  Guillaume avant `vercel --prod` — c'est une action à blast radius large (affecte le site live).
+  `https://kredo-green.vercel.app`. Déploiement production : par défaut confirmation explicite
+  requise avant `vercel --prod` (blast radius large, affecte le site live) — sauf instruction
+  contraire explicite de Guillaume dans le tour de conversation en cours (« déploie direct », déjà
+  vu dans ce chantier). Ne pas généraliser une autorisation ponctuelle à un tour suivant.
 - **n8n** : VPS self-hosted, workflows versionnés en JSON dans `n8n/workflows/`, import/activation
-  manuels par Guillaume (§6 ci-dessus).
+  **manuels par Guillaume** — le MCP n8n est bloqué en session agent. §5bis documente un cas concret
+  où ce réimport manuel a aussi servi à corriger un bug que la validation automatisée n'avait pas vu
+  : ne considère jamais un patch de workflow n8n comme définitivement validé avant confirmation
+  qu'il tourne correctement en production, même après un harnais d'exécution réelle complet.
 - **Git** : branche `main`, pas de branches de feature dans ce chantier — chaque lot est un commit
   direct sur `main` après validation complète, poussé puis déployé sur confirmation.

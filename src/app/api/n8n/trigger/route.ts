@@ -94,6 +94,26 @@ export async function POST(request: Request) {
     )
   }
 
+  // ── 3bis. Gate serveur INTEL-010 ───────────────────────────────────────────
+  if (workflowId === "intel-010-refresh" && (input as Record<string, unknown>).operation === "account_scan") {
+    const isIdentityConfirmed = (input as Record<string, unknown>).identityConfirmed === true
+    const selectedSiren = (input as Record<string, unknown>).selectedSiren
+    
+    if (!isIdentityConfirmed) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: "Confirmation d'identité requise pour ce scan" },
+        { status: 400 }
+      )
+    }
+
+    if (typeof selectedSiren !== "string" || !/^\d{9}$/.test(selectedSiren)) {
+      return NextResponse.json<TriggerErrorResponse>(
+        { error: "Le SIREN sélectionné doit contenir exactement 9 chiffres" },
+        { status: 400 }
+      )
+    }
+  }
+
   // ── 4. Création du run + déclenchement n8n (factorisé, ADR-0010 Lot 2) ──────
   const result = await triggerN8nRun({
     workflowId,

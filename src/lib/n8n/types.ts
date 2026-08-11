@@ -263,6 +263,8 @@ export type AccountScanTriggerInput = {
   requestedFacts: AccountScanFactAttribute[]
   requestedRoles?: string[]
   maxContacts?: number
+  recentHireOnly?: boolean
+  searchVectors?: string[]
   knownCompany: {
     name: string
     legalName?: string | null

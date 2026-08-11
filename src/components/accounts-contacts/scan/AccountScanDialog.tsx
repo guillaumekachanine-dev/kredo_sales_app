@@ -10,6 +10,7 @@ import { AccountScanSetup, type AccountScanSetupCompany } from "./AccountScanSet
 import { AccountScanContactsSetup } from "./AccountScanContactsSetup"
 import { AccountScanResolutionPicker } from "./AccountScanResolutionPicker"
 import { AccountScanClassificationPanel } from "./AccountScanClassificationPanel"
+import { AccountScanIdentityConfirm } from "./AccountScanIdentityConfirm"
 import { applyAccountClassification } from "@/features/account-lifecycle/actions/apply-account-classification"
 import type {
   ClassificationAxis,
@@ -43,6 +44,7 @@ import {
 type Phase =
   | "loading"
   | "information_setup"
+  | "identity_confirm"
   | "information_queued"
   | "information_running"
   | "information_ambiguous"
@@ -83,45 +85,58 @@ function StepIndicator({
   const active = phase.startsWith("contacts") ? "contacts" : "information"
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Titre dynamique */}
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
-        Scan rapide — {active === "contacts" ? `Contacts · ${companyName}` : `Informations · ${companyName}`}
-      </p>
-      {/* Boutons mode */}
-      <div className="flex items-center gap-2">
+    <div className="flex flex-row items-center justify-between gap-4 w-full pr-8">
+      {/* Left: Badge & Company Name */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="shrink-0 rounded-md bg-gradient-to-r from-[#D89B16] to-[#F59E0B] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#0F172A] shadow-sm">
+          SCAN RAPIDE
+        </span>
+        <h2 className="text-sm font-extrabold tracking-wide text-white truncate max-w-[180px] sm:max-w-[280px]">
+          {companyName}
+        </h2>
+      </div>
+
+      {/* Right: Distinctive Mode Switcher Pill Container */}
+      <div className="flex items-center rounded-full bg-[#0A1424]/90 p-1 border border-white/10 shadow-inner backdrop-blur-md shrink-0">
         <button
           type="button"
           onClick={onInformation}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:brightness-105 active:scale-[0.98]",
+            "relative flex items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
             active === "information"
-              ? "text-white"
-              : "border border-border bg-surface text-muted hover:text-heading"
+              ? "bg-gradient-to-r from-[#D89B16] via-[#F59E0B] to-[#D89B16] text-[#0F172A] shadow-md shadow-[#D89B16]/25 font-extrabold scale-[1.02]"
+              : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
           )}
-          style={active === "information" ? { backgroundColor: "#1C40A3" } : undefined}
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons_set/scan_infos_drawer.png" alt="" width={13} height={13} className="h-[13px] w-[13px] object-contain" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons_set/scan_infos_drawer.png"
+            alt=""
+            width={14}
+            height={14}
+            className={cn("h-3.5 w-3.5 object-contain transition-all", active === "information" ? "brightness-0" : "brightness-200 opacity-80")}
+          />
           Informations
         </button>
+
         <button
           type="button"
           onClick={onContacts}
           className={cn(
-            "flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold transition-all hover:brightness-105 active:scale-[0.98]",
+            "relative flex items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
             active === "contacts"
-              ? "text-white"
-              : "border border-border bg-surface text-muted hover:text-heading"
+              ? "bg-gradient-to-r from-[#D89B16] via-[#F59E0B] to-[#D89B16] text-[#0F172A] shadow-md shadow-[#D89B16]/25 font-extrabold scale-[1.02]"
+              : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
           )}
-          style={active === "contacts" ? { backgroundColor: "#1C40A3" } : undefined}
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons_set/AI_scan_contact.png" alt="" width={13} height={13} className="h-[13px] w-[13px] object-contain" />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icons_set/AI_scan_contact.png"
+            alt=""
+            width={14}
+            height={14}
+            className={cn("h-3.5 w-3.5 object-contain transition-all", active === "contacts" ? "brightness-0" : "brightness-200 opacity-80")}
+          />
           Contacts
         </button>
       </div>
@@ -212,9 +227,12 @@ export function AccountScanDialog({
 
   const lastSetupRef = useRef<AccountScanSetupValues>({
     informationMode: "find",
-    autoApplyOfficialMissing: true,
-    websiteHint: null,
-    locationHint: null,
+    requestedFields: ["legal_name", "siren", "naf_code", "hq_location", "employee_count", "website", "description"],
+    requestedFacts: ["business_model", "primary_activity", "technology", "competitor", "partner", "market", "strategic_priority", "transformation_program", "establishment_count", "growth_trend", "geographic_reach", "value_proposition", "differentiators", "market_position", "marketing_position", "target_customers"],
+    requestClassification: true,
+    customSources: [],
+    websiteHint: company.website,
+    locationHint: company.hqLocation,
   })
   const autoAppliedRunIdRef = useRef<string | null>(null)
   const hydratedOnceRef = useRef(false)
@@ -332,22 +350,7 @@ export function AccountScanDialog({
     const rows = mergeProposalRows(data ?? [], output)
     setProposalRows(rows)
     setPhase("information_review")
-
-    if (lastSetupRef.current.autoApplyOfficialMissing && autoAppliedRunIdRef.current !== targetRunId) {
-      autoAppliedRunIdRef.current = targetRunId
-      const eligibleIds = rows
-        .filter((row) =>
-          isAutoApplyEligible(
-            { attributeName: row.attributeName, oldValue: row.oldValue, confidenceScore: row.confidenceScore, sourceKeys: row.sourceKeys },
-            output.sources,
-            output.resolution.status,
-          )
-        )
-        .map((row) => row.id)
-
-      if (eligibleIds.length > 0) void applyProposalIds(targetRunId, eligibleIds)
-    }
-  }, [company.id, applyProposalIds])
+  }, [company.id])
 
   const handleTerminalResult = useCallback((
     targetRunId: string,
@@ -471,7 +474,13 @@ export function AccountScanDialog({
     },
   })
 
-  async function triggerInformationScan(setup: AccountScanSetupValues) {
+  function prepareInformationScan(setup: AccountScanSetupValues) {
+    lastSetupRef.current = setup
+    setErrorMessage(null)
+    setPhase("identity_confirm")
+  }
+
+  async function triggerInformationScan(setup: AccountScanSetupValues, confirmedSiren?: string) {
     lastSetupRef.current = setup
     setErrorMessage(null)
     setInformationOutput(null)
@@ -486,6 +495,11 @@ export function AccountScanDialog({
 
     try {
       const input = buildAccountScanInput(setup, knownCompany, await loadClassificationReferential())
+      
+      const finalInput = confirmedSiren !== undefined 
+        ? { ...input, selectedSiren: confirmedSiren, identityConfirmed: true } 
+        : input
+
       const res = await fetch("/api/n8n/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -494,7 +508,7 @@ export function AccountScanDialog({
           entityType: "company",
           entityId: company.id,
           companyId: company.id,
-          input,
+          input: finalInput,
         }),
       })
 
@@ -572,6 +586,24 @@ export function AccountScanDialog({
       setPhase("information_review")
     } else {
       setPhase("information_setup")
+    }
+  }
+
+  async function handleCancelRun() {
+    if (!runId) return
+    try {
+      const res = await fetch("/api/n8n/cancel-run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId }),
+      })
+      if (!res.ok) {
+        throw new Error("Erreur lors de l'annulation")
+      }
+      setErrorMessage("Annulé par l'utilisateur")
+      setPhase("error")
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -655,28 +687,40 @@ export function AccountScanDialog({
   }
 
   function handleSelectSiren(siren: string) {
-    void triggerInformationScan({ ...lastSetupRef.current, selectedSiren: siren })
+    void triggerInformationScan({ ...lastSetupRef.current, selectedSiren: siren }, siren)
   }
 
   let body: ReactNode
   if (phase === "loading") {
     body = <AccountScanStatus kind="running" message="Chargement…" isMobile={isMobile} />
   } else if (phase === "information_setup") {
-    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={(setup) => void triggerInformationScan(setup)} />
+    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={prepareInformationScan} />
+  } else if (phase === "identity_confirm") {
+    body = (
+      <AccountScanIdentityConfirm
+        companyId={company.id}
+        selectedSirenHint={lastSetupRef.current.selectedSiren || company.siren}
+        isMobile={isMobile}
+        onConfirm={(siren) => void triggerInformationScan(lastSetupRef.current, siren)}
+        onCancel={handleBackToInformationSetup}
+      />
+    )
   } else if (phase === "contacts_setup") {
     body = (
       <AccountScanContactsSetup
         companyName={company.name}
         isMobile={isMobile}
         launching={false}
-        onLaunch={(setup) => void triggerContactsScan(setup)}
+        onLaunch={(setup) => {
+          void triggerContactsScan(setup)
+        }}
         onBackToInformation={handleGoToInformationReview}
       />
     )
   } else if (phase === "information_queued" || phase === "information_running") {
-    body = <AccountScanStatus kind={phase === "information_queued" ? "queued" : "running"} isMobile={isMobile} />
+    body = <AccountScanStatus kind={phase === "information_queued" ? "queued" : "running"} isMobile={isMobile} onCancel={() => void handleCancelRun()} />
   } else if (phase === "contacts_queued" || phase === "contacts_running") {
-    body = <AccountScanStatus kind={phase === "contacts_queued" ? "queued" : "running"} message="Recherche et vérification des contacts publics en cours…" isMobile={isMobile} />
+    body = <AccountScanStatus kind={phase === "contacts_queued" ? "queued" : "running"} message="Recherche et vérification des contacts publics en cours…" isMobile={isMobile} onCancel={() => void handleCancelRun()} />
   } else if (phase === "information_ambiguous") {
     body = (
       <AccountScanResolutionPicker
@@ -794,8 +838,14 @@ export function AccountScanDialog({
           onContacts={handleGoToContactsSetup}
         />
       }
-      className={wide && !isMobile ? "max-w-5xl" : "max-w-lg"}
-      bodyClassName={wide ? "text-xs" : undefined}
+      className={cn(
+        wide && !isMobile ? "sm:!max-w-[1380px] sm:!w-[94vw]" : "sm:!max-w-4xl sm:!w-[88vw]",
+        "w-full rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] shadow-2xl transition-all duration-300"
+      )}
+      fillHeight={true}
+      dataTheme="edito"
+      headerClassName="bg-[#1E3150] px-4 py-3.5 sm:px-6 sm:py-4 border-b-0 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 rounded-t-[var(--radius-medium)] text-white shrink-0 relative"
+      bodyClassName={cn(wide ? "text-xs" : undefined, "bg-[#F8FAFC] p-4 sm:p-5 overflow-y-auto max-h-[82vh]")}
     >
       {body}
     </AppDialog>
