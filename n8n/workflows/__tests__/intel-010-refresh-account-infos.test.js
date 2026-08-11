@@ -73,6 +73,15 @@ function evaluateN8nExpression(expression, json) {
   return new vm.Script(`(${source})`).runInNewContext({ $json: json })
 }
 
+function findEnumsOnUnionTypes(value, currentPath = "schema") {
+  if (!value || typeof value !== "object") return []
+  const matches = Array.isArray(value.type) && Array.isArray(value.enum) ? [currentPath] : []
+  for (const [key, child] of Object.entries(value)) {
+    matches.push(...findEnumsOnUnionTypes(child, `${currentPath}.${key}`))
+  }
+  return matches
+}
+
 function validClassification() {
   return {
     activite_dominante: "Entreprise de construction",
@@ -129,6 +138,11 @@ async function main() {
   check(
     "schéma structuré — vertical_client reste dans classification",
     prompt.outputSchema.properties.classification.properties.vertical_client.type === "array",
+  )
+  check(
+    "schéma structuré — aucun enum sur un type nullable union",
+    findEnumsOnUnionTypes(prompt.outputSchema).length === 0,
+    findEnumsOnUnionTypes(prompt.outputSchema).join(", "),
   )
 
   const normal = await parse({
