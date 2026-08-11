@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import React, { useEffect, useMemo, useState, useTransition } from "react"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { cn } from "@/lib/utils"
@@ -84,6 +85,10 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   
+  const [showFilters, setShowFilters] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  
   const filters = useMemo(() => toMetricsFilterState(preset, workflow, customRange), [preset, workflow, customRange])
   
   useEffect(() => {
@@ -110,12 +115,13 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         
         const options = Array.from(new Set([...data.workflows.map(w => w.runType), ...nextSnapshot.workflowOptions]))
         setWorkflowOptions(options.sort((a, b) => a.localeCompare(b)))
+        setLastUpdated(new Date())
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Erreur de chargement")
       }
     })
     return () => { active = false }
-  }, [filters, status, data.workflows])
+  }, [filters, status, data.workflows, refreshKey])
 
   useEffect(() => {
     if (activeSection !== "logs" && status !== "all") {
@@ -133,12 +139,14 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
       const rate = snapshot.summary.successRatePct
       return (
         <div className="flex min-h-[56px] flex-col justify-center bg-surface-hover/50 px-4 py-2">
-          <p className="text-[16px] font-bold text-heading">
-            Taux de réussite : {rate !== null ? `${Math.round(rate * 10) / 10} %` : "—"}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted">
-            {snapshot.summary.executions} runs · {snapshot.summary.succeeded} succès · {snapshot.summary.failed} échecs
-          </p>
+          <div className="flex items-center justify-between w-full">
+            <p className="text-[16px] font-bold text-heading">
+              Tx réussite : {rate !== null ? `${Math.round(rate * 10) / 10}%` : "—"}
+            </p>
+            <p className="text-[11px] text-muted">
+              {snapshot.summary.executions} runs - {snapshot.summary.succeeded} succès - {snapshot.summary.failed} échecs
+            </p>
+          </div>
         </div>
       )
     }
@@ -177,14 +185,23 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
     }
   }
 
-  const formatRunDate = (iso: string) => {
-    const d = new Date(iso)
+  const formatLastUpdate = (d: Date) => {
     const day = String(d.getDate()).padStart(2, "0")
     const month = String(d.getMonth() + 1).padStart(2, "0")
     const year = d.getFullYear()
     const hours = String(d.getHours()).padStart(2, "0")
     const minutes = String(d.getMinutes()).padStart(2, "0")
-    return `${day}/${month}/${year} - ${hours}.${minutes}`
+    return `${day}/${month}/${year} à ${hours}.${minutes}`
+  }
+
+  const formatRunTime = (iso: string) => {
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, "0")}.${String(d.getMinutes()).padStart(2, "0")}`
+  }
+
+  const formatRunDateShort = (iso: string) => {
+    const d = new Date(iso)
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`
   }
 
   return (
@@ -193,6 +210,26 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         <MobilePageHeader
           title="Automatisations"
           className="gap-0 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-7"
+          actions={
+            <>
+              <button
+                type="button"
+                className="flex size-9 items-center justify-center rounded-full bg-surface-hover text-heading transition-colors"
+                onClick={() => setRefreshKey(k => k + 1)}
+                aria-label="Rafraîchir"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              </button>
+              <button
+                type="button"
+                className="flex size-9 items-center justify-center rounded-full bg-surface-hover text-heading transition-colors"
+                onClick={() => setShowFilters(true)}
+                aria-label="Filtres"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              </button>
+            </>
+          }
         />
       </div>
 
@@ -216,40 +253,8 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         })}
       </nav>
 
-      <div className="shrink-0 border-b border-border bg-surface p-2">
-        <div className="grid grid-cols-3 gap-2">
-          <select
-            value={preset}
-            onChange={(e) => setPreset(e.target.value as MobilePreset)}
-            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
-          >
-            <option value="today">Jour</option>
-            <option value="7d">7 jours</option>
-            <option value="30d">30 jours</option>
-            <option value="12w">12 semaines</option>
-            <option value="year">Année</option>
-            {preset === "custom" && <option value="custom">Personnalisée</option>}
-          </select>
-          <select
-            value={workflow}
-            onChange={(e) => setWorkflow(e.target.value)}
-            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
-          >
-            <option value="all">Tous</option>
-            {workflowOptions.map(opt => (
-              <option key={opt} value={opt}>{workflowLabelForRunType(opt)}</option>
-            ))}
-          </select>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
-          >
-            <option value="all">Tous</option>
-            <option value="succeeded">Succès</option>
-            <option value="failed">Échecs</option>
-          </select>
-        </div>
+      <div className="shrink-0 border-b border-border bg-surface px-4 py-2 flex items-center justify-center">
+        <span className="text-[11px] text-muted font-medium">mis à jour le {formatLastUpdate(lastUpdated)}</span>
       </div>
 
       <div className="shrink-0 border-b border-border bg-surface">
@@ -267,28 +272,45 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
             ) : (
               <div className="relative pl-6 pr-2">
                 <div className="absolute left-[13px] top-0 bottom-0 w-[1px] bg-border" />
-                {journal.map((run) => (
-                  <div key={run.id} className="relative border-b border-border py-4 last:border-b-0">
-                    <div className={cn("absolute -left-[18px] top-[22px] size-2.5 rounded-full border-2 border-surface", run.status === "succeeded" ? "bg-success" : "bg-danger")} />
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRunId(run.id)}
-                      className="flex w-full items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-heading text-left"
-                    >
-                      <div className="min-w-0 flex-1 pr-2">
-                        <p className="text-sm font-bold leading-tight text-heading">
-                          {run.runTypeLabel}{run.companyName ? ` — ${run.companyName}` : ""}
-                        </p>
-                        <p className="mt-1 text-[11px] text-muted">
-                          {run.runType} · {formatRunDate(run.createdAt)}
-                        </p>
+                {journal.map((run, index) => {
+                  const runDate = new Date(run.createdAt)
+                  const prevRun = index > 0 ? journal[index - 1] : null
+                  const prevDate = prevRun ? new Date(prevRun.createdAt) : null
+                  const isNewDay = !prevDate || runDate.getDate() !== prevDate.getDate() || runDate.getMonth() !== prevDate.getMonth() || runDate.getFullYear() !== prevDate.getFullYear()
+
+                  return (
+                    <React.Fragment key={run.id}>
+                      {isNewDay && (
+                        <div className="relative flex items-center py-2 -ml-6">
+                          <div className="w-[48px] shrink-0 text-center bg-surface relative z-10 text-[11px] font-medium text-muted">
+                            {formatRunDateShort(run.createdAt)}
+                          </div>
+                          <div className="h-[1px] bg-border flex-1 ml-2" />
+                        </div>
+                      )}
+                      <div className="relative py-3">
+                        <div className={cn("absolute -left-[18px] top-[18px] size-3.5 rounded-full border-2 border-surface z-10", run.status === "succeeded" ? "bg-success" : "bg-danger")} />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRunId(run.id)}
+                          className="flex w-full items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-heading text-left"
+                        >
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="text-sm font-bold leading-tight text-heading">
+                              {formatRunTime(run.createdAt)} - {run.runTypeLabel}
+                            </p>
+                            <p className="mt-1 text-[11px] text-muted truncate">
+                              {run.companyName ? run.companyName : run.runType} · {formatRunDateShort(run.createdAt)}
+                            </p>
+                          </div>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center text-muted">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                          </div>
+                        </button>
                       </div>
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center text-muted">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                      </div>
-                    </button>
-                  </div>
-                ))}
+                    </React.Fragment>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -317,6 +339,55 @@ export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboar
         onOpenChange={(open) => { if (!open) setSelectedRunId(null) }}
         onRetried={() => setSelectedRunId(null)}
       />
+
+      <AppDialog
+        open={showFilters}
+        onOpenChange={setShowFilters}
+        title="Filtres"
+      >
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-heading">Période</label>
+            <select
+              value={preset}
+              onChange={(e) => setPreset(e.target.value as MobilePreset)}
+              className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-sm font-medium outline-none focus:ring-2 focus:ring-heading"
+            >
+              <option value="today">Jour</option>
+              <option value="7d">7 jours</option>
+              <option value="30d">30 jours</option>
+              <option value="12w">12 semaines</option>
+              <option value="year">Année</option>
+              {preset === "custom" && <option value="custom">Personnalisée</option>}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-heading">Workflow</label>
+            <select
+              value={workflow}
+              onChange={(e) => setWorkflow(e.target.value)}
+              className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-sm font-medium outline-none focus:ring-2 focus:ring-heading"
+            >
+              <option value="all">Tous</option>
+              {workflowOptions.map(opt => (
+                <option key={opt} value={opt}>{workflowLabelForRunType(opt)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-heading">Statut</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-sm font-medium outline-none focus:ring-2 focus:ring-heading"
+            >
+              <option value="all">Tous</option>
+              <option value="succeeded">Succès</option>
+              <option value="failed">Échecs</option>
+            </select>
+          </div>
+        </div>
+      </AppDialog>
     </div>
   )
 }

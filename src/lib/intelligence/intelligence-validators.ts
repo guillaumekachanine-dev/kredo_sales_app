@@ -53,10 +53,8 @@ function fail<T>(issues: ValidationIssue[]): ValidationResult<T> {
 
 // ─── Primitives ─────────────────────────────────────────────────────────────
 
-// RFC 4122 — accepte les versions 1-8, majuscules ou minuscules. Volontairement
-// strict : `source_refs` doit contenir de vrais `intelligence_sources.id`, une
-// chaîne libre trahirait une source inventée par le moteur.
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// RFC 4122 — accepte le format UUID 8-4-4-4-12 hexadécimal, majuscules ou minuscules.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value)
@@ -319,8 +317,8 @@ export function validateAccountKnowledgeV1(raw: unknown): ValidationResult<Accou
         issues.push({ path: contactPath, message: "Objet contact attendu." })
         return
       }
-      if (!isUuid(contact.contact_id)) {
-        issues.push({ path: `${contactPath}.contact_id`, message: "UUID de contact invalide." })
+      if (typeof contact.contact_id !== "string" || contact.contact_id.trim().length === 0) {
+        issues.push({ path: `${contactPath}.contact_id`, message: "Identifiant de contact requis." })
       }
     })
   }

@@ -63,106 +63,114 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
+      closeButtonClassName="hidden"
       title={
-        <div className="flex flex-col gap-0.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-bold text-heading text-sm sm:text-base">{run.runTypeLabel}</span>
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex items-start justify-between gap-2 w-full">
+            <span className="font-bold text-heading text-lg sm:text-xl leading-tight">{run.runTypeLabel}</span>
             <StatusPill
               label={runStatusLabel(run.status)}
               variant={runStatusVariant(run.status)}
-              className="rounded-md px-2 py-0.5 text-[11px]"
+              className="rounded-md px-2 py-0.5 text-[11px] shrink-0"
             />
           </div>
           <span className="text-xs font-mono text-muted">{workflowNomenclatureForRunType(run.runType)}</span>
         </div>
       }
-      description={formatDateTime(run.createdAt)}
       footer={
-        canRetry ? (
-          <div className="flex items-center justify-end">
-            <Button
-              variant="primary"
-              size="sm"
-              loading={isRetrying}
-              loadingLabel="Relance en cours…"
-              onClick={handleRetry}
+        <div className="flex w-full items-center gap-2">
+          {n8nExecutionUrl ? (
+            <a
+              href={n8nExecutionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-heading transition-colors hover:bg-surface-hover"
             >
-              Relancer
-            </Button>
-          </div>
-        ) : undefined
+              <Image
+                src="/icons_set/logo_n8n.png"
+                alt="n8n"
+                width={16}
+                height={16}
+                className="size-4 shrink-0 rounded-sm"
+              />
+              <span className="flex-1 text-center pr-4">Ouvrir l&apos;exécution</span>
+            </a>
+          ) : n8nExecutionId ? (
+            <div className="flex-1 flex h-9 items-center rounded-md border border-border bg-surface px-3 text-[10px] text-muted">
+              <Image
+                src="/icons_set/logo_n8n.png"
+                alt="n8n"
+                width={16}
+                height={16}
+                className="size-4 shrink-0 opacity-60 mr-2"
+              />
+              <span className="truncate">Exécution: {n8nExecutionId}</span>
+            </div>
+          ) : (
+             <div className="flex-1" />
+          )}
+          <Button
+            variant="secondary"
+            className="flex-1 h-9 text-xs"
+            onClick={() => onOpenChange(false)}
+          >
+            Fermer
+          </Button>
+        </div>
       }
     >
-      <div className="flex flex-col gap-4 text-sm">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-1 mb-4">
+        {run.companyName ? (
+          <Link href={`/prospection/accounts/${run.companyId}`} className="text-sm font-medium text-primary underline underline-offset-2 truncate">
+            {run.companyName}
+          </Link>
+        ) : null}
+        <span className="text-xs text-muted">{formatDateTime(run.createdAt)}</span>
+      </div>
+
+      <div className="flex flex-col gap-4 text-sm mt-2">
+        <div className="flex flex-col gap-3">
           <div>
             <p className="text-xs text-muted">Déclenchée par</p>
             <p className="text-body truncate">{triggeredBy}</p>
           </div>
-          <div>
-            <p className="text-xs text-muted">Coût estimé</p>
-            <p className="text-body">
-              {run.hasTokensGap
-                ? "Non mesuré (callback incomplet)"
-                : run.hasPricingGap
-                  ? "Non mesuré (modèle non tarifé)"
-                  : formatCostEstimate(run.costEstimate)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted">Compte concerné</p>
-            {run.companyName ? (
-              <Link href={`/prospection/accounts/${run.companyId}`} className="text-primary underline underline-offset-2 truncate block">
-                {run.companyName}
-              </Link>
-            ) : (
-              <p className="text-body">—</p>
-            )}
-          </div>
-          <div>
-            <p className="text-xs text-muted">Durée</p>
-            <p className="text-body">{formatDurationMs(run.durationMs)}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-muted">Coût estimé</p>
+              <p className="text-body">
+                {run.hasTokensGap
+                  ? "Non mesuré (callback incomplet)"
+                  : run.hasPricingGap
+                    ? "Non mesuré (modèle non tarifé)"
+                    : formatCostEstimate(run.costEstimate)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">Durée</p>
+              <p className="text-body">{formatDurationMs(run.durationMs)}</p>
+            </div>
           </div>
         </div>
 
         {run.errorMessage ? (
           <div className="rounded-[var(--radius-medium)] border border-danger/20 bg-danger/[0.04] p-3">
             <p className="text-xs font-medium text-danger">Message d&apos;erreur</p>
-            <p className="mt-1 whitespace-pre-wrap text-body">{run.errorMessage}</p>
+            <p className="mt-1 whitespace-pre-wrap text-[13px] text-body">{run.errorMessage}</p>
           </div>
         ) : null}
 
-        {n8nExecutionUrl ? (
-          <a
-            href={n8nExecutionUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs font-medium text-primary underline underline-offset-2 hover:text-primary-deep"
-          >
-            <Image
-              src="/icons_set/logo_n8n.png"
-              alt="n8n"
-              width={16}
-              height={16}
-              className="size-4 shrink-0 rounded-sm"
-            />
-            <span>Ouvrir l&apos;exécution dans n8n ↗</span>
-          </a>
-        ) : n8nExecutionId ? (
-          <div className="inline-flex items-center gap-2 text-xs text-muted">
-            <Image
-              src="/icons_set/logo_n8n.png"
-              alt="n8n"
-              width={16}
-              height={16}
-              className="size-4 shrink-0 opacity-60"
-            />
-            <span>Exécution n8n : {n8nExecutionId}</span>
-          </div>
-        ) : (
-          <p className="text-xs text-muted">
-            Identifiant d&apos;exécution n8n non disponible pour ce run — lien direct impossible.
-          </p>
+        {canRetry && (
+           <div className="mt-2 flex items-center justify-end">
+             <Button
+               variant="primary"
+               size="sm"
+               loading={isRetrying}
+               loadingLabel="Relance en cours…"
+               onClick={handleRetry}
+             >
+               Relancer
+             </Button>
+           </div>
         )}
 
         {retryFeedback ? (
