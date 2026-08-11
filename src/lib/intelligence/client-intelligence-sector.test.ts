@@ -29,6 +29,12 @@ function source(overrides: Partial<ClientIntelligenceSectorSource> = {}): Client
       marketGrowthPct: 5.2,
       keyPlayersPaca: [],
       keyPlayersNational: [],
+      macroId: "macro-1",
+      macroName: "Luxe & Cosmétique",
+      macroSlug: "luxe-cosmetique",
+      descriptionLevel: "segment",
+      playbookLevel: "segment",
+      hasSegmentKnowledge: true,
     },
     currentCompanyId: "company-current",
     currentSectorAnalysis: {
@@ -146,7 +152,7 @@ describe("rapprochement des comptes KREDO", () => {
 
 describe("tris éditoriaux", () => {
   it("trie les pain points par fréquence, criticité puis alphabet", () => {
-    const base = { description: null, affectedSegments: [], commercialAngle: null, kredoPractice: null }
+    const base = { description: null, affectedSegments: [], commercialAngle: null, kredoPractice: null, resolvedLevel: "macro" as const }
     expect(sortSectorPainPoints([
       { ...base, id: "b", title: "B", frequency: 3, criticality: 2 },
       { ...base, id: "c", title: "C", frequency: 5, criticality: null },
@@ -158,6 +164,7 @@ describe("tris éditoriaux", () => {
     const item = (id: string, deadlineDate: string | null, state: SectorRegulatoryView["state"]): SectorRegulatoryView => ({
       id, title: id, authority: null, description: null, deadlineDate, urgency: "medium", state,
       kredoPractice: null, commercialAngle: null, isCommercialWindow: false, sourceUrl: null,
+      resolvedLevel: "macro",
     })
     expect(sortSectorRegulatoryItems([
       item("past-old", "2025-01-01", "expired"),
@@ -174,7 +181,7 @@ describe("événements et fenêtres commerciales", () => {
     const view = buildClientIntelligenceSectorView(source({
       events: [{
         id: "event-1", title: "Salon", eventType: "market", description: null, eventDate: "2026-09-01",
-        sourceUrl: null, commercialOpportunity: "Prendre rendez-vous",
+        sourceUrl: null, commercialOpportunity: "Prendre rendez-vous", resolvedLevel: "segment",
       }],
     }))
     expect(view.events).toHaveLength(1)
@@ -186,12 +193,12 @@ describe("événements et fenêtres commerciales", () => {
       {
         id: "expired", title: "Expirée", authority: null, description: null, deadlineDate: "2026-01-01",
         urgency: "high", state: "expired", kredoPractice: null, commercialAngle: null,
-        isCommercialWindow: true, sourceUrl: null,
+        isCommercialWindow: true, sourceUrl: null, resolvedLevel: "macro",
       },
       {
         id: "open", title: "Ouverte", authority: null, description: null, deadlineDate: "2026-09-01",
         urgency: "critical", state: "imminent", kredoPractice: "data_ai", commercialAngle: "Audit flash",
-        isCommercialWindow: true, sourceUrl: null,
+        isCommercialWindow: true, sourceUrl: null, resolvedLevel: "segment",
       },
     ]
     expect(normalizeCommercialWindows(items, NOW).map((item) => item.title)).toEqual(["Ouverte"])

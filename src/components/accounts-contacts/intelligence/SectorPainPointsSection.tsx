@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/Badge"
 import type { SectorPainPointView } from "@/lib/intelligence/client-intelligence-sector"
-import { SectionBlock } from "./intelligence-parts"
+import { SectionBlock, SectorLevelBadge } from "./intelligence-parts"
 
 type SectorPainPointsSectionProps = {
   painPoints: SectorPainPointView[]
+  macroName?: string | null
 }
 
-export function SectorPainPointsSection({ painPoints }: SectorPainPointsSectionProps) {
+export function SectorPainPointsSection({ painPoints, macroName }: SectorPainPointsSectionProps) {
   const maxFrequency = Math.max(1, ...painPoints.map((item) => item.frequency))
 
   return (
@@ -19,7 +20,10 @@ export function SectorPainPointsSection({ painPoints }: SectorPainPointsSectionP
               <li key={item.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
                 <div className="flex items-start justify-between gap-3">
                   <h4 className="text-sm font-bold leading-snug text-heading">{item.title}</h4>
-                  <Badge variant="neutral">{item.frequency}×</Badge>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <SectorLevelBadge level={item.resolvedLevel} macroName={macroName} />
+                    <Badge variant="neutral">{item.frequency}×</Badge>
+                  </span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-canvas" aria-label={`Intensité ${item.frequency} sur ${maxFrequency}`}>
                   <div className="h-full rounded-full bg-primary" style={{ width: `${intensity}%` }} />

@@ -2562,11 +2562,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "companies_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "companies_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "companies_segment_id_fkey"
             columns: ["segment_id"]
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "companies_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "companies_workspace_id_fkey"
@@ -2764,11 +2792,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "competitive_map_entries_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "competitive_map_entries_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "competitive_map_entries_segment_id_fkey"
             columns: ["segment_id"]
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitive_map_entries_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "competitive_map_entries_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "competitive_map_entries_source_document_id_fkey"
@@ -4819,6 +4875,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "opportunities_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "opportunities_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "opportunities_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -5797,6 +5867,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sector_events_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_events_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "sector_events_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -5814,6 +5898,7 @@ export type Database = {
           created_at: string
           description: string | null
           digital_maturity: string | null
+          display_code: string | null
           id: string
           image_url: string | null
           key_players_national: Json
@@ -5838,6 +5923,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           digital_maturity?: string | null
+          display_code?: string | null
           id?: string
           image_url?: string | null
           key_players_national?: Json
@@ -5862,6 +5948,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           digital_maturity?: string | null
+          display_code?: string | null
           id?: string
           image_url?: string | null
           key_players_national?: Json
@@ -5885,6 +5972,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_intelligence_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_intelligence_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "sector_intelligence_workspace_id_fkey"
@@ -5947,6 +6048,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sector_news_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_news_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "sector_news_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -6002,6 +6117,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_pain_points_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_pain_points_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "sector_pain_points_workspace_id_fkey"
@@ -6068,6 +6197,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sector_regulatory_items_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "sector_regulatory_items_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "sector_regulatory_items_workspace_id_fkey"
@@ -6387,6 +6530,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "value_chain_nodes_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "value_chain_nodes_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
           {
             foreignKeyName: "value_chain_nodes_workspace_id_fkey"
@@ -7078,11 +7235,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "companies_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "companies_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
+          },
+          {
             foreignKeyName: "companies_segment_id_fkey"
             columns: ["segment_id"]
             isOneToOne: false
             referencedRelation: "sector_intelligence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["macro_id"]
+          },
+          {
+            foreignKeyName: "companies_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "v_sector_knowledge_resolved"
+            referencedColumns: ["segment_id"]
           },
         ]
       }
@@ -7285,6 +7470,78 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_mission_quarterly_revenue"
             referencedColumns: ["collaborator_id"]
+          },
+        ]
+      }
+      v_sector_knowledge_items: {
+        Row: {
+          authority: string | null
+          commercial_angle: string | null
+          commercial_opportunity: string | null
+          created_at: string | null
+          deadline_date: string | null
+          description: string | null
+          event_date: string | null
+          event_status: string | null
+          event_type: string | null
+          frequency_count: number | null
+          is_commercial_window: boolean | null
+          is_trigger_event: boolean | null
+          item_id: string | null
+          item_kind: string | null
+          kredo_practice: string | null
+          macro_id: string | null
+          news_source: string | null
+          published_at: string | null
+          relevance_score: number | null
+          resolved_level: string | null
+          segment_id: string | null
+          source_company_ids: string[] | null
+          source_sector_id: string | null
+          source_url: string | null
+          title: string | null
+          updated_at: string | null
+          urgency: string | null
+          verbatim: string | null
+          workspace_id: string | null
+        }
+        Relationships: []
+      }
+      v_sector_knowledge_resolved: {
+        Row: {
+          attractiveness_score: number | null
+          avg_tjm_max: number | null
+          avg_tjm_min: number | null
+          caveats: Json | null
+          description: string | null
+          description_level: string | null
+          digital_maturity: string | null
+          has_segment_knowledge: boolean | null
+          key_players_national: Json | null
+          key_players_paca: Json | null
+          macro_id: string | null
+          macro_name: string | null
+          macro_slug: string | null
+          macro_status: string | null
+          market_growth_pct: number | null
+          market_size_eur_bn: number | null
+          playbook: Json | null
+          playbook_level: string | null
+          practices_fit: Json | null
+          practices_fit_level: string | null
+          segment_id: string | null
+          segment_name: string | null
+          segment_slug: string | null
+          segment_status: string | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sector_intelligence_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
           },
         ]
       }

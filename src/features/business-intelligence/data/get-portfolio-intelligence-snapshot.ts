@@ -42,7 +42,10 @@ export const getPortfolioIntelligenceSnapshot = cache(async (): Promise<Portfoli
     opportunitiesResult,
     intelligenceResult,
   ] = await Promise.all([
-    supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
+    // Lot 0 — `segment_id` est la maille de lecture de la connaissance
+    // sectorielle ; `sector_id` (le macro) reste chargé comme niveau
+    // d'agrégation du regroupement BI.
+    supabase.from("companies").select<PortfolioCompanyRow>("id,name,sector,sector_id,segment_id,lifecycle_status,priority,legacy_folio_score,knowledge_state,health,updated_at").order("name"),
     supabase.from("contacts").select<PortfolioContactRow>("company_id,relationship_role,decision_power"),
     supabase.from("interactions").select<any>("company_id,type,occurred_at,details"),
     supabase.from("calendar_events").select<PortfolioCalendarEventRow>("company_id,event_type,starts_at,status"),

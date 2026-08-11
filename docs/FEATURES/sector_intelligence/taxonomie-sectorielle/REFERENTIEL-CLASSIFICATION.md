@@ -126,6 +126,16 @@ C'est cette règle qui autorise 38 segments sans imposer 38 études.
 
 **Liste faisant foi.** Les `slug` sont les identifiants stables : utilisez-les, jamais les noms.
 
+> ⚠️ **Les codes « 1.1 », « 5.1 », « 12.1 » de la colonne Segment ne font plus partie du nom en
+> base** (migration `072`, 2026-08-12). Ils vivent désormais dans la colonne dédiée
+> `sector_intelligence.display_code`, purement documentaire, et `name` ne porte que le libellé
+> (« Spatial, défense & systèmes critiques »). Ce tableau les conserve comme **repères de lecture**
+> du référentiel — ne jamais les réinjecter devant un nom à l'écran. La clé fonctionnelle reste le
+> `slug`, la hiérarchie reste portée par `parent_id`.
+>
+> Ne pas confondre ces codes avec les numéros de **section** de ce document : le « §5.1 » du
+> chapitre 5 désigne le paramètre `sector_id`, pas le segment Spatial.
+
 | Macro-secteur | `slug` macro | Segment | `slug` segment | Comptes |
 |---|---|---|---|---|
 | **Parfumerie, Arômes & Cosmétique** | `parfumerie-aromes` | 1.1 Compositions & ingrédients B2B | `seg-parfumerie-compositions-b2b` | 7 |

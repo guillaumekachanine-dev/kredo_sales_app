@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Badge, type BadgeVariant } from "@/components/ui/Badge"
 import { cn } from "@/lib/utils"
 import type { SectorRegulatoryView } from "@/lib/intelligence/client-intelligence-sector"
-import { SectionBlock } from "./intelligence-parts"
+import { SectionBlock, SectorLevelBadge } from "./intelligence-parts"
 
 type SectorRegulatoryTimelineProps = {
   items: SectorRegulatoryView[]
+  macroName?: string | null
 }
 
 const URGENCY_LABELS: Record<string, string> = {
@@ -43,7 +44,7 @@ function urgencyAccent(item: SectorRegulatoryView): string {
   return "border-primary"
 }
 
-export function SectorRegulatoryTimeline({ items }: SectorRegulatoryTimelineProps) {
+export function SectorRegulatoryTimeline({ items, macroName }: SectorRegulatoryTimelineProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
 
   function toggle(id: string) {
@@ -79,6 +80,7 @@ export function SectorRegulatoryTimeline({ items }: SectorRegulatoryTimelineProp
                     </time>
                     <Badge variant={urgencyVariant(item)}>{URGENCY_LABELS[item.urgency] ?? item.urgency}</Badge>
                     <Badge variant={item.state === "imminent" ? "brass" : "neutral"}>{STATE_LABELS[item.state]}</Badge>
+                    <SectorLevelBadge level={item.resolvedLevel} macroName={macroName} />
                   </span>
                   <span className="mt-1 block text-sm font-bold leading-snug text-heading">{item.title}</span>
                   {item.authority ? <span className="mt-1 block text-[11px] font-medium text-muted">{item.authority}</span> : null}

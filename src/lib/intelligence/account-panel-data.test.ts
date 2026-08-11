@@ -4,6 +4,7 @@ import {
   buildPanelEvents,
   buildPanelOpportunities,
   hasStructuredSectorPlaybook,
+  toEffectiveSectorRow,
   type PanelContactRow,
   type PanelEventRow,
   type PanelOpportunityRow,
@@ -140,5 +141,53 @@ describe("account panel data rules", () => {
       status: "active",
       playbook: {},
     })).toBe(false)
+  })
+})
+
+// Lot 0 — résolution sectorielle héritée.
+describe("toEffectiveSectorRow", () => {
+  const resolved = (overrides: Record<string, unknown> = {}) => ({
+    segment_id: "segment-1",
+    segment_name: "5.1 Spatial",
+    segment_slug: "spatial",
+    segment_status: "development",
+    macro_id: "macro-1",
+    macro_name: "Aéronautique, Spatial & Défense",
+    macro_slug: "aeronautique-spatial-defense",
+    macro_status: "active",
+    playbook: { personas: ["DSI"] },
+    playbook_level: "macro",
+    has_segment_knowledge: false,
+    ...overrides,
+  }) as Parameters<typeof toEffectiveSectorRow>[0]
+
+  it("retient le macro quand le playbook en vient — statut et slug compris", () => {
+    // Le slug alimente /ressources/playbook/[slug] : pointer le segment
+    // enverrait les 36 fiches de seed vers une page de playbook vide.
+    expect(toEffectiveSectorRow(resolved())).toEqual({
+      id: "macro-1",
+      name: "Aéronautique, Spatial & Défense",
+      slug: "aeronautique-spatial-defense",
+      status: "active",
+      playbook: { personas: ["DSI"] },
+    })
+  })
+
+  it("retient le segment dès qu'il porte son propre playbook", () => {
+    const row = toEffectiveSectorRow(resolved({ playbook_level: "segment", segment_status: "active" }))
+    expect(row).toMatchObject({ id: "segment-1", slug: "spatial", status: "active" })
+  })
+
+  it("garde le drapeau « playbook structuré » allumé sur un segment de seed", () => {
+    expect(hasStructuredSectorPlaybook(toEffectiveSectorRow(resolved()))).toBe(true)
+  })
+
+  it("retombe sur le segment quand le macro est absent", () => {
+    const row = toEffectiveSectorRow(resolved({ macro_id: null, macro_name: null, macro_slug: null, macro_status: null }))
+    expect(row).toMatchObject({ id: "segment-1", slug: "spatial", status: "development" })
+  })
+
+  it("renvoie null sans ligne résolue", () => {
+    expect(toEffectiveSectorRow(null)).toBeNull()
   })
 })

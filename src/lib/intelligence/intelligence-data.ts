@@ -316,9 +316,13 @@ export type ClientIntelligenceData = {
     // ADR-0019 — socle d'identité (étape 0 du cockpit). `sectorId` distinct de
     // `sectorSnapshot` (celui-ci est le snapshot déterministe hydraté, celui-là
     // n'est que la FK brute, nécessaire à AccountScanDialog).
+    // Lot 0 — `segmentId` est la maille de LECTURE de la connaissance
+    // sectorielle ; `sectorId` (le macro) reste exposé pour l'affichage du
+    // parent et pour AccountScanDialog, mais n'est plus une source de lecture.
     siren: string | null
     nafCode: string | null
     sectorId: string | null
+    segmentId: string | null
     depthLevel: AccountDepthLevel
     origin: string
   }
@@ -362,9 +366,11 @@ export type ClientIntelligenceData = {
   accountKnowledgeSources: AccountKnowledgeCitedSource[]
   accountKnowledgeV3Sources: AccountKnowledgeCitedSource[]
   // ADR-0012 Lot 3 — snapshot sectoriel déterministe (D-6, 0 token), lu live
-  // depuis sector_intelligence + tables sector_* mutualisées. null tant que le
-  // compte n'a pas de sector_id (majorité du parc — cf. ADR §backfill honnête,
-  // pas de rattachement forcé). L'UI retombe sur `sector` (FOLIO) sinon.
+  // depuis les vues de résolution `v_sector_knowledge_*`. Lot 0 : la lecture se
+  // fait à la maille SEGMENT (`companies.segment_id`), avec héritage du macro
+  // parent. Les 98 comptes du parc sont classés, donc `null` ne signifie plus
+  // « non rattaché » mais « segment introuvable » ; l'UI retombe alors sur
+  // `sector` (FOLIO).
   sectorSnapshot: SectorSnapshotView | null
   sector: { data: AnalyseSector; source: IntelligenceSource } | null
   diagnostic: { data: AnalyseDiagnostic; source: IntelligenceSource } | null
@@ -576,6 +582,7 @@ type CompanyRow = {
   legal_name: string | null
   sector: string | null
   sector_id: string | null
+  segment_id: string | null
   segment: string | null
   revenue: string | null
   employee_count: number | null
@@ -855,7 +862,7 @@ export async function getClientIntelligence(
     supabase
       .from("companies")
       .select<CompanyRow>(
-        "id,name,legal_name,sector,sector_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
+        "id,name,legal_name,sector,sector_id,segment_id,segment,revenue,employee_count,size_band,priority,lifecycle_status,legacy_folio_score,website,hq_location,description,metadata,siren,naf_code,depth_level,origin",
       )
       .eq("id", companyId)
       .maybeSingle(),
@@ -1098,8 +1105,11 @@ export async function getClientIntelligence(
   const allCitedSourceIds = Array.from(new Set([...citedSourceIdsV2, ...citedSourceIdsV3]))
 
   const [sectorSnapshot, signedUrlOutcome, citedSourcesResult] = await Promise.all([
-    company.sector_id
-      ? getSectorSnapshot(company.sector_id, {
+    // Lot 0 : lecture à la maille segment. `sector_id` reste une projection en
+    // base (écrite par `apply_account_classification`) mais n'est plus lu comme
+    // source de connaissance sectorielle.
+    company.segment_id
+      ? getSectorSnapshot(company.segment_id, {
           currentCompanyId: company.id,
           currentSectorAnalysis: metadata.sector_analysis,
         })
@@ -1458,6 +1468,7 @@ export async function getClientIntelligence(
         siren: company.siren,
         nafCode: company.naf_code,
         sectorId: company.sector_id,
+        segmentId: company.segment_id,
         depthLevel: isAccountDepthLevel(company.depth_level) ? company.depth_level : "noted",
         origin: company.origin,
       },

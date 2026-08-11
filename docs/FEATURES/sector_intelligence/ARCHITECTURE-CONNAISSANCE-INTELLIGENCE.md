@@ -17,10 +17,10 @@ Aval attendu : un ADR-0020 qui grave les décisions D-A à D-H ci-dessous.
 
 Ce critère unique découpe les 36 blocs de connaissance en trois régimes (§7), et il tombe presque exactement sur la frontière des trois régimes de production du document 09 (déterministe / génératif sourcé / humain).
 
-**Le constat qui commande tout le reste** : la connaissance sectorielle et les comptes ne se rencontrent jamais en base. 95 % de la connaissance sectorielle est accrochée aux **macro-secteurs** ; 100 % des comptes sont accrochés aux **segments**. Aucune vue ne fait le pont. Un compte classé « 5.1 Spatial, défense & systèmes critiques » ne voit aujourd'hui **aucune** échéance réglementaire, **aucun** pain point, **aucun** playbook — alors que la base en contient pour son macro-secteur.
+**Le constat qui commande tout le reste** : la connaissance sectorielle vit à **95 % sur les macro-secteurs**, les comptes à **100 % sur les segments**. Le pont existe — `companies.sector_id` est rempli sur 98/98 et coïncide avec `segment.parent_id` dans **100 % des cas** — mais il est **unidirectionnel et grossier** : toute l'application lit `sector_id`, donc le macro, et **rien ne lit le segment**. Conséquences : les trois comptes du segment « 5.1 Spatial, défense & systèmes critiques » voient exactement ce que voit n'importe quel compte aéronautique ; et surtout, **la méthode 08/09 produit au niveau segment — cette production serait aujourd'hui invisible à l'écran.**
 
 **Les trois chaînons manquants, dans l'ordre de blocage** :
-1. La résolution sectorielle héritée `segment → macro` (une vue, 0,5 j) — sans elle, 80 % des blocs affichent « à venir ».
+1. La résolution sectorielle héritée `segment ∪ macro` (une vue, 0,5 j). Effet visible immédiat quasi nul — c'est un lot d'**infrastructure** : il rend lisible la maille à laquelle toutes les études futures écrivent.
 2. `competitive_map_entries` : table livrée par la migration 067, **0 ligne** — donc pas de matrice, pas de fiches concurrents, pas de tableau comparatif, pas de priorisation. Trois études sont prêtes à y entrer.
 3. L'identité France : **6 comptes sur 98 ont un SIREN**.
 
@@ -45,7 +45,15 @@ Ce critère unique découpe les 36 blocs de connaissance en trois régimes (§7)
 
 Les 36 segments en statut `development` portent un playbook **structurellement présent mais vide** : les 4 clés existent, les 4 tableaux sont à zéro. C'est un squelette posé par la migration de taxonomie, pas de la connaissance.
 
-> **D-B — Règle de résolution héritée.** La connaissance d'un compte = `union(sa fiche segment, sa fiche macro parente)`, le segment primant sur le macro champ par champ. C'est une vue SQL, pas une migration de données : on ne recopie rien, on résout à la lecture. Sans cette règle, tout le reste du chantier construit des pages vides.
+**Ce qui marche déjà, et qu'il ne faut pas casser** — vérifié le 12/08 : `companies.sector_id` est renseigné sur **98/98**, pointe sur un **macro dans 100 % des cas**, et **égale `segment.parent_id` dans 100 % des cas** (0 incohérence, 0 segment orphelin). La cohérence est maintenue par `apply_account_classification()` (migration 068), qui écrit les deux colonnes ensemble. Les loaders lisent tous `sector_id` : `account-panel-data.ts`, `intelligence-data.ts` (→ `getSectorSnapshot`), `get-portfolio-intelligence-snapshot.ts`.
+
+**Ce qui ne marche pas** :
+- **Personne ne lit le segment.** Les 3 comptes de « 5.1 Spatial » voient les 5 items réglementaires et 6 pain points du macro « Aéronautique, Spatial & Défense » — les mêmes que tout compte aéro. La granularité fine de la taxonomie n'a aucun consommateur.
+- **La production future est invisible.** Une étude conduite selon la méthode 08/09 porte sur un **segment**. Écrite au bon niveau, elle ne s'afficherait nulle part.
+- **19 comptes sur 98 ne voient réellement rien** : 3 macros sur 15 sont à zéro item réglementaire, zéro pain point, zéro persona — « Secteur public, ESR » (10 comptes), « Services aux entreprises » (8), « Non rattaché » (1).
+- **`sector_id` est une dénormalisation.** Cohérente aujourd'hui parce qu'une seule RPC l'écrit ; un `update` direct la ferait diverger en silence, sans qu'aucun test ne le voie.
+
+> **D-B — Règle de résolution héritée.** La connaissance d'un compte = `union(sa fiche segment, sa fiche macro parente)`, le segment primant sur le macro champ par champ. C'est une vue SQL, pas une migration de données : on ne recopie rien, on résout à la lecture. `sector_id` cesse d'être une source de lecture et redevient ce qu'il est — une projection.
 
 ### 1.2 Les compteurs qui décident du plan
 
@@ -363,10 +371,11 @@ L'étude cible (couches 0-3 du doc 08) produit exactement ces blocs. **Chaque se
 
 Ordre = valeur débloquée / coût. Les lots 0 à 2 conditionnent tout le reste.
 
-### Lot 0 — Résolution sectorielle héritée *(0,5 j)* 🔴 bloquant
-**Fonctionnel** : un compte voit la connaissance de son segment **et** de son macro parent.
-**Technique** : vue `v_sector_knowledge_resolved(sector_id)` renvoyant l'union résolue (segment prioritaire, macro en repli) sur `regulatory_items`, `pain_points`, `events`, `playbook`, `practices_fit`. Brancher `get-business-intelligence-snapshot.ts` et `client-intelligence-sector.ts` dessus.
-**Sortie** : les 98 comptes voient au moins une échéance et un playbook. Aujourd'hui : 0.
+### Lot 0 — Résolution sectorielle héritée *(1 j)* 🔴 bloquant — **infrastructure, effet visible faible**
+**Fonctionnel** : un compte voit la connaissance de son segment **et** de son macro parent, le segment primant. Aucune régression sur l'existant : le macro reste aujourd'hui la seule source remplie.
+**Technique** : vues `v_sector_knowledge_resolved` (une ligne par fiche, champs scalaires et `playbook` résolus segment→macro) et `v_sector_knowledge_items` (items réglementaires, pain points, événements, actualités, avec `resolved_level`). Basculer les quatre loaders qui lisent `companies.sector_id` en dur — `sector-snapshot-data.ts`, `account-panel-data.ts`, `intelligence-data.ts`, `get-portfolio-intelligence-snapshot.ts` — vers `segment_id` + résolution.
+**Pourquoi maintenant, malgré un effet écran quasi nul** : c'est ce qui rend lisible la maille à laquelle **toutes les études futures écrivent**. Sans ce lot, le Lot 2 ingère une cartographie au niveau segment que personne n'affiche.
+**Sortie** : `resolved_level` visible sur chaque item ; les 19 comptes des 3 macros vides sont identifiés comme tels au lieu d'afficher un onglet muet.
 
 ### Lot 1 — Socle identité France *(3 j)* 🔴 bloquant
 **Fonctionnel** : onglet Socle du cockpit renseigné pour 98 comptes.

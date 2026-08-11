@@ -110,7 +110,7 @@ describe("getRecommendedProcessStep", () => {
       accountKnowledge: null,
       accountKnowledgeV3: null,
       client: { data: {} as never, source: "folio" },
-      sectorSnapshot: { regulatoryItems: [] },
+      sectorSnapshot: { regulatoryItems: [], hasAnyKnowledge: true },
       sector: null,
       accountIssues: [{ id: "i1" }],
       commercialStrategy: { data: {} as never, resultId: "r1" },

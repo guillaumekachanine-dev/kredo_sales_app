@@ -104,8 +104,14 @@ export function getProcessStepStatus(stepKey: ProcessStepKey, data: ClientIntell
     case "secteur": {
       // ADR-0012 Lot 3 : sectorSnapshot (déterministe, mutualisé) prime sur le
       // fallback FOLIO/moteur legacy.
-      if (data.sectorSnapshot) {
+      // Lot 0 : depuis la classification 98/98, un snapshot existe pour tout
+      // compte — sa seule présence ne prouve donc plus qu'il y a quelque chose
+      // à lire. On se fie au contenu réellement résolu (segment + macro).
+      if (data.sectorSnapshot?.hasAnyKnowledge) {
         return { label: "Disponible", tone: "success" }
+      }
+      if (data.sectorSnapshot) {
+        return { label: "Secteur à étudier", tone: "neutral" }
       }
       const hasFolio = data.sector?.source === "folio"
       if (hasFolio) {

@@ -26,6 +26,13 @@ export type SectorActorView = {
   y: number
 }
 
+// Lot 0 — résolution sectorielle héritée. Toute donnée sectorielle porte
+// désormais la maille d'où elle vient : `segment` (spécifique au segment du
+// compte) ou `macro` (héritée du macro-secteur parent). L'UI DOIT pouvoir dire
+// « cette information vient du macro-secteur » — sans quoi l'utilisateur croit
+// qu'elle est spécifique à son segment, ce qui est une régression de confiance.
+export type SectorResolvedLevel = "segment" | "macro"
+
 export type SectorPainPointView = {
   id: string
   title: string
@@ -35,6 +42,7 @@ export type SectorPainPointView = {
   affectedSegments: string[]
   commercialAngle: string | null
   kredoPractice: string | null
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type SectorRegulatoryState = "future" | "imminent" | "expired" | "undated"
@@ -51,6 +59,7 @@ export type SectorRegulatoryView = {
   commercialAngle: string | null
   isCommercialWindow: boolean
   sourceUrl: string | null
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type SectorCommercialEventView = {
@@ -64,6 +73,7 @@ export type SectorCommercialEventView = {
   sourceUrl: string | null
   commercialOpportunity: string | null
   timing: "upcoming" | "recent" | "undated"
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type SectorCommercialWindowView = {
@@ -76,10 +86,18 @@ export type SectorCommercialWindowView = {
   kredoPractice: string | null
   sourceUrl: string | null
   sourceType: "regulatory"
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type ClientIntelligenceSectorView = {
+  // Identité de la maille LUE : depuis le Lot 0, c'est le segment du compte,
+  // plus son macro-secteur. `sectorId` vaut donc `segmentId` (la fiche
+  // effectivement lue) ; `macroId` porte le parent dont on hérite.
   sectorId: string
+  segmentId: string
+  macroId: string | null
+  macroName: string | null
+  macroSlug: string | null
   name: string
   slug: string
   description: string | null
@@ -97,6 +115,17 @@ export type ClientIntelligenceSectorView = {
   exposedAccountsCount: number
   displayedKredoAccountsCount: number
   unclassifiedKredoAccountsCount: number
+  // Provenance des champs résolus. `hasSegmentKnowledge` = au moins un champ
+  // scalaire ou une clé de playbook vient du segment lui-même.
+  descriptionLevel: SectorResolvedLevel
+  playbookLevel: SectorResolvedLevel
+  hasSegmentKnowledge: boolean
+  // Maille de la liste de pairs affichée : `segment` (concurrents directs) ou
+  // `macro` quand le segment compte moins de PEER_SEGMENT_MIN comptes.
+  peersLevel: SectorResolvedLevel
+  // Faux quand ni le segment ni son macro ne portent le moindre item : l'UI
+  // doit alors afficher un état vide EXPLICITE, pas un écran muet.
+  hasAnyKnowledge: boolean
 }
 
 export type SectorCompanySource = {
@@ -114,6 +143,7 @@ export type SectorPainPointSource = {
   frequencyCount: number
   sourceCompanyIds: string[]
   kredoPractice: string | null
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type SectorRegulatorySource = {
@@ -127,6 +157,7 @@ export type SectorRegulatorySource = {
   commercialAngle: string | null
   isCommercialWindow: boolean
   sourceUrl: string | null
+  resolvedLevel: SectorResolvedLevel
 }
 
 export type SectorEventSource = {
@@ -137,8 +168,12 @@ export type SectorEventSource = {
   eventDate: string | null
   sourceUrl: string | null
   commercialOpportunity: string | null
+  resolvedLevel: SectorResolvedLevel
 }
 
+// Fiche sectorielle RÉSOLUE : les champs scalaires sont ceux du segment quand
+// il les porte, sinon ceux du macro parent (substitution champ par champ, faite
+// en SQL par `v_sector_knowledge_resolved`).
 export type SectorIntelligenceSource = {
   id: string
   name: string
@@ -150,6 +185,12 @@ export type SectorIntelligenceSource = {
   marketGrowthPct: number | null
   keyPlayersPaca: unknown
   keyPlayersNational: unknown
+  macroId: string | null
+  macroName: string | null
+  macroSlug: string | null
+  descriptionLevel: SectorResolvedLevel
+  playbookLevel: SectorResolvedLevel
+  hasSegmentKnowledge: boolean
 }
 
 export type ClientIntelligenceSectorSource = {
@@ -160,6 +201,8 @@ export type ClientIntelligenceSectorSource = {
   painPoints: SectorPainPointSource[]
   regulatoryItems: SectorRegulatorySource[]
   events: SectorEventSource[]
+  // Maille de la liste de pairs fournie dans `companies`.
+  peersLevel?: SectorResolvedLevel
   now?: Date
 }
 
@@ -532,6 +575,7 @@ export function normalizeCommercialWindows(
       kredoPractice: item.kredoPractice,
       sourceUrl: item.sourceUrl,
       sourceType: "regulatory" as const,
+      resolvedLevel: item.resolvedLevel,
     }))
     .sort((left, right) => (left.deadlineDate ?? "9999-12-31").localeCompare(right.deadlineDate ?? "9999-12-31"))
 }
@@ -549,6 +593,7 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
     affectedSegments: uniqueText(item.sourceCompanyIds.map((id) => companyById.get(id)?.segment)),
     commercialAngle: null,
     kredoPractice: item.kredoPractice,
+    resolvedLevel: item.resolvedLevel,
   })))
   const regulatoryItems = sortSectorRegulatoryItems(source.regulatoryItems.map((item) => ({
     id: item.id,
@@ -562,6 +607,7 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
     commercialAngle: item.commercialAngle,
     isCommercialWindow: item.isCommercialWindow,
     sourceUrl: validUrl(item.sourceUrl),
+    resolvedLevel: item.resolvedLevel,
   })))
   const today = isoDay(now)
   const eventTimingRank: Record<SectorCommercialEventView["timing"], number> = {
@@ -580,6 +626,7 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
     sourceUrl: validUrl(item.sourceUrl),
     commercialOpportunity: item.commercialOpportunity,
     timing: item.eventDate ? item.eventDate >= today ? "upcoming" : "recent" : "undated",
+    resolvedLevel: item.resolvedLevel,
   })).sort((left, right) => {
     if (left.timing !== right.timing) return eventTimingRank[left.timing] - eventTimingRank[right.timing]
     if (left.timing === "recent") return (right.eventDate ?? "").localeCompare(left.eventDate ?? "")
@@ -593,6 +640,10 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
 
   return {
     sectorId: source.sector.id,
+    segmentId: source.sector.id,
+    macroId: source.sector.macroId,
+    macroName: source.sector.macroName,
+    macroSlug: source.sector.macroSlug,
     name: source.sector.name,
     slug: source.sector.slug,
     description: source.sector.description,
@@ -610,6 +661,15 @@ export function buildClientIntelligenceSectorView(source: ClientIntelligenceSect
     exposedAccountsCount: source.companies.length,
     displayedKredoAccountsCount,
     unclassifiedKredoAccountsCount,
+    descriptionLevel: source.sector.descriptionLevel,
+    playbookLevel: source.sector.playbookLevel,
+    hasSegmentKnowledge: source.sector.hasSegmentKnowledge,
+    peersLevel: source.peersLevel ?? "macro",
+    hasAnyKnowledge:
+      painPoints.length > 0 ||
+      regulatoryItems.length > 0 ||
+      events.length > 0 ||
+      Boolean(source.sector.description),
   }
 }
 
@@ -632,6 +692,12 @@ export function buildFolioFallbackSectorView(input: {
       marketGrowthPct: null,
       keyPlayersPaca: [],
       keyPlayersNational: [],
+      macroId: null,
+      macroName: null,
+      macroSlug: null,
+      descriptionLevel: "segment",
+      playbookLevel: "segment",
+      hasSegmentKnowledge: false,
     },
     currentCompanyId: input.companyId,
     currentSectorAnalysis: input.sectorAnalysis,

@@ -20,6 +20,7 @@ function commercialWindow(
     commercialAngle: overrides.commercialAngle ?? null,
     isCommercialWindow: overrides.isCommercialWindow ?? true,
     sourceUrl: overrides.sourceUrl ?? null,
+    resolvedLevel: overrides.resolvedLevel ?? "macro",
   }
 }
 

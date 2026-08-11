@@ -1,7 +1,7 @@
 import type { AnalyseSector } from "@/lib/intelligence/intelligence-data"
 import { buildFolioFallbackSectorView, type ClientIntelligenceSectorView } from "@/lib/intelligence/client-intelligence-sector"
 import type { SectorSnapshotView } from "@/lib/intelligence/sector-snapshot-data"
-import { SectionBlock } from "./intelligence-parts"
+import { SectionBlock, SectorLevelBadge } from "./intelligence-parts"
 import { SectorMarketSection } from "./SectorMarketSection"
 import { SectorActorMap, SectorActorMobileList } from "./SectorActorMap"
 import { SectorPainPointsSection } from "./SectorPainPointsSection"
@@ -35,6 +35,9 @@ export function ClientIntelligenceSectorTab(props: ClientIntelligenceSectorTabPr
   return (
     <div className="grid min-w-0 grid-cols-12 gap-6 pt-6">
       <div className="col-span-12"><SectorIntroduction data={view} /></div>
+      {!view.hasAnyKnowledge ? (
+        <div className="col-span-12"><SectorNoKnowledgeState data={view} /></div>
+      ) : null}
       <div className="col-span-12"><SectorMarketSection market={view.market} /></div>
       <div className="col-span-12">
         <SectorActorMap
@@ -43,8 +46,8 @@ export function ClientIntelligenceSectorTab(props: ClientIntelligenceSectorTabPr
           unclassifiedKredoAccountsCount={view.unclassifiedKredoAccountsCount}
         />
       </div>
-      <div className="col-span-12 lg:col-span-5"><SectorPainPointsSection painPoints={view.painPoints} /></div>
-      <div className="col-span-12 lg:col-span-7"><SectorRegulatoryTimeline items={view.regulatoryItems} /></div>
+      <div className="col-span-12 lg:col-span-5"><SectorPainPointsSection painPoints={view.painPoints} macroName={view.macroName} /></div>
+      <div className="col-span-12 lg:col-span-7"><SectorRegulatoryTimeline items={view.regulatoryItems} macroName={view.macroName} /></div>
       <div className="col-span-12 lg:col-span-6"><SectorCommercialEventsSection events={view.events} /></div>
       <div className="col-span-12 lg:col-span-6"><SectorCommercialWindowsSection windows={view.openCommercialWindows} /></div>
     </div>
@@ -58,14 +61,15 @@ export function ClientIntelligenceSectorMobileTab(props: ClientIntelligenceSecto
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <SectorIntroduction data={view} compact />
+      {!view.hasAnyKnowledge ? <SectorNoKnowledgeState data={view} /> : null}
       <SectorMarketSection market={view.market} compact />
       <SectorActorMobileList
         actors={view.actors}
         displayedKredoAccountsCount={view.displayedKredoAccountsCount}
         unclassifiedKredoAccountsCount={view.unclassifiedKredoAccountsCount}
       />
-      <SectorPainPointsSection painPoints={view.painPoints} />
-      <SectorRegulatoryTimeline items={view.regulatoryItems} />
+      <SectorPainPointsSection painPoints={view.painPoints} macroName={view.macroName} />
+      <SectorRegulatoryTimeline items={view.regulatoryItems} macroName={view.macroName} />
       <SectorCommercialWindowsSection windows={view.openCommercialWindows} />
       <SectorCommercialEventsSection events={view.events} />
     </div>
@@ -78,15 +82,26 @@ function SectorIntroduction({ data, compact = false }: { data: ClientIntelligenc
     data.attractivenessScore !== null ? { label: "Attractivité", value: `${data.attractivenessScore}/5` } : null,
     data.marketSizeEurBn !== null ? { label: "Taille marché KREDO", value: `${data.marketSizeEurBn} Md€` } : null,
     data.marketGrowthPct !== null ? { label: "Croissance KREDO", value: `${data.marketGrowthPct}%` } : null,
-    { label: "Portefeuille", value: `${data.exposedAccountsCount} compte${data.exposedAccountsCount > 1 ? "s" : ""}` },
+    {
+      label: data.peersLevel === "segment" ? "Pairs du segment" : "Pairs du macro-secteur",
+      value: `${data.exposedAccountsCount} compte${data.exposedAccountsCount > 1 ? "s" : ""}`,
+    },
   ].filter((item): item is { label: string; value: string } => Boolean(item))
 
   return (
     <SectionBlock title={data.name} action={<span className="text-[10px] font-semibold uppercase tracking-wider text-white/75">Chapeau sectoriel</span>}>
       <div className="flex flex-col gap-4">
+        {data.macroName ? (
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Segment de « {data.macroName} »
+          </p>
+        ) : null}
         {data.description ? (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Synthèse KREDO</p>
+            <p className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted">
+              Synthèse KREDO
+              <SectorLevelBadge level={data.descriptionLevel} macroName={data.macroName} />
+            </p>
             <p className="mt-1 text-sm leading-relaxed text-body">{data.description}</p>
           </div>
         ) : null}
@@ -107,6 +122,22 @@ function SectorIntroduction({ data, compact = false }: { data: ClientIntelligenc
         </dl>
       </div>
     </SectionBlock>
+  )
+}
+
+// Lot 0 — critère de sortie n°5 : un compte rattaché à un macro-secteur sans
+// aucune connaissance (3 macros, 19 comptes) doit lire POURQUOI son onglet est
+// vide, au lieu de tomber sur un écran muet qu'il prendra pour un bug.
+function SectorNoKnowledgeState({ data }: { data: ClientIntelligenceSectorView }) {
+  return (
+    <section className="rounded-lg border border-dashed border-border bg-surface px-4 py-6">
+      <h3 className="text-xs font-bold uppercase tracking-wider text-heading">Aucune connaissance sectorielle disponible</h3>
+      <p className="mt-2 text-xs leading-relaxed text-muted">
+        Ni le segment « {data.name} »{data.macroName ? ` ni son macro-secteur « ${data.macroName} »` : ""} ne portent
+        pour l&apos;instant d&apos;échéance réglementaire, de pain point ou d&apos;événement documenté. Le compte est
+        bien classé : c&apos;est l&apos;étude sectorielle qui reste à produire.
+      </p>
+    </section>
   )
 }
 

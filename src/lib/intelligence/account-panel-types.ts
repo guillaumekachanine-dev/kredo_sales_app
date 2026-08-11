@@ -98,6 +98,7 @@ export type AccountIntelligencePanelData = {
     name: string
     sector: string | null
     sectorId: string | null
+    segmentId: string | null
     segment: string | null
     priority: string
     lifecycleStatus: string
@@ -108,10 +109,18 @@ export type AccountIntelligencePanelData = {
   resources: PanelResourceCounts
   sector: {
     hasStructuredSector: boolean
+    // Lot 0 — `structuredSector*` décrit la fiche dont le playbook est
+    // EFFECTIVEMENT servi (le segment s'il en porte un, sinon son macro
+    // parent) : c'est elle que vise `/ressources/playbook/[slug]`.
+    // `structuredSectorLevel` dit laquelle des deux, `segmentName` /
+    // `macroName` permettent à l'UI de nommer l'héritage.
     structuredSectorId: string | null
     structuredSectorName: string | null
     structuredSectorSlug: string | null
     structuredSectorStatus: string | null
+    structuredSectorLevel: "segment" | "macro" | null
+    segmentName: string | null
+    macroName: string | null
     hasLegacySectorAnalysis: boolean
     source: PanelDataSource
   }

@@ -26,7 +26,10 @@ export type ProspectionPortfolioAccount = {
   id: string
   name: string
   sector: string
+  // Lot 0 — `sectorId` reste le macro (niveau d'agrégation) ; `segmentId` est
+  // la maille de lecture de la connaissance sectorielle.
   sectorId: string | null
+  segmentId: string | null
   lifecycle: string
   priority: string
   legacyFolioScore: number | null
@@ -97,6 +100,7 @@ export type PortfolioCompanyRow = {
   name: string
   sector: string | null
   sector_id: string | null
+  segment_id: string | null
   lifecycle_status: string
   priority: string
   legacy_folio_score: number | string | null
@@ -690,6 +694,7 @@ export function buildProspectionPortfolioAccounts(params: {
       name: company.name,
       sector: company.sector?.trim() || "Secteur non renseigné",
       sectorId: company.sector_id,
+      segmentId: company.segment_id ?? null,
       lifecycle: company.lifecycle_status,
       priority: company.priority,
       legacyFolioScore: asNumber(company.legacy_folio_score),

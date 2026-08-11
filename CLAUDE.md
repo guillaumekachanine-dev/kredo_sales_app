@@ -132,6 +132,10 @@ Trois pièges récurrents, tous documentés au prix d'une session perdue :
 | 20260810110011 | 066_companies_rationalisation_lot1 (`relation_type` = source de vérité, `lifecycle_status` devient sa **projection** par trigger) |
 | 20260810110343 | 067_account_depth_socle (ADR-0019 — `companies.depth_level`/`origin`/`name_normalized`, `competitive_map_entries`) |
 | 20260810204816 | 068_account_classification_apply (ADR-0019 Lot 4 — `apply_account_classification()`, application atomique des 7 axes) |
+| 20260811232105 | 069_sector_knowledge_resolution_views (Lot 0 — `v_sector_knowledge_resolved` + `v_sector_knowledge_items`, résolution segment → macro **à la lecture**) |
+| 20260811232234 | 070_sector_knowledge_functions_search_path (`search_path = ''` sur les 5 helpers `private.*`) |
+| 20260811233206 | 071_sector_playbook_merge_drop_empty_keys (correctif : une clé vide des deux côtés disparaît du playbook fusionné) |
+| 20260811234834 | 072_sector_intelligence_strip_display_numbering (numérotation « 5.1 » sortie de `name` → colonne `display_code`) |
 
 
 ### Architecture multi-tenant (ACTIF)
@@ -152,8 +156,8 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 - `private.log_audit()` — trigger AFTER INSERT/UPDATE/DELETE sur les tables auditées
 - `private.set_updated_at()` — trigger BEFORE UPDATE, maintient `updated_at`
 
-### Schéma public — 73 tables + 17 vues
-> 📏 **Compteurs vérifiés live le 2026-08-10** (`information_schema`). L'inventaire détaillé
+### Schéma public — 74 tables + 19 vues
+> 📏 **Compteurs vérifiés live le 2026-08-12** (`information_schema`). L'inventaire détaillé
 > ci-dessous a été réconcilié le **2026-07-16** et n'intègre pas les changements postérieurs,
 > listés ici :
 > - **+3 tables** `value_chain_nodes` (10 lignes) / `value_chain_actors` (50) / `value_chain_links` (20) — socle chaîne de valeur, pilote BTP.
@@ -243,11 +247,22 @@ workspace. Toutes les tables portent `workspace_id uuid` avec :
 #### Domaine Intelligence sectorielle
 | Table | Rows | Description |
 |---|---|---|
-| `sector_intelligence` | 14 | Référentiel sectoriel (name, slug, attractiveness_score, market_size_eur_bn, practices_fit JSONB, playbook JSONB) — UNIQUE(workspace_id, slug). Rattachement `companies.sector_id` volontairement partiel (27/95 comptes, ADR-0012 Lot 3) — voir [[folio-data-reality]] |
+| `sector_intelligence` | 53 | Référentiel sectoriel à 2 niveaux via `parent_id` (15 `macro` + 38 `segment`) — name, slug, `level`, `display_code`, attractiveness_score, practices_fit JSONB, playbook JSONB. UNIQUE(workspace_id, slug). **Le `slug` est la seule clé fonctionnelle** : `apply_account_classification()` et le workflow n8n INTEL-010 matchent dessus, jamais sur `name`. `display_code` (migration 072) garde la numérotation historique « 5.1 » **hors** du libellé — documentaire, à ne jamais réafficher devant un nom |
 | `sector_news` | 7 | Actualités par secteur (published_at, relevance_score, is_trigger_event, tags[]) |
 | `sector_events` | 15 | Événements commerciaux (event_type, event_date, commercial_opportunity) |
 | `sector_pain_points` | 22 | Points de douleur consolidés (frequency_count, source_company_ids uuid[]) |
 | `sector_regulatory_items` | 13 | Réglementations (urgency, deadline_date, is_commercial_window) |
+
+🔴 **La connaissance sectorielle d'un compte se lit par `companies.segment_id`, jamais par
+`companies.sector_id`** (Lot 0, migrations 069-071). `sector_id` reste une **projection** du macro
+parent, écrite par `apply_account_classification()` seule, utile à l'affichage et à
+`AccountScanDialog` — mais ce n'est plus une source de lecture. La résolution (héritage du macro
+quand le segment est vide) n'existe **qu'en SQL**, dans les deux vues `v_sector_knowledge_*` : ne
+jamais la réimplémenter en TypeScript. Deux règles à ne pas confondre — **substitution** champ par
+champ pour les scalaires et le `playbook` (clé par clé, jamais le blob : 37 des 38 segments portent
+un squelette de seed aux tableaux vides qui écraserait 13 playbooks macro remplis), **union** pour
+les items. Invariants assertés par `supabase/tests/069_sector_knowledge_resolution.assertions.sql`
+(14 assertions, à rejouer contre la base après toute évolution).
 
 ⚠️ **RLS sector tables** : policy unique `FOR ALL` (pas le motif 4-policies standard, confirmé live). Toutes FK vers `sector_intelligence.id`. Triggers `trg_*_updated_at` uniquement (pas de log_audit).
 
@@ -409,6 +424,8 @@ Vues associées : `v_commercial_performance_monthly` (réalisé vs objectif par 
 | `v_financial_model_pricing_anchors` | Ancrages tarifaires (agreement/mission/opportunity) consommés par le moteur de simulation |
 | `v_commercial_performance_monthly` | Réalisé vs objectif par mois et par plan de performance |
 | `v_performance_criteria_compensation` | Montant variable alloué par critère de performance |
+| `v_sector_knowledge_resolved` (`security_invoker`) | **Lot 0** — 1 ligne par fiche `sector_intelligence` de niveau `segment`, champs scalaires / `playbook` / `practices_fit` résolus par **substitution** champ par champ depuis le macro parent. `description_level` / `playbook_level` / `practices_fit_level` portent la provenance. C'est la **seule** source de la connaissance sectorielle d'un compte |
+| `v_sector_knowledge_items` (`security_invoker`) | **Lot 0** — 1 ligne par item (`regulatory` / `pain_point` / `event` / `news`) visible depuis un segment, par **UNION** segment + macro (jamais substitution : deux faits distincts). `resolved_level` porte la provenance |
 
 ### Triggers actifs
 | Trigger | Tables |
@@ -598,14 +615,15 @@ de la base.
 | Chantier | État | Où |
 |---|---|---|
 | **ADR-0018 — refonte shell navigation desktop** (rail de section, 12 modules) | Proposé, en cours | `docs/adr/ADR-0018-*.md` + ledger `docs/FEATURES/dynamic_content_generator(redaction assistee)/SHELL-0018-implementation-ledger.md` — **commencer par le ledger** |
-| **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 96/96 comptes classifiés, 53 fiches `sector_intelligence` |
+| **Taxonomie sectorielle + classification comptes** | Figé en migration (commit `a0338ab9`) | 98/98 comptes classifiés, 53 fiches `sector_intelligence` (15 macro + 38 segment) |
+| **Connaissance & intelligence sectorielle** | **Lot 0 livré (2026-08-12)** — lecture à la maille segment avec héritage macro | `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md` + `ARCHITECTURE-CONNAISSANCE-INTELLIGENCE.md`. Reste Lots 1-9. **Hors périmètre du Lot 0, à trancher** : `/prospection/approche-sectorielle` (`build-sector-activation-model.ts`) reste groupé au macro |
 | **Chaîne de valeur** (BTP en pilote) | Socle livré | tables `value_chain_nodes/actors/links` |
 | **Matching CV** (ADR non écrit) | Lots 0-1 livrés (moteur + UI) | `src/lib/staffing-matching/` — reste narratif LLM, ingestion CV, embeddings |
 | **Audit de performance** | Lots 0-1-5 livrés | `docs/audits/AUDIT-PERFORMANCE-KREDO.md` — reste Lot 4 (bundle client) et Lot 6 (mesure terrain) |
 | **Workflows n8n patchés non réimportés** | Bloquant côté VPS | 11 workflows portent `n8nExecutionId` depuis la Session 28 mais ne tournent pas encore : le lien « Ouvrir dans n8n » de `/automations` reste muet. **+ `intel-010-refresh`** (Session 34, ADR-0019 Lot 4) : sans réimport, le bloc de classification n'est jamais produit. ⚠️ `n8n:status` ne voit pas cette dérive — il compare les *compteurs de nœuds*, or seul du code interne a changé |
 
 ### Dettes connues, non traitées
-- `check:server-boundary` échoue sur `src/features/knowledge-hub/expertise/get-kredo-expertise-snapshot.ts` (`import "server-only"` manquant).
+- ~~`check:server-boundary` échoue sur `get-kredo-expertise-snapshot.ts`~~ — **vérifié vert le 2026-08-12**, dette résorbée.
 - ESLint `react/no-unescaped-entities` dans `src/components/automations/VeilleSimulatorCard.tsx:43`.
 - **ADR-0010 et ADR-0011 sont cités partout mais n'ont pas de fichier** dans `docs/adr/` — la seule trace de leurs décisions est le journal de sessions.
 - La réorganisation de `docs/` (2026-08) n'est pas commitée : `git status` affiche 145 fichiers supprimés + 9 dossiers non suivis. Ce sont des **déplacements**, pas des pertes.

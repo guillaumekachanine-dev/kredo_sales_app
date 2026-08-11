@@ -15,6 +15,129 @@
 
 ---
 
+### Session 37 — Lot 0 « résolution sectorielle héritée » : l'app lit enfin la maille segment (2026-08-12)
+
+**Objet** : `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md`, Lot 0 du
+chantier « Connaissance & intelligence sectorielle ». Lot d'**infrastructure** : à l'écran presque
+rien ne change, parce que le macro reste la seule source réellement remplie. Il débloque la lecture
+de tout ce que les Lots 2 et 3 produiront au niveau segment.
+
+**État vérifié avant d'agir** (conforme au handoff, aucun écart) : 98/98 comptes classés,
+0 incohérence `sector_id` / `segment.parent_id`, 15 macros + 38 segments, dernière migration
+`20260810204816`.
+
+**Livré — 3 migrations**
+
+| Version | Contenu |
+|---|---|
+| `20260811232105` | `069_sector_knowledge_resolution_views` — 5 helpers `private.*` + les 2 vues |
+| `20260811232234` | `070_sector_knowledge_functions_search_path` — `search_path = ''` sur les 5 fonctions (linter Supabase 0011) |
+| `20260811233206` | `071_sector_playbook_merge_drop_empty_keys` — correctif de fusion, cf. plus bas |
+
+`v_sector_knowledge_resolved` (1 ligne par fiche segment, champs scalaires + `playbook` +
+`practices_fit` résolus par **substitution** champ par champ) et `v_sector_knowledge_items`
+(1 ligne par item visible depuis un segment, par **union** segment + macro). Les deux portent
+`security_invoker = true`. **Aucune table créée, aucune donnée recopiée** (décision D-B).
+
+**Le piège n°1 a bien mordu, mais dans l'autre sens.** La fusion clé par clé évite l'écrasement des
+13 playbooks macro par les 37 squelettes de seed — vérifié : 37/38 segments héritent, 30 finissent
+avec des `personas` non vides. Mais les **assertions SQL** ont révélé un défaut que ni le typecheck
+ni les tests n'auraient vu : une clé vide **des deux côtés** survivait en `[]`, donc
+`playbook <> '{}'` restait vrai et `isNonEmptyJson()` côté TypeScript aussi. Faux positif latent du
+drapeau « playbook structuré », qui se serait déclenché le jour où l'un des 3 macros sans
+connaissance passerait `active`. D'où la migration 071. **Écrire les assertions AVANT de conclure a
+payé.**
+
+`merge_sector_practices_fit` n'est volontairement **pas** aligné sur ce comportement : c'est un
+vecteur de scores de forme fixe (4 practices) où `0` est une valeur légitime (« pas d'adhérence »).
+En revanche un `0` y vaut « non renseigné » pour la substitution — sans quoi les 37 segments de
+seed, tous à zéro, masqueraient le profil de leur macro.
+
+**Le drapeau « playbook structuré » ne bouge pas — et c'est mesuré.** 79 comptes l'ont avant, 79
+après, 0 gagné, 0 perdu. La clé est le **statut effectif** : celui de la fiche qui porte réellement
+le playbook, pas celui du segment. Lire `segment_status` aurait donné `development` sur les 36
+fiches de seed et éteint le drapeau de tout le parc. Même logique pour
+`structuredSectorSlug`, qui alimente `/ressources/playbook/[slug]` : pointer le segment aurait
+envoyé 36 comptes vers une page de playbook vide.
+
+**Consommateurs basculés** — `sector-snapshot-data.ts` (prend un `segmentId`, lit les 2 vues),
+`intelligence-data.ts` (passe `company.segment_id`, expose `segmentId` **et** `sectorId`),
+`account-panel-data.ts` (lit la vue résolue, nouveau `toEffectiveSectorRow`),
+`get-portfolio-intelligence-snapshot.ts` + `portfolio-account-metrics.ts` (`segment_id` chargé et
+exposé en `segmentId`).
+
+**Liste des pairs au segment, repli macro sous 3 comptes** (`PEER_SEGMENT_MIN`). Avant, un compte
+spatial voyait tout l'aéronautique comme pairs. `peersLevel` dit laquelle des deux mailles est
+affichée.
+
+**UI** — nouveau badge `SectorLevelBadge` (« Macro-secteur ») sur chaque pain point et chaque jalon
+réglementaire hérité, mention « Segment de « X » » dans le chapeau, et surtout un **état vide
+explicite** (`SectorNoKnowledgeState`) pour les 19 comptes des 3 macros sans connaissance : ils
+lisaient un écran muet qu'ils prenaient pour un bug. `intelligence-process.ts` ne badge plus
+« Disponible » sur la seule présence d'un snapshot — depuis la classification 98/98 tout compte en a
+un — mais sur `hasAnyKnowledge`.
+
+**Tests** — 11 tests Vitest sur `getSectorSnapshot` (union des items, provenance, repli des pairs,
+statut effectif, état vide) + 5 sur `toEffectiveSectorRow`. La moitié SQL n'étant pas exécutable
+sous Vitest, elle vit dans `supabase/tests/069_sector_knowledge_resolution.assertions.sql` —
+**14 assertions, à rejouer contre la base**, vertes au 12/08. Suite complète : 110 fichiers,
+1089 tests. `typecheck` / `check:server-boundary` / `build` verts, lint sans régression.
+
+**Volontairement HORS périmètre, à trancher par Guillaume** : `build-sector-activation-model.ts` et
+`get-business-intelligence-snapshot.ts` (page `/prospection/approche-sectorielle`) restent groupés
+**au macro**. Les basculer au segment ferait passer la page de 15 à 38 lignes, dont 30 ne feraient
+que répéter la connaissance héritée de leur macro — c'est une décision produit sur cette page, pas
+la plomberie du lot, et cela contredirait le critère « aucune régression sur les 98 comptes ». La
+donnée est en place (`segmentId` circule jusqu'au contrat portfolio) : la bascule est un choix, plus
+un chantier.
+
+**Deux notes de terrain** :
+- `check:server-boundary` **passe** aujourd'hui, alors que `CLAUDE.md` le donne en échec sur
+  `get-kredo-expertise-snapshot.ts`. Dette apparemment résorbée entre-temps.
+- Le nom de fichier de la migration 071 a encore dérivé du timestamp réel enregistré
+  (`232905` deviné vs `233206` réel) — **5ᵉ occurrence** du piège. Renommé.
+
+---
+
+### Session 37 bis — Numérotation « 5.1 » sortie du nom des segments (2026-08-12)
+
+**Demande de Guillaume** : enlever les chiffres devant le nom des segments (« 5.1 » devant
+« Spatial », « 12.1 » devant « ESN & services numériques »), en migration si c'est possible, sinon
+en masquant côté UI.
+
+**Migration, sans hésitation** — quatre vérifications à la source l'ont établi :
+
+1. **Rien ne s'appuie sur le `name`.** `apply_account_classification()` matche
+   `si.slug = v_segment_slug`, et le workflow n8n INTEL-010 valide le choix du LLM contre une liste
+   fermée de **slugs**. Le `name` n'y est qu'un libellé — le nettoyer réduit même le bruit envoyé
+   au modèle.
+2. **La numérotation était déjà incohérente** : 37 segments sur 38 la portaient, la fiche
+   « Nutraceutique, Santé Naturelle & Compléments Alimentaires » ne l'a jamais eue. Et les macros ne
+   sont pas numérotés : le « 5 » de « 5.1 » désigne un rang qui n'existe **nulle part** en base.
+3. **Elle nuisait au tri** : en tri texte, « 10.1 » passait avant « 2.1 ». Aucune requête n'ordonne
+   `sector_intelligence` par `name` de toute façon (tri applicatif sur `attractiveness_score`) —
+   donc aucun ordre à préserver, et l'alphabétique devient enfin correct.
+4. **Aucune copie dénormalisée** : `companies.segment` (texte libre hérité) ne contenait aucune
+   valeur numérotée — 0 ligne sur 48 valeurs distinctes.
+
+**Migration `20260811234834` (072)** : nouvelle colonne `display_code` (le préfixe verbatim,
+documentaire), `name` nettoyé par `regexp_replace`. Opération **sans perte et réversible**, et les
+références « Segment 12.1 » du `REFERENTIEL-CLASSIFICATION.md` restent résolvables en base.
+
+**Deux pièges évités** :
+- **`updated_at`** — le trigger `trg_sector_intelligence_updated_at` a été désactivé le temps de
+  l'UPDATE. Sans ça, les 37 fiches auraient toutes paru rafraîchies ce jour-là dans l'indicateur de
+  fraîcheur de `/prospection/approche-sectorielle` (`sector-activation-data.ts`, `lastUpdatedAt`) —
+  un mensonge de donnée pour un simple renommage. Vérifié après application : **0 ligne touchée**.
+- **`§5.1` du référentiel est un numéro de SECTION**, pas le segment « 5.1 » (il désigne le
+  paramètre `sector_id`). Un search/replace global sur « 5.1 » aurait saccagé le document. Note
+  ajoutée en §4 pour que personne ne retombe dedans.
+
+**Résultat** : 0 nom numéroté, 37 `display_code` conservés, 0 collision de noms, 98 comptes
+toujours rattachés. Boucle complète verte (typecheck / 1089 tests / server-boundary / build).
+
+---
+
 ### Session 36 — Correctif production intel-010-refresh : fences Markdown non nettoyées (2026-08-11)
 
 **Constat de Guillaume** : le workflow patché en Session 35 (ADR-0019 Lot 4) ne fonctionnait pas en

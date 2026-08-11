@@ -57,6 +57,7 @@ type CompanyRow = {
   name: string
   sector: string | null
   sector_id: string | null
+  segment_id: string | null
   segment: string | null
   priority: string
   lifecycle_status: string
@@ -75,12 +76,31 @@ export type PanelResultRow = {
   completed_at: string | null
 }
 
+// Fiche sectorielle EFFECTIVE : celle dont le playbook est réellement servi.
+// Lot 0 — elle est dérivée de `v_sector_knowledge_resolved` : le segment quand
+// il porte un playbook, son macro parent sinon. Lire le statut ou le slug du
+// segment brut éteindrait le drapeau et casserait le lien
+// `/ressources/playbook/[slug]` pour les 36 segments issus du seed.
 type SectorRow = {
   id: string
   name: string
   slug: string
   status: string
   playbook: Json
+}
+
+type SectorKnowledgeResolvedRow = {
+  segment_id: string
+  segment_name: string
+  segment_slug: string
+  segment_status: string
+  macro_id: string | null
+  macro_name: string | null
+  macro_slug: string | null
+  macro_status: string | null
+  playbook: Json
+  playbook_level: string
+  has_segment_knowledge: boolean
 }
 
 export type PanelContactRow = {
@@ -264,6 +284,22 @@ export function buildPanelResourceCounts(
   }
 
   return counts
+}
+
+/**
+ * Réduit une ligne de `v_sector_knowledge_resolved` à la fiche dont le playbook
+ * est effectivement servi, statut et slug compris.
+ */
+export function toEffectiveSectorRow(row: SectorKnowledgeResolvedRow | null): SectorRow | null {
+  if (!row) return null
+  const fromSegment = row.playbook_level === "segment"
+  return {
+    id: fromSegment ? row.segment_id : row.macro_id ?? row.segment_id,
+    name: fromSegment ? row.segment_name : row.macro_name ?? row.segment_name,
+    slug: fromSegment ? row.segment_slug : row.macro_slug ?? row.segment_slug,
+    status: fromSegment ? row.segment_status : row.macro_status ?? row.segment_status,
+    playbook: row.playbook,
+  }
 }
 
 export function hasStructuredSectorPlaybook(sector: SectorRow | null): boolean {
@@ -459,7 +495,7 @@ export async function getAccountIntelligencePanelData(
     await Promise.all([
       supabase
         .from("companies")
-        .select<CompanyRow>("id,name,sector,sector_id,segment,priority,lifecycle_status,legacy_folio_score,website,metadata")
+        .select<CompanyRow>("id,name,sector,sector_id,segment_id,segment,priority,lifecycle_status,legacy_folio_score,website,metadata")
         .eq("id", companyId)
         .maybeSingle(),
       supabase
@@ -514,19 +550,25 @@ export async function getAccountIntelligencePanelData(
   const company = companyResult.data
   const metadata = asRecord(company.metadata)
 
-  let sectorResult: SingleResult<SectorRow> = { data: null, error: null }
-  if (company.sector_id) {
+  // Lot 0 — lecture par `segment_id` sur la vue de résolution, jamais par
+  // `sector_id` sur la table brute : sinon le drapeau « playbook structuré »
+  // resterait faux pour tout segment enrichi.
+  let sectorResult: SingleResult<SectorKnowledgeResolvedRow> = { data: null, error: null }
+  if (company.segment_id) {
     sectorResult = await supabase
-      .from("sector_intelligence")
-      .select<SectorRow>("id,name,slug,status,playbook")
-      .eq("id", company.sector_id)
+      .from("v_sector_knowledge_resolved")
+      .select<SectorKnowledgeResolvedRow>(
+        "segment_id,segment_name,segment_slug,segment_status,macro_id,macro_name,macro_slug,macro_status,playbook,playbook_level,has_segment_knowledge",
+      )
+      .eq("segment_id", company.segment_id)
       .maybeSingle()
   }
   if (sectorResult.error) return { data: null, error: sectorResult.error.message }
 
   const resources = buildPanelResourceCounts(resultsResult.data ?? [], metadata)
-  const structuredSector = sectorResult.data
-  const hasStructuredSector = Boolean(company.sector_id) && hasStructuredSectorPlaybook(structuredSector)
+  const resolvedSector = sectorResult.data
+  const structuredSector = toEffectiveSectorRow(resolvedSector)
+  const hasStructuredSector = hasStructuredSectorPlaybook(structuredSector)
   const hasLegacySectorAnalysis = hasMetadataValue(metadata, "sector_analysis")
   const opportunities = buildPanelOpportunities(opportunitiesResult.data ?? [])
   const events = buildPanelEvents(eventsResult.data ?? [], nowIso)
@@ -539,6 +581,7 @@ export async function getAccountIntelligencePanelData(
       name: company.name,
       sector: company.sector,
       sectorId: company.sector_id,
+      segmentId: company.segment_id,
       segment: company.segment,
       priority: company.priority,
       lifecycleStatus: company.lifecycle_status,
@@ -553,6 +596,11 @@ export async function getAccountIntelligencePanelData(
       structuredSectorName: hasStructuredSector ? structuredSector?.name ?? null : null,
       structuredSectorSlug: hasStructuredSector ? structuredSector?.slug ?? null : null,
       structuredSectorStatus: structuredSector?.status ?? null,
+      structuredSectorLevel: hasStructuredSector
+        ? resolvedSector?.playbook_level === "segment" ? "segment" : "macro"
+        : null,
+      segmentName: resolvedSector?.segment_name ?? null,
+      macroName: resolvedSector?.macro_name ?? null,
       hasLegacySectorAnalysis,
       source: hasStructuredSector ? "supabase" : hasLegacySectorAnalysis ? "legacy_folio" : "none",
     },

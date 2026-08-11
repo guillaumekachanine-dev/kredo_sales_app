@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import type { IntelligenceSource } from "@/lib/intelligence/intelligence-data"
 import type { IntelligenceProvenance } from "@/lib/intelligence/account-intelligence-contracts"
 import { ContextualCommunicationButton } from "@/components/communication/ContextualCommunicationButton"
+import type { SectorResolvedLevel } from "@/lib/intelligence/client-intelligence-sector"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Pièces présentationnelles partagées Desktop / Mobile (ADR-0008).
@@ -55,6 +56,22 @@ export function FactProvenanceBadge({ provenance }: { provenance: IntelligencePr
   return (
     <span className={cn("inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0", cls)}>
       {label}
+    </span>
+  )
+}
+
+// Lot 0 — résolution sectorielle héritée. Une donnée sectorielle affichée sur
+// un compte vient soit de son segment, soit — le plus souvent aujourd'hui — de
+// son macro-secteur. Sans ce marqueur l'utilisateur croit qu'elle est
+// spécifique à son segment : c'est une perte de confiance, pas un détail.
+export function SectorLevelBadge({ level, macroName }: { level: SectorResolvedLevel; macroName?: string | null }) {
+  if (level === "segment") return null
+  return (
+    <span
+      title={macroName ? `Hérité du macro-secteur « ${macroName} »` : "Hérité du macro-secteur"}
+      className="inline-flex shrink-0 items-center gap-1 rounded border border-border bg-surface-hover px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-muted"
+    >
+      Macro-secteur
     </span>
   )
 }
