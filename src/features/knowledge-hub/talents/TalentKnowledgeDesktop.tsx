@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Badge } from "@/components/ui/Badge"
 import { PageFilterSelect } from "@/components/ui/PageFilterSelect"
 import { StatusPill } from "@/components/ui/StatusPill"
@@ -14,7 +14,6 @@ import {
   isTeamMember,
   profileMatchesQuery,
 } from "./talent-knowledge-builders"
-import { TalentKnowledgeNavigation } from "./TalentKnowledgeNavigation"
 import { TalentProfileDetail } from "./TalentProfileDetail"
 import type { TalentKnowledgeSnapshot, TalentProfile, TalentTab } from "./talent-knowledge.types"
 
@@ -119,14 +118,21 @@ function SkillsMap({ snapshot, onSelect, onSelectProfile }: { snapshot: TalentKn
   )
 }
 
-export function TalentKnowledgeDesktop({ snapshot, onBack }: { snapshot: TalentKnowledgeSnapshot; onBack: () => void }) {
-  const [activeTab, setActiveTab] = useState<TalentTab>("team")
+export function TalentKnowledgeDesktop({ snapshot, activeSection = "team" }: { snapshot: TalentKnowledgeSnapshot; activeSection?: TalentTab }) {
+  const activeTab = activeSection
   const [query, setQuery] = useState("")
   const [practice, setPractice] = useState("all")
   const [seniority, setSeniority] = useState("all")
   const [status, setStatus] = useState("all")
   const [selectedProfile, setSelectedProfile] = useState<TalentProfile | null>(null)
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
+  
+  // Reset selected filters when switching sections
+  useEffect(() => {
+    setSelectedSkillId(null)
+    setStatus("all")
+  }, [activeSection])
+
   const profiles = activeTab === "team" ? snapshot.collaborators.filter(isTeamMember) : activeTab === "alumni" ? snapshot.collaborators.filter(isAlumni) : snapshot.candidates
   const practices = useMemo(() => Array.from(new Set(profiles.map((profile) => profile.practice).filter(Boolean) as string[])).sort(), [profiles])
   const seniorities = useMemo(() => Array.from(new Set(profiles.map((profile) => profile.seniority).filter(Boolean) as string[])).sort(), [profiles])
@@ -139,13 +145,11 @@ export function TalentKnowledgeDesktop({ snapshot, onBack }: { snapshot: TalentK
   return (
     <div className="space-y-5">
       <header className="border-b border-edito-border pb-4">
-        <button type="button" onClick={onBack} className="inline-flex h-8 items-center rounded-md border border-edito-border bg-edito-surface px-3 text-[10px] font-bold text-edito-navy transition-colors hover:bg-edito-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-brass">← Retour aux domaines</button>
-        <div className="mt-4 flex items-end justify-between gap-6">
+        <div className="flex items-end justify-between gap-6">
           <div className="flex items-center gap-3"><span className="inline-flex size-10 items-center justify-center rounded-lg bg-edito-navy text-lg text-edito-gold" aria-hidden="true">♧</span><div><h1 className="text-2xl font-bold tracking-tight text-edito-navy">Talents</h1><p className="mt-1 text-xs text-edito-body">Personnes, expériences et compétences disponibles dans l&apos;écosystème KREDO.</p></div></div>
           <dl className="flex shrink-0 divide-x divide-edito-border rounded-lg border border-edito-border bg-edito-surface"><div className="px-3 py-2 text-center"><dt className="text-[9px] font-bold uppercase tracking-wide text-edito-muted">Équipe</dt><dd className="text-sm font-bold text-edito-navy">{snapshot.counts.team}</dd></div><div className="px-3 py-2 text-center"><dt className="text-[9px] font-bold uppercase tracking-wide text-edito-muted">Alumni</dt><dd className="text-sm font-bold text-edito-navy">{snapshot.counts.alumni}</dd></div><div className="px-3 py-2 text-center"><dt className="text-[9px] font-bold uppercase tracking-wide text-edito-muted">Candidats</dt><dd className="text-sm font-bold text-edito-navy">{snapshot.counts.candidates}</dd></div><div className="px-3 py-2 text-center"><dt className="text-[9px] font-bold uppercase tracking-wide text-edito-muted">Compétences</dt><dd className="text-sm font-bold text-edito-navy">{snapshot.counts.skilledProfiles}</dd></div></dl>
         </div>
       </header>
-      <TalentKnowledgeNavigation activeTab={activeTab} onChange={(tab) => { setActiveTab(tab); setSelectedSkillId(null); setStatus("all") }} />
       {activeTab !== "skills" ? <><div className="flex flex-wrap gap-2"><label className="relative min-w-64 flex-1"><span className="sr-only">Rechercher un profil, métier ou compétence</span><span className="absolute inset-y-0 left-3 flex items-center text-edito-muted" aria-hidden="true">⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un profil, métier ou compétence" className="h-9 w-full rounded-md border border-edito-border bg-edito-surface pl-8 pr-3 text-xs text-edito-body placeholder:text-edito-muted focus:border-edito-brass focus:outline-none" /></label><PageFilterSelect id="talent-practice" label="Practice" value={practice} onChange={setPractice} options={[{ value: "all", label: "Toutes les practices" }, ...practices.map((item) => ({ value: item, label: item }))]} /><PageFilterSelect id="talent-seniority" label="Séniorité" value={seniority} onChange={setSeniority} options={[{ value: "all", label: "Toutes les séniorités" }, ...seniorities.map((item) => ({ value: item, label: item }))]} /><PageFilterSelect id="talent-status" label="Statut" value={status} onChange={setStatus} options={[{ value: "all", label: "Tous les statuts" }, ...statuses.map((item) => ({ value: item, label: activeTab === "candidates" ? candidateStatusLabel(item) : collaboratorStatusLabel(item) }))]} /></div><div className="space-y-3">{groups.map(([name, groupedProfiles]) => <PracticeSection key={name} name={name} profiles={groupedProfiles} onSelect={setSelectedProfile} />)}{groups.length === 0 && <p className="rounded-lg border border-edito-border bg-edito-surface px-4 py-10 text-center text-xs text-edito-muted">Aucun profil ne correspond aux filtres sélectionnés.</p>}</div></> : <SkillsMap snapshot={snapshot} onSelect={setSelectedSkillId} onSelectProfile={setSelectedProfile} />}
       <TalentProfileDetail profile={selectedProfile} onOpenChange={(open) => !open && setSelectedProfile(null)} />
     </div>
