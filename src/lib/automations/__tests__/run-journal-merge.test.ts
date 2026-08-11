@@ -18,6 +18,7 @@ function makeRun(overrides: Partial<RunJournalRow> & { id: string; createdAt: st
     primaryEntityType: "company",
     primaryEntityId: null,
     ownerName: null,
+    ownerEmail: null,
     durationMs: null,
     costEstimate: null,
     hasPricingGap: false,

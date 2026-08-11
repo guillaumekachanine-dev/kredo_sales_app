@@ -60,6 +60,7 @@ export type RunJournalRow = {
   primaryEntityType: string | null
   primaryEntityId: string | null
   ownerName: string | null
+  ownerEmail: string | null
   durationMs: number | null
   costEstimate: number | null
   hasPricingGap: boolean
@@ -155,10 +156,10 @@ type JournalRunRow = {
 // `input_snapshot` est volontairement absent : jusqu'à 5,3 ko par run, utile
 // uniquement à la relance d'UN run (lu côté serveur par `retryRun`), pas aux
 // 50 lignes sérialisées vers le client.
-const JOURNAL_SELECT =
+export const JOURNAL_SELECT =
   "id, run_type, status, trigger_source, error_message, created_at, started_at, completed_at, failed_at, company_id, primary_entity_type, primary_entity_id, config, company:companies(name), owner:profiles(full_name, email)"
 
-const RUN_COSTS_SELECT = "run_id, duration_ms, cost_estimate, has_pricing_gap, has_tokens_gap"
+export const RUN_COSTS_SELECT = "run_id, duration_ms, cost_estimate, has_pricing_gap, has_tokens_gap"
 
 function firstOf<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
@@ -177,7 +178,13 @@ function resolveOwnerName(owner: OwnerEmbed): string | null {
   return resolved.full_name ?? resolved.email ?? null
 }
 
-function mapRunJournalRows(runRows: JournalRunRow[], costRows: RunCostRow[]): RunJournalRow[] {
+function resolveOwnerEmail(owner: OwnerEmbed): string | null {
+  const resolved = firstOf(owner)
+  if (!resolved) return null
+  return resolved.email ?? null
+}
+
+export function mapRunJournalRows(runRows: JournalRunRow[], costRows: RunCostRow[]): RunJournalRow[] {
   const costsByRunId = new Map(costRows.map((c) => [c.run_id, c]))
 
   return runRows.map((r) => {
@@ -200,6 +207,7 @@ function mapRunJournalRows(runRows: JournalRunRow[], costRows: RunCostRow[]): Ru
       primaryEntityType: r.primary_entity_type,
       primaryEntityId: r.primary_entity_id,
       ownerName: resolveOwnerName(r.owner),
+      ownerEmail: resolveOwnerEmail(r.owner),
       durationMs: cost?.duration_ms ?? null,
       costEstimate: cost?.cost_estimate ?? null,
       hasPricingGap: cost?.has_pricing_gap ?? false,
@@ -259,6 +267,44 @@ export async function getLatestRunJournalRows(): Promise<RunJournalRow[] | null>
       : { data: [] as RunCostRow[], error: null }
 
   if (costsRes.error) console.error("[automations] getLatestRunJournalRows (coûts):", costsRes.error.message)
+
+  return mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
+}
+
+export async function getFilteredRunJournalRows(filters: { from: string; to: string; workflow: string; status: string }): Promise<RunJournalRow[] | null> {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from("ai_intelligence_runs")
+    .select(JOURNAL_SELECT)
+    .gte("created_at", filters.from)
+    .lt("created_at", filters.to)
+    .order("created_at", { ascending: false })
+    .limit(JOURNAL_LIMIT)
+
+  if (filters.workflow !== "all") {
+    query = query.eq("run_type", filters.workflow)
+  }
+  if (filters.status !== "all") {
+    query = query.eq("status", filters.status as "succeeded" | "failed" | "queued" | "running" | "cancelled")
+  }
+
+  const runsRes = await query
+
+  if (runsRes.error) {
+    console.error("[automations] getFilteredRunJournalRows:", runsRes.error.message)
+    return null
+  }
+
+  const runRows = (runsRes.data ?? []) as unknown as JournalRunRow[]
+  const runIds = runRows.map((r) => r.id)
+
+  const costsRes =
+    runIds.length > 0
+      ? await supabase.from("v_ai_run_costs").select(RUN_COSTS_SELECT).in("run_id", runIds)
+      : { data: [] as RunCostRow[], error: null }
+
+  if (costsRes.error) console.error("[automations] getFilteredRunJournalRows (coûts):", costsRes.error.message)
 
   return mapRunJournalRows(runRows, (costsRes.data ?? []) as RunCostRow[])
 }

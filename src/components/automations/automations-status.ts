@@ -12,7 +12,7 @@ const RUN_STATUS_VARIANT: Record<string, StatusPillVariant> = {
 const RUN_STATUS_LABEL: Record<string, string> = {
   queued: "En attente",
   running: "En cours",
-  succeeded: "Réussi",
+  succeeded: "Succès",
   failed: "Échec",
   cancelled: "Annulé",
 }
@@ -68,6 +68,17 @@ export function formatCostEstimate(value: number | null): string {
   return `${value.toFixed(2).replace(".", ",")} $`
 }
 
+export function formatExecutionDate(isoDate: string | null): string {
+  if (!isoDate) return "—"
+  const d = new Date(isoDate)
+  if (Number.isNaN(d.getTime())) return "—"
+  const day = String(d.getDate()).padStart(2, "0")
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const hours = String(d.getHours()).padStart(2, "0")
+  const minutes = String(d.getMinutes()).padStart(2, "0")
+  return `${day}/${month} - ${hours}.${minutes}`
+}
+
 export function formatRelativeTime(isoDate: string | null): string {
   if (!isoDate) return "—"
   const date = new Date(isoDate)
@@ -81,3 +92,4 @@ export function formatRelativeTime(isoDate: string | null): string {
   const diffDays = Math.floor(diffHours / 24)
   return `il y a ${diffDays} j`
 }
+

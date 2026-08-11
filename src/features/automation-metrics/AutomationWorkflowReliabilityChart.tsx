@@ -21,17 +21,17 @@ function sampleLabel(workflow: AutomationWorkflowReliability): string {
   return `${workflow.decided} runs décidés`
 }
 
-export function AutomationWorkflowReliabilityChart({ workflows }: { workflows: AutomationWorkflowReliability[] }) {
+export function AutomationWorkflowReliabilityChart({ workflows, appearance = "dark" }: { workflows: AutomationWorkflowReliability[]; appearance?: "dark" | "light" }) {
   if (workflows.length === 0) {
-    return <p className="rounded-xl border border-white/10 bg-white/[0.025] p-4 text-xs text-white/50">Aucun workflow sur la période active ou précédente.</p>
+    return <p className={`rounded-xl border p-4 text-xs ${appearance === "light" ? "border-border bg-surface text-muted" : "border-white/10 bg-white/[0.025] text-white/50"}`}>Aucun workflow sur la période active ou précédente.</p>
   }
 
   return (
     <div className="space-y-3" role="list" aria-label="Fiabilité par workflow">
-      <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] text-white/60" aria-hidden="true">
+      <div className={`flex flex-wrap gap-x-4 gap-y-2 text-[10px] ${appearance === "light" ? "text-muted" : "text-white/60"}`} aria-hidden="true">
         <span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-sm bg-success" />Réussis</span>
         <span className="inline-flex items-center gap-1.5"><i className="size-2 rounded-sm bg-danger/75" />Échoués</span>
-        <span className="inline-flex items-center gap-1.5"><i className="h-3 border-l border-dashed border-white/50" />Seuil 90 %</span>
+        <span className="inline-flex items-center gap-1.5"><i className={`h-3 border-l border-dashed ${appearance === "light" ? "border-border" : "border-white/50"}`} />Seuil 90 %</span>
       </div>
       {workflows.map((workflow) => {
         const delta = comparison(workflow.successRateDeltaPoints)
@@ -39,27 +39,27 @@ export function AutomationWorkflowReliabilityChart({ workflows }: { workflows: A
         const limited = workflow.sampleState === "limited"
 
         return (
-          <article key={workflow.runType} role="listitem" className="rounded-xl border border-white/8 bg-white/[0.025] p-3">
+          <article key={workflow.runType} role="listitem" className={`rounded-xl border p-3 ${appearance === "light" ? "border-border bg-surface shadow-sm" : "border-white/8 bg-white/[0.025]"}`}>
             <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
               <div className="min-w-0">
-                <p className="break-words text-xs font-semibold text-white">{workflowLabelForRunType(workflow.runType)}</p>
-                <p className="mt-0.5 break-all font-mono text-[9px] text-white/35">{workflow.runType}</p>
+                <p className={`break-words text-xs font-semibold ${appearance === "light" ? "text-heading" : "text-white"}`}>{workflowLabelForRunType(workflow.runType)}</p>
+                <p className={`mt-0.5 break-all font-mono text-[9px] ${appearance === "light" ? "text-muted" : "text-white/35"}`}>{workflow.runType}</p>
               </div>
               <div className="flex w-full flex-wrap items-baseline justify-between gap-2 min-[520px]:w-auto min-[520px]:justify-end">
-                <span className={`text-[10px] font-semibold tabular-nums ${delta.color}`}>{delta.text} vs période précédente</span>
-                <strong className="font-heading text-lg tabular-nums text-white">{rate}</strong>
+                <span className={`text-[10px] font-semibold tabular-nums ${delta.color === "text-white/35" && appearance === "light" ? "text-muted" : delta.color === "text-white/55" && appearance === "light" ? "text-muted" : delta.color}`}>{delta.text} vs période précédente</span>
+                <strong className={`font-heading text-lg tabular-nums ${appearance === "light" ? "text-heading" : "text-white"}`}>{rate}</strong>
               </div>
             </div>
             {workflow.sampleState === "none" ? (
-              <div className="mt-3 flex h-3 items-center rounded-full border border-dashed border-white/20 px-2 text-[9px] text-white/40">Aucun run décidé</div>
+              <div className={`mt-3 flex h-3 items-center rounded-full border border-dashed px-2 text-[9px] ${appearance === "light" ? "border-border text-muted" : "border-white/20 text-white/40"}`}>Aucun run décidé</div>
             ) : (
-              <div className={`relative mt-3 h-3 overflow-hidden rounded-full bg-white/[0.08] ${limited ? "opacity-75" : ""}`} aria-label={`${rate} de succès, ${workflow.succeeded} succès et ${workflow.failed} échecs`}>
-                <span className="absolute inset-y-0 left-[90%] z-10 border-l border-dashed border-white/70" aria-hidden="true" />
+              <div className={`relative mt-3 h-3 overflow-hidden rounded-full ${appearance === "light" ? "bg-surface-hover" : "bg-white/[0.08]"} ${limited ? "opacity-75" : ""}`} aria-label={`${rate} de succès, ${workflow.succeeded} succès et ${workflow.failed} échecs`}>
+                <span className={`absolute inset-y-0 left-[90%] z-10 border-l border-dashed ${appearance === "light" ? "border-border" : "border-white/70"}`} aria-hidden="true" />
                 <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${workflow.successRatePct ?? 0}%` }} />
                 <span className="absolute inset-y-0 right-0 bg-danger/75" style={{ width: `${100 - (workflow.successRatePct ?? 0)}%` }} />
               </div>
             )}
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] text-white/50">
+            <div className={`mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] ${appearance === "light" ? "text-muted" : "text-white/50"}`}>
               <span>{workflow.succeeded} succès · {workflow.failed} échec{workflow.failed > 1 ? "s" : ""}</span>
               <span className={workflow.sampleState === "limited" ? "text-brand-brass" : ""}>{sampleLabel(workflow)}</span>
             </div>

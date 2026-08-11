@@ -1,249 +1,322 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import dynamic from "next/dynamic"
-import Image from "next/image"
-import { MobileActionPage } from "@/components/templates/MobileActionPage"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { MobilePageHeader } from "@/components/ui/mobile/MobilePageHeader"
-import { MobileHeroInsight } from "@/components/ui/mobile/MobileHeroInsight"
-import { MobileActionCard } from "@/components/ui/mobile/MobileActionCard"
-import { StatusPill } from "@/components/ui/StatusPill"
-import { SurfaceCard } from "@/components/ui/SurfaceCard"
-import type { AutomationsDashboardData, CostTimelinePoint } from "@/lib/automations/automations-data"
-import {
-  runStatusVariant,
-  runStatusLabel,
-  workflowSeverity,
-  severityStatusVariant,
-  severityLabel,
-  formatRelativeTime,
-  formatCostEstimate,
-} from "./automations-status"
+import { ErrorState } from "@/components/ui/ErrorState"
+import { cn } from "@/lib/utils"
+import { loadAutomationMetricsSnapshot } from "@/features/automation-metrics/automation-metrics-actions"
+import type { AutomationMetricsFilters, AutomationMetricsSnapshot } from "@/features/automation-metrics/automation-metrics-types"
+import { fetchFilteredRunJournal } from "@/lib/automations/run-journal-actions"
+import type { AutomationsDashboardData, RunJournalRow } from "@/lib/automations/automations-data"
+import { workflowLabelForRunType } from "@/lib/automations/workflow-labels"
+import { formatCostEstimate } from "./automations-status"
 import { RunDrillDownDialog } from "./RunDrillDownDialog"
-import { AutomationsTabs, type AutomationsTabId } from "./AutomationsTabs"
-import { VeilleSimulatorCard } from "./VeilleSimulatorCard"
-import { AutomationsDataErrorBanner } from "./AutomationsDataErrorBanner"
-import { JournalLiveStatus } from "./JournalLiveStatus"
-import { useRunJournalRealtime } from "./use-run-journal-realtime"
+import { AutomationMetricsReliability } from "@/features/automation-metrics/AutomationMetricsReliability"
+import { AutomationMetricsCosts } from "@/features/automation-metrics/AutomationMetricsCosts"
 
-const AutomationMetricsModal = dynamic(
-  () => import("@/features/automation-metrics/AutomationMetricsModal").then((module) => module.AutomationMetricsModal),
-  { ssr: false },
-)
+type MobileSection = "logs" | "reliability" | "costs"
+type MobilePreset = "today" | "7d" | "30d" | "12w" | "year" | "custom"
 
-// Mini-sparkline HTML/Tailwind pur — aucune librairie, aucun SVG (convention
-// mobile KREDO : jauges/sparklines en HTML+CSS uniquement).
-function CostMiniSparkline({ points }: { points: CostTimelinePoint[] }) {
-  const recent = points.slice(-14)
-  const max = Math.max(...recent.map((p) => p.costEstimate ?? 0), 0.01)
+const MOBILE_SECTIONS: Array<{ id: MobileSection; label: string }> = [
+  { id: "logs", label: "Logs" },
+  { id: "reliability", label: "Fiabilité" },
+  { id: "costs", label: "Coûts" },
+]
 
-  if (recent.length === 0) {
-    return <p className="text-xs text-muted">Aucune donnée récente.</p>
+const DAY_MS = 86_400_000
+
+function rangeForMobilePreset(preset: Exclude<MobilePreset, "custom">) {
+  const now = new Date()
+  if (preset === "today") {
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const to = new Date(from.getTime() + DAY_MS)
+    return { from, to }
   }
+  const to = now
+  const days = preset === "7d" ? 7 : preset === "30d" ? 30 : preset === "12w" ? 84 : 365
+  return { from: new Date(to.getTime() - days * DAY_MS), to }
+}
 
-  return (
-    <div className="flex h-16 items-end gap-1">
-      {recent.map((point) => {
-        const isGap = point.costEstimate === null && point.runs > 0
-        const heightPct = point.costEstimate !== null ? Math.max(6, (point.costEstimate / max) * 100) : 0
-        return (
-          <div key={point.day} className="flex-1" title={`${point.day} — ${point.costEstimate !== null ? formatCostEstimate(point.costEstimate) : "non mesuré"}`}>
-            <div
-              className={isGap ? "rounded-t-sm bg-muted/40" : "rounded-t-sm bg-[var(--color-dataviz-1)] opacity-80"}
-              style={{ height: isGap ? "6%" : `${heightPct}%` }}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
+function toMetricsFilterState(
+  mobilePreset: MobilePreset,
+  workflow: string,
+  customRange: { from: string; to: string }
+): AutomationMetricsFilters {
+  if (mobilePreset === "custom") {
+    return {
+      preset: "custom",
+      from: new Date(`${customRange.from}T00:00:00.000Z`).toISOString(),
+      to: new Date(new Date(`${customRange.to}T00:00:00.000Z`).getTime() + DAY_MS).toISOString(),
+      workflow
+    }
+  }
+  const range = rangeForMobilePreset(mobilePreset)
+  if (mobilePreset === "today") {
+    return { preset: "custom", from: range.from.toISOString(), to: range.to.toISOString(), workflow }
+  }
+  return { preset: mobilePreset as any, from: range.from.toISOString(), to: range.to.toISOString(), workflow }
+}
+
+function costKpiLabel(preset: MobilePreset) {
+  switch (preset) {
+    case "today": return { main: "Coûts (aujourd'hui)", vs: "vs veille" }
+    case "7d": return { main: "Coûts (7 derniers jours)", vs: "vs 7j précédents" }
+    case "30d": return { main: "Coûts (30 derniers jours)", vs: "vs 30j précédents" }
+    case "12w": return { main: "Coûts (12 dernières semaines)", vs: "vs 12 semaines précédentes" }
+    case "year": return { main: "Coûts (année)", vs: "vs période annuelle précédente" }
+    case "custom": return { main: "Coûts (période)", vs: "vs période précédente" }
+  }
 }
 
 export function AutomationsMobileDashboard({ data }: { data: AutomationsDashboardData }) {
-  const [activeTab, setActiveTab] = useState<AutomationsTabId>("sante")
+  const [activeSection, setActiveSection] = useState<MobileSection>("logs")
+  
+  // Filters
+  const [preset, setPreset] = useState<MobilePreset>("30d")
+  const [workflow, setWorkflow] = useState<string>("all")
+  const [status, setStatus] = useState<string>("all")
+  const [customRange, setCustomRange] = useState({ from: "", to: "" }) 
+  
+  const [snapshot, setSnapshot] = useState<AutomationMetricsSnapshot | null>(null)
+  const [journal, setJournal] = useState<RunJournalRow[]>([])
+  const [workflowOptions, setWorkflowOptions] = useState<string[]>(data.workflows.map(w => w.runType))
+  
+  const [error, setError] = useState<string | null>(null)
+  const [pending, startTransition] = useTransition()
+  
+  const filters = useMemo(() => toMetricsFilterState(preset, workflow, customRange), [preset, workflow, customRange])
+  
+  useEffect(() => {
+    let active = true
+    startTransition(async () => {
+      try {
+        setError(null)
+        const [nextSnapshot, nextJournalRes] = await Promise.all([
+          loadAutomationMetricsSnapshot(filters),
+          fetchFilteredRunJournal({
+            from: filters.from,
+            to: filters.to,
+            workflow: filters.workflow,
+            status: status
+          })
+        ])
+        if (!active) return
+        setSnapshot(nextSnapshot)
+        if (nextJournalRes.ok) {
+          setJournal(nextJournalRes.rows.filter(r => r.status === "succeeded" || r.status === "failed"))
+        } else {
+          setError(nextJournalRes.error)
+        }
+        
+        const options = Array.from(new Set([...data.workflows.map(w => w.runType), ...nextSnapshot.workflowOptions]))
+        setWorkflowOptions(options.sort((a, b) => a.localeCompare(b)))
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : "Erreur de chargement")
+      }
+    })
+    return () => { active = false }
+  }, [filters, status, data.workflows])
+
+  useEffect(() => {
+    if (activeSection !== "logs" && status !== "all") {
+      setStatus("all")
+    }
+  }, [activeSection, status])
+
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [metricsOpen, setMetricsOpen] = useState(false)
+  const selectedRun = useMemo(() => journal.find(r => r.id === selectedRunId) ?? null, [journal, selectedRunId])
 
-  // Même hook que le desktop : la logique temps réel est partagée, les deux
-  // vues restent des composants distincts (aucun rendu masqué en CSS).
-  const { journal, lastUpdatedAt, isRefreshing, refreshError, refresh } = useRunJournalRealtime(
-    data.journal,
-    data.fetchedAt,
-  )
+  // KPIs
+  const renderKpi = () => {
+    if (!snapshot) return null
+    if (activeSection === "logs") {
+      const rate = snapshot.summary.successRatePct
+      return (
+        <div className="flex min-h-[56px] flex-col justify-center bg-surface-hover/50 px-4 py-2">
+          <p className="text-[16px] font-bold text-heading">
+            Taux de réussite : {rate !== null ? `${Math.round(rate * 10) / 10} %` : "—"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {snapshot.summary.executions} runs · {snapshot.summary.succeeded} succès · {snapshot.summary.failed} échecs
+          </p>
+        </div>
+      )
+    }
+    if (activeSection === "reliability") {
+      const critCurrent = snapshot.workflowReliability.filter(w => w.successRatePct !== null && w.successRatePct < 70).length
+      const critPrev = snapshot.workflowReliability.filter(w => w.previousSuccessRatePct !== null && w.previousSuccessRatePct < 70).length
+      const delta = snapshot.workflowReliability.some(w => w.previousSuccessRatePct !== null) ? critCurrent - critPrev : null
+      const deltaText = delta === null ? "— vs période précédente" : delta > 0 ? `+${delta} vs période précédente` : delta < 0 ? `${delta} vs période précédente` : "Identique vs période précédente"
+      const deltaColor = delta === null || delta === 0 ? "text-muted" : delta < 0 ? "text-success" : "text-danger"
+      
+      return (
+        <div className="flex min-h-[56px] flex-col justify-center bg-surface-hover/50 px-4 py-2">
+          <p className="text-[16px] font-bold text-heading">
+            Santé critiques : {critCurrent} workflows
+          </p>
+          <p className={`mt-0.5 text-[11px] ${deltaColor}`}>
+            {deltaText}
+          </p>
+        </div>
+      )
+    }
+    if (activeSection === "costs") {
+      const labels = costKpiLabel(preset)
+      const costDelta = snapshot.costsSummary.measuredCostDeltaPct
+      const deltaText = costDelta === null ? "Historique insuffisant pour comparer" : costDelta > 0 ? `+${costDelta.toFixed(1)} % ${labels.vs}` : `${costDelta.toFixed(1)} % ${labels.vs}`
+      return (
+        <div className="flex min-h-[56px] flex-col justify-center bg-surface-hover/50 px-4 py-2">
+          <p className="text-[16px] font-bold text-heading">
+            {labels.main} : {formatCostEstimate(snapshot.costsSummary.measuredCost)}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {deltaText}
+          </p>
+        </div>
+      )
+    }
+  }
 
-  const selectedRun = useMemo(
-    () => (selectedRunId ? journal.find((run) => run.id === selectedRunId) ?? null : null),
-    [journal, selectedRunId],
-  )
-
-  const recentRuns = useMemo(() => journal.slice(0, 10), [journal])
-
-  const { costs } = data
-
-  const heroTone = data.kpis.stuckNow > 0 ? "danger" : data.kpis.successRatePct30d !== null && data.kpis.successRatePct30d < 80 ? "warning" : "success"
+  const formatRunDate = (iso: string) => {
+    const d = new Date(iso)
+    const day = String(d.getDate()).padStart(2, "0")
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, "0")
+    const minutes = String(d.getMinutes()).padStart(2, "0")
+    return `${day}/${month}/${year} - ${hours}.${minutes}`
+  }
 
   return (
-    <MobileActionPage
-      header={(
+    <div className="flex h-[calc(100dvh-var(--layout-mobile-content-bottom-offset)-var(--space-3))] min-h-0 flex-col overflow-hidden bg-canvas text-body">
+      <div className="shrink-0 bg-surface px-4 pb-3 pt-4">
         <MobilePageHeader
-          eyebrow="Santé & exécution IA"
           title="Automatisations"
-          actions={(
-            <button
-              type="button"
-              onClick={() => setMetricsOpen(true)}
-              aria-label="Ouvrir l’analyse des métriques"
-              className="flex min-h-11 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas motion-reduce:transition-none"
-            >
-              <Image
-                src="/icons_set/agenda_metriques_activite.png"
-                alt=""
-                width={16}
-                height={16}
-                className="size-4"
-                style={{ filter: "brightness(0) invert(1)" }}
-              />
-              <span>Métriques</span>
-            </button>
-          )}
+          className="gap-0 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:leading-7"
         />
-      )}
-      hero={
-        activeTab === "sante" ? (
-          <MobileHeroInsight
-            title="Taux de succès (30 jours)"
-            value={data.kpis.successRatePct30d !== null ? `${data.kpis.successRatePct30d}%` : "—"}
-            summary={`${data.kpis.runs30d} exécutions · ${data.kpis.stuckNow} bloquée(s) actuellement`}
-            tone={heroTone}
-          />
-        ) : (
-          <MobileHeroInsight
-            title="Coût (30 derniers jours)"
-            value={formatCostEstimate(costs.kpis.cost30d)}
-            summary={
-              costs.kpis.cost30dDeltaPct !== null
-                ? `${costs.kpis.cost30dDeltaPct > 0 ? "+" : ""}${costs.kpis.cost30dDeltaPct}% vs. 30j précédents`
-                : "Historique insuffisant pour un delta"
-            }
-            tone="brand"
-          />
-        )
-      }
-      context={<AutomationsTabs activeTab={activeTab} onChange={setActiveTab} />}
-    >
-      <AutomationsDataErrorBanner errors={data.dataErrors} />
+      </div>
 
-      {activeTab === "sante" ? (
-        <>
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Par workflow</h2>
-            {data.workflows.map((workflow) => {
-              const severity = workflowSeverity(workflow)
-              const stuckTotal = workflow.stuckRunningNow + workflow.stuckQueuedNow
-              return (
-                <MobileActionCard
-                  key={workflow.runType}
-                  title={workflow.label}
-                  description={
-                    stuckTotal > 0
-                      ? `${stuckTotal} run(s) bloqué(s) — dernier run ${formatRelativeTime(workflow.lastRunAt)}`
-                      : `${workflow.runs30d} runs (30j) — dernier run ${formatRelativeTime(workflow.lastRunAt)}`
-                  }
-                  status={<StatusPill label={severityLabel(severity)} variant={severityStatusVariant(severity)} />}
-                />
-              )
-            })}
-          </div>
+      <nav className="grid shrink-0 grid-cols-3 border-y border-border bg-surface" aria-label="Navigation Automatisations">
+        {MOBILE_SECTIONS.map((sec) => {
+          const active = activeSection === sec.id
+          return (
+            <button
+              key={sec.id}
+              type="button"
+              onClick={() => setActiveSection(sec.id)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "relative min-h-12 px-2 text-sm font-semibold text-heading outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading focus-visible:ring-inset",
+                active ? "bg-primary/[0.04] after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:bg-brand-brass" : "hover:bg-surface-hover/60",
+              )}
+            >
+              {sec.label}
+            </button>
+          )
+        })}
+      </nav>
 
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-heading">Dernières exécutions</h2>
-              <JournalLiveStatus
-                lastUpdatedAt={lastUpdatedAt}
-                isRefreshing={isRefreshing}
-                refreshError={refreshError}
-                onRefresh={refresh}
-              />
-            </div>
-            {recentRuns.length === 0 ? (
-              <p className="text-sm text-muted">Aucune exécution récente.</p>
+      <div className="shrink-0 border-b border-border bg-surface p-2">
+        <div className="grid grid-cols-3 gap-2">
+          <select
+            value={preset}
+            onChange={(e) => setPreset(e.target.value as MobilePreset)}
+            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
+          >
+            <option value="today">Jour</option>
+            <option value="7d">7 jours</option>
+            <option value="30d">30 jours</option>
+            <option value="12w">12 semaines</option>
+            <option value="year">Année</option>
+            {preset === "custom" && <option value="custom">Personnalisée</option>}
+          </select>
+          <select
+            value={workflow}
+            onChange={(e) => setWorkflow(e.target.value)}
+            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
+          >
+            <option value="all">Tous</option>
+            {workflowOptions.map(opt => (
+              <option key={opt} value={opt}>{workflowLabelForRunType(opt)}</option>
+            ))}
+          </select>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="h-11 w-full truncate rounded-md border border-border bg-canvas px-2 text-xs font-medium outline-none focus:ring-2 focus:ring-heading"
+          >
+            <option value="all">Tous</option>
+            <option value="succeeded">Succès</option>
+            <option value="failed">Échecs</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="shrink-0 border-b border-border bg-surface">
+        {renderKpi()}
+      </div>
+
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface relative" aria-busy={pending}>
+        {pending && <div className="absolute inset-0 z-10 bg-surface/50 transition-opacity duration-200" />}
+        {error ? (
+          <div className="p-4"><ErrorState title="Erreur" message={error} /></div>
+        ) : activeSection === "logs" ? (
+          <div className="flex flex-col pb-[calc(80px+env(safe-area-inset-bottom))]">
+            {journal.length === 0 && !pending ? (
+              <div className="py-12 text-center text-sm text-muted">Aucune exécution sur cette période.</div>
             ) : (
-              recentRuns.map((run) => (
-                <MobileActionCard
-                  key={run.id}
-                  title={run.runTypeLabel}
-                  description={run.companyName ?? formatRelativeTime(run.createdAt)}
-                  status={<StatusPill label={runStatusLabel(run.status)} variant={runStatusVariant(run.status)} />}
-                  primaryAction={
+              <div className="relative pl-6 pr-2">
+                <div className="absolute left-[13px] top-0 bottom-0 w-[1px] bg-border" />
+                {journal.map((run) => (
+                  <div key={run.id} className="relative border-b border-border py-4 last:border-b-0">
+                    <div className={cn("absolute -left-[18px] top-[22px] size-2.5 rounded-full border-2 border-surface", run.status === "succeeded" ? "bg-success" : "bg-danger")} />
                     <button
                       type="button"
-                      className="min-h-11 text-sm font-medium text-primary"
-                      onClick={() => {
-                        setSelectedRunId(run.id)
-                        setDialogOpen(true)
-                      }}
+                      onClick={() => setSelectedRunId(run.id)}
+                      className="flex w-full items-center justify-between outline-none focus-visible:ring-2 focus-visible:ring-heading text-left"
                     >
-                      Détail
+                      <div className="min-w-0 flex-1 pr-2">
+                        <p className="text-sm font-bold leading-tight text-heading">
+                          {run.runTypeLabel}{run.companyName ? ` — ${run.companyName}` : ""}
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted">
+                          {run.runType} · {formatRunDate(run.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                      </div>
                     </button>
-                  }
-                />
-              ))
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </>
-      ) : (
-        <>
-          <SurfaceCard padding="default">
-            <h2 className="mb-3 text-sm font-semibold text-heading">Coût par jour (14 derniers jours)</h2>
-            <CostMiniSparkline points={costs.timeline} />
-          </SurfaceCard>
-
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Coût par workflow (30j)</h2>
-            {data.workflows
-              .filter((w) => !w.hasTokensGap)
-              .sort((a, b) => (b.totalCost30d ?? 0) - (a.totalCost30d ?? 0))
-              .map((workflow) => (
-                <MobileActionCard
-                  key={workflow.runType}
-                  title={workflow.label}
-                  description={`${workflow.runs30d} run(s) — ~${formatCostEstimate(workflow.avgCost30d)}/run`}
-                  status={<span className="text-sm font-semibold text-heading">{formatCostEstimate(workflow.totalCost30d)}</span>}
-                />
-              ))}
+        ) : activeSection === "reliability" ? (
+          <div className="pb-[calc(80px+env(safe-area-inset-bottom))]">
+            {snapshot?.workflowReliability.length === 0 && !pending ? (
+              <div className="py-12 text-center text-sm text-muted">Aucune donnée de fiabilité sur cette période.</div>
+            ) : snapshot ? (
+              <AutomationMetricsReliability snapshot={snapshot} appearance="light" />
+            ) : null}
           </div>
-
-          <VeilleSimulatorCard baseline={costs.veilleSimulator} />
-
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-heading">Coût par utilisateur</h2>
-            {costs.byOwner.map((owner) => (
-              <SurfaceCard key={owner.ownerName} padding="compact">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm text-body">{owner.ownerName}</p>
-                  <p className="text-sm font-semibold text-heading">{formatCostEstimate(owner.costEstimate)}</p>
-                </div>
-                <p className="text-[11px] text-muted">{owner.runs} run(s)</p>
-              </SurfaceCard>
-            ))}
+        ) : activeSection === "costs" ? (
+          <div className="pb-[calc(80px+env(safe-area-inset-bottom))]">
+            {snapshot?.workflowCosts.length === 0 && !pending ? (
+              <div className="py-12 text-center text-sm text-muted">Aucune donnée de coût mesurée sur cette période.</div>
+            ) : snapshot ? (
+              <AutomationMetricsCosts snapshot={snapshot} appearance="light" />
+            ) : null}
           </div>
-        </>
-      )}
+        ) : null}
+      </main>
 
       <RunDrillDownDialog
         run={selectedRun}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onRetried={() => setDialogOpen(false)}
+        open={selectedRunId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedRunId(null) }}
+        onRetried={() => setSelectedRunId(null)}
       />
-      {metricsOpen ? (
-        <AutomationMetricsModal
-          open={metricsOpen}
-          onClose={() => setMetricsOpen(false)}
-          displayMode="mobile"
-        />
-      ) : null}
-    </MobileActionPage>
+    </div>
   )
 }

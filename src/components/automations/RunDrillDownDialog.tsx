@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { AppDialog } from "@/components/ui/AppDialog"
 import { Button } from "@/components/ui/Button"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { formatDateTime } from "@/lib/formatters"
 import type { RunJournalRow } from "@/lib/automations/automations-data"
+import { workflowNomenclatureForRunType } from "@/lib/automations/workflow-labels"
 import {
   runStatusVariant,
   runStatusLabel,
@@ -52,20 +54,32 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
       ? `${n8nBaseUrl}/workflow/${n8nWorkflowId}/executions/${n8nExecutionId}`
       : null
 
+  const triggeredBy =
+    run.triggerSource === "cron"
+      ? "Cron automatique"
+      : run.ownerEmail ?? run.ownerName ?? "Action utilisateur"
+
   return (
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
       title={
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{run.runTypeLabel}</span>
-          <StatusPill label={runStatusLabel(run.status)} variant={runStatusVariant(run.status)} />
+        <div className="flex flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-bold text-heading text-sm sm:text-base">{run.runTypeLabel}</span>
+            <StatusPill
+              label={runStatusLabel(run.status)}
+              variant={runStatusVariant(run.status)}
+              className="rounded-md px-2 py-0.5 text-[11px]"
+            />
+          </div>
+          <span className="text-xs font-mono text-muted">{workflowNomenclatureForRunType(run.runType)}</span>
         </div>
       }
       description={formatDateTime(run.createdAt)}
       footer={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {canRetry ? (
+        canRetry ? (
+          <div className="flex items-center justify-end">
             <Button
               variant="primary"
               size="sm"
@@ -75,26 +89,15 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
             >
               Relancer
             </Button>
-          ) : null}
-          <Button variant="secondary" size="sm" onClick={() => onOpenChange(false)}>
-            Fermer
-          </Button>
-        </div>
+          </div>
+        ) : undefined
       }
     >
       <div className="flex flex-col gap-4 text-sm">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-xs text-muted">Déclenché par</p>
-            <p className="text-body">{run.triggerSource === "cron" ? "Cron automatique" : "Action utilisateur"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted">Propriétaire</p>
-            <p className="text-body">{run.ownerName ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted">Durée</p>
-            <p className="text-body">{formatDurationMs(run.durationMs)}</p>
+            <p className="text-xs text-muted">Déclenchée par</p>
+            <p className="text-body truncate">{triggeredBy}</p>
           </div>
           <div>
             <p className="text-xs text-muted">Coût estimé</p>
@@ -106,16 +109,21 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
                   : formatCostEstimate(run.costEstimate)}
             </p>
           </div>
-        </div>
-
-        {run.companyName ? (
           <div>
             <p className="text-xs text-muted">Compte concerné</p>
-            <Link href={`/prospection/accounts/${run.companyId}`} className="text-primary underline underline-offset-2">
-              {run.companyName}
-            </Link>
+            {run.companyName ? (
+              <Link href={`/prospection/accounts/${run.companyId}`} className="text-primary underline underline-offset-2 truncate block">
+                {run.companyName}
+              </Link>
+            ) : (
+              <p className="text-body">—</p>
+            )}
           </div>
-        ) : null}
+          <div>
+            <p className="text-xs text-muted">Durée</p>
+            <p className="text-body">{formatDurationMs(run.durationMs)}</p>
+          </div>
+        </div>
 
         {run.errorMessage ? (
           <div className="rounded-[var(--radius-medium)] border border-danger/20 bg-danger/[0.04] p-3">
@@ -129,12 +137,28 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
             href={n8nExecutionUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-primary underline underline-offset-2"
+            className="inline-flex items-center gap-2 text-xs font-medium text-primary underline underline-offset-2 hover:text-primary-deep"
           >
-            Ouvrir l&apos;exécution dans n8n ↗
+            <Image
+              src="/icons_set/logo_n8n.png"
+              alt="n8n"
+              width={16}
+              height={16}
+              className="size-4 shrink-0 rounded-sm"
+            />
+            <span>Ouvrir l&apos;exécution dans n8n ↗</span>
           </a>
         ) : n8nExecutionId ? (
-          <p className="text-xs text-muted">Exécution n8n : {n8nExecutionId}</p>
+          <div className="inline-flex items-center gap-2 text-xs text-muted">
+            <Image
+              src="/icons_set/logo_n8n.png"
+              alt="n8n"
+              width={16}
+              height={16}
+              className="size-4 shrink-0 opacity-60"
+            />
+            <span>Exécution n8n : {n8nExecutionId}</span>
+          </div>
         ) : (
           <p className="text-xs text-muted">
             Identifiant d&apos;exécution n8n non disponible pour ce run — lien direct impossible.
@@ -150,3 +174,4 @@ export function RunDrillDownDialog({ run, open, onOpenChange, onRetried }: RunDr
     </AppDialog>
   )
 }
+

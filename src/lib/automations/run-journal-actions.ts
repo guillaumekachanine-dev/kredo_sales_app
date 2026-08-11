@@ -60,6 +60,17 @@ export async function refreshRunJournal(): Promise<RefreshRunJournalResult> {
   return { ok: true, rows }
 }
 
+export async function fetchFilteredRunJournal(filters: { from: string; to: string; workflow: string; status: string }): Promise<RefreshRunJournalResult> {
+  const { user } = await requireUser()
+  if (!user) return { ok: false, error: "Session expirée — recharge la page." }
+
+  const { getFilteredRunJournalRows } = await import("./automations-data")
+  const rows = await getFilteredRunJournalRows(filters)
+  if (rows === null) return { ok: false, error: "Rechargement du journal filtré impossible." }
+
+  return { ok: true, rows }
+}
+
 export type RunRetryPayload = {
   workflowId: string
   entityType: string | null
