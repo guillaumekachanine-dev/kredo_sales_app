@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { domains } from "./knowledge-hub-shell-data"
 import { DomainItem } from "./knowledge-hub.types"
+import { KnowledgeHubCategoryIcon } from "./KnowledgeHubCategoryIcon"
 
 // ──────────────────────────────────────────────────────────────────────
 //  DESKTOP VIEW FOR LIBRARY MODE
@@ -67,17 +68,15 @@ export function KnowledgeLibraryModeDesktop({
               key={domain.id}
               type="button"
               onClick={() => onSelectDomain(isSelected ? null : domain)}
-              className={`w-full rounded-lg border text-left bg-edito-surface p-5 transition-all outline-none ${
+              className={`group w-full rounded-lg border text-left bg-edito-surface p-5 transition-all outline-none ${
                 isSelected
                   ? "border-edito-brass ring-1 ring-edito-brass"
-                  : "border-edito-border hover:border-edito-muted"
+                  : "border-edito-border hover:border-edito-brass/60 hover:bg-edito-canvas/35"
               }`}
             >
               <div className="flex items-start justify-between">
                 <h3 className="text-sm font-bold text-edito-navy">{domain.title}</h3>
-                <span className="inline-flex size-5 items-center justify-center rounded bg-edito-navy/5 text-xs text-edito-navy">
-                  ↗
-                </span>
+                <KnowledgeHubCategoryIcon domainId={domain.id} />
               </div>
               <p className="mt-2 text-xs leading-relaxed text-edito-body">{domain.description}</p>
               

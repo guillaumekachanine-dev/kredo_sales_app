@@ -1,5 +1,6 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useState, useEffect } from "react"
 import { KnowledgeLibraryModeDesktop } from "./KnowledgeLibraryMode"
 import { KredoExpertiseSnapshot } from "./expertise/kredo-expertise.types"
@@ -10,10 +11,11 @@ import { KnowledgeHubLocalNavigation } from "./KnowledgeHubLocalNavigation"
 import { useSidebarCollapse } from "@/hooks/use-sidebar-collapse"
 import { ExpertiseTab } from "./expertise/KredoExpertiseNavigation"
 import { TalentTab } from "./talents/talent-knowledge.types"
-import { AppDialog } from "@/components/ui/AppDialog"
-import { KnowledgeWorkshopsModeDesktop } from "./KnowledgeWorkshopsMode"
-import { KnowledgeAskMode } from "./KnowledgeAskMode"
-import { WorkshopItem } from "./knowledge-hub.types"
+
+const KnowledgeHubModuleModal = dynamic(
+  () => import("./KnowledgeHubModuleModal").then((module) => module.KnowledgeHubModuleModal),
+  { ssr: false, loading: () => null },
+)
 
 export type KnowledgeView =
   | { type: "categories" }
@@ -27,7 +29,6 @@ interface KnowledgeHubDesktopProps {
 export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDesktopProps) {
   const [activeView, setActiveView] = useState<KnowledgeView>({ type: "categories" })
   const [activeModal, setActiveModal] = useState<"workshop" | "ask" | null>(null)
-  const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopItem | null>(null)
 
   const { requestCollapse, requestRestore } = useSidebarCollapse()
 
@@ -48,9 +49,6 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
 
   const handleOpenModal = (modal: "workshop" | "ask") => {
     setActiveModal(modal)
-    if (modal === "workshop") {
-      setSelectedWorkshop(null)
-    }
   }
 
   return (
@@ -95,32 +93,12 @@ export function KnowledgeHubDesktop({ snapshot, talentSnapshot }: KnowledgeHubDe
         </div>
       </main>
 
-      {/* Modal Atelier */}
-      <AppDialog
-        open={activeModal === "workshop"}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-        title="Atelier Métiers"
-        className="w-full max-w-5xl"
-        bodyClassName="bg-edito-canvas p-6"
-        headerClassName="px-6 py-4 border-b border-edito-border"
-      >
-        <KnowledgeWorkshopsModeDesktop
-          selectedWorkshop={selectedWorkshop}
-          onSelectWorkshop={setSelectedWorkshop}
+      {activeModal ? (
+        <KnowledgeHubModuleModal
+          module={activeModal}
+          onClose={() => setActiveModal(null)}
         />
-      </AppDialog>
-
-      {/* Modal Interroger */}
-      <AppDialog
-        open={activeModal === "ask"}
-        onOpenChange={(open) => !open && setActiveModal(null)}
-        title="Interroger le Corpus"
-        className="w-full max-w-5xl"
-        bodyClassName="bg-edito-canvas p-6"
-        headerClassName="px-6 py-4 border-b border-edito-border"
-      >
-        <KnowledgeAskMode />
-      </AppDialog>
+      ) : null}
     </div>
   )
 }
