@@ -365,7 +365,10 @@ export function AccountScanSetup({ company, isMobile, launching, onLaunch }: Acc
       </div>
 
       {/* Main Action Launch Button */}
-      <div className="pt-1">
+      <div className={cn(
+        "pt-1",
+        isMobile && "sticky bottom-0 z-20 -mx-4 border-t border-edito-border bg-edito-canvas px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3",
+      )}>
         {isSelectionEmpty && (
           <p className="text-center text-xs text-red-500 mb-1 font-medium">Vous devez sélectionner au moins une information à rechercher.</p>
         )}

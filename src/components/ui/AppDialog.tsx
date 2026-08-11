@@ -32,6 +32,7 @@ export interface AppDialogProps {
   titleClassName?: string
   bodyClassName?: string
   headerClassName?: string
+  closeButtonClassName?: string
   footerClassName?: string
   maxHeightClassName?: string
   aside?: React.ReactNode
@@ -53,6 +54,7 @@ export function AppDialog({
   titleClassName,
   bodyClassName,
   headerClassName,
+  closeButtonClassName,
   footerClassName,
   maxHeightClassName,
   aside,
@@ -165,7 +167,10 @@ export function AppDialog({
                 ref={closeButtonRef}
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="shrink-0 text-muted hover:text-heading transition-colors"
+                className={cn(
+                  "inline-flex shrink-0 items-center justify-center text-muted transition-colors hover:text-heading",
+                  closeButtonClassName,
+                )}
                 aria-label="Fermer"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

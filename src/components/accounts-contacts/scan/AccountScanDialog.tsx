@@ -74,37 +74,41 @@ interface AccountScanDialogProps {
 function StepIndicator({
   phase,
   companyName,
+  isMobile,
   onInformation,
   onContacts,
 }: {
   phase: Phase
   companyName: string
+  isMobile: boolean
   onInformation: () => void
   onContacts: () => void
 }) {
   const active = phase.startsWith("contacts") ? "contacts" : "information"
 
   return (
-    <div className="flex flex-row items-center justify-between gap-4 w-full pr-8">
+    <div className={cn("flex w-full min-w-0", isMobile ? "flex-col gap-3" : "flex-row items-center justify-between gap-4 pr-8")}>
       {/* Left: Badge & Company Name */}
       <div className="flex items-center gap-2.5 min-w-0">
-        <span className="shrink-0 rounded-md bg-gradient-to-r from-[#D89B16] to-[#F59E0B] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#0F172A] shadow-sm">
+        <span className="shrink-0 rounded-md bg-edito-brass px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-edito-ink shadow-sm">
           SCAN RAPIDE
         </span>
-        <h2 className="text-sm font-extrabold tracking-wide text-white truncate max-w-[180px] sm:max-w-[280px]">
+        <h2 className={cn("truncate text-sm font-extrabold tracking-wide text-white", isMobile ? "max-w-[calc(100vw-9.5rem)]" : "max-w-[180px] sm:max-w-[280px]")}>
           {companyName}
         </h2>
       </div>
 
       {/* Right: Distinctive Mode Switcher Pill Container */}
-      <div className="flex items-center rounded-full bg-[#0A1424]/90 p-1 border border-white/10 shadow-inner backdrop-blur-md shrink-0">
+      <div className={cn("flex items-center rounded-full bg-heading/70 p-1 border border-white/10 shadow-inner backdrop-blur-md", isMobile ? "w-full" : "shrink-0")}>
         <button
           type="button"
           onClick={onInformation}
+          aria-pressed={active === "information"}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
+            "relative flex min-h-9 items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
+            isMobile && "flex-1",
             active === "information"
-              ? "bg-gradient-to-r from-[#D89B16] via-[#F59E0B] to-[#D89B16] text-[#0F172A] shadow-md shadow-[#D89B16]/25 font-extrabold scale-[1.02]"
+              ? "bg-edito-brass text-edito-ink shadow-md font-extrabold scale-[1.02]"
               : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
           )}
         >
@@ -122,10 +126,12 @@ function StepIndicator({
         <button
           type="button"
           onClick={onContacts}
+          aria-pressed={active === "contacts"}
           className={cn(
-            "relative flex items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
+            "relative flex min-h-9 items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
+            isMobile && "flex-1",
             active === "contacts"
-              ? "bg-gradient-to-r from-[#D89B16] via-[#F59E0B] to-[#D89B16] text-[#0F172A] shadow-md shadow-[#D89B16]/25 font-extrabold scale-[1.02]"
+              ? "bg-edito-brass text-edito-ink shadow-md font-extrabold scale-[1.02]"
               : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
           )}
         >
@@ -834,18 +840,33 @@ export function AccountScanDialog({
         <StepIndicator
           phase={phase}
           companyName={company.name}
+          isMobile={isMobile}
           onInformation={handleGoToInformationReview}
           onContacts={handleGoToContactsSetup}
         />
       }
       className={cn(
         wide && !isMobile ? "sm:!max-w-[1380px] sm:!w-[94vw]" : "sm:!max-w-4xl sm:!w-[88vw]",
-        "w-full rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] shadow-2xl transition-all duration-300"
+        "border border-edito-border bg-edito-canvas shadow-2xl transition-all duration-300",
+        isMobile
+          ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
+          : "w-full rounded-2xl",
       )}
       fillHeight={true}
+      maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
       dataTheme="edito"
-      headerClassName="bg-[#1E3150] px-4 py-3.5 sm:px-6 sm:py-4 border-b-0 -mx-4 -mt-4 sm:-mx-6 sm:-mt-6 rounded-t-[var(--radius-medium)] text-white shrink-0 relative"
-      bodyClassName={cn(wide ? "text-xs" : undefined, "bg-[#F8FAFC] p-4 sm:p-5 overflow-y-auto max-h-[82vh]")}
+      headerClassName={cn(
+        "-mx-4 -mt-4 shrink-0 border-b-0 bg-edito-navy px-4 text-white sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-4",
+        isMobile
+          ? "rounded-none pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]"
+          : "rounded-t-[var(--radius-medium)] py-3.5",
+      )}
+      closeButtonClassName={isMobile ? "-mr-2 -mt-1 h-11 w-11 self-start rounded-full text-white/75 hover:bg-white/10 hover:text-white" : undefined}
+      bodyClassName={cn(
+        wide ? "text-xs" : undefined,
+        "min-h-0 flex-1 overflow-y-auto bg-edito-canvas p-4 sm:p-5",
+        !isMobile && "max-h-[82vh]",
+      )}
     >
       {body}
     </AppDialog>

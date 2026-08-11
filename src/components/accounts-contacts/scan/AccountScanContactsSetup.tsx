@@ -313,7 +313,10 @@ export function AccountScanContactsSetup({
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-[#CBD5E1]/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className={cn(
+        "flex flex-col-reverse gap-2 border-t border-[#CBD5E1]/60 pt-3 sm:flex-row sm:items-center sm:justify-between",
+        isMobile && "sticky bottom-0 z-20 -mx-4 bg-edito-canvas px-4 pb-[max(1rem,env(safe-area-inset-bottom))]",
+      )}>
         <button
           type="button"
           onClick={onBackToInformation}
