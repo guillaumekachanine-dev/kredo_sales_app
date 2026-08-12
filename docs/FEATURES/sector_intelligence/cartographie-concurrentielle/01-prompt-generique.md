@@ -242,10 +242,29 @@ BLOC 4 — COUCHE ESN (accessibilité commerciale)
       accessibilité (gouvernance achat) | fit avec OFFRE_ESN
     Note en 1 / 3 / 5 UNIQUEMENT — pas de 2 ni de 4 : une échelle continue produit des
     totaux tassés au milieu, exactement là où se prend la décision.
-    Pondère « moment » et « accessibilité » par 2 : ce sont les deux critères qui
+
+    FORMULE CANONIQUE — à appliquer littéralement, sans variante :
+
+        total = capacite_a_payer
+              + intensite_it
+              + 2 × moment
+              + 2 × accessibilite
+              + fit_offre
+
+    « moment » et « accessibilité » comptent DOUBLE : ce sont les deux critères qui
     déterminent si un compte est attaquable ce trimestre ou dans deux ans.
-    Total sur 35. Le total ne vaut que par le classement relatif qu'il produit : ne
-    l'utilise jamais comme une mesure absolue.
+
+    Le total est donc sur 35 (minimum 5 si toutes les notes valent 1, maximum 35 si
+    toutes valent 5), et JAMAIS sur 25.
+
+    ⚠️ ERREUR À NE PAS COMMETTRE — ne somme jamais naïvement les cinq valeurs.
+       `5 + 5 + 3 + 2 + 4 = 19` est FAUX : c'est un /25 déguisé.
+       Le calcul juste est `5 + 5 + (2×3) + (2×2) + 4 = 24`.
+       Recalcule le champ `total` à partir des cinq composantes du JSON, jamais de
+       tête, et vérifie que la valeur obtenue est bien comprise entre 5 et 35.
+
+    Le total ne vaut que par le classement relatif qu'il produit : ne l'utilise jamais
+    comme une mesure absolue.
 
 BLOC 5 — TRADUCTION COMMERCIALE
   • Angle d'entrée recommandé, en une phrase, adossé à une preuve issue des blocs 1 à 4
@@ -334,17 +353,30 @@ SCHÉMA JSON DE SORTIE (à respecter exactement)
      "code_activite":"", "convention_collective":"",
      "empreinte_metier": 0, "maturite_numerique": 0,
      "reputation":"forte|correcte|fragilisee",
-     "appetence": {"capacite_a_payer":0,"intensite_it":0,"moment":0,
-                   "accessibilite":0,"fit_offre":0,"total":0},
+     "appetence": {"capacite_a_payer":5,"intensite_it":5,"moment":3,
+                   "accessibilite":2,"fit_offre":4,"total":24},
      "trigger_events": [{"date":"","fait":"","source":""}],
      "angle_entree":"", "a_ne_pas_dire":"",
-     "confiance":"elevee|moyenne|faible", "trous": [""],
+     "confiance":"haute|moyenne|faible", "trous": [""],
      "sources": [{"url":"","atteste":"","tier":1}]}
   ],
   "transverse": {"enjeux_communs":[""], "enjeux_par_segment":{},
                  "prescripteur_numerique":"", "porteur_innovation":"",
                  "lecture_ia":"", "comptes_prioritaires":[""]}
 }
+
+DEUX CHAMPS OÙ LES EXPORTS SE SONT TROMPÉS — à relire avant de livrer :
+
+  • `appetence.total` — les valeurs du bloc `appetence` ci-dessus sont un EXEMPLE
+    CALCULÉ, pas des zéros de remplissage : 5 + 5 + (2×3) + (2×2) + 4 = 24.
+    Reproduis ce calcul pour chaque compte. Un `total` égal à la somme simple des
+    cinq notes est un défaut de livrable ; l'import Kredo le détecte, le recalcule
+    et le remplace par la valeur canonique, en émettant un avertissement.
+
+  • `confiance` — le domaine est `haute | moyenne | faible`. C'est la valeur
+    canonique Kredo, contrainte en base. Les libellés `elevee` / `élevée`, présents
+    dans les exports antérieurs à août 2026, sont encore tolérés à l'import mais
+    normalisés en `haute` : ne les produis plus.
 
 --------------------------------------------------------------------
 RÈGLES ABSOLUES

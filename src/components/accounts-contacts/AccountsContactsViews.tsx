@@ -1,7 +1,6 @@
 "use client"
 
 import Image from "next/image"
-import Link from "next/link"
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
@@ -42,6 +41,10 @@ import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { useCrmDrawer } from "@/hooks/use-crm-drawer"
 import { AgendaEventDrawer, type AgendaEventDrawerInitialValues } from "@/components/agenda/AgendaEventDrawer"
 import { cn } from "@/lib/utils"
+import {
+  CompetitiveMapImportDialog,
+  type CompetitiveMapSegmentOption,
+} from "@/features/competitive-map/components/CompetitiveMapImportWizard"
 import {
   CONTACT_DEPARTMENTS,
   CONTACT_RELATIONSHIP_ROLE_OPTIONS,
@@ -1963,6 +1966,7 @@ export function ProspectionAccountsView({
   const [editCompanyReturnToIdentityId, setEditCompanyReturnToIdentityId] = useState<string | null>(null)
   // Contact modal
   const [contactModal, setContactModal] = useState<{ open: boolean; editing?: ContactRow }>({ open: false })
+  const [competitiveMapOpen, setCompetitiveMapOpen] = useState(false)
   const [editContactReturnToIdentityId, setEditContactReturnToIdentityId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -2040,6 +2044,17 @@ export function ProspectionAccountsView({
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [deletePending, startDeleteTransition] = useTransition()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+
+  const competitiveMapSegments = useMemo<CompetitiveMapSegmentOption[]>(() => {
+    const taxonomyById = new Map(data.taxonomySegments.map((item) => [item.id, item]))
+    return data.taxonomySegments.flatMap((segment) => {
+      if (segment.level !== "segment" || !segment.parentId) return []
+      const macro = taxonomyById.get(segment.parentId)
+      return macro
+        ? [{ slug: segment.slug, name: segment.name, macroSlug: macro.slug, macroName: macro.name }]
+        : []
+    })
+  }, [data.taxonomySegments])
 
 
 
@@ -2165,12 +2180,13 @@ export function ProspectionAccountsView({
         </div>
         {device !== "mobile" && (
           <div className="flex items-center gap-2 shrink-0">
-            <Link
-              href="/prospection/cartographies/import"
+            <button
+              type="button"
+              onClick={() => setCompetitiveMapOpen(true)}
               className="rounded border border-border bg-canvas px-3 py-1.5 text-xs font-semibold text-heading shadow-sm transition-colors hover:bg-border/10 active:scale-[0.98]"
             >
               Importer une cartographie
-            </Link>
+            </button>
             <button
               onClick={() => setContactModal({ open: true })}
               className="rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"
@@ -2366,6 +2382,15 @@ export function ProspectionAccountsView({
       )}
 
       {/* Modals */}
+      {competitiveMapOpen && (
+        <CompetitiveMapImportDialog
+          open={competitiveMapOpen}
+          onOpenChange={setCompetitiveMapOpen}
+          segments={competitiveMapSegments}
+          isMobile={device === "mobile"}
+        />
+      )}
+
       {companyModal.open && (
         <CompanyFormModal
           initial={companyModal.editing}

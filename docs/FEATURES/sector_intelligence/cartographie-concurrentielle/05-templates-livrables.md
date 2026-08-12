@@ -6,7 +6,7 @@
 
 ```markdown
 # [SECTEUR] — [SEGMENT] | Cartographie concurrentielle
-Snapshot au [DATE] · version [X.Y] · auteur [NOM] · confiance globale [ÉLEVÉE/MOYENNE/FAIBLE]
+Snapshot au [DATE] · version [X.Y] · auteur [NOM] · confiance globale [HAUTE/MOYENNE/FAIBLE]
 
 ## Le marché en 5 points
 1. Structure : [concentré / fragmenté], [N] acteurs captent l'essentiel du segment
@@ -33,7 +33,7 @@ Snapshot au [DATE] · version [X.Y] · auteur [NOM] · confiance globale [ÉLEV�
 
 ```markdown
 ### [NOM] — [CATÉGORIE]
-`[identifiant national]` · groupe : [—] · branche retenue : [—] · confiance : [—]
+`[identifiant national]` · groupe : [—] · branche retenue : [—] · confiance : [haute | moyenne | faible]
 
 **Identité** — CA [X] M€ ([exercice], périmètre [—]) · [N] collaborateurs France ·
 rayon [régional/national/international] · code d'activité [—] · convention collective [—]
@@ -63,6 +63,7 @@ Contrats majeurs : [projet, date, montant si publié, source]
 - Externalisation : [ESN en place, volume, nearshore]
 - Triggers 12 mois : [date — fait — source]
 - **Appétence** : payer [1/3/5] · intensité SI [1/3/5] · moment [1/3/5] ×2 · accessibilité [1/3/5] ×2 · fit [1/3/5] → **[/35]**
+  *Total = payer + intensité SI + 2×moment + 2×accessibilité + fit. Jamais la somme simple des cinq notes (ce serait un /25). Exemple : 5 + 5 + 2×3 + 2×2 + 4 = **24/35**.*
 
 **Traduction commerciale**
 - Angle d'entrée : [une phrase, adossée à une preuve ci-dessus]
@@ -176,10 +177,10 @@ nom;identifiant_national;groupe;branche_retenue;categorie;ca_meur;exercice;perim
 | Champ export | Usage CRM |
 |---|---|
 | `categorie` | Segmentation de compte → détermine le discours et le niveau d'interlocuteur |
-| `appetence_total` | Score de priorisation → tri de la liste de prospection |
+| `appetence_total` | Score de priorisation → tri de la liste de prospection. **Sur 35**, calculé `payer + intensité SI + 2×moment + 2×accessibilité + fit` — un total sur 25 (somme simple) est recalculé à l'import |
 | `trigger_events` | Tâches datées avec échéance de rappel |
 | `angle_entree` | Champ de note visible sur la fiche compte |
-| `confiance` | Champ qualité — un commercial doit savoir qu'il travaille sur une fiche faible |
+| `confiance` | Champ qualité — un commercial doit savoir qu'il travaille sur une fiche faible. Domaine canonique : `haute \| moyenne \| faible` (`elevee`/`élevée` sont des libellés legacy, encore tolérés à l'import mais normalisés en `haute`) |
 | `date_snapshot` | Déclenche l'alerte de péremption |
 
 ---
@@ -193,7 +194,7 @@ nom;identifiant_national;groupe;branche_retenue;categorie;ca_meur;exercice;perim
 Secteur : [—] · Segment : [—] · Géographie : [—]
 Compte étalon : [—]
 Snapshot : [JJ/MM/AAAA] · Version : [X.Y] · Auteur : [—]
-Confiance globale : [ÉLEVÉE / MOYENNE / FAIBLE]
+Confiance globale : [HAUTE / MOYENNE / FAIBLE]
 À rafraîchir avant le : [JJ/MM/AAAA]  (triggers : 3 mois · financier : 12 mois)
 Diffusion : interne — contient des appréciations nommées sur des entreprises tierces
 ---

@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { AppDialog } from "@/components/ui/AppDialog"
 import { StatusPill } from "@/components/ui/StatusPill"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import {
@@ -25,9 +26,21 @@ import {
   type CompetitiveMapIngestionDecision,
   type ConfirmCompetitiveMapIngestionResult,
 } from "../actions/ingest-competitive-map"
-import type { CompetitiveMapSegmentOption } from "../data/load-segment-referential"
+
+export type CompetitiveMapSegmentOption = {
+  slug: string
+  name: string
+  macroSlug: string
+  macroName: string
+}
 
 type WizardStep = "upload" | "arbitrate" | "confirm"
+
+const WIZARD_STEPS: { id: WizardStep; index: string; label: string; detail: string }[] = [
+  { id: "upload", index: "01", label: "Préparer", detail: "Fichier, segment et date" },
+  { id: "arbitrate", index: "02", label: "Arbitrer", detail: "Résolution des comptes" },
+  { id: "confirm", index: "03", label: "Finaliser", detail: "Bilan de l’import" },
+]
 
 type ArbitrationState = {
   skip: boolean
@@ -70,7 +83,19 @@ function moneyLabel(value: number | null): string {
   return `${value.toLocaleString("fr-FR")} M€`
 }
 
-export function CompetitiveMapImportWizard({ segments }: { segments: CompetitiveMapSegmentOption[] }) {
+type CompetitiveMapImportWizardProps = {
+  segments: CompetitiveMapSegmentOption[]
+  embedded?: boolean
+  onStepChange?: (step: WizardStep) => void
+  onClose?: () => void
+}
+
+export function CompetitiveMapImportWizard({
+  segments,
+  embedded = false,
+  onStepChange,
+  onClose,
+}: CompetitiveMapImportWizardProps) {
   const [step, setStep] = useState<WizardStep>("upload")
 
   const [rawText, setRawText] = useState("")
@@ -88,6 +113,11 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [result, setResult] = useState<ConfirmCompetitiveMapIngestionResult | null>(null)
+
+  function changeStep(nextStep: WizardStep) {
+    setStep(nextStep)
+    onStepChange?.(nextStep)
+  }
 
   const selectedSegment = segments.find((s) => s.slug === segmentSlug) ?? null
 
@@ -135,7 +165,7 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
     const initial: Record<number, ArbitrationState> = {}
     for (const entry of resolved) initial[entry.index] = initialArbitration(entry)
     setArbitration(initial)
-    setStep("arbitrate")
+    changeStep("arbitrate")
   }
 
   function updateArbitration(index: number, patch: Partial<ArbitrationState>) {
@@ -167,7 +197,13 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
           empreinteMetier: input.empreinteMetier,
           maturiteNumerique: input.maturiteNumerique,
           appetenceScore: input.appetenceScore,
+          accessibiliteScore: input.accessibiliteScore,
+          // ADR-0019 D-4 : le score reste provisoire tant que l'accessibilité
+          // n'a pas été auditée compte par compte. Une accessibilité livrée
+          // par l'étude n'est pas un audit — le drapeau ne tombe pas ici.
           appetenceProvisoire: true,
+          isBenchmarkAccount: input.estCompteEtalon,
+          profileJson: input.profil,
           confiance: input.confiance,
           studySnapshotDate: studyDate,
           caMeur: input.caMeur,
@@ -194,14 +230,30 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
     }
 
     setResult(outcome)
-    setStep("confirm")
+    changeStep("confirm")
   }
 
   const skippedCount = entries.filter((e) => arbitration[e.index]?.skip).length
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-5 px-6 py-6">
-      <div>
+    <div className={cn("mx-auto flex w-full max-w-4xl flex-col gap-5", embedded ? "px-5 py-6 sm:px-8 sm:py-8" : "px-6 py-6")}>
+      {embedded && (
+        <header className="border-b border-edito-border pb-5">
+          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-edito-brass">Étape {WIZARD_STEPS.findIndex((item) => item.id === step) + 1} sur 3</p>
+          <h2 className="mt-1 font-heading text-xl font-black tracking-tight text-edito-navy">
+            {step === "upload" ? "Préparer le fichier" : step === "arbitrate" ? "Résoudre les comptes" : "Import terminé"}
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-edito-muted">
+            {step === "upload"
+              ? "Chargez l’export JSON, puis vérifiez son segment de rattachement et sa date de référence."
+              : step === "arbitrate"
+                ? "Validez les rapprochements proposés, créez les citations absentes ou excluez une ligne."
+                : "La cartographie est désormais reliée aux comptes concernés dans le CRM."}
+          </p>
+        </header>
+      )}
+
+      {!embedded && <div>
         <h1 className="font-heading text-2xl font-bold tracking-tight text-heading">
           Importer une cartographie concurrentielle
         </h1>
@@ -210,20 +262,22 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
           <code className="rounded bg-canvas px-1 py-0.5 text-[10px]">mapped</code> (citation, sans donnée
           canonique). Les chiffres restent des faits sourcés, jamais écrits dans les colonnes du compte.
         </p>
-      </div>
+      </div>}
 
-      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
+      {!embedded && <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted">
         <span className={cn(step === "upload" && "text-heading")}>1. Upload</span>
         <span>→</span>
         <span className={cn(step === "arbitrate" && "text-heading")}>2. Résolution &amp; arbitrage</span>
         <span>→</span>
         <span className={cn(step === "confirm" && "text-heading")}>3. Confirmation</span>
-      </div>
+      </div>}
 
       {step === "upload" && (
-        <SurfaceCard padding="default" className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-heading">Fichier JSON</label>
+        <SurfaceCard padding="default" className="space-y-5 border-edito-border bg-white shadow-none">
+          <label className="group block cursor-pointer rounded-xl border border-dashed border-edito-border bg-edito-canvas px-6 py-7 text-center transition-colors hover:border-edito-brass hover:bg-edito-chip/35">
+            <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-edito-navy/10 text-lg font-bold text-edito-navy transition-transform group-hover:-translate-y-0.5" aria-hidden="true">↑</span>
+            <span className="mt-3 block text-sm font-black text-edito-navy">Déposer un export JSON</span>
+            <span className="mt-1 block text-[10px] text-edito-muted">ou parcourir les fichiers de cet appareil</span>
             <input
               type="file"
               accept="application/json"
@@ -231,18 +285,19 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
                 const file = e.target.files?.[0]
                 if (file) void handleFile(file)
               }}
-              className="mt-1 block w-full text-xs text-body"
+              className="sr-only"
             />
-          </div>
+          </label>
 
           <div>
-            <label className="text-xs font-bold text-heading">…ou coller le JSON</label>
+            <div className="flex items-center gap-3"><span className="h-px flex-1 bg-edito-border" /><label className="text-[9px] font-black uppercase tracking-wider text-edito-muted" htmlFor="competitive-map-json">ou coller le contenu</label><span className="h-px flex-1 bg-edito-border" /></div>
             <textarea
+              id="competitive-map-json"
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
               rows={8}
               placeholder='{"meta": {...}, "comptes": [...]}'
-              className="mt-1 w-full rounded border border-border bg-surface p-2 font-mono text-[11px] text-body"
+              className="mt-4 w-full resize-y rounded-lg border border-edito-border bg-white p-3 font-mono text-[11px] leading-relaxed text-edito-body outline-none transition-shadow focus:border-edito-navy focus:ring-2 focus:ring-edito-navy/10"
             />
           </div>
 
@@ -260,7 +315,7 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
             type="button"
             onClick={handleParse}
             disabled={!rawText.trim()}
-            className="min-h-9 rounded border border-primary bg-primary px-4 text-xs font-bold text-primary-fg transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 rounded-md border border-edito-brass bg-edito-navy px-5 text-xs font-bold text-white transition-colors hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted"
           >
             Analyser le fichier
           </button>
@@ -360,6 +415,7 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold text-heading">{entry.input.nom}</span>
+                        {entry.input.estCompteEtalon && <StatusPill variant="info" label="Compte étalon" />}
                         <StatusPill
                           variant={
                             entry.status === "resolved"
@@ -385,6 +441,16 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
                         {entry.input.effectifFrance !== null && (
                           <span>{entry.input.effectifFrance.toLocaleString("fr-FR")} pers. France</span>
                         )}
+                        {entry.input.appetenceScore !== null && (
+                          <span>Appétence {entry.input.appetenceScore}/35</span>
+                        )}
+                        {/* Absente = « Non positionné » sur la matrice, jamais une valeur substituée (§7.2). */}
+                        <span>
+                          Accessibilité{" "}
+                          {entry.input.accessibiliteScore !== null
+                            ? `${entry.input.accessibiliteScore}/5`
+                            : "non renseignée"}
+                        </span>
                         <span>Confiance {entry.input.confiance}</span>
                       </div>
                     </div>
@@ -505,7 +571,7 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
             <button
               type="button"
-              onClick={() => setStep("upload")}
+              onClick={() => changeStep("upload")}
               className="text-[10px] font-bold uppercase tracking-wider text-muted hover:text-body"
             >
               Retour
@@ -581,14 +647,122 @@ export function CompetitiveMapImportWizard({ segments }: { segments: Competitive
             </div>
           )}
 
-          <Link
-            href="/prospection/accounts"
-            className="inline-block min-h-9 rounded border border-border bg-canvas px-4 py-2 text-xs font-bold text-heading transition-colors hover:bg-border/10"
-          >
-            Retour à la liste des comptes
-          </Link>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-block min-h-9 rounded border border-border bg-canvas px-4 py-2 text-xs font-bold text-heading transition-colors hover:bg-border/10"
+            >
+              Fermer et revenir aux comptes
+            </button>
+          ) : (
+            <Link
+              href="/prospection/accounts"
+              className="inline-block min-h-9 rounded border border-border bg-canvas px-4 py-2 text-xs font-bold text-heading transition-colors hover:bg-border/10"
+            >
+              Retour à la liste des comptes
+            </Link>
+          )}
         </SurfaceCard>
       )}
     </div>
+  )
+}
+
+type CompetitiveMapImportDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  segments: CompetitiveMapSegmentOption[]
+  isMobile: boolean
+}
+
+export function CompetitiveMapImportDialog({ open, onOpenChange, segments, isMobile }: CompetitiveMapImportDialogProps) {
+  const [step, setStep] = useState<WizardStep>("upload")
+  const activeStepIndex = WIZARD_STEPS.findIndex((item) => item.id === step)
+
+  const progress = (
+    <ol className={cn(isMobile ? "grid grid-cols-3 gap-1" : "space-y-5")} aria-label="Étapes de l’import">
+      {WIZARD_STEPS.map((item, index) => {
+        const active = item.id === step
+        const complete = index < activeStepIndex
+        return (
+          <li key={item.id} className="relative">
+            {!isMobile && index < WIZARD_STEPS.length - 1 ? (
+              <span className="absolute left-[13px] top-8 h-8 w-px bg-white/15" aria-hidden="true" />
+            ) : null}
+            <div className={cn("flex", isMobile ? "justify-center" : "items-start gap-3")}>
+              <span className={cn(
+                "relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border text-[9px] font-black transition-colors",
+                active && "border-edito-brass bg-edito-brass text-edito-navy",
+                complete && "border-white/35 bg-white/10 text-white",
+                !active && !complete && "border-white/20 text-white/50",
+              )}>
+                {complete ? "✓" : item.index}
+              </span>
+              {!isMobile ? (
+                <span className="min-w-0">
+                  <span className={cn("block text-[11px] font-black", active || complete ? "text-white" : "text-white/55")}>{item.label}</span>
+                  <span className="mt-0.5 block text-[9px] leading-snug text-white/45">{item.detail}</span>
+                </span>
+              ) : null}
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={<span className="text-sm font-black">Importer une cartographie</span>}
+      className={cn(
+        "border border-edito-border bg-edito-canvas transition-all duration-300",
+        isMobile
+          ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
+          : "w-full rounded-xl sm:!h-[min(86vh,800px)] sm:!w-[92vw] sm:!max-w-[1240px]",
+      )}
+      fillHeight
+      maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
+      dataTheme="edito"
+      headerClassName={cn(
+        "-mx-4 -mt-4 shrink-0 border-b border-edito-border bg-white px-4 text-edito-navy sm:-mx-6 sm:-mt-6 sm:px-6",
+        isMobile
+          ? "rounded-none border-b-edito-brass/70 bg-edito-navy pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white"
+          : "rounded-t-xl py-2.5",
+      )}
+      closeButtonClassName={isMobile ? "-mr-2 size-11 rounded-full text-white/75 hover:bg-white/10 hover:text-white" : "size-10 rounded-md text-edito-muted hover:bg-edito-chip hover:text-edito-navy"}
+      bodyClassName="-mx-4 -mb-4 -mt-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6 sm:-mt-4"
+    >
+      <div className={cn("h-full min-h-0", isMobile ? "flex flex-col" : "grid grid-cols-[220px_minmax(0,1fr)]")}>
+        <aside className={cn("shrink-0 bg-edito-navy text-white", isMobile ? "px-4 py-2.5" : "flex min-h-0 flex-col overflow-y-auto px-6 py-7")}>
+          {progress}
+          {!isMobile ? (
+            <>
+              <div className="my-6 border-t border-white/10" />
+              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">À retenir</p>
+              <ul className="mt-3 space-y-3 text-[10px] leading-relaxed text-white/65">
+                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>Aucune donnée n’est écrite avant votre confirmation.</span></li>
+                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>Chaque compte est rapproché du CRM pour éviter les doublons.</span></li>
+                <li className="flex gap-2"><span className="text-edito-brass">◆</span><span>CA et effectifs restent des faits provisoires et sourcés.</span></li>
+              </ul>
+              <div className="mt-auto border-t border-white/10 pt-5">
+                <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/55">Format attendu</p>
+                <p className="mt-2 text-[10px] leading-relaxed text-white/65">Export JSON produit par le processus de cartographie sectorielle KREDO.</p>
+              </div>
+            </>
+          ) : null}
+        </aside>
+        <main className="min-h-0 min-w-0 overflow-y-auto bg-edito-canvas">
+          <CompetitiveMapImportWizard
+            segments={segments}
+            embedded
+            onStepChange={setStep}
+            onClose={() => onOpenChange(false)}
+          />
+        </main>
+      </div>
+    </AppDialog>
   )
 }

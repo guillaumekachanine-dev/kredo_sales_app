@@ -2690,6 +2690,7 @@ export type Database = {
       }
       competitive_map_entries: {
         Row: {
+          accessibilite_score: number | null
           angle_entree: string | null
           appetence_provisoire: boolean
           appetence_score: number | null
@@ -2703,6 +2704,7 @@ export type Database = {
           is_benchmark_account: boolean
           maturite_numerique: number | null
           positioning: string | null
+          profile_json: Json
           sector_id: string
           segment_id: string | null
           source_document_id: string | null
@@ -2712,6 +2714,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          accessibilite_score?: number | null
           angle_entree?: string | null
           appetence_provisoire?: boolean
           appetence_score?: number | null
@@ -2725,6 +2728,7 @@ export type Database = {
           is_benchmark_account?: boolean
           maturite_numerique?: number | null
           positioning?: string | null
+          profile_json?: Json
           sector_id: string
           segment_id?: string | null
           source_document_id?: string | null
@@ -2734,6 +2738,7 @@ export type Database = {
           workspace_id?: string
         }
         Update: {
+          accessibilite_score?: number | null
           angle_entree?: string | null
           appetence_provisoire?: boolean
           appetence_score?: number | null
@@ -2747,6 +2752,7 @@ export type Database = {
           is_benchmark_account?: boolean
           maturite_numerique?: number | null
           positioning?: string | null
+          profile_json?: Json
           sector_id?: string
           segment_id?: string | null
           source_document_id?: string | null
