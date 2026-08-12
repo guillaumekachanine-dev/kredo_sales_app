@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react"
 
 import { useRouter } from "next/navigation"
@@ -2073,6 +2074,12 @@ export function ProspectionAccountsView({
         </div>
         {device !== "mobile" && (
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/prospection/cartographies/import"
+              className="rounded border border-border bg-canvas px-3 py-1.5 text-xs font-semibold text-heading shadow-sm transition-colors hover:bg-border/10 active:scale-[0.98]"
+            >
+              Importer une cartographie
+            </Link>
             <button
               onClick={() => setContactModal({ open: true })}
               className="rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-105 active:scale-[0.98]"

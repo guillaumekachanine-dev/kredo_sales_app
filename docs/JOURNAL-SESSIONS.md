@@ -15,6 +15,87 @@
 
 ---
 
+### Session 38 — ADR-0019 Lot 5 : ingestion des cartographies concurrentielles (2026-08-12)
+
+**Objet** : `docs/adr/ADR-0019-profondeur-de-compte-et-ingestion-cartographie.md`, Lot 5 —
+contrat `CompetitiveMapOutput` + résolution + bac d'arbitrage. Handoff repris à jour (§6 de
+`docs/adr/HANDOFF-ADR-0019.md`), démarré sans blocage identifié.
+
+**Décision structurante** : le mécanisme `AccountScanResolution` référencé par l'ADR n'est qu'un
+CONTRAT (`resolved|ambiguous|not_found` + candidats) — sa résolution réelle pour le scan de compte
+passe par le workflow n8n `intel-010-refresh`, et l'ADR exclut explicitement un nouveau workflow
+n8n pour ce lot. Construit donc un second moteur de résolution, purement SQL :
+`public.resolve_company_candidates(p_name, p_siren)` (SECURITY INVOKER), qui réutilise
+`kredo_normalize_company_name()` (jamais réimplémentée côté TS) et l'extension `pg_trgm` (absente
+en base, ajoutée par la migration — vérifié via `list_extensions` avant d'écrire quoi que ce soit).
+Le contrat est réutilisé, pas le workflow.
+
+**Écriture** : nouvelle RPC `public.ingest_competitive_map_batch(p_decisions, p_reason)` (SECURITY
+DEFINER, migration `20260812124353_074_competitive_map_ingestion.sql`), sur le modèle exact
+d'`apply_account_classification` (068) : `authenticated` n'a que SELECT sur `account_facts`/
+`intelligence_sources` (RLS vérifiée en base), toute écriture batch passe par cette RPC. Chaque
+entrée de décision est traitée dans sa propre sous-transaction PL/pgSQL (bloc exception) : une
+erreur sur un compte n'annule pas les autres. Un compte `mapped` créé porte
+`relation_type='prospect'` — le domaine à 4 valeurs (§5.8 REFERENTIEL-CLASSIFICATION) ne porte pas
+de valeur « concurrent », NOT NULL sans défaut oblige à choisir la plus neutre. Jamais de segment
+créé à la volée (§9/§12.1) : un `segmentSlug` inconnu met l'item en erreur, jamais un insert dans
+`sector_intelligence`. Dry-run en transaction `ROLLBACK` (4 scénarios : create nominal, attach
+nominal, segment inconnu, conflit SIREN) avant application réelle, comme pour la 068.
+
+**⚠️ Collision de numérotation locale** : le slot `073` a été pris entre-temps par le chantier
+parallèle « Socle Identité France » (`20260812110000_073_account_facts_identite_france.sql`,
+commit `fb5559eb`, déjà committé) — invisible tant que `git log`/`ls supabase/migrations` n'ont pas
+été vérifiés après écriture du fichier local. Renommé en `074` avant application. Même piège que
+018/019, documenté dans `CLAUDE.md`.
+
+**Domaine TS** (`src/features/competitive-map/domain/`) : pas de zod — `grep '"zod"' package.json`
+ne renvoie rien, le projet n'a aucune bibliothèque de validation, tout est écrit à la main sur le
+modèle `account-classification.ts` (validateurs purs, aucune dépendance Supabase).
+`competitive-map-output.ts` parse défensivement le JSON produit par le skill sectoriel : lu contre
+le livrable réel `docs/FEATURES/sector_intelligence/livrables_etudes/2026-08-btp-travaux-publics/
+export.json` (pas seulement le schéma nominal du kit `01-prompt-generique.md`), plusieurs écarts
+structurels sont apparus et absorbés plutôt que rejetés — `categorie` porte parfois des tirets
+(« mid-market ») alors que la colonne SQL attend des underscores ; `date_snapshot` est au format
+français `JJ/MM/AAAA`, pas ISO ; `empreinte_metier`/`maturite_numerique` portent des demi-points
+(4.5) alors que les colonnes sont des `smallint` (arrondis côté TS, jamais côté SQL — un cast
+texte `'4.5'::smallint` échoue) ; `identifiant_national`/`code_activite` sont quasiment toujours
+absents (cohérent avec la règle « le SIREN n'est jamais un prérequis de résolution », établie par
+le chantier Socle Identité France) ; aucune correspondance 1:1 vers `positioning`/`forces`/
+`vulnerabilite` (seul `positioning` a une source directe raisonnable via `justification_categorie`,
+les deux autres restent vides par défaut, éditables dans le bac d'arbitrage).
+`resolve-competitive-map-account.ts` porte la classification pure `resolved`/`ambiguous`/
+`not_found` à partir des candidats SQL (seuil de score, écart net entre 1er et 2e, doublon de match
+exact -> ambigu). 21 tests, tous verts.
+
+**UI** : wizard mono-session 3 étapes (`CompetitiveMapImportWizard.tsx`, responsive CSS — ADR-0006,
+pas d'adaptive plein, c'est un écran de saisie/revue) sous `/prospection/cartographies/import` :
+upload/coller le JSON + choix du segment (jamais auto-résolu, §9 interdit la création à la volée)
+et de la date d'étude -> résolution en lecture seule contre le CRM -> bac d'arbitrage (un candidat
+ou création par compte, positionnement/forces/vulnérabilité/angle d'entrée éditables, option
+d'exclure une ligne) -> confirmation avec liens vers les fiches créées/rattachées. Point d'entrée :
+lien « Importer une cartographie » dans la toolbar desktop de `/prospection/accounts`
+(`AccountsContactsViews.tsx`) — pas de modification de `v_crm_account_list` ni de la liste
+elle-même, la sous-section `mapped` reste Lot 6.
+
+**Hors scope, assumé et documenté** : pas de nouveau workflow n8n (exclusion ADR explicite) ; pas
+de `source_document_id`/nouveau type `intelligence_documents` (provenance portée par une ligne
+`intelligence_sources` par lot d'import, clé déterministe `competitive_map:<segment>:<date>`,
+idempotente en cas de ré-import) ; pas de file d'attente d'arbitrage persistée multi-session (le
+wizard est un aller simple, réversible si le besoin apparaît) ; `trigger_events`/`a_ne_pas_dire`/
+`trous` du JSON source ne sont pas persistés (pas de colonne dédiée sur `competitive_map_entries`).
+
+**Validation** : `npx tsc --noEmit` (purge `.next/` nécessaire, `TS6200` sinon — piège habituel),
+`npm test` (1117/1117), `npm run check:server-boundary` (vert), `npm run lint` sur les fichiers
+touchés (0 erreur, 2 warnings pré-existants sans rapport dans `AccountsContactsViews.tsx`),
+`npm run build` (succès, `/prospection/cartographies/import` rendu `ƒ` dynamique comme attendu).
+`npm run db:types` exécuté après application de la migration.
+
+**Reste à faire (Lot 6, pour mémoire)** : sous-section `mapped` dans la liste comptes + drawer
+minimal + bouton « Convertir » appelant `promoteAccountDepth` (même Server Action que les deux
+autres portes d'entrée déjà câblées — D-2, jamais un parcours « convertir » distinct).
+
+---
+
 ### Session 37 — Lot 0 « résolution sectorielle héritée » : l'app lit enfin la maille segment (2026-08-12)
 
 **Objet** : `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md`, Lot 0 du

@@ -7761,6 +7761,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ingest_competitive_map_batch: {
+        Args: { p_decisions: Json; p_reason?: string }
+        Returns: Json
+      }
       kredo_normalize_company_name: { Args: { txt: string }; Returns: string }
       promote_financial_model_to_reference: {
         Args: { p_model_id: string }
@@ -7775,6 +7779,16 @@ export type Database = {
           running_timeout_minutes?: number
         }
         Returns: number
+      }
+      resolve_company_candidates: {
+        Args: { p_name: string; p_siren?: string }
+        Returns: {
+          company_id: string
+          match_method: string
+          match_score: number
+          name: string
+          siren: string
+        }[]
       }
       save_candidate_reference_profile: {
         Args: {
@@ -7798,6 +7812,8 @@ export type Database = {
           updated_at: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
       upsert_candidate_reference_profile: {
         Args: {

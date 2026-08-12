@@ -1,23 +1,34 @@
 # Handoff — Chantier ADR-0019 (profondeur de compte & cartographies concurrentielles)
 
 > **Rédigé le 2026-08-10, par Claude (Opus 5), pour reprise par Gemini.**
-> **Corrigé le 2026-08-11** — le workflow n8n livré le 2026-08-10 (patch Lot 4) **ne fonctionnait
-> pas en production**. Guillaume l'a corrigé directement (VPS + réexport), et c'est **cette version
-> corrigée qui est commitée et qui fait foi** (`abc5c635`). Ce document a été réajusté en
-> conséquence — voir §5bis pour le détail du bug, du correctif, et surtout pour **pourquoi ma
-> propre validation ne l'avait pas vu**, cette dernière partie étant la plus utile pour éviter de
-> répéter l'erreur.
-> **Commit HEAD à la date de cette correction : `abc5c635` sur `main`, poussé et déployé en
-> production.** ⚠️ Le working tree local porte, au moment de cette correction, des modifications
-> **non commitées et sans rapport avec ce chantier** (travail en cours de Guillaume sur
-> `AccountScanDialog.tsx`, un nouveau `AccountScanIdentityConfirm.tsx`, `api/n8n/trigger/route.ts`,
-> `api/intelligence/account-identity/`) — n'y touche pas, ce n'est pas dans le périmètre d'ADR-0019.
-> Ce document est un instantané. Il **dérive** dès que quelqu'un touche au repo, à la base ou au VPS
-> n8n après sa rédaction. Avant d'agir sur une affirmation ci-dessous, **vérifie-la à la source** —
-> la section [Comment vérifier ce document](#comment-vérifier-ce-document) donne les commandes exactes.
-> C'est la doctrine du projet (`CLAUDE.md` § Méthode de travail attendue, point 2) : ce fichier n'y
-> échappe pas. **Ce document lui-même en est la preuve** : sa première version affirmait une
-> validation complète qui s'est révélée insuffisante en production.
+> **Corrigé le 2026-08-11** — le patch Lot 4 initial ne fonctionnait pas en production ; Guillaume
+> l'a corrigé (VPS + réexport, `abc5c635`). Voir §5bis.
+> **Re-corrigé le 2026-08-12** — entre les deux, **20 commits supplémentaires** ont été poussés sur
+> `main` par Guillaume (et probablement d'autres sessions IA), dont **6 qui durcissent encore le
+> pipeline de scan/classification du Lot 4** et **un chantier parallèle entier** (« Socle Identité
+> France », hors ADR-0019 mais sur les mêmes fichiers). Rien de tout cela n'était visible depuis mon
+> précédent passage. **§5ter** documente ce qui a changé et surtout **une lacune de test qui n'a
+> toujours pas été corrigée** malgré 4 correctifs ultérieurs. **§6** donne le verdict de disponibilité
+> pour le Lot 5, vérifié à la source au moment de cette mise à jour.
+>
+> **Commit HEAD à la date de cette mise à jour : `fbf31567` sur `main`, en production.** Vérifié :
+> `kredo-green.vercel.app` est aliasé sur le déploiement `dpl_7XvedALnw66ya8DgUQEs6gNRk54j`, créé
+> `2026-08-12 04:15:39` — la même minute que le commit `fbf31567` (`04:15:26`). Le déploiement est
+> **automatique via l'intégration Git de Vercel** depuis au moins cette session : ne suppose plus
+> qu'un `vercel --prod` manuel est nécessaire après un push sur `main` sans l'avoir vérifié d'abord
+> (`vercel ls kredo --prod`).
+> ⚠️ Le working tree local porte, en permanence semble-t-il, une modification non commitée sans
+> rapport avec ce chantier (`src/lib/intelligence/diagnostic/get-workspace-diagnostic.ts`) — n'y
+> touche pas.
+>
+> Ce document est un instantané qui a déjà dérivé deux fois en deux jours. Il **dérivera encore**.
+> Avant d'agir sur une affirmation ci-dessous, **vérifie-la à la source** — §8 donne les commandes
+> exactes. C'est la doctrine du projet (`CLAUDE.md` § Méthode de travail attendue, point 2), et ce
+> document en est la preuve vivante à deux reprises maintenant : sa version du 2026-08-10 affirmait
+> une validation complète qui s'est révélée insuffisante (§5bis) ; sa version du 2026-08-11 ignorait
+> tout un chantier parallèle déjà en cours au moment où elle a été écrite (§5ter). **Ne prends jamais
+> le silence de ce document sur un sujet pour une preuve que rien ne s'y passe — vérifie `git log`
+> avant toute chose.**
 
 ---
 
@@ -36,12 +47,14 @@
    (format de sortie attendu d'une IA), §9 (gouvernance des segments), §10 (contrôles obligatoires
    avant écriture), §12 (interdits absolus). **Toute décision touchant à la classification doit
    pouvoir se justifier par un numéro de section de ce document.**
-4. **`docs/JOURNAL-SESSIONS.md`** — **lis les entrées dans cet ordre** : Session 36 (le correctif du
-   2026-08-11, en tête de fichier — lis-la en premier, elle corrige ce qui suit), puis Session 35
-   (Lot 4, ADR-0019 — anciennement numérotée « 34 », renumérotée le 2026-08-11 suite à une collision
-   avec une session parallèle sans rapport), puis Session 33 (Lot 3). Ce handoff en est le résumé
-   actionnable ; le journal en est la trace complète — **et la Session 36 doit primer sur tout ce que
-   la Session 35 affirme concernant le nœud `Parse & Validate LLM Output`.**
+4. **`docs/JOURNAL-SESSIONS.md`** — pertinent pour ADR-0019 spécifiquement : Session 36 (correctif
+   du 2026-08-11 sur `Parse & Validate LLM Output` — prime sur tout ce que la Session 35 affirme
+   sur ce nœud), Session 35 (Lot 4, ADR-0019 — anciennement « 34 », renumérotée suite à une
+   collision), Session 33 (Lot 3). Les Sessions 37 et 37 bis (2026-08-12, en tête de fichier)
+   appartiennent au chantier parallèle « sector-intelligence » (§5ter.B de ce handoff) — pas
+   ADR-0019 à proprement parler, mais lis-les si tu touches à la résolution d'entité ou à la
+   taxonomie pour le Lot 5. **`grep -n "^### Session"` sur ce fichier avant de supposer que la
+   liste ci-dessus est complète** — elle ne le sera plus dès la prochaine session écrite.
 
 ---
 
@@ -76,10 +89,13 @@ directement).
 | 1 | Groupement de la liste comptes sur la taxonomie | Fait (commit `07b49c88`), à revalider | antérieur |
 | 2 | `promoteAccountDepth` + modale « Créer et qualifier » | **Fait** | antérieur |
 | 3 | Étape 0 « Socle » dans le cockpit + action recommandée unique (D-6) | **Fait** | `9e8109dd` |
-| 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | **Fait et validé en production** — le patch initial (`bd7d89c3`) avait un bug réel, corrigé par Guillaume directement sur le VPS puis réexporté (voir §5bis) | `bd7d89c3` puis correctif `abc5c635` |
-| 5 | Contrat `CompetitiveMapOutput` + ingestion + bac d'arbitrage | **À faire — prochaine étape recommandée** | — |
-| 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | À faire | — |
+| 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | **Fait, en production, durci sur 4 correctifs post-livraison** — bug initial (voir §5bis) + 4 correctifs ultérieurs (voir §5ter) | `bd7d89c3` → `abc5c635` → `b095b2db`/`cc093a83`/`eb27ebf9`/`f4b3beb0` |
+| 5 | Contrat `CompetitiveMapOutput` + ingestion + bac d'arbitrage | **Fait (2026-08-12)** — détail complet dans `docs/JOURNAL-SESSIONS.md` Session 38 | migration `20260812124353_074_competitive_map_ingestion.sql` |
+| 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | Toujours à faire | — |
 | 7 | Modularisation INTEL-030 | Différé (contrat non stabilisé, hors scope) | — |
+
+**Chantier parallèle, hors numérotation ADR-0019, sur les mêmes fichiers** : « Socle Identité
+France » (sector-intelligence, Lots 0/1/1.5) — voir §5ter.
 
 Les Lots 3 et 4 ont été livrés dans **cette session** (avant ce handoff). Le reste de ce document
 documente précisément ce qui a été construit, pour que Lot 5 puisse s'appuyer dessus sans
@@ -454,7 +470,112 @@ une simplification volontaire faite directement sur le canvas n8n.
 
 ---
 
+## 5ter. Ce qui s'est passé entre le 2026-08-11 et le 2026-08-12 — 20 commits, deux chantiers
+
+**Contexte** : cette mise à jour du 2026-08-12 fait suite à un écart de plusieurs jours entre mon
+intervention précédente et une demande de statut. Entre-temps, `main` a avancé de 20 commits. Voici
+ce qui, parmi eux, touche à ADR-0019 ou à ses dépendances directes — vérifié par lecture des diffs
+et des fichiers réels, pas par les seuls messages de commit.
+
+### A. 4 correctifs supplémentaires sur le pipeline de classification (nœud `Parse & Validate LLM Output` et voisins)
+
+| Commit | Message | Ce qui a été touché (vérifié) |
+|---|---|---|
+| `b095b2db` | fix: tolerate duplicated classification vertical | Workflow JSON (6 lignes) + **le harnais de test institutionnalisé** (`n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js`, 166 lignes à sa création) |
+| `cc093a83` | fix: enforce structured output for account scan | Workflow JSON (4 lignes) + harnais (+22 lignes) |
+| `eb27ebf9` | fix: harden intel-010 failure callback | Workflow JSON (2 lignes) + harnais (+23 lignes) |
+| `f4b3beb0` | fix: make intel-010 output schema compatible | Workflow JSON (2 lignes) + harnais (+14 lignes) |
+
+**Bonne nouvelle vérifiée** : `n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js`
+existe maintenant, est **versionné dans le repo** (contrairement à mon harnais scratchpad du
+2026-08-10, perdu à la fin de session), lit le vrai fichier JSON déployé, et s'exécute avec
+`node n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js`. 10 vérifications, toutes
+vertes au 2026-08-12. C'est exactement la structure que je recommandais en §5bis.
+
+**⚠️ Lacune vérifiée, toujours ouverte malgré ces 4 correctifs** : ce harnais construit toujours ses
+réponses LLM fictives via `JSON.stringify(artifact)` **directement** (fonction `llmResponse()`,
+ligne ~103) — **aucun cas de test avec fences Markdown, prose parasite, ou champ manquant.** La
+lacune méthodologique exacte que documente §5bis n'a **pas été comblée**, seulement contournée en
+corrigeant le code fautif lui-même. Si quelqu'un retouche le nettoyage de fences dans
+`Parse & Validate LLM Output` sans ajouter un cas de fixture réaliste, rien dans le harnais actuel
+ne le rattraperait. **Si tu touches à ce nœud pour le Lot 5 ou au-delà, ajoute ce cas avant de
+toucher au code — ne répète pas l'écart.**
+
+### B. Un chantier parallèle entier, hors ADR-0019, sur les mêmes fichiers
+
+« **Socle Identité France** » (sector-intelligence, ses propres Lots 0/1/1.5 — numérotation
+indépendante de celle d'ADR-0019, ne pas confondre) :
+- `b88326fe` — résolution sectorielle héritée segment → macro (Lot 0)
+- `fb5559eb` — socle identité France des comptes (Lot 1)
+- `90c9ad3d` — handoff et baseline metrics (Lot 1.5)
+- `8e2f30bb` — dédoublonnage `factProposals` (contrainte unique)
+- `4cc7c0fc` — **décision d'architecture qui concerne directement Lot 5/6** : « le NAF n'est jamais
+  un prérequis d'identité ». Le `naf_code` est reclassé en donnée d'**enrichissement**, produite
+  après résolution — plus jamais un critère bloquant pour lancer un scan ou valider une identité.
+  Règle de résolution cible : SIREN valide → résolution directe ; sinon nom+localisation ; candidat
+  dominant → promotion auto du SIREN puis enrichissement NAF ; plusieurs candidats → `ambiguous`
+  avec désambiguïsation manuelle ; aucun → `not_found`, **sans jamais réclamer de NAF**.
+- `58812dbe` — mise à jour du handoff de ce chantier
+
+Docs : `docs/FEATURES/sector_intelligence/HANDOFF-LOT0-RESOLUTION-SECTORIELLE.md` et
+`HANDOFF-LOT1-IDENTITE-FRANCE.md`.
+
+**Pertinence directe pour le Lot 5** : le contrat `AccountScanResolution` que le Lot 5 doit
+réutiliser (§6 ci-dessous) est **structurellement inchangé** (`resolved|ambiguous|not_found`,
+mêmes champs — vérifié par lecture de `src/lib/n8n/types.ts`), mais la **règle de résolution
+d'entité** a été clarifiée et durcie par ce chantier parallèle : ne jamais faire du NAF un
+prérequis. **Le Lot 5, qui résout aussi des entités (comptes cités par une cartographie), doit
+suivre la même règle** — ne pas réclamer de NAF pour statuer `resolved`/`ambiguous`/`not_found`.
+
+**État du batch de réconciliation** (`scripts/lot1-batch-apply.ts`) — vérifié en base au
+2026-08-12 : **98 comptes au total** (2 de plus que les 96 historiques), **98/98 classifiés**
+(`segment_id`), mais **seulement 25/98 avec SIREN/NAF renseignés** — le batch a été arrêté à mi-
+parcours à la demande de l'utilisateur (« jusqu'à Interima »), pas terminé. **Ce n'est pas un
+bloquant pour le Lot 5** (qui crée de nouveaux comptes `mapped`, indépendant de l'enrichissement des
+98 comptes existants) mais c'est un travail en cours, distinct, non repris.
+
+### C. La refonte de la console de scan (`fbf31567`, commit le plus récent au 2026-08-12)
+
+Restructuration UI de `src/components/accounts-contacts/scan/` — nouveau
+`AccountScanConsoleChrome.tsx` (86 lignes), `AccountScanIdentityConfirm.tsx` (358 lignes, nouveau),
+`account-scan-result-groups.ts` (nouveau), et réécriture substantielle de
+`AccountScanDesktopResults.tsx`/`AccountScanMobileResults.tsx`/`AccountScanSetup.tsx`. **Aucun
+handoff écrit pour ce commit** (message de commit nu).
+
+**Vérifié — mon câblage Lot 4 a survécu intact** : `informationResultId`, `currentClassification`,
+`loadClassificationReferential()` et l'usage de `AccountScanClassificationPanel` sont tous présents,
+inchangés dans leur logique, dans le `AccountScanDialog.tsx` actuel. La refonte a touché le chrome
+et les vues de résultats autour, pas la plomberie de classification. **Si tu dois modifier l'UI du
+scan pour le Lot 6 (drawer minimal `mapped` / bouton « Convertir »), relis `AccountScanDialog.tsx`
+et `AccountScanConsoleChrome.tsx` tels qu'ils sont maintenant — ne pars pas de la description
+d'architecture du §5, qui date d'avant cette refonte.**
+
+---
+
 ## 6. Prochaine étape recommandée — Lot 5 : ingestion des cartographies concurrentielles
+
+### ✅ Verdict de disponibilité — vérifié à la source le 2026-08-12
+
+**Rien ne bloque le démarrage du Lot 5 maintenant.** Vérifié, pas supposé :
+
+| Contrôle | Résultat |
+|---|---|
+| `npm run typecheck` | 0 erreur |
+| `npm test` | 110 fichiers / 1096 tests, tous verts |
+| `git status` | propre pour tout ce qui touche ADR-0019 (1 fichier non lié modifié ailleurs, sans rapport) |
+| `git branch -a` | aucune branche locale ou distante ne porte de travail Lot 5 en cours |
+| `CompetitiveMapOutput` / `competitive_map_entries` en code applicatif | zéro référence hors des types générés — personne n'a commencé |
+| Prérequis techniques du Lot 5 (§ ci-dessous) | tous présents et inchangés en base |
+| Migration 068 / RPC classification (Lot 4) | stable, active, non retouchée depuis le correctif §5bis |
+| Production | à jour du dernier commit (`fbf31567`), déployée |
+
+**Un seul ajustement à faire avant d'écrire du code, pas un blocage** : la règle « NAF jamais
+prérequis à la résolution » établie par le chantier parallèle (§5ter.B) doit s'appliquer aussi à la
+résolution d'entité du Lot 5 — inclus dans la section « Ce qui existe déjà » ci-dessous.
+
+**Ce qui tourne en parallèle et n'a pas besoin d'être terminé avant de commencer** : le batch de
+réconciliation SIREN/NAF des 98 comptes existants (25/98 fait, arrêté à mi-parcours) — indépendant,
+concerne l'enrichissement de comptes déjà réels, pas la création de comptes `mapped`.
 
 ### Ce que dit l'ADR (D-5, D-3, D-4)
 
@@ -466,7 +587,8 @@ not_found          → création `mapped` + faits sourcés
 
 - **D-3** : un compte `mapped` n'entre pas dans les stats du header, n'apparaît pas dans les
   combobox d'opportunité/mission, ne peut pas porter de contact. C'est la garantie que ~530 comptes
-  potentiels (53 segments × ~10 concurrents) ne noient pas les 96 comptes réels. **Règle à appliquer
+  potentiels (53 segments × ~10 concurrents) ne noient pas les comptes réels (**98** au 2026-08-12,
+  96 à la rédaction de l'ADR — 2 créés depuis, hors ADR-0019). **Règle à appliquer
   à chaque nouveau consommateur de `companies`** — un `mapped` oublié dans une combobox et
   l'invariant tombe (avertissement explicite de l'ADR, § Conséquences négatives).
 - **D-4** : les chiffres de cartographie (CA, effectif) sont « provisoires, non audités » dans les
@@ -481,7 +603,10 @@ not_found          → création `mapped` + faits sourcés
    scan Lot 1) — types dans `src/lib/n8n/types.ts` : `AccountScanResolutionStatus`
    (`resolved|ambiguous|not_found`), `AccountScanResolutionCandidate`, `AccountScanResolution`.
    L'ADR dit explicitement : « Le mécanisme de résolution existe déjà (`AccountScanResolution`,
-   INTEL-010) et est réutilisé plutôt que réinventé. »
+   INTEL-010) et est réutilisé plutôt que réinventé. » **Contrat inchangé, vérifié le 2026-08-12**
+   — mais applique la règle établie entre-temps par le chantier parallèle « Socle Identité France »
+   (§5ter.B) : **ne jamais faire du NAF un critère de résolution**, seuls SIREN ou nom+localisation
+   comptent. Un compte cité par une cartographie sans NAF connu doit pouvoir résoudre normalement.
 2. **Deux protections déjà en base** (migration 067) :
    - `companies_siren_unique_idx` — unicité dure `(workspace_id, siren)` où `siren is not null`.
    - `companies.name_normalized` — colonne **générée** (minuscules, sans accent, ponctuation
@@ -535,13 +660,20 @@ Ne construis **jamais** un parcours « convertir » distinct — l'ADR est expli
 Ce document affirme des faits datés. Avant d'agir dessus, reproduis ces vérifications :
 
 ```bash
-# État git réel — doit montrer abc5c635 (ou plus récent) dans les 5 derniers commits de main
+# État git réel — doit montrer fbf31567 (ou plus récent) dans les 5 derniers commits de main.
+# Si tu vois un écart de plus de quelques commits avec ce que ce document décrit, arrête-toi et
+# relis d'abord `git log --oneline fbf31567..HEAD` avant de faire confiance à quoi que ce soit
+# ci-dessous — c'est exactement l'erreur commise entre le 2026-08-10 et le 2026-08-12.
 git log --oneline -5
-git status --short   # attends-toi à voir des fichiers non commités sans rapport avec ADR-0019
-                      # (travail concurrent en cours, cf. bandeau en tête de ce document)
+git status --short   # attends-toi à voir un fichier non lié modifié
+                      # (src/lib/intelligence/diagnostic/get-workspace-diagnostic.ts, sans rapport)
 
-# Suite de validation complète — doit être verte
+# Suite de validation complète — doit être verte (110 fichiers / 1096 tests au 2026-08-12,
+# ce nombre montera avec le temps, ne t'inquiète pas s'il a changé — seul un test rouge compte)
 npm run typecheck && npm test && npm run check:server-boundary
+
+# Le harnais n8n versionné (§5ter.A) — doit afficher "0 échec(s)"
+node n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js
 ```
 
 ```sql
@@ -600,17 +732,25 @@ du point 4 (§5.3) n'aurait été vu par aucun `node --check`.
 
 ## 10. Environnement
 
-- **Supabase** : projet `jvzgmhvwirsbdkjpmvla`, `https://jvzgmhvwirsbdkjpmvla.supabase.co`. 149
-  migrations en prod à la date de rédaction.
+- **Supabase** : projet `jvzgmhvwirsbdkjpmvla`, `https://jvzgmhvwirsbdkjpmvla.supabase.co`. **153**
+  migrations en prod au 2026-08-12 (149 au 2026-08-10 — 4 ajoutées entretemps par le chantier
+  parallèle §5ter.B, aucune par ADR-0019 depuis la 068).
 - **Vercel** : projet `kredo` (org `guillaume-kasanins-projects`), alias production
-  `https://kredo-green.vercel.app`. Déploiement production : par défaut confirmation explicite
-  requise avant `vercel --prod` (blast radius large, affecte le site live) — sauf instruction
-  contraire explicite de Guillaume dans le tour de conversation en cours (« déploie direct », déjà
-  vu dans ce chantier). Ne pas généraliser une autorisation ponctuelle à un tour suivant.
+  `https://kredo-green.vercel.app`. **Déploiement automatique confirmé au 2026-08-12** : chaque push
+  sur `main` a produit un déploiement production dans la minute (vérifié par timestamp exact sur le
+  commit `fbf31567`) — l'intégration Git de Vercel est active. Ça ne change rien à la prudence
+  éditoriale (un commit non voulu sur `main` = une prod affectée en quelques secondes), mais ça
+  signifie qu'un `vercel --prod` manuel après un push n'est probablement plus nécessaire — vérifie
+  `vercel ls kredo --prod` avant d'en lancer un par réflexe.
 - **n8n** : VPS self-hosted, workflows versionnés en JSON dans `n8n/workflows/`, import/activation
   **manuels par Guillaume** — le MCP n8n est bloqué en session agent. §5bis documente un cas concret
   où ce réimport manuel a aussi servi à corriger un bug que la validation automatisée n'avait pas vu
   : ne considère jamais un patch de workflow n8n comme définitivement validé avant confirmation
-  qu'il tourne correctement en production, même après un harnais d'exécution réelle complet.
-- **Git** : branche `main`, pas de branches de feature dans ce chantier — chaque lot est un commit
-  direct sur `main` après validation complète, poussé puis déployé sur confirmation.
+  qu'il tourne correctement en production, même après un harnais d'exécution réelle complet. Depuis
+  §5ter.A, un vrai harnais versionné existe (`n8n/workflows/__tests__/intel-010-refresh-account-infos.test.js`)
+  — étends-le plutôt que d'en recréer un scratchpad si tu touches encore à ce workflow.
+- **Git** : branche `main`. ADR-0019 lui-même n'a jamais utilisé de branche de feature (chaque lot
+  = un commit direct sur `main` après validation, poussé). **Le dépôt entier, lui, porte des
+  dizaines de branches actives pour d'autres chantiers** (`~20` au 2026-08-12, locales et
+  distantes) — n'en déduis rien sur l'état d'ADR-0019 en particulier, et ne suppose jamais qu'une
+  branche existante correspond à du travail Lot 5/6 avant de l'avoir lue.
