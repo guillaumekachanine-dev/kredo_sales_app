@@ -4,7 +4,9 @@ import { startTransition, useRef, useState, type FormEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { DocumentCard } from "@/components/reports/DocumentCard"
 import { DocumentMobileDetail } from "@/components/reports/DocumentMobileDetail"
+import { DOCUMENT_OBJECT_LABELS } from "@/components/reports/document-display"
 import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import { IconSearch } from "@/components/cockpit/mobile/icons"
 import { Button } from "@/components/ui/Button"
 import { ErrorState } from "@/components/ui/ErrorState"
 import { Input } from "@/components/ui/Input"
@@ -50,7 +52,9 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
   const searchParams = useSearchParams()
   const [activeSection, setActiveSection] = useState<ReportsSection>("documents")
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
-  const [searchDraft, setSearchDraft] = useState(filters.search ?? "")
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false)
+  const [modalSearchText, setModalSearchText] = useState(filters.search ?? "")
+  const [modalDocType, setModalDocType] = useState(filters.documentType ?? "all")
   const documentTriggerRef = useRef<HTMLButtonElement | null>(null)
 
   const openDocument = (documentId: string, trigger: HTMLButtonElement) => {
@@ -73,13 +77,23 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
     })
   }
 
-  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+  const openSearchModal = () => {
+    setModalSearchText(filters.search ?? "")
+    setModalDocType(filters.documentType ?? "all")
+    setIsSearchModalOpen(true)
+  }
+
+  const handleModalSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     updateParams((params) => {
-      const value = searchDraft.trim()
+      const value = modalSearchText.trim()
       if (value) params.set("search", value)
       else params.delete("search")
+
+      if (modalDocType && modalDocType !== "all") params.set("documentType", modalDocType)
+      else params.delete("documentType")
     })
+    setIsSearchModalOpen(false)
   }
 
   const handleFilterClick = (value: string) => {
@@ -120,41 +134,43 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
         })}
       </nav>
 
-      <main className="min-h-0 flex-1 overflow-hidden pb-[calc(80px+env(safe-area-inset-bottom))]">
+      <main className="min-h-0 flex-1 overflow-hidden">
         {activeSection === "documents" ? (
           <div className="flex h-full min-h-0 flex-col bg-surface">
-            <div className="shrink-0 space-y-3 border-b border-border px-4 py-4">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <Input
-                  value={searchDraft}
-                  onChange={(event) => setSearchDraft(event.target.value)}
-                  placeholder="Rechercher un document…"
-                  aria-label="Rechercher un document"
-                  fullWidth
-                />
-                <Button type="submit" variant="secondary" size="sm" className="px-3">
-                  Chercher
-                </Button>
-              </form>
+            <div className="shrink-0 border-b border-border px-4 py-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" aria-label="Catégories de documents">
+                  {DOCUMENT_CATEGORIES.map((category) => {
+                    const active = activeDocType === category.value
+                    return (
+                      <button
+                        key={category.value}
+                        type="button"
+                        onClick={() => handleFilterClick(category.value)}
+                        aria-pressed={active}
+                        className={cn(
+                          "shrink-0 min-h-8 rounded border px-2.5 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
+                          active ? "border-primary bg-primary text-white" : "border-border bg-surface text-heading hover:bg-surface-hover",
+                        )}
+                      >
+                        {category.label}
+                      </button>
+                    )
+                  })}
+                </div>
 
-              <div className="flex flex-wrap gap-2" aria-label="Catégories de documents">
-                {DOCUMENT_CATEGORIES.map((category) => {
-                  const active = activeDocType === category.value
-                  return (
-                    <button
-                      key={category.value}
-                      type="button"
-                      onClick={() => handleFilterClick(category.value)}
-                      aria-pressed={active}
-                      className={cn(
-                        "min-h-9 rounded border px-3 text-[11px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
-                        active ? "border-primary bg-primary text-white" : "border-border bg-surface text-heading hover:bg-surface-hover",
-                      )}
-                    >
-                      {category.label}
-                    </button>
-                  )
-                })}
+                <button
+                  type="button"
+                  onClick={openSearchModal}
+                  aria-label="Ouvrir la recherche"
+                  aria-expanded={isSearchModalOpen}
+                  className={cn(
+                    "flex size-8 shrink-0 items-center justify-center rounded border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading",
+                    filters.search ? "border-primary bg-primary text-white font-bold" : "border-border bg-surface text-heading hover:bg-surface-hover",
+                  )}
+                >
+                  <IconSearch className="size-4" />
+                </button>
               </div>
             </div>
 
@@ -229,17 +245,6 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
         ) : null}
       </main>
 
-      <footer className="fixed inset-x-0 bottom-[var(--layout-mobile-content-bottom-offset)] z-[calc(var(--z-fab)+1)] border-t border-border bg-surface px-3 pb-3 pt-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="secondary" size="lg" onClick={() => openCommunicationComposer({ origin: "global" })} className="h-12 min-w-0 px-2 text-[13px]" leftIcon={<IntelligenceIcon name="write_email" className="size-5" preferVector />}>
-            Rédiger un mail
-          </Button>
-          <Button variant="brass" size="lg" onClick={() => openReportGeneration({ origin: "reports_library" })} className="h-12 min-w-0 px-2 text-[13px]" leftIcon={<IntelligenceIcon name="report" className="size-5" preferVector />}>
-            Générer un rapport
-          </Button>
-        </div>
-      </footer>
-
       {selectedDocumentId ? (
         <DocumentMobileDetail
           key={selectedDocumentId}
@@ -247,6 +252,90 @@ export function ReportsMobileView({ reportsData, filters, listError }: ReportsMo
           open
           onClose={closeDocument}
         />
+      ) : null}
+
+      {isSearchModalOpen ? (
+        <div
+          className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-heading/40 px-4 backdrop-blur-sm"
+          onClick={() => setIsSearchModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reports-search-modal-title"
+        >
+          <div
+            className="w-full max-w-sm rounded-lg border border-border bg-surface p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 id="reports-search-modal-title" className="text-base font-bold text-heading">
+                Rechercher un document
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="rounded px-2 py-1 text-xs font-semibold text-muted hover:bg-surface-hover hover:text-heading"
+                aria-label="Fermer la recherche"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleModalSubmit} className="mt-4 space-y-4">
+              <div>
+                <label htmlFor="mobile-search-text-input" className="block text-xs font-semibold text-heading mb-1.5">
+                  Recherche par mot-clé
+                </label>
+                <Input
+                  id="mobile-search-text-input"
+                  value={modalSearchText}
+                  onChange={(event) => setModalSearchText(event.target.value)}
+                  placeholder="Rechercher un document…"
+                  aria-label="Rechercher par mot-clé"
+                  autoFocus
+                  fullWidth
+                />
+              </div>
+
+              <div>
+                <label htmlFor="mobile-search-doctype-select" className="block text-xs font-semibold text-heading mb-1.5">
+                  Type de document
+                </label>
+                <select
+                  id="mobile-search-doctype-select"
+                  value={modalDocType}
+                  onChange={(event) => setModalDocType(event.target.value)}
+                  className="w-full min-h-10 rounded border border-border bg-surface px-3 text-xs font-medium text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-heading"
+                >
+                  <option value="all">Tous les types</option>
+                  {Object.entries(DOCUMENT_OBJECT_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsSearchModalOpen(false)}
+                >
+                  Revenir
+                </Button>
+
+                <Button
+                  type="submit"
+                  variant="brass"
+                  size="sm"
+                >
+                  Lancer la recherche
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       ) : null}
     </div>
   )

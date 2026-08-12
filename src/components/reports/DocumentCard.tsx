@@ -2,7 +2,7 @@
 
 import type { DocumentListItem } from "@/app/(app)/reports/_data/reports-types"
 import { IconChevron } from "@/components/cockpit/mobile/icons"
-import { IntelligenceIcon } from "@/components/intelligence/intelligence-icons"
+import { getDocumentIcon } from "./document-display"
 import { cn } from "@/lib/utils"
 
 type DocumentCardProps = {
@@ -55,8 +55,8 @@ export function DocumentCard({ document, onClick, selected = false }: DocumentCa
       )}
       aria-label={`Ouvrir ${document.title}`}
     >
-      <span className="inline-flex size-9 items-center justify-center text-heading" aria-hidden="true">
-        <IntelligenceIcon name="report" className="size-6" preferVector />
+      <span className="flex size-9 shrink-0 items-center justify-center rounded bg-canvas" aria-hidden="true">
+        {getDocumentIcon(document.documentType, "size-5 shrink-0 text-muted")}
       </span>
 
       <span className="min-w-0">

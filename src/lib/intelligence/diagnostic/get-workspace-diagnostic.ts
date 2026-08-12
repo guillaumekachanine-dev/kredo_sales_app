@@ -23,30 +23,37 @@ export async function getWorkspaceDiagnostic(): Promise<WorkspaceDiagnosticSnaps
     .eq("workspace_id", workspaceId)
     .eq("document_type", "workspace_diagnostic")
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(10)
 
   if (error) {
     console.error("[workspace-diagnostic] latest document query failed", error.message)
     return null
   }
-  if (!data) return null
+  if (!data || data.length === 0) return null
 
-  const row = data as DiagnosticDocumentRow
-  const parsed = parseWorkspaceDiagnostic(row.current_content_json, {
+  const rows = data as DiagnosticDocumentRow[]
+  for (const row of rows) {
+    const parsed = parseWorkspaceDiagnostic(row.current_content_json, {
+      allowMonoAxisCorrelations: true,
+    })
+    if (parsed.ok) {
+      return {
+        documentId: row.id,
+        createdAt: row.created_at,
+        diagnostic: parsed.value,
+      }
+    }
+  }
+
+  const latestRow = rows[0]
+  const firstParsed = parseWorkspaceDiagnostic(latestRow.current_content_json, {
     allowMonoAxisCorrelations: true,
   })
-  if (!parsed.ok) {
-    console.error("[workspace-diagnostic] invalid persisted content", {
-      documentId: row.id,
-      error: parsed.error,
-    })
-    return null
+  if (!firstParsed.ok) {
+    console.error(
+      `[workspace-diagnostic] invalid persisted content (document ${latestRow.id}): ${firstParsed.error}`
+    )
   }
 
-  return {
-    documentId: row.id,
-    createdAt: row.created_at,
-    diagnostic: parsed.value,
-  }
+  return null
 }

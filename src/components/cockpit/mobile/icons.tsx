@@ -39,3 +39,13 @@ export function IconMic() {
     </svg>
   )
 }
+
+export function IconSearch({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className} aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35" />
+    </svg>
+  )
+}
+
