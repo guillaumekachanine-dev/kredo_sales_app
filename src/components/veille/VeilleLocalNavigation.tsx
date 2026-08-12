@@ -6,7 +6,7 @@ import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 
 const SECTIONS: Array<{ id: VeilleSection; label: string }> = [
   { id: "news", label: "Actualités" },
-  { id: "watched-accounts", label: "Comptes surveillés" },
+  { id: "watched-accounts", label: "Veille" },
   { id: "strategic-analysis", label: "Analyses stratégiques" },
   { id: "history", label: "Historique" },
 ]

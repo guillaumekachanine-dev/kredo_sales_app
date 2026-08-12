@@ -255,41 +255,234 @@ function OtherArticles({ articles, selectedId, onSelect }: { articles: VeilleArt
   )
 }
 
+function formatAccountWatchCadence(cadence?: string | null): string {
+  if (cadence === "daily") return "quotidienne"
+  if (cadence === "twice_weekly") return "2x/semaine"
+  return "hebdomadaire"
+}
+
+type GroupedAccountSignals = {
+  company: {
+    id: string
+    name: string
+    website: string | null
+    logoPath: string | null
+    cadence?: string | null
+  }
+  signals: WatchedAccountSignal[]
+}
+
 function WatchedAccountsSection({ signals }: { signals: WatchedAccountSignal[] }) {
-  const [selected, setSelected] = useState(signals[0] ?? null)
-  if (!selected) return <EmptyState title="Aucun signal de compte surveillé"><p>Les signaux apparaîtront ici après une collecte de veille compte.</p></EmptyState>
+  const groupedAccounts = useMemo(() => {
+    const map = new Map<string, GroupedAccountSignals>()
+    for (const signal of signals) {
+      const companyId = signal.company.id
+      const existing = map.get(companyId)
+      if (existing) {
+        existing.signals.push(signal)
+      } else {
+        map.set(companyId, {
+          company: signal.company,
+          signals: [signal],
+        })
+      }
+    }
+    return Array.from(map.values())
+  }, [signals])
+
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
+    groupedAccounts[0]?.company.id ?? null
+  )
+
+  const activeGroup = useMemo(() => {
+    if (groupedAccounts.length === 0) return null
+    return groupedAccounts.find((group) => group.company.id === selectedAccountId) ?? groupedAccounts[0]
+  }, [groupedAccounts, selectedAccountId])
+
+  if (groupedAccounts.length === 0 || !activeGroup) {
+    return (
+      <EmptyState title="Aucun compte suivi">
+        <p>Les comptes suivis et leurs signaux apparaîtront ici après activation de la veille compte.</p>
+      </EmptyState>
+    )
+  }
+
+  const { company, signals: accountSignals } = activeGroup
+
   return (
-    <div className="grid grid-cols-[18rem_minmax(0,1fr)] border border-border bg-surface">
-      <section className="border-r border-border bg-edito-canvas/50 p-3">
-        <SectionHeading>Signaux détectés ({signals.length})</SectionHeading>
-        <div className="mt-3 max-h-[calc(100dvh-13rem)] space-y-2 overflow-y-auto veille-scrollbar">
-          {signals.map((signal) => (
-            <button key={signal.id} type="button" onClick={() => setSelected(signal)} aria-pressed={selected.id === signal.id} className={cn("w-full border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading", selected.id === signal.id ? "border-brand-brass bg-primary/[0.05]" : "border-border bg-surface hover:bg-surface-hover")}>
-              <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-primary">{signal.category}</span>
-              <span className="mt-1 block text-xs font-bold leading-5 text-heading">{signal.title}</span>
-              <span className="mt-2 flex justify-between text-[10px] text-muted"><span>{signal.company.name}</span><span>{Math.round(signal.globalScore * 100)}%</span></span>
-            </button>
-          ))}
+    <div className="grid grid-cols-[20rem_minmax(0,1fr)] border border-border bg-surface min-h-[38rem]">
+      {/* Colonne de gauche : Comptes suivis */}
+      <section className="border-r border-border bg-edito-canvas/50 p-3.5">
+        <SectionHeading>Comptes suivis ({groupedAccounts.length})</SectionHeading>
+        <div className="mt-3.5 max-h-[calc(100dvh-13rem)] space-y-2.5 overflow-y-auto veille-scrollbar">
+          {groupedAccounts.map((group) => {
+            const isSelected = group.company.id === activeGroup.company.id
+            const signalCount = group.signals.length
+            const signalLabel = signalCount === 1 ? "1 signal détecté" : `${signalCount} signaux détectés`
+            const cadenceLabel = formatAccountWatchCadence(group.company.cadence)
+
+            return (
+              <button
+                key={group.company.id}
+                type="button"
+                onClick={() => setSelectedAccountId(group.company.id)}
+                aria-pressed={isSelected}
+                className={cn(
+                  "flex w-full items-center gap-3.5 border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-heading rounded-md",
+                  isSelected
+                    ? "border-brand-brass bg-primary/[0.05]"
+                    : "border-border bg-surface hover:bg-surface-hover"
+                )}
+              >
+                {/* Logo en grand carré aligné sur la gauche */}
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-edito-canvas p-1">
+                  <CompanyLogo
+                    name={group.company.name}
+                    logoPath={group.company.logoPath}
+                    website={group.company.website}
+                    size="lg"
+                  />
+                </div>
+
+                {/* Informations du compte */}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="truncate font-heading text-xs font-bold text-heading">
+                    {group.company.name}
+                  </p>
+                  <p className="text-[10px] text-muted">
+                    Veille {cadenceLabel}
+                  </p>
+                  <p className="text-[11px] font-bold text-brand-brass">
+                    {signalLabel}
+                  </p>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </section>
-      <article className="paper-sheet px-8 py-8 lg:px-12">
-        <div className="flex items-start justify-between gap-5 border-b border-border pb-5">
-          <div><p className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">{selected.category} · {selected.type}</p><p className="mt-1 text-[11px] text-muted">Détecté le {formatDateFr(selected.detectedAt)}</p></div>
-          <div className="flex items-center gap-2 border border-border bg-edito-canvas/60 px-3 py-2"><CompanyLogo name={selected.company.name} logoPath={selected.company.logoPath} website={selected.company.website} size="md" /><span className="text-xs font-bold text-heading">{selected.company.name}</span></div>
-        </div>
-        <h2 className="mt-7 max-w-[32ch] font-heading text-2xl font-bold leading-tight text-heading">{selected.title}</h2>
-        <p className="mt-5 max-w-[74ch] whitespace-pre-wrap text-sm leading-7 text-body">{selected.summary || "Aucune synthèse disponible."}</p>
-        {selected.recommendedAction ? <section className="mt-7 border-y border-border py-5"><h3 className="text-sm font-bold text-heading">Action recommandée</h3><p className="mt-2 text-sm leading-6 text-body">{selected.recommendedAction}</p></section> : null}
-        <dl className="mt-6 grid grid-cols-3 divide-x divide-border border-y border-border py-4 text-center">
-          <div><dt className="text-[9px] font-bold uppercase text-muted">Score global</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.globalScore * 100)}%</dd></div>
-          <div><dt className="text-[9px] font-bold uppercase text-muted">Urgence</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.urgencyScore * 100)}%</dd></div>
-          <div><dt className="text-[9px] font-bold uppercase text-muted">Confiance</dt><dd className="mt-1 text-lg font-bold text-heading">{Math.round(selected.confidenceScore * 100)}%</dd></div>
-        </dl>
-        <div className="mt-6 flex items-center justify-between gap-3">
-          {selected.primarySource?.source_url ? <a href={selected.primarySource.source_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline">Ouvrir la source <span className="sr-only">(nouvel onglet)</span></a> : <span />}
-          <ContextualCommunicationButton intent="signal_outreach" origin="veille_signal" companyId={selected.company.id} companyName={selected.company.name} signalId={selected.id} refs={{ signalRef: selected.id }} label="Rédiger" variant="primary" className="h-10 border border-primary bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep" />
-        </div>
-      </article>
+
+      {/* Colonne de droite : Page de veille dédiée au compte avec tous ses signaux */}
+      <div className="paper-sheet px-8 py-8 lg:px-12 veille-scrollbar overflow-y-auto max-h-[calc(100dvh-13rem)]">
+        {/* Entête du compte sélectionné */}
+        <header className="flex flex-wrap items-center justify-between gap-5 border-b border-border pb-6">
+          <div className="flex items-center gap-4">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-border bg-edito-canvas p-1.5 shadow-2xs">
+              <CompanyLogo
+                name={company.name}
+                logoPath={company.logoPath}
+                website={company.website}
+                size="xl"
+              />
+            </div>
+            <div>
+              <h2 className="font-heading text-2xl font-bold tracking-tight text-heading">
+                {company.name}
+              </h2>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <span className="inline-flex items-center border border-border bg-edito-canvas px-2 py-0.5 text-[10px] font-semibold text-heading">
+                  Veille {formatAccountWatchCadence(company.cadence)}
+                </span>
+                <span>·</span>
+                <span className="font-bold text-brand-brass">
+                  {accountSignals.length} {accountSignals.length === 1 ? "signal détecté" : "signaux détectés"} au total
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <Link
+            href={`/prospection/accounts/${company.id}`}
+            className="inline-flex items-center gap-2 border border-border bg-surface px-4 py-2 text-xs font-bold text-primary hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-heading"
+          >
+            <span>Voir la fiche compte</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+        </header>
+
+        {/* Section présentant l'ensemble des signaux du compte */}
+        <section className="mt-8 space-y-6">
+          <SectionHeading>
+            Signaux du compte ({accountSignals.length})
+          </SectionHeading>
+
+          <div className="space-y-6">
+            {accountSignals.map((signal) => (
+              <article key={signal.id} className="border border-border bg-surface p-6 shadow-2xs">
+                <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+                  <div>
+                    <span className="inline-block border border-primary/20 bg-primary/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                      {signal.category} · {signal.type}
+                    </span>
+                    <p className="mt-1.5 text-[11px] text-muted">
+                      Détecté le {formatDateFr(signal.detectedAt)}
+                    </p>
+                  </div>
+                </div>
+
+                <h3 className="mt-4 font-heading text-xl font-bold leading-tight text-heading">
+                  {signal.title}
+                </h3>
+
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-body">
+                  {signal.summary || "Aucune synthèse disponible."}
+                </p>
+
+                {signal.recommendedAction ? (
+                  <div className="mt-5 border-l-3 border-brand-brass bg-edito-canvas/60 p-4">
+                    <h4 className="text-xs font-bold text-heading">Action recommandée</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-body">
+                      {signal.recommendedAction}
+                    </p>
+                  </div>
+                ) : null}
+
+                <dl className="mt-5 grid grid-cols-3 divide-x divide-border border-y border-border py-3 text-center">
+                  <div>
+                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Score global</dt>
+                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.globalScore * 100)}%</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Urgence</dt>
+                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.urgencyScore * 100)}%</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[9px] font-bold uppercase tracking-wider text-muted">Confiance</dt>
+                    <dd className="mt-1 text-base font-bold text-heading">{Math.round(signal.confidenceScore * 100)}%</dd>
+                  </div>
+                </dl>
+
+                <footer className="mt-5 flex flex-wrap items-center justify-between gap-3 pt-1">
+                  {signal.primarySource?.source_url ? (
+                    <a
+                      href={signal.primarySource.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      Ouvrir la source <span className="sr-only">(nouvel onglet)</span>
+                    </a>
+                  ) : (
+                    <span />
+                  )}
+
+                  <ContextualCommunicationButton
+                    intent="signal_outreach"
+                    origin="veille_signal"
+                    companyId={signal.company.id}
+                    companyName={signal.company.name}
+                    signalId={signal.id}
+                    refs={{ signalRef: signal.id }}
+                    label="Rédiger"
+                    variant="primary"
+                    className="h-9 border border-primary bg-primary px-4 text-xs font-bold text-primary-fg hover:bg-primary-deep"
+                  />
+                </footer>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

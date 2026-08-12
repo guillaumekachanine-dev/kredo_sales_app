@@ -27,8 +27,8 @@ export function ProspectionIntelligenceDesktop() {
             {activeTab === "strategy" && (
               <div className="max-w-4xl space-y-6">
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Stratégie</h3>
-                  <p className="mt-2 text-sm text-muted">Cette page est actuellement vide. Elle accueillera prochainement le contenu stratégique de la prospection.</p>
+                  <h3 className="text-lg font-bold text-heading">Brief</h3>
+                  <p className="mt-2 text-sm text-muted">Cette page est actuellement vide. Elle accueillera prochainement le contenu du brief de prospection.</p>
                 </div>
               </div>
             )}
@@ -36,7 +36,7 @@ export function ProspectionIntelligenceDesktop() {
             {activeTab === "chapter_1" && (
               <div className="max-w-4xl space-y-6">
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Chapitre 1 : Fenêtres d&apos;opportunités</h3>
+                  <h3 className="text-lg font-bold text-heading">Fenêtres d&apos;opportunités</h3>
                   <p className="mt-2 text-sm text-muted">Cette page est actuellement vide. Elle accueillera prochainement les fenêtres d&apos;opportunités.</p>
                 </div>
               </div>
@@ -45,7 +45,7 @@ export function ProspectionIntelligenceDesktop() {
             {activeTab === "chapter_2" && (
               <div className="max-w-4xl space-y-6">
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Chapitre 2 : Approches commerciales</h3>
+                  <h3 className="text-lg font-bold text-heading">Approches commerciales</h3>
                   <p className="mt-2 text-sm text-muted">Cette page est actuellement vide. Elle accueillera prochainement les approches commerciales.</p>
                 </div>
               </div>
@@ -54,7 +54,7 @@ export function ProspectionIntelligenceDesktop() {
             {activeTab === "chapter_3" && (
               <div className="max-w-4xl space-y-6">
                 <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Chapitre 3 : Playbooks</h3>
+                  <h3 className="text-lg font-bold text-heading">Playbooks</h3>
                   <p className="mt-2 text-sm text-muted">Cette page est actuellement vide. Elle accueillera prochainement les playbooks commerciaux.</p>
                 </div>
               </div>

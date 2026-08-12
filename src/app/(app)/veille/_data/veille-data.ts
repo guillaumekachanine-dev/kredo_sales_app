@@ -353,6 +353,7 @@ export type WatchedAccountSignal = {
     name: string
     website: string | null
     logoPath: string | null
+    cadence?: string | null
   }
   primarySource: {
     id: string
@@ -381,13 +382,17 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
     // 1. Get enabled watch settings
     const { data: watchSettings, error: watchError } = await supabase
       .from("account_watch_settings")
-      .select("company_id")
+      .select("company_id, cadence")
       .eq("is_enabled", true)
 
     if (watchError) return { data: [], error: watchError }
     if (!watchSettings || watchSettings.length === 0) return { data: [], error: null }
 
     const companyIds = watchSettings.map(w => w.company_id).filter(Boolean)
+    const cadenceMap: Record<string, string> = {}
+    watchSettings.forEach(w => {
+      if (w.company_id && w.cadence) cadenceMap[w.company_id] = w.cadence
+    })
 
     // 2. Get signals
     const { data: signals, error: signalsError } = await supabase
@@ -421,6 +426,7 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
       const sourceRow = Array.isArray(row.intelligence_sources) ? row.intelligence_sources[0] : row.intelligence_sources
 
       const logoPath = typeof companyRow?.meta_logo_path === "string" ? companyRow.meta_logo_path : null
+      const companyId = row.company_id
 
       return {
         id: row.id,
@@ -440,8 +446,9 @@ export async function getWatchedAccountsSignals(): Promise<{ data: WatchedAccoun
           id: companyRow.id,
           name: companyRow.name,
           website: companyRow.website,
-          logoPath
-        } : { id: row.company_id, name: "Compte inconnu", website: null, logoPath: null },
+          logoPath,
+          cadence: cadenceMap[companyRow.id] ?? "weekly"
+        } : { id: companyId, name: "Compte inconnu", website: null, logoPath: null, cadence: cadenceMap[companyId] ?? "weekly" },
         primarySource: sourceRow ? {
           id: sourceRow.id,
           source_name: sourceRow.source_name,

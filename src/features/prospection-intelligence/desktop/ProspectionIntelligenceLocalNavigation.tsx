@@ -6,10 +6,10 @@ import { useCrmAccountLauncherStore } from "@/hooks/use-crm-account-launcher"
 export type PiTabKey = "strategy" | "chapter_1" | "chapter_2" | "chapter_3"
 
 const SECTIONS: Array<{ id: PiTabKey; label: string; icon: PiTabKey }> = [
-  { id: "strategy", label: "Stratégie", icon: "strategy" },
-  { id: "chapter_1", label: "Chapitre 1 : Fenêtres d'opportunités", icon: "chapter_1" },
-  { id: "chapter_2", label: "Chapitre 2 : Approches commerciales", icon: "chapter_2" },
-  { id: "chapter_3", label: "Chapitre 3 : Playbooks", icon: "chapter_3" },
+  { id: "strategy", label: "Brief", icon: "strategy" },
+  { id: "chapter_1", label: "Fenêtres d'opportunités", icon: "chapter_1" },
+  { id: "chapter_2", label: "Approches commerciales", icon: "chapter_2" },
+  { id: "chapter_3", label: "Playbooks", icon: "chapter_3" },
 ]
 
 function PiSidebarIcon({ name }: { name: PiTabKey }) {
