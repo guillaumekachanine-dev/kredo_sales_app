@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button"
 import { BusinessIntelligenceLocalNavigation, BiTabKey } from "./BusinessIntelligenceLocalNavigation"
 import dynamic from "next/dynamic"
 import type { SectorMapCatalog } from "@/features/sector-mapping/data/sector-map-catalog"
+import type { CompetitiveMapWorkspace } from "@/features/competitive-map/data/competitive-map-workspace-types"
 
 const SectorPlaybooksModal = dynamic(
   () => import("../playbooks/SectorPlaybooksModal").then(mod => mod.SectorPlaybooksModal),
@@ -33,11 +34,18 @@ const BusinessIntelligenceSectorMapDesktop = dynamic(
   { loading: () => <div className="min-h-64 animate-pulse rounded-xl bg-surface/30" aria-label="Chargement de la cartographie" /> },
 )
 
+const CompetitiveEnvironmentWorkspace = dynamic(
+  () => import("@/features/competitive-map/components/CompetitiveEnvironmentWorkspace").then((mod) => mod.CompetitiveEnvironmentWorkspace),
+  { loading: () => <div className="min-h-[32rem] animate-pulse bg-edito-surface" aria-label="Chargement de l’environnement concurrentiel" /> },
+)
+
 
 interface BusinessIntelligenceDesktopProps {
   viewModel: BusinessIntelligenceDesktopViewModel
   snapshot: BusinessIntelligenceSnapshot
   sectorMapCatalog: SectorMapCatalog
+  competitiveMapWorkspace: CompetitiveMapWorkspace
+  initialTab?: BiTabKey
 }
 
 export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopProps) {
@@ -55,13 +63,13 @@ export function BusinessIntelligenceDesktop(props: BusinessIntelligenceDesktopPr
   return <BusinessIntelligenceDesktopReady {...props} />
 }
 
-function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalog }: BusinessIntelligenceDesktopProps) {
+function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalog, competitiveMapWorkspace, initialTab = "priorities" }: BusinessIntelligenceDesktopProps) {
   // Filters
   const [period, setPeriod] = useState<30 | 90 | 180>(30)
   const [selectedSector, setSelectedSector] = useState<string | "all">("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedWindowId, setSelectedWindowId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<BiTabKey>("priorities")
+  const [activeTab, setActiveTab] = useState<BiTabKey>(initialTab)
 
   // Repli automatique de la sidebar principale
   useEffect(() => {
@@ -133,10 +141,10 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalo
       <BusinessIntelligenceLocalNavigation active={activeTab} onChange={setActiveTab} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <BusinessIntelligenceHeader onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
+        <BusinessIntelligenceHeader minimal={activeTab === "competitive_env"} onPlaybooksClick={() => setIsPlaybooksOpen(true)} onStudiesClick={() => setIsStudiesOpen(true)} />
 
         <div className="flex-1 overflow-y-auto">
-          {activeTab !== "value_chain" ? <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
+          {activeTab !== "value_chain" && activeTab !== "competitive_env" ? <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 border-b border-border/40 px-4 py-3 lg:px-8">
             <select 
               className="min-h-9 rounded-lg border border-border/40 bg-surface/30 px-3 text-xs font-semibold text-body transition-colors hover:bg-surface-hover/30 hover:text-heading focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               value={period}
@@ -167,8 +175,8 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalo
             />
           </div> : null}
 
-          <main className={`mx-auto w-full max-w-[1600px] space-y-6 ${activeTab === "value_chain" ? "px-4 py-4 lg:px-6 lg:py-5" : "px-4 py-6 lg:px-8 lg:py-8"}`}>
-            {viewModel.hasDemoData && activeTab !== "value_chain" && (
+          <main className={`mx-auto w-full ${activeTab === "competitive_env" ? "max-w-none p-0" : activeTab === "value_chain" ? "max-w-[1600px] space-y-6 px-4 py-4 lg:px-6 lg:py-5" : "max-w-[1600px] space-y-6 px-4 py-6 lg:px-8 lg:py-8"}`}>
+            {viewModel.hasDemoData && activeTab !== "value_chain" && activeTab !== "competitive_env" && (
               <div className="flex items-center rounded-lg border border-border/40 bg-surface/30 px-4 py-2 text-xs text-muted">
                 <span className="mr-2 size-2 shrink-0 rounded-full bg-muted" />
                 Certaines activités de démonstration sont incluses dans les indicateurs.
@@ -215,12 +223,7 @@ function BusinessIntelligenceDesktopReady({ viewModel, snapshot, sectorMapCatalo
             )}
 
             {activeTab === "competitive_env" && (
-              <div className="max-w-4xl space-y-6">
-                <div className="rounded-xl border border-border/40 bg-surface/30 p-6">
-                  <h3 className="text-lg font-bold text-heading">Environnement concurrentiel</h3>
-                  <p className="mt-2 text-sm text-muted">Cette page accueillera la matrice concurrentielle et l&apos;étude associée.</p>
-                </div>
-              </div>
+              <CompetitiveEnvironmentWorkspace workspace={competitiveMapWorkspace} />
             )}
           </main>
         </div>

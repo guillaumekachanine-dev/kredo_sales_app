@@ -5,9 +5,11 @@ import type { BusinessIntelligenceMobilePeriod } from "../presenters/build-busin
 export function BusinessIntelligenceMobileHeader({
   period,
   onPeriodChange,
+  showPeriodPicker = true,
 }: {
   period: BusinessIntelligenceMobilePeriod
   onPeriodChange: (period: BusinessIntelligenceMobilePeriod) => void
+  showPeriodPicker?: boolean
 }) {
   const periods: BusinessIntelligenceMobilePeriod[] = [30, 90, 180]
 
@@ -19,7 +21,7 @@ export function BusinessIntelligenceMobileHeader({
           <p className="mt-1 max-w-[270px] text-xs leading-relaxed text-white/60">Décider et agir sur les comptes prioritaires</p>
         </div>
       </div>
-      <div className="mt-4 grid grid-cols-3 rounded-xl border border-white/10 bg-[#071126] p-1" role="group" aria-label="Période d'analyse">
+      {showPeriodPicker ? <div className="mt-4 grid grid-cols-3 rounded-xl border border-white/10 bg-[#071126] p-1" role="group" aria-label="Période d'analyse">
         {periods.map((value) => {
           const selected = value === period
           return (
@@ -34,7 +36,7 @@ export function BusinessIntelligenceMobileHeader({
             </button>
           )
         })}
-      </div>
+      </div> : null}
     </header>
   )
 }

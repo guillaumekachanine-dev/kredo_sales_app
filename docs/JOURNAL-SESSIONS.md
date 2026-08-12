@@ -15,6 +15,80 @@
 
 ---
 
+### Session 41 — BI Environnement concurrentiel Lot 3 : vue Mobile (2026-08-12)
+
+**Objet** : ajouter `competitive_env` à `BusinessIntelligenceMobile` sous le libellé court
+« Concurrents » et livrer une composition mobile d'action, indépendante du SVG et des fiches
+Desktop, conformément à ADR-0006.
+
+**Navigation et chargement** : la barre mobile passe à cinq entrées de 44 px minimum. La route
+serveur lit désormais `tab` et `competitiveSegment` avant le branchement device puis charge, dans
+chaque branche, le même `CompetitiveMapWorkspace` ; la branche mobile ne monte aucun composant
+Desktop. Le module concurrentiel mobile est importé dynamiquement. Le sélecteur produit l'URL
+canonique `?tab=competitive_env&competitiveSegment=…`, tandis que la sélection d'acteur retombe
+sur le compte étalon lors d'un changement de segment.
+
+**Vue Mobile** : nouvelle composition sous `src/features/competitive-map/components/mobile/` :
+sélecteur `Macro › Segment`, date et compteur, mini-matrice SVG tactile appétence /35 ×
+accessibilité /5, fiche synthétique extensible et liste par catégorie. Les marques visibles restent
+petites mais possèdent une zone de frappe invisible de 44 px ; seuls l'acteur sélectionné et le
+compte étalon sont libellés. Les acteurs sans accessibilité sont présentés dans une rangée
+« Non positionnés » sélectionnable, sans fallback de maturité. La fiche initiale se limite au nom,
+catégorie, scores, positionnement, dépendance principale, angle d'entrée et premier trigger ; les
+rubriques secondaires restent sous divulgation progressive.
+
+**Validation** : `typecheck` vert · 19 tests ciblés verts (loader/presenter, sélection et changement
+de segment, contrats BI mobile) · frontière serveur/client verte · lint ciblé vert · build Next
+16.2.7 vert · contrôle manuel unique à 390×844 sur un aperçu local éphémère utilisant les
+composants réels, ensuite supprimé. Aucun commit ni déploiement.
+
+**Handoff Lot 4** : compléter la couverture d'états et l'intégration de navigation profonde sans
+réunifier les arbres Desktop/Mobile ; conserver le loader segmenté et la sélection client-safe
+comme frontières communes.
+
+---
+
+### Session 40 — BI Environnement concurrentiel Lot 2 : vue Desktop (2026-08-12)
+
+**Objet** : remplacer le placeholder `competitive_env` de Business Intelligence par la vue
+Desktop exploitable du dernier snapshot de chaque segment, sans créer une seconde feature en
+dehors de `src/features/competitive-map/`.
+
+**Data** : nouveau loader réutilisable et `server-only`
+`getCompetitiveMapWorkspace(segmentId)` : catalogue léger construit uniquement depuis les
+segments présents dans `competitive_map_entries`, libellé `Macro › Segment`, dernier snapshot et
+compteur calculés côté serveur ; seules les entrées du segment/snapshot actif sont ensuite chargées.
+La relation PostgREST vers `companies` a été vérifiée sur la base réelle. CA et effectif viennent
+exclusivement des `account_facts` courants (`revenue_estimate`, `headcount_france`) et non des
+colonnes canoniques `companies`. Le presenter pur normalise `profile_json`, masque les rubriques
+vides et ne substitue jamais la maturité numérique à une accessibilité absente.
+
+**Vue Desktop** : `CompetitiveEnvironmentWorkspace` est chargé dynamiquement dans
+`BusinessIntelligenceDesktop`. L'onglet supprime les contrôles BI sans rapport, réduit le header au
+titre et utilise toute la largeur restante : barre segment/date/compteur/import, matrice SVG
+appétence /35 × accessibilité /5 avec taille CA, couleur catégorie et contour du compte étalon,
+inspecteur du compte sélectionné, puis fiches détaillées regroupées par catégorie. La sélection est
+commune aux bulles, acteurs non positionnés et fiches. Le segment actif est porté par
+`?tab=competitive_env&competitiveSegment=…`, ce qui relance le Server Component ; aucun profil des
+autres secteurs n'entre dans le bundle client. Le chemin mobile ne lance pas ce loader Desktop.
+
+**Vérification terrain** : le snapshot live disponible au moment du lot porte 5 acteurs sur
+`Tourisme, Hôtellerie & Loisirs › Hébergement & résidences de tourisme`, tous sans accessibilité :
+le cas « matrice vide mais fiches présentes » est donc réel et a été traité explicitement.
+
+**Validation** : `typecheck` vert · 114 fichiers / 1 154 tests verts · frontière serveur verte ·
+lint ciblé de tous les fichiers touchés sans erreur ni warning · build Next 16.2.7 vert après mise
+à l'écart d'un cache `.next` périmé. Le lint global reste rouge sur 453 erreurs préexistantes et
+parcourt notamment `.claude/worktrees/`; aucune ne vient des fichiers du lot. Aucune capture ni QA
+pixel-perfect, conformément au cadrage.
+
+**Handoff Lot 3** : construire la composition mobile comme une vue sœur (commande segment,
+sélection et fiches synthétiques), en réutilisant ce loader/presenter et sans charger le SVG
+Desktop. Trancher explicitement la représentation mobile des acteurs positionnés avant d'ajouter
+la branche à `BusinessIntelligenceMobile`.
+
+---
+
 ### Session 39 — ADR-0019 Lot 6 : sous-section mapped + drawer minimal + Convertir (2026-08-12)
 
 **Objet** : `docs/adr/ADR-0019-profondeur-de-compte-et-ingestion-cartographie.md`, Lot 6 — dernier
