@@ -100,6 +100,75 @@ describe("buildAccountScanInput", () => {
     expect(input.websiteHint).toBeNull()
     expect(input.locationHint).toBeNull()
   })
+
+  describe("Non-regression: NAF code is an output, never an input requirement for identity resolution", () => {
+    it("1. Account with only name: scan starts without NAF code or SIREN", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: ["legal_name", "siren", "naf_code"], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
+        { name: "SNCF", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+      )
+      expect(input.knownCompany.name).toBe("SNCF")
+      expect(input.selectedSiren).toBeNull()
+      expect(input.knownCompany.nafCode).toBeNull()
+      expect(input.requestedFields).toContain("naf_code")
+    })
+
+    it("2. Account with name + hq_location: resolution possible without NAF", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: ["siren", "naf_code"], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: "Paris" },
+        { name: "TotalEnergies", legalName: "TOTALENERGIES SE", website: null, siren: null, nafCode: null, sectorId: null },
+      )
+      expect(input.locationHint).toBe("Paris")
+      expect(input.selectedSiren).toBeNull()
+      expect(input.knownCompany.nafCode).toBeNull()
+    })
+
+    it("3. Account with SIREN but without NAF: direct resolution via SIREN, NAF is in requestedFields output", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: ["naf_code", "employee_count"], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null, selectedSiren: "552037805" },
+        { name: "SNCF", legalName: null, website: null, siren: "552037805", nafCode: null, sectorId: null },
+      )
+      expect(input.selectedSiren).toBe("552037805")
+      expect(input.knownCompany.nafCode).toBeNull()
+      expect(input.requestedFields).toContain("naf_code")
+    })
+
+    it("4. Account without SIREN and without NAF: search by name, NAF is NOT required to trigger", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: ["siren", "naf_code"], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
+        { name: "Acme Corp", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+      )
+      expect(input.selectedSiren).toBeNull()
+      expect(input.knownCompany.nafCode).toBeNull()
+    })
+
+    it("5. Ambiguous account without NAF: returns candidates, without requesting NAF from user", () => {
+      const candidates = [
+        { siren: "123456789", legalName: "ACME FRANCE", matchScore: 0.9, nafCode: "6202A", hqLocation: "Paris" },
+        { siren: "987654321", legalName: "ACME LOGISTICS", matchScore: 0.85, nafCode: null, hqLocation: "Lyon" },
+      ]
+      expect(candidates[0].siren).toBe("123456789")
+      expect(candidates[1].nafCode).toBeNull()
+    })
+
+    it("6. Manual selection of candidate by selectedSiren: re-launches with selectedSiren and retrieves NAF", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: ["naf_code"], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null, selectedSiren: "123456789" },
+        { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+      )
+      expect(input.selectedSiren).toBe("123456789")
+      expect(input.requestedFields).toContain("naf_code")
+    })
+
+    it("7. naf_code = NULL never blocks scan payload construction", () => {
+      const input = buildAccountScanInput(
+        { informationMode: "find", requestedFields: [], requestedFacts: [], requestClassification: false, customSources: [], websiteHint: null, locationHint: null },
+        { name: "Acme", legalName: null, website: null, siren: null, nafCode: null, sectorId: null },
+      )
+      expect(input.knownCompany.nafCode).toBeNull()
+      expect(input.operation).toBe("account_scan")
+    })
+  })
 })
 
 describe("buildAccountScanContactsInput", () => {

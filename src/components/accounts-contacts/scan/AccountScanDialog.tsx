@@ -483,7 +483,7 @@ export function AccountScanDialog({
   function prepareInformationScan(setup: AccountScanSetupValues) {
     lastSetupRef.current = setup
     setErrorMessage(null)
-    setPhase("identity_confirm")
+    void triggerInformationScan(setup)
   }
 
   async function triggerInformationScan(setup: AccountScanSetupValues, confirmedSiren?: string) {

@@ -94,23 +94,18 @@ export async function POST(request: Request) {
     )
   }
 
-  // ── 3bis. Gate serveur INTEL-010 ───────────────────────────────────────────
+  // ── 3bis. Validation des entrées INTEL-010 ──────────────────────────────────
   if (workflowId === "intel-010-refresh" && (input as Record<string, unknown>).operation === "account_scan") {
-    const isIdentityConfirmed = (input as Record<string, unknown>).identityConfirmed === true
     const selectedSiren = (input as Record<string, unknown>).selectedSiren
     
-    if (!isIdentityConfirmed) {
-      return NextResponse.json<TriggerErrorResponse>(
-        { error: "Confirmation d'identité requise pour ce scan" },
-        { status: 400 }
-      )
-    }
-
-    if (typeof selectedSiren !== "string" || !/^\d{9}$/.test(selectedSiren)) {
-      return NextResponse.json<TriggerErrorResponse>(
-        { error: "Le SIREN sélectionné doit contenir exactement 9 chiffres" },
-        { status: 400 }
-      )
+    // Si un SIREN est explicitement transmis, valider sa forme (9 chiffres)
+    if (selectedSiren !== null && selectedSiren !== undefined && selectedSiren !== "") {
+      if (typeof selectedSiren !== "string" || !/^\d{9}$/.test(selectedSiren.trim())) {
+        return NextResponse.json<TriggerErrorResponse>(
+          { error: "Le SIREN fourni doit contenir exactement 9 chiffres" },
+          { status: 400 }
+        )
+      }
     }
   }
 
