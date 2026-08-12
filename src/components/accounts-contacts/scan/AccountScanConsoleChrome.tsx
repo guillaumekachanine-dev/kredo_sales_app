@@ -15,6 +15,8 @@ interface AccountScanConsoleChromeProps {
   proposalCount: number
   resultSourceCount: number
   children: ReactNode
+  onNewScan?: () => void
+  onContacts?: () => void
 }
 
 const STEPS: { id: ConsoleStage; label: string }[] = [
@@ -46,7 +48,7 @@ function ProgressSteps({ stage, horizontal = false }: { stage: ConsoleStage; hor
   )
 }
 
-export function AccountScanConsoleChrome({ company, isMobile, stage, mode, setupSummary, proposalCount, resultSourceCount, children }: AccountScanConsoleChromeProps) {
+export function AccountScanConsoleChrome({ company, isMobile, stage, mode, setupSummary, proposalCount, resultSourceCount, children, onNewScan, onContacts }: AccountScanConsoleChromeProps) {
   if (isMobile) {
     return (
       <div className="min-h-full bg-edito-canvas">
@@ -60,10 +62,9 @@ export function AccountScanConsoleChrome({ company, isMobile, stage, mode, setup
 
   const deciding = stage === "decide"
   return (
-    <div className="grid h-full min-h-0 grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="flex min-h-0 flex-col bg-edito-navy px-6 py-6 text-white">
-        <h3 className="truncate text-lg font-black tracking-tight">{company.name}</h3>
-        <div className="mt-5"><ProgressSteps stage={stage} /></div>
+    <div className="grid h-full min-h-0 grid-cols-[200px_minmax(0,1fr)]">
+      <aside className="flex min-h-0 flex-col bg-edito-navy px-6 py-6 text-white overflow-y-auto">
+        <div><ProgressSteps stage={stage} /></div>
         <div className="my-5 border-t border-white/10" />
         <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/65">{deciding ? "Résumé du scan" : "Périmètre du scan"}</p>
         <dl className="mt-3 space-y-3 text-[11px]">
@@ -71,14 +72,34 @@ export function AccountScanConsoleChrome({ company, isMobile, stage, mode, setup
           <div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded border border-white/15 text-[9px]">S</span><dd><strong className="text-white">{deciding ? resultSourceCount : setupSummary.sourceCount}</strong> sources {deciding ? "consultées" : "actives"}</dd></div>
           {!deciding ? <div className="flex items-center gap-2"><span className="flex size-5 items-center justify-center rounded border border-white/15 text-[9px]">◷</span><dd>Estimation : <strong className="text-white">2–4 min</strong></dd></div> : null}
         </dl>
-        <div className="my-5 border-t border-white/10" />
-        <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/65">Mode</p>
-        <p className="mt-2 text-xs font-bold">{mode === "contacts" ? "Contacts" : setupSummary.mode === "verify" ? "Vérifier" : "Compléter"}</p>
-        <div className="mt-auto border-t border-white/10 pt-5">
-          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/65">Compte</p>
-          <p className="mt-2 text-sm font-black">{company.name}</p>
-          {company.hqLocation ? <p className="mt-1 text-[10px] leading-relaxed text-white/65">{company.hqLocation}</p> : null}
+        {!deciding && (
+          <>
+            <div className="my-5 border-t border-white/10" />
+            <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/65">Mode</p>
+            <p className="mt-2 text-xs font-bold">{mode === "contacts" ? "Contacts" : setupSummary.mode === "verify" ? "Vérifier" : "Compléter"}</p>
+          </>
+        )}
+        <div className={cn("border-t border-white/10 pt-5", deciding ? "mt-5" : "mt-auto")}>
+          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-white/65">Actions</p>
+          <div className="mt-3 space-y-2">
+            {onNewScan && <button type="button" onClick={onNewScan} className="w-full rounded border border-white/20 bg-white/5 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-white/10">Nouveau scan</button>}
+            {onContacts && <button type="button" onClick={onContacts} className="w-full rounded border border-primary/50 bg-primary/10 py-1.5 text-[11px] font-bold text-primary transition-colors hover:bg-primary/20 hover:text-white">Scanner les contacts</button>}
+            {deciding && <button type="button" className="w-full rounded border border-white/20 bg-white/5 py-1.5 text-[11px] font-bold text-white transition-colors hover:bg-white/10">Archiver</button>}
+          </div>
         </div>
+        {deciding && (
+          <div className="mt-5 border-t border-white/10 pt-5">
+            <details className="group">
+              <summary className="flex cursor-pointer items-center justify-between text-[9px] font-black uppercase tracking-[0.1em] text-white/65 hover:text-white">
+                Versions
+                <span className="transition-transform duration-200 group-open:rotate-180">▼</span>
+              </summary>
+              <div className="mt-3 space-y-2 text-[10px] text-white/50">
+                <p>Aucune version archivée.</p>
+              </div>
+            </details>
+          </div>
+        )}
       </aside>
       <main className="min-h-0 min-w-0 overflow-hidden bg-edito-canvas">{children}</main>
     </div>

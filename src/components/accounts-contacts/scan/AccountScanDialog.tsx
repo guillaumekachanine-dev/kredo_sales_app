@@ -678,6 +678,7 @@ export function AccountScanDialog({
         bilanByProposalId={bilanByProposalId}
         onNewScan={handleBackToInformationSetup}
         onContacts={handleGoToContactsSetup}
+        setupMode={setupSummary.mode}
       />
     )
     body = (
@@ -715,12 +716,12 @@ export function AccountScanDialog({
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={<div><span className="block text-sm font-black">Scan rapide</span><span className="mt-0.5 block text-[10px] font-normal text-edito-muted">{stage === "decide" ? "Examinez les propositions et appliquez les changements pertinents." : "Cadrez le périmètre et choisissez vos sources."}</span></div>}
+      title={<div className="flex items-center"><span className="text-sm font-black">{company.name.toUpperCase()} - Scan rapide</span></div>}
       className={cn(
         "border border-edito-border bg-edito-canvas transition-all duration-300",
         isMobile
           ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
-          : "w-full rounded-xl sm:!h-[min(86vh,820px)] sm:!w-[94vw] sm:!max-w-[1320px]",
+          : "w-full rounded-xl sm:!h-[min(82vh,760px)] sm:!w-[90vw] sm:!max-w-[1200px]",
       )}
       fillHeight={true}
       maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
@@ -729,11 +730,11 @@ export function AccountScanDialog({
         "-mx-4 -mt-4 shrink-0 border-b border-edito-border bg-white px-4 text-edito-navy sm:-mx-6 sm:-mt-6 sm:px-6",
         isMobile
           ? "rounded-none border-b-edito-brass/70 bg-edito-navy pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white"
-          : "rounded-t-xl py-3",
+          : "rounded-t-xl py-2.5",
       )}
       closeButtonClassName={isMobile ? "-mr-2 h-11 w-11 rounded-full text-white/75 hover:bg-white/10 hover:text-white" : "size-10 rounded-md text-edito-muted hover:bg-edito-chip hover:text-edito-navy"}
       bodyClassName={cn(
-        "-mx-4 -mb-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6",
+        "-mx-4 -mb-4 -mt-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6 sm:-mt-4",
       )}
     >
       <AccountScanConsoleChrome
@@ -744,6 +745,8 @@ export function AccountScanDialog({
         setupSummary={setupSummary}
         proposalCount={proposalRows.length}
         resultSourceCount={informationOutput?.sources.length ?? contactsOutput?.sources.length ?? 0}
+        onNewScan={handleBackToInformationSetup}
+        onContacts={handleGoToContactsSetup}
       >
         <div key={phase} className={cn("h-full min-h-0", !isMobile && "overflow-y-auto")}>{body}</div>
       </AccountScanConsoleChrome>

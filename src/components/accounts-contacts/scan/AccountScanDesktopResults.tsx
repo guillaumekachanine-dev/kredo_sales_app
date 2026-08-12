@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { AccountScanOutput } from "@/lib/n8n/types"
 import {
@@ -26,6 +26,7 @@ interface AccountScanDesktopResultsProps {
   bilanByProposalId: Map<string, AccountScanBilanCategory>
   onNewScan?: () => void
   onContacts?: () => void
+  setupMode: "find" | "verify"
 }
 
 function ConfidenceBadge({ score }: { score: number }) {
@@ -37,7 +38,7 @@ function ConfidenceBadge({ score }: { score: number }) {
       tone === "medium" && "bg-warning/15 text-warning",
       tone === "low" && "bg-danger/10 text-danger",
     )}>
-      {tone === "high" ? "Élevée" : tone === "medium" ? "Moyenne" : "Faible"} · {formatConfidencePercent(score)}
+      {tone === "high" ? "Élevée" : tone === "medium" ? "Moyenne" : "Faible"}
     </span>
   )
 }
@@ -60,6 +61,7 @@ export function AccountScanDesktopResults({
   bilanByProposalId,
   onNewScan,
   onContacts,
+  setupMode,
 }: AccountScanDesktopResultsProps) {
   const groups = useMemo(() => groupAccountScanRows(proposalRows), [proposalRows])
   const [activeGroupId, setActiveGroupId] = useState(() => groups[0]?.id ?? "")
@@ -70,6 +72,26 @@ export function AccountScanDesktopResults({
   const focusedSources = focusedRow ? sourceFor(output, focusedRow) : []
   const visibleIds = visibleRows.map((row) => row.id)
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
+
+  const prevApplying = useRef(applying)
+  const prevSelectedSize = useRef(selectedIds.size)
+  const [successState, setSuccessState] = useState({ active: false, count: 0 })
+
+  useEffect(() => {
+    if (prevApplying.current && !applying) {
+      if (prevSelectedSize.current > 0) {
+        setSuccessState({ active: true, count: prevSelectedSize.current })
+      }
+    }
+    prevApplying.current = applying
+  }, [applying])
+
+  useEffect(() => {
+    if (selectedIds.size > 0) {
+      setSuccessState({ active: false, count: 0 })
+    }
+    prevSelectedSize.current = selectedIds.size
+  }, [selectedIds.size])
 
   const chooseGroup = (id: string) => {
     setActiveGroupId(id)
@@ -84,8 +106,18 @@ export function AccountScanDesktopResults({
           <h3 className="text-sm font-black text-edito-navy">{proposalRows.length} modification{proposalRows.length > 1 ? "s" : ""} proposée{proposalRows.length > 1 ? "s" : ""}</h3>
           <p className="mt-0.5 text-[10px] text-edito-muted">Examinez les écarts, leurs niveaux de confiance et leurs sources.</p>
         </div>
-        <button type="button" onClick={() => onToggleSelectAll(visibleIds)} className="min-h-9 rounded-md border border-edito-border px-3 text-[10px] font-bold text-edito-body hover:bg-edito-chip">
-          {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
+        <button 
+          type="button" 
+          onClick={onApplySelected} 
+          disabled={applying || (selectedIds.size === 0 && !successState.active)} 
+          className={cn(
+            "inline-flex min-h-9 items-center gap-2 rounded-md border px-4 text-xs font-bold transition-colors duration-300",
+            successState.active 
+              ? "border-edito-brass bg-edito-brass text-edito-navy" 
+              : "border-edito-brass bg-edito-navy text-white hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted"
+          )}
+        >
+          {applying ? "Application…" : successState.active ? `${successState.count} changement${successState.count > 1 ? "s" : ""} appliqués ✓` : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""} →`}
         </button>
       </div>
 
@@ -116,8 +148,18 @@ export function AccountScanDesktopResults({
         </nav>
 
         <section className="min-w-0 overflow-y-auto" aria-label={activeGroup?.label ?? "Propositions"}>
-          <div className="sticky top-0 z-10 grid grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px] items-center gap-2 border-b border-edito-border bg-edito-canvas px-4 py-2 text-[9px] font-black uppercase tracking-[0.06em] text-edito-muted">
-            <span /> <span>Attribut</span><span>Actuel</span><span /><span>Proposé</span><span>Confiance</span><span>Source</span>
+          <div className={cn("sticky top-0 z-10 grid items-center gap-2 border-b border-edito-border bg-edito-canvas px-4 py-2 text-[9px] font-black uppercase tracking-[0.06em] text-edito-muted", setupMode === "find" ? "grid-cols-[28px_minmax(120px,1fr)_minmax(210px,1.75fr)_80px_90px]" : "grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px]")}>
+            <input type="checkbox" checked={allVisibleSelected} onChange={() => onToggleSelectAll(visibleIds)} aria-label={allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"} className="size-4 accent-primary cursor-pointer" />
+            <span>Attribut</span>
+            {setupMode === "verify" ? (
+              <>
+                <span>Actuel</span>
+                <span />
+              </>
+            ) : null}
+            <span>Proposé</span>
+            <span>Confiance</span>
+            <span>Source</span>
           </div>
           {visibleRows.length === 0 ? <p className="p-8 text-center text-xs text-edito-muted">Aucune proposition dans cette catégorie.</p> : null}
           {visibleRows.map((row) => {
@@ -131,12 +173,16 @@ export function AccountScanDesktopResults({
                 tabIndex={0}
                 onClick={() => setFocusedId(row.id)}
                 onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setFocusedId(row.id) }}
-                className={cn("grid min-h-12 cursor-pointer grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px] items-center gap-2 border-b border-edito-border/65 px-4 py-2 outline-none transition-colors hover:bg-edito-canvas/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40", focused && "bg-primary/[0.035]")}
+                className={cn("grid min-h-12 cursor-pointer items-center gap-2 border-b border-edito-border/65 px-4 py-2 outline-none transition-colors hover:bg-edito-canvas/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40", focused && "bg-primary/[0.035]", setupMode === "find" ? "grid-cols-[28px_minmax(120px,1fr)_minmax(210px,1.75fr)_80px_90px]" : "grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px]")}
               >
                 <input type="checkbox" checked={selectedIds.has(row.id)} onClick={(event) => event.stopPropagation()} onChange={() => onToggleSelect(row.id)} aria-label={`Sélectionner ${getAttributeLabel(row.attributeName)}`} className="size-4 accent-primary" />
                 <span className="truncate text-[11px] font-bold text-edito-heading">{getAttributeLabel(row.attributeName)}</span>
-                <span className="truncate text-[11px] text-edito-muted">{formatProposalValue(row.oldValue)}</span>
-                <span className="text-center text-xs text-edito-muted">→</span>
+                {setupMode === "verify" ? (
+                  <>
+                    <span className="truncate text-[11px] text-edito-muted">{formatProposalValue(row.oldValue)}</span>
+                    <span className="text-center text-xs text-edito-muted">→</span>
+                  </>
+                ) : null}
                 <span className="truncate text-[11px] font-semibold text-edito-navy">{formatProposalValue(row.normalizedValue ?? row.proposedValue)}</span>
                 <span>{bilan ? <span className="text-[9px] font-bold text-success">{BILAN_LABELS[bilan]}</span> : <ConfidenceBadge score={row.confidenceScore} />}</span>
                 <span className="truncate text-[10px] font-semibold text-edito-muted">{sources[0]?.sourceName ?? "—"}</span>
@@ -145,20 +191,22 @@ export function AccountScanDesktopResults({
           })}
         </section>
 
-        <aside className="overflow-y-auto border-l border-edito-border bg-edito-canvas p-4" aria-label="Élément sélectionné">
-          <p className="mb-3 text-[9px] font-black uppercase tracking-[0.1em] text-edito-muted">Élément sélectionné</p>
+        <aside className="overflow-y-auto border-l border-edito-border bg-edito-canvas px-4 pb-4 pt-3" aria-label="Élément sélectionné">
+          <p className="mb-2 text-[9px] font-black uppercase tracking-[0.1em] text-edito-muted">Élément sélectionné</p>
           {focusedRow ? (
             <div className="rounded-lg border border-edito-border bg-white p-4">
-              <h4 className="text-xs font-black text-edito-navy">{getAttributeLabel(focusedRow.attributeName)}</h4>
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="text-xs font-black text-edito-navy">{getAttributeLabel(focusedRow.attributeName)}</h4>
+                <div className="scale-90 origin-top-right shrink-0"><ConfidenceBadge score={focusedRow.confidenceScore} /></div>
+              </div>
               <div className="mt-4 space-y-1">
                 <span className="text-[9px] font-bold uppercase text-edito-muted">Proposé</span>
                 <p className="text-xs font-bold text-edito-heading">{formatProposalValue(focusedRow.normalizedValue ?? focusedRow.proposedValue)}</p>
               </div>
-              <div className="mt-3"><ConfidenceBadge score={focusedRow.confidenceScore} /></div>
-              <div className="my-4 border-t border-edito-border" />
+              <div className="my-3 border-t border-edito-border" />
               <p className="text-[9px] font-black uppercase tracking-[0.08em] text-edito-navy">Justification</p>
-              <p className="mt-2 text-[11px] leading-relaxed text-edito-body">{focusedRow.justification || "Cette proposition rapproche les données du compte des informations publiques les plus récentes."}</p>
-              <div className="my-4 border-t border-edito-border" />
+              <p className="mt-1 text-[11px] leading-snug text-edito-body">{focusedRow.justification || "Cette proposition rapproche les données du compte des informations publiques les plus récentes."}</p>
+              <div className="my-3 border-t border-edito-border" />
               <p className="text-[9px] font-black uppercase tracking-[0.08em] text-edito-navy">Sources ({focusedSources.length})</p>
               <div className="mt-2 space-y-3">
                 {focusedSources.map((source) => (
@@ -172,17 +220,6 @@ export function AccountScanDesktopResults({
             </div>
           ) : <p className="text-[11px] text-edito-muted">Sélectionnez une ligne pour afficher sa justification.</p>}
         </aside>
-      </div>
-
-      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-edito-border bg-white px-5 py-3">
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-edito-muted"><span className="font-black text-edito-navy">{selectedIds.size}</span> élément{selectedIds.size > 1 ? "s" : ""} sélectionné{selectedIds.size > 1 ? "s" : ""}</p>
-          {onNewScan ? <button type="button" onClick={onNewScan} className="text-[10px] font-bold text-edito-muted hover:text-edito-navy">Nouveau scan</button> : null}
-          {onContacts ? <button type="button" onClick={onContacts} className="text-[10px] font-bold text-primary hover:underline">Scanner les contacts</button> : null}
-        </div>
-        <button type="button" onClick={onApplySelected} disabled={applying || selectedIds.size === 0} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-edito-brass bg-edito-navy px-4 text-xs font-bold text-white hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted">
-          {applying ? "Application…" : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""}`} <span aria-hidden="true">→</span>
-        </button>
       </div>
     </div>
   )
