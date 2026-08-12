@@ -27,6 +27,28 @@ export const ACCOUNT_DEPTH_LEVEL_LABELS: Record<AccountDepthLevel, string> = {
 }
 
 /**
+ * Vocabulaire visuel du badge de palier — partagé entre l'étape 0 du cockpit
+ * (Lot 3, `ClientIntelligenceSocleTab`) et la liste comptes / le drawer
+ * minimal (Lot 6), pour éviter la divergence que l'ADR redoute explicitement
+ * (§ Conséquences négatives, D-3).
+ */
+export const ACCOUNT_DEPTH_BADGE_TONE: Record<AccountDepthLevel, string> = {
+  mapped: "bg-surface-hover text-muted border-border",
+  noted: "bg-warning/10 text-warning border-warning/25",
+  qualified: "bg-success/10 text-success border-success/25",
+  active: "bg-primary/10 text-primary border-primary/20",
+}
+
+/** `companies.origin` — ce qui a fait naître la fiche (ADR-0019 D-1). */
+export const ACCOUNT_ORIGIN_LABELS: Record<string, string> = {
+  manual: "Créé manuellement",
+  competitive_map: "Cartographie concurrentielle",
+  scan: "Scan",
+  import: "Import",
+  folio: "Import FOLIO",
+}
+
+/**
  * Une promotion n'est jamais une démotion : renvoie false si `target` est égal
  * ou inférieur à `current`. La transition est alors un no-op volontaire, pas
  * une erreur — `promoteAccountDepth` doit pouvoir être appelée en aveugle

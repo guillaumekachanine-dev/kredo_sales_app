@@ -2,6 +2,7 @@
 
 import "server-only"
 
+import { promoteAccountDepth } from "@/features/account-lifecycle/actions/promote-account-depth"
 import { resolveCompanyTaxonomy } from "@/lib/accounts-contacts/company-taxonomy"
 import { createClient } from "@/lib/supabase/server"
 
@@ -38,7 +39,7 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
     // 1. Chercher d'abord un compte existant au même nom
     const { data: existing, error: selectError } = await supabase
       .from("companies")
-      .select("id, name")
+      .select("id, name, depth_level")
       .eq("name", trimmedName)
       .maybeSingle()
 
@@ -48,7 +49,18 @@ export async function upsertAccountByName(name: string): Promise<UpsertAccountRe
     }
 
     if (existing) {
-      return { data: existing }
+      // ADR-0019 D-3/D-2 : un compte `mapped` (citation de cartographie) ne
+      // peut pas porter de contact/opportunité/mission. Cette création inline
+      // (depuis une mission) est justement en train de lui en rattacher un —
+      // il doit donc être promu au préalable, via l'unique Server Action
+      // d'écriture, plutôt que rattaché tel quel en silence.
+      if (existing.depth_level === "mapped") {
+        const { error: promoteError } = await promoteAccountDepth(existing.id, "noted")
+        if (promoteError) {
+          console.error("Promotion de profondeur (noted) impossible :", promoteError)
+        }
+      }
+      return { data: { id: existing.id, name: existing.name } }
     }
 
     // 2. Créer le compte s'il n'existe pas.

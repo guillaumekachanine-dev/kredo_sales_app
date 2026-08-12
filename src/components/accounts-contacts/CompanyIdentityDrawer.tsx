@@ -8,6 +8,7 @@ import { AppDrawer } from "@/components/ui/AppDrawer"
 import { CompanyLogo } from "@/components/accounts-contacts/CompanyLogo"
 import { getCompanyIdentity, toggleCompanyFavorite } from "@/app/(app)/prospection/accounts/actions"
 import { promoteAccountDepth } from "@/features/account-lifecycle/actions/promote-account-depth"
+import { CompanyIdentityDrawerMappedView } from "@/components/accounts-contacts/CompanyIdentityDrawerMappedView"
 import { CompanyDocumentsModal } from "@/components/accounts-contacts/intelligence/CompanyDocumentsModal"
 import { SurfaceCard } from "@/components/ui/SurfaceCard"
 import { cn } from "@/lib/utils"
@@ -65,6 +66,9 @@ type IdentityData = {
     next_action_at: string | null
     created_at?: string | null
     updated_at?: string | null
+    /** ADR-0019 — mapped | noted | qualified | active */
+    depth_level: string
+    origin: string
   }
   contacts: Array<{
     id: string
@@ -400,6 +404,18 @@ export function CompanyIdentityDrawer({
     }
   }
 
+  // ADR-0019 Lot 6 — après « Convertir » (mapped -> noted), les données déjà
+  // chargées ont un `depth_level` périmé : un simple refetch suffit, le
+  // rendu bascule alors de lui-même du drawer minimal vers le drawer plein
+  // (branche sur `data.company.depth_level`, pas d'état local dédié).
+  const handleMappedConverted = async () => {
+    if (!companyId) return
+    const response = await getCompanyIdentity(companyId)
+    if (!response.error) {
+      setData(response.data as unknown as IdentityData)
+    }
+  }
+
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)")
     const syncViewport = () => setIsMobileViewport(media.matches)
@@ -562,6 +578,11 @@ export function CompanyIdentityDrawer({
           </SurfaceCard>
         </div>
       ) : data ? (
+        data.company.depth_level === "mapped" ? (
+          <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1">
+            <CompanyIdentityDrawerMappedView company={data.company} onConverted={handleMappedConverted} />
+          </div>
+        ) : (
         <div className="flex flex-col h-full gap-5">
           {/* Company identity card summary - exact styling match to Contact card with petroleum blue background & top white gradient fade */}
           <div className="relative flex flex-col gap-4 p-4 rounded-[var(--radius-medium)] border transition-all bg-[#257A8E] bg-[linear-gradient(to_bottom,rgba(255,255,255,0.15)_0%,transparent_100%)] text-white border-[#257A8E]/20">
@@ -1510,6 +1531,7 @@ export function CompanyIdentityDrawer({
             )}
           </div>
         </div>
+        )
       ) : null}
 
       {data ? (

@@ -15,6 +15,67 @@
 
 ---
 
+### Session 39 — ADR-0019 Lot 6 : sous-section mapped + drawer minimal + Convertir (2026-08-12)
+
+**Objet** : `docs/adr/ADR-0019-profondeur-de-compte-et-ingestion-cartographie.md`, Lot 6 — dernier
+lot restant avant le Lot 7 (différé). Fait suite au Lot 5 (ingestion cartographies, commit
+`fbf31567` en tête de `main`).
+
+**Décision structurante** : la scission `mapped` vs comptes réels se fait **à la source**, dans
+`getAccountsContactsData()` (`src/lib/accounts-contacts/accounts-contacts-data.ts`) — nouveau champ
+`mappedAccounts` séparé de `accounts`. Conséquence directe : `stats`, `buildSectorRows`,
+`studyIds`, les options de filtres, `totalFiltered`/`totalAll` du header et la combobox
+« compte lié » de `ContactFormModal` héritent tous de l'exclusion sans qu'aucun de ces
+consommateurs n'ait eu à répéter le filtre — exactement la garantie que l'ADR demande en D-3
+(« un `mapped` oublié dans une combobox et l'invariant tombe »).
+
+**Autres points d'exclusion D-3 traités** :
+- `searchAccounts()` (`src/app/(app)/missions/_actions/search-accounts.ts`, alimente
+  `AccountCombobox` — ~9 consommateurs opportunité/mission/agenda/communication) : `.neq("depth_level",
+  "mapped")`.
+- `upsertAccountByName()` (`src/app/(app)/missions/_actions/upsert-account.ts`, création inline
+  depuis une mission) : si le nom matche un compte `mapped` existant, il est promu à `noted` via
+  `promoteAccountDepth` **avant** d'être rattaché à la mission — jamais de rattachement silencieux
+  d'un compte-citation (respecte à la fois D-2 « un seul point d'écriture » et D-3).
+
+**Drawer minimal** : `CompanyIdentityDrawer.tsx` branche désormais sur
+`data.company.depth_level === "mapped"` (colonne ajoutée au `select()` de `getCompanyIdentity`, qui
+saute aussi les requêtes contacts/opportunités/missions/interactions pour un compte mapped — D-3 en
+garantit l'absence, inutile d'interroger ces tables). Nouveau composant
+`CompanyIdentityDrawerMappedView.tsx` : identité + analyse `competitive_map_entries` (nouveau
+loader `src/features/competitive-map/data/get-competitive-map-citation.ts`, lecture directe car
+`v_crm_account_list` n'expose pas cette table — D-4) + faits `account_facts` (CA/effectif) avec
+caveat « provisoire, non audité » toujours visible. CTA unique « Convertir en compte CRM » →
+`promoteAccountDepth(id, "noted")`, troisième porte d'entrée de D-2 (les deux autres : case
+création + bouton « Créer et qualifier », inchangées).
+
+**Vocabulaire visuel** : `DEPTH_BADGE_TONE`/`ORIGIN_LABELS`, jusque-là dupliqués localement dans
+`ClientIntelligenceSocleTab.tsx` (Lot 3), extraits en `ACCOUNT_DEPTH_BADGE_TONE`/
+`ACCOUNT_ORIGIN_LABELS` dans `depth-level.ts` — réutilisés tels quels par le drawer minimal et la
+sous-section liste, pas de seconde définition.
+
+**Sous-section liste** : `MappedAccountsSection` dans `AccountsContactsViews.tsx` — un seul
+composant responsive (pas de split Desktop/Mobile, ADR-0006 : liste simple, pas un dashboard dense),
+repliable, sous la liste principale de l'onglet Comptes. Ouvre le même `CompanyIdentityDrawer` via
+`openCompanyDrawer` ; c'est le drawer qui bascule en variante minimale selon `depth_level`.
+
+**Piège éviré en lint** (`react-hooks/set-state-in-effect`) : le premier jet de
+`CompanyIdentityDrawerMappedView` appelait `setCitationLoading(true)` de façon synchrone en tête
+d'effet avant le fetch — inutile puisque l'état initial du `useState` vaut déjà `true` et que le
+composant est remonté à chaque changement de compte (le drawer vide `data` avant de recharger).
+Retiré plutôt que suppressé en `eslint-disable`.
+
+**Validation** : `typecheck` (0 erreur) → `test` (112 fichiers / 1119 tests, dont 2 nouveaux sur
+`ACCOUNT_DEPTH_BADGE_TONE`/`ACCOUNT_ORIGIN_LABELS`) → `check:server-boundary` (vert) → `lint` sur
+les 11 fichiers touchés (0 erreur, 2 warnings préexistants sans rapport) → `build:webpack` (succès,
+61 routes générées). Pas de migration SQL dans ce lot — tout le socle base (`depth_level`, `origin`,
+`competitive_map_entries`, `account_facts`) existait déjà des Lots 0/5.
+
+**Reste** : Lot 7 (modularisation INTEL-030) — différé, contrat non stabilisé (inchangé depuis
+Session 38).
+
+---
+
 ### Session 38 — ADR-0019 Lot 5 : ingestion des cartographies concurrentielles (2026-08-12)
 
 **Objet** : `docs/adr/ADR-0019-profondeur-de-compte-et-ingestion-cartographie.md`, Lot 5 —

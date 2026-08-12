@@ -4,7 +4,11 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { promoteAccountDepth } from "@/features/account-lifecycle/actions/promote-account-depth"
-import { ACCOUNT_DEPTH_LEVEL_LABELS, type AccountDepthLevel } from "@/features/account-lifecycle/domain/depth-level"
+import {
+  ACCOUNT_DEPTH_BADGE_TONE,
+  ACCOUNT_DEPTH_LEVEL_LABELS,
+  ACCOUNT_ORIGIN_LABELS,
+} from "@/features/account-lifecycle/domain/depth-level"
 import type { ClientIntelligenceData } from "@/lib/intelligence/intelligence-data"
 import { cn } from "@/lib/utils"
 import { Field, SectionBlock } from "./intelligence-parts"
@@ -17,21 +21,6 @@ const AccountScanDialog = dynamic(
   () => import("@/components/accounts-contacts/scan/AccountScanDialog").then((m) => m.AccountScanDialog),
   { ssr: false },
 )
-
-const DEPTH_BADGE_TONE: Record<AccountDepthLevel, string> = {
-  mapped: "bg-surface-hover text-muted border-border",
-  noted: "bg-warning/10 text-warning border-warning/25",
-  qualified: "bg-success/10 text-success border-success/25",
-  active: "bg-primary/10 text-primary border-primary/20",
-}
-
-const ORIGIN_LABELS: Record<string, string> = {
-  manual: "Créé manuellement",
-  competitive_map: "Cartographie concurrentielle",
-  scan: "Scan",
-  import: "Import",
-  folio: "Import FOLIO",
-}
 
 export function ClientIntelligenceSocleTab({ data, isMobile }: { data: ClientIntelligenceData; isMobile: boolean }) {
   const router = useRouter()
@@ -65,7 +54,7 @@ export function ClientIntelligenceSocleTab({ data, isMobile }: { data: ClientInt
         <span
           className={cn(
             "inline-flex shrink-0 items-center gap-1 rounded border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
-            DEPTH_BADGE_TONE[company.depthLevel],
+            ACCOUNT_DEPTH_BADGE_TONE[company.depthLevel],
           )}
         >
           {ACCOUNT_DEPTH_LEVEL_LABELS[company.depthLevel]}
@@ -85,7 +74,7 @@ export function ClientIntelligenceSocleTab({ data, isMobile }: { data: ClientInt
       </SectionBlock>
 
       <SectionBlock title="Origine du compte">
-        <p className="text-xs text-body">{ORIGIN_LABELS[company.origin] ?? company.origin}</p>
+        <p className="text-xs text-body">{ACCOUNT_ORIGIN_LABELS[company.origin] ?? company.origin}</p>
       </SectionBlock>
 
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">

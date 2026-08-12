@@ -904,6 +904,90 @@ function DeleteConfirmModal({
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Comptes cartographiés — ADR-0019 Lot 6 (D-3)
+//
+//  Sous-section volontairement séparée et repliable, un seul composant
+//  responsive plutôt qu'un couple Desktop/Mobile : c'est une liste simple
+//  (ADR-0006 amende la règle d'adaptive plein pour ce cas), pas un tableau
+//  dense. Clique = même drawer que les comptes réels (`onOpenIdentity`) ;
+//  celui-ci bascule automatiquement en variante minimale sur `depth_level`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function MappedAccountsSection({
+  accounts,
+  onOpenIdentity,
+}: {
+  accounts: AccountRow[]
+  onOpenIdentity: (id: string) => void
+}) {
+  const [expanded, setExpanded] = useState(true)
+
+  if (accounts.length === 0) return null
+
+  return (
+    <SurfaceCard className="mt-4 overflow-hidden p-0">
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 p-4 text-left"
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0">
+          <h3 className="font-heading text-sm font-bold text-heading">Comptes cartographiés</h3>
+          <p className="mt-0.5 text-[11px] text-muted">
+            Citations issues des cartographies concurrentielles — non qualifiées, exclues des statistiques et des
+            sélecteurs commerciaux tant qu’elles ne sont pas converties.
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] font-bold text-muted">
+            {accounts.length}
+          </span>
+          <svg
+            className={cn("h-4 w-4 text-muted transition-transform", expanded && "rotate-180")}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </button>
+      {expanded && (
+        <div className="divide-y divide-border/60 border-t border-border/60">
+          {accounts.map((account) => (
+            <button
+              key={account.id}
+              type="button"
+              onClick={() => onOpenIdentity(account.id)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover"
+            >
+              <CompanyLogo
+                name={account.name}
+                logoPath={account.logoPath}
+                website={account.website}
+                size="sm"
+                className="h-8 w-8 shrink-0 rounded-full"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-heading">{account.name}</p>
+                <p className="truncate text-[11px] text-muted">
+                  {[account.sector, account.segment].filter(Boolean).join(" · ") || "Secteur non renseigné"}
+                </p>
+              </div>
+              <svg className="h-4 w-4 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      )}
+    </SurfaceCard>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Accounts Sub-views
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1823,6 +1907,13 @@ export function ProspectionAccountsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data.accounts, filters, deferredQuery]
   )
+  // ADR-0019 D-3 — mêmes filtres/recherche que la liste principale, mais un
+  // tableau à part : ces comptes ne comptent jamais dans totalFiltered/totalAll.
+  const filteredMappedAccounts = useMemo(
+    () => filterAccounts(data.mappedAccounts, { ...filters, q: deferredQuery }, studyIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.mappedAccounts, filters, deferredQuery]
+  )
   const filteredContacts = useMemo(
     () => filterContacts(data.contacts, { ...filters, q: deferredQuery }),
     [data.contacts, filters, deferredQuery]
@@ -2246,6 +2337,10 @@ export function ProspectionAccountsView({
             onEditCompany={(account) => setCompanyModal({ open: true, editing: account })}
           />
         )
+      )}
+
+      {subTab === "accounts" && (
+        <MappedAccountsSection accounts={filteredMappedAccounts} onOpenIdentity={openCompanyDrawer} />
       )}
 
       {subTab === "contacts" && (

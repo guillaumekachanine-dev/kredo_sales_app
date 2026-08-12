@@ -87,6 +87,14 @@ export type TaxonomySegmentOption = {
 export type AccountsContactsData = {
   stats: AccountsContactsStats
   accounts: AccountRow[]
+  /**
+   * ADR-0019 D-3 — comptes `depth_level='mapped'` (citations issues d'une
+   * cartographie concurrentielle). Toujours séparés de `accounts` : ils
+   * n'entrent jamais dans les stats, les filtres taxonomiques ni les
+   * combobox — la scission se fait ici, à la source, pour que tout
+   * consommateur de `accounts` en hérite sans avoir à répéter le filtre.
+   */
+  mappedAccounts: AccountRow[]
   contacts: ContactRow[]
   /**
    * Tableau des IDs de comptes ayant une étude.
@@ -408,9 +416,16 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
     })
   }
 
-  const accounts = rawAccounts
+  const allAccounts = rawAccounts
     .map((row) => buildAccount(row, contactCounts.get(row.id) ?? 0, taskCounts.get(row.id) ?? 0))
     .toSorted((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.contactCount - a.contactCount || a.name.localeCompare(b.name))
+
+  // ADR-0019 D-3 : un compte `mapped` est une citation, pas un compte réel —
+  // il n'entre jamais dans les stats du header, les combobox commerciales ni
+  // les filtres taxonomiques. Scission unique ici : `accounts` en aval
+  // (stats, sectors, studyIds, filtres URL) reste implicitement propre.
+  const accounts = allAccounts.filter((account) => account.depthLevel !== "mapped")
+  const mappedAccounts = allAccounts.filter((account) => account.depthLevel === "mapped")
 
   const contacts = rawContacts
     .map((row) => buildContact(row, companyById))
@@ -438,6 +453,7 @@ export async function getAccountsContactsData(): Promise<AccountsContactsData> {
   return {
     stats,
     accounts,
+    mappedAccounts,
     contacts,
     studyIds,
     sectors: buildSectorRows(accounts),

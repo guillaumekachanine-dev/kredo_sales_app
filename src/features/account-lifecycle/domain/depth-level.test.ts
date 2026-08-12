@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { isAccountDepthLevel, isPromotion } from "./depth-level"
+import {
+  ACCOUNT_DEPTH_BADGE_TONE,
+  ACCOUNT_DEPTH_LEVELS,
+  ACCOUNT_DEPTH_LEVEL_LABELS,
+  ACCOUNT_ORIGIN_LABELS,
+  isAccountDepthLevel,
+  isPromotion,
+} from "./depth-level"
 
 describe("isAccountDepthLevel", () => {
   it("accepte les quatre paliers du domaine", () => {
@@ -28,5 +35,22 @@ describe("isPromotion", () => {
   it("refuse toute démotion — ADR-0019 D-1, la profondeur ne redescend jamais automatiquement", () => {
     expect(isPromotion("active", "noted")).toBe(false)
     expect(isPromotion("qualified", "mapped")).toBe(false)
+  })
+})
+
+describe("ACCOUNT_DEPTH_BADGE_TONE", () => {
+  it("porte un ton pour chacun des quatre paliers — Lot 6, partagé cockpit/liste/drawer minimal", () => {
+    for (const level of ACCOUNT_DEPTH_LEVELS) {
+      expect(ACCOUNT_DEPTH_BADGE_TONE[level]).toBeTruthy()
+      expect(ACCOUNT_DEPTH_LEVEL_LABELS[level]).toBeTruthy()
+    }
+  })
+})
+
+describe("ACCOUNT_ORIGIN_LABELS", () => {
+  it("couvre les origines connues de companies.origin (ADR-0019 D-1)", () => {
+    expect(ACCOUNT_ORIGIN_LABELS.competitive_map).toBe("Cartographie concurrentielle")
+    expect(ACCOUNT_ORIGIN_LABELS.manual).toBeTruthy()
+    expect(ACCOUNT_ORIGIN_LABELS.scan).toBeTruthy()
   })
 })

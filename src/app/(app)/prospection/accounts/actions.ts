@@ -261,16 +261,36 @@ export async function deleteContact(id: string) {
 
 export async function getCompanyIdentity(companyId: string) {
   if (!companyId) return { error: "Identifiant manquant", data: null }
-  
+
   try {
     const supabase = await createClient()
 
-    const [companyResult, contactsResult, oppsResult, missionsResult, interactionResult] = await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, name, legal_name, siren, naf_code, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, tags, metadata, created_at, updated_at")
-        .eq("id", companyId)
-        .maybeSingle(),
+    const companyResult = await supabase
+      .from("companies")
+      .select("id, name, legal_name, siren, naf_code, sector, segment, website, hq_location, priority, lifecycle_status, description, revenue, employee_count, size_band, health, legacy_folio_score, tags, metadata, created_at, updated_at, depth_level, origin")
+      .eq("id", companyId)
+      .maybeSingle()
+
+    if (companyResult.error) return { error: companyResult.error.message, data: null }
+    if (!companyResult.data) return { error: "Compte introuvable", data: null }
+
+    // ADR-0019 D-3 : un compte `mapped` (citation de cartographie) ne peut
+    // porter ni contact, ni opportunité, ni mission — inutile d'interroger
+    // ces tables pour le drawer minimal qui lui est réservé.
+    if (companyResult.data.depth_level === "mapped") {
+      return {
+        error: null,
+        data: {
+          company: companyResult.data,
+          contacts: [],
+          opportunities: [],
+          missions: [],
+          lastInteraction: null,
+        },
+      }
+    }
+
+    const [contactsResult, oppsResult, missionsResult, interactionResult] = await Promise.all([
       supabase
         .from("contacts")
         .select(`
@@ -299,9 +319,6 @@ export async function getCompanyIdentity(companyId: string) {
         .limit(1)
         .maybeSingle(),
     ])
-
-    if (companyResult.error) return { error: companyResult.error.message, data: null }
-    if (!companyResult.data) return { error: "Compte introuvable", data: null }
 
     if (contactsResult.error) console.error("Error fetching company contacts:", contactsResult.error)
     if (oppsResult.error) console.error("Error fetching company opportunities:", oppsResult.error)

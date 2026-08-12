@@ -167,5 +167,5 @@ séquencement est une suggestion forte, pas un menu plat.
 | 3 | Étape 0 « Socle » dans le cockpit + action suivante unique | **Fait** |
 | 4 | Scan affiné : 7 axes de classification ajoutés au contrat INTEL-010 | **Fait, en production, durci sur 4 correctifs post-livraison** (migration 068 ; workflow n8n réimporté et étendu d'un harnais de test versionné — `docs/adr/HANDOFF-ADR-0019.md` §5bis/§5ter) |
 | 5 | Contrat `CompetitiveMapOutput` + ingestion + bac d'arbitrage | **Fait** (migration 074, `src/features/competitive-map/`) |
-| 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | À faire |
+| 6 | Sous-section `mapped` dans la liste + drawer minimal + « Convertir » | **Fait** (Session 39, `docs/JOURNAL-SESSIONS.md`) |
 | 7 | Modularisation INTEL-030 | Différé |
