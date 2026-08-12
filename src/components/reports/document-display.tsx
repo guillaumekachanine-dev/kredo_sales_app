@@ -226,5 +226,3 @@ export function getPitchBriefLabel(briefJson: unknown): string | null {
   const objectiveLabel = objective ? OBJECTIVE_OPTIONS.find((o) => o.value === objective)?.label : null
   return objectiveLabel ? `${channelLabel} · ${objectiveLabel}` : channelLabel
 }
-
-
