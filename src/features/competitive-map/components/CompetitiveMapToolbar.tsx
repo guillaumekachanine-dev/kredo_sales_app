@@ -8,6 +8,7 @@ type CompetitiveMapToolbarProps = {
   actorCount: number
   isPending: boolean
   onSelectSegment: (segmentId: string) => void
+  onOpenImport: () => void
 }
 
 function formatSnapshotDate(value: string): string {
@@ -22,6 +23,7 @@ export function CompetitiveMapToolbar({
   actorCount,
   isPending,
   onSelectSegment,
+  onOpenImport,
 }: CompetitiveMapToolbarProps) {
   return (
     <div className="flex min-h-14 flex-wrap items-center gap-x-5 gap-y-3 border-b border-edito-border bg-edito-surface px-5 py-3">
@@ -51,12 +53,12 @@ export function CompetitiveMapToolbar({
         </div>
       </dl>
 
-      <Link
-        href="/prospection/cartographies/import"
+      <button
+        onClick={onOpenImport}
         className="inline-flex min-h-9 items-center rounded-md border border-edito-navy px-3 text-xs font-bold text-edito-navy transition-colors hover:bg-edito-navy hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-edito-navy/25"
       >
         Importer / mettre à jour
-      </Link>
+      </button>
     </div>
   )
 }

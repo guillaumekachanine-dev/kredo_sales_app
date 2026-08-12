@@ -1,14 +1,15 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useState, useTransition, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import type { CompetitiveMapActor, CompetitiveMapWorkspace } from "../../data/competitive-map-workspace-types"
 import { buildCompetitiveMapUrl } from "../../domain/competitive-map-navigation"
 import { resolveCompetitiveMapSelection } from "../../domain/competitive-map-selection"
 import { CompetitiveMobileActorCard } from "./CompetitiveMobileActorCard"
 import { CompetitiveMobileActorList } from "./CompetitiveMobileActorList"
 import { CompetitiveMobileMatrix } from "./CompetitiveMobileMatrix"
+import { CompetitiveMapImportDialog } from "../CompetitiveMapImportWizard"
 
 const EMPTY_ACTORS: CompetitiveMapActor[] = []
 
@@ -24,13 +25,37 @@ export function CompetitiveEnvironmentMobile({ workspace }: { workspace: Competi
   const actors = workspace.snapshot?.actors ?? EMPTY_ACTORS
   const selectedActorId = useMemo(() => resolveCompetitiveMapSelection(actors, requestedActorId), [actors, requestedActorId])
   const selectedActor = useMemo(() => actors.find((actor) => actor.id === selectedActorId) ?? null, [actors, selectedActorId])
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (workspace.state === "ready" && workspace.selectedSegmentId) {
+      const requested = searchParams.get("competitiveSegment")
+      if (requested && requested !== workspace.selectedSegmentId) {
+        router.replace(buildCompetitiveMapUrl(workspace.selectedSegmentId), { scroll: false })
+      }
+    }
+  }, [workspace.state, workspace.selectedSegmentId, searchParams, router])
 
   if (workspace.state === "error") {
     return <section className="px-4 py-10 text-center"><h2 className="font-heading text-lg font-bold text-white">Cartographie indisponible</h2><p className="mt-2 text-sm text-white/55">{workspace.error}</p></section>
   }
 
   if (workspace.state === "empty" || !workspace.snapshot || !workspace.selectedSegmentId) {
-    return <section className="px-4 py-10 text-center"><h2 className="font-heading text-lg font-bold text-white">Aucune cartographie importée</h2><p className="mt-2 text-sm text-white/55">Importez une étude pour alimenter cette vue.</p><Link href="/prospection/cartographies/import" className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-brand-brass px-4 text-xs font-bold text-brand-brass">Importer une cartographie</Link></section>
+    return (
+      <section className="px-4 py-10 text-center">
+        <h2 className="font-heading text-lg font-bold text-white">Aucune cartographie importée</h2>
+        <p className="mt-2 text-sm text-white/55">Importez une étude pour alimenter cette vue.</p>
+        <button onClick={() => setIsImportOpen(true)} className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-brand-brass px-4 text-xs font-bold text-brand-brass">Importer une cartographie</button>
+        <CompetitiveMapImportDialog
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          segments={workspace.allSegments}
+          initialSegmentSlug={workspace.catalog.find(c => c.segmentId === workspace.selectedSegmentId)?.segmentSlug ?? null}
+          isMobile={true}
+        />
+      </section>
+    )
   }
 
   const handleSelectSegment = (segmentId: string) => {
@@ -44,15 +69,25 @@ export function CompetitiveEnvironmentMobile({ workspace }: { workspace: Competi
         <select id="competitive-mobile-segment" value={workspace.selectedSegmentId} disabled={isPending} onChange={(event) => handleSelectSegment(event.target.value)} className="min-h-11 w-full rounded-lg border border-white/15 bg-surface px-3 text-sm font-semibold text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass">
           {workspace.catalog.map((item) => <option key={item.segmentId} value={item.segmentId}>{item.label}</option>)}
         </select>
-        <dl className="flex items-center gap-5 text-xs">
-          <div><dt className="text-white/40">Snapshot</dt><dd className="mt-0.5 font-mono font-semibold text-white/80">{formatSnapshotDate(workspace.snapshot.snapshotDate)}</dd></div>
-          <div><dt className="text-white/40">Acteurs</dt><dd className="mt-0.5 font-mono font-semibold text-white/80">{actors.length}</dd></div>
-        </dl>
+        <div className="flex items-center justify-between">
+          <dl className="flex items-center gap-5 text-xs">
+            <div><dt className="text-white/40">Snapshot</dt><dd className="mt-0.5 font-mono font-semibold text-white/80">{formatSnapshotDate(workspace.snapshot.snapshotDate)}</dd></div>
+            <div><dt className="text-white/40">Acteurs</dt><dd className="mt-0.5 font-mono font-semibold text-white/80">{actors.length}</dd></div>
+          </dl>
+          <button onClick={() => setIsImportOpen(true)} className="inline-flex min-h-9 items-center rounded-md border border-white/20 px-3 text-xs font-bold text-white transition-colors hover:bg-white/10">Importer</button>
+        </div>
       </section>
 
       <CompetitiveMobileMatrix actors={actors} selectedActorId={selectedActorId} onSelectActor={setRequestedActorId} />
       <CompetitiveMobileActorCard actor={selectedActor} />
       <CompetitiveMobileActorList actors={actors} selectedActorId={selectedActorId} onSelectActor={setRequestedActorId} />
+      <CompetitiveMapImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        segments={workspace.allSegments}
+        initialSegmentSlug={workspace.catalog.find(c => c.segmentId === workspace.selectedSegmentId)?.segmentSlug ?? null}
+        isMobile={true}
+      />
     </div>
   )
 }

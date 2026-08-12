@@ -125,6 +125,7 @@ export async function confirmCompetitiveMapIngestion(
   }
 
   revalidatePath("/prospection/accounts")
+  revalidatePath("/intelligence")
 
   return {
     error: null,

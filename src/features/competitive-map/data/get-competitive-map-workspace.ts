@@ -12,9 +12,10 @@ import {
   type CompetitiveMapWorkspaceEntryRow,
 } from "../domain/present-competitive-map-workspace"
 import type { CompetitiveMapWorkspace } from "./competitive-map-workspace-types"
+import type { CompetitiveMapSegmentOption } from "../components/CompetitiveMapImportWizard"
 
-function errorWorkspace(message: string): CompetitiveMapWorkspace {
-  return { state: "error", catalog: [], selectedSegmentId: null, snapshot: null, error: message }
+function errorWorkspace(message: string, allSegments: CompetitiveMapSegmentOption[] = []): CompetitiveMapWorkspace {
+  return { state: "error", catalog: [], allSegments, selectedSegmentId: null, snapshot: null, error: message }
 }
 
 export const getCompetitiveMapWorkspace = cache(async (
@@ -42,8 +43,21 @@ export const getCompetitiveMapWorkspace = cache(async (
     (sectorsResult.data ?? []) as CompetitiveMapSectorRow[],
   )
 
+  const allSectors = (sectorsResult.data ?? []) as CompetitiveMapSectorRow[]
+  const allSegments: CompetitiveMapSegmentOption[] = allSectors
+    .filter((s) => s.parent_id !== null)
+    .map((s) => {
+      const macro = allSectors.find((m) => m.id === s.parent_id)
+      return {
+        slug: s.slug,
+        name: s.name,
+        macroSlug: macro?.slug ?? "",
+        macroName: macro?.name ?? "",
+      }
+    })
+
   if (catalog.length === 0) {
-    return { state: "empty", catalog: [], selectedSegmentId: null, snapshot: null, error: null }
+    return { state: "empty", catalog: [], allSegments, selectedSegmentId: null, snapshot: null, error: null }
   }
 
   const catalogItem = catalog.find((item) => item.segmentId === requestedSegmentId) ?? catalog[0]
@@ -58,7 +72,7 @@ export const getCompetitiveMapWorkspace = cache(async (
 
   if (entriesResult.error) {
     console.error("[CompetitiveMapWorkspace] snapshot load failed", entriesResult.error)
-    return { state: "error", catalog, selectedSegmentId: catalogItem.segmentId, snapshot: null, error: "La cartographie sélectionnée est indisponible." }
+    return { state: "error", catalog, allSegments, selectedSegmentId: catalogItem.segmentId, snapshot: null, error: "La cartographie sélectionnée est indisponible." }
   }
 
   const entryRows = (entriesResult.data ?? []) as unknown as CompetitiveMapWorkspaceEntryRow[]
@@ -76,7 +90,7 @@ export const getCompetitiveMapWorkspace = cache(async (
 
     if (factsResult.error) {
       console.error("[CompetitiveMapWorkspace] facts load failed", factsResult.error)
-      return { state: "error", catalog, selectedSegmentId: catalogItem.segmentId, snapshot: null, error: "Les faits financiers de la cartographie sont indisponibles." }
+      return { state: "error", catalog, allSegments, selectedSegmentId: catalogItem.segmentId, snapshot: null, error: "Les faits financiers de la cartographie sont indisponibles." }
     }
     factRows = (factsResult.data ?? []) as Array<Omit<CompetitiveMapFactRow, "value_json"> & { value_json: CompetitiveMapJsonValue | null }>
   }
@@ -84,6 +98,7 @@ export const getCompetitiveMapWorkspace = cache(async (
   return {
     state: "ready",
     catalog,
+    allSegments,
     selectedSegmentId: catalogItem.segmentId,
     snapshot: presentCompetitiveMapSnapshot({ catalogItem, entryRows, factRows }),
     error: null,

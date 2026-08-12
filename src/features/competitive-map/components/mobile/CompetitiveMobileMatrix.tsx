@@ -92,7 +92,7 @@ export function CompetitiveMobileMatrix({ actors, selectedActorId, onSelectActor
           </svg>
         ) : (
           <div className="flex h-[180px] items-center justify-center px-8 text-center text-xs leading-relaxed text-white/50">
-            Aucun acteur ne possède les deux scores nécessaires au positionnement.
+            Aucun acteur positionnable avec les données actuelles
           </div>
         )}
       </div>

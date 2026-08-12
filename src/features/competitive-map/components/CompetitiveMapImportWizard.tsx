@@ -85,6 +85,7 @@ function moneyLabel(value: number | null): string {
 
 type CompetitiveMapImportWizardProps = {
   segments: CompetitiveMapSegmentOption[]
+  initialSegmentSlug?: string | null
   embedded?: boolean
   onStepChange?: (step: WizardStep) => void
   onClose?: () => void
@@ -92,6 +93,7 @@ type CompetitiveMapImportWizardProps = {
 
 export function CompetitiveMapImportWizard({
   segments,
+  initialSegmentSlug,
   embedded = false,
   onStepChange,
   onClose,
@@ -102,7 +104,7 @@ export function CompetitiveMapImportWizard({
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [parsed, setParsed] = useState<CompetitiveMapOutput | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
-  const [segmentSlug, setSegmentSlug] = useState("")
+  const [segmentSlug, setSegmentSlug] = useState(initialSegmentSlug ?? "")
   const [studyDate, setStudyDate] = useState("")
 
   const [resolving, setResolving] = useState(false)
@@ -146,7 +148,8 @@ export function CompetitiveMapImportWizard({
     setParsed(result.data)
     setWarnings(result.warnings)
     setStudyDate(result.data.dateSnapshot)
-    setSegmentSlug(suggestSegmentSlug(result.data.segmentLabel, segments))
+    const suggested = suggestSegmentSlug(result.data.segmentLabel, segments)
+    setSegmentSlug(suggested || (initialSegmentSlug ?? ""))
   }
 
   async function handleStartResolution() {
@@ -673,10 +676,11 @@ type CompetitiveMapImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   segments: CompetitiveMapSegmentOption[]
+  initialSegmentSlug?: string | null
   isMobile: boolean
 }
 
-export function CompetitiveMapImportDialog({ open, onOpenChange, segments, isMobile }: CompetitiveMapImportDialogProps) {
+export function CompetitiveMapImportDialog({ open, onOpenChange, segments, initialSegmentSlug, isMobile }: CompetitiveMapImportDialogProps) {
   const [step, setStep] = useState<WizardStep>("upload")
   const activeStepIndex = WIZARD_STEPS.findIndex((item) => item.id === step)
 
@@ -757,6 +761,7 @@ export function CompetitiveMapImportDialog({ open, onOpenChange, segments, isMob
         <main className="min-h-0 min-w-0 overflow-y-auto bg-edito-canvas">
           <CompetitiveMapImportWizard
             segments={segments}
+            initialSegmentSlug={initialSegmentSlug}
             embedded
             onStepChange={setStep}
             onClose={() => onOpenChange(false)}

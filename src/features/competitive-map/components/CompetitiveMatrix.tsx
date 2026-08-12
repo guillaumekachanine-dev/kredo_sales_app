@@ -152,7 +152,7 @@ export function CompetitiveMatrix({ actors, selectedActorId, onSelectActor }: Co
           </svg>
         </div>
       ) : (
-        <div className="flex min-h-96 items-center justify-center px-6 text-sm text-edito-muted">Aucun acteur ne possède les deux scores nécessaires au positionnement.</div>
+        <div className="flex min-h-96 items-center justify-center px-6 text-sm text-edito-muted">Aucun acteur positionnable avec les données actuelles</div>
       )}
 
       {nonPositionedActors.length > 0 ? (

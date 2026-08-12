@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useMemo, useState, useTransition, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import type { CompetitiveMapActor, CompetitiveMapWorkspace } from "../data/competitive-map-workspace-types"
 import { resolveCompetitiveMapSelection } from "../domain/competitive-map-selection"
 import { buildCompetitiveMapUrl } from "../domain/competitive-map-navigation"
@@ -10,6 +10,7 @@ import { CompetitiveMapToolbar } from "./CompetitiveMapToolbar"
 import { CompetitiveMatrix } from "./CompetitiveMatrix"
 import { CompetitiveActorSummary } from "./CompetitiveActorSummary"
 import { CompetitiveActorProfiles } from "./CompetitiveActorProfiles"
+import { CompetitiveMapImportDialog } from "./CompetitiveMapImportWizard"
 
 const EMPTY_ACTORS: CompetitiveMapActor[] = []
 
@@ -26,6 +27,17 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
     () => actors.find((actor) => actor.id === selectedActorId) ?? null,
     [actors, selectedActorId],
   )
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (workspace.state === "ready" && workspace.selectedSegmentId) {
+      const requested = searchParams.get("competitiveSegment")
+      if (requested && requested !== workspace.selectedSegmentId) {
+        router.replace(buildCompetitiveMapUrl(workspace.selectedSegmentId), { scroll: false })
+      }
+    }
+  }, [workspace.state, workspace.selectedSegmentId, searchParams, router])
 
   if (workspace.state === "error") {
     return (
@@ -44,8 +56,15 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
         <div>
           <h2 className="font-heading text-lg font-bold text-edito-navy">Aucune cartographie importée</h2>
           <p className="mt-2 text-sm text-edito-muted">Importez une étude pour faire apparaître son segment dans le catalogue.</p>
-          <Link href="/prospection/cartographies/import" className="mt-5 inline-flex min-h-9 items-center rounded-md bg-edito-navy px-3 text-xs font-bold text-text-inverse">Importer une cartographie</Link>
+          <button onClick={() => setIsImportOpen(true)} className="mt-5 inline-flex min-h-9 items-center rounded-md bg-edito-navy px-3 text-xs font-bold text-text-inverse">Importer une cartographie</button>
         </div>
+        <CompetitiveMapImportDialog
+          open={isImportOpen}
+          onOpenChange={setIsImportOpen}
+          segments={workspace.allSegments}
+          initialSegmentSlug={workspace.catalog.find(c => c.segmentId === workspace.selectedSegmentId)?.segmentSlug ?? null}
+          isMobile={false}
+        />
       </section>
     )
   }
@@ -65,6 +84,7 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
         actorCount={workspace.snapshot.actors.length}
         isPending={isPending}
         onSelectSegment={handleSelectSegment}
+        onOpenImport={() => setIsImportOpen(true)}
       />
 
       <div className="grid min-h-[34rem] grid-cols-[minmax(0,1fr)_20rem]">
@@ -73,6 +93,14 @@ export function CompetitiveEnvironmentWorkspace({ workspace }: { workspace: Comp
       </div>
 
       <CompetitiveActorProfiles actors={actors} selectedActorId={selectedActorId} onSelectActor={setRequestedActorId} />
+
+      <CompetitiveMapImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        segments={workspace.allSegments}
+        initialSegmentSlug={workspace.catalog.find(c => c.segmentId === workspace.selectedSegmentId)?.segmentSlug ?? null}
+        isMobile={false}
+      />
     </div>
   )
 }

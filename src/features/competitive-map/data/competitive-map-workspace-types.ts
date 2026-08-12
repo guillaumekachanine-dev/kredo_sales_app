@@ -1,5 +1,5 @@
 import type { CompetitiveMapCategory } from "../domain/competitive-map-output"
-
+import type { CompetitiveMapSegmentOption } from "../components/CompetitiveMapImportWizard"
 export type CompetitiveMapCatalogItem = {
   segmentId: string
   segmentSlug: string
@@ -54,6 +54,7 @@ export type CompetitiveMapSnapshot = {
 export type CompetitiveMapWorkspace = {
   state: "ready" | "empty" | "error"
   catalog: CompetitiveMapCatalogItem[]
+  allSegments: CompetitiveMapSegmentOption[]
   selectedSegmentId: string | null
   snapshot: CompetitiveMapSnapshot | null
   error: string | null
