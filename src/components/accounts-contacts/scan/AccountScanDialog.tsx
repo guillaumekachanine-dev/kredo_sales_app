@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useRunTracker } from "@/lib/n8n/use-run-tracker"
 import type { AccountScanOutput, AccountScanResolutionCandidate } from "@/lib/n8n/types"
 import { cn } from "@/lib/utils"
-import { AccountScanSetup, type AccountScanSetupCompany } from "./AccountScanSetup"
+import { AccountScanSetup, type AccountScanSetupCompany, type AccountScanSetupSummary } from "./AccountScanSetup"
+import { AccountScanConsoleChrome } from "./AccountScanConsoleChrome"
 import { AccountScanContactsSetup } from "./AccountScanContactsSetup"
 import { AccountScanResolutionPicker } from "./AccountScanResolutionPicker"
 import { AccountScanClassificationPanel } from "./AccountScanClassificationPanel"
@@ -37,7 +38,6 @@ import {
   buildAccountScanInput,
   candidateCanBeSelected,
   candidateShouldBeDefaultSelected,
-  isAutoApplyEligible,
   mergeProposalRows,
 } from "./account-scan-utils"
 
@@ -70,123 +70,6 @@ interface AccountScanDialogProps {
   onOpenContact?: (contactId: string) => void
 }
 
-
-function StepIndicator({
-  phase,
-  companyName,
-  isMobile,
-  onInformation,
-  onContacts,
-}: {
-  phase: Phase
-  companyName: string
-  isMobile: boolean
-  onInformation: () => void
-  onContacts: () => void
-}) {
-  const active = phase.startsWith("contacts") ? "contacts" : "information"
-
-  return (
-    <div className={cn("flex w-full min-w-0", isMobile ? "flex-col gap-3" : "flex-row items-center justify-between gap-4 pr-8")}>
-      {/* Left: Badge & Company Name */}
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span className="shrink-0 rounded-md bg-edito-brass px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-edito-ink shadow-sm">
-          SCAN RAPIDE
-        </span>
-        <h2 className={cn("truncate text-sm font-extrabold tracking-wide text-white", isMobile ? "max-w-[calc(100vw-9.5rem)]" : "max-w-[180px] sm:max-w-[280px]")}>
-          {companyName}
-        </h2>
-      </div>
-
-      {/* Right: Distinctive Mode Switcher Pill Container */}
-      <div className={cn("flex items-center rounded-full bg-heading/70 p-1 border border-white/10 shadow-inner backdrop-blur-md", isMobile ? "w-full" : "shrink-0")}>
-        <button
-          type="button"
-          onClick={onInformation}
-          aria-pressed={active === "information"}
-          className={cn(
-            "relative flex min-h-9 items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
-            isMobile && "flex-1",
-            active === "information"
-              ? "bg-edito-brass text-edito-ink shadow-md font-extrabold scale-[1.02]"
-              : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
-          )}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons_set/scan_infos_drawer.png"
-            alt=""
-            width={14}
-            height={14}
-            className={cn("h-3.5 w-3.5 object-contain transition-all", active === "information" ? "brightness-0" : "brightness-200 opacity-80")}
-          />
-          Informations
-        </button>
-
-        <button
-          type="button"
-          onClick={onContacts}
-          aria-pressed={active === "contacts"}
-          className={cn(
-            "relative flex min-h-9 items-center justify-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ease-out select-none",
-            isMobile && "flex-1",
-            active === "contacts"
-              ? "bg-edito-brass text-edito-ink shadow-md font-extrabold scale-[1.02]"
-              : "text-slate-300 hover:text-white hover:bg-white/10 font-semibold"
-          )}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/icons_set/AI_scan_contact.png"
-            alt=""
-            width={14}
-            height={14}
-            className={cn("h-3.5 w-3.5 object-contain transition-all", active === "contacts" ? "brightness-0" : "brightness-200 opacity-80")}
-          />
-          Contacts
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function InformationActions({
-  isMobile,
-  onContacts,
-  onNewScan,
-  onClose,
-}: {
-  isMobile: boolean
-  onContacts: () => void
-  onNewScan: () => void
-  onClose: () => void
-}) {
-  return (
-    <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
-      <button
-        type="button"
-        onClick={onNewScan}
-        className={cn("rounded border border-border bg-surface px-3 text-xs font-bold text-body hover:bg-canvas/40", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
-      >
-        Nouveau scan des informations
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className={cn("rounded border border-border bg-surface px-3 text-xs font-bold text-body hover:bg-canvas/40", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
-      >
-        Fermer
-      </button>
-      <button
-        type="button"
-        onClick={onContacts}
-        className={cn("rounded border border-primary bg-primary px-3 text-xs font-bold text-primary-fg hover:bg-primary/90", isMobile ? "min-h-[44px]" : "min-h-[36px]")}
-      >
-        Rechercher des contacts
-      </button>
-    </div>
-  )
-}
 
 export function AccountScanDialog({
   open,
@@ -230,6 +113,7 @@ export function AccountScanDialog({
   const [importResult, setImportResult] = useState<ImportAccountScanContactsResult | null>(null)
   const [bilanByProposalId, setBilanByProposalId] = useState<Map<string, AccountScanBilanCategory>>(new Map())
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [setupSummary, setSetupSummary] = useState<AccountScanSetupSummary>({ elementCount: 24, sourceCount: 4, mode: "find" })
 
   const lastSetupRef = useRef<AccountScanSetupValues>({
     informationMode: "find",
@@ -240,7 +124,6 @@ export function AccountScanDialog({
     websiteHint: company.website,
     locationHint: company.hqLocation,
   })
-  const autoAppliedRunIdRef = useRef<string | null>(null)
   const hydratedOnceRef = useRef(false)
   const phaseRef = useRef<Phase>("loading")
 
@@ -700,7 +583,7 @@ export function AccountScanDialog({
   if (phase === "loading") {
     body = <AccountScanStatus kind="running" message="Chargement…" isMobile={isMobile} />
   } else if (phase === "information_setup") {
-    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={prepareInformationScan} />
+    body = <AccountScanSetup company={company} isMobile={isMobile} launching={false} onLaunch={prepareInformationScan} onSummaryChange={setSetupSummary} />
   } else if (phase === "identity_confirm") {
     body = (
       <AccountScanIdentityConfirm
@@ -780,6 +663,8 @@ export function AccountScanDialog({
         onApplySelected={handleApplySelected}
         applying={applying}
         bilanByProposalId={bilanByProposalId}
+        onNewScan={handleBackToInformationSetup}
+        onContacts={handleGoToContactsSetup}
       />
     ) : (
       <AccountScanDesktopResults
@@ -791,6 +676,8 @@ export function AccountScanDialog({
         onApplySelected={handleApplySelected}
         applying={applying}
         bilanByProposalId={bilanByProposalId}
+        onNewScan={handleBackToInformationSetup}
+        onContacts={handleGoToContactsSetup}
       />
     )
     body = (
@@ -811,64 +698,55 @@ export function AccountScanDialog({
             />
           </div>
         ) : null}
-        <InformationActions
-          isMobile={isMobile}
-          onContacts={handleGoToContactsSetup}
-          onNewScan={handleBackToInformationSetup}
-          onClose={() => onOpenChange(false)}
-        />
-        <button
-          type="button"
-          onClick={handleBackToInformationSetup}
-          className="mt-2 text-[11px] font-semibold text-muted hover:text-heading"
-        >
-          Retour au choix du scan
-        </button>
       </>
     )
   } else {
     body = <AccountScanStatus kind="error" message="Résultat introuvable." isMobile={isMobile} onRetry={handleBackToInformationSetup} />
   }
 
-  const wide = phase === "information_review" || phase === "contacts_review"
+  const stage = phase === "information_review" || phase === "contacts_review"
+    ? "decide"
+    : phase.endsWith("queued") || phase.endsWith("running")
+      ? "scan"
+      : "scope"
+  const mode = phase.startsWith("contacts") ? "contacts" : "information"
 
   return (
     <AppDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={
-        <StepIndicator
-          phase={phase}
-          companyName={company.name}
-          isMobile={isMobile}
-          onInformation={handleGoToInformationReview}
-          onContacts={handleGoToContactsSetup}
-        />
-      }
+      title={<div><span className="block text-sm font-black">Scan rapide</span><span className="mt-0.5 block text-[10px] font-normal text-edito-muted">{stage === "decide" ? "Examinez les propositions et appliquez les changements pertinents." : "Cadrez le périmètre et choisissez vos sources."}</span></div>}
       className={cn(
-        wide && !isMobile ? "sm:!max-w-[1380px] sm:!w-[94vw]" : "sm:!max-w-4xl sm:!w-[88vw]",
-        "border border-edito-border bg-edito-canvas shadow-2xl transition-all duration-300",
+        "border border-edito-border bg-edito-canvas transition-all duration-300",
         isMobile
           ? "!inset-0 !m-0 !h-[100dvh] !max-h-[100dvh] !w-screen !max-w-none !rounded-none !border-0"
-          : "w-full rounded-2xl",
+          : "w-full rounded-xl sm:!h-[min(86vh,820px)] sm:!w-[94vw] sm:!max-w-[1320px]",
       )}
       fillHeight={true}
       maxHeightClassName={isMobile ? "max-h-[100dvh]" : undefined}
       dataTheme="edito"
       headerClassName={cn(
-        "-mx-4 -mt-4 shrink-0 border-b-0 bg-edito-navy px-4 text-white sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-4",
+        "-mx-4 -mt-4 shrink-0 border-b border-edito-border bg-white px-4 text-edito-navy sm:-mx-6 sm:-mt-6 sm:px-6",
         isMobile
-          ? "rounded-none pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]"
-          : "rounded-t-[var(--radius-medium)] py-3.5",
+          ? "rounded-none border-b-edito-brass/70 bg-edito-navy pb-2.5 pt-[max(0.75rem,env(safe-area-inset-top))] text-white"
+          : "rounded-t-xl py-3",
       )}
-      closeButtonClassName={isMobile ? "-mr-2 -mt-1 h-11 w-11 self-start rounded-full text-white/75 hover:bg-white/10 hover:text-white" : undefined}
+      closeButtonClassName={isMobile ? "-mr-2 h-11 w-11 rounded-full text-white/75 hover:bg-white/10 hover:text-white" : "size-10 rounded-md text-edito-muted hover:bg-edito-chip hover:text-edito-navy"}
       bodyClassName={cn(
-        wide ? "text-xs" : undefined,
-        "min-h-0 flex-1 overflow-y-auto bg-edito-canvas p-4 sm:p-5",
-        !isMobile && "max-h-[82vh]",
+        "-mx-4 -mb-4 min-h-0 flex-1 overflow-hidden bg-edito-canvas sm:-mx-6 sm:-mb-6",
       )}
     >
-      {body}
+      <AccountScanConsoleChrome
+        company={company}
+        isMobile={isMobile}
+        stage={stage}
+        mode={mode}
+        setupSummary={setupSummary}
+        proposalCount={proposalRows.length}
+        resultSourceCount={informationOutput?.sources.length ?? contactsOutput?.sources.length ?? 0}
+      >
+        <div key={phase} className={cn("h-full min-h-0", !isMobile && "overflow-y-auto")}>{body}</div>
+      </AccountScanConsoleChrome>
     </AppDialog>
   )
 }

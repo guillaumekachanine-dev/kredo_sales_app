@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { AccountScanCompanyField, AccountScanFactAttribute, AccountScanInformationMode } from "@/lib/n8n/types"
 import { COMPANY_FIELD_LABELS, FACT_ATTRIBUTE_LABELS, type AccountScanSetupValues } from "./account-scan-utils"
@@ -12,43 +12,137 @@ export type AccountScanSetupCompany = {
   siren: string | null
 }
 
+export type AccountScanSetupSummary = {
+  elementCount: number
+  sourceCount: number
+  mode: AccountScanInformationMode
+}
+
 interface AccountScanSetupProps {
   company: AccountScanSetupCompany
   isMobile: boolean
   launching: boolean
   onLaunch: (values: AccountScanSetupValues) => void
+  onSummaryChange?: (summary: AccountScanSetupSummary) => void
 }
 
-export function AccountScanSetup({ company, isMobile, launching, onLaunch }: AccountScanSetupProps) {
+type ScopeCategory = {
+  id: string
+  label: string
+  fields?: AccountScanCompanyField[]
+  facts?: AccountScanFactAttribute[]
+  classification?: boolean
+}
+
+const SCOPE_CATEGORIES: ScopeCategory[] = [
+  { id: "identity", label: "Identité & coordonnées", fields: ["legal_name", "siren", "hq_location", "website"] },
+  { id: "company", label: "Entreprise", fields: ["naf_code", "description", "sector", "employee_count", "revenue"] },
+  { id: "news", label: "Faits & actualités", facts: ["strategic_priority", "transformation_program", "growth_trend"] },
+  { id: "classification", label: "Classification & segmentation", classification: true },
+  { id: "positioning", label: "Positionnement & marché", facts: ["business_model", "primary_activity", "technology", "establishment_count", "geographic_reach", "value_proposition", "differentiators", "market_position", "marketing_position", "target_customers"] },
+  { id: "relations", label: "Relations & affiliations", facts: ["competitor", "partner", "market"] },
+]
+
+const SOURCE_OPTIONS = [
+  { id: "inpi", label: "INPI · Registre des entreprises", monogram: "I", locked: true },
+  { id: "infogreffe", label: "Infogreffe", monogram: "IG" },
+  { id: "pappers", label: "Pappers", monogram: "P" },
+  { id: "societe", label: "Societe.com", monogram: "S" },
+  { id: "legal", label: "Data Legal Drive", monogram: "DL" },
+] as const
+
+const DEFAULT_FIELDS: AccountScanCompanyField[] = ["legal_name", "siren", "naf_code", "hq_location", "employee_count", "website", "description"]
+const DEFAULT_FACTS = Object.keys(FACT_ATTRIBUTE_LABELS) as AccountScanFactAttribute[]
+
+function categoryCount(category: ScopeCategory, fields: AccountScanCompanyField[], facts: AccountScanFactAttribute[], classification: boolean) {
+  return (category.fields?.filter((field) => fields.includes(field)).length ?? 0)
+    + (category.facts?.filter((fact) => facts.includes(fact)).length ?? 0)
+    + (category.classification && classification ? 1 : 0)
+}
+
+function categorySize(category: ScopeCategory) {
+  return (category.fields?.length ?? 0) + (category.facts?.length ?? 0) + (category.classification ? 1 : 0)
+}
+
+function ScopeCheck({ checked, indeterminate = false }: { checked: boolean; indeterminate?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex size-4 shrink-0 items-center justify-center rounded-[3px] border text-[10px] font-black transition-colors",
+        checked || indeterminate ? "border-edito-navy bg-edito-navy text-white" : "border-edito-border bg-white text-transparent",
+      )}
+    >
+      {indeterminate ? "−" : "✓"}
+    </span>
+  )
+}
+
+function SourceSwitch({ checked }: { checked: boolean }) {
+  return (
+    <span className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", checked ? "bg-edito-navy" : "bg-edito-border")}>
+      <span className={cn("absolute top-0.5 size-4 rounded-full bg-white transition-transform", checked ? "translate-x-[18px]" : "translate-x-0.5")} />
+    </span>
+  )
+}
+
+export function AccountScanSetup({ company, isMobile, launching, onLaunch, onSummaryChange }: AccountScanSetupProps) {
   const [informationMode, setInformationMode] = useState<AccountScanInformationMode>("find")
   const [websiteHint, setWebsiteHint] = useState(company.website ?? "")
   const [locationHint, setLocationHint] = useState(company.hqLocation ?? "")
   const [sirenHint, setSirenHint] = useState(company.siren ?? "")
-  
-  // Flip card states
-  const [flipRequested, setFlipRequested] = useState(false)
-  const [flipSources, setFlipSources] = useState(false)
-  
-  // Custom sources
+  const [requestedFields, setRequestedFields] = useState<AccountScanCompanyField[]>(DEFAULT_FIELDS)
+  const [requestedFacts, setRequestedFacts] = useState<AccountScanFactAttribute[]>(DEFAULT_FACTS)
+  const [requestClassification, setRequestClassification] = useState(true)
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(isMobile ? null : "identity")
+  const [sources, setSources] = useState<Record<string, boolean>>({ inpi: true, infogreffe: true, pappers: true, societe: true, legal: false })
   const [customSources, setCustomSources] = useState<{ url: string; label: string }[]>([])
+  const [showCustomSource, setShowCustomSource] = useState(false)
+  const [showCadrage, setShowCadrage] = useState(false)
   const [newSourceUrl, setNewSourceUrl] = useState("")
   const [newSourceLabel, setNewSourceLabel] = useState("")
 
-  // Checkboxes
-  const [requestedFields, setRequestedFields] = useState<AccountScanCompanyField[]>([
-    "legal_name", "siren", "naf_code", "hq_location", "employee_count", "website", "description"
-  ])
-  const [requestedFacts, setRequestedFacts] = useState<AccountScanFactAttribute[]>(
-    Object.keys(FACT_ATTRIBUTE_LABELS) as AccountScanFactAttribute[]
-  )
-  const [requestClassification, setRequestClassification] = useState(true)
-  
-  // Sources selection
-  const [sourceWebsite, setSourceWebsite] = useState(true)
-  const [sourceNews, setSourceNews] = useState(true)
+  const elementCount = requestedFields.length + requestedFacts.length + (requestClassification ? 1 : 0)
+  const sourceCount = Object.values(sources).filter(Boolean).length + customSources.length
+  const summary = useMemo(() => ({ elementCount, sourceCount, mode: informationMode }), [elementCount, informationMode, sourceCount])
+
+  useEffect(() => {
+    onSummaryChange?.(summary)
+  }, [onSummaryChange, summary])
+
+  const setCategoryChecked = (category: ScopeCategory, checked: boolean) => {
+    if (category.fields) {
+      setRequestedFields((current) => checked
+        ? Array.from(new Set([...current, ...category.fields!]))
+        : current.filter((item) => !category.fields!.includes(item)))
+    }
+    if (category.facts) {
+      setRequestedFacts((current) => checked
+        ? Array.from(new Set([...current, ...category.facts!]))
+        : current.filter((item) => !category.facts!.includes(item)))
+    }
+    if (category.classification) setRequestClassification(checked)
+  }
+
+  const toggleField = (field: AccountScanCompanyField) => {
+    setRequestedFields((current) => current.includes(field) ? current.filter((item) => item !== field) : [...current, field])
+  }
+
+  const toggleFact = (fact: AccountScanFactAttribute) => {
+    setRequestedFacts((current) => current.includes(fact) ? current.filter((item) => item !== fact) : [...current, fact])
+  }
+
+  const addCustomSource = () => {
+    const url = newSourceUrl.trim()
+    if (!url.startsWith("http")) return
+    setCustomSources((current) => [...current, { url, label: newSourceLabel.trim() || url }])
+    setNewSourceUrl("")
+    setNewSourceLabel("")
+    setShowCustomSource(false)
+  }
 
   const handleLaunch = () => {
-    if (launching) return
+    if (launching || elementCount === 0) return
     onLaunch({
       informationMode,
       requestedFields,
@@ -61,351 +155,153 @@ export function AccountScanSetup({ company, isMobile, launching, onLaunch }: Acc
     })
   }
 
-  const toggleField = (field: AccountScanCompanyField) => {
-    setRequestedFields(prev => prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field])
-  }
-  
-  const toggleFact = (fact: AccountScanFactAttribute) => {
-    setRequestedFacts(prev => prev.includes(fact) ? prev.filter(f => f !== fact) : [...prev, fact])
-  }
-  
-  const addCustomSource = () => {
-    if (!newSourceUrl.trim() || !newSourceUrl.startsWith("http")) return
-    setCustomSources(prev => [...prev, { url: newSourceUrl.trim(), label: newSourceLabel.trim() || newSourceUrl.trim() }])
-    setNewSourceUrl("")
-    setNewSourceLabel("")
-  }
-
-  const removeCustomSource = (index: number) => {
-    setCustomSources(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const isSelectionEmpty = requestedFields.length === 0 && requestedFacts.length === 0 && !requestClassification
-
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-4 animate-in fade-in slide-in-from-bottom-3 duration-300 py-0">
-      <div className="pb-0.5">
-        <h3 className="text-lg font-extrabold text-[#1E3150] tracking-tight">Scan IA - informations de l'entreprise</h3>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* Strategy Selection */}
-        <fieldset className="space-y-2 sm:col-span-2">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted">Stratégie d'analyse</label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {(
-              [
-                { 
-                  value: "find" as const, 
-                  label: "Trouver les informations manquantes",
-                  badge: "Recommandé",
-                  description: "Rechercher et compléter les champs non renseignés sur la fiche.",
-                  icon: (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  )
-                },
-                { 
-                  value: "verify" as const, 
-                  label: "Vérifier l'existant",
-                  badge: "Audit",
-                  description: "Contrôler et auditer la fraîcheur des données déjà renseignées.",
-                  icon: (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  )
-                },
-              ]
-            ).map((option) => (
-              <label
-                key={option.value}
-                className={cn(
-                  "group relative flex cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 transition-all duration-200 ease-out",
-                  informationMode === option.value
-                    ? "border-[#D89B16] bg-[#FFFFFF] shadow-sm ring-2 ring-[#D89B16]/10"
-                    : "border-[#CBD5E1] bg-[#FFFFFF] hover:border-[#D89B16]/60 hover:bg-[#F8FAFC]"
-                )}
-              >
-                <input
-                  type="radio"
-                  name="informationMode"
-                  value={option.value}
-                  checked={informationMode === option.value}
-                  onChange={() => setInformationMode(option.value)}
-                  className="absolute right-4 top-4 h-4 w-4 opacity-0"
-                />
-                
-                <div className="flex items-start justify-between">
-                  <div className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                    informationMode === option.value
-                      ? "bg-[#1E3150] text-[#FBBF24]"
-                      : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#1E3150]/10"
-                  )}>
-                    {option.icon}
-                  </div>
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
-                    informationMode === option.value
-                      ? "bg-[#D89B16] text-[#1E293B]"
-                      : "bg-[#F1F5F9] text-[#64748B]"
-                  )}>
-                    {option.badge}
-                  </span>
-                </div>
-
-                <div className="mt-2.5 space-y-0.5">
-                  <span className={cn(
-                    "block text-xs font-bold",
-                    informationMode === option.value ? "text-[#1E3150]" : "text-[#243B63]"
-                  )}>
-                    {option.label}
-                  </span>
-                  <span className="block text-[10px] leading-relaxed text-[#526074]">
-                    {option.description}
-                  </span>
-                </div>
-              </label>
-            ))}
-          </div>
+    <div className="flex min-h-full flex-col bg-edito-canvas">
+      <div className={cn("flex-1 p-4 sm:p-5 lg:p-6", isMobile ? "pb-28" : "overflow-y-auto")}>
+        <fieldset className="mb-5 grid grid-cols-2 gap-2.5" aria-label="Mode du scan">
+          {([
+            { value: "find" as const, label: "Compléter les informations", description: "Identifier et compléter les données manquantes ou incomplètes" },
+            { value: "verify" as const, label: "Vérifier l’existant", description: "Contrôler et valider les informations clés déjà présentes" },
+          ]).map((option) => (
+            <label
+              key={option.value}
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-lg border bg-white p-3 transition-[border-color,box-shadow] motion-reduce:transition-none",
+                informationMode === option.value ? "border-primary ring-1 ring-primary/20" : "border-edito-border hover:border-primary/50",
+              )}
+            >
+              <input className="sr-only" type="radio" name="scan-mode" checked={informationMode === option.value} onChange={() => setInformationMode(option.value)} />
+              <span className={cn("mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border", informationMode === option.value ? "border-primary bg-primary text-white" : "border-edito-border")}>
+                {informationMode === option.value ? <span className="size-1.5 rounded-full bg-white" /> : null}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-bold text-edito-navy sm:text-sm">{option.label}</span>
+                <span className="mt-0.5 hidden text-[11px] leading-snug text-edito-muted sm:block">{option.description}</span>
+              </span>
+            </label>
+          ))}
         </fieldset>
 
-        {/* Informations recherchées Card */}
-        <div className="relative perspective-1000 h-[250px]">
-          <div className={cn("relative w-full h-full transition-transform duration-500 transform-style-3d", flipRequested && "rotate-y-180")}>
-            
-            {/* Front */}
-            <div className={cn(
-              "absolute inset-0 w-full h-full backface-hidden rounded-xl border-2 border-[#CBD5E1] bg-[#FFFFFF] p-4 flex flex-col items-center justify-center text-center hover:border-[#CBD5E1]/80 hover:shadow-sm transition-all",
-              !flipRequested && "z-10"
-            )}>
-              <div className="h-10 w-10 rounded-full bg-[#F1F5F9] flex items-center justify-center mb-2 text-[#1E3150] shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-[#1E3150] mb-1">Informations recherchées</h4>
-              <p className="text-[11px] text-[#526074] mb-3 px-2 line-clamp-2">
-                Sélectionnez spécifiquement les données firmographiques, faits ou classifications à extraire.
-              </p>
-              <button 
-                type="button"
-                onClick={() => setFlipRequested(true)}
-                className="rounded-lg bg-[#1E3150] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#243B63] transition-colors shadow-sm"
-              >
-                Configurer
-              </button>
-              <div className="mt-2.5 text-[10px] font-semibold text-[#D89B16]">
-                {requestedFields.length + requestedFacts.length + (requestClassification ? 1 : 0)} éléments sélectionnés
-              </div>
+        <div className={cn("grid items-start gap-4", isMobile ? "grid-cols-1" : "lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]")}>
+          <section className="overflow-hidden rounded-xl border border-edito-border bg-white" aria-labelledby="scan-scope-title">
+            <div className="border-b border-edito-border px-4 py-3">
+              <h3 id="scan-scope-title" className="text-[11px] font-black uppercase tracking-[0.08em] text-edito-navy">Périmètre</h3>
+              <p className="mt-0.5 text-[11px] text-edito-muted">Choisissez les catégories d’informations à analyser.</p>
             </div>
-
-            {/* Back */}
-            <div className={cn(
-              "absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-xl border-2 border-[#D89B16] bg-[#FFFFFF] flex flex-col shadow-lg overflow-hidden",
-              flipRequested && "z-10"
-            )}>
-              <div className="flex items-center justify-between border-b border-[#CBD5E1]/40 bg-[#F8FAFC] px-3.5 py-2 rounded-t-xl shrink-0">
-                <h4 className="text-xs font-extrabold text-[#1E3150] uppercase tracking-wider">Sélection des données</h4>
-                <button type="button" onClick={() => setFlipRequested(false)} className="text-[#64748B] hover:text-[#1E3150]">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-                
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Données de base</label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(["legal_name", "siren", "naf_code", "hq_location", "employee_count", "website", "description"] as AccountScanCompanyField[]).map(field => (
-                      <label key={field} className="flex items-start gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={requestedFields.includes(field)} onChange={() => toggleField(field)} className="mt-0.5 rounded border-[#CBD5E1] text-[#1E3150] focus:ring-[#1E3150]" />
-                        <span className="text-[10px] font-medium text-[#1E3150] leading-tight">{COMPANY_FIELD_LABELS[field]}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Faits stratégiques</label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {(Object.keys(FACT_ATTRIBUTE_LABELS) as AccountScanFactAttribute[]).map(fact => (
-                      <label key={fact} className="flex items-start gap-1.5 cursor-pointer">
-                        <input type="checkbox" checked={requestedFacts.includes(fact)} onChange={() => toggleFact(fact)} className="mt-0.5 rounded border-[#CBD5E1] text-[#1E3150] focus:ring-[#1E3150]" />
-                        <span className="text-[10px] font-medium text-[#1E3150] leading-tight">{FACT_ATTRIBUTE_LABELS[fact]}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Classification</label>
-                  <label className="flex items-start gap-1.5 cursor-pointer bg-[#F8FAFC] p-1.5 rounded-lg border border-[#CBD5E1]/40">
-                    <input type="checkbox" checked={requestClassification} onChange={(e) => setRequestClassification(e.target.checked)} className="mt-0.5 rounded border-[#CBD5E1] text-[#1E3150] focus:ring-[#1E3150]" />
-                    <span className="text-[10px] font-bold text-[#1E3150] leading-tight">Classification du compte (7 axes)</span>
-                  </label>
-                </div>
-
-              </div>
-              <div className="border-t border-[#CBD5E1]/40 p-2 bg-[#F8FAFC] rounded-b-xl flex justify-between items-center shrink-0">
-                <span className="text-[9px] text-muted">{requestedFields.length + requestedFacts.length + (requestClassification ? 1 : 0)} sélectionnés</span>
-                <button type="button" onClick={() => { setRequestedFields([]); setRequestedFacts([]); setRequestClassification(false) }} className="text-[9px] font-semibold text-primary hover:underline">Tout désélectionner</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sources consultées Card */}
-        <div className="relative perspective-1000 h-[250px]">
-          <div className={cn("relative w-full h-full transition-transform duration-500 transform-style-3d", flipSources && "rotate-y-180")}>
-            
-            {/* Front */}
-            <div className={cn(
-              "absolute inset-0 w-full h-full backface-hidden rounded-xl border-2 border-[#CBD5E1] bg-[#FFFFFF] p-4 flex flex-col items-center justify-center text-center hover:border-[#CBD5E1]/80 hover:shadow-sm transition-all",
-              !flipSources && "z-10"
-            )}>
-              <div className="h-10 w-10 rounded-full bg-[#F1F5F9] flex items-center justify-center mb-2 text-[#1E3150] shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-[#1E3150] mb-1">Sources & Cadrage</h4>
-              <p className="text-[11px] text-[#526074] mb-3 px-2 line-clamp-2">
-                Définissez les sources et apportez des éléments de contexte (site, ville, SIREN).
-              </p>
-              <button 
-                type="button"
-                onClick={() => setFlipSources(true)}
-                className="rounded-lg bg-[#1E3150] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#243B63] transition-colors shadow-sm"
-              >
-                Configurer
-              </button>
-            </div>
-
-            {/* Back */}
-            <div className={cn(
-              "absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-xl border-2 border-[#D89B16] bg-[#FFFFFF] flex flex-col shadow-lg overflow-hidden",
-              flipSources && "z-10"
-            )}>
-              <div className="flex items-center justify-between border-b border-[#CBD5E1]/40 bg-[#F8FAFC] px-3.5 py-2 rounded-t-xl shrink-0">
-                <h4 className="text-xs font-extrabold text-[#1E3150] uppercase tracking-wider">Sources & Cadrage</h4>
-                <button type="button" onClick={() => setFlipSources(false)} className="text-[#64748B] hover:text-[#1E3150]">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-                
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Sources automatiques</label>
-                  <label className="flex items-center gap-1.5 cursor-not-allowed opacity-70">
-                    <input type="checkbox" checked={true} disabled className="rounded border-[#CBD5E1] text-[#1E3150]" />
-                    <span className="text-[10px] font-medium text-[#1E3150]">Registre officiel (INSEE, Pappers...)</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={sourceWebsite} onChange={(e) => setSourceWebsite(e.target.checked)} className="rounded border-[#CBD5E1] text-[#1E3150]" />
-                    <span className="text-[10px] font-medium text-[#1E3150]">Site officiel</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input type="checkbox" checked={sourceNews} onChange={(e) => setSourceNews(e.target.checked)} className="rounded border-[#CBD5E1] text-[#1E3150]" />
-                    <span className="text-[10px] font-medium text-[#1E3150]">Presse / actualités</span>
-                  </label>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Sources manuelles</label>
-                  {customSources.map((s, i) => (
-                    <div key={i} className="flex items-center justify-between bg-[#F8FAFC] border border-[#CBD5E1]/40 rounded p-1.5">
-                      <div className="truncate text-[9px] flex flex-col">
-                        <span className="font-bold text-[#1E3150]">{s.label}</span>
-                        <span className="text-[#64748B] truncate">{s.url}</span>
-                      </div>
-                      <button type="button" onClick={() => removeCustomSource(i)} className="text-red-500 hover:bg-red-50 p-1 rounded">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <div className="divide-y divide-edito-border/70 px-4">
+              {SCOPE_CATEGORIES.map((category) => {
+                const selectedCount = categoryCount(category, requestedFields, requestedFacts, requestClassification)
+                const totalCount = categorySize(category)
+                const checked = selectedCount === totalCount
+                const partial = selectedCount > 0 && !checked
+                const expanded = expandedCategory === category.id
+                return (
+                  <div key={category.id}>
+                    <div className="flex min-h-12 items-center gap-2.5">
+                      <button type="button" className="flex min-h-11 flex-1 items-center gap-2.5 text-left" onClick={() => setCategoryChecked(category, !checked)} aria-label={`${checked ? "Désélectionner" : "Sélectionner"} ${category.label}`}>
+                        <ScopeCheck checked={checked} indeterminate={partial} />
+                        <span className="flex-1 text-xs font-semibold text-edito-heading">{category.label}</span>
+                      </button>
+                      <span className="min-w-7 rounded-md bg-edito-chip px-1.5 py-1 text-center text-[10px] font-bold text-edito-muted">{selectedCount}</span>
+                      <button type="button" onClick={() => setExpandedCategory(expanded ? null : category.id)} className="flex size-10 items-center justify-center text-edito-muted hover:text-edito-navy" aria-expanded={expanded} aria-label={`Afficher ${category.label}`}>
+                        <svg className={cn("size-3.5 transition-transform", expanded && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
                       </button>
                     </div>
-                  ))}
-                  <div className="flex gap-1.5 items-start pt-0.5">
-                    <div className="flex flex-col gap-1 flex-1">
-                      <input type="url" placeholder="https://..." value={newSourceUrl} onChange={e => setNewSourceUrl(e.target.value)} className="w-full text-[9px] px-2 py-1 border rounded" />
-                      <input type="text" placeholder="Titre (optionnel)" value={newSourceLabel} onChange={e => setNewSourceLabel(e.target.value)} className="w-full text-[9px] px-2 py-1 border rounded" />
-                    </div>
-                    <button onClick={addCustomSource} type="button" className="shrink-0 bg-[#F1F5F9] text-[#1E3150] border border-[#CBD5E1] rounded px-2 py-1 text-[9px] font-bold hover:bg-[#E2E8F0] h-[44px] flex items-center">
-                      Ajouter
-                    </button>
+                    {expanded ? (
+                      <div className="grid grid-cols-1 gap-1.5 pb-3 pl-6 sm:grid-cols-2 animate-in fade-in slide-in-from-top-1 duration-150 motion-reduce:animate-none">
+                        {category.fields?.map((field) => (
+                          <label key={field} className="flex min-h-8 cursor-pointer items-center gap-2 rounded px-2 hover:bg-edito-chip/60">
+                            <input type="checkbox" checked={requestedFields.includes(field)} onChange={() => toggleField(field)} className="size-3.5 accent-primary" />
+                            <span className="text-[11px] text-edito-body">{COMPANY_FIELD_LABELS[field]}</span>
+                          </label>
+                        ))}
+                        {category.facts?.map((fact) => (
+                          <label key={fact} className="flex min-h-8 cursor-pointer items-center gap-2 rounded px-2 hover:bg-edito-chip/60">
+                            <input type="checkbox" checked={requestedFacts.includes(fact)} onChange={() => toggleFact(fact)} className="size-3.5 accent-primary" />
+                            <span className="text-[11px] text-edito-body">{FACT_ATTRIBUTE_LABELS[fact]}</span>
+                          </label>
+                        ))}
+                        {category.classification ? (
+                          <label className="flex min-h-8 cursor-pointer items-center gap-2 rounded px-2 hover:bg-edito-chip/60 sm:col-span-2">
+                            <input type="checkbox" checked={requestClassification} onChange={(event) => setRequestClassification(event.target.checked)} className="size-3.5 accent-primary" />
+                            <span className="text-[11px] text-edito-body">Classification du compte sur les 7 axes KREDO</span>
+                          </label>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-
-                <div className="space-y-1.5 pt-1.5 border-t border-[#CBD5E1]/40">
-                  <label className="text-[9px] font-bold uppercase tracking-wider text-muted block">Cadrage manuel</label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div>
-                      <span className="text-[8px] text-[#64748B] mb-0.5 block">Site ciblé</span>
-                      <input type="url" value={websiteHint} onChange={e => setWebsiteHint(e.target.value)} placeholder="https://..." className="w-full text-[9px] px-1.5 py-1 border rounded" />
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-[#64748B] mb-0.5 block">Ville HQ</span>
-                      <input type="text" value={locationHint} onChange={e => setLocationHint(e.target.value)} placeholder="Paris" className="w-full text-[9px] px-1.5 py-1 border rounded" />
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-[8px] text-[#64748B] mb-0.5 block">SIREN forcé</span>
-                      <input type="text" value={sirenHint} onChange={e => setSirenHint(e.target.value.replace(/\D/g, "").slice(0, 9))} placeholder="9 chiffres" className="w-full text-[9px] px-1.5 py-1 border rounded" />
-                    </div>
-                  </div>
-                </div>
-
-              </div>
+                )
+              })}
             </div>
-          </div>
+            <div className="border-t border-edito-border px-4 py-3">
+              <button type="button" onClick={() => { setRequestedFields([]); setRequestedFacts([]); setRequestClassification(false) }} className="min-h-9 rounded-md border border-edito-border px-3 text-[11px] font-bold text-edito-body hover:bg-edito-chip">Réinitialiser</button>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-xl border border-edito-border bg-white" aria-labelledby="scan-sources-title">
+            <div className="border-b border-edito-border px-4 py-3">
+              <h3 id="scan-sources-title" className="text-[11px] font-black uppercase tracking-[0.08em] text-edito-navy">Sources consultées</h3>
+              <p className="mt-0.5 text-[11px] text-edito-muted">Activez les sources publiques à interroger.</p>
+            </div>
+            <div className="divide-y divide-edito-border/70 px-4">
+              {SOURCE_OPTIONS.map((source) => {
+                const checked = sources[source.id]
+                const locked = "locked" in source && source.locked
+                return (
+                  <label key={source.id} className={cn("flex min-h-12 items-center gap-3", locked ? "cursor-default" : "cursor-pointer")}>
+                    <input type="checkbox" className="sr-only" checked={checked} disabled={locked} onChange={(event) => setSources((current) => ({ ...current, [source.id]: event.target.checked }))} />
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-edito-chip text-[9px] font-black text-primary">{source.monogram}</span>
+                    <span className="flex-1 text-xs font-semibold text-edito-heading">{source.label}</span>
+                    <SourceSwitch checked={checked} />
+                  </label>
+                )
+              })}
+            </div>
+
+            {customSources.map((source, index) => (
+              <div key={`${source.url}-${index}`} className="flex items-center gap-3 border-t border-edito-border/70 px-4 py-2.5">
+                <span className="flex size-7 items-center justify-center rounded-md bg-edito-chip text-sm font-bold text-primary">+</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold text-edito-heading">{source.label}</span><span className="block truncate text-[10px] text-edito-muted">{source.url}</span></span>
+                <button type="button" onClick={() => setCustomSources((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="flex size-9 items-center justify-center text-edito-muted hover:text-danger" aria-label={`Supprimer ${source.label}`}>×</button>
+              </div>
+            ))}
+
+            <div className="border-t border-edito-border px-4 py-3">
+              {showCustomSource ? (
+                <div className="grid gap-2 animate-in fade-in slide-in-from-top-1 duration-150 motion-reduce:animate-none sm:grid-cols-[1fr_1fr_auto]">
+                  <input type="url" value={newSourceUrl} onChange={(event) => setNewSourceUrl(event.target.value)} placeholder="https://source.fr" className="min-h-10 rounded-md border border-edito-border bg-white px-3 text-xs outline-none focus:border-primary" />
+                  <input type="text" value={newSourceLabel} onChange={(event) => setNewSourceLabel(event.target.value)} placeholder="Nom de la source" className="min-h-10 rounded-md border border-edito-border bg-white px-3 text-xs outline-none focus:border-primary" />
+                  <button type="button" onClick={addCustomSource} className="min-h-10 rounded-md bg-edito-navy px-3 text-[11px] font-bold text-white hover:bg-edito-heading">Ajouter</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowCustomSource(true)} className="flex min-h-10 items-center gap-2 text-[11px] font-bold text-edito-navy hover:text-primary"><span className="text-base leading-none">+</span> Ajouter une source personnalisée</button>
+              )}
+            </div>
+
+            <div className="border-t border-edito-border px-4 py-3">
+              <button type="button" onClick={() => setShowCadrage((current) => !current)} className="flex min-h-9 w-full items-center justify-between text-left text-[10px] font-black uppercase tracking-[0.08em] text-edito-muted" aria-expanded={showCadrage}>
+                Cadrage manuel
+                <svg className={cn("size-3.5 transition-transform", showCadrage && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" /></svg>
+              </button>
+              {showCadrage ? (
+                <div className="grid gap-2 pt-2 sm:grid-cols-3 animate-in fade-in slide-in-from-top-1 duration-150 motion-reduce:animate-none">
+                  <input type="url" value={websiteHint} onChange={(event) => setWebsiteHint(event.target.value)} placeholder="Site ciblé" aria-label="Site ciblé" className="min-h-10 rounded-md border border-edito-border px-3 text-xs outline-none focus:border-primary" />
+                  <input type="text" value={locationHint} onChange={(event) => setLocationHint(event.target.value)} placeholder="Ville du siège" aria-label="Ville du siège" className="min-h-10 rounded-md border border-edito-border px-3 text-xs outline-none focus:border-primary" />
+                  <input type="text" value={sirenHint} onChange={(event) => setSirenHint(event.target.value.replace(/\D/g, "").slice(0, 9))} placeholder="SIREN (9 chiffres)" aria-label="SIREN forcé" className="min-h-10 rounded-md border border-edito-border px-3 text-xs outline-none focus:border-primary" />
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
       </div>
 
-      {/* Main Action Launch Button */}
-      <div className={cn(
-        "pt-1",
-        isMobile && "sticky bottom-0 z-20 -mx-4 border-t border-edito-border bg-edito-canvas px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3",
-      )}>
-        {isSelectionEmpty && (
-          <p className="text-center text-xs text-red-500 mb-1 font-medium">Vous devez sélectionner au moins une information à rechercher.</p>
-        )}
-        <button
-          type="button"
-          onClick={handleLaunch}
-          disabled={launching || isSelectionEmpty}
-          className={cn(
-            "w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-extrabold text-[#FFFFFF] shadow-md transition-all duration-200",
-            isMobile ? "min-h-[48px]" : "min-h-[44px]",
-            (launching || isSelectionEmpty)
-              ? "bg-[#CBD5E1] text-[#64748B] cursor-not-allowed shadow-none"
-              : "bg-[#1E3150] hover:bg-[#243B63] hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99]"
-          )}
-        >
-          {launching ? (
-            <>
-              <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              Initialisation de l'analyse en cours…
-            </>
-          ) : (
-            <>
-              <svg className="h-4 w-4 text-[#FBBF24] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Démarrer l'analyse de compte
-            </>
-          )}
+      <div className={cn("flex shrink-0 items-center justify-between gap-3 border-t border-edito-border bg-white px-4 py-3 sm:px-5", isMobile && "fixed inset-x-0 bottom-0 z-30 pb-[max(0.75rem,env(safe-area-inset-bottom))]")}>
+        <p className="text-[10px] font-semibold text-edito-muted sm:text-xs"><span className="font-black text-edito-navy">{elementCount}</span> éléments <span className="mx-1">·</span> <span className="font-black text-edito-navy">{sourceCount}</span> sources <span className="hidden sm:inline"><span className="mx-1">·</span> 2–4 min</span></p>
+        <button type="button" onClick={handleLaunch} disabled={launching || elementCount === 0} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-edito-brass bg-edito-navy px-4 text-xs font-bold text-white transition-colors hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted">
+          {launching ? "Initialisation…" : "Démarrer l’analyse"}
+          <span aria-hidden="true">→</span>
         </button>
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .perspective-1000 { perspective: 1000px; }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-      `}} />
     </div>
   )
 }

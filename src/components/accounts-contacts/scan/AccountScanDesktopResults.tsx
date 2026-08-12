@@ -1,8 +1,7 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
-import { DataTable, type DataTableColumn } from "@/components/ui/data-table/DataTable"
-import { StatusPill, type StatusPillVariant } from "@/components/ui/StatusPill"
 import type { AccountScanOutput } from "@/lib/n8n/types"
 import {
   type AccountScanBilanCategory,
@@ -14,6 +13,7 @@ import {
   getAttributeLabel,
   getConfidenceTone,
 } from "./account-scan-utils"
+import { groupAccountScanRows } from "./account-scan-result-groups"
 
 interface AccountScanDesktopResultsProps {
   output: AccountScanOutput
@@ -24,38 +24,29 @@ interface AccountScanDesktopResultsProps {
   onApplySelected: () => void
   applying: boolean
   bilanByProposalId: Map<string, AccountScanBilanCategory>
+  onNewScan?: () => void
+  onContacts?: () => void
 }
 
-const CONFIDENCE_VARIANT: Record<string, StatusPillVariant> = {
-  high: "success",
-  medium: "warning",
-  low: "danger",
+function ConfidenceBadge({ score }: { score: number }) {
+  const tone = getConfidenceTone(score)
+  return (
+    <span className={cn(
+      "inline-flex min-w-14 items-center justify-center rounded px-2 py-1 text-[9px] font-bold",
+      tone === "high" && "bg-success/10 text-success",
+      tone === "medium" && "bg-warning/15 text-warning",
+      tone === "low" && "bg-danger/10 text-danger",
+    )}>
+      {tone === "high" ? "Élevée" : tone === "medium" ? "Moyenne" : "Faible"} · {formatConfidencePercent(score)}
+    </span>
+  )
 }
 
-const BILAN_VARIANT: Record<AccountScanBilanCategory, StatusPillVariant> = {
-  applied: "success",
-  already_applied: "success",
-  conflicting: "danger",
-  ignored: "neutral",
-  error: "danger",
-}
-
-const PROPOSAL_STATUS_VARIANT: Record<string, StatusPillVariant> = {
-  proposed: "inProgress",
-  needs_review: "warning",
-  validated: "info",
-  applied: "success",
-  conflicting: "danger",
-  rejected: "neutral",
-  outdated: "neutral",
-}
-
-function sourceLabelFor(output: AccountScanOutput, sourceKeys: string[]): { name: string; url?: string } | null {
-  const key = sourceKeys[0]
-  if (!key) return null
-  const source = output.sources.find((s) => s.sourceKey === key)
-  if (!source) return null
-  return { name: `${SOURCE_TYPE_LABELS[source.sourceType]} — ${source.sourceName}`, url: source.sourceUrl }
+function sourceFor(output: AccountScanOutput, row: AccountScanProposalRow) {
+  return row.sourceKeys.flatMap((key) => {
+    const source = output.sources.find((item) => item.sourceKey === key)
+    return source ? [source] : []
+  })
 }
 
 export function AccountScanDesktopResults({
@@ -67,245 +58,131 @@ export function AccountScanDesktopResults({
   onApplySelected,
   applying,
   bilanByProposalId,
+  onNewScan,
+  onContacts,
 }: AccountScanDesktopResultsProps) {
-  const allIds = proposalRows.map((r) => r.id)
-  const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id))
+  const groups = useMemo(() => groupAccountScanRows(proposalRows), [proposalRows])
+  const [activeGroupId, setActiveGroupId] = useState(() => groups[0]?.id ?? "")
+  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0]
+  const visibleRows = activeGroup?.rows ?? []
+  const [focusedId, setFocusedId] = useState(() => visibleRows[0]?.id ?? proposalRows[0]?.id ?? "")
+  const focusedRow = proposalRows.find((row) => row.id === focusedId) ?? visibleRows[0] ?? proposalRows[0]
+  const focusedSources = focusedRow ? sourceFor(output, focusedRow) : []
+  const visibleIds = visibleRows.map((row) => row.id)
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
 
-  const columns: DataTableColumn<AccountScanProposalRow>[] = [
-    {
-      id: "select",
-      header: (
-        <input
-          type="checkbox"
-          checked={allSelected}
-          onChange={() => onToggleSelectAll(allIds)}
-          aria-label="Sélectionner toutes les propositions"
-          className="h-4 w-4 accent-primary"
-        />
-      ),
-      cell: (row) => (
-        <input
-          type="checkbox"
-          checked={selectedIds.has(row.id)}
-          onChange={() => onToggleSelect(row.id)}
-          aria-label={`Sélectionner ${getAttributeLabel(row.attributeName)}`}
-          className="h-4 w-4 accent-primary"
-        />
-      ),
-      width: "2.5rem",
-    },
-    {
-      id: "attribute",
-      header: "Attribut",
-      cell: (row) => (
-        <span className="font-semibold text-heading">
-          {getAttributeLabel(row.attributeName)}
-          {row.isFact && (
-            <span className="ml-1.5 rounded-full border border-border bg-canvas/50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted">
-              Fait
-            </span>
-          )}
-        </span>
-      ),
-      minWidth: "10rem",
-    },
-    {
-      id: "current",
-      header: "Valeur actuelle",
-      cell: (row) => <span className="text-muted">{formatProposalValue(row.oldValue)}</span>,
-      minWidth: "9rem",
-    },
-    {
-      id: "proposed",
-      header: "Valeur proposée",
-      cell: (row) => <span className="font-medium text-heading">{formatProposalValue(row.normalizedValue ?? row.proposedValue)}</span>,
-      minWidth: "9rem",
-    },
-    {
-      id: "confidence",
-      header: "Confiance",
-      align: "center",
-      cell: (row) => (
-        <span className="text-xs font-bold text-muted">
-          {formatConfidencePercent(row.confidenceScore)}
-        </span>
-      ),
-    },
-    {
-      id: "source",
-      header: "Source",
-      cell: (row) => {
-        const source = sourceLabelFor(output, row.sourceKeys)
-        if (!source) return <span className="text-muted">—</span>
-        return source.url ? (
-          <a
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            {source.name}
-          </a>
-        ) : (
-          <span>{source.name}</span>
-        )
-      },
-      minWidth: "10rem",
-    },
-    {
-      id: "status",
-      header: "Statut",
-      align: "center",
-      cell: (row) => {
-        const bilan = bilanByProposalId.get(row.id)
-        if (bilan) {
-          return <StatusPill label={BILAN_LABELS[bilan]} variant={BILAN_VARIANT[bilan]} />
-        }
-        return (
-          <StatusPill
-            label={row.status}
-            variant={PROPOSAL_STATUS_VARIANT[row.status] ?? "neutral"}
-          />
-        )
-      },
-    },
-  ]
+  const chooseGroup = (id: string) => {
+    setActiveGroupId(id)
+    const next = groups.find((group) => group.id === id)?.rows[0]
+    if (next) setFocusedId(next.id)
+  }
 
   return (
-    <div className="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 lg:grid-cols-4 xl:gap-8">
-      {/* Left Column (Main Content) */}
-      <div className="flex flex-col gap-6 lg:col-span-3">
-        <div className="flex items-end justify-between gap-3 pb-2">
-          <div className="space-y-1">
-            <h2 className="text-lg font-bold text-heading">Propositions de modifications</h2>
-            <p className="text-sm text-body">
-              L'IA a identifié {proposalRows.length} mise{proposalRows.length > 1 ? "s" : ""} à jour potentielle{proposalRows.length > 1 ? "s" : ""}.
-            </p>
-          </div>
+    <div className="flex min-h-full flex-col bg-white">
+      <div className="flex items-center justify-between border-b border-edito-border px-5 py-3">
+        <div>
+          <h3 className="text-sm font-black text-edito-navy">{proposalRows.length} modification{proposalRows.length > 1 ? "s" : ""} proposée{proposalRows.length > 1 ? "s" : ""}</h3>
+          <p className="mt-0.5 text-[10px] text-edito-muted">Examinez les écarts, leurs niveaux de confiance et leurs sources.</p>
         </div>
-
-        {/* A. Informations proposées */}
-        <section className="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
-          <DataTable<AccountScanProposalRow>
-            rows={proposalRows}
-            columns={columns}
-            getRowId={(row) => row.id}
-            ariaLabel="Propositions du scan"
-            emptyState={<div className="flex h-32 items-center justify-center p-4 text-sm text-muted">Aucune proposition générée par ce scan.</div>}
-          />
-        </section>
+        <button type="button" onClick={() => onToggleSelectAll(visibleIds)} className="min-h-9 rounded-md border border-edito-border px-3 text-[10px] font-bold text-edito-body hover:bg-edito-chip">
+          {allVisibleSelected ? "Tout désélectionner" : "Tout sélectionner"}
+        </button>
       </div>
 
-      {/* Right Column (Sidebar) */}
-      <div className="lg:col-span-1">
-        <div className="sticky top-6 flex flex-col gap-6">
-          
-          {/* Action Panel */}
-          <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <h3 className="mb-4 text-[10px] font-bold uppercase tracking-wider text-muted">Résumé de l'analyse</h3>
-            
-            <div className="space-y-3 pb-6">
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <span className="text-xs text-body">Propositions</span>
-                <span className="text-xs font-bold text-heading">{proposalRows.length}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-border/40 pb-2">
-                <span className="text-xs text-body">Sélectionnées</span>
-                <span className="text-xs font-bold text-brand-brass">{selectedIds.size}</span>
-              </div>
-              <div className="flex items-center justify-between pb-2">
-                <span className="text-xs text-body">Sources analysées</span>
-                <span className="text-xs font-bold text-heading">{output.sources.length}</span>
-              </div>
-            </div>
-
+      <div className="grid min-h-0 flex-1 grid-cols-[190px_minmax(0,1fr)_250px]">
+        <nav className="border-r border-edito-border bg-edito-canvas py-3" aria-label="Catégories de résultats">
+          <p className="px-4 pb-2 text-[9px] font-black uppercase tracking-[0.1em] text-edito-muted">Catégories</p>
+          {groups.map((group) => (
             <button
+              key={group.id}
               type="button"
-              onClick={onApplySelected}
-              disabled={applying || selectedIds.size === 0}
+              onClick={() => chooseGroup(group.id)}
+              aria-current={activeGroup?.id === group.id ? "page" : undefined}
               className={cn(
-                "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold shadow-sm transition-all hover:shadow",
-                applying || selectedIds.size === 0
-                  ? "cursor-not-allowed border border-border bg-canvas text-muted"
-                  : "bg-heading text-surface hover:bg-heading/90"
+                "relative flex min-h-11 w-full items-center justify-between gap-2 px-4 text-left text-[11px] font-semibold transition-colors",
+                activeGroup?.id === group.id ? "bg-white text-edito-navy before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-edito-brass" : "text-edito-body hover:bg-white/70",
               )}
             >
-              {applying ? (
-                <>
-                  <span className="h-4 w-4 rounded-full border-2 border-muted border-t-transparent animate-spin" />
-                  Application…
-                </>
-              ) : (
-                <>
-                  <svg className="h-4 w-4 text-brand-brass" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Appliquer la sélection
-                </>
-              )}
+              <span>{group.label}</span>
+              <span className="min-w-6 rounded-md bg-edito-chip px-1.5 py-1 text-center text-[9px] font-bold text-edito-muted">{group.rows.length}</span>
             </button>
-          </div>
-
-          {/* B. Mini-rapport */}
-          {output.warnings.length > 0 && (
-            <section className="rounded-xl border border-brand-brass/20 bg-brand-brass/[0.02] p-5 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <svg className="h-4 w-4 text-brand-brass" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-brand-brass">Réserves</h3>
-              </div>
-              <ul className="space-y-2">
-                {output.warnings.map((warning, idx) => (
-                  <li key={idx} className="text-xs leading-relaxed text-body">• {warning}</li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* C. Sources */}
-          <section className="rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <h3 className="mb-4 text-[10px] font-bold uppercase tracking-wider text-muted">Sources consultées</h3>
-            <div className="space-y-3">
-              {output.sources.map((source) => (
-                <div key={source.sourceKey} className="rounded-lg border border-border/50 bg-canvas/30 p-3.5 transition-colors hover:bg-canvas/60">
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="block text-xs font-bold text-heading">{source.sourceName}</span>
-                      <StatusPill
-                        label={formatConfidencePercent(source.reliabilityScore)}
-                        variant={CONFIDENCE_VARIANT[getConfidenceTone(source.reliabilityScore)]}
-                      />
-                    </div>
-                    <span className="text-[10px] uppercase tracking-wider text-muted">{SOURCE_TYPE_LABELS[source.sourceType]}</span>
-                  </div>
-                  
-                  {source.evidenceExcerpt && (
-                    <div className="mt-3 rounded border-l-2 border-border pl-2.5">
-                      <p className="text-[11px] italic leading-relaxed text-muted">&laquo;&nbsp;{source.evidenceExcerpt}&nbsp;&raquo;</p>
-                    </div>
-                  )}
-                  {source.sourceUrl && (
-                    <a
-                      href={source.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-brand-brass hover:underline"
-                    >
-                      Consulter la source
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                    </a>
-                  )}
-                </div>
-              ))}
-              {output.sources.length === 0 && (
-                <p className="py-2 text-center text-xs italic text-muted">Aucune source collectée.</p>
-              )}
+          ))}
+          {output.classification ? (
+            <div className="mt-1 flex min-h-11 items-center justify-between gap-2 border-t border-edito-border/70 px-4 pt-1 text-[11px] font-semibold text-edito-muted">
+              <span>Classification & segmentation</span>
+              <span className="min-w-6 rounded-md bg-edito-chip px-1.5 py-1 text-center text-[9px] font-bold">7</span>
             </div>
-          </section>
+          ) : null}
+        </nav>
+
+        <section className="min-w-0 overflow-y-auto" aria-label={activeGroup?.label ?? "Propositions"}>
+          <div className="sticky top-0 z-10 grid grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px] items-center gap-2 border-b border-edito-border bg-edito-canvas px-4 py-2 text-[9px] font-black uppercase tracking-[0.06em] text-edito-muted">
+            <span /> <span>Attribut</span><span>Actuel</span><span /><span>Proposé</span><span>Confiance</span><span>Source</span>
+          </div>
+          {visibleRows.length === 0 ? <p className="p-8 text-center text-xs text-edito-muted">Aucune proposition dans cette catégorie.</p> : null}
+          {visibleRows.map((row) => {
+            const sources = sourceFor(output, row)
+            const bilan = bilanByProposalId.get(row.id)
+            const focused = focusedRow?.id === row.id
+            return (
+              <div
+                key={row.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setFocusedId(row.id)}
+                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setFocusedId(row.id) }}
+                className={cn("grid min-h-12 cursor-pointer grid-cols-[28px_minmax(120px,1fr)_minmax(100px,.85fr)_22px_minmax(110px,.9fr)_80px_90px] items-center gap-2 border-b border-edito-border/65 px-4 py-2 outline-none transition-colors hover:bg-edito-canvas/70 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40", focused && "bg-primary/[0.035]")}
+              >
+                <input type="checkbox" checked={selectedIds.has(row.id)} onClick={(event) => event.stopPropagation()} onChange={() => onToggleSelect(row.id)} aria-label={`Sélectionner ${getAttributeLabel(row.attributeName)}`} className="size-4 accent-primary" />
+                <span className="truncate text-[11px] font-bold text-edito-heading">{getAttributeLabel(row.attributeName)}</span>
+                <span className="truncate text-[11px] text-edito-muted">{formatProposalValue(row.oldValue)}</span>
+                <span className="text-center text-xs text-edito-muted">→</span>
+                <span className="truncate text-[11px] font-semibold text-edito-navy">{formatProposalValue(row.normalizedValue ?? row.proposedValue)}</span>
+                <span>{bilan ? <span className="text-[9px] font-bold text-success">{BILAN_LABELS[bilan]}</span> : <ConfidenceBadge score={row.confidenceScore} />}</span>
+                <span className="truncate text-[10px] font-semibold text-edito-muted">{sources[0]?.sourceName ?? "—"}</span>
+              </div>
+            )
+          })}
+        </section>
+
+        <aside className="overflow-y-auto border-l border-edito-border bg-edito-canvas p-4" aria-label="Élément sélectionné">
+          <p className="mb-3 text-[9px] font-black uppercase tracking-[0.1em] text-edito-muted">Élément sélectionné</p>
+          {focusedRow ? (
+            <div className="rounded-lg border border-edito-border bg-white p-4">
+              <h4 className="text-xs font-black text-edito-navy">{getAttributeLabel(focusedRow.attributeName)}</h4>
+              <div className="mt-4 space-y-1">
+                <span className="text-[9px] font-bold uppercase text-edito-muted">Proposé</span>
+                <p className="text-xs font-bold text-edito-heading">{formatProposalValue(focusedRow.normalizedValue ?? focusedRow.proposedValue)}</p>
+              </div>
+              <div className="mt-3"><ConfidenceBadge score={focusedRow.confidenceScore} /></div>
+              <div className="my-4 border-t border-edito-border" />
+              <p className="text-[9px] font-black uppercase tracking-[0.08em] text-edito-navy">Justification</p>
+              <p className="mt-2 text-[11px] leading-relaxed text-edito-body">{focusedRow.justification || "Cette proposition rapproche les données du compte des informations publiques les plus récentes."}</p>
+              <div className="my-4 border-t border-edito-border" />
+              <p className="text-[9px] font-black uppercase tracking-[0.08em] text-edito-navy">Sources ({focusedSources.length})</p>
+              <div className="mt-2 space-y-3">
+                {focusedSources.map((source) => (
+                  <div key={source.sourceKey} className="flex items-start gap-2">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded bg-edito-chip text-[8px] font-black text-primary">{source.sourceName.slice(0, 2).toUpperCase()}</span>
+                    <span className="min-w-0"><span className="block truncate text-[10px] font-bold text-edito-heading">{source.sourceName}</span><span className="block text-[9px] text-edito-muted">{SOURCE_TYPE_LABELS[source.sourceType]}</span></span>
+                  </div>
+                ))}
+                {focusedSources.length === 0 ? <p className="text-[10px] text-edito-muted">Aucune source associée.</p> : null}
+              </div>
+            </div>
+          ) : <p className="text-[11px] text-edito-muted">Sélectionnez une ligne pour afficher sa justification.</p>}
+        </aside>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between gap-3 border-t border-edito-border bg-white px-5 py-3">
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-edito-muted"><span className="font-black text-edito-navy">{selectedIds.size}</span> élément{selectedIds.size > 1 ? "s" : ""} sélectionné{selectedIds.size > 1 ? "s" : ""}</p>
+          {onNewScan ? <button type="button" onClick={onNewScan} className="text-[10px] font-bold text-edito-muted hover:text-edito-navy">Nouveau scan</button> : null}
+          {onContacts ? <button type="button" onClick={onContacts} className="text-[10px] font-bold text-primary hover:underline">Scanner les contacts</button> : null}
         </div>
+        <button type="button" onClick={onApplySelected} disabled={applying || selectedIds.size === 0} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-edito-brass bg-edito-navy px-4 text-xs font-bold text-white hover:bg-edito-heading disabled:cursor-not-allowed disabled:border-edito-border disabled:bg-edito-border disabled:text-edito-muted">
+          {applying ? "Application…" : `Appliquer ${selectedIds.size} changement${selectedIds.size > 1 ? "s" : ""}`} <span aria-hidden="true">→</span>
+        </button>
       </div>
     </div>
   )
