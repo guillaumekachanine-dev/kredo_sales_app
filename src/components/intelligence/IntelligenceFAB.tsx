@@ -54,6 +54,10 @@ const AccountAnalysisHub = dynamic(
   () => import("@/components/intelligence/AccountAnalysisHub").then((module) => module.AccountAnalysisHub),
   { ssr: false },
 )
+const CompanyDocumentsModal = dynamic(
+  () => import("@/components/accounts-contacts/intelligence/CompanyDocumentsModal").then((module) => module.CompanyDocumentsModal),
+  { ssr: false },
+)
 
 type AccountPanelAction = "analysis" | null
 type RegistryActionId = "pitch" | "analyse" | "playbook" | "brief" | "rdv"
@@ -312,10 +316,11 @@ function AccountInformationDialog({
   )
 }
 
-function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onClose }: {
+function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, onDocumentsClick, onClose }: {
   onWriteEmailClick: () => void
   onPlanClick: () => void
   onInformClick: () => void
+  onDocumentsClick: () => void
   onClose: () => void
 }) {
   const { panelData } = useIntelligenceContext()
@@ -374,7 +379,11 @@ function AccountMobileContent({ onWriteEmailClick, onPlanClick, onInformClick, o
               window.dispatchEvent(new CustomEvent("kredo:open-account-intelligence", { detail: { companyId: company.id } }))
             }}
           />
-          <EditorialResourceRow label="Mails, Pitchs, Supports RDV" iconSrc="/icons_set/cockpit_intelligence/dossier_pitchs.png" href={`/reports?companyId=${company.id}`} onClick={onClose} />
+          <EditorialResourceRow
+            label="Bibliothèque de documents"
+            iconSrc="/icons_set/cockpit_intelligence/dossier_pitchs.png"
+            onClick={onDocumentsClick}
+          />
           <EditorialResourceRow label="Contacts" iconSrc="/icons_set/cockpit_intelligence/compte_contact.png" href={`/prospection/accounts?tab=contacts&q=${encodeURIComponent(company.name)}`} onClick={onClose} />
           <EditorialResourceRow label="Playbook" iconSrc={cockpitActionIcons.sectorAnalysis} href={sector.structuredSectorSlug ? `/ressources/playbook/${sector.structuredSectorSlug}` : "/prospection/approche-sectorielle"} onClick={onClose} />
         </div>
@@ -575,6 +584,7 @@ export function IntelligenceFAB() {
   const [informationView, setInformationView] = useState<AccountInformationView>("menu")
   const [watchSettingsOpen, setWatchSettingsOpen] = useState(false)
   const [signalsOpen, setSignalsOpen] = useState(false)
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
 
   useEffect(() => {
     function handleReturnToCockpit() {
@@ -583,6 +593,7 @@ export function IntelligenceFAB() {
       setInformationOpen(false)
       setWatchSettingsOpen(false)
       setSignalsOpen(false)
+      setDocumentsModalOpen(false)
       setInformationView("menu")
       setCockpitReturnKey((current) => current + 1)
       setIsOpen(true)
@@ -671,6 +682,11 @@ export function IntelligenceFAB() {
     setIsOpen(false)
     setInformationView("menu")
     window.setTimeout(() => setInformationOpen(true), 280)
+  }
+
+  function openDocumentsFromCockpit() {
+    setIsOpen(false)
+    window.setTimeout(() => setDocumentsModalOpen(true), 280)
   }
 
   function selectEventType(eventType: string) {
@@ -781,6 +797,7 @@ export function IntelligenceFAB() {
             onWriteEmailClick={openComposerFromCockpit}
             onPlanClick={openPlannerFromCockpit}
             onInformClick={openInformationFromCockpit}
+            onDocumentsClick={openDocumentsFromCockpit}
             onClose={() => setIsOpen(false)}
           />
         ) : isGenericEntityMode ? (
@@ -853,7 +870,7 @@ export function IntelligenceFAB() {
             }}
           />
           <AccountWatchSettingsDialog
-            key={`${panelData.company.id}-${watchSettingsOpen}`}
+            key={`watch-settings-${panelData.company.id}-${watchSettingsOpen}`}
             open={watchSettingsOpen}
             onOpenChange={setWatchSettingsOpen}
             companyId={panelData.company.id}
@@ -874,6 +891,18 @@ export function IntelligenceFAB() {
             companyName={panelData.company.name}
             onReturnToCockpit={() => {
               setSignalsOpen(false)
+              returnToAccountCockpit()
+            }}
+          />
+          <CompanyDocumentsModal
+            key={`company-documents-${panelData.company.id}-${documentsModalOpen}`}
+            open={documentsModalOpen}
+            onClose={() => setDocumentsModalOpen(false)}
+            companyId={panelData.company.id}
+            companyName={panelData.company.name}
+            isMobile
+            onReturnToCockpit={() => {
+              setDocumentsModalOpen(false)
               returnToAccountCockpit()
             }}
           />
