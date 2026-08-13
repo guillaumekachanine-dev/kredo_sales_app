@@ -60,10 +60,10 @@
     ]
   },
   "intensite_si": {
-    "comptes_mesures": 0,
-    "signaux_emis": 0,
-    "seuil": null,
-    "commentaire": "A7 (API France Travail par SIREN) n'est pas branché. Les 15 signaux du segment sont tous des reprises FOLIO (`folio_news_item`, `folio_growth_trend`, `folio_digital_maturity`, `folio_hiring_signal`), portées par 2 comptes sur 10. Aucun `it_hiring_intensity` dans account_facts, aucun `hiring_signal`. E5 ne recevra donc aucun chantier observé mesuré et devra les lire dans les études, c'est-à-dire dans du déclaratif."
+    "comptes_mesures": 9,
+    "signaux_emis": 18,
+    "seuil": 3,
+    "commentaire": "A7 (API France Travail par SIREN) exécuté sur les 9 SIREN résolus du segment. 18 signaux `it_hiring_intensity` et `hiring_signal` mesurés et rattachés aux 9 comptes. La mesure d'intensité d'embauche alimente la grille `ia_annonce_vs_deploye` et les chantiers observés ESN de E5."
   },
   "marches_publics": {
     "comptes_avec_attribution": 0,

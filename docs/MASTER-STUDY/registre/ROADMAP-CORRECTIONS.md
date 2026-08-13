@@ -166,7 +166,7 @@ Aucune table de correspondance n'existe. Toute conversion doit traduire, et tout
 | # | Action | Débloque | État |
 |---|---|---|---|
 | **B1** | Exécuter le socle A1 (identité France) sur les 8 comptes non résolus du Spatial | Le plancher de preuve A7, donc tout top 3 légitime | ✅ **fait 13/08** |
-| **B2** | Brancher A7 — API France Travail par SIREN | La grille « IA annoncé vs déployé », vide sur 10/10 | ☐ |
+| **B2** | Brancher A7 — API France Travail par SIREN | La grille « IA annoncé vs déployé », vide sur 10/10 | ✅ **fait 13/08** |
 | **B3** | Marquer les échéances passées et instrumenter la revalidation au jour du run | Le motif d'appel : 2 des 5 échéances du secteur sont périmées et rien ne le dit | ☐ |
 | **B4** | Renseigner la couche accessibilité (A6) sur les comptes prioritaires | Le droit d'intervenir — bloc à **0 fait sur les 109 comptes de la base** | ☐ |
 

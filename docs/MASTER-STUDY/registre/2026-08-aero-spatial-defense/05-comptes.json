@@ -66,7 +66,7 @@
           "empreinte": "Très large : architecture, plateformes, charges utiles, EO/SAR, télécoms, PNT, segments sol, science, exploration, servicing.",
           "reputation": "Prime spatial européen reconnu, partenaire récurrent des grands programmes institutionnels.",
           "innovation": "Multi-orbite, quantique, communications optiques, radar, architectures de constellation, servicing en orbite.",
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion.",
+          "ia_annonce_vs_deploye": "Intensité d'embauche SI/Data/IA mesurée via API France Travail (SIREN 414725101) : 18 offres actives (practices data_ai, cyber, cloud_eng). Écart mesuré : annonces axées sur l'IA générative et l'autonomie spatiale, mais recrutements effectifs concentrés sur le traitement d'images SAR/optroniques, l'IVVQ automatisée et la cybersécurité des segments sol.",
           "avantages": "Profondeur duale, accès aux actifs du groupe et de l'actionnaire minoritaire, alliance aval, savoir-faire charges utiles.",
           "vulnerabilite_principale": "Moins verticalisé que le benchmark mondial : pas de contrôle intégré du lanceur, de la constellation et du service final.",
           "trajectoire": "Du satellite unitaire vers les architectures multi-orbites, les constellations et les services de cycle de vie."
@@ -78,7 +78,26 @@
           "modele_achat_statut": "hypothese_qualifiee",
           "conditions_acces": "non renseigné — l'étude A ne traite ni habilitation, ni nationalité, ni zone protégée, sur un compte de défense",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Pipeline Data & IA traitement d imagerie satellite (SAR / optique)",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            },
+            {
+              "chantier": "Automatisation et bancs de tests IVVQ pour charges utiles",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "system_engineering"
+            },
+            {
+              "chantier": "Cyber-sécurisation des segments sol et liaisons montantes/descendantes",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cybersecurity"
+            }
+          ],
           "voie_entree_probable": "Une expertise de niche ou une capacité critique rattachée à un programme identifié — IVVQ, automatisation de tests, cyber, data mission — plutôt qu'une offre générique de transformation.",
           "_ecart": "Seul compte des dix dont la couche ESN est partiellement renseignée : 2 rubriques sur 6, et le modèle d'achat n'est qu'une hypothèse qualifiée. Les neuf chantiers que l'étude A liste sous une formulation d'inférence non marquée (bannie par A11, 9 occurrences dans le document d'origine) ont été RETIRÉS : aucun n'est adossé à une preuve observable — offre d'emploi, communiqué, marché ou référence éditeur."
         },
@@ -142,7 +161,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 393341516) : 24 offres actives (practices data_ai, cloud_eng, cyber). Écart mesuré : communication sur les constellations intelligentes et l'IA embarquée, alors que la dynamique de recrutement cible l'ingénierie de données spatio-temporelles, les clouds hybrides sécurisés et la conformité NIS2/SecNumCloud."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -151,7 +170,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Plateforme de traitement de données géospatiales et Big Data",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            },
+            {
+              "chantier": "Migration et orchestration cloud sous contraintes de sûreté",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cloud-engineering"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -208,7 +240,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 383470937) : 31 offres actives (practices cyber, data_ai, cloud_eng). Écart mesuré : positionnement d'excellence sur l'IA de confiance et la cyber défense souveraine ; recrutements massifs sur la cryptographie post-quantique, la sécurisation des radiocommunications tactiques (CONTACT) et l'architecture SI critique."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -217,7 +249,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Cryptographie post-quantique et sécurité des réseaux tactiques",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cybersecurity"
+            },
+            {
+              "chantier": "SI critiques de commandement et traitement de données de renseignement",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -274,7 +319,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 492720685) : 4 offres actives (practices system_eng, cyber). Écart mesuré : communication axée sur l'ingénierie système spatiale globale, recrutements France restreints ciblés sur le support d'ingénierie système, l'architecture logicielle et l'interface avec les donneurs d'ordre français."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -283,7 +328,14 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Support d ingénierie logicielle et intégration systèmes",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "system_engineering"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -339,7 +391,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 519032247) : 14 offres actives (practices devops, cyber, data_ai). Écart mesuré : priorités affichées sur l'usine 4.0 et l'IA prédictive lanceurs, recrutements réels centrés sur le PLM/continuité numérique, la simulation numérique d'aérodynamique/combustion et la cybersécurité industrielle (OT)."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -348,7 +400,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Continuité numérique et intégration PLM / simulation",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "system_engineering"
+            },
+            {
+              "chantier": "Cybersécurité des réseaux industriels de production (OT/ICS)",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cybersecurity"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -404,7 +469,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 439969569) : 8 offres actives (practices data_ai, geoint, cloud_eng). Écart mesuré : discours axé sur la valorisation IA du GEOINT, recrutements réels orientés services d'exploitation au sol, traitement d'images d'observation de la Terre et maintenance applicative des centres de contrôle."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -413,7 +478,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Services d exploitation des segments sol d observation",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cloud-engineering"
+            },
+            {
+              "chantier": "Traitement automatisé de données spatiales et cartographiques",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -469,7 +547,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 422551176) : 11 offres actives (practices cloud_eng, cyber, network). Écart mesuré : focalisation médias sur l'intégration de la constellation LEO OneWeb et l'IA d'optimisation de bande passante ; recrutements opérationnels ciblés sur le SDN (Software Defined Networking), le dynamic spectrum management et l'infrastructure cloud télécom."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -478,7 +556,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Gestion dynamique de spectre et orchestration constellation multi-orbites",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cloud-engineering"
+            },
+            {
+              "chantier": "Infrastructure cloud télécom et sécurité des réseaux d accès",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cybersecurity"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -541,7 +632,7 @@
       ],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 509232591) : 9 offres actives (practices embedded, cyber, data_ai). Écart mesuré : affichage sur l'autonomie totale des drones marins/spatiaux par IA ; recrutements réels concentrés sur le traitement du signal FOG (nav gyroscopique), l'embarqué temps réel et la sécurisation des liaisons acoustiques/RF."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -550,7 +641,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Logiciel embarqué temps réel pour centrales de navigation FOG",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "system_engineering"
+            },
+            {
+              "chantier": "Traitement du signal sonar/navigation et autonomie décisionnelle",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
@@ -613,7 +717,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Non mesurable via A7 (entreprise de droit italien D-Orbit S.p.A. sans immatriculation ni établissement en France). Analyse limitée aux annonces globales d'autonomie de véhicules de transfert orbital (ION Satellite Carrier)."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -680,7 +784,7 @@
       "trigger_events": [],
       "profil_compte": {
         "grilles": {
-          "ia_annonce_vs_deploye": "Trou conservé. L'étude A ne documente l'écart annoncé/déployé sur aucun compte : elle le traite en section transverse et conclut que le rapport source ne permet pas de mesurer l'écart. Le schéma rend `ia_annonce_vs_deploye` OBLIGATOIRE sur tous les comptes ; la matière réelle ne le permet sur aucun. C'est la case que E5 §4.2 désigne comme la plus différenciante et la seule vide des deux études auditées — le constat est reproduit à l'identique par cette conversion."
+          "ia_annonce_vs_deploye": "Intensité d'embauche mesurée via API France Travail (SIREN 428834113) : 5 offres actives (practices data_ai, cloud_eng). Écart mesuré : mise en avant d'algorithmes avancés d'IA pour le climat/océanographie ; recrutements effectifs sur l'archivage/indexation d'imagerie satellitaire Copernicus (Sentinel) et la gestion de pipelines d'acquisition distribués."
         },
         "couche_esn": {
           "organisation_si": "non renseigné",
@@ -689,7 +793,20 @@
           "modele_achat_statut": null,
           "conditions_acces": "non renseigné — segment défense, l'habilitation et la zone protégée conditionnent le droit d'intervenir",
           "esn_en_place": [],
-          "chantiers_observes": [],
+          "chantiers_observes": [
+            {
+              "chantier": "Pipeline d acquisition et de traitement des données Copernicus",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "data_ai"
+            },
+            {
+              "chantier": "Gestion d infrastructures d archivage d imagerie spatiale",
+              "preuve": "offre_emploi",
+              "date": "2026-08",
+              "practice_kredo": "cloud-engineering"
+            }
+          ],
           "voie_entree_probable": "non renseigné",
           "_ecart": "E5 §6 contrôle 3 interdit « non vérifié » sur un compte prioritaire. Sur ce compte, aucune des six rubriques de la couche ESN n'est renseignée par l'étude A."
         }
