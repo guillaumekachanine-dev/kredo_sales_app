@@ -214,6 +214,18 @@ relèvent de G2.
 **Écrans servis** : BI → Étude sectorielle (principal) · BI → Calendrier · Prospection →
 Playbook et Fenêtres · Cockpit → Secteur et Stratégie.
 
+### Correspondance des vocabulaires de practices (Action A6)
+
+Pour les champs `practice_kredo` / `kredo_practice` des livrables et des tables `sector_*`, le mapping bi-directionnel avec les slugs de la table `offer_practices` est le suivant :
+
+| `kredo_practice` (base / schema E4) | `offer_practices.slug` (base `offer_practices`) | Libellé |
+|---|---|---|
+| `data_ai` | `data-ia` (ou `data-ai`) | Data Intelligence & Artificial Intelligence |
+| `cloud_eng` | `digital-cloud` (ou `cloud-engineering`) | Digital & Cloud Engineering |
+| `cyber` | `cybersecurity` | Cybersecurity & SecOps |
+| `product` | `agile-pm` | Agile Product Management |
+| `multi` | `null` (transversal) | Transversal |
+
 **Finalité** : que le commercial tienne trois minutes de conversation métier sans être
 interchangeable, et qu'il sache pourquoi il appelle maintenant.
 

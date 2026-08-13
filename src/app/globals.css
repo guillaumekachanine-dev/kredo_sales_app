@@ -38,6 +38,13 @@
   --color-brand-ember: #D97020;
   --color-brand-ink: #1A2540;
 
+  /* ── Cockpit Intelligence · cobalt identity ──────────────
+     Déclarés dans @theme pour générer les utilitaires Tailwind v4.
+     Les redéclarations contextuelles seules ne créent pas de classes. */
+  --color-cockpit-cobalt: var(--color-brand-primary);
+  --color-cockpit-cobalt-deep: var(--color-brand-primary-deep);
+  --color-cockpit-cobalt-soft: #EAF0FB;
+
   /* ── Navigation · navy sidebar ─────────────────────────── */
   --color-sidebar-bg: #162650;
   /* fond sidebar Desktop — navy profond, distinct du cobalt CTA */
@@ -364,7 +371,8 @@
   --color-brand-brass: #D89B16;
   --color-brand-brass-hover: #B77E0C;
   --color-secondary: #FBBF24;
-  --color-cockpit-cobalt: #2554B8;
+  --color-cockpit-cobalt: var(--color-brand-primary);
+  --color-cockpit-cobalt-deep: var(--color-brand-primary-deep);
 }
 
 /* Seconde passe éditoriale — quatre repères calmes : une famille de caractères

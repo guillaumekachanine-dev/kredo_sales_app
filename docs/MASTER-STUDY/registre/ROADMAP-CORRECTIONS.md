@@ -49,9 +49,9 @@ préférence d'ordonnancement, c'est une condition pour que la collecte ne soit 
 | **A1** | Rendre G0 franchissable | `10-ETAPE-E7…` §2 + `04-ETAPE-E1…` §4.1/§5 | 15 min | ✅ **fait 13/08** |
 | **A2** | Trancher G0 vs E0 sur les comptes clients | `03-ETAPE-E0…` §3 + §4.3 | 10 min | ✅ **fait 13/08** — tranché par Guillaume |
 | **A3** | Ajouter `compteurs` à `cadrage.schema.json` | `schemas/` | 5 min | ✅ **fait 13/08** |
-| **A4** | Étendre le parseur E5 à la couche ESN | code, 3 couches | ½ j | ☐ à faire |
-| **A5** | Écrire `taxonomie.schema.json` et `socle.schema.json` | `schemas/` | 1 h | ☐ à faire |
-| **A6** | Table de correspondance `kredo_practice` ↔ `offer_practices.slug` | corpus + migration | 2 h | ☐ à faire |
+| **A4** | Étendre le parseur E5 à la couche ESN | code, 3 couches | ½ j | ✅ **fait 13/08** |
+| **A5** | Écrire `taxonomie.schema.json` et `socle.schema.json` | `schemas/` | 1 h | ✅ **fait 13/08** |
+| **A6** | Table de correspondance `kredo_practice` ↔ `offer_practices.slug` | corpus + migration | 2 h | ✅ **fait 13/08** |
 
 ### A1 — G0 est inpassable par construction ✅ *corrigé le 13/08*
 

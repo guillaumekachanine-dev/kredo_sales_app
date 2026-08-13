@@ -64,6 +64,42 @@ export function getPracticeBySlug(slug: string): PracticeConfig | undefined {
   return BY_SLUG.get(slug as PracticeSlug)
 }
 
+// ─── Practice Key Correspondence (Action A6 - MASTER STUDY) ─────────────────────
+// Table de correspondance entre kredo_practice (base sector_*) et offer_practices.slug (table offer_practices)
+
+export const KREDO_PRACTICE_TO_OFFER_PRACTICE_MAP: Record<string, PracticeSlug | null> = {
+  data_ai: "data-ia",
+  cloud_eng: "digital-cloud",
+  cyber: "cybersecurity",
+  product: "agile-pm",
+  multi: null,
+}
+
+export const OFFER_PRACTICE_TO_KREDO_PRACTICE_MAP: Record<string, string> = {
+  "data-ia": "data_ai",
+  "data-ai": "data_ai",
+  "digital-cloud": "cloud_eng",
+  "cloud-engineering": "cloud_eng",
+  cloud_eng: "cloud_eng",
+  cybersecurity: "cyber",
+  cyber: "cyber",
+  "agile-pm": "product",
+  product: "product",
+  "qa-testing": "multi",
+}
+
+export function mapKredoPracticeToOfferPractice(practice: string | null | undefined): PracticeSlug | null {
+  if (!practice) return null
+  const key = practice.toLowerCase().trim()
+  return KREDO_PRACTICE_TO_OFFER_PRACTICE_MAP[key] ?? (BY_SLUG.has(key as PracticeSlug) ? (key as PracticeSlug) : null)
+}
+
+export function mapOfferPracticeToKredoPractice(slug: string | null | undefined): string | null {
+  if (!slug) return null
+  const key = slug.toLowerCase().trim()
+  return OFFER_PRACTICE_TO_KREDO_PRACTICE_MAP[key] ?? null
+}
+
 // Mots-clés pour fuzzy match sur collaborator.practice (champ texte libre)
 const KEYWORDS: Array<{ keywords: string[]; slug: PracticeSlug }> = [
   {

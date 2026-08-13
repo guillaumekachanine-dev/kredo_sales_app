@@ -189,13 +189,13 @@ function EditorialPanelAction({ action, onClick }: {
 }) {
   const content = (
     <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded bg-surface-hover">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-small)] border border-white/10 bg-white/10 transition-colors group-hover:border-brand-brass/30 group-hover:bg-brand-brass/15">
         <Image src={action.iconSrc} alt="" width={40} height={40} className="size-7 object-contain" />
       </span>
-      <span className="text-sm font-bold text-heading">{action.label}</span>
+      <span className="text-sm font-bold text-white">{action.label}</span>
     </>
   )
-  const className = "flex min-h-[64px] items-center gap-2.5 rounded-[var(--radius-medium)] border border-border bg-surface px-3 text-left transition-colors hover:bg-surface-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+  const className = "group flex min-h-[64px] items-center gap-2.5 rounded-[var(--radius-medium)] border border-white/15 bg-white/[0.08] px-3 text-left transition-[background-color,border-color,transform] hover:border-white/30 hover:bg-white/[0.14] active:scale-[0.98] active:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60"
 
   if ("href" in action) return <Link href={action.href} onClick={onClick} className={className}>{content}</Link>
   return <button type="button" onClick={onClick} className={className}>{content}</button>
@@ -209,16 +209,16 @@ function EditorialResourceRow({ label, iconSrc, href, onClick }: {
 }) {
   const content = (
     <>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded bg-surface-hover">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-small)] border border-white/10 bg-white/[0.08]">
         <Image src={iconSrc} alt="" width={32} height={32} className="size-5 object-contain" />
       </span>
-      <span className="min-w-0 flex-1 text-sm font-semibold text-heading">{label}</span>
-      <svg className="size-4 shrink-0 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
+      <span className="min-w-0 flex-1 text-sm font-semibold text-white">{label}</span>
+      <svg className="size-4 shrink-0 text-brand-brass transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
       </svg>
     </>
   )
-  const className = "flex min-h-12 w-full items-center gap-3 border-b border-border py-2 text-left transition-colors last:border-b-0 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+  const className = "group flex min-h-12 w-full items-center gap-3 border-b border-white/15 px-1 py-2 text-left transition-colors last:border-b-0 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-brass/60"
   if (href) return <Link href={href} onClick={onClick} className={className}>{content}</Link>
   return <button type="button" onClick={onClick} className={className}>{content}</button>
 }
@@ -236,7 +236,7 @@ function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClic
         <button
           type="button"
           onClick={() => setActiveAction(null)}
-          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary-deep"
+          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-white/80 transition-colors hover:text-white"
         >
           <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -254,11 +254,11 @@ function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClic
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-6">
       <section>
         <div className="mb-3 flex items-center gap-2">
           <span className="h-0.5 w-5 bg-brand-brass" aria-hidden="true" />
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Actions</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">Actions</h3>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {ACCOUNT_EDITORIAL_ACTIONS.map((action) => (
@@ -279,9 +279,9 @@ function AccountMobileContent({ onWriteEmailClick, onClose }: { onWriteEmailClic
       </section>
 
       <section>
-        <div className="mb-2 flex items-center gap-2 border-t border-border pt-5">
-          <span className="h-0.5 w-5 bg-edito-navy" aria-hidden="true" />
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Ressources</h3>
+        <div className="mb-2 flex items-center gap-2 border-t border-white/15 pt-5">
+          <span className="h-0.5 w-5 bg-brand-brass" aria-hidden="true" />
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">Ressources</h3>
         </div>
         <div>
           <EditorialResourceRow
@@ -576,15 +576,15 @@ export function IntelligenceFAB() {
         className={cn(
           "sm:hidden",
           isAccountMode
-            ? "border-t border-border bg-surface text-heading"
+            ? "border-t border-cockpit-cobalt bg-cockpit-cobalt-deep text-white"
             : "border-t border-white/15 bg-primary text-white [--color-heading:white] [--color-muted:rgba(255,255,255,0.72)] [--color-border:rgba(255,255,255,0.18)] [--color-surface:rgba(255,255,255,0.12)]",
         )}
         headerClassName={isAccountMode
-          ? "border-b border-white/15 bg-edito-petrol-deep text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
+          ? "border-b-2 border-brand-brass bg-cockpit-cobalt text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-white"
           : "border-b border-white/15 text-white [&_button]:text-white/70 [&_button]:hover:text-white [&_[aria-hidden=true]]:bg-white/15 [&_[aria-hidden=true]]:text-white"}
         headerStyle={isAccountMode ? undefined : COCKPIT_PANEL_STYLE}
         contentClassName={isAccountMode
-          ? "bg-edito-canvas text-heading [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
+          ? "bg-cockpit-cobalt-deep text-white [--drawer-header-fade-start:transparent] [--drawer-header-fade-end:transparent]"
           : "bg-primary text-white"}
         showMobileCloseButton={isAccountMode}
         icon={isAccountMode ? (
